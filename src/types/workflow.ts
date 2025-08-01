@@ -10,12 +10,11 @@ export interface ToolConfig {
   [key: string]: any;
 }
 
-export interface Inlet {
+export interface Socket {
   id: number;
-}
-
-export interface Outlet {
-  id: number;
+  direction: 'input' | 'output';
+  type?: string;
+  multiple?: boolean;
 }
 
 export interface Tool {
@@ -24,11 +23,10 @@ export interface Tool {
   x: number;
   y: number;
   config: ToolConfig;
-  inlets: Inlet[];
-  outlets: Outlet[];
+  sockets: Socket[];
 }
 
-export interface Group {
+export interface Container {
   id: string;
   name: string;
   x: number;
@@ -36,17 +34,17 @@ export interface Group {
   width: number;
   height: number;
   tools: Tool[];
-  groups?: Group[];
+  containers?: Container[];
 }
 
-export interface Edge {
+export interface Wire {
   from: {
     tool: string;
-    port: number;
+    socket: number;
   };
   to: {
     tool: string;
-    port: number;
+    socket: number;
   };
 }
 
@@ -54,8 +52,8 @@ export interface Workflow {
   version: string;
   xmlns: string;
   meta: WorkflowMeta;
-  hierarchy: Group;
-  edges: Edge[];
+  layout: Container;
+  wires: Wire[];
 }
 
 export interface ToolDefinition {
@@ -64,8 +62,16 @@ export interface ToolDefinition {
   icon: string;
   category: 'inout' | 'preparation' | 'join';
   defaultConfig: ToolConfig;
-  inlets: number;
-  outlets: number;
+  sockets: Socket[];
 }
 
 export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join';
+
+export interface ConnectionState {
+  isConnecting: boolean;
+  startTool?: string;
+  startSocket?: number;
+  startSocketType?: 'input' | 'output';
+  currentX?: number;
+  currentY?: number;
+}

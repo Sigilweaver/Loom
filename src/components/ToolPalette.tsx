@@ -18,8 +18,8 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
   const tools = getToolsByCategory(activeTab);
 
   const handleDragStart = (e: React.DragEvent, toolType: string) => {
-    e.dataTransfer.setData('text/plain', toolType);
-    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('application/reactflow', toolType);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   return (

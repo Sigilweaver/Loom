@@ -21,8 +21,8 @@ function createWindow(): void {
   console.log('isDev:', isDev, 'NODE_ENV:', process.env.NODE_ENV, 'IS_DEV:', process.env.IS_DEV)
 
   if (isDev) {
-    console.log('Loading development URL: http://localhost:5174')
-    mainWindow.loadURL('http://localhost:5174')
+    console.log('Loading development URL: http://localhost:5173')
+    mainWindow.loadURL('http://localhost:5173')
     // mainWindow.webContents.openDevTools() // Disabled for cleaner experience
   } else {
     console.log('Loading production file:', join(__dirname, '../dist/index.html'))

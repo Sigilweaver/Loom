@@ -10,8 +10,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     defaultConfig: {
       path: '',
     },
-    inlets: 0,
-    outlets: 1,
+    sockets: [
+      { id: 0, direction: 'output' }
+    ]
   },
   {
     type: 'Output',
@@ -21,8 +22,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     defaultConfig: {
       path: '',
     },
-    inlets: 1,
-    outlets: 0,
+    sockets: [
+      { id: 0, direction: 'input' }
+    ]
   },
   
   // Preparation Tools
@@ -35,8 +37,11 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       expression: '',
       mode: 'Custom',
     },
-    inlets: 1,
-    outlets: 2,
+    sockets: [
+      { id: 0, direction: 'input' },
+      { id: 1, direction: 'output', type: 'T' },
+      { id: 2, direction: 'output', type: 'F' }
+    ]
   },
   {
     type: 'Select',
@@ -46,8 +51,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     defaultConfig: {
       columns: [],
     },
-    inlets: 1,
-    outlets: 1,
+    sockets: [
+      { id: 0, direction: 'input' },
+      { id: 1, direction: 'output' }
+    ]
   },
   {
     type: 'Sort',
@@ -58,8 +65,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       columns: [],
       order: 'asc',
     },
-    inlets: 1,
-    outlets: 1,
+    sockets: [
+      { id: 0, direction: 'input' },
+      { id: 1, direction: 'output' }
+    ]
   },
   
   // Join Tools
@@ -71,8 +80,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     defaultConfig: {
       mode: 'ByName',
     },
-    inlets: 2,
-    outlets: 1,
+    sockets: [
+      { id: 0, direction: 'input', multiple: true },
+      { id: 1, direction: 'output' }
+    ]
   },
   {
     type: 'Join',
@@ -84,8 +95,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       leftKeys: [],
       rightKeys: [],
     },
-    inlets: 2,
-    outlets: 1,
+    sockets: [
+      { id: 0, direction: 'input', type: 'L' }, // Left input
+      { id: 1, direction: 'input', type: 'R' }, // Right input  
+      { id: 2, direction: 'output', type: 'L' }, // Left output
+      { id: 3, direction: 'output', type: 'J' }, // Join output
+      { id: 4, direction: 'output', type: 'R' }  // Right output
+    ]
   },
 ];
 

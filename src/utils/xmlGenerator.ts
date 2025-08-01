@@ -1,4 +1,4 @@
-import { Workflow, Tool, Edge, Group } from '../types/workflow';
+import { Workflow, Tool, Wire, Container } from '../types/workflow';
 
 export function generateWorkflowXML(workflow: Workflow): string {
   const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -6,8 +6,8 @@ export function generateWorkflowXML(workflow: Workflow): string {
   const workflowElement = `<Workflow version="${workflow.version}" xmlns="${workflow.xmlns}">`;
   
   const metaSection = generateMetaSection(workflow.meta);
-  const hierarchySection = generateHierarchySection(workflow.hierarchy);
-  const edgesSection = generateEdgesSection(workflow.edges);
+  const layoutSection = generateLayoutSection(workflow.layout);
+  const wiresSection = generateWiresSection(workflow.wires);
   
   return [
     xmlHeader,
@@ -15,9 +15,9 @@ export function generateWorkflowXML(workflow: Workflow): string {
     '',
     metaSection,
     '',
-    hierarchySection,
+    layoutSection,
     '',
-    edgesSection,
+    wiresSection,
     '</Workflow>'
   ].join('\n');
 }
@@ -38,34 +38,34 @@ function generateMetaSection(meta: any): string {
   ].join('\n');
 }
 
-function generateHierarchySection(hierarchy: Group): string {
+function generateLayoutSection(layout: Container): string {
   return [
-    '  <Hierarchy>',
-    generateGroupXML(hierarchy, '    '),
-    '  </Hierarchy>'
+    '  <Layout>',
+    generateContainerXML(layout, '    '),
+    '  </Layout>'
   ].join('\n');
 }
 
-function generateGroupXML(group: Group, indent: string): string {
+function generateContainerXML(container: Container, indent: string): string {
   const lines = [
-    `${indent}<Group id="${group.id}" name="${group.name}" x="${group.x}" y="${group.y}" width="${group.width}" height="${group.height}">`
+    `${indent}<Container id="${container.id}" name="${container.name}" x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}">`
   ];
   
-  if (group.groups && group.groups.length > 0) {
-    group.groups.forEach(subGroup => {
-      lines.push(generateGroupXML(subGroup, indent + '  '));
+  if (container.containers && container.containers.length > 0) {
+    container.containers.forEach(subContainer => {
+      lines.push(generateContainerXML(subContainer, indent + '  '));
     });
   }
   
-  if (group.tools.length > 0) {
+  if (container.tools.length > 0) {
     lines.push(`${indent}  <Tools>`);
-    group.tools.forEach(tool => {
+    container.tools.forEach(tool => {
       lines.push(generateToolXML(tool, indent + '    '));
     });
     lines.push(`${indent}  </Tools>`);
   }
   
-  lines.push(`${indent}</Group>`);
+  lines.push(`${indent}</Container>`);
   
   return lines.join('\n');
 }
@@ -84,36 +84,32 @@ function generateToolXML(tool: Tool, indent: string): string {
     lines.push(`${indent}  </Config>`);
   }
   
-  // Inlets section
-  lines.push(`${indent}  <Inlets>`);
-  tool.inlets.forEach(inlet => {
-    lines.push(`${indent}    <Inlet id="${inlet.id}" />`);
+  // Sockets section
+  lines.push(`${indent}  <Sockets>`);
+  tool.sockets.forEach(socket => {
+    const attributes = [`id="${socket.id}"`, `direction="${socket.direction}"`];
+    if (socket.type) attributes.push(`type="${socket.type}"`);
+    if (socket.multiple) attributes.push(`multiple="${socket.multiple}"`);
+    lines.push(`${indent}    <Socket ${attributes.join(' ')} />`);
   });
-  lines.push(`${indent}  </Inlets>`);
-  
-  // Outlets section
-  lines.push(`${indent}  <Outlets>`);
-  tool.outlets.forEach(outlet => {
-    lines.push(`${indent}    <Outlet id="${outlet.id}" />`);
-  });
-  lines.push(`${indent}  </Outlets>`);
+  lines.push(`${indent}  </Sockets>`);
   
   lines.push(`${indent}</Tool>`);
   
   return lines.join('\n');
 }
 
-function generateEdgesSection(edges: Edge[]): string {
-  const lines = ['  <Edges>'];
+function generateWiresSection(wires: Wire[]): string {
+  const lines = ['  <Wires>'];
   
-  edges.forEach(edge => {
-    lines.push('    <Edge>');
-    lines.push(`      <From tool="${edge.from.tool}" port="${edge.from.port}" />`);
-    lines.push(`      <To tool="${edge.to.tool}" port="${edge.to.port}" />`);
-    lines.push('    </Edge>');
+  wires.forEach(wire => {
+    lines.push('    <Wire>');
+    lines.push(`      <From tool="${wire.from.tool}" socket="${wire.from.socket}" />`);
+    lines.push(`      <To tool="${wire.to.tool}" socket="${wire.to.socket}" />`);
+    lines.push('    </Wire>');
   });
   
-  lines.push('  </Edges>');
+  lines.push('  </Wires>');
   
   return lines.join('\n');
 }

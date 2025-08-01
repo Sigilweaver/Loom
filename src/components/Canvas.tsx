@@ -1,166 +1,185 @@
-import React, { useRef, useState } from 'react';
-import { Tool, Edge } from '../types/workflow';
+import React, { useCallback, useMemo } from 'react';
+import {
+  ReactFlow,
+  Node,
+  Edge,
+  Connection,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  Background,
+  BackgroundVariant,
+  MarkerType,
+  ConnectionLineType,
+  PanOnScrollMode,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { Tool, Wire } from '../types/workflow';
 import { getToolDefinition } from '../data/tools';
+import WorkflowNode from './WorkflowNode';
 
 interface CanvasProps {
   tools: Tool[];
-  edges: Edge[];
+  wires: Wire[];
   onAddTool: (toolType: string, x: number, y: number) => void;
-  onAddEdge: (from: { tool: string; port: number }, to: { tool: string; port: number }) => void;
+  onAddWire: (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => void;
+  onRemoveWire: (wireId: string) => void;
   onToolMove: (toolId: string, x: number, y: number) => void;
 }
 
-interface DraggedTool {
-  id: string;
-  offsetX: number;
-  offsetY: number;
-}
+const nodeTypes = {
+  workflow: WorkflowNode,
+};
 
-export default function Canvas({ tools, edges, onAddTool, onAddEdge, onToolMove }: CanvasProps) {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [draggedTool, setDraggedTool] = useState<DraggedTool | null>(null);
+export default function Canvas({ 
+  tools, 
+  wires, 
+  onAddTool, 
+  onAddWire, 
+  onRemoveWire,
+  onToolMove 
+}: CanvasProps) {
+  // Convert our tools to React Flow nodes
+  const nodes: Node[] = useMemo(() => 
+    tools.map(tool => {
+      const definition = getToolDefinition(tool.type);
+      return {
+        id: tool.id,
+        type: 'workflow',
+        position: { x: tool.x, y: tool.y },
+        data: { 
+          tool,
+          definition,
+          onToolMove 
+        },
+      };
+    }), [tools, onToolMove]);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const toolType = e.dataTransfer.getData('text/plain');
-    
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      onAddTool(toolType, x, y);
+  // Convert our wires to React Flow edges
+  const edges: Edge[] = useMemo(() => 
+    wires.map((wire) => ({
+      id: `${wire.from.tool}-${wire.from.socket}-${wire.to.tool}-${wire.to.socket}`,
+      source: wire.from.tool,
+      target: wire.to.tool,
+      sourceHandle: `output-${wire.from.socket}`,
+      targetHandle: `input-${wire.to.socket}`,
+      type: 'default',
+      style: { stroke: '#4f46e5', strokeWidth: 2 },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#4f46e5',
+      },
+      deletable: true,
+    })), [wires]);
+
+  const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
+  const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
+
+  // Update flow nodes when tools change
+  React.useEffect(() => {
+    setNodes(nodes);
+  }, [nodes, setNodes]);
+
+  // Update flow edges when wires change  
+  React.useEffect(() => {
+    setEdges(edges);
+  }, [edges, setEdges]);
+
+  const onConnect = useCallback((connection: Connection) => {
+    if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
+      // Extract socket IDs from handles
+      const fromSocket = parseInt(connection.sourceHandle.replace('output-', ''));
+      const toSocket = parseInt(connection.targetHandle.replace('input-', ''));
+      
+      onAddWire(
+        { tool: connection.source, socket: fromSocket },
+        { tool: connection.target, socket: toSocket }
+      );
     }
-  };
+  }, [onAddWire]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  };
+  const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    edgesToDelete.forEach((edge) => {
+      onRemoveWire(edge.id);
+    });
+  }, [onRemoveWire]);
 
-  const handleToolMouseDown = (e: React.MouseEvent, toolId: string) => {
-    e.preventDefault();
-    const tool = tools.find(t => t.id === toolId);
-    if (!tool) return;
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
 
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
+    const toolType = event.dataTransfer.getData('application/reactflow');
+    if (!toolType) return;
 
-    setDraggedTool({ id: toolId, offsetX, offsetY });
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (canvasRef.current) {
-        const canvasRect = canvasRef.current.getBoundingClientRect();
-        const newX = e.clientX - canvasRect.left - offsetX;
-        const newY = e.clientY - canvasRect.top - offsetY;
-        onToolMove(toolId, newX, newY);
-      }
+    const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+    const toolSize = 100; // Square tools are 100x100
+    
+    const position = {
+      x: event.clientX - reactFlowBounds.left - (toolSize / 2),
+      y: event.clientY - reactFlowBounds.top - (toolSize / 2),
     };
 
-    const handleMouseUp = () => {
-      setDraggedTool(null);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+    onAddTool(toolType, position.x, position.y);
+  }, [onAddTool]);
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onNodeDragStop = useCallback((_event: any, node: Node) => {
+    onToolMove(node.id, node.position.x, node.position.y);
+  }, [onToolMove]);
+
+  // Handle wheel events for zooming and panning
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+    // Ctrl+wheel for zoom
+    if (event.ctrlKey) {
+      return; // Let React Flow handle zoom
+    }
+    
+    // Shift+wheel for horizontal scrolling
+    if (event.shiftKey) {
+      return; // Let React Flow handle horizontal pan
+    }
+    
+    // Regular wheel for vertical scrolling
+    return; // Let React Flow handle vertical pan
+  }, []);
 
   return (
-    <div className="flex-1 relative overflow-hidden">
-      <div
-        ref={canvasRef}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className="w-full h-full bg-gray-50 relative"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-            linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
+    <div className="flex-1 h-full">
+      <ReactFlow
+        nodes={flowNodes}
+        edges={flowEdges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onEdgesDelete={onEdgesDelete}
+        onConnect={onConnect}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onNodeDragStop={onNodeDragStop}
+        onWheel={handleWheel}
+        nodeTypes={nodeTypes}
+        connectionLineType={ConnectionLineType.Bezier}
+        defaultEdgeOptions={{
+          type: 'default',
+          style: { stroke: '#4f46e5', strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#4f46e5' },
         }}
+        panOnScroll={true}
+        panOnScrollMode={PanOnScrollMode.Free}
+        panOnScrollSpeed={0.8}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomActivationKeyCode="ControlLeft"
+        panOnDrag={[1, 2]} // Allow panning with left and middle mouse buttons
+        selectNodesOnDrag={false}
+        fitView
+        className="bg-gray-50"
       >
-        {/* Render edges */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ zIndex: 1 }}
-        >
-          {edges.map((edge, index) => {
-            const fromTool = tools.find(t => t.id === edge.from.tool);
-            const toTool = tools.find(t => t.id === edge.to.tool);
-            
-            if (!fromTool || !toTool) return null;
-
-            return (
-              <line
-                key={index}
-                x1={fromTool.x + 60}
-                y1={fromTool.y + 30}
-                x2={toTool.x}
-                y2={toTool.y + 30}
-                stroke="#6b7280"
-                strokeWidth="2"
-                markerEnd="url(#arrowhead)"
-              />
-            );
-          })}
-          
-          {/* Arrow marker definition */}
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="10"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="#6b7280"
-              />
-            </marker>
-          </defs>
-        </svg>
-
-        {/* Render tools */}
-        {tools.map((tool) => {
-          const definition = getToolDefinition(tool.type);
-          if (!definition) return null;
-
-          return (
-            <div
-              key={tool.id}
-              onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-              className={`absolute cursor-move select-none border-2 rounded-lg p-3 bg-white shadow-lg transition-transform hover:scale-105 ${
-                draggedTool?.id === tool.id ? 'scale-105 shadow-xl' : ''
-              }`}
-              style={{
-                left: tool.x,
-                top: tool.y,
-                width: '120px',
-                height: '60px',
-                borderColor: 
-                  definition.category === 'inout' ? '#10b981' :
-                  definition.category === 'preparation' ? '#3b82f6' :
-                  definition.category === 'join' ? '#8b5cf6' : '#6b7280',
-                zIndex: draggedTool?.id === tool.id ? 10 : 2
-              }}
-            >
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-xl mb-1">{definition.icon}</div>
-                  <div className="text-xs font-medium text-gray-700">
-                    {definition.name}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+        <Controls />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+      </ReactFlow>
     </div>
   );
 }
