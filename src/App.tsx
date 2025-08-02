@@ -69,9 +69,77 @@ function App() {
     setWorkflowMeta(xmlManager.getMetadata());
   };
 
+  // Rebuild tool configurations from XML data
+  const rebuildToolConfigurations = () => {
+    const tools = xmlManager.getTools();
+    const newConfigurations = new Map<string, ToolConfiguration>();
+
+    tools.forEach(tool => {
+      if (tool.config && Object.keys(tool.config).length > 0) {
+        // Extract Category and Type from config
+        const category = tool.config.Category;
+        const type = tool.config.Type;
+        
+        // Create a copy of config without Category and Type for parameters
+        const parameters = { ...tool.config };
+        delete parameters.Category;
+        delete parameters.Type;
+
+        // Only create configuration if we have meaningful parameters or connection type
+        if (type || Object.keys(parameters).length > 0) {
+          const configuration: ToolConfiguration = {
+            toolId: tool.id,
+            toolType: tool.type,
+            connectionType: type || '',
+            parameters,
+            isValid: true, // Assume valid since it came from XML
+            errors: []
+          };
+          
+          newConfigurations.set(tool.id, configuration);
+        }
+      }
+    });
+
+    setToolConfigurations(newConfigurations);
+  };
+
+  // Get configuration for a tool, creating it from XML data if not in map
+  const getToolConfiguration = (tool: Tool): ToolConfiguration | null => {
+    // First check if we have it in the map
+    const existingConfig = toolConfigurations.get(tool.id);
+    if (existingConfig) {
+      return existingConfig;
+    }
+
+    // If not in map but tool has config in XML, create configuration
+    if (tool.config && Object.keys(tool.config).length > 0) {
+      const type = tool.config.Type;
+      
+      // Create a copy of config without Category and Type for parameters
+      const parameters = { ...tool.config };
+      delete parameters.Category;
+      delete parameters.Type;
+
+      if (type || Object.keys(parameters).length > 0) {
+        return {
+          toolId: tool.id,
+          toolType: tool.type,
+          connectionType: type || '',
+          parameters,
+          isValid: true,
+          errors: []
+        };
+      }
+    }
+
+    return null;
+  };
+
   // Initialize state from XML
   useEffect(() => {
     updateStateFromXML();
+    rebuildToolConfigurations(); // Load configurations from initial XML
     // Initialize edges from XML
     setEdges(edgeManager.getEdgesFromXML());
     
@@ -140,7 +208,7 @@ function App() {
     xmlManager.newWorkflow();
     updateStateFromXML();
     setSelectedTool(null);
-    setToolConfigurations(new Map());
+    setToolConfigurations(new Map()); // New workflow has no configurations
     // Reset edges
     setEdges(edgeManager.getEdgesFromXML());
   };
@@ -160,7 +228,7 @@ function App() {
           xmlManager.loadFromXML(xmlContent);
           updateStateFromXML();
           setSelectedTool(null);
-          setToolConfigurations(new Map());
+          rebuildToolConfigurations(); // Rebuild configurations from imported XML
           // Reset edges from new XML
           setEdges(edgeManager.getEdgesFromXML());
 
@@ -299,7 +367,7 @@ function App() {
         {/* Configuration Panel - Left Side */}
         <ConfigurationPanel
           selectedTool={selectedTool}
-          configuration={selectedTool ? toolConfigurations.get(selectedTool.id) || null : null}
+          configuration={selectedTool ? getToolConfiguration(selectedTool) : null}
           onConfigurationChange={handleConfigurationChange}
           onShowNotification={showNotification}
           workflowMeta={workflowMeta}

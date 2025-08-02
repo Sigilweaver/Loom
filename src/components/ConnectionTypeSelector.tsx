@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ConnectionType } from '../types/configuration';
 
 interface ConnectionTypeSelectorProps {
@@ -13,6 +13,15 @@ export default function ConnectionTypeSelector({
   onTypeSelect
 }: ConnectionTypeSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<'file' | 'database' | ''>('');
+  
+  // Update selectedCategory when selectedType changes (e.g., when loading from XML)
+  useEffect(() => {
+    if (selectedType) {
+      setSelectedCategory(selectedType.category);
+    } else {
+      setSelectedCategory('');
+    }
+  }, [selectedType]);
   
   // Group types by category
   const fileTypes = availableTypes.filter(type => type.category === 'file');
