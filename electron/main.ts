@@ -120,11 +120,40 @@ function createWindow(): void {
           }
         }
       ]
+    },
+    {
+      label: 'Developer',
+      submenu: [
+        {
+          label: 'Show XML Viewer',
+          accelerator: 'CmdOrCtrl+Alt+X',
+          click: () => {
+            console.log('Show XML Viewer menu clicked');
+            mainWindow.webContents.send('menu-action', 'show-xml-viewer')
+          }
+        },
+        {
+          label: 'Hide XML Viewer',
+          accelerator: 'CmdOrCtrl+Alt+H',
+          click: () => {
+            mainWindow.webContents.send('menu-action', 'hide-xml-viewer')
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Export Current XML',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: () => {
+            mainWindow.webContents.send('menu-action', 'export-current-xml')
+          }
+        }
+      ]
     }
   ]
 
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
+  console.log('Menu created with Developer submenu');
 }
 
 app.whenReady().then(() => {
@@ -140,7 +169,7 @@ app.on('window-all-closed', () => {
 })
 
 // IPC handlers
-ipcMain.handle('save-file', async (event, content: string, filename: string) => {
+ipcMain.handle('save-file', async (_event, content: string, filename: string) => {
   try {
     await writeFile(filename, content, 'utf8')
     return filename
@@ -150,7 +179,7 @@ ipcMain.handle('save-file', async (event, content: string, filename: string) => 
   }
 })
 
-ipcMain.handle('show-save-dialog', async (event, defaultPath?: string) => {
+ipcMain.handle('show-save-dialog', async (_event, defaultPath?: string) => {
   const result = await dialog.showSaveDialog({
     defaultPath,
     filters: [

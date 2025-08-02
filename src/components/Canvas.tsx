@@ -64,12 +64,18 @@ export default function Canvas({
       sourceHandle: `output-${wire.from.socket}`,
       targetHandle: `input-${wire.to.socket}`,
       type: 'default',
-      style: { stroke: '#4f46e5', strokeWidth: 2 },
+      style: { 
+        stroke: '#4f46e5', 
+        strokeWidth: 2,
+        cursor: 'pointer'
+      },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         color: '#4f46e5',
       },
       deletable: true,
+      selectable: true,
+      focusable: true,
     })), [wires]);
 
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
@@ -148,6 +154,24 @@ export default function Canvas({
 
   return (
     <div className="flex-1 h-full">
+      <style>{`
+        .react-flow__edge.selected {
+          stroke: #ef4444 !important;
+          stroke-width: 3px !important;
+        }
+        .react-flow__edge.selected .react-flow__edge-path {
+          stroke: #ef4444 !important;
+          stroke-width: 3px !important;
+        }
+        .react-flow__edge:hover {
+          stroke: #7c3aed !important;
+          stroke-width: 3px !important;
+        }
+        .react-flow__edge:hover .react-flow__edge-path {
+          stroke: #7c3aed !important;
+          stroke-width: 3px !important;
+        }
+      `}</style>
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}
@@ -166,6 +190,8 @@ export default function Canvas({
           style: { stroke: '#4f46e5', strokeWidth: 2 },
           markerEnd: { type: MarkerType.ArrowClosed, color: '#4f46e5' },
         }}
+        deleteKeyCode={['Delete', 'Backspace']}
+        multiSelectionKeyCode={['Meta', 'Ctrl']}
         panOnScroll={true}
         panOnScrollMode={PanOnScrollMode.Free}
         panOnScrollSpeed={0.8}

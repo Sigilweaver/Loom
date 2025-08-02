@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import ToolPalette from './components/ToolPalette';
 import Canvas from './components/Canvas';
+import XMLViewer from './components/XMLViewer';
+import Header from './components/Header';
 import { Workflow, Tool, Wire, ToolCategory } from './types/workflow';
 import { generateWorkflowXML } from './utils/xmlGenerator';
 import { getToolDefinition } from './data/tools';
@@ -10,6 +12,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<ToolCategory>('favorites');
   const [tools, setTools] = useState<Tool[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
+  const [xmlViewerVisible, setXmlViewerVisible] = useState(false);
   const [workflowMeta, setWorkflowMeta] = useState({
     name: 'New Workflow',
     description: 'A new workflow',
@@ -20,44 +23,27 @@ function App() {
 
   // Listen for menu actions from Electron
   useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.onMenuAction((action: string, data?: any) => {
-        handleMenuAction(action, data);
-      });
-    }
+    // Remove Electron menu listener for pure web app
+    // if (window.electronAPI) {
+    //   window.electronAPI.onMenuAction((action: string, data?: any) => {
+    //     handleMenuAction(action, data);
+    //   });
+    // }
   }, []);
 
-  const handleMenuAction = async (action: string, data?: any) => {
-    console.log('Menu action:', action, data);
-    switch (action) {
-      case 'new-workflow':
-        setTools([]);
-        setWires([]);
-        setWorkflowMeta({
-          name: 'New Workflow',
-          description: 'A new workflow',
-          author: 'Workflow Designer',
-          workflowId: uuidv4(),
-          created: new Date().toISOString(),
-        });
-        break;
-      case 'export-xml':
-        await exportWorkflow();
-        break;
-      case 'save-workflow':
-        await saveWorkflow();
-        break;
-      case 'run-workflow':
-        console.log('Running workflow...');
-        alert('Workflow execution not yet implemented');
-        break;
-      case 'validate-workflow':
-        validateWorkflow();
-        break;
-    }
+  const newWorkflow = () => {
+    setTools([]);
+    setWires([]);
+    setWorkflowMeta({
+      name: 'New Workflow',
+      description: 'A new workflow',
+      author: 'Workflow Designer',
+      workflowId: uuidv4(),
+      created: new Date().toISOString(),
+    });
   };
 
-  const exportWorkflow = async () => {
+    const exportWorkflow = async () => {
     const workflow: Workflow = {
       version: '1.0',
       xmlns: 'https://example.com/workflow-schema',
@@ -76,29 +62,16 @@ function App() {
 
     const xml = generateWorkflowXML(workflow);
     
-    if (window.electronAPI) {
-      const fileName = await window.electronAPI.showSaveDialog(`${workflowMeta.name}.xml`);
-      if (fileName) {
-        await window.electronAPI.saveFile(xml, fileName);
-        alert('Workflow exported successfully!');
-      }
-    } else {
-      // Web version - download XML file
-      const blob = new Blob([xml], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${workflowMeta.name}.xml`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const saveWorkflow = async () => {
-    // For now, same as export XML
-    await exportWorkflow();
+    // Web app direct download
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflowMeta.name}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const validateWorkflow = () => {
@@ -215,59 +188,44 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-workflow-bg">
-      {/* Web Export Button for non-Electron environments */}
-      {!window.electronAPI && (
-        <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center">
-          <h1 className="text-lg font-semibold">Workflow Designer</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setTools([]);
-                setWires([]);
-                setWorkflowMeta({
-                  name: 'New Workflow',
-                  description: 'A new workflow',
-                  author: 'Workflow Designer',
-                  workflowId: uuidv4(),
-                  created: new Date().toISOString(),
-                });
-              }}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-            >
-              New
-            </button>
-            <button
-              onClick={exportWorkflow}
-              className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm"
-            >
-              Export XML
-            </button>
-            <button
-              onClick={validateWorkflow}
-              className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-sm"
-            >
-              Validate
-            </button>
-          </div>
-        </div>
-      )}
+      <Header
+        onNewWorkflow={newWorkflow}
+        onExportXML={exportWorkflow}
+        onShowXMLViewer={() => setXmlViewerVisible(true)}
+        onValidateWorkflow={validateWorkflow}
+        workflowMeta={workflowMeta}
+        toolCount={tools.length}
+        wireCount={wires.length}
+      />
       
       <ToolPalette 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
       />
-      <Canvas 
-        tools={tools}
-        wires={wires}
-        onAddTool={addTool}
-        onAddWire={addWire}
-        onRemoveWire={removeWire}
-        onToolMove={(toolId: string, x: number, y: number) => {
-          setTools((prev: Tool[]) => prev.map((tool: Tool) => 
-            tool.id === toolId ? { ...tool, x, y } : tool
-          ));
-        }}
-      />
+      
+      <div className="flex-1 flex overflow-hidden">
+        <Canvas 
+          tools={tools}
+          wires={wires}
+          onAddTool={addTool}
+          onAddWire={addWire}
+          onRemoveWire={removeWire}
+          onToolMove={(toolId: string, x: number, y: number) => {
+            setTools((prev: Tool[]) => prev.map((tool: Tool) => 
+              tool.id === toolId ? { ...tool, x, y } : tool
+            ));
+          }}
+        />
+        
+        {/* XML Viewer Side Panel */}
+        <XMLViewer
+          isVisible={xmlViewerVisible}
+          tools={tools}
+          wires={wires}
+          workflowMeta={workflowMeta}
+          onClose={() => setXmlViewerVisible(false)}
+        />
+      </div>
     </div>
   );
 }
