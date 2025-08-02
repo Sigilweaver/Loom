@@ -5,12 +5,14 @@ interface ConnectionTypeSelectorProps {
   availableTypes: ConnectionType[];
   selectedType: ConnectionType | null;
   onTypeSelect: (type: ConnectionType) => void;
+  onTypeClear?: () => void; // Optional callback to clear the selection
 }
 
 export default function ConnectionTypeSelector({
   availableTypes,
   selectedType,
-  onTypeSelect
+  onTypeSelect,
+  onTypeClear
 }: ConnectionTypeSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<'file' | 'database' | ''>('');
   
@@ -34,9 +36,12 @@ export default function ConnectionTypeSelector({
 
   const handleCategoryChange = (category: 'file' | 'database' | '') => {
     setSelectedCategory(category);
-    // Reset selected type when category changes
-    if (selectedType && category !== selectedType.category) {
-      // Could clear selection here if needed
+    // Clear selected type when category changes to force user to reselect
+    if (category === '' || (selectedType && category !== selectedType.category)) {
+      // Signal parent to clear the connection type and all dependent configuration
+      if (selectedType && onTypeClear) {
+        onTypeClear();
+      }
     }
   };
 
@@ -53,7 +58,7 @@ export default function ConnectionTypeSelector({
           onChange={(e) => handleCategoryChange(e.target.value as 'file' | 'database' | '')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="">Select a category...</option>
+          {!selectedCategory && <option value="">Select a category...</option>}
           {fileTypes.length > 0 && (
             <option value="file">📁 File Sources</option>
           )}
@@ -77,7 +82,7 @@ export default function ConnectionTypeSelector({
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Select a {selectedCategory === 'file' ? 'file type' : 'database type'}...</option>
+            {!selectedType && <option value="">Select a {selectedCategory === 'file' ? 'file type' : 'database type'}...</option>}
             {getTypesForCategory(selectedCategory).map(type => (
               <option 
                 key={type.id} 

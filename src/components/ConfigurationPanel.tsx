@@ -99,6 +99,15 @@ export default function ConfigurationPanel({
     updateConfiguration(defaultValues, connectionType.id);
   };
 
+  const handleConnectionTypeClear = () => {
+    setCurrentConnectionType(null);
+    setFieldValues({});
+    setFieldErrors({});
+    
+    // Update configuration with empty values
+    updateConfiguration({}, '');
+  };
+
   // Update configuration in parent component
   const updateConfiguration = (values: Record<string, any>, connectionTypeId?: string) => {
     if (!selectedTool) return;
@@ -215,6 +224,7 @@ export default function ConfigurationPanel({
             availableTypes={getInputConnectionTypes()}
             selectedType={currentConnectionType}
             onTypeSelect={handleConnectionTypeChange}
+            onTypeClear={handleConnectionTypeClear}
           />
         </div>
 
