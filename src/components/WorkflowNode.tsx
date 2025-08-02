@@ -55,7 +55,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           }}
-          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ' - Single connection only'}`}
+          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''}`}
         >
           {/* Socket type indicator (L, R, etc.) */}
           {socket.type && (
@@ -73,8 +73,8 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             </div>
           )}
           
-          {/* Multiple connection indicator - only for inputs without type labels */}
-          {!socket.type && (
+          {/* Multiple connection indicator - only for inputs without type labels that accept multiple */}
+          {!socket.type && socket.multiple && (
             <div style={{
               position: 'absolute',
               top: '50%',
@@ -85,7 +85,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               color: 'white',
               pointerEvents: 'none'
             }}>
-              {socket.multiple ? 'M' : '1'}
+              M
             </div>
           )}
           
