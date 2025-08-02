@@ -86,23 +86,6 @@ export default function ConnectionTypeSelector({
           </select>
         </div>
       )}
-
-      {/* Selected Type Summary */}
-      {selectedType && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-sm text-blue-900">{selectedType.displayName}</div>
-              {selectedType.extensions && (
-                <div className="text-xs text-blue-700 mt-1">
-                  Supported: {selectedType.extensions.join(', ')}
-                </div>
-              )}
-            </div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

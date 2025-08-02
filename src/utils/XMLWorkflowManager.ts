@@ -172,6 +172,51 @@ export class XMLWorkflowManager {
     }
   }
 
+  // Update tool configuration
+  updateToolConfiguration(toolId: string, configuration: Record<string, any>): void {
+    const toolEl = this.document.querySelector(`Tool[id="${toolId}"]`);
+    if (!toolEl) return;
+
+    // Remove existing config section
+    const existingConfigEl = toolEl.querySelector('Config');
+    if (existingConfigEl) {
+      existingConfigEl.remove();
+    }
+
+    // Create new config section with ordered fields
+    if (Object.keys(configuration).length > 0) {
+      const configEl = this.document.createElement('Config');
+      
+      // Define a specific order for configuration fields (common input tool fields first)
+      const fieldOrder = [
+        'filePath', 'path', 'fileName', 'file',
+        'delimiter', 'customDelimiter', 'hasHeaders', 
+        'startLine', 'startRow', 'encoding', 'quoteHandling',
+        'recordLimit', 'continueOnError'
+      ];
+      
+      // Add ordered fields first
+      fieldOrder.forEach(fieldName => {
+        if (configuration[fieldName] !== undefined && configuration[fieldName] !== null) {
+          const configItem = this.document.createElement(fieldName);
+          configItem.textContent = String(configuration[fieldName]);
+          configEl.appendChild(configItem);
+        }
+      });
+      
+      // Add any remaining fields that weren't in the ordered list
+      Object.entries(configuration).forEach(([key, value]) => {
+        if (!fieldOrder.includes(key) && value !== undefined && value !== null) {
+          const configItem = this.document.createElement(key);
+          configItem.textContent = String(value);
+          configEl.appendChild(configItem);
+        }
+      });
+      
+      toolEl.appendChild(configEl);
+    }
+  }
+
   // Get all wires from XML
   getWires(): Wire[] {
     const wires: Wire[] = [];

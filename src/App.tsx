@@ -85,7 +85,7 @@ function App() {
   const handleConfigurationChange = (toolId: string, config: ToolConfiguration) => {
     setToolConfigurations(prev => new Map(prev.set(toolId, config)));
     
-    // Update tool config in tools array if needed
+    // Update tool config in tools array and XML
     setTools((prevTools: Tool[]) => 
       prevTools.map((tool: Tool) => 
         tool.id === toolId 
@@ -93,6 +93,9 @@ function App() {
           : tool
       )
     );
+    
+    // Update the XML with the new configuration
+    xmlManager.updateToolConfiguration(toolId, config.parameters);
   };
 
   const handleToolSelect = (tool: Tool | null) => {
