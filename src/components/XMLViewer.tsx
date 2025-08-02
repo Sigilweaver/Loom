@@ -45,9 +45,38 @@ export default function XMLViewer({
 
   const xmlContent = generateWorkflowXML(workflow);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(xmlContent);
-    // You could add a toast notification here
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(xmlContent);
+      // Provide visual feedback - you could add a toast here
+      console.log('XML copied to clipboard successfully');
+      
+      // Simple visual feedback by temporarily changing button text
+      const button = document.querySelector('.copy-button') as HTMLButtonElement;
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.style.backgroundColor = '#10b981';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '#2563eb';
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Failed to copy XML to clipboard:', err);
+      // Fallback for older browsers or when clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = xmlContent;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        console.log('XML copied using fallback method');
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   // Simple and reliable XML syntax highlighting
@@ -108,7 +137,7 @@ export default function XMLViewer({
         <div className="flex items-center gap-2">
           <button
             onClick={copyToClipboard}
-            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            className="copy-button px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             title="Copy XML to clipboard"
           >
             Copy

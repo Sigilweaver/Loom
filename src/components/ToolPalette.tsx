@@ -23,7 +23,7 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
   };
 
   return (
-    <div className="bg-white border-b border-gray-300">
+    <div className="bg-white border-b-2 border-gray-400">
       {/* Tabs */}
       <div className="flex border-b-2 border-gray-400 px-2 pt-2 relative">
         {TABS.map((tab) => (

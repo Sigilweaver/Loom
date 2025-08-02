@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Node,
@@ -18,6 +18,8 @@ import '@xyflow/react/dist/style.css';
 import { Tool, Wire } from '../types/workflow';
 import { getToolDefinition } from '../data/tools';
 import WorkflowNode from './WorkflowNode';
+import { wouldCreateCycle } from '../utils/loopDetection';
+import Notification from './Notification';
 
 interface CanvasProps {
   tools: Tool[];
@@ -43,6 +45,29 @@ export default function Canvas({
   onToolMove 
 }: CanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Notification state
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'error' | 'warning' | 'success' | 'info';
+    isVisible: boolean;
+  }>({
+    message: '',
+    type: 'info',
+    isVisible: false
+  });
+
+  const showNotification = (message: string, type: 'error' | 'warning' | 'success' | 'info') => {
+    setNotification({
+      message,
+      type,
+      isVisible: true
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
   
   // Convert our tools to React Flow nodes
   const nodes: Node[] = useMemo(() => 
@@ -104,12 +129,46 @@ export default function Canvas({
       const fromSocket = parseInt(connection.sourceHandle.replace('output-', ''));
       const toSocket = parseInt(connection.targetHandle.replace('input-', ''));
       
+      // Validate that this connection won't create a cycle
+      if (wouldCreateCycle(tools, wires, connection.source, connection.target)) {
+        // Get tool names for better user feedback
+        const fromTool = tools.find(t => t.id === connection.source);
+        const toTool = tools.find(t => t.id === connection.target);
+        const fromName = fromTool ? getToolDefinition(fromTool.type)?.name || 'Unknown Tool' : 'Unknown Tool';
+        const toName = toTool ? getToolDefinition(toTool.type)?.name || 'Unknown Tool' : 'Unknown Tool';
+        
+        showNotification(
+          `Cannot connect "${fromName}" to "${toName}" - this would create a circular loop in your workflow. Workflows must flow in one direction to prevent infinite loops.`,
+          'error'
+        );
+        
+        // Visual feedback - briefly highlight the rejected connection in red
+        const tempEdge = {
+          id: 'temp-rejected',
+          source: connection.source,
+          target: connection.target,
+          sourceHandle: connection.sourceHandle,
+          targetHandle: connection.targetHandle,
+          style: { stroke: '#ef4444', strokeWidth: 3, strokeDasharray: '5,5' },
+          animated: true,
+          type: 'default'
+        };
+        
+        // Show rejected connection briefly
+        setEdges(prev => [...prev, tempEdge]);
+        setTimeout(() => {
+          setEdges(prev => prev.filter(edge => edge.id !== 'temp-rejected'));
+        }, 2000);
+        
+        return;
+      }
+      
       onAddWire(
         { tool: connection.source, socket: fromSocket },
         { tool: connection.target, socket: toSocket }
       );
     }
-  }, [onAddWire]);
+  }, [onAddWire, tools, wires, setEdges, showNotification]);
 
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
     edgesToDelete.forEach((edge) => {
@@ -225,6 +284,15 @@ export default function Canvas({
         <Controls />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
       </ReactFlow>
+      
+      {/* Notification System */}
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        duration={6000}
+      />
     </div>
   );
 }
