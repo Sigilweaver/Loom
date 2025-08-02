@@ -209,7 +209,7 @@ export default function ConfigurationPanel({
         {/* Step 1: Connection Type Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Data Source Type
+            Data Source Category
           </label>
           <ConnectionTypeSelector
             availableTypes={getInputConnectionTypes()}

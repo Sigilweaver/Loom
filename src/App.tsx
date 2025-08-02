@@ -11,6 +11,7 @@ import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
 import { EdgeManager } from './utils/EdgeManager';
 import { getToolDefinition } from './data/tools';
+import { getConnectionType } from './config/connectionTypes';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
@@ -88,6 +89,9 @@ function App() {
   const handleConfigurationChange = (toolId: string, config: ToolConfiguration) => {
     setToolConfigurations(prev => new Map(prev.set(toolId, config)));
     
+    // Find the connection type to get its category (File/Database)
+    const connectionType = config.connectionType ? getConnectionType(config.connectionType) : null;
+    
     // Update tool config in tools array and XML
     setTools((prevTools: Tool[]) => 
       prevTools.map((tool: Tool) => 
@@ -97,8 +101,13 @@ function App() {
       )
     );
     
-    // Update the XML with the new configuration
-    xmlManager.updateToolConfiguration(toolId, config.parameters);
+    // Update the XML with the new configuration including Category and Type
+    const configWithMeta = {
+      ...config.parameters,
+      ...(connectionType && { Category: connectionType.category === 'file' ? 'File' : 'Database' }),
+      ...(config.connectionType && { Type: config.connectionType })
+    };
+    xmlManager.updateToolConfiguration(toolId, configWithMeta);
   };
 
   const handleToolSelect = (tool: Tool | null) => {

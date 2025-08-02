@@ -187,8 +187,9 @@ export class XMLWorkflowManager {
     if (Object.keys(configuration).length > 0) {
       const configEl = this.document.createElement('Config');
       
-      // Define a specific order for configuration fields (common input tool fields first)
+      // Define a specific order for configuration fields (Category and Type first, then common input tool fields)
       const fieldOrder = [
+        'Category', 'Type',  // Backend processing identifiers
         'filePath', 'path', 'fileName', 'file',
         'delimiter', 'customDelimiter', 'hasHeaders', 
         'startLine', 'startRow', 'encoding', 'quoteHandling',

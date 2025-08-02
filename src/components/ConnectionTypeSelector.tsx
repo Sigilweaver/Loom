@@ -37,11 +37,8 @@ export default function ConnectionTypeSelector({
 
   return (
     <div className="space-y-4">
-      {/* Step 1: Category Selection */}
+      {/* Category Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Data Source Category
-        </label>
         <select
           value={selectedCategory}
           onChange={(e) => handleCategoryChange(e.target.value as 'file' | 'database' | '')}
