@@ -17,7 +17,7 @@ export default function WorkflowConfiguration({
   workflowMeta,
   onWorkflowMetaChange
 }: WorkflowConfigurationProps) {
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true); // Default to preview mode
 
   const handleFieldChange = (field: 'name' | 'description' | 'author', value: string) => {
     onWorkflowMetaChange({
@@ -75,8 +75,26 @@ export default function WorkflowConfiguration({
           <textarea
             value={workflowMeta.description}
             onChange={(e) => handleFieldChange('description', e.target.value)}
+            onKeyDown={(e) => {
+              // Allow all normal text input including spaces and newlines
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                const target = e.target as HTMLTextAreaElement;
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                const value = target.value;
+                const newValue = value.substring(0, start) + '  ' + value.substring(end);
+                handleFieldChange('description', newValue);
+                // Set cursor position after the inserted spaces
+                setTimeout(() => {
+                  target.selectionStart = target.selectionEnd = start + 2;
+                }, 0);
+              }
+              // Don't prevent any other keys - allow natural text input
+            }}
             className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
             placeholder="Enter workflow description... (Markdown supported: **bold**, *italic*, `code`, # headers, - lists)"
+            rows={4}
           />
         )}
         

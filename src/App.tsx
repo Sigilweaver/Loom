@@ -107,8 +107,14 @@ function App() {
 
   // Workflow meta update function
   const handleWorkflowMetaChange = (meta: { name: string; description: string; author: string }) => {
+    // Update local state immediately for responsive UI
+    setWorkflowMeta(prev => ({
+      ...prev,
+      ...meta
+    }));
+    
+    // Update XML in background
     xmlManager.updateMetadata(meta);
-    updateStateFromXML();
   };
 
   // Listen for menu actions from Electron
