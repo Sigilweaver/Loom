@@ -136,7 +136,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       includeNulls: false,
     },
     sockets: [
-      { id: 0, direction: 'input', multiple: true },
+      { id: 0, direction: 'input' },
       { id: 1, direction: 'output' }
     ]
   },
