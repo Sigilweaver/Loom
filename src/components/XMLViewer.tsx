@@ -189,12 +189,61 @@ export default function XMLViewer({
   const formattedXml = formatXML(xmlContent);
   const highlightedXml = highlightXML(formattedXml);
 
+  // Extract workflow name from XML for filename
+  const getWorkflowName = (): string => {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+      const nameElement = xmlDoc.querySelector('Meta > n');
+      return nameElement?.textContent || 'Untitled Workflow';
+    } catch (error) {
+      console.error('Error parsing workflow name:', error);
+      return 'Untitled Workflow';
+    }
+  };
+
+  // Sanitize filename for filesystem compatibility
+  const sanitizeFilename = (filename: string): string => {
+    return filename
+      // Replace unsafe filesystem characters with underscores
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      // Remove leading/trailing whitespace
+      .trim()
+      // Limit length to 255 characters (common filesystem limit)
+      .substring(0, 255)
+      // Ensure it's not empty
+      || 'workflow';
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(formattedXml);
       // Could add notification here if needed
     } catch (err) {
       console.error('Failed to copy XML:', err);
+    }
+  };
+
+  const exportWorkflow = () => {
+    try {
+      const workflowName = getWorkflowName();
+      const sanitizedName = sanitizeFilename(workflowName);
+      const filename = `${sanitizedName}.xml`;
+      
+      const blob = new Blob([formattedXml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export workflow:', err);
     }
   };
 
@@ -257,6 +306,13 @@ export default function XMLViewer({
         </div>
         
         <div className="flex gap-2">
+          <button
+            onClick={exportWorkflow}
+            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+            title="Export workflow as XML file"
+          >
+            Export
+          </button>
           <button
             onClick={copyToClipboard}
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
