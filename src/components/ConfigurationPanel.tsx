@@ -6,6 +6,7 @@ import ConfigurationHeader from './ConfigurationHeader';
 import ConnectionTypeSelector from './ConnectionTypeSelector';
 import FieldRenderer from './FieldRenderer';
 import WorkflowConfiguration from './WorkflowConfiguration';
+import ResizablePanel from './ResizablePanel';
 
 interface ConfigurationPanelProps {
   selectedTool: Tool | null;
@@ -147,7 +148,12 @@ export default function ConfigurationPanel({
   // Show workflow configuration if no tool is selected
   if (!selectedTool) {
     return (
-      <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+      <ResizablePanel
+        defaultWidth={320}
+        minWidth={280}
+        maxWidth={600}
+        className="bg-gray-50 border-r border-gray-200 flex flex-col"
+      >
         {/* Workflow Configuration Header */}
         <div className="bg-white border-b border-gray-200 p-4">
           <div className="flex items-center space-x-3">
@@ -166,25 +172,35 @@ export default function ConfigurationPanel({
             onWorkflowMetaChange={onWorkflowMetaChange}
           />
         </div>
-      </div>
+      </ResizablePanel>
     );
   }
 
   // Only show configuration for Input tools for now
   if (selectedTool.type !== 'Input') {
     return (
-      <div className="w-80 bg-gray-50 border-r border-gray-200">
+      <ResizablePanel
+        defaultWidth={320}
+        minWidth={280}
+        maxWidth={600}
+        className="bg-gray-50 border-r border-gray-200"
+      >
         <ConfigurationHeader tool={selectedTool} />
         <div className="p-4 text-center text-gray-500">
           <div className="text-sm">Configuration not available for {selectedTool.type} tools</div>
           <div className="text-xs mt-2 text-gray-400">Coming soon...</div>
         </div>
-      </div>
+      </ResizablePanel>
     );
   }
 
   return (
-    <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+    <ResizablePanel
+      defaultWidth={320}
+      minWidth={280}
+      maxWidth={600}
+      className="bg-gray-50 border-r border-gray-200 flex flex-col"
+    >
       {/* Header */}
       <ConfigurationHeader tool={selectedTool} />
       
@@ -239,6 +255,6 @@ export default function ConfigurationPanel({
           </div>
         </div>
       )}
-    </div>
+    </ResizablePanel>
   );
 }

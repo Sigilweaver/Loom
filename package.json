@@ -17,10 +17,13 @@
     "preelectron:pack": "npm run build:web"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@xyflow/react": "^12.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

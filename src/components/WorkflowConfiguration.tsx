@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface WorkflowConfigurationProps {
   workflowMeta: {
@@ -26,11 +28,13 @@ export default function WorkflowConfiguration({
 
   // Simple markdown rendering for preview
   const renderMarkdown = (text: string) => {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>')
-      .replace(/\n/g, '<br />');
+    return (
+      <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {text || 'No description provided.'}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   return (
@@ -64,23 +68,20 @@ export default function WorkflowConfiguration({
         </div>
         
         {previewMode ? (
-          <div 
-            className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-            dangerouslySetInnerHTML={{ 
-              __html: renderMarkdown(workflowMeta.description || 'No description provided.') 
-            }}
-          />
+          <div className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50">
+            {renderMarkdown(workflowMeta.description)}
+          </div>
         ) : (
           <textarea
             value={workflowMeta.description}
             onChange={(e) => handleFieldChange('description', e.target.value)}
             className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-            placeholder="Enter workflow description... (Markdown supported: **bold**, *italic*, `code`)"
+            placeholder="Enter workflow description... (Markdown supported: **bold**, *italic*, `code`, # headers, - lists)"
           />
         )}
         
         <div className="text-xs text-gray-500 mt-1">
-          Supports basic Markdown: **bold**, *italic*, `code`
+          Supports Markdown: **bold**, *italic*, `code`, # headers, - lists, [links](url)
         </div>
       </div>
 
