@@ -115,9 +115,18 @@ export default function Canvas({
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
 
-  // Update flow nodes when tools change
+  // Update flow nodes when tools change - preserve selection state
   React.useEffect(() => {
-    setNodes(nodes);
+    setNodes((currentNodes) => {
+      // Create a map of current selections
+      const selectionMap = new Map(currentNodes.map(node => [node.id, node.selected]));
+      
+      // Apply selection state to new nodes
+      return nodes.map(node => ({
+        ...node,
+        selected: selectionMap.get(node.id) || false,
+      }));
+    });
   }, [nodes, setNodes]);
 
   // Update flow edges when wires change  
@@ -190,14 +199,30 @@ export default function Canvas({
     if (tool && onToolSelect) {
       onToolSelect(tool);
     }
-  }, [tools, onToolSelect]);
+    
+    // Ensure the node is selected in React Flow for deletion
+    setNodes((nodes) =>
+      nodes.map((n) => ({
+        ...n,
+        selected: n.id === node.id,
+      }))
+    );
+  }, [tools, onToolSelect, setNodes]);
 
   const onPaneClick = useCallback(() => {
     // Deselect tool when clicking on empty canvas
     if (onToolSelect) {
       onToolSelect(null);
     }
-  }, [onToolSelect]);
+    
+    // Clear React Flow selection
+    setNodes((nodes) =>
+      nodes.map((n) => ({
+        ...n,
+        selected: false,
+      }))
+    );
+  }, [onToolSelect, setNodes]);
 
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
