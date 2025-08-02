@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ReactFlowProvider, Edge } from '@xyflow/react';
 import ToolPalette from './components/ToolPalette';
-import Canvas from './components/Canvas';
+import Canvas, { CanvasRef } from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
 import Header from './components/Header';
 import Notification from './components/Notification';
@@ -34,6 +34,9 @@ function App() {
   
   // Edge manager for optimistic updates
   const edgeManager = useMemo(() => new EdgeManager(xmlManager, setEdges), [xmlManager]);
+  
+  // Canvas ref for calling fitView
+  const canvasRef = useRef<CanvasRef>(null);
   
   // Configuration state
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
@@ -148,6 +151,11 @@ function App() {
 
           const meta = xmlManager.getMetadata();
           showNotification(`Workflow "${meta.name}" imported successfully!`, 'success');
+          
+          // Fit the view to show the entire imported workflow
+          setTimeout(() => {
+            canvasRef.current?.fitView();
+          }, 100);
         } catch (error) {
           console.error('Error importing workflow:', error);
           showNotification('Failed to import workflow. Please check the XML format.', 'error');
@@ -286,6 +294,7 @@ function App() {
         <ReactFlowProvider>
           <div className="flex-1 flex">
             <Canvas 
+              ref={canvasRef}
               tools={tools}
               wires={wires}
               edges={edges}

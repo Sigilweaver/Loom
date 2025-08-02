@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
 import {
   ReactFlow,
   Node,
@@ -21,6 +21,10 @@ import WorkflowNode from './WorkflowNode';
 import { wouldCreateCycle } from '../utils/loopDetection';
 import Notification from './Notification';
 
+export interface CanvasRef {
+  fitView: () => void;
+}
+
 interface CanvasProps {
   tools: Tool[];
   wires: Wire[];
@@ -37,7 +41,7 @@ const nodeTypes = {
   workflow: WorkflowNode,
 };
 
-export default function Canvas({ 
+const Canvas = forwardRef<CanvasRef, CanvasProps>(({ 
   tools, 
   wires, 
   edges,
@@ -47,8 +51,15 @@ export default function Canvas({
   onRemoveTool,
   onToolMove,
   onToolSelect
-}: CanvasProps) {
-  const { screenToFlowPosition } = useReactFlow();
+}, ref) => {
+  const { screenToFlowPosition, fitView } = useReactFlow();
+  
+  // Expose fitView function to parent component
+  useImperativeHandle(ref, () => ({
+    fitView: () => {
+      fitView({ duration: 800, padding: 0.1 });
+    }
+  }), [fitView]);
   
   // Notification state
   const [notification, setNotification] = useState<{
@@ -322,4 +333,8 @@ export default function Canvas({
       />
     </div>
   );
-}
+});
+
+Canvas.displayName = 'Canvas';
+
+export default Canvas;
