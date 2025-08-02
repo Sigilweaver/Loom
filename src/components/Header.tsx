@@ -54,9 +54,9 @@ export default function Header({
             <button
               onClick={onExportXML}
               className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
-              title="Export XML (Ctrl+E)"
+              title="Export Workflow (Ctrl+E)"
             >
-              Export XML
+              Export
             </button>
             
             <button
@@ -64,8 +64,10 @@ export default function Header({
               className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium transition-colors"
               title="Show XML Viewer (Ctrl+Alt+X)"
             >
-              View XML
+              View Code
             </button>
+
+            <div className="w-px h-6 bg-gray-600 mx-1"></div>
             
             <button
               onClick={onPreviewWorkflow}
@@ -74,8 +76,6 @@ export default function Header({
             >
               Preview
             </button>
-
-            <div className="w-px h-6 bg-gray-600 mx-1"></div>
             
             <button
               onClick={() => {
