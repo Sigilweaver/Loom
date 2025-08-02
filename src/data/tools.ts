@@ -70,6 +70,20 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: 1, direction: 'output' }
     ]
   },
+  {
+    type: 'Formula',
+    name: 'Formula',
+    icon: '🧮',
+    category: 'preparation',
+    defaultConfig: {
+      expression: '',
+      resultColumn: 'Result',
+    },
+    sockets: [
+      { id: 0, direction: 'input' },
+      { id: 1, direction: 'output' }
+    ]
+  },
   
   // Join Tools
   {
@@ -105,7 +119,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
 ];
 
-export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Union'];
+export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join'];
 
 export const getToolsByCategory = (category: string) => {
   if (category === 'favorites') {

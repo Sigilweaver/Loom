@@ -50,11 +50,21 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
               key={tool.type}
               draggable
               onDragStart={(e) => handleDragStart(e, tool.type)}
-              className="flex flex-col items-center justify-center bg-gray-50 rounded-lg cursor-move hover:bg-gray-100 transition-colors border border-gray-200 aspect-square p-2"
+              className="border-2 rounded-lg p-4 bg-white shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
+              style={{
+                width: '100px',  // Same as canvas tools
+                height: '100px',
+                borderColor: 
+                  tool.category === 'inout' ? '#10b981' :
+                  tool.category === 'preparation' ? '#3b82f6' :
+                  tool.category === 'join' ? '#8b5cf6' : '#6b7280',
+              }}
             >
-              <div className="text-xl mb-1">{tool.icon}</div>
-              <div className="text-xs text-center text-gray-700 font-medium leading-tight">
-                {tool.name}
+              <div>
+                <div className="text-xl mb-1">{tool.icon}</div>
+                <div className="text-xs font-medium text-gray-700 leading-tight">
+                  {tool.name}
+                </div>
               </div>
             </div>
           ))}
