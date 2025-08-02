@@ -50,20 +50,33 @@ export default function XMLViewer({
     // You could add a toast notification here
   };
 
-  // Simple XML syntax highlighting
+  // Proper XML syntax highlighting that preserves formatting
   const highlightXML = (xml: string) => {
     return xml
-      .replace(/(&lt;\/?[\w\s="/.':;#-\/\?]+&gt;)/gi, '<span class="xml-tag">$1</span>')
-      .replace(/(&lt;[\w]+)/gi, '<span class="xml-tag">$1</span>')
-      .replace(/([\w-]+)=/gi, '<span class="xml-attr">$1</span>=')
-      .replace(/="([^"]*)"/gi, '="<span class="xml-value">$1</span>"')
-      .replace(/(&lt;\/[\w]+&gt;)/gi, '<span class="xml-tag">$1</span>');
+      // Highlight XML tags (opening, closing, self-closing)
+      .replace(/(&lt;\/?\s*[\w-]+(?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'))?)*\s*\/?\s*&gt;)/g, 
+        '<span class="xml-tag">$1</span>')
+      // Highlight attribute names
+      .replace(/(\s+)([\w-]+)(\s*=)/g, 
+        '$1<span class="xml-attr">$2</span>$3')
+      // Highlight attribute values
+      .replace(/=(\s*)(&quot;[^&]*&quot;|'[^']*')/g, 
+        '=$1<span class="xml-value">$2</span>')
+      // Highlight CDATA sections
+      .replace(/(&lt;!\[CDATA\[[\s\S]*?\]\]&gt;)/g, 
+        '<span class="xml-cdata">$1</span>')
+      // Highlight XML declaration and processing instructions
+      .replace(/(&lt;\?[\s\S]*?\?&gt;)/g, 
+        '<span class="xml-declaration">$1</span>');
   };
 
   const escapeHtml = (text: string) => {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   };
 
   const highlightedXML = highlightXML(escapeHtml(xmlContent));
@@ -72,8 +85,11 @@ export default function XMLViewer({
     <div className="w-96 bg-white border-l border-gray-300 flex flex-col shadow-lg">
       <style>{`
         .xml-tag { color: #0969da; font-weight: 600; }
-        .xml-attr { color: #8250df; }
+        .xml-attr { color: #8250df; font-weight: 500; }
         .xml-value { color: #0a3069; }
+        .xml-cdata { color: #6f42c1; font-style: italic; }
+        .xml-declaration { color: #d73a49; font-weight: 600; }
+        .xml-content { font-size: 11px; line-height: 1.4; }
       `}</style>
       
       {/* Header */}
@@ -103,7 +119,7 @@ export default function XMLViewer({
       <div className="flex-1 overflow-auto">
         <div className="p-3">
           <pre 
-            className="text-xs font-mono text-gray-800 whitespace-pre-wrap break-words leading-relaxed"
+            className="xml-content font-mono text-gray-800 whitespace-pre-wrap break-words"
             dangerouslySetInnerHTML={{ __html: highlightedXML }}
           />
         </div>
