@@ -24,6 +24,7 @@ import Notification from './Notification';
 interface CanvasProps {
   tools: Tool[];
   wires: Wire[];
+  edges: Edge[]; // Pre-computed edges from EdgeManager
   onAddTool: (toolType: string, x: number, y: number) => void;
   onAddWire: (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => void;
   onRemoveWire: (wireId: string) => void;
@@ -39,6 +40,7 @@ const nodeTypes = {
 export default function Canvas({ 
   tools, 
   wires, 
+  edges,
   onAddTool, 
   onAddWire, 
   onRemoveWire,
@@ -89,29 +91,6 @@ export default function Canvas({
       };
     }), [tools, onToolMove]);
 
-  // Convert our wires to React Flow edges
-  const edges: Edge[] = useMemo(() => 
-    wires.map((wire) => ({
-      id: `${wire.from.tool}-${wire.from.socket}-${wire.to.tool}-${wire.to.socket}`,
-      source: wire.from.tool,
-      target: wire.to.tool,
-      sourceHandle: `output-${wire.from.socket}`,
-      targetHandle: `input-${wire.to.socket}`,
-      type: 'default',
-      style: { 
-        stroke: '#4f46e5', 
-        strokeWidth: 2,
-        cursor: 'pointer'
-      },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: '#4f46e5',
-      },
-      deletable: true,
-      selectable: true,
-      focusable: true,
-    })), [wires]);
-
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
 
@@ -129,8 +108,9 @@ export default function Canvas({
     });
   }, [nodes, setNodes]);
 
-  // Update flow edges when wires change  
+  // Sync edges prop with React Flow edges state
   React.useEffect(() => {
+    console.log('Canvas: Syncing edges prop:', edges);
     setEdges(edges);
   }, [edges, setEdges]);
 

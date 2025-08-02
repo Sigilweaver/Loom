@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ReactFlowProvider } from '@xyflow/react';
+import { useState, useEffect, useMemo } from 'react';
+import { ReactFlowProvider, Edge } from '@xyflow/react';
 import ToolPalette from './components/ToolPalette';
 import Canvas from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
@@ -9,6 +9,7 @@ import ConfigurationPanel from './components/ConfigurationPanel';
 import { Tool, Wire, ToolCategory, WorkflowMeta } from './types/workflow';
 import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
+import { EdgeManager } from './utils/EdgeManager';
 import { getToolDefinition } from './data/tools';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,6 +28,12 @@ function App() {
     workflowId: uuidv4(),
     created: new Date().toISOString(),
   });
+  
+  // Edge state for React Flow (managed separately for performance)
+  const [edges, setEdges] = useState<Edge[]>([]);
+  
+  // Edge manager for optimistic updates
+  const edgeManager = useMemo(() => new EdgeManager(xmlManager, setEdges), [xmlManager]);
   
   // Configuration state
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
@@ -51,7 +58,7 @@ function App() {
     });
   };
 
-  // Update derived state whenever XML changes
+  // Update derived state whenever XML changes (excluding edges - managed separately)
   const updateStateFromXML = () => {
     setTools(xmlManager.getTools());
     setWires(xmlManager.getWires());
@@ -61,6 +68,15 @@ function App() {
   // Initialize state from XML
   useEffect(() => {
     updateStateFromXML();
+    // Initialize edges from XML
+    const initialEdges = edgeManager.getEdgesFromXML();
+    console.log('Initial edges:', initialEdges);
+    setEdges(initialEdges);
+    
+    // Cleanup EdgeManager on unmount
+    return () => {
+      edgeManager.destroy();
+    };
   }, []);
 
   const hideNotification = () => {
@@ -106,6 +122,8 @@ function App() {
     updateStateFromXML();
     setSelectedTool(null);
     setToolConfigurations(new Map());
+    // Reset edges
+    setEdges(edgeManager.getEdgesFromXML());
   };
 
   const importWorkflow = () => {
@@ -124,6 +142,8 @@ function App() {
           updateStateFromXML();
           setSelectedTool(null);
           setToolConfigurations(new Map());
+          // Reset edges from new XML
+          setEdges(edgeManager.getEdgesFromXML());
 
           const meta = xmlManager.getMetadata();
           showNotification(`Workflow "${meta.name}" imported successfully!`, 'success');
@@ -171,6 +191,8 @@ function App() {
 
     xmlManager.addTool(newTool);
     updateStateFromXML();
+    // Sync edges after tool addition to ensure consistency
+    edgeManager.syncFromXML();
   };
 
   const addWire = (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => {
@@ -201,22 +223,23 @@ function App() {
     }
 
     const newWire: Wire = { from, to };
-    xmlManager.addWire(newWire);
-    updateStateFromXML();
+    try {
+      edgeManager.addWire(newWire);
+      // Update wires state for validation logic (but not edges - EdgeManager handles that)
+      updateStateFromXML();
+    } catch (error) {
+      showNotification('Failed to create connection', 'error');
+    }
   };
 
   const removeWire = (wireId: string) => {
-    // Parse the wire ID to extract connection info
-    const parts = wireId.split('-');
-    if (parts.length !== 4) return;
-    
-    const [fromTool, fromSocket, toTool, toSocket] = parts;
-    
-    xmlManager.removeWire(
-      { tool: fromTool, socket: parseInt(fromSocket) },
-      { tool: toTool, socket: parseInt(toSocket) }
-    );
-    updateStateFromXML();
+    try {
+      edgeManager.removeWire(wireId);
+      // Update wires state for validation logic (but not edges - EdgeManager handles that)
+      updateStateFromXML();
+    } catch (error) {
+      showNotification('Failed to remove connection', 'error');
+    }
   };
 
   const removeTool = (toolId: string) => {
@@ -263,6 +286,7 @@ function App() {
           <Canvas 
             tools={tools}
             wires={wires}
+            edges={edges}
             onAddTool={addTool}
             onAddWire={addWire}
             onRemoveWire={removeWire}
