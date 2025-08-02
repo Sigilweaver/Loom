@@ -6,6 +6,7 @@ import {
   Connection,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   Controls,
   Background,
   BackgroundVariant,
@@ -41,6 +42,8 @@ export default function Canvas({
   onRemoveTool,
   onToolMove 
 }: CanvasProps) {
+  const { screenToFlowPosition } = useReactFlow();
+  
   // Convert our tools to React Flow nodes
   const nodes: Node[] = useMemo(() => 
     tools.map(tool => {
@@ -126,16 +129,21 @@ export default function Canvas({
     const toolType = event.dataTransfer.getData('application/reactflow');
     if (!toolType) return;
 
-    const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+    // Convert screen coordinates to flow coordinates (accounts for zoom/pan)
+    const position = screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    // Center the tool at the drop position
     const toolSize = 100; // Square tools are 100x100
-    
-    const position = {
-      x: event.clientX - reactFlowBounds.left - (toolSize / 2),
-      y: event.clientY - reactFlowBounds.top - (toolSize / 2),
+    const centeredPosition = {
+      x: position.x - (toolSize / 2),
+      y: position.y - (toolSize / 2),
     };
 
-    onAddTool(toolType, position.x, position.y);
-  }, [onAddTool]);
+    onAddTool(toolType, centeredPosition.x, centeredPosition.y);
+  }, [onAddTool, screenToFlowPosition]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();

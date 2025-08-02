@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
 import ToolPalette from './components/ToolPalette';
 import Canvas from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
@@ -216,19 +217,21 @@ function App() {
       />
       
       <div className="flex-1 flex overflow-hidden">
-        <Canvas 
-          tools={tools}
-          wires={wires}
-          onAddTool={addTool}
-          onAddWire={addWire}
-          onRemoveWire={removeWire}
-          onRemoveTool={removeTool}
-          onToolMove={(toolId: string, x: number, y: number) => {
-            setTools((prev: Tool[]) => prev.map((tool: Tool) => 
-              tool.id === toolId ? { ...tool, x, y } : tool
-            ));
-          }}
-        />
+        <ReactFlowProvider>
+          <Canvas 
+            tools={tools}
+            wires={wires}
+            onAddTool={addTool}
+            onAddWire={addWire}
+            onRemoveWire={removeWire}
+            onRemoveTool={removeTool}
+            onToolMove={(toolId: string, x: number, y: number) => {
+              setTools((prev: Tool[]) => prev.map((tool: Tool) => 
+                tool.id === toolId ? { ...tool, x, y } : tool
+              ));
+            }}
+          />
+        </ReactFlowProvider>
         
         {/* XML Viewer Side Panel */}
         <XMLViewer

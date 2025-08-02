@@ -55,8 +55,9 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           }}
-          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}`}
+          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ' - Single connection only'}`}
         >
+          {/* Socket type indicator (L, R, etc.) */}
           {socket.type && (
             <div style={{
               position: 'absolute',
@@ -69,6 +70,44 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               pointerEvents: 'none'
             }}>
               {socket.type}
+            </div>
+          )}
+          
+          {/* Multiple connection indicator - only for inputs without type labels */}
+          {!socket.type && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '8px',
+              fontWeight: 'bold',
+              color: 'white',
+              pointerEvents: 'none'
+            }}>
+              {socket.multiple ? 'M' : '1'}
+            </div>
+          )}
+          
+          {/* Small multiple indicator for typed sockets */}
+          {socket.type && socket.multiple && (
+            <div style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              fontSize: '6px',
+              fontWeight: 'bold',
+              color: '#ef4444',
+              background: 'white',
+              borderRadius: '50%',
+              width: '8px',
+              height: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none'
+            }}>
+              M
             </div>
           )}
         </Handle>
