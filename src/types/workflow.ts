@@ -26,17 +26,6 @@ export interface Tool {
   sockets: Socket[];
 }
 
-export interface Container {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  tools: Tool[];
-  containers?: Container[];
-}
-
 export interface Wire {
   from: {
     tool: string;
@@ -46,14 +35,6 @@ export interface Wire {
     tool: string;
     socket: number;
   };
-}
-
-export interface Workflow {
-  version: string;
-  xmlns: string;
-  meta: WorkflowMeta;
-  layout: Container;
-  wires: Wire[];
 }
 
 export interface ToolDefinition {

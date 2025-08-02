@@ -1,5 +1,6 @@
 interface HeaderProps {
   onNewWorkflow: () => void;
+  onImportWorkflow: () => void;
   onExportXML: () => void;
   onShowXMLViewer: () => void;
   onPreviewWorkflow: () => void;
@@ -17,6 +18,7 @@ interface HeaderProps {
 
 export default function Header({ 
   onNewWorkflow, 
+  onImportWorkflow,
   onExportXML, 
   onShowXMLViewer, 
   onPreviewWorkflow,
@@ -49,6 +51,14 @@ export default function Header({
               title="New Workflow (Ctrl+N)"
             >
               New
+            </button>
+            
+            <button
+              onClick={onImportWorkflow}
+              className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 rounded text-sm font-medium transition-colors"
+              title="Import Workflow (Ctrl+I)"
+            >
+              Import
             </button>
             
             <button

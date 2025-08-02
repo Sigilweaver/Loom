@@ -6,29 +6,31 @@ import XMLViewer from './components/XMLViewer';
 import Header from './components/Header';
 import Notification from './components/Notification';
 import ConfigurationPanel from './components/ConfigurationPanel';
-import { Workflow, Tool, Wire, ToolCategory } from './types/workflow';
+import { Tool, Wire, ToolCategory, WorkflowMeta } from './types/workflow';
 import { ToolConfiguration } from './types/configuration';
-import { generateWorkflowXML } from './utils/xmlGenerator';
+import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
 import { getToolDefinition } from './data/tools';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
   const [activeTab, setActiveTab] = useState<ToolCategory>('favorites');
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [wires, setWires] = useState<Wire[]>([]);
+  const [xmlManager] = useState<XMLWorkflowManager>(() => new XMLWorkflowManager());
   const [xmlViewerVisible, setXmlViewerVisible] = useState(false);
   
-  // Configuration state
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
-  const [toolConfigurations, setToolConfigurations] = useState<Map<string, ToolConfiguration>>(new Map());
-  
-  const [workflowMeta, setWorkflowMeta] = useState({
+  // Derived state from XML
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [wires, setWires] = useState<Wire[]>([]);
+  const [workflowMeta, setWorkflowMeta] = useState<WorkflowMeta>({
     name: 'New Workflow',
     description: 'A new workflow',
     author: 'Workflow Designer',
     workflowId: uuidv4(),
     created: new Date().toISOString(),
   });
+  
+  // Configuration state
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [toolConfigurations, setToolConfigurations] = useState<Map<string, ToolConfiguration>>(new Map());
 
   // Notification state
   const [notification, setNotification] = useState<{
@@ -48,6 +50,18 @@ function App() {
       isVisible: true
     });
   };
+
+  // Update derived state whenever XML changes
+  const updateStateFromXML = () => {
+    setTools(xmlManager.getTools());
+    setWires(xmlManager.getWires());
+    setWorkflowMeta(xmlManager.getMetadata());
+  };
+
+  // Initialize state from XML
+  useEffect(() => {
+    updateStateFromXML();
+  }, []);
 
   const hideNotification = () => {
     setNotification(prev => ({ ...prev, isVisible: false }));
@@ -73,10 +87,8 @@ function App() {
 
   // Workflow meta update function
   const handleWorkflowMetaChange = (meta: { name: string; description: string; author: string }) => {
-    setWorkflowMeta(prev => ({
-      ...prev,
-      ...meta
-    }));
+    xmlManager.updateMetadata(meta);
+    updateStateFromXML();
   };
 
   // Listen for menu actions from Electron
@@ -90,42 +102,49 @@ function App() {
   }, []);
 
   const newWorkflow = () => {
-    setTools([]);
-    setWires([]);
-    setWorkflowMeta({
-      name: 'New Workflow',
-      description: 'A new workflow',
-      author: 'Workflow Designer',
-      workflowId: uuidv4(),
-      created: new Date().toISOString(),
-    });
+    xmlManager.newWorkflow();
+    updateStateFromXML();
+    setSelectedTool(null);
+    setToolConfigurations(new Map());
   };
 
-    const exportWorkflow = async () => {
-    const workflow: Workflow = {
-      version: '1.0',
-      xmlns: 'https://example.com/workflow-schema',
-      meta: workflowMeta,
-      layout: {
-        id: 'root',
-        name: 'Root Container',
-        x: 0,
-        y: 0,
-        width: 1200,
-        height: 800,
-        tools: tools,
-      },
-      wires: wires,
-    };
+  const importWorkflow = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xml';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
 
-    const xml = generateWorkflowXML(workflow);
-    
-    // Web app direct download
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const xmlContent = e.target?.result as string;
+          xmlManager.loadFromXML(xmlContent);
+          updateStateFromXML();
+          setSelectedTool(null);
+          setToolConfigurations(new Map());
+
+          const meta = xmlManager.getMetadata();
+          showNotification(`Workflow "${meta.name}" imported successfully!`, 'success');
+        } catch (error) {
+          console.error('Error importing workflow:', error);
+          showNotification('Failed to import workflow. Please check the XML format.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const exportWorkflow = async () => {
+    const xml = xmlManager.toXMLString();
     const blob = new Blob([xml], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
+    
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflowMeta.name}.xml`;
+    a.download = `${workflowMeta.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.xml`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -150,7 +169,8 @@ function App() {
       sockets: [...definition.sockets],
     };
 
-    setTools((prev: Tool[]) => [...prev, newTool]);
+    xmlManager.addTool(newTool);
+    updateStateFromXML();
   };
 
   const addWire = (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => {
@@ -181,7 +201,8 @@ function App() {
     }
 
     const newWire: Wire = { from, to };
-    setWires((prev: Wire[]) => [...prev, newWire]);
+    xmlManager.addWire(newWire);
+    updateStateFromXML();
   };
 
   const removeWire = (wireId: string) => {
@@ -191,32 +212,28 @@ function App() {
     
     const [fromTool, fromSocket, toTool, toSocket] = parts;
     
-    setWires((prev: Wire[]) => 
-      prev.filter(wire => 
-        !(wire.from.tool === fromTool && 
-          wire.from.socket === parseInt(fromSocket) && 
-          wire.to.tool === toTool && 
-          wire.to.socket === parseInt(toSocket))
-      )
+    xmlManager.removeWire(
+      { tool: fromTool, socket: parseInt(fromSocket) },
+      { tool: toTool, socket: parseInt(toSocket) }
     );
+    updateStateFromXML();
   };
 
   const removeTool = (toolId: string) => {
-    // Remove the tool
-    setTools((prev: Tool[]) => prev.filter(tool => tool.id !== toolId));
-    
-    // Remove any wires connected to this tool
-    setWires((prev: Wire[]) => 
-      prev.filter(wire => 
-        wire.from.tool !== toolId && wire.to.tool !== toolId
-      )
-    );
+    xmlManager.removeTool(toolId);
+    updateStateFromXML();
+  };
+
+  const moveTool = (toolId: string, x: number, y: number) => {
+    xmlManager.updateToolPosition(toolId, x, y);
+    updateStateFromXML();
   };
 
   return (
     <div className="h-screen flex flex-col bg-workflow-bg">
       <Header
         onNewWorkflow={newWorkflow}
+        onImportWorkflow={importWorkflow}
         onExportXML={exportWorkflow}
         onShowXMLViewer={() => setXmlViewerVisible(true)}
         onPreviewWorkflow={previewWorkflow}
@@ -251,20 +268,14 @@ function App() {
             onRemoveWire={removeWire}
             onRemoveTool={removeTool}
             onToolSelect={handleToolSelect}
-            onToolMove={(toolId: string, x: number, y: number) => {
-              setTools((prev: Tool[]) => prev.map((tool: Tool) => 
-                tool.id === toolId ? { ...tool, x, y } : tool
-              ));
-            }}
+            onToolMove={moveTool}
           />
         </ReactFlowProvider>
         
         {/* XML Viewer Side Panel */}
         <XMLViewer
           isVisible={xmlViewerVisible}
-          tools={tools}
-          wires={wires}
-          workflowMeta={workflowMeta}
+          xmlContent={xmlManager.toXMLString()}
           onClose={() => setXmlViewerVisible(false)}
         />
       </div>
