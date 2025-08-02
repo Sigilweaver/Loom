@@ -117,9 +117,32 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: 4, direction: 'output', type: 'R' }  // Right output
     ]
   },
+
+  // Aggregate Tools
+  {
+    type: 'Summarize',
+    name: 'Summarize',
+    icon: '📊',
+    category: 'aggregate',
+    defaultConfig: {
+      groupByFields: [],
+      aggregations: [
+        {
+          field: '',
+          operation: 'Sum',
+          outputName: ''
+        }
+      ],
+      includeNulls: false,
+    },
+    sockets: [
+      { id: 0, direction: 'input', multiple: true },
+      { id: 1, direction: 'output' }
+    ]
+  },
 ];
 
-export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join'];
+export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
 
 export const getToolsByCategory = (category: string) => {
   if (category === 'favorites') {

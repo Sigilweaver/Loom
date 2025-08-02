@@ -11,6 +11,7 @@ export default {
         'tool-inout': '#10b981',
         'tool-preparation': '#3b82f6',
         'tool-join': '#8b5cf6',
+        'tool-aggregate': '#f97316',
       }
     },
   },

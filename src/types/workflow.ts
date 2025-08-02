@@ -60,12 +60,12 @@ export interface ToolDefinition {
   type: string;
   name: string;
   icon: string;
-  category: 'inout' | 'preparation' | 'join';
+  category: 'inout' | 'preparation' | 'join' | 'aggregate';
   defaultConfig: ToolConfig;
   sockets: Socket[];
 }
 
-export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join';
+export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join' | 'aggregate';
 
 export interface ConnectionState {
   isConnecting: boolean;

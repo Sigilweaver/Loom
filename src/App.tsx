@@ -5,7 +5,9 @@ import Canvas from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
 import Header from './components/Header';
 import Notification from './components/Notification';
+import ConfigurationPanel from './components/ConfigurationPanel';
 import { Workflow, Tool, Wire, ToolCategory } from './types/workflow';
+import { ToolConfiguration } from './types/configuration';
 import { generateWorkflowXML } from './utils/xmlGenerator';
 import { getToolDefinition } from './data/tools';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +17,11 @@ function App() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
   const [xmlViewerVisible, setXmlViewerVisible] = useState(false);
+  
+  // Configuration state
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [toolConfigurations, setToolConfigurations] = useState<Map<string, ToolConfiguration>>(new Map());
+  
   const [workflowMeta, setWorkflowMeta] = useState({
     name: 'New Workflow',
     description: 'A new workflow',
@@ -44,6 +51,32 @@ function App() {
 
   const hideNotification = () => {
     setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  // Configuration functions
+  const handleConfigurationChange = (toolId: string, config: ToolConfiguration) => {
+    setToolConfigurations(prev => new Map(prev.set(toolId, config)));
+    
+    // Update tool config in tools array if needed
+    setTools((prevTools: Tool[]) => 
+      prevTools.map((tool: Tool) => 
+        tool.id === toolId 
+          ? { ...tool, config: { ...tool.config, ...config.parameters } }
+          : tool
+      )
+    );
+  };
+
+  const handleToolSelect = (tool: Tool | null) => {
+    setSelectedTool(tool);
+  };
+
+  // Workflow meta update function
+  const handleWorkflowMetaChange = (meta: { name: string; description: string; author: string }) => {
+    setWorkflowMeta(prev => ({
+      ...prev,
+      ...meta
+    }));
   };
 
   // Listen for menu actions from Electron
@@ -199,6 +232,16 @@ function App() {
       />
       
       <div className="flex-1 flex overflow-hidden">
+        {/* Configuration Panel - Left Side */}
+        <ConfigurationPanel
+          selectedTool={selectedTool}
+          configuration={selectedTool ? toolConfigurations.get(selectedTool.id) || null : null}
+          onConfigurationChange={handleConfigurationChange}
+          onShowNotification={showNotification}
+          workflowMeta={workflowMeta}
+          onWorkflowMetaChange={handleWorkflowMetaChange}
+        />
+        
         <ReactFlowProvider>
           <Canvas 
             tools={tools}
@@ -207,6 +250,7 @@ function App() {
             onAddWire={addWire}
             onRemoveWire={removeWire}
             onRemoveTool={removeTool}
+            onToolSelect={handleToolSelect}
             onToolMove={(toolId: string, x: number, y: number) => {
               setTools((prev: Tool[]) => prev.map((tool: Tool) => 
                 tool.id === toolId ? { ...tool, x, y } : tool

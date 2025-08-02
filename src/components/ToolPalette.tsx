@@ -12,6 +12,7 @@ const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] = 
   { id: 'inout', name: 'In/Out', color: 'bg-tool-inout', icon: '📁' },
   { id: 'preparation', name: 'Preparation', color: 'bg-tool-preparation', icon: '🔧' },
   { id: 'join', name: 'Join', color: 'bg-tool-join', icon: '🔗' },
+  { id: 'aggregate', name: 'Aggregate', color: 'bg-tool-aggregate', icon: '📊' },
 ];
 
 export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps) {
@@ -60,7 +61,8 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
                 borderColor: 
                   tool.category === 'inout' ? '#10b981' :
                   tool.category === 'preparation' ? '#3b82f6' :
-                  tool.category === 'join' ? '#8b5cf6' : '#6b7280',
+                  tool.category === 'join' ? '#8b5cf6' :
+                  tool.category === 'aggregate' ? '#f97316' : '#6b7280',
               }}
             >
               <div>

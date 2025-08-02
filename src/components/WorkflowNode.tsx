@@ -35,7 +35,8 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
         borderColor: 
           definition.category === 'inout' ? '#10b981' :
           definition.category === 'preparation' ? '#3b82f6' :
-          definition.category === 'join' ? '#8b5cf6' : '#6b7280',
+          definition.category === 'join' ? '#8b5cf6' :
+          definition.category === 'aggregate' ? '#f97316' : '#6b7280',
       }}
     >
       {/* Input handles */}

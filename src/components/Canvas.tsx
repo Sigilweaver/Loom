@@ -29,6 +29,7 @@ interface CanvasProps {
   onRemoveWire: (wireId: string) => void;
   onRemoveTool: (toolId: string) => void;
   onToolMove: (toolId: string, x: number, y: number) => void;
+  onToolSelect?: (tool: Tool | null) => void;
 }
 
 const nodeTypes = {
@@ -42,7 +43,8 @@ export default function Canvas({
   onAddWire, 
   onRemoveWire,
   onRemoveTool,
-  onToolMove 
+  onToolMove,
+  onToolSelect
 }: CanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
   
@@ -182,6 +184,21 @@ export default function Canvas({
     });
   }, [onRemoveTool]);
 
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Find the tool that corresponds to this node
+    const tool = tools.find(t => t.id === node.id);
+    if (tool && onToolSelect) {
+      onToolSelect(tool);
+    }
+  }, [tools, onToolSelect]);
+
+  const onPaneClick = useCallback(() => {
+    // Deselect tool when clicking on empty canvas
+    if (onToolSelect) {
+      onToolSelect(null);
+    }
+  }, [onToolSelect]);
+
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
 
@@ -257,6 +274,8 @@ export default function Canvas({
         onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDragStop={onNodeDragStop}
