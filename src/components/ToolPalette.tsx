@@ -43,8 +43,8 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
       </div>
 
       {/* Tools */}
-      <div className="p-3">
-        <div className="grid grid-cols-6 gap-3">
+      <div className="p-2 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
           {tools.map((tool) => (
             <div
               key={tool.type}
