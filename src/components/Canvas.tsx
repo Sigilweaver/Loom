@@ -191,7 +191,11 @@ export default function Canvas({
     nodesToDelete.forEach((node) => {
       onRemoveTool(node.id);
     });
-  }, [onRemoveTool]);
+    // Clear selected tool and return to workflow configuration
+    if (onToolSelect) {
+      onToolSelect(null);
+    }
+  }, [onRemoveTool, onToolSelect]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     // Find the tool that corresponds to this node
