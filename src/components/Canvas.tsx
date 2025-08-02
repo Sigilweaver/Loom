@@ -110,7 +110,6 @@ export default function Canvas({
 
   // Sync edges prop with React Flow edges state
   React.useEffect(() => {
-    console.log('Canvas: Syncing edges prop:', edges);
     setEdges(edges);
   }, [edges, setEdges]);
 

@@ -69,9 +69,7 @@ function App() {
   useEffect(() => {
     updateStateFromXML();
     // Initialize edges from XML
-    const initialEdges = edgeManager.getEdgesFromXML();
-    console.log('Initial edges:', initialEdges);
-    setEdges(initialEdges);
+    setEdges(edgeManager.getEdgesFromXML());
     
     // Cleanup EdgeManager on unmount
     return () => {
@@ -283,25 +281,29 @@ function App() {
         />
         
         <ReactFlowProvider>
-          <Canvas 
-            tools={tools}
-            wires={wires}
-            edges={edges}
-            onAddTool={addTool}
-            onAddWire={addWire}
-            onRemoveWire={removeWire}
-            onRemoveTool={removeTool}
-            onToolSelect={handleToolSelect}
-            onToolMove={moveTool}
-          />
+          <div className="flex-1 flex">
+            <Canvas 
+              tools={tools}
+              wires={wires}
+              edges={edges}
+              onAddTool={addTool}
+              onAddWire={addWire}
+              onRemoveWire={removeWire}
+              onRemoveTool={removeTool}
+              onToolSelect={handleToolSelect}
+              onToolMove={moveTool}
+            />
+            
+            {/* XML Viewer Side Panel */}
+            {xmlViewerVisible && (
+              <XMLViewer
+                isVisible={xmlViewerVisible}
+                xmlContent={xmlManager.toXMLString()}
+                onClose={() => setXmlViewerVisible(false)}
+              />
+            )}
+          </div>
         </ReactFlowProvider>
-        
-        {/* XML Viewer Side Panel */}
-        <XMLViewer
-          isVisible={xmlViewerVisible}
-          xmlContent={xmlManager.toXMLString()}
-          onClose={() => setXmlViewerVisible(false)}
-        />
       </div>
 
       {/* Notification System */}
