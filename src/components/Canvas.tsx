@@ -24,6 +24,7 @@ interface CanvasProps {
   onAddTool: (toolType: string, x: number, y: number) => void;
   onAddWire: (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => void;
   onRemoveWire: (wireId: string) => void;
+  onRemoveTool: (toolId: string) => void;
   onToolMove: (toolId: string, x: number, y: number) => void;
 }
 
@@ -37,6 +38,7 @@ export default function Canvas({
   onAddTool, 
   onAddWire, 
   onRemoveWire,
+  onRemoveTool,
   onToolMove 
 }: CanvasProps) {
   // Convert our tools to React Flow nodes
@@ -52,6 +54,8 @@ export default function Canvas({
           definition,
           onToolMove 
         },
+        deletable: true,
+        selectable: true,
       };
     }), [tools, onToolMove]);
 
@@ -109,6 +113,12 @@ export default function Canvas({
       onRemoveWire(edge.id);
     });
   }, [onRemoveWire]);
+
+  const onNodesDelete = useCallback((nodesToDelete: Node[]) => {
+    nodesToDelete.forEach((node) => {
+      onRemoveTool(node.id);
+    });
+  }, [onRemoveTool]);
 
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -177,6 +187,7 @@ export default function Canvas({
         edges={flowEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
         onConnect={onConnect}
         onDrop={onDrop}

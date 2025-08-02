@@ -186,6 +186,18 @@ function App() {
     );
   };
 
+  const removeTool = (toolId: string) => {
+    // Remove the tool
+    setTools((prev: Tool[]) => prev.filter(tool => tool.id !== toolId));
+    
+    // Remove any wires connected to this tool
+    setWires((prev: Wire[]) => 
+      prev.filter(wire => 
+        wire.from.tool !== toolId && wire.to.tool !== toolId
+      )
+    );
+  };
+
   return (
     <div className="h-screen flex flex-col bg-workflow-bg">
       <Header
@@ -210,6 +222,7 @@ function App() {
           onAddTool={addTool}
           onAddWire={addWire}
           onRemoveWire={removeWire}
+          onRemoveTool={removeTool}
           onToolMove={(toolId: string, x: number, y: number) => {
             setTools((prev: Tool[]) => prev.map((tool: Tool) => 
               tool.id === toolId ? { ...tool, x, y } : tool

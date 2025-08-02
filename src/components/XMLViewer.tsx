@@ -50,36 +50,45 @@ export default function XMLViewer({
     // You could add a toast notification here
   };
 
-  // Proper XML syntax highlighting that preserves formatting
+  // Simple and reliable XML syntax highlighting
   const highlightXML = (xml: string) => {
-    return xml
-      // Highlight XML tags (opening, closing, self-closing)
-      .replace(/(&lt;\/?\s*[\w-]+(?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'))?)*\s*\/?\s*&gt;)/g, 
-        '<span class="xml-tag">$1</span>')
-      // Highlight attribute names
-      .replace(/(\s+)([\w-]+)(\s*=)/g, 
-        '$1<span class="xml-attr">$2</span>$3')
-      // Highlight attribute values
-      .replace(/=(\s*)(&quot;[^&]*&quot;|'[^']*')/g, 
-        '=$1<span class="xml-value">$2</span>')
-      // Highlight CDATA sections
-      .replace(/(&lt;!\[CDATA\[[\s\S]*?\]\]&gt;)/g, 
-        '<span class="xml-cdata">$1</span>')
-      // Highlight XML declaration and processing instructions
-      .replace(/(&lt;\?[\s\S]*?\?&gt;)/g, 
-        '<span class="xml-declaration">$1</span>');
-  };
-
-  const escapeHtml = (text: string) => {
-    return text
+    // First escape HTML entities
+    let highlighted = xml
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+
+    // Then apply syntax highlighting to the escaped content
+    highlighted = highlighted
+      // XML declaration
+      .replace(/(&lt;\?xml[^?]*\?&gt;)/g, '<span class="xml-declaration">$1</span>')
+      // CDATA sections
+      .replace(/(&lt;!\[CDATA\[[\s\S]*?\]\]&gt;)/g, '<span class="xml-cdata">$1</span>')
+      // Comments
+      .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="xml-comment">$1</span>')
+      // Tags (opening, closing, self-closing) - simpler pattern
+      .replace(/(&lt;\/?)([a-zA-Z][\w-]*)([\s\S]*?)(&gt;)/g, (_match, openBracket, tagName, content, closeBracket) => {
+        // Highlight tag brackets and name
+        let result = `<span class="xml-tag">${openBracket}${tagName}</span>`;
+        
+        // Highlight attributes in the content
+        if (content.trim()) {
+          const highlightedContent = content
+            .replace(/\s+([a-zA-Z][\w-]*)(=)(&quot;[^&]*&quot;)/g, 
+              ' <span class="xml-attr">$1</span>$2<span class="xml-value">$3</span>');
+          result += highlightedContent;
+        }
+        
+        result += `<span class="xml-tag">${closeBracket}</span>`;
+        return result;
+      });
+
+    return highlighted;
   };
 
-  const highlightedXML = highlightXML(escapeHtml(xmlContent));
+  const highlightedXML = highlightXML(xmlContent);
 
   return (
     <div className="w-96 bg-white border-l border-gray-300 flex flex-col shadow-lg">
@@ -89,6 +98,7 @@ export default function XMLViewer({
         .xml-value { color: #0a3069; }
         .xml-cdata { color: #6f42c1; font-style: italic; }
         .xml-declaration { color: #d73a49; font-weight: 600; }
+        .xml-comment { color: #6a737d; font-style: italic; }
         .xml-content { font-size: 11px; line-height: 1.4; }
       `}</style>
       
