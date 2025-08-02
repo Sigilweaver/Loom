@@ -2,7 +2,8 @@ interface HeaderProps {
   onNewWorkflow: () => void;
   onExportXML: () => void;
   onShowXMLViewer: () => void;
-  onValidateWorkflow: () => void;
+  onPreviewWorkflow: () => void;
+  onShowNotification?: (message: string, type: 'error' | 'warning' | 'success' | 'info') => void;
   workflowMeta: {
     name: string;
     description: string;
@@ -18,7 +19,8 @@ export default function Header({
   onNewWorkflow, 
   onExportXML, 
   onShowXMLViewer, 
-  onValidateWorkflow,
+  onPreviewWorkflow,
+  onShowNotification,
   workflowMeta,
   toolCount,
   wireCount
@@ -66,11 +68,11 @@ export default function Header({
             </button>
             
             <button
-              onClick={onValidateWorkflow}
-              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 rounded text-sm font-medium transition-colors"
-              title="Validate Workflow (Ctrl+T)"
+              onClick={onPreviewWorkflow}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded text-sm font-medium transition-colors"
+              title="Preview Workflow Results (Ctrl+P)"
             >
-              Validate
+              Preview
             </button>
 
             <div className="w-px h-6 bg-gray-600 mx-1"></div>
@@ -78,7 +80,7 @@ export default function Header({
             <button
               onClick={() => {
                 if (confirm('This will run the workflow. Continue?')) {
-                  alert('Workflow execution not yet implemented');
+                  onShowNotification?.('Workflow execution not yet implemented', 'info');
                 }
               }}
               className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm font-medium transition-colors"

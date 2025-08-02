@@ -4,6 +4,7 @@ import ToolPalette from './components/ToolPalette';
 import Canvas from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
 import Header from './components/Header';
+import Notification from './components/Notification';
 import { Workflow, Tool, Wire, ToolCategory } from './types/workflow';
 import { generateWorkflowXML } from './utils/xmlGenerator';
 import { getToolDefinition } from './data/tools';
@@ -21,6 +22,29 @@ function App() {
     workflowId: uuidv4(),
     created: new Date().toISOString(),
   });
+
+  // Notification state
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'error' | 'warning' | 'success' | 'info';
+    isVisible: boolean;
+  }>({
+    message: '',
+    type: 'info',
+    isVisible: false
+  });
+
+  const showNotification = (message: string, type: 'error' | 'warning' | 'success' | 'info') => {
+    setNotification({
+      message,
+      type,
+      isVisible: true
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
 
   // Listen for menu actions from Electron
   useEffect(() => {
@@ -75,52 +99,9 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const validateWorkflow = () => {
-    // Basic validation - check for cycles
-    const hasLoops = detectLoops();
-    if (hasLoops) {
-      alert('Warning: Workflow contains loops!');
-    } else {
-      alert('Workflow validation passed!');
-    }
-  };
-
-  const detectLoops = (): boolean => {
-    // Simple cycle detection using DFS
-    const visited = new Set<string>();
-    const recursionStack = new Set<string>();
-
-    const hasCycle = (toolId: string): boolean => {
-      visited.add(toolId);
-      recursionStack.add(toolId);
-
-      const outgoingWires = wires.filter((wire: Wire) => wire.from.tool === toolId);
-      
-      for (const wire of outgoingWires) {
-        const nextToolId = wire.to.tool;
-        
-        if (!visited.has(nextToolId)) {
-          if (hasCycle(nextToolId)) {
-            return true;
-          }
-        } else if (recursionStack.has(nextToolId)) {
-          return true;
-        }
-      }
-
-      recursionStack.delete(toolId);
-      return false;
-    };
-
-    for (const tool of tools) {
-      if (!visited.has(tool.id)) {
-        if (hasCycle(tool.id)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+  const previewWorkflow = () => {
+    // Preview functionality - show a modal or side panel with workflow results preview
+    showNotification('Preview functionality will show expected workflow output and flow analysis. Coming soon!', 'info');
   };
 
   const addTool = (toolType: string, x: number, y: number) => {
@@ -153,7 +134,7 @@ function App() {
     
     // Ensure we're connecting output to input
     if (fromSocket.direction !== 'output' || toSocket.direction !== 'input') {
-      alert('Invalid connection: Can only connect outputs to inputs');
+      showNotification('Invalid connection: Can only connect outputs to inputs', 'error');
       return;
     }
     
@@ -161,7 +142,7 @@ function App() {
     if (!toSocket.multiple) {
       const existingWire = wires.find(w => w.to.tool === to.tool && w.to.socket === to.socket);
       if (existingWire) {
-        alert('Input already connected. Disconnect existing wire first.');
+        showNotification('Input already connected. Disconnect existing wire first.', 'warning');
         return;
       }
     }
@@ -205,7 +186,8 @@ function App() {
         onNewWorkflow={newWorkflow}
         onExportXML={exportWorkflow}
         onShowXMLViewer={() => setXmlViewerVisible(true)}
-        onValidateWorkflow={validateWorkflow}
+        onPreviewWorkflow={previewWorkflow}
+        onShowNotification={showNotification}
         workflowMeta={workflowMeta}
         toolCount={tools.length}
         wireCount={wires.length}
@@ -242,6 +224,15 @@ function App() {
           onClose={() => setXmlViewerVisible(false)}
         />
       </div>
+
+      {/* Notification System */}
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        duration={6000}
+      />
     </div>
   );
 }
