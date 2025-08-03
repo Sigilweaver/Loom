@@ -251,20 +251,6 @@ export default function ConfigurationPanel({
           </div>
         )}
       </div>
-      
-      {/* Footer with validation status */}
-      {currentConnectionType && (
-        <div className="border-t border-gray-200 p-3 bg-white">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">
-              {Object.keys(fieldErrors).length === 0 ? '✅ Valid' : '❌ Has errors'}
-            </span>
-            <span className="text-gray-400">
-              {Object.keys(fieldValues).length} / {currentConnectionType.configSchema.length} fields
-            </span>
-          </div>
-        </div>
-      )}
     </ResizablePanel>
   );
 }
