@@ -11,8 +11,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        mobileMenuToggle.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleMobileMenu();
+        });
     }
+    
+    // Add click listeners to mobile menu links to close menu
+    const mobileLinks = document.querySelectorAll('.mobile-link');
+    mobileLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            closeMobileMenu();
+        });
+    });
+    
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        
+        if (mobileMenu && mobileMenu.classList.contains('active')) {
+            // Check if click is outside the menu and toggle button
+            if (!mobileMenu.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                closeMobileMenu();
+            }
+        }
+    });
 });
 
 // Navigation Functions
@@ -51,33 +76,36 @@ function initializeNavigation() {
 }
 
 function toggleMobileMenu() {
-    // Create mobile menu if it doesn't exist
-    let mobileMenu = document.getElementById('mobile-menu');
-    if (!mobileMenu) {
-        mobileMenu = createMobileMenu();
-    }
+    const mobileMenu = document.getElementById('mobile-menu');
+    const toggleButton = document.getElementById('mobile-menu-toggle');
+    const toggleIcon = toggleButton.querySelector('svg path');
     
-    mobileMenu.classList.toggle('active');
+    if (mobileMenu) {
+        const isActive = mobileMenu.classList.toggle('active');
+        
+        if (isActive) {
+            // Change to close icon (X)
+            toggleIcon.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+        } else {
+            // Change back to hamburger icon
+            toggleIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+        }
+    }
 }
 
-function createMobileMenu() {
-    const nav = document.querySelector('nav .container');
-    const mobileMenu = document.createElement('div');
-    mobileMenu.id = 'mobile-menu';
-    mobileMenu.className = 'md:hidden bg-mystic-800 border-t border-mystic-700 px-6 py-4';
+function closeMobileMenu() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    const toggleButton = document.getElementById('mobile-menu-toggle');
+    const toggleIcon = toggleButton.querySelector('svg path');
     
-    mobileMenu.innerHTML = `
-        <div class="space-y-4">
-            <a href="#demo" class="block text-mystic-300 hover:text-gold-400 transition-colors">Demo</a>
-            <a href="#features" class="block text-mystic-300 hover:text-gold-400 transition-colors">Features</a>
-            <a href="#docs" class="block text-mystic-300 hover:text-gold-400 transition-colors">Docs</a>
-            <a href="#opensource" class="block text-mystic-300 hover:text-gold-400 transition-colors">Open Source</a>
-            <a href="#download" class="block bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all text-center">Download</a>
-        </div>
-    `;
+    if (mobileMenu) {
+        mobileMenu.classList.remove('active');
+    }
     
-    nav.appendChild(mobileMenu);
-    return mobileMenu;
+    // Reset hamburger icon
+    if (toggleIcon) {
+        toggleIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+    }
 }
 
 // Animation Functions
@@ -437,3 +465,5 @@ const demoStyles = `
 `;
 
 document.head.insertAdjacentHTML('beforeend', demoStyles);
+
+
