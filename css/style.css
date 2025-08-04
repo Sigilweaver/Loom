@@ -1,0 +1,369 @@
+/* Custom CSS for Sigilweaver.com */
+
+/* Animation Keyframes */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
+    to { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.6); }
+}
+
+@keyframes dataFlow {
+    0% { transform: translateX(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateX(100vw); opacity: 0; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Base Styles */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a0b2e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4c2a6b;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b3fa0;
+}
+
+/* Floating Elements */
+.floating-elements {
+    pointer-events: none;
+}
+
+.floating-node {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #8b5cf6, #f59e0b);
+    border-radius: 50%;
+    position: absolute;
+    animation: float 6s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+.floating-node::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #8b5cf6, #f59e0b);
+    border-radius: 50%;
+    z-index: -1;
+    animation: glow 2s ease-in-out infinite alternate;
+    opacity: 0.5;
+}
+
+.floating-node:nth-child(2) {
+    animation-delay: -2s;
+}
+
+.floating-node:nth-child(3) {
+    animation-delay: -4s;
+}
+
+/* Workflow Canvas Background */
+.workflow-canvas {
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+        linear-gradient(45deg, transparent 49%, rgba(139, 92, 246, 0.05) 50%, transparent 51%),
+        linear-gradient(-45deg, transparent 49%, rgba(245, 158, 11, 0.05) 50%, transparent 51%);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    animation: dataFlow 15s linear infinite;
+}
+
+/* Sigil Logo Animation */
+.sigil-logo svg {
+    transition: all 0.3s ease;
+}
+
+.sigil-logo:hover svg {
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* Navigation */
+nav {
+    transition: all 0.3s ease;
+}
+
+/* Use Case Cards */
+.use-case-card {
+    background: rgba(76, 42, 107, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(107, 63, 160, 0.5);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.use-case-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.use-case-card:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    transform: translateY(-5px);
+}
+
+.use-case-card:hover::before {
+    left: 100%;
+}
+
+/* Tech Items */
+.tech-item {
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(26, 11, 46, 0.5);
+    border: 1px solid rgba(76, 42, 107, 0.3);
+    transition: all 0.3s ease;
+}
+
+.tech-item:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    transform: translateX(5px);
+}
+
+/* Demo Canvas */
+.demo-canvas {
+    background: linear-gradient(135deg, rgba(26, 11, 46, 0.8), rgba(45, 27, 66, 0.8));
+    border: 2px dashed rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    min-height: 300px;
+    position: relative;
+    overflow: hidden;
+}
+
+.demo-canvas::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 40%);
+    animation: pulse 3s ease-in-out infinite;
+}
+
+/* Mobile Menu */
+#mobile-menu {
+    transition: all 0.3s ease;
+    max-height: 0;
+    overflow: hidden;
+}
+
+#mobile-menu.active {
+    max-height: 300px;
+}
+
+/* Buttons and Links */
+a, button {
+    cursor: pointer;
+}
+
+/* Hover Effects */
+.hover-glow {
+    transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+}
+
+/* Code Blocks */
+pre[class*="language-"] {
+    background: rgba(26, 11, 46, 0.8) !important;
+    border: 1px solid rgba(76, 42, 107, 0.5);
+    border-radius: 8px;
+}
+
+code[class*="language-"] {
+    color: #c4b5fd !important;
+}
+
+.token.keyword {
+    color: #8b5cf6 !important;
+}
+
+.token.string {
+    color: #f59e0b !important;
+}
+
+.token.function {
+    color: #a78bfa !important;
+}
+
+.token.comment {
+    color: #6b3fa0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .floating-node {
+        width: 15px;
+        height: 15px;
+    }
+    
+    .workflow-canvas {
+        background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+    }
+    
+    .use-case-card {
+        padding: 1.5rem;
+    }
+    
+    .tech-item {
+        padding: 0.75rem;
+    }
+}
+
+/* Smooth Scroll Offset for Fixed Navigation */
+section {
+    scroll-margin-top: 80px;
+}
+
+/* Loading Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Intersection Observer Classes */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease-out;
+}
+
+.animate-on-scroll.animate {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Background Particles */
+.particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(139, 92, 246, 0.6);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite;
+}
+
+/* Gradient Text */
+.gradient-text {
+    background: linear-gradient(45deg, #8b5cf6, #f59e0b, #8b5cf6);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Focus Styles for Accessibility */
+a:focus,
+button:focus {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .bg-mystic-700\/30 {
+        background-color: rgba(76, 42, 107, 0.6);
+    }
+    
+    .border-mystic-600\/50 {
+        border-color: rgba(107, 63, 160, 0.8);
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .floating-node {
+        animation: none;
+    }
+    
+    .workflow-canvas {
+        animation: none;
+    }
+}

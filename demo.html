@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sigilweaver Demo - Interactive Data Pipeline Builder</title>
+    <meta name="description" content="Try Sigilweaver's intuitive drag-and-drop data pipeline builder. Create workflows visually without any backend dependencies.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mystic: {
+                            900: '#1a0b2e',
+                            800: '#2d1b42',
+                            700: '#4c2a6b',
+                            600: '#6b3fa0',
+                            500: '#8b5cf6',
+                            400: '#a78bfa',
+                            300: '#c4b5fd',
+                            200: '#ddd6fe',
+                            100: '#f3f0ff'
+                        },
+                        gold: {
+                            500: '#f59e0b',
+                            400: '#fbbf24',
+                            300: '#fcd34d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Demo CSS -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        .demo-container {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #1a0b2e;
+        }
+        
+        .demo-header {
+            grid-column: 1 / -1;
+            background: rgba(45, 27, 66, 0.9);
+            border-bottom: 1px solid #4c2a6b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        .demo-sidebar {
+            background: rgba(45, 27, 66, 0.8);
+            border-right: 1px solid #4c2a6b;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .demo-canvas {
+            background: linear-gradient(135deg, #1a0b2e, #2d1b42);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-properties {
+            background: rgba(45, 27, 66, 0.8);
+            border-left: 1px solid #4c2a6b;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .node-template {
+            background: rgba(76, 42, 107, 0.6);
+            border: 2px solid rgba(139, 92, 246, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .node-template:hover {
+            border-color: rgba(245, 158, 11, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .node-template:active {
+            cursor: grabbing;
+        }
+        
+        .workflow-node {
+            position: absolute;
+            width: 120px;
+            height: 80px;
+            background: rgba(76, 42, 107, 0.8);
+            border: 2px solid rgba(139, 92, 246, 0.6);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: move;
+            backdrop-filter: blur(10px);
+            user-select: none;
+        }
+        
+        .workflow-node.selected {
+            border-color: rgba(245, 158, 11, 0.8);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+        
+        .workflow-node.source { border-color: rgba(34, 197, 94, 0.6); }
+        .workflow-node.transform { border-color: rgba(139, 92, 246, 0.6); }
+        .workflow-node.sink { border-color: rgba(239, 68, 68, 0.6); }
+        
+        .node-icon {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .node-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            color: white;
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(245, 158, 11, 0.8));
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+        
+        .property-group {
+            background: rgba(26, 11, 46, 0.6);
+            border: 1px solid rgba(76, 42, 107, 0.5);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .property-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #c4b5fd;
+            margin-bottom: 8px;
+        }
+        
+        .property-input {
+            width: 100%;
+            background: rgba(76, 42, 107, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 4px;
+            padding: 8px;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+        
+        @media (max-width: 1024px) {
+            .demo-container {
+                grid-template-columns: 200px 1fr;
+                grid-template-rows: 60px 1fr 200px;
+            }
+            
+            .demo-properties {
+                grid-column: 1 / -1;
+                border-left: none;
+                border-top: 1px solid #4c2a6b;
+                max-height: 200px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px 150px 1fr 200px;
+            }
+            
+            .demo-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #4c2a6b;
+                padding: 10px;
+            }
+            
+            .node-template {
+                display: inline-block;
+                margin: 5px;
+                width: 80px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-mystic-900 text-white">
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="flex items-center space-x-2 text-mystic-200 hover:text-gold-400 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 32 32" class="text-mystic-400">
+                        <circle cx="16" cy="8" r="2" fill="currentColor"/>
+                        <circle cx="8" cy="16" r="2" fill="currentColor"/>
+                        <circle cx="24" cy="16" r="2" fill="currentColor"/>
+                        <circle cx="16" cy="24" r="2" fill="currentColor"/>
+                        <path d="M16 8L8 16L16 24L24 16Z" stroke="currentColor" stroke-width="1" fill="none"/>
+                        <path d="M8 16L24 16M16 8L16 24" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+                    </svg>
+                    <span class="font-bold">Sigilweaver Demo</span>
+                </a>
+                <span class="text-xs bg-mystic-600 px-2 py-1 rounded">FRONTEND ONLY</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="clear-canvas" class="text-sm bg-mystic-600 hover:bg-mystic-500 px-3 py-1 rounded transition-colors">
+                    Clear Canvas
+                </button>
+                <button id="export-workflow" class="text-sm bg-gold-500 hover:bg-gold-400 text-mystic-900 px-3 py-1 rounded transition-colors font-semibold">
+                    Export XML
+                </button>
+            </div>
+        </div>
+        
+        <!-- Sidebar - Node Templates -->
+        <div class="demo-sidebar">
+            <h3 class="text-sm font-semibold text-mystic-200 mb-4">Node Templates</h3>
+            
+            <div class="node-template" data-type="source" data-icon="📊" data-title="Data Source">
+                <div class="node-icon">📊</div>
+                <div class="text-xs text-mystic-200">Data Source</div>
+            </div>
+            
+            <div class="node-template" data-type="transform" data-icon="⚙️" data-title="Transform">
+                <div class="node-icon">⚙️</div>
+                <div class="text-xs text-mystic-200">Transform</div>
+            </div>
+            
+            <div class="node-template" data-type="filter" data-icon="🔍" data-title="Filter">
+                <div class="node-icon">🔍</div>
+                <div class="text-xs text-mystic-200">Filter</div>
+            </div>
+            
+            <div class="node-template" data-type="join" data-icon="🔗" data-title="Join">
+                <div class="node-icon">🔗</div>
+                <div class="text-xs text-mystic-200">Join</div>
+            </div>
+            
+            <div class="node-template" data-type="aggregate" data-icon="📈" data-title="Aggregate">
+                <div class="node-icon">📈</div>
+                <div class="text-xs text-mystic-200">Aggregate</div>
+            </div>
+            
+            <div class="node-template" data-type="sink" data-icon="💾" data-title="Output">
+                <div class="node-icon">💾</div>
+                <div class="text-xs text-mystic-200">Output</div>
+            </div>
+            
+            <div class="mt-6">
+                <h4 class="text-xs font-semibold text-mystic-300 mb-2">Instructions:</h4>
+                <p class="text-xs text-mystic-400 leading-relaxed">
+                    Drag nodes onto the canvas to build your data pipeline. Click nodes to configure properties. This is a frontend-only demo - no actual data processing occurs.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Main Canvas -->
+        <div class="demo-canvas" id="demo-canvas">
+            <div class="grid-background"></div>
+            <div id="workflow-container"></div>
+        </div>
+        
+        <!-- Properties Panel -->
+        <div class="demo-properties">
+            <h3 class="text-sm font-semibold text-mystic-200 mb-4">Properties</h3>
+            <div id="properties-content">
+                <div class="text-xs text-mystic-400 text-center py-8">
+                    Select a node to view its properties
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-mystic-800 border border-mystic-600 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-mystic-200">Workflow XML Export</h2>
+                    <button id="close-modal" class="text-mystic-400 hover:text-white">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="bg-mystic-900 border border-mystic-700 rounded p-4 overflow-auto">
+                    <pre id="xml-output" class="text-xs text-mystic-300 whitespace-pre-wrap"></pre>
+                </div>
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button id="copy-xml" class="bg-mystic-600 hover:bg-mystic-500 px-4 py-2 rounded text-sm transition-colors">
+                        Copy to Clipboard
+                    </button>
+                    <button id="download-xml" class="bg-gold-500 hover:bg-gold-400 text-mystic-900 px-4 py-2 rounded text-sm font-semibold transition-colors">
+                        Download File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="demo.js"></script>
+</body>
+</html>
