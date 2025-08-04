@@ -6,6 +6,7 @@ import XMLViewer from './components/XMLViewer';
 import Header from './components/Header';
 import Notification from './components/Notification';
 import ConfigurationPanel from './components/ConfigurationPanel';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Tool, Wire, ToolCategory, WorkflowMeta } from './types/workflow';
 import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
@@ -345,71 +346,73 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-workflow-bg">
-      <Header
-        onNewWorkflow={newWorkflow}
-        onImportWorkflow={importWorkflow}
-        onExportXML={exportWorkflow}
-        onShowXMLViewer={() => setXmlViewerVisible(true)}
-        onPreviewWorkflow={previewWorkflow}
-        onShowNotification={showNotification}
-        workflowMeta={workflowMeta}
-        toolCount={tools.length}
-        wireCount={wires.length}
-      />
-      
-      <ToolPalette 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-      />
-      
-      <div className="flex-1 flex overflow-hidden">
-        {/* Configuration Panel - Left Side */}
-        <ConfigurationPanel
-          selectedTool={selectedTool}
-          configuration={selectedTool ? getToolConfiguration(selectedTool) : null}
-          onConfigurationChange={handleConfigurationChange}
+    <ThemeProvider>
+      <div className="h-screen flex flex-col bg-theme-workflow-canvas">
+        <Header
+          onNewWorkflow={newWorkflow}
+          onImportWorkflow={importWorkflow}
+          onExportXML={exportWorkflow}
+          onShowXMLViewer={() => setXmlViewerVisible(true)}
+          onPreviewWorkflow={previewWorkflow}
           onShowNotification={showNotification}
           workflowMeta={workflowMeta}
-          onWorkflowMetaChange={handleWorkflowMetaChange}
+          toolCount={tools.length}
+          wireCount={wires.length}
         />
         
-        <ReactFlowProvider>
-          <div className="flex-1 flex">
-            <Canvas 
-              ref={canvasRef}
-              tools={tools}
-              wires={wires}
-              edges={edges}
-              onAddTool={addTool}
-              onAddWire={addWire}
-              onRemoveWire={removeWire}
-              onRemoveTool={removeTool}
-              onToolSelect={handleToolSelect}
-              onToolMove={moveTool}
-            />
-            
-            {/* XML Viewer Side Panel */}
-            {xmlViewerVisible && (
-              <XMLViewer
-                isVisible={xmlViewerVisible}
-                xmlContent={xmlManager.toXMLString()}
-                onClose={() => setXmlViewerVisible(false)}
+        <ToolPalette 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+        />
+        
+        <div className="flex-1 flex overflow-hidden">
+          {/* Configuration Panel - Left Side */}
+          <ConfigurationPanel
+            selectedTool={selectedTool}
+            configuration={selectedTool ? getToolConfiguration(selectedTool) : null}
+            onConfigurationChange={handleConfigurationChange}
+            onShowNotification={showNotification}
+            workflowMeta={workflowMeta}
+            onWorkflowMetaChange={handleWorkflowMetaChange}
+          />
+          
+          <ReactFlowProvider>
+            <div className="flex-1 flex">
+              <Canvas 
+                ref={canvasRef}
+                tools={tools}
+                wires={wires}
+                edges={edges}
+                onAddTool={addTool}
+                onAddWire={addWire}
+                onRemoveWire={removeWire}
+                onRemoveTool={removeTool}
+                onToolSelect={handleToolSelect}
+                onToolMove={moveTool}
               />
-            )}
-          </div>
-        </ReactFlowProvider>
-      </div>
+              
+              {/* XML Viewer Side Panel */}
+              {xmlViewerVisible && (
+                <XMLViewer
+                  isVisible={xmlViewerVisible}
+                  xmlContent={xmlManager.toXMLString()}
+                  onClose={() => setXmlViewerVisible(false)}
+                />
+              )}
+            </div>
+          </ReactFlowProvider>
+        </div>
 
-      {/* Notification System */}
-      <Notification
-        message={notification.message}
-        type={notification.type}
-        isVisible={notification.isVisible}
-        onClose={hideNotification}
-        duration={6000}
-      />
-    </div>
+        {/* Notification System */}
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+          duration={6000}
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 

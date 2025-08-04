@@ -106,6 +106,7 @@ temp/
 out/
 app/
 packages/
+package-lock.json
 
 # Auto-generated files
 *.auto.js

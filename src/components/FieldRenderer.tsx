@@ -40,10 +40,10 @@ export default function FieldRenderer({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             className={`
-              w-full px-3 py-2 border rounded-md text-sm
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-bg-elevated text-theme-text-primary
               ${error 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                ? 'border-theme-border-error focus:border-theme-border-error focus:ring-theme-border-error' 
+                : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
               }
               focus:outline-none focus:ring-1
             `}

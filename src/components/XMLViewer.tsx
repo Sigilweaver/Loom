@@ -77,7 +77,7 @@ function highlightXML(xml: string): JSX.Element[] {
     }
     
     // Helper function to add text with a specific style
-    const addPart = (text: string, className: string = 'text-gray-800') => {
+    const addPart = (text: string, className: string = 'text-theme-syntax-text') => {
       if (text) {
         parts.push(
           <span key={partKey++} className={className}>
@@ -95,7 +95,7 @@ function highlightXML(xml: string): JSX.Element[] {
       // Add text before the match
       if (match.index > currentIndex) {
         const textBefore = trimmedLine.substring(currentIndex, match.index);
-        addPart(textBefore, 'text-gray-800');
+        addPart(textBefore, 'text-theme-syntax-text');
       }
       
       const xmlElement = match[0];
@@ -103,10 +103,10 @@ function highlightXML(xml: string): JSX.Element[] {
       // Determine the type of XML element and apply appropriate styling
       if (xmlElement.startsWith('<?')) {
         // XML declaration
-        addPart(xmlElement, 'text-purple-600 font-medium');
+        addPart(xmlElement, 'text-theme-syntax-declaration font-medium');
       } else if (xmlElement.startsWith('<!--')) {
         // Comment
-        addPart(xmlElement, 'text-green-600 italic');
+        addPart(xmlElement, 'text-theme-syntax-comment italic');
       } else if (xmlElement.startsWith('<![CDATA[')) {
         // CDATA
         addPart(xmlElement, 'text-yellow-700 bg-yellow-50');
@@ -114,18 +114,18 @@ function highlightXML(xml: string): JSX.Element[] {
         // Closing tag
         const tagMatch = xmlElement.match(/<\/(\w+)>/);
         if (tagMatch) {
-          addPart('</', 'text-blue-600');
-          addPart(tagMatch[1], 'text-blue-800 font-semibold');
-          addPart('>', 'text-blue-600');
+          addPart('</', 'text-theme-syntax-tag');
+          addPart(tagMatch[1], 'text-theme-syntax-tag font-semibold');
+          addPart('>', 'text-theme-syntax-tag');
         } else {
-          addPart(xmlElement, 'text-blue-600');
+          addPart(xmlElement, 'text-theme-syntax-tag');
         }
       } else if (xmlElement.startsWith('<')) {
         // Opening tag with potential attributes
         const tagParts = xmlElement.match(/^(<)(\w+)(.*?)(\/?>)$/);
         if (tagParts) {
-          addPart(tagParts[1], 'text-blue-600'); // <
-          addPart(tagParts[2], 'text-blue-800 font-semibold'); // tag name
+          addPart(tagParts[1], 'text-theme-syntax-tag'); // <
+          addPart(tagParts[2], 'text-theme-syntax-tag font-semibold'); // tag name
           
           // Parse attributes
           const attributes = tagParts[3];
@@ -136,27 +136,27 @@ function highlightXML(xml: string): JSX.Element[] {
           while ((attrMatch = attrRegex.exec(attributes)) !== null) {
             // Add any whitespace/text before attribute
             if (attrMatch.index > lastAttrIndex) {
-              addPart(attributes.substring(lastAttrIndex, attrMatch.index), 'text-gray-600');
+              addPart(attributes.substring(lastAttrIndex, attrMatch.index), 'text-theme-text-tertiary');
             }
             
-            addPart(' ', 'text-gray-600');
-            addPart(attrMatch[1], 'text-green-600'); // attribute name
-            addPart('=', 'text-gray-600');
-            addPart('"', 'text-red-500');
-            addPart(attrMatch[2], 'text-red-500'); // attribute value
-            addPart('"', 'text-red-500');
+            addPart(' ', 'text-theme-text-tertiary');
+            addPart(attrMatch[1], 'text-theme-syntax-attribute'); // attribute name
+            addPart('=', 'text-theme-text-tertiary');
+            addPart('"', 'text-theme-syntax-value');
+            addPart(attrMatch[2], 'text-theme-syntax-value'); // attribute value
+            addPart('"', 'text-theme-syntax-value');
             
             lastAttrIndex = attrMatch.index + attrMatch[0].length;
           }
           
           // Add remaining part of attributes
           if (lastAttrIndex < attributes.length) {
-            addPart(attributes.substring(lastAttrIndex), 'text-gray-600');
+            addPart(attributes.substring(lastAttrIndex), 'text-theme-text-tertiary');
           }
           
-          addPart(tagParts[4], 'text-blue-600'); // /> or >
+          addPart(tagParts[4], 'text-theme-syntax-tag'); // /> or >
         } else {
-          addPart(xmlElement, 'text-blue-600');
+          addPart(xmlElement, 'text-theme-syntax-tag');
         }
       }
       
@@ -165,12 +165,12 @@ function highlightXML(xml: string): JSX.Element[] {
     
     // Add any remaining text
     if (currentIndex < trimmedLine.length) {
-      addPart(trimmedLine.substring(currentIndex), 'text-gray-800');
+      addPart(trimmedLine.substring(currentIndex), 'text-theme-syntax-text');
     }
     
     return (
       <div key={index} className="leading-relaxed font-mono">
-        {parts.length > 0 ? parts : <span className="text-gray-800">{trimmedLine}</span>}
+        {parts.length > 0 ? parts : <span className="text-theme-syntax-text">{trimmedLine}</span>}
       </div>
     );
   });
@@ -233,40 +233,40 @@ export default function XMLViewer({
 
   return (
     <div 
-      className="bg-white border-l border-gray-300 flex flex-col h-full relative"
+      className="bg-theme-bg-elevated border-l border-theme-border-primary flex flex-col h-full relative"
       style={{ width: `${width}px` }}
     >
       {/* Resize handle */}
       <div
-        className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors z-10"
+        className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-theme-interactive-accent transition-colors z-10"
         onMouseDown={handleMouseDown}
         title="Drag to resize"
       />
       
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-gray-50">
+      <div className="flex items-center gap-3 p-4 border-b bg-theme-bg-secondary">
         {/* Code icon */}
         <div className="flex-shrink-0">
-          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-theme-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
         </div>
         
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-gray-800">XML Viewer</h2>
+          <h2 className="text-lg font-semibold text-theme-text-primary">XML Viewer</h2>
         </div>
         
         <div className="flex gap-2">
           <button
             onClick={copyToClipboard}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-theme-interactive-accent hover:bg-theme-interactive-accent-hover text-theme-text-inverse rounded text-sm font-medium transition-colors"
             title="Copy formatted XML to clipboard"
           >
             Copy
           </button>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-theme-interactive-secondary hover:bg-theme-interactive-secondary-hover text-theme-text-inverse rounded text-sm font-medium transition-colors"
             title="Close XML viewer"
           >
             ✕
@@ -275,15 +275,15 @@ export default function XMLViewer({
       </div>
       
       {/* Description below header */}
-      <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-        <p className="text-sm text-blue-700">
+      <div className="px-4 py-3 bg-theme-info-bg border-b border-theme-info-border">
+        <p className="text-sm text-theme-info-text">
           Live XML representation of the current workflow
         </p>
       </div>
       
       {/* XML Content with syntax highlighting */}
-      <div className="flex-1 overflow-auto p-4 bg-gray-50">
-        <div className="bg-white p-4 rounded border font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+      <div className="flex-1 overflow-auto p-4 bg-theme-bg-secondary">
+        <div className="bg-theme-bg-elevated p-4 rounded border font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
           {highlightedXml}
         </div>
       </div>

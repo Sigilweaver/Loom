@@ -31,15 +31,15 @@ export default function Notification({
   const getTypeStyles = () => {
     switch (type) {
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-800';
+        return 'bg-theme-error-bg border-theme-error-border text-theme-error-text';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+        return 'bg-theme-warning-bg border-theme-warning-border text-theme-warning-text';
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800';
+        return 'bg-theme-success-bg border-theme-success-border text-theme-success-text';
       case 'info':
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-theme-info-bg border-theme-info-border text-theme-info-text';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-theme-bg-elevated border-theme-border-primary text-theme-text-primary';
     }
   };
 
@@ -85,7 +85,7 @@ export default function Notification({
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex-shrink-0 text-theme-text-tertiary hover:text-theme-text-secondary transition-colors"
             aria-label="Close notification"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

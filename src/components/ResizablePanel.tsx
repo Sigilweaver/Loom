@@ -62,22 +62,22 @@ export default function ResizablePanel({
       
       {/* Resize Handle */}
       <div
-        className={`absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-blue-500 transition-colors border-r-2 border-transparent hover:border-blue-500 ${
-          isResizing ? 'bg-blue-500 border-blue-500' : 'bg-gray-200'
+        className={`absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-theme-interactive-accent transition-colors border-r-2 border-transparent hover:border-theme-interactive-accent ${
+          isResizing ? 'bg-theme-interactive-accent border-theme-interactive-accent' : 'bg-theme-border-secondary'
         }`}
         onMouseDown={handleMouseDown}
         title="Drag to resize panel"
       >
         {/* Visual indicator */}
         <div className="absolute top-1/2 right-0.5 transform -translate-y-1/2 w-1 h-6 flex items-center justify-center">
-          <div className="w-px h-4 bg-gray-400 rounded opacity-60"></div>
+          <div className="w-px h-4 bg-theme-text-muted rounded opacity-60"></div>
         </div>
       </div>
       
       {/* Resize overlay when resizing */}
       {isResizing && (
-        <div className="absolute inset-0 bg-blue-50 bg-opacity-10 pointer-events-none z-10">
-          <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+        <div className="absolute inset-0 bg-theme-interactive-accent bg-opacity-10 pointer-events-none z-10">
+          <div className="absolute top-2 left-2 bg-theme-interactive-accent text-theme-text-inverse text-xs px-2 py-1 rounded">
             {width}px
           </div>
         </div>

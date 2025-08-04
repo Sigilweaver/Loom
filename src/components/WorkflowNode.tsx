@@ -58,15 +58,15 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
 
   return (
     <div
-      className="border-2 rounded-lg p-4 bg-white shadow-lg hover:shadow-xl transition-shadow select-none"
+      className="border-2 rounded-lg p-4 bg-theme-workflow-node-bg shadow-lg hover:shadow-xl transition-shadow select-none"
       style={{
         width: '100px',  // Square dimensions
         height: '100px',
         borderColor: 
-          definition.category === 'inout' ? '#10b981' :
-          definition.category === 'preparation' ? '#3b82f6' :
-          definition.category === 'join' ? '#8b5cf6' :
-          definition.category === 'aggregate' ? '#f97316' : '#6b7280',
+          definition.category === 'inout' ? 'var(--color-tool-inout)' :
+          definition.category === 'preparation' ? 'var(--color-tool-preparation)' :
+          definition.category === 'join' ? 'var(--color-tool-join)' :
+          definition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)',
       }}
     >
       {/* Input handles */}
@@ -79,12 +79,12 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           style={{
             top: getSocketPosition(index, inputSockets.length),
             left: '-9px',
-            background: '#3b82f6',
+            background: 'var(--color-workflow-handle-input)',
             width: '18px',
             height: '18px',
-            border: '3px solid white',
+            border: '3px solid var(--color-workflow-node-bg)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 4px var(--color-workflow-node-shadow)',
           }}
           title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''}`}
         >
@@ -97,7 +97,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               transform: 'translate(-50%, -50%)',
               fontSize: '8px',
               fontWeight: 'bold',
-              color: 'white',
+              color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
             }}>
               {socket.type}
@@ -113,7 +113,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               transform: 'translate(-50%, -50%)',
               fontSize: '8px',
               fontWeight: 'bold',
-              color: 'white',
+              color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
             }}>
               M
@@ -128,8 +128,8 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               right: '-2px',
               fontSize: '6px',
               fontWeight: 'bold',
-              color: '#ef4444',
-              background: 'white',
+              color: 'var(--color-error-accent)',
+              background: 'var(--color-workflow-node-bg)',
               borderRadius: '50%',
               width: '8px',
               height: '8px',
@@ -148,7 +148,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
       <div className="flex items-center justify-center h-full text-center">
         <div>
           <div className="text-xl mb-1">{definition.icon}</div>
-          <div className="text-xs font-medium text-gray-700 leading-tight">
+          <div className="text-xs font-medium text-theme-text-primary leading-tight">
             {definition.name}
           </div>
         </div>
@@ -164,12 +164,12 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           style={{
             top: getSocketPosition(index, outputSockets.length),
             right: '-9px',
-            background: '#10b981',
+            background: 'var(--color-workflow-handle-output)',
             width: '18px',
             height: '18px',
-            border: '3px solid white',
+            border: '3px solid var(--color-workflow-node-bg)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 4px var(--color-workflow-node-shadow)',
           }}
           title={`Output ${socket.id}${socket.type ? ` (${socket.type})` : ''}`}
         >
@@ -181,7 +181,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               transform: 'translate(-50%, -50%)',
               fontSize: '8px',
               fontWeight: 'bold',
-              color: 'white',
+              color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
             }}>
               {socket.type}

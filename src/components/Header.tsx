@@ -1,4 +1,5 @@
 import SigilWeaverLogo from './SigilWeaverLogo';
+import { ThemeSelector } from './ThemeSelector';
 
 interface HeaderProps {
   onNewWorkflow: () => void;
@@ -30,16 +31,16 @@ export default function Header({
   wireCount
 }: HeaderProps) {
   return (
-    <header className="bg-mystic-800 text-white shadow-lg border-b border-mystic-700">
+    <header className="bg-theme-interactive-primary text-theme-text-inverse shadow-lg border-b border-theme-border-primary">
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Left side - App title and workflow info */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <SigilWeaverLogo className="text-mystic-300" size="md" />
-              <h1 className="text-xl font-bold text-mystic-100">Sigilweaver</h1>
+              <SigilWeaverLogo className="text-theme-text-inverse opacity-75" size="md" />
+              <h1 className="text-xl font-bold text-theme-text-inverse">Sigilweaver</h1>
             </div>
-            <div className="flex items-center gap-4 text-sm text-mystic-200">
+            <div className="flex items-center gap-4 text-sm text-theme-text-inverse opacity-75">
               <span className="font-medium">{workflowMeta.name}</span>
               <span>•</span>
               <span>{toolCount} tools</span>
@@ -50,9 +51,11 @@ export default function Header({
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2">
+            <ThemeSelector className="mr-2" />
+            
             <button
               onClick={onNewWorkflow}
-              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-success-accent hover:bg-theme-success-text rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="New Workflow (Ctrl+N)"
             >
               New
@@ -60,7 +63,7 @@ export default function Header({
             
             <button
               onClick={onImportWorkflow}
-              className="px-3 py-1.5 bg-mystic-600 hover:bg-mystic-700 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-interactive-secondary hover:bg-theme-interactive-secondary-hover rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="Import Workflow (Ctrl+I)"
             >
               Import
@@ -68,7 +71,7 @@ export default function Header({
             
             <button
               onClick={onExportXML}
-              className="px-3 py-1.5 bg-mystic-500 hover:bg-mystic-600 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-interactive-primary-hover hover:bg-theme-interactive-primary-active rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="Export Workflow (Ctrl+E)"
             >
               Export
@@ -76,17 +79,17 @@ export default function Header({
             
             <button
               onClick={onShowXMLViewer}
-              className="px-3 py-1.5 bg-mystic-700 hover:bg-mystic-800 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-interactive-secondary hover:bg-theme-interactive-secondary-hover rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="Show XML Viewer (Ctrl+Alt+X)"
             >
               View Code
             </button>
 
-            <div className="w-px h-6 bg-mystic-600 mx-1"></div>
+            <div className="w-px h-6 bg-theme-text-inverse opacity-50 mx-1"></div>
             
             <button
               onClick={onPreviewWorkflow}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-interactive-accent hover:bg-theme-interactive-accent-hover rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="Preview Workflow Results (Ctrl+P)"
             >
               Preview
@@ -98,7 +101,7 @@ export default function Header({
                   onShowNotification?.('Workflow execution not yet implemented', 'info');
                 }
               }}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-theme-error-accent hover:bg-theme-error-text rounded text-sm font-medium transition-colors text-theme-text-inverse"
               title="Run Workflow (F5)"
             >
               Run

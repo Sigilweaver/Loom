@@ -9,12 +9,12 @@ export default function ConfigurationHeader({ tool }: ConfigurationHeaderProps) 
   const toolDefinition = getToolDefinition(tool.type);
   
   return (
-    <div className="bg-white border-b border-gray-200 p-4">
+    <div className="bg-theme-bg-elevated border-b border-theme-border-primary p-4">
       <div className="flex items-center space-x-3">
         <div className="text-2xl">{toolDefinition?.icon || '⚙️'}</div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">{toolDefinition?.name || tool.type}</h2>
-          <p className="text-xs text-gray-500">Tool ID: {tool.id}</p>
+          <h2 className="text-lg font-semibold text-theme-text-primary">{toolDefinition?.name || tool.type}</h2>
+          <p className="text-xs text-theme-text-tertiary">Tool ID: {tool.id}</p>
         </div>
       </div>
     </div>

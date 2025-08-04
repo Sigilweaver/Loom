@@ -8,11 +8,11 @@ interface ToolPaletteProps {
 }
 
 const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] = [
-  { id: 'favorites', name: 'Favorites', color: 'bg-yellow-500', icon: '⭐' },
-  { id: 'inout', name: 'In/Out', color: 'bg-tool-inout', icon: '📁' },
-  { id: 'preparation', name: 'Preparation', color: 'bg-tool-preparation', icon: '🔧' },
-  { id: 'join', name: 'Join', color: 'bg-tool-join', icon: '🔗' },
-  { id: 'aggregate', name: 'Aggregate', color: 'bg-tool-aggregate', icon: '📊' },
+  { id: 'favorites', name: 'Favorites', color: 'bg-theme-tool-favorites', icon: '⭐' },
+  { id: 'inout', name: 'In/Out', color: 'bg-theme-tool-inout', icon: '📁' },
+  { id: 'preparation', name: 'Preparation', color: 'bg-theme-tool-preparation', icon: '🔧' },
+  { id: 'join', name: 'Join', color: 'bg-theme-tool-join', icon: '🔗' },
+  { id: 'aggregate', name: 'Aggregate', color: 'bg-theme-tool-aggregate', icon: '📊' },
 ];
 
 export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps) {
@@ -24,17 +24,17 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
   };
 
   return (
-    <div className="bg-white border-b-2 border-gray-400">
+    <div className="bg-theme-bg-elevated border-b-2 border-theme-border-secondary">
       {/* Tabs */}
-      <div className="flex border-b-2 border-gray-400 px-2 pt-2 relative">
+      <div className="flex border-b-2 border-theme-border-secondary px-2 pt-2 relative">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`px-3 py-2 text-sm font-medium border-2 rounded-t-lg transition-colors flex items-center gap-2 mr-1 relative ${
               activeTab === tab.id
-                ? `border-gray-400 border-b-white bg-white text-gray-800 z-10`
-                : 'border-gray-300 text-gray-500 hover:text-gray-700 hover:border-gray-400 bg-gray-50 z-0'
+                ? `border-theme-border-secondary border-b-theme-bg-elevated bg-theme-bg-elevated text-theme-text-primary z-10`
+                : 'border-theme-border-primary text-theme-text-tertiary hover:text-theme-text-secondary hover:border-theme-border-secondary bg-theme-bg-secondary z-0'
             }`}
             style={{
               marginBottom: '-2px',
@@ -54,20 +54,20 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
               key={tool.type}
               draggable
               onDragStart={(e) => handleDragStart(e, tool.type)}
-              className="border-2 rounded-lg p-4 bg-white shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
+              className="border-2 rounded-lg p-4 bg-theme-workflow-node-bg shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
               style={{
                 width: '100px',  // Same as canvas tools
                 height: '100px',
                 borderColor: 
-                  tool.category === 'inout' ? '#10b981' :
-                  tool.category === 'preparation' ? '#3b82f6' :
-                  tool.category === 'join' ? '#8b5cf6' :
-                  tool.category === 'aggregate' ? '#f97316' : '#6b7280',
+                  tool.category === 'inout' ? 'var(--color-tool-inout)' :
+                  tool.category === 'preparation' ? 'var(--color-tool-preparation)' :
+                  tool.category === 'join' ? 'var(--color-tool-join)' :
+                  tool.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)',
               }}
             >
               <div>
                 <div className="text-xl mb-1">{tool.icon}</div>
-                <div className="text-xs font-medium text-gray-700 leading-tight">
+                <div className="text-xs font-medium text-theme-text-primary leading-tight">
                   {tool.name}
                 </div>
               </div>

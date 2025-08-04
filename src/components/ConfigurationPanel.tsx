@@ -161,15 +161,15 @@ export default function ConfigurationPanel({
         defaultWidth={320}
         minWidth={280}
         maxWidth={600}
-        className="bg-gray-50 border-r border-gray-200 flex flex-col"
+        className="bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col"
       >
         {/* Workflow Configuration Header */}
-        <div className="bg-white border-b border-gray-200 p-4">
+        <div className="bg-theme-bg-elevated border-b border-theme-border-primary p-4">
           <div className="flex items-center space-x-3">
             <div className="text-2xl">⚙️</div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Workflow Configuration</h2>
-              <p className="text-sm text-gray-500">General workflow settings</p>
+              <h2 className="text-lg font-semibold text-theme-text-primary">Workflow Configuration</h2>
+              <p className="text-sm text-theme-text-tertiary">General workflow settings</p>
             </div>
           </div>
         </div>
@@ -192,12 +192,12 @@ export default function ConfigurationPanel({
         defaultWidth={320}
         minWidth={280}
         maxWidth={600}
-        className="bg-gray-50 border-r border-gray-200"
+        className="bg-theme-bg-secondary border-r border-theme-border-primary"
       >
         <ConfigurationHeader tool={selectedTool} />
-        <div className="p-4 text-center text-gray-500">
+        <div className="p-4 text-center text-theme-text-tertiary">
           <div className="text-sm">Configuration not available for {selectedTool.type} tools</div>
-          <div className="text-xs mt-2 text-gray-400">Coming soon...</div>
+          <div className="text-xs mt-2 text-theme-text-muted">Coming soon...</div>
         </div>
       </ResizablePanel>
     );
@@ -208,7 +208,7 @@ export default function ConfigurationPanel({
       defaultWidth={320}
       minWidth={280}
       maxWidth={600}
-      className="bg-gray-50 border-r border-gray-200 flex flex-col"
+      className="bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col"
     >
       {/* Header */}
       <ConfigurationHeader tool={selectedTool} />
@@ -217,7 +217,7 @@ export default function ConfigurationPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Step 1: Connection Type Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-theme-text-secondary mb-2">
             Data Source Category
           </label>
           <ConnectionTypeSelector
@@ -231,8 +231,8 @@ export default function ConfigurationPanel({
         {/* Step 2: Configuration Fields */}
         {currentConnectionType && (
           <div className="space-y-4">
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
+            <div className="border-t border-theme-border-primary pt-4">
+              <h3 className="text-sm font-medium text-theme-text-secondary mb-3">
                 {currentConnectionType.displayName} Configuration
               </h3>
               

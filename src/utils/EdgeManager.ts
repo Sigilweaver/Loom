@@ -44,13 +44,13 @@ export class EdgeManager {
       targetHandle: `input-${wire.to.socket}`,
       type: 'default',
       style: { 
-        stroke: '#4f46e5', 
+        stroke: 'var(--color-workflow-edge-default)', 
         strokeWidth: 2,
         cursor: 'pointer'
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#4f46e5',
+        color: 'var(--color-workflow-edge-default)',
       },
       deletable: true,
       selectable: true,
