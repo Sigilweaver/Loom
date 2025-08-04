@@ -25,7 +25,7 @@ function App() {
   const [workflowMeta, setWorkflowMeta] = useState<WorkflowMeta>({
     name: 'New Workflow',
     description: 'A new workflow',
-    author: 'Workflow Designer',
+    author: 'SigilWeaver',
     workflowId: uuidv4(),
     created: new Date().toISOString(),
   });

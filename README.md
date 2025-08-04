@@ -1,4 +1,4 @@
-# Workflow Designer
+# Sigilweaver
 
 A visual workflow designer application built with Electron, React, Vite, and TypeScript. Similar to Alteryx, this application allows you to create data processing workflows using a drag-and-drop interface.
 
