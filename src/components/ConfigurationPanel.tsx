@@ -27,7 +27,7 @@ export default function ConfigurationPanel({
   selectedTool,
   configuration,
   onConfigurationChange,
-  onShowNotification,
+  // onShowNotification,
   workflowMeta,
   onWorkflowMetaChange
 }: ConfigurationPanelProps) {

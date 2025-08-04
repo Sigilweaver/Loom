@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -109,3 +110,6 @@ packages/
 # Auto-generated files
 *.auto.js
 *.auto.ts
+
+# Include important assets
+!public/assets/

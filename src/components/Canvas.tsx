@@ -8,6 +8,7 @@ import {
   useEdgesState,
   useReactFlow,
   Controls,
+  ControlButton,
   Background,
   BackgroundVariant,
   MarkerType,
@@ -53,6 +54,10 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   onToolSelect
 }, ref) => {
   const { screenToFlowPosition, fitView } = useReactFlow();
+  
+  // Snap to grid state
+  const [snapToGrid, setSnapToGrid] = useState(true); // Default to enabled
+  const snapGrid: [number, number] = [20, 20]; // Match the background grid size
   
   // Expose fitView function to parent component
   useImperativeHandle(ref, () => ({
@@ -237,6 +242,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       y: position.y - (toolSize / 2),
     };
 
+    // React Flow will handle snapping automatically when snapToGrid is enabled
     onAddTool(toolType, centeredPosition.x, centeredPosition.y);
   }, [onAddTool, screenToFlowPosition]);
 
@@ -246,6 +252,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   }, []);
 
   const onNodeDragStop = useCallback((_event: any, node: Node) => {
+    // React Flow will handle snapping automatically when snapToGrid is enabled
     onToolMove(node.id, node.position.x, node.position.y);
   }, [onToolMove]);
 
@@ -266,7 +273,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   }, []);
 
   return (
-    <div className="flex-1 h-full">
+    <div className="flex-1 h-full relative">
       <style>{`
         .react-flow__edge.selected {
           stroke: #ef4444 !important;
@@ -316,11 +323,31 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         zoomActivationKeyCode="ControlLeft"
         panOnDrag={[1, 2]} // Allow panning with left and middle mouse buttons
         selectNodesOnDrag={false}
+        snapToGrid={snapToGrid}
+        snapGrid={snapGrid}
         fitView
         className="bg-gray-50"
       >
-        <Controls />
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        <Controls showInteractive={false}>
+          <ControlButton
+            onClick={() => setSnapToGrid(!snapToGrid)}
+            title={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'}
+            style={{
+              backgroundColor: snapToGrid ? '#3b82f6' : undefined,
+              color: snapToGrid ? 'white' : undefined,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 3h2v2H3V3zm4 0h2v2H7V3zm4 0h2v2h-2V3zm4 0h2v2h-2V3zm4 0h2v2h-2V3zM3 7h2v2H3V7zm4 0h2v2H7V7zm4 0h2v2h-2V7zm4 0h2v2h-2V7zm4 0h2v2h-2V7zM3 11h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM3 15h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM3 19h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/>
+            </svg>
+          </ControlButton>
+        </Controls>
+        <Background 
+          variant={BackgroundVariant.Dots} 
+          gap={snapGrid[0]} 
+          size={snapToGrid ? 2 : 1}
+          color={snapToGrid ? '#9ca3af' : '#d1d5db'}
+        />
       </ReactFlow>
       
       {/* Notification System */}

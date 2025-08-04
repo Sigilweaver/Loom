@@ -77,7 +77,7 @@ function App() {
     tools.forEach(tool => {
       if (tool.config && Object.keys(tool.config).length > 0) {
         // Extract Category and Type from config
-        const category = tool.config.Category;
+        // const category = tool.config.Category;
         const type = tool.config.Type;
         
         // Create a copy of config without Category and Type for parameters

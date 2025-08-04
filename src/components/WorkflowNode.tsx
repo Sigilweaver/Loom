@@ -15,15 +15,45 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
   const inputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'input');
   const outputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'output');
 
-  // Calculate socket positions - distribute evenly around center
+  // Calculate socket positions - 20px spacing from center for uniformity with grid
   const getSocketPosition = (index: number, total: number): string => {
-    if (total === 1) return '50%';
-    if (total === 2) return index === 0 ? '35%' : '65%';
-    if (total === 3) return index === 0 ? '25%' : index === 1 ? '50%' : '75%';
-    if (total === 4) return index === 0 ? '20%' : index === 1 ? '40%' : index === 2 ? '60%' : '80%';
-    if (total === 5) return index === 0 ? '15%' : index === 1 ? '30%' : index === 2 ? '50%' : index === 3 ? '70%' : '85%';
-    // Fallback for more sockets
-    return `${15 + (index * (70 / (total - 1)))}%`;
+    const nodeHeight = 100; // Tool height in pixels
+    const center = nodeHeight / 2; // 50px
+    const spacing = 20; // 20px spacing to match grid
+    
+    if (total === 1) {
+      return `${center}px`; // Center: 50px
+    }
+    
+    if (total === 2) {
+      // Two sockets: ±20px from center (30px, 70px)
+      return index === 0 ? `${center - spacing}px` : `${center + spacing}px`;
+    }
+    
+    if (total === 3) {
+      // Three sockets: one center, two ±20px from center (30px, 50px, 70px)
+      if (index === 0) return `${center - spacing}px`; // 30px
+      if (index === 1) return `${center}px`; // 50px (center)
+      return `${center + spacing}px`; // 70px
+    }
+    
+    if (total === 4) {
+      // Four sockets: ±10px and ±30px from center (20px, 40px, 60px, 80px)
+      const positions = [center - 30, center - 10, center + 10, center + 30];
+      return `${positions[index]}px`;
+    }
+    
+    if (total === 5) {
+      // Five sockets: center and ±10px, ±30px (20px, 40px, 50px, 60px, 80px)
+      const positions = [center - 30, center - 10, center, center + 10, center + 30];
+      return `${positions[index]}px`;
+    }
+    
+    // Fallback for more sockets - distribute evenly in available space
+    const availableSpace = 70; // Leave 15px margin on top and bottom
+    const startPosition = 15;
+    const step = availableSpace / (total - 1);
+    return `${startPosition + (index * step)}px`;
   };
 
   return (
