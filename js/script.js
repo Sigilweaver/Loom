@@ -7,6 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeScrollEffects();
     initializeDemoCanvas();
     initializeParticles();
+    initializeNodeConnections();
+    
+    // Set mobile menu position based on nav height
+    const mobileMenu = document.getElementById('mobile-menu');
+    const nav = document.querySelector('nav');
+    if (mobileMenu && nav) {
+        const navHeight = nav.offsetHeight;
+        mobileMenu.style.top = navHeight + 'px';
+    }
     
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -79,8 +88,13 @@ function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
     const toggleButton = document.getElementById('mobile-menu-toggle');
     const toggleIcon = toggleButton.querySelector('svg path');
+    const nav = document.querySelector('nav');
     
     if (mobileMenu) {
+        // Calculate nav height and position mobile menu accordingly
+        const navHeight = nav.offsetHeight;
+        mobileMenu.style.top = navHeight + 'px';
+        
         const isActive = mobileMenu.classList.toggle('active');
         
         if (isActive) {
@@ -314,6 +328,312 @@ function createParticle(container) {
             createParticle(container);
         }
     }, 8000);
+}
+
+// Node Connection System
+let activeConnections = [];
+let maxConnections = 5;
+let minConnections = 3;
+let connectionUpdateInterval;
+
+function initializeNodeConnections() {
+    const floatingNodes = document.querySelectorAll('.floating-node');
+    if (floatingNodes.length < 2) return;
+    
+    // Create SVG overlay for connections
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.className = 'node-connections';
+    svg.style.position = 'fixed';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '-1000';
+    document.body.appendChild(svg);
+    
+    // Create gradient definition
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    gradient.setAttribute('id', 'connectionGradient');
+    gradient.innerHTML = `
+        <stop offset="0%" stop-color="rgba(139, 92, 246, 0.8)"/>
+        <stop offset="50%" stop-color="rgba(245, 158, 11, 1)"/>
+        <stop offset="100%" stop-color="rgba(139, 92, 246, 0.8)"/>
+    `;
+    defs.appendChild(gradient);
+    svg.appendChild(defs);
+    
+    // Start the connection system
+    maintainConnections(floatingNodes, svg);
+    
+    // Update node positions every frame for smooth tracking
+    startPositionTracking(svg);
+}
+
+function maintainConnections(nodes, svg) {
+    // Create initial connections to reach minimum
+    while (activeConnections.length < minConnections) {
+        createNewConnection(nodes, svg);
+    }
+    
+    // Schedule periodic connection management
+    setInterval(() => {
+        // Clean up expired connections
+        activeConnections = activeConnections.filter(conn => conn.element.parentNode);
+        
+        // Add new connections if below minimum
+        if (activeConnections.length < minConnections) {
+            createNewConnection(nodes, svg);
+        }
+        
+        // Randomly create new connections (up to max) every 3-8 seconds
+        if (activeConnections.length < maxConnections && Math.random() < 0.3) {
+            createNewConnection(nodes, svg);
+        }
+    }, 3000);
+}
+
+function createNewConnection(nodes, svg) {
+    const nodeArray = Array.from(nodes);
+    
+    // Find two nodes that aren't already connected
+    let node1, node2;
+    let attempts = 0;
+    do {
+        node1 = nodeArray[Math.floor(Math.random() * nodeArray.length)];
+        node2 = nodeArray[Math.floor(Math.random() * nodeArray.length)];
+        attempts++;
+    } while ((node2 === node1 || isConnectionExists(node1, node2)) && attempts < 20);
+    
+    if (node2 === node1 || attempts >= 20) return;
+    
+    // Get initial positions
+    const pos1 = getNodePosition(node1);
+    const pos2 = getNodePosition(node2);
+    
+    // Create connection line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pos1.x);
+    line.setAttribute('y1', pos1.y);
+    line.setAttribute('x2', pos1.x); // Start from same position
+    line.setAttribute('y2', pos1.y);
+    line.setAttribute('stroke', 'url(#connectionGradient)');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('opacity', '0');
+    line.className = 'connection-line';
+    
+    svg.appendChild(line);
+    
+    // Create connection object
+    const connection = {
+        element: line,
+        node1: node1,
+        node2: node2,
+        birthTime: Date.now(),
+        lifetime: Math.random() * 10000 + 25000, // 25-35 seconds
+        isForming: true
+    };
+    
+    activeConnections.push(connection);
+    
+    // Animate line formation
+    animateLineFormation(connection, pos1, pos2, svg);
+}
+
+function isConnectionExists(node1, node2) {
+    return activeConnections.some(conn => 
+        (conn.node1 === node1 && conn.node2 === node2) ||
+        (conn.node1 === node2 && conn.node2 === node1)
+    );
+}
+
+function startPositionTracking(svg) {
+    // Update positions at 60fps for smooth tracking
+    connectionUpdateInterval = setInterval(() => {
+        updateConnectionPositions();
+        checkConnectionLifetimes(svg);
+    }, 16); // ~60fps
+}
+
+function updateConnectionPositions() {
+    activeConnections.forEach(connection => {
+        if (!connection.isForming && connection.element.parentNode) {
+            const pos1 = getNodePosition(connection.node1);
+            const pos2 = getNodePosition(connection.node2);
+            
+            connection.element.setAttribute('x1', pos1.x);
+            connection.element.setAttribute('y1', pos1.y);
+            connection.element.setAttribute('x2', pos2.x);
+            connection.element.setAttribute('y2', pos2.y);
+        }
+    });
+}
+
+function checkConnectionLifetimes(svg) {
+    const now = Date.now();
+    
+    activeConnections.forEach((connection, index) => {
+        const age = now - connection.birthTime;
+        
+        if (age > connection.lifetime && !connection.isExpiring) {
+            connection.isExpiring = true;
+            expireConnection(connection, svg);
+        }
+    });
+}
+
+function expireConnection(connection, svg) {
+    const pos1 = getNodePosition(connection.node1);
+    const pos2 = getNodePosition(connection.node2);
+    
+    // Break into particles
+    breakLineIntoParticles(connection.element, pos1, pos2, svg);
+    
+    // Fade out the line
+    if (typeof gsap !== 'undefined') {
+        gsap.to(connection.element, {
+            opacity: 0,
+            duration: 2,
+            ease: 'power2.in',
+            onComplete: () => {
+                if (connection.element.parentNode) {
+                    connection.element.remove();
+                }
+                // Remove from active connections
+                const index = activeConnections.indexOf(connection);
+                if (index > -1) {
+                    activeConnections.splice(index, 1);
+                }
+            }
+        });
+    } else {
+        // Fallback without GSAP
+        setTimeout(() => {
+            if (connection.element.parentNode) {
+                connection.element.remove();
+            }
+            const index = activeConnections.indexOf(connection);
+            if (index > -1) {
+                activeConnections.splice(index, 1);
+            }
+        }, 2000);
+    }
+}
+
+function getNodePosition(node) {
+    const rect = node.getBoundingClientRect();
+    return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+    };
+}
+
+function animateLineFormation(connection, pos1, pos2, svg) {
+    const line = connection.element;
+    
+    // Phase 1: Fade in and draw line (2 seconds)
+    if (typeof gsap !== 'undefined') {
+        const timeline = gsap.timeline();
+        
+        // Fade in
+        timeline.to(line, {
+            opacity: 1,
+            duration: 0.5,
+            ease: 'power2.out'
+        });
+        
+        // Draw line to target while tracking node positions during formation
+        timeline.to(line, {
+            duration: 1.5,
+            ease: 'power2.inOut',
+            onUpdate: function() {
+                // Continuously update positions during formation
+                const currentPos1 = getNodePosition(connection.node1);
+                const currentPos2 = getNodePosition(connection.node2);
+                
+                // Calculate progress of the line drawing (0 to 1)
+                const progress = this.progress();
+                
+                // Update start position to current node1 position
+                line.setAttribute('x1', currentPos1.x);
+                line.setAttribute('y1', currentPos1.y);
+                
+                // Animate end position from start to current node2 position
+                const endX = currentPos1.x + (currentPos2.x - currentPos1.x) * progress;
+                const endY = currentPos1.y + (currentPos2.y - currentPos1.y) * progress;
+                
+                line.setAttribute('x2', endX);
+                line.setAttribute('y2', endY);
+            },
+            onComplete: () => {
+                connection.isForming = false; // Now it will track positions in the main loop
+            }
+        }, 0.2);
+        
+    } else {
+        // Fallback without GSAP
+        line.style.opacity = '1';
+        const currentPos2 = getNodePosition(connection.node2);
+        line.setAttribute('x2', currentPos2.x);
+        line.setAttribute('y2', currentPos2.y);
+        connection.isForming = false;
+    }
+}
+
+function breakLineIntoParticles(line, pos1, pos2, svg) {
+    const particleCount = 8;
+    const lineLength = Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
+    
+    for (let i = 0; i < particleCount; i++) {
+        const progress = i / (particleCount - 1);
+        const x = pos1.x + (pos2.x - pos1.x) * progress;
+        const y = pos1.y + (pos2.y - pos1.y) * progress;
+        
+        createConnectionParticle(x, y, svg);
+    }
+}
+
+function createConnectionParticle(x, y, svg) {
+    const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    particle.setAttribute('cx', x);
+    particle.setAttribute('cy', y);
+    particle.setAttribute('r', '3');
+    particle.setAttribute('fill', 'rgba(245, 158, 11, 0.8)');
+    particle.setAttribute('opacity', '1');
+    particle.className = 'connection-particle';
+    
+    svg.appendChild(particle);
+    
+    // Animate particle dispersal
+    if (typeof gsap !== 'undefined') {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 100 + 50;
+        const endX = x + Math.cos(angle) * distance;
+        const endY = y + Math.sin(angle) * distance;
+        
+        gsap.to(particle, {
+            attr: { cx: endX, cy: endY, r: 1 },
+            opacity: 0,
+            duration: 4,
+            ease: 'power1.out',
+            onComplete: () => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }
+        });
+    } else {
+        // Fallback without GSAP
+        setTimeout(() => {
+            particle.style.opacity = '0';
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }, 3000);
+        }, 1000);
+    }
 }
 
 // Utility Functions
