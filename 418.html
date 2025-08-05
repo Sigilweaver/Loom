@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>418 - I'm a Teapot | Sigilweaver</title>
+    <meta name="description" content="Error 418: I'm a teapot. Even magical data wizards need their tea breaks!">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/sigilweaver-logo.svg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mystic: {
+                            900: '#1a0b2e',
+                            800: '#2d1b42',
+                            700: '#4c2a6b',
+                            600: '#6b3fa0',
+                            500: '#8b5cf6',
+                            400: '#a78bfa',
+                            300: '#c4b5fd',
+                            200: '#ddd6fe',
+                            100: '#f3f0ff'
+                        },
+                        gold: {
+                            500: '#f59e0b',
+                            400: '#fbbf24',
+                            300: '#fcd34d',
+                            200: '#fef3c7'
+                        }
+                    },
+                    fontFamily: {
+                        'mystical': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical min-h-screen flex items-center justify-center">
+    <!-- Global Floating Elements -->
+    <div class="floating-elements">
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+    </div>
+
+    <!-- Error Content -->
+    <main class="container mx-auto px-6 text-center">
+        <div class="max-w-2xl mx-auto">
+            <!-- Tea Steam Animation -->
+            <div class="relative mb-8">
+                <div class="text-9xl mb-4 relative">
+                    <span class="block" role="img" aria-label="Teapot emoji">🫖</span>
+                    <!-- Steam effect -->
+                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
+                        <div class="steam-1"></div>
+                        <div class="steam-2"></div>
+                        <div class="steam-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Code -->
+            <h1 class="text-6xl md:text-8xl font-bold mb-4">
+                <span class="bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent">418</span>
+            </h1>
+            
+            <!-- Error Message -->
+            <h2 class="text-3xl md:text-4xl font-bold mb-6 text-mystic-200">I'm a Teapot!</h2>
+            
+            <!-- Magical Description -->
+            <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 mb-8">
+                <p class="text-xl text-mystic-200 mb-4 leading-relaxed">
+                    🪄 <em>Oops!</em> You've discovered my secret identity! I'm not just a data weaving wizard - 
+                    I'm also an enchanted teapot brewing the finest algorithms and steeping the most robust pipelines.
+                </p>
+                <p class="text-lg text-mystic-300 leading-relaxed">
+                    This magical vessel refuses to brew coffee, but I make excellent data transformations! 
+                    Care for a cup of perfectly processed datasets instead?
+                </p>
+            </div>
+            
+            <!-- RFC 2324 Reference -->
+            <div class="bg-mystic-800/40 p-6 rounded-lg border border-mystic-600/30 mb-8">
+                <p class="text-sm text-mystic-400 mb-2">
+                    <strong>RFC 2324 Compliance:</strong> Hyper Text Coffee Pot Control Protocol (HTCPCP/1.0)
+                </p>
+                <p class="text-xs text-mystic-500 italic">
+                    "Any attempt to brew coffee with a teapot should result in the error code '418 I'm a teapot'."
+                </p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="/" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">
+                        Return to Magic
+                    </a>
+                    <a href="javascript:history.back()" class="border-2 border-gold-500 hover:border-gold-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:bg-gold-500/10 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">
+                        Reverse the Spell
+                    </a>
+                </div>
+                
+                <p class="text-mystic-400 text-sm mt-6">
+                    Or perhaps you'd like to contribute to making this teapot even more magical? 
+                    <a href="/contributing.html" class="text-gold-400 hover:text-gold-300 underline">Join our circle</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        /* Steam Animation */
+        .steam-1, .steam-2, .steam-3 {
+            width: 2px;
+            height: 30px;
+            background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            border-radius: 1px;
+            position: absolute;
+            animation: steam 2s ease-in-out infinite;
+        }
+        
+        .steam-1 {
+            left: -15px;
+            animation-delay: 0s;
+        }
+        
+        .steam-2 {
+            left: 0px;
+            animation-delay: 0.3s;
+        }
+        
+        .steam-3 {
+            left: 15px;
+            animation-delay: 0.6s;
+        }
+        
+        @keyframes steam {
+            0% {
+                transform: translateY(0) scaleX(1) scaleY(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-20px) scaleX(1.5) scaleY(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-40px) scaleX(2) scaleY(0.5);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="js/script.js"></script>
+</body>
+</html>
