@@ -1,53 +1,127 @@
 // Sigilweaver.com Interactive JavaScript
 
+// Initialize loading state
+let isInitialized = false;
+let loadingErrors = [];
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all components
-    initializeNavigation();
-    initializeAnimations();
-    initializeScrollEffects();
-    initializeDemoCanvas();
-    initializeParticles();
-    initializeNodeConnections();
+    // Show loading indicator
+    showLoadingState();
     
-    // Set mobile menu position based on nav height
-    const mobileMenu = document.getElementById('mobile-menu');
-    const nav = document.querySelector('nav');
-    if (mobileMenu && nav) {
-        const navHeight = nav.offsetHeight;
-        mobileMenu.style.top = navHeight + 'px';
-    }
-    
-    // Mobile menu toggle
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleMobileMenu();
-        });
-    }
-    
-    // Add click listeners to mobile menu links to close menu
-    const mobileLinks = document.querySelectorAll('.mobile-link');
-    mobileLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            closeMobileMenu();
-        });
-    });
-    
-    // Close mobile menu when clicking outside
-    document.addEventListener('click', function(event) {
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    try {
+        // Initialize all components
+        initializeNavigation();
+        initializeAnimations();
+        initializeScrollEffects();
+        initializeDemoCanvas();
+        initializeParticles();
+        initializeNodeConnections();
         
-        if (mobileMenu && mobileMenu.classList.contains('active')) {
-            // Check if click is outside the menu and toggle button
-            if (!mobileMenu.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
-                closeMobileMenu();
-            }
+        // Set mobile menu position based on nav height
+        const mobileMenu = document.getElementById('mobile-menu');
+        const nav = document.querySelector('nav');
+        if (mobileMenu && nav) {
+            const navHeight = nav.offsetHeight;
+            mobileMenu.style.top = navHeight + 'px';
         }
-    });
+        
+        // Mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleMobileMenu();
+            });
+        }
+        
+        // Add click listeners to mobile menu links to close menu
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                closeMobileMenu();
+            });
+        });
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            
+            if (mobileMenu && mobileMenu.classList.contains('active')) {
+                // Check if click is outside the menu and toggle button
+                if (!mobileMenu.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                    closeMobileMenu();
+                }
+            }
+        });
+        
+        // Mark as initialized
+        isInitialized = true;
+        hideLoadingState();
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+        loadingErrors.push(error);
+        showErrorState('Failed to initialize some components. The site should still be functional.');
+    }
 });
+
+// Loading state management
+function showLoadingState() {
+    const existingIndicator = document.getElementById('loading-indicator');
+    if (existingIndicator) return;
+    
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'loading-indicator';
+    loadingIndicator.className = 'fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-mystic-600 to-gold-500 z-50';
+    loadingIndicator.style.animation = 'loading-progress 2s ease-in-out infinite';
+    loadingIndicator.setAttribute('aria-label', 'Page loading');
+    
+    document.body.appendChild(loadingIndicator);
+}
+
+function hideLoadingState() {
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.animation = 'none';
+        loadingIndicator.style.transform = 'scaleX(1)';
+        setTimeout(() => {
+            loadingIndicator.style.opacity = '0';
+            setTimeout(() => {
+                loadingIndicator.remove();
+            }, 300);
+        }, 200);
+    }
+}
+
+function showErrorState(message) {
+    const errorNotification = document.createElement('div');
+    errorNotification.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 max-w-sm';
+    errorNotification.setAttribute('role', 'alert');
+    errorNotification.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <span class="text-sm">${message}</span>
+            <button class="ml-2 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()" aria-label="Dismiss notification">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(errorNotification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (errorNotification.parentNode) {
+            errorNotification.style.opacity = '0';
+            setTimeout(() => {
+                errorNotification.remove();
+            }, 300);
+        }
+    }, 5000);
+}
 
 // Navigation Functions
 function initializeNavigation() {
@@ -97,12 +171,26 @@ function toggleMobileMenu() {
         
         const isActive = mobileMenu.classList.toggle('active');
         
+        // Update ARIA attributes
+        toggleButton.setAttribute('aria-expanded', isActive);
+        
         if (isActive) {
             // Change to close icon (X)
             toggleIcon.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+            // Focus management
+            const firstMenuItem = mobileMenu.querySelector('a');
+            if (firstMenuItem) {
+                setTimeout(() => firstMenuItem.focus(), 100);
+            }
+            // Trap focus in mobile menu
+            trapFocus(mobileMenu);
         } else {
             // Change back to hamburger icon
             toggleIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+            // Return focus to toggle button
+            toggleButton.focus();
+            // Remove focus trap
+            removeFocusTrap();
         }
     }
 }
@@ -112,13 +200,59 @@ function closeMobileMenu() {
     const toggleButton = document.getElementById('mobile-menu-toggle');
     const toggleIcon = toggleButton.querySelector('svg path');
     
-    if (mobileMenu) {
+    if (mobileMenu && mobileMenu.classList.contains('active')) {
         mobileMenu.classList.remove('active');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        
+        // Reset hamburger icon
+        if (toggleIcon) {
+            toggleIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+        }
+        
+        // Remove focus trap
+        removeFocusTrap();
     }
+}
+
+// Focus trap functionality for accessibility
+let focusTrapElements = [];
+let firstFocusableElement = null;
+let lastFocusableElement = null;
+
+function trapFocus(container) {
+    const focusableElementsSelector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    focusTrapElements = container.querySelectorAll(focusableElementsSelector);
     
-    // Reset hamburger icon
-    if (toggleIcon) {
-        toggleIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+    if (focusTrapElements.length > 0) {
+        firstFocusableElement = focusTrapElements[0];
+        lastFocusableElement = focusTrapElements[focusTrapElements.length - 1];
+        
+        document.addEventListener('keydown', handleFocusTrap);
+    }
+}
+
+function removeFocusTrap() {
+    document.removeEventListener('keydown', handleFocusTrap);
+    focusTrapElements = [];
+    firstFocusableElement = null;
+    lastFocusableElement = null;
+}
+
+function handleFocusTrap(e) {
+    if (e.key === 'Tab') {
+        if (e.shiftKey) { // Shift + Tab
+            if (document.activeElement === firstFocusableElement) {
+                e.preventDefault();
+                lastFocusableElement.focus();
+            }
+        } else { // Tab
+            if (document.activeElement === lastFocusableElement) {
+                e.preventDefault();
+                firstFocusableElement.focus();
+            }
+        }
+    } else if (e.key === 'Escape') {
+        closeMobileMenu();
     }
 }
 
@@ -677,10 +811,115 @@ function updateParallaxElements() {
 
 window.addEventListener('scroll', optimizedScrollHandler);
 
-// Error handling
+// Error handling with performance monitoring
 window.addEventListener('error', function(e) {
     console.error('JavaScript error:', e.error);
+    
+    // Performance monitoring - track errors
+    if ('performance' in window && 'mark' in window.performance) {
+        performance.mark('error-occurred');
+    }
+    
     // Could implement error reporting here
+    logErrorMetrics({
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        timestamp: Date.now()
+    });
+});
+
+// Performance monitoring
+function logErrorMetrics(errorData) {
+    // In a real application, you would send this to your analytics service
+    if (window.localStorage) {
+        try {
+            const errors = JSON.parse(localStorage.getItem('sigilweaver_errors') || '[]');
+            errors.push(errorData);
+            // Keep only last 10 errors to avoid localStorage bloat
+            if (errors.length > 10) {
+                errors.splice(0, errors.length - 10);
+            }
+            localStorage.setItem('sigilweaver_errors', JSON.stringify(errors));
+        } catch (e) {
+            console.warn('Could not log error metrics:', e);
+        }
+    }
+}
+
+// Performance metrics collection
+function collectPerformanceMetrics() {
+    if ('performance' in window && 'getEntriesByType' in window.performance) {
+        const navigationEntries = performance.getEntriesByType('navigation');
+        const paintEntries = performance.getEntriesByType('paint');
+        
+        if (navigationEntries.length > 0) {
+            const nav = navigationEntries[0];
+            const metrics = {
+                domContentLoaded: nav.domContentLoadedEventEnd - nav.domContentLoadedEventStart,
+                loadComplete: nav.loadEventEnd - nav.loadEventStart,
+                firstPaint: paintEntries.find(entry => entry.name === 'first-paint')?.startTime || null,
+                firstContentfulPaint: paintEntries.find(entry => entry.name === 'first-contentful-paint')?.startTime || null,
+                timestamp: Date.now()
+            };
+            
+            // Log metrics (in production, send to analytics service)
+            if (window.localStorage) {
+                try {
+                    localStorage.setItem('sigilweaver_performance', JSON.stringify(metrics));
+                } catch (e) {
+                    console.warn('Could not save performance metrics:', e);
+                }
+            }
+        }
+    }
+}
+
+// Collect performance metrics after page load
+window.addEventListener('load', function() {
+    // Delay collection to ensure all metrics are available
+    setTimeout(collectPerformanceMetrics, 1000);
+});
+
+// Intersection Observer for lazy loading optimization
+const lazyLoadObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const element = entry.target;
+            
+            // Lazy load images
+            if (element.tagName === 'IMG' && element.dataset.src) {
+                element.src = element.dataset.src;
+                element.removeAttribute('data-src');
+                lazyLoadObserver.unobserve(element);
+            }
+            
+            // Trigger animations for elements coming into view
+            if (element.classList.contains('animate-on-scroll')) {
+                element.classList.add('animate');
+                if (typeof gsap !== 'undefined') {
+                    gsap.fromTo(element, 
+                        { opacity: 0, y: 30 },
+                        { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }
+                    );
+                }
+            }
+        }
+    });
+}, {
+    threshold: 0.1,
+    rootMargin: '50px'
+});
+
+// Auto-observe elements with lazy loading attributes
+document.addEventListener('DOMContentLoaded', function() {
+    const lazyImages = document.querySelectorAll('img[data-src]');
+    const animateElements = document.querySelectorAll('.animate-on-scroll');
+    
+    [...lazyImages, ...animateElements].forEach(element => {
+        lazyLoadObserver.observe(element);
+    });
 });
 
 // Accessibility improvements

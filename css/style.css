@@ -18,6 +18,39 @@
     100% { transform: translateX(100vw); opacity: 0; }
 }
 
+@keyframes loading-progress {
+    0% { transform: scaleX(0); transform-origin: left; }
+    50% { transform: scaleX(0.7); transform-origin: left; }
+    100% { transform: scaleX(0); transform-origin: right; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
 @keyframes drift1 {
     0% { transform: translate(0, 0); }
     25% { transform: translate(30px, -20px); }
@@ -83,7 +116,39 @@ body {
     background-attachment: fixed;
 }
 
-/* Custom scrollbar */
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sr-only:focus,
+.focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* Focus Indicators */
+.focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Enhanced Custom scrollbar with better contrast */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -190,7 +255,7 @@ nav {
     transition: all 0.3s ease;
 }
 
-/* Use Case Cards */
+/* Use Case Cards - Simplified Hover Effects */
 .use-case-card {
     background: rgba(76, 42, 107, 0.3);
     backdrop-filter: blur(10px);
@@ -198,43 +263,39 @@ nav {
     border-radius: 12px;
     padding: 2rem;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.use-case-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.1), transparent);
-    transition: left 0.5s ease;
 }
 
 .use-case-card:hover {
     border-color: rgba(245, 158, 11, 0.5);
-    transform: translateY(-5px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);
 }
 
-.use-case-card:hover::before {
-    left: 100%;
+/* Unified Card Styles for All Cards */
+.bg-mystic-700\/30,
+.bg-mystic-700\/30:hover {
+    transition: all 0.3s ease;
 }
 
-/* Tech Items */
+.bg-mystic-700\/30:hover {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);
+}
+
+/* Tech Items - Simplified */
 .tech-item {
     padding: 1rem;
     border-radius: 8px;
     background: rgba(26, 11, 46, 0.5);
     border: 1px solid rgba(76, 42, 107, 0.3);
     transition: all 0.3s ease;
-    position: relative;
 }
 
 .tech-item:hover {
     border-color: rgba(245, 158, 11, 0.5);
     background: rgba(26, 11, 46, 0.7);
+    transform: translateY(-1px);
 }
 
 /* Mobile Menu */
@@ -249,18 +310,18 @@ nav {
     opacity: 1;
 }
 
-/* Buttons and Links */
+/* Buttons and Links - Simplified */
 a, button {
     cursor: pointer;
-}
-
-/* Hover Effects */
-.hover-glow {
     transition: all 0.3s ease;
 }
 
-.hover-glow:hover {
-    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+/* Focus Styles for Accessibility */
+a:focus,
+button:focus {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 /* Code Blocks */
@@ -302,10 +363,6 @@ code[class*="language-"] {
         height: 2px;
     }
     
-    .workflow-canvas {
-        background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
-    }
-    
     .use-case-card {
         padding: 1.5rem;
     }
@@ -319,8 +376,6 @@ code[class*="language-"] {
 section {
     scroll-margin-top: 80px;
 }
-
-
 
 /* Background Particles */
 .particles {
@@ -341,23 +396,6 @@ section {
     border-radius: 50%;
 }
 
-/* Gradient Text */
-.gradient-text {
-    background: linear-gradient(45deg, #8b5cf6, #f59e0b, #8b5cf6);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Focus Styles for Accessibility */
-a:focus,
-button:focus {
-    outline: 2px solid #f59e0b;
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
 /* High Contrast Mode Support */
 @media (prefers-contrast: high) {
     .bg-mystic-700\/30 {
@@ -369,19 +407,124 @@ button:focus {
     }
 }
 
-/* Reduced Motion Support */
+/* Reduced Motion Support - Enhanced */
 @media (prefers-reduced-motion: reduce) {
-    * {
+    *,
+    *::before,
+    *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
     
     .floating-node {
-        animation: none;
+        animation: none !important;
     }
     
     .workflow-canvas {
-        animation: none;
+        animation: none !important;
     }
+    
+    .floating-orb {
+        animation: none !important;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .floating-elements,
+    .particles,
+    .node-connections,
+    nav,
+    .floating-node,
+    .floating-orb {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .text-mystic-200,
+    .text-mystic-300,
+    .text-white {
+        color: black !important;
+    }
+    
+    .bg-mystic-700\/30,
+    .bg-mystic-800,
+    .bg-mystic-900 {
+        background: white !important;
+        border: 1px solid #ccc !important;
+    }
+}
+
+/* Loading States */
+.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f59e0b;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Enhanced Touch Targets for Mobile */
+@media (max-width: 768px) {
+    a, button {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px;
+    }
+    
+    .mobile-link {
+        padding: 16px 12px;
+    }
+}
+
+/* Performance Optimizations */
+.floating-node,
+.particle,
+.floating-orb {
+    will-change: transform;
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Contain layout and paint for better performance */
+.floating-elements,
+.particles,
+.workflow-canvas {
+    contain: layout style paint;
+}
+
+/* Better image loading */
+img {
+    height: auto;
+    max-width: 100%;
+}
+
+img[data-src] {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+img[data-src].loaded {
+    opacity: 1;
 }

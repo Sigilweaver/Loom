@@ -6,6 +6,29 @@
     <title>Sigilweaver - Weave Data Magic Into Reality</title>
     <meta name="description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
     
+    <!-- Enhanced SEO and Social Media Meta Tags -->
+    <meta name="keywords" content="ETL tool, data pipeline, visual programming, data engineering, open source, Python, Dask, workflow automation">
+    <meta name="author" content="Sigilweaver">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://sigilweaver.com">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Sigilweaver - Weave Data Magic Into Reality">
+    <meta property="og:description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sigilweaver.com">
+    <meta property="og:image" content="https://sigilweaver.com/assets/sigilweaver-og-image.png">
+    <meta property="og:site_name" content="Sigilweaver">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sigilweaver - Weave Data Magic Into Reality">
+    <meta name="twitter:description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
+    <meta name="twitter:image" content="https://sigilweaver.com/assets/sigilweaver-og-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/sigilweaver-logo.svg">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -59,6 +82,11 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical">
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
+        Skip to main content
+    </a>
+    
     <!-- Global Floating Elements -->
     <div class="floating-elements">
         <div class="floating-node"></div>
@@ -70,24 +98,24 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700">
+    <nav class="fixed top-0 w-full z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700" role="navigation" aria-label="Main navigation">
         <div class="container mx-auto px-6 py-3">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                    <div class="sigil-logo">
+                    <div class="sigil-logo" aria-hidden="true">
                         <img src="assets/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
                     </div>
                     <span class="text-xl font-bold text-mystic-200">Sigilweaver</span>
                 </div>
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="#features" class="text-mystic-300 hover:text-gold-400 transition-colors">Features</a>
-                    <a href="#demo" class="text-mystic-300 hover:text-gold-400 transition-colors">Demo</a>
-                    <a href="#docs" class="text-mystic-300 hover:text-gold-400 transition-colors">Docs</a>
-                    <a href="#opensource" class="text-mystic-300 hover:text-gold-400 transition-colors">Open Source</a>
-                    <a href="#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all">Download</a>
+                    <a href="#features" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Features</a>
+                    <a href="#demo" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Demo</a>
+                    <a href="#docs" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Docs</a>
+                    <a href="#opensource" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Open Source</a>
+                    <a href="#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">Download</a>
                 </div>
-                <button class="md:hidden text-mystic-300" id="mobile-menu-toggle">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
@@ -96,116 +124,122 @@
     </nav>
 
     <!-- Mobile Menu -->
-    <div id="mobile-menu" class="fixed top-[72px] left-0 w-full z-40 md:hidden bg-mystic-800/90 border-b border-mystic-700">
+    <div id="mobile-menu" class="fixed top-[72px] left-0 w-full z-40 md:hidden bg-mystic-800/90 border-b border-mystic-700" role="navigation" aria-label="Mobile navigation">
         <div class="container mx-auto px-6 py-3">
-            <div class="space-y-3">
-                <a href="#features" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link">Features</a>
-                <a href="#demo" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link">Demo</a>
-                <a href="#docs" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link">Docs</a>
-                <a href="#opensource" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link">Open Source</a>
-                <a href="#download" class="block bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all text-center mobile-link">Download</a>
+            <div class="space-y-3" role="menu">
+                <a href="#features" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Features</a>
+                <a href="#demo" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Demo</a>
+                <a href="#docs" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Docs</a>
+                <a href="#opensource" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Open Source</a>
+                <a href="#download" class="block bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all text-center mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" role="menuitem">Download</a>
             </div>
         </div>
     </div>
 
     <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <!-- Animated Background -->
-        <div class="absolute inset-0">
-            <div class="workflow-canvas absolute inset-0 opacity-20"></div>
-        </div>
-
-        <div class="relative z-10 container mx-auto px-6 text-center hero">
-            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-                <span class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Weave Data Magic</span>
-                <span class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Into Reality</span>
-            </h1>
-            <p class="text-xl md:text-2xl text-mystic-200 mb-8 max-w-4xl mx-auto">
-                The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a href="#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25">
-                    Start Weaving
-                </a>
-                <a href="#demo" class="border-2 border-mystic-500 hover:border-gold-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:bg-mystic-500/10">
-                    See the Magic
-                </a>
+    <main>
+        <section class="relative min-h-screen flex items-center justify-center overflow-hidden" aria-labelledby="hero-heading">
+            <!-- Animated Background -->
+            <div class="absolute inset-0" aria-hidden="true">
+                <div class="workflow-canvas absolute inset-0 opacity-20"></div>
             </div>
-        </div>
-    </section>
+
+            <div class="relative z-10 container mx-auto px-6 text-center hero" id="main-content">
+                <h1 id="hero-heading" class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                    <span class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Weave Data Magic</span>
+                    <span class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Into Reality</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-mystic-200 mb-8 max-w-4xl mx-auto">
+                    The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" aria-describedby="start-weaving-desc">
+                        Start Weaving
+                    </a>
+                    <span id="start-weaving-desc" class="sr-only">Get started with Sigilweaver by downloading the application</span>
+                    <a href="#demo" class="border-2 border-mystic-500 hover:border-gold-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:bg-mystic-500/10 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" aria-describedby="see-magic-desc">
+                        See the Magic
+                    </a>
+                    <span id="see-magic-desc" class="sr-only">View the interactive demo to see Sigilweaver in action</span>
+                </div>
+            </div>
+        </section>
 
     <!-- Core Value Props -->
-    <section id="features" class="py-20">
+    <section id="features" class="py-20" aria-labelledby="features-heading">
         <div class="container mx-auto px-6">
+            <h2 id="features-heading" class="text-4xl md:text-5xl font-bold text-center mb-16 text-mystic-200 sr-only">Core Features</h2>
             <div class="grid md:grid-cols-3 gap-8">
                 <!-- Ultimate Flexibility -->
-                <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 hover:border-gold-400/50 transition-all group">
+                <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all group">
                     <div class="flex items-center space-x-4 mb-4">
-                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0">🔮</div>
+                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0" role="img" aria-label="Crystal ball emoji">🔮</div>
                         <h3 class="text-2xl font-bold text-mystic-200">Ultimate Flexibility</h3>
                     </div>
                     <p class="text-mystic-300 leading-relaxed">
                         Cast your spells anywhere - desktop, web browser, or headless server. Your magic works offline, on-prem, or in any cloud.
                     </p>
-                </div>
+                </article>
 
                 <!-- Wicked Fast Performance -->
-                <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 hover:border-gold-400/50 transition-all group">
+                <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all group">
                     <div class="flex items-center space-x-4 mb-4">
-                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0">⚡</div>
+                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0" role="img" aria-label="Lightning bolt emoji">⚡</div>
                         <h3 class="text-2xl font-bold text-mystic-200">Wicked Fast Performance</h3>
                     </div>
                     <p class="text-mystic-300 leading-relaxed">
                         Dask-powered parallelism turns massive datasets into child's play. Python-first with R support when you need specialized incantations.
                     </p>
-                </div>
+                </article>
 
                 <!-- Enterprise-Grade Security -->
-                <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 hover:border-gold-400/50 transition-all group">
+                <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all group">
                     <div class="flex items-center space-x-4 mb-4">
-                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0">🛡️</div>
+                        <div class="text-4xl group-hover:animate-bounce flex-shrink-0" role="img" aria-label="Shield emoji">🛡️</div>
                         <h3 class="text-2xl font-bold text-mystic-200">Enterprise-Grade Security</h3>
                     </div>
                     <p class="text-mystic-300 leading-relaxed">
                         Verbose logging, audit trails, and compliance-ready. Your data never leaves without permission - perfect for the most sensitive environments.
                     </p>
-                </div>
+                </article>
             </div>
         </div>
     </section>
 
     <!-- Product Demo Section -->
-    <section id="demo" class="py-20">
+    <section id="demo" class="py-20" aria-labelledby="demo-heading">
         <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl md:text-5xl font-bold mb-8 text-mystic-200">Try the Magic Yourself</h2>
+            <h2 id="demo-heading" class="text-4xl md:text-5xl font-bold mb-8 text-mystic-200">Try the Magic Yourself</h2>
             <p class="text-xl text-mystic-300 mb-12 max-w-3xl mx-auto">
                 Experience the interface with our live interactive demo. See exactly how intuitive data pipeline creation can be.
             </p>
             
             <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 max-w-2xl mx-auto">
                 <div class="text-center">
-                    <div class="text-6xl mb-6">🎯</div>
+                    <div class="text-6xl mb-6" role="img" aria-label="Target emoji">🎯</div>
                     <h3 class="text-2xl font-bold text-mystic-200 mb-4">Interactive Demo Available</h3>
                     <p class="text-mystic-300 mb-6">
                         Try the demo environment with drag-and-drop workflow creation, 
                         node-based canvas interaction, and real-time XML generation.
                     </p>
-                    <a href="https://demo.sigilweaver.com" class="inline-block bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 px-8 py-4 rounded-lg font-semibold hover:from-gold-400 hover:to-gold-300 transition-all transform hover:scale-105">
+                    <a href="https://demo.sigilweaver.com" class="inline-block bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 px-8 py-4 rounded-lg font-semibold hover:from-gold-400 hover:to-gold-300 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75" aria-describedby="demo-link-desc" target="_blank" rel="noopener noreferrer">
                         Launch Demo Environment
+                        <span class="sr-only">(opens in new window)</span>
                     </a>
+                    <span id="demo-link-desc" class="sr-only">Opens the Sigilweaver demo application in a new window</span>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Technical Superiority -->
-    <section class="py-20">
+    <section class="py-20" aria-labelledby="technical-heading">
         <div class="container mx-auto px-6">
-            <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 text-mystic-200">Engineered for Data Wizards</h2>
+            <h2 id="technical-heading" class="text-4xl md:text-5xl font-bold text-center mb-16 text-mystic-200">Engineered for Data Wizards</h2>
             
             <div class="flex flex-col lg:flex-row gap-8 lg:items-stretch">
                 <!-- Frontend Magic -->
-                <div class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
+                <article class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
                     <h3 class="text-2xl font-bold mb-6 text-gold-400">Frontend Magic</h3>
                     <div class="space-y-4">
                         <div class="tech-item">
@@ -221,10 +255,10 @@
                             <p class="text-mystic-300 text-sm">UI and backend can be hosted on different planets</p>
                         </div>
                     </div>
-                </div>
+                </article>
 
                 <!-- Backend Power -->
-                <div class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
+                <article class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
                     <h3 class="text-2xl font-bold mb-6 text-gold-400">Backend Power</h3>
                     <div class="space-y-4">
                         <div class="tech-item">
@@ -240,10 +274,10 @@
                             <p class="text-mystic-300 text-sm">Python first, R supported, extensible</p>
                         </div>
                     </div>
-                </div>
+                </article>
 
                 <!-- Enterprise Features -->
-                <div class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
+                <article class="flex-1 min-h-0 bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
                     <h3 class="text-2xl font-bold mb-6 text-gold-400">Enterprise Features</h3>
                     <div class="space-y-4">
                         <div class="tech-item">
@@ -259,7 +293,7 @@
                             <p class="text-mystic-300 text-sm">On-device, on-prem, AWS, Azure - your choice!</p>
                         </div>
                     </div>
-                </div>
+                </article>
             </div>
         </div>
     </section>
