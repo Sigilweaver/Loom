@@ -58,7 +58,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
 
   return (
     <div
-      className="border-2 rounded-lg p-4 bg-theme-workflow-node-bg shadow-lg hover:shadow-xl transition-shadow select-none"
+      className="border-2 rounded-lg p-4 bg-theme-node-default-bg shadow-lg hover:shadow-xl transition-shadow select-none"
       style={{
         width: '100px',  // Square dimensions
         height: '100px',
@@ -79,12 +79,12 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           style={{
             top: getSocketPosition(index, inputSockets.length),
             left: '-9px',
-            background: 'var(--color-workflow-handle-input)',
+            background: 'var(--color-socket-input)',
             width: '18px',
             height: '18px',
-            border: '3px solid var(--color-workflow-node-bg)',
+            border: '2px solid var(--color-socket-input-border)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px var(--color-workflow-node-shadow)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
           }}
           title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''}`}
         >
@@ -129,7 +129,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               fontSize: '6px',
               fontWeight: 'bold',
               color: 'var(--color-error-accent)',
-              background: 'var(--color-workflow-node-bg)',
+              background: 'var(--color-socket-input-border)',
               borderRadius: '50%',
               width: '8px',
               height: '8px',
@@ -164,12 +164,12 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           style={{
             top: getSocketPosition(index, outputSockets.length),
             right: '-9px',
-            background: 'var(--color-workflow-handle-output)',
+            background: 'var(--color-socket-output)',
             width: '18px',
             height: '18px',
-            border: '3px solid var(--color-workflow-node-bg)',
+            border: '2px solid var(--color-socket-output-border)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px var(--color-workflow-node-shadow)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
           }}
           title={`Output ${socket.id}${socket.type ? ` (${socket.type})` : ''}`}
         >

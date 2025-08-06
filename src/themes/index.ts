@@ -351,17 +351,17 @@ export const lightTheme: Theme = {
     },
     
     header: {
-      background: lightPalette.gray[900],
+      background: '#2a1a3e',  // Copy from sigilweaver - deep mystic
       logo: {
-        icon: lightPalette.foundation.white,
-        text: lightPalette.foundation.white,
+        icon: '#fcd34d', // Copy from sigilweaver - gold accent
+        text: '#ffffff',  // Copy from sigilweaver - white text
       },
       title: {
-        text: lightPalette.foundation.white,
+        text: '#ffffff', // Copy from sigilweaver - white
       },
       metadata: {
-        text: lightPalette.gray[300],
-        divider: lightPalette.gray[600],
+        text: '#eae0f6', // Copy from sigilweaver - good contrast
+        divider: '#6a5a86', // Copy from sigilweaver
       },
       buttons: {
         new: {
@@ -823,20 +823,20 @@ export const lightTheme: Theme = {
     
     edges: {
       default: {
-        stroke: lightPalette.gray[400],
-        strokeHover: lightPalette.gray[600],
+        stroke: lightPalette.gray[700], // Darker for light theme
+        strokeHover: lightPalette.gray[800],
       },
       selected: {
-        stroke: lightPalette.brand.primary[500],
-        strokeHover: lightPalette.brand.primary[600],
+        stroke: lightPalette.brand.primary[600],
+        strokeHover: lightPalette.brand.primary[700],
       },
       animated: {
-        stroke: lightPalette.brand.secondary[500],
-        strokeHover: lightPalette.brand.secondary[600],
+        stroke: lightPalette.brand.secondary[600],
+        strokeHover: lightPalette.brand.secondary[700],
       },
       invalid: {
-        stroke: lightPalette.semantic.error[500],
-        strokeHover: lightPalette.semantic.error[600],
+        stroke: lightPalette.semantic.error[600],
+        strokeHover: lightPalette.semantic.error[700],
       },
     },
     
@@ -1188,17 +1188,17 @@ export const darkTheme: Theme = {
     },
     
     header: {
-      background: darkPalette.gray[50],
+      background: '#2a1a3e',  // Copy from sigilweaver - deep mystic
       logo: {
-        icon: darkPalette.gray[900],
-        text: darkPalette.gray[900],
+        icon: '#fcd34d', // Copy from sigilweaver - gold accent
+        text: '#ffffff',  // Copy from sigilweaver - white text
       },
       title: {
-        text: darkPalette.gray[900],
+        text: '#ffffff', // Copy from sigilweaver - white
       },
       metadata: {
-        text: darkPalette.gray[600],
-        divider: darkPalette.gray[400],
+        text: '#eae0f6', // Copy from sigilweaver - good contrast
+        divider: '#6a5a86', // Copy from sigilweaver
       },
       buttons: {
         new: {
@@ -1660,20 +1660,20 @@ export const darkTheme: Theme = {
     
     edges: {
       default: {
-        stroke: darkPalette.gray[500],
-        strokeHover: darkPalette.gray[600],
+        stroke: darkPalette.gray[700], // Lighter for dark theme
+        strokeHover: darkPalette.gray[800],
       },
       selected: {
-        stroke: darkPalette.brand.primary[500],
-        strokeHover: darkPalette.brand.primary[400],
+        stroke: darkPalette.brand.primary[400],
+        strokeHover: darkPalette.brand.primary[300],
       },
       animated: {
-        stroke: darkPalette.brand.secondary[500],
-        strokeHover: darkPalette.brand.secondary[400],
+        stroke: darkPalette.brand.secondary[400],
+        strokeHover: darkPalette.brand.secondary[300],
       },
       invalid: {
-        stroke: darkPalette.semantic.error[500],
-        strokeHover: darkPalette.semantic.error[400],
+        stroke: darkPalette.semantic.error[400],
+        strokeHover: darkPalette.semantic.error[300],
       },
     },
     
@@ -3482,12 +3482,12 @@ export const sigilweaverTheme: Theme = {
 
     edges: {
       default: {
-        stroke: sigilweaverPalette.gray[600],
-        strokeHover: sigilweaverPalette.gray[700],
+        stroke: sigilweaverPalette.brand.primary[400], // Purple for sigilweaver theme
+        strokeHover: sigilweaverPalette.brand.primary[300],
       },
       selected: {
-        stroke: sigilweaverPalette.brand.primary[500],
-        strokeHover: sigilweaverPalette.brand.primary[400],
+        stroke: sigilweaverPalette.brand.primary[300],
+        strokeHover: sigilweaverPalette.brand.primary[200],
       },
       animated: {
         stroke: sigilweaverPalette.brand.secondary[400], // Gold for animated
@@ -3818,5 +3818,5 @@ export const availableThemes: Theme[] = [
 ];
 
 export const getThemeById = (id: string): Theme => {
-  return availableThemes.find(theme => theme.id === id) || lightTheme;
+  return availableThemes.find(theme => theme.id === id) || sigilweaverTheme;
 };

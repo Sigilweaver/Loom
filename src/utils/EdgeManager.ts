@@ -1,15 +1,19 @@
 import { Edge, MarkerType } from '@xyflow/react';
-import { Wire } from '../types/workflow';
+import { Wire, Tool } from '../types/workflow';
 import { XMLWorkflowManager } from './XMLWorkflowManager';
+import { wouldCreateCycle } from './loopDetection';
+import { getThemeColor } from './themeColors';
 
 export class EdgeManager {
   private xmlManager: XMLWorkflowManager;
   private setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  private tools: Tool[];
   private syncTimeout: NodeJS.Timeout | null = null;
 
-  constructor(xmlManager: XMLWorkflowManager, setEdges: React.Dispatch<React.SetStateAction<Edge[]>>) {
+  constructor(xmlManager: XMLWorkflowManager, setEdges: React.Dispatch<React.SetStateAction<Edge[]>>, tools: Tool[]) {
     this.xmlManager = xmlManager;
     this.setEdges = setEdges;
+    this.tools = tools;
   }
 
   // Create edge ID with safe encoding
@@ -34,8 +38,19 @@ export class EdgeManager {
     }
   }
 
-  // Create React Flow edge from wire
-  private createEdgeFromWire(wire: Wire): Edge {
+  // Create React Flow edge from wire - Clean, maintainable approach using theme system
+  private createEdgeFromWire(wire: Wire, forceError?: boolean): Edge {
+    // Check if this wire would create a cycle (making it an error)
+    const currentWires = this.xmlManager.getWires().filter(w => this.createEdgeId(w) !== this.createEdgeId(wire));
+    const wouldLoop = wouldCreateCycle(this.tools, currentWires, wire.from.tool, wire.to.tool);
+    
+    const isError = forceError || wouldLoop;
+    
+    // Get current theme colors dynamically
+    const strokeColor = isError 
+      ? getThemeColor('--color-edge-invalid-stroke')
+      : getThemeColor('--color-edge-default-stroke');
+    
     return {
       id: this.createEdgeId(wire),
       source: wire.from.tool,
@@ -43,18 +58,24 @@ export class EdgeManager {
       sourceHandle: `output-${wire.from.socket}`,
       targetHandle: `input-${wire.to.socket}`,
       type: 'default',
-      style: { 
-        stroke: 'var(--color-workflow-edge-default)', 
+      style: {
+        stroke: strokeColor,
         strokeWidth: 2,
-        cursor: 'pointer'
+        strokeDasharray: isError ? '5,5' : undefined,
+        cursor: 'pointer',
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: 'var(--color-workflow-edge-default)',
+        color: strokeColor,
+      },
+      data: { 
+        isError,
+        errorType: isError ? (wouldLoop ? 'cycle' : 'forced') : undefined,
       },
       deletable: true,
       selectable: true,
       focusable: true,
+      animated: isError, // Animate error edges for visibility
     };
   }
 
@@ -153,6 +174,13 @@ export class EdgeManager {
   getEdgesFromXML(): Edge[] {
     const xmlWires = this.xmlManager.getWires();
     return xmlWires.map(wire => this.createEdgeFromWire(wire));
+  }
+
+  // Update tools reference (call when tools change)
+  updateTools(tools: Tool[]): void {
+    this.tools = tools;
+    // Re-evaluate all edges for error states
+    this.syncFromXML();
   }
 
   // Cleanup

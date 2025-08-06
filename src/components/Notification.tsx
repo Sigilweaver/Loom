@@ -31,15 +31,15 @@ export default function Notification({
   const getTypeStyles = () => {
     switch (type) {
       case 'error':
-        return 'bg-theme-error-bg border-theme-error-border text-theme-error-text';
+        return 'bg-theme-notification-error-bg border-theme-notification-error-border text-theme-notification-error-text';
       case 'warning':
-        return 'bg-theme-warning-bg border-theme-warning-border text-theme-warning-text';
+        return 'bg-theme-notification-warning-bg border-theme-notification-warning-border text-theme-notification-warning-text';
       case 'success':
-        return 'bg-theme-success-bg border-theme-success-border text-theme-success-text';
+        return 'bg-theme-notification-success-bg border-theme-notification-success-border text-theme-notification-success-text';
       case 'info':
-        return 'bg-theme-info-bg border-theme-info-border text-theme-info-text';
+        return 'bg-theme-notification-info-bg border-theme-notification-info-border text-theme-notification-info-text';
       default:
-        return 'bg-theme-bg-elevated border-theme-border-primary text-theme-text-primary';
+        return 'bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary';
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Tool } from '../types/workflow';
-import { ToolConfiguration, ConnectionType } from '../types/configuration';
+import { ToolConfiguration, ConnectionType, FieldValue } from '../types/configuration';
 import { getInputConnectionTypes, getConnectionType } from '../config/connectionTypes';
 import ConfigurationHeader from './ConfigurationHeader';
 import ConnectionTypeSelector from './ConnectionTypeSelector';
@@ -32,7 +32,7 @@ export default function ConfigurationPanel({
   onWorkflowMetaChange
 }: ConfigurationPanelProps) {
   const [currentConnectionType, setCurrentConnectionType] = useState<ConnectionType | null>(null);
-  const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
+  const [fieldValues, setFieldValues] = useState<Record<string, FieldValue>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Reset when tool selection changes
@@ -58,7 +58,7 @@ export default function ConfigurationPanel({
   }, [selectedTool, configuration]);
 
   // Update field value and validate
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: FieldValue) => {
     const newValues = { ...fieldValues, [fieldId]: value };
     setFieldValues(newValues);
 
@@ -87,7 +87,7 @@ export default function ConfigurationPanel({
     setCurrentConnectionType(connectionType);
     
     // Initialize field values with defaults
-    const defaultValues: Record<string, any> = {};
+    const defaultValues: Record<string, FieldValue> = {};
     connectionType.configSchema.forEach(field => {
       defaultValues[field.id] = field.defaultValue;
     });
@@ -109,7 +109,7 @@ export default function ConfigurationPanel({
   };
 
   // Update configuration in parent component
-  const updateConfiguration = (values: Record<string, any>, connectionTypeId?: string) => {
+  const updateConfiguration = (values: Record<string, FieldValue>, connectionTypeId?: string) => {
     if (!selectedTool) return;
 
     const errors = validateAllFields(values);
@@ -128,7 +128,7 @@ export default function ConfigurationPanel({
   };
 
   // Validate all fields
-  const validateAllFields = (values: Record<string, any>): Record<string, string> => {
+  const validateAllFields = (values: Record<string, FieldValue>): Record<string, string> => {
     const errors: Record<string, string> = {};
     
     if (!currentConnectionType) return errors;
@@ -243,7 +243,7 @@ export default function ConfigurationPanel({
                     value={fieldValues[field.id]}
                     error={fieldErrors[field.id]}
                     allValues={fieldValues}
-                    onChange={(value: any) => handleFieldChange(field.id, value)}
+                    onChange={(value: FieldValue) => handleFieldChange(field.id, value)}
                   />
                 </div>
               ))}

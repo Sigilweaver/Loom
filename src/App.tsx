@@ -35,7 +35,12 @@ function App() {
   const [edges, setEdges] = useState<Edge[]>([]);
   
   // Edge manager for optimistic updates
-  const edgeManager = useMemo(() => new EdgeManager(xmlManager, setEdges), [xmlManager]);
+  const edgeManager = useMemo(() => new EdgeManager(xmlManager, setEdges, []), [xmlManager]);
+  
+  // Update edgeManager with current tools whenever tools change
+  useEffect(() => {
+    edgeManager.updateTools(tools);
+  }, [edgeManager, tools]);
   
   // Canvas ref for calling fitView
   const canvasRef = useRef<CanvasRef>(null);
@@ -91,7 +96,7 @@ function App() {
           const configuration: ToolConfiguration = {
             toolId: tool.id,
             toolType: tool.type,
-            connectionType: type || '',
+            connectionType: typeof type === 'string' ? type : '',
             parameters,
             isValid: true, // Assume valid since it came from XML
             errors: []
@@ -126,7 +131,7 @@ function App() {
         return {
           toolId: tool.id,
           toolType: tool.type,
-          connectionType: type || '',
+          connectionType: typeof type === 'string' ? type : '',
           parameters,
           isValid: true,
           errors: []
@@ -347,7 +352,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="h-screen flex flex-col bg-theme-surface-app">
+      <div className="h-screen flex flex-col bg-theme-surface-page">
         <Header
           onNewWorkflow={newWorkflow}
           onImportWorkflow={importWorkflow}

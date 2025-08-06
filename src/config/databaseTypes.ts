@@ -40,14 +40,14 @@ export const postgresqlConfig: ConnectionType = {
     {
       id: 'password',
       label: 'Password',
-      type: 'text', // TODO: Make this a password field
+      type: 'password',
       defaultValue: '',
       required: true
     },
     {
       id: 'query',
       label: 'SQL Query',
-      type: 'text', // TODO: Make this a textarea
+      type: 'textarea',
       defaultValue: 'SELECT * FROM table_name',
       required: true
     }

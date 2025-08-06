@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Theme, ThemeContextType } from '../types/theme';
-import { availableThemes, getThemeById, lightTheme } from '../themes';
+import { availableThemes, getThemeById, sigilweaverTheme } from '../themes';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -17,7 +17,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState<Theme>(lightTheme);
+  const [currentTheme, setCurrentTheme] = useState<Theme>(sigilweaverTheme);
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -27,7 +27,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setCurrentTheme(theme);
       applyThemeVariables(theme);
     } else {
-      applyThemeVariables(lightTheme);
+      applyThemeVariables(sigilweaverTheme);
     }
   }, []);
 
@@ -215,6 +215,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.style.setProperty('--color-modal-content-bg', colors.modals.content.background);
     root.style.setProperty('--color-modal-content-text', colors.modals.content.text);
 
+    // Modal buttons
+    const modalButtonTypes = ['primary', 'secondary', 'cancel'];
+    modalButtonTypes.forEach(buttonType => {
+      const button = colors.modals.buttons[buttonType as keyof typeof colors.modals.buttons];
+      root.style.setProperty(`--color-modal-btn-${buttonType}-bg`, button.default.background);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-bg-hover`, button.hover.background);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-bg-active`, button.active.background);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-bg-disabled`, button.disabled.background);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-border`, button.default.border);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-border-hover`, button.hover.border);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-border-active`, button.active.border);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-border-disabled`, button.disabled.border);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-text`, button.default.text);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-text-hover`, button.hover.text);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-text-active`, button.active.text);
+      root.style.setProperty(`--color-modal-btn-${buttonType}-text-disabled`, button.disabled.text);
+    });
+
     // Notifications
     root.style.setProperty('--color-notification-success-bg', colors.notifications.success.background);
     root.style.setProperty('--color-notification-success-border', colors.notifications.success.border);
@@ -255,6 +273,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.style.setProperty('--color-tool-join', colors.palette.tools.join[500]);
     root.style.setProperty('--color-tool-aggregate', colors.palette.tools.aggregate[500]);
     root.style.setProperty('--color-tool-favorites', colors.palette.tools.favorites[500]);
+
+    // Socket colors - consistent across all themes
+    root.style.setProperty('--color-socket-input', '#3b82f6'); // Blue for inputs
+    root.style.setProperty('--color-socket-output', '#10b981'); // Green for outputs
+    root.style.setProperty('--color-socket-input-border', '#1e40af'); // Darker blue border for input sockets
+    root.style.setProperty('--color-socket-output-border', '#047857'); // Darker green border for output sockets
 
     // Set theme attribute for CSS selectors
     root.setAttribute('data-theme', theme.id);

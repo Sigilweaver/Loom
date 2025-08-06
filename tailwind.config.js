@@ -277,6 +277,46 @@ export default {
           'modal-content-bg': 'var(--color-modal-content-bg)',
           'modal-content-text': 'var(--color-modal-content-text)',
           
+          // Modal buttons
+          'modal-btn-primary-bg': 'var(--color-modal-btn-primary-bg)',
+          'modal-btn-primary-bg-hover': 'var(--color-modal-btn-primary-bg-hover)',
+          'modal-btn-primary-bg-active': 'var(--color-modal-btn-primary-bg-active)',
+          'modal-btn-primary-bg-disabled': 'var(--color-modal-btn-primary-bg-disabled)',
+          'modal-btn-primary-border': 'var(--color-modal-btn-primary-border)',
+          'modal-btn-primary-border-hover': 'var(--color-modal-btn-primary-border-hover)',
+          'modal-btn-primary-border-active': 'var(--color-modal-btn-primary-border-active)',
+          'modal-btn-primary-border-disabled': 'var(--color-modal-btn-primary-border-disabled)',
+          'modal-btn-primary-text': 'var(--color-modal-btn-primary-text)',
+          'modal-btn-primary-text-hover': 'var(--color-modal-btn-primary-text-hover)',
+          'modal-btn-primary-text-active': 'var(--color-modal-btn-primary-text-active)',
+          'modal-btn-primary-text-disabled': 'var(--color-modal-btn-primary-text-disabled)',
+          
+          'modal-btn-secondary-bg': 'var(--color-modal-btn-secondary-bg)',
+          'modal-btn-secondary-bg-hover': 'var(--color-modal-btn-secondary-bg-hover)',
+          'modal-btn-secondary-bg-active': 'var(--color-modal-btn-secondary-bg-active)',
+          'modal-btn-secondary-bg-disabled': 'var(--color-modal-btn-secondary-bg-disabled)',
+          'modal-btn-secondary-border': 'var(--color-modal-btn-secondary-border)',
+          'modal-btn-secondary-border-hover': 'var(--color-modal-btn-secondary-border-hover)',
+          'modal-btn-secondary-border-active': 'var(--color-modal-btn-secondary-border-active)',
+          'modal-btn-secondary-border-disabled': 'var(--color-modal-btn-secondary-border-disabled)',
+          'modal-btn-secondary-text': 'var(--color-modal-btn-secondary-text)',
+          'modal-btn-secondary-text-hover': 'var(--color-modal-btn-secondary-text-hover)',
+          'modal-btn-secondary-text-active': 'var(--color-modal-btn-secondary-text-active)',
+          'modal-btn-secondary-text-disabled': 'var(--color-modal-btn-secondary-text-disabled)',
+          
+          'modal-btn-cancel-bg': 'var(--color-modal-btn-cancel-bg)',
+          'modal-btn-cancel-bg-hover': 'var(--color-modal-btn-cancel-bg-hover)',
+          'modal-btn-cancel-bg-active': 'var(--color-modal-btn-cancel-bg-active)',
+          'modal-btn-cancel-bg-disabled': 'var(--color-modal-btn-cancel-bg-disabled)',
+          'modal-btn-cancel-border': 'var(--color-modal-btn-cancel-border)',
+          'modal-btn-cancel-border-hover': 'var(--color-modal-btn-cancel-border-hover)',
+          'modal-btn-cancel-border-active': 'var(--color-modal-btn-cancel-border-active)',
+          'modal-btn-cancel-border-disabled': 'var(--color-modal-btn-cancel-border-disabled)',
+          'modal-btn-cancel-text': 'var(--color-modal-btn-cancel-text)',
+          'modal-btn-cancel-text-hover': 'var(--color-modal-btn-cancel-text-hover)',
+          'modal-btn-cancel-text-active': 'var(--color-modal-btn-cancel-text-active)',
+          'modal-btn-cancel-text-disabled': 'var(--color-modal-btn-cancel-text-disabled)',
+          
           // Notifications
           'notification-success-bg': 'var(--color-notification-success-bg)',
           'notification-success-border': 'var(--color-notification-success-border)',
@@ -320,6 +360,11 @@ export default {
           'tool-join': 'var(--color-tool-join)',
           'tool-aggregate': 'var(--color-tool-aggregate)',
           'tool-favorites': 'var(--color-tool-favorites)',
+          
+          // Socket colors (consistent across themes)
+          'socket-input': 'var(--color-socket-input)',
+          'socket-output': 'var(--color-socket-output)',
+          'socket-border': 'var(--color-socket-border)',
         }
       }
     },

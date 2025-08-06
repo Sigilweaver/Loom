@@ -1,14 +1,16 @@
 // Configuration types for tool parameters
 
+export type FieldValue = string | number | boolean | string[] | null | Record<string, unknown>[];
+
 export interface FieldSchema {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'boolean' | 'select' | 'file';
-  defaultValue: any;
+  type: 'text' | 'number' | 'boolean' | 'select' | 'file' | 'password' | 'textarea';
+  defaultValue: FieldValue;
   required?: boolean;
   dependsOn?: string; // Show field only if another field has specific value
   options?: { value: string; label: string }[];
-  validation?: (value: any, allValues: Record<string, any>) => string | null;
+  validation?: (value: FieldValue, allValues: Record<string, FieldValue>) => string | null;
   helpText?: string;
 }
 
@@ -25,7 +27,7 @@ export interface ToolConfiguration {
   toolId: string;
   toolType: string;
   connectionType?: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, FieldValue>;
   isValid: boolean;
   errors: string[];
 }

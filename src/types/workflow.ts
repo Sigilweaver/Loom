@@ -1,3 +1,5 @@
+import { FieldValue } from './configuration';
+
 export interface WorkflowMeta {
   name: string;
   description: string;
@@ -7,7 +9,7 @@ export interface WorkflowMeta {
 }
 
 export interface ToolConfig {
-  [key: string]: any;
+  [key: string]: FieldValue;
 }
 
 export interface Socket {

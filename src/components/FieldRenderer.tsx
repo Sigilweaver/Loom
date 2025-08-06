@@ -1,11 +1,11 @@
-import { FieldSchema } from '../types/configuration';
+import { FieldSchema, FieldValue } from '../types/configuration';
 
 interface FieldRendererProps {
   field: FieldSchema;
-  value: any;
+  value: FieldValue;
   error?: string;
-  allValues: Record<string, any>;
-  onChange: (value: any) => void;
+  allValues: Record<string, FieldValue>;
+  onChange: (value: FieldValue) => void;
 }
 
 export default function FieldRenderer({
@@ -37,10 +37,46 @@ export default function FieldRenderer({
         return (
           <input
             type="text"
-            value={value || ''}
+            value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             className={`
               w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
+              ${error 
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
+                : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
+              }
+              focus:outline-none focus:ring-1
+            `}
+            placeholder={field.helpText}
+          />
+        );
+
+      case 'password':
+        return (
+          <input
+            type="password"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            className={`
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
+              ${error 
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
+                : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
+              }
+              focus:outline-none focus:ring-1
+            `}
+            placeholder={field.helpText}
+          />
+        );
+
+      case 'textarea':
+        return (
+          <textarea
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            rows={4}
+            className={`
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary resize-vertical
               ${error 
                 ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
                 : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
@@ -55,7 +91,7 @@ export default function FieldRenderer({
         return (
           <input
             type="number"
-            value={value || ''}
+            value={typeof value === 'number' ? value : ''}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
             className={`
               w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
@@ -74,7 +110,7 @@ export default function FieldRenderer({
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={value || false}
+              checked={typeof value === 'boolean' ? value : false}
               onChange={(e) => onChange(e.target.checked)}
               className="rounded border-theme-border-primary text-blue-600 focus:ring-blue-500"
             />
@@ -87,7 +123,7 @@ export default function FieldRenderer({
       case 'select':
         return (
           <select
-            value={value || ''}
+            value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             className={`
               w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
@@ -112,7 +148,7 @@ export default function FieldRenderer({
           <div className="space-y-2">
             <input
               type="text"
-              value={value || ''}
+              value={typeof value === 'string' ? value : ''}
               onChange={(e) => onChange(e.target.value)}
               className={`
                 w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary

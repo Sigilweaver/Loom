@@ -1,4 +1,4 @@
-import { Tool, Wire, WorkflowMeta } from '../types/workflow';
+import { Tool, Wire, WorkflowMeta, ToolConfig } from '../types/workflow';
 import { v4 as uuidv4 } from 'uuid';
 
 export class XMLWorkflowManager {
@@ -93,7 +93,7 @@ export class XMLWorkflowManager {
       if (!id || !type) return;
 
       // Parse config
-      const config: any = {};
+      const config: ToolConfig = {};
       const configEl = toolEl.querySelector('Config');
       if (configEl) {
         Array.from(configEl.children).forEach(child => {
@@ -173,7 +173,7 @@ export class XMLWorkflowManager {
   }
 
   // Update tool configuration
-  updateToolConfiguration(toolId: string, configuration: Record<string, any>): void {
+  updateToolConfiguration(toolId: string, configuration: ToolConfig): void {
     const toolEl = this.document.querySelector(`Tool[id="${toolId}"]`);
     if (!toolEl) return;
 

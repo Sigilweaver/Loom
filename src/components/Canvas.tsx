@@ -135,8 +135,10 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       const fromSocket = parseInt(connection.sourceHandle.replace('output-', ''));
       const toSocket = parseInt(connection.targetHandle.replace('input-', ''));
       
-      // Validate that this connection won't create a cycle
-      if (wouldCreateCycle(tools, wires, connection.source, connection.target)) {
+      // Check if this connection would create a cycle
+      const wouldLoop = wouldCreateCycle(tools, wires, connection.source, connection.target);
+      
+      if (wouldLoop) {
         // Get tool names for better user feedback
         const fromTool = tools.find(t => t.id === connection.source);
         const toTool = tools.find(t => t.id === connection.target);
@@ -144,37 +146,31 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         const toName = toTool ? getToolDefinition(toTool.type)?.name || 'Unknown Tool' : 'Unknown Tool';
         
         showNotification(
-          `Cannot connect "${fromName}" to "${toName}" - this would create a circular loop in your workflow. Workflows must flow in one direction to prevent infinite loops.`,
-          'error'
+          `Connection "${fromName}" to "${toName}" creates a loop - displayed in red. Remove to fix workflow.`,
+          'warning'
         );
         
-        // Visual feedback - briefly highlight the rejected connection in red
-        const tempEdge = {
-          id: 'temp-rejected',
-          source: connection.source,
-          target: connection.target,
-          sourceHandle: connection.sourceHandle,
-          targetHandle: connection.targetHandle,
-          style: { stroke: 'var(--color-edge-invalid-stroke)', strokeWidth: 3, strokeDasharray: '5,5' },
-          animated: true,
-          type: 'default'
-        };
+        // Create the wire temporarily, then remove it after 3 seconds
+        const tempWire = { tool: connection.source, socket: fromSocket };
+        const tempTarget = { tool: connection.target, socket: toSocket };
         
-        // Show rejected connection briefly
-        setEdges(prev => [...prev, tempEdge]);
+        onAddWire(tempWire, tempTarget);
+        
+        // Auto-remove the error connection after 3 seconds
         setTimeout(() => {
-          setEdges(prev => prev.filter(edge => edge.id !== 'temp-rejected'));
-        }, 2000);
-        
-        return;
+          // Create the edge ID to remove
+          const edgeId = `${encodeURIComponent(connection.source)}_${fromSocket}_${encodeURIComponent(connection.target)}_${toSocket}`;
+          onRemoveWire(edgeId);
+        }, 3000);
+      } else {
+        // Normal connection - create normally
+        onAddWire(
+          { tool: connection.source, socket: fromSocket },
+          { tool: connection.target, socket: toSocket }
+        );
       }
-      
-      onAddWire(
-        { tool: connection.source, socket: fromSocket },
-        { tool: connection.target, socket: toSocket }
-      );
     }
-  }, [onAddWire, tools, wires, setEdges, showNotification]);
+  }, [onAddWire, onRemoveWire, tools, wires, showNotification]);
 
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
     edgesToDelete.forEach((edge) => {
@@ -251,7 +247,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onNodeDragStop = useCallback((_event: any, node: Node) => {
+  const onNodeDragStop = useCallback((_event: React.MouseEvent | React.TouchEvent, node: Node) => {
     // React Flow will handle snapping automatically when snapToGrid is enabled
     onToolMove(node.id, node.position.x, node.position.y);
   }, [onToolMove]);
@@ -275,21 +271,22 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   return (
     <div className="flex-1 h-full relative">
       <style>{`
-        .react-flow__edge.selected {
-          stroke: var(--color-edge-selected-stroke) !important;
-          stroke-width: 3px !important;
+        /* React Flow Node Selection Override - Remove purple selection */
+        .react-flow__node.selected {
+          outline: none !important;
+          box-shadow: none !important;
         }
-        .react-flow__edge.selected .react-flow__edge-path {
-          stroke: var(--color-edge-selected-stroke) !important;
-          stroke-width: 3px !important;
+        .react-flow__node.selected .react-flow__node-default {
+          outline: none !important;
+          box-shadow: none !important;
         }
-        .react-flow__edge:hover {
-          stroke: var(--color-edge-default-stroke-hover) !important;
-          stroke-width: 3px !important;
+        .react-flow__node.dragging {
+          opacity: 0.8 !important;
         }
-        .react-flow__edge:hover .react-flow__edge-path {
-          stroke: var(--color-edge-default-stroke-hover) !important;
-          stroke-width: 3px !important;
+        
+        /* Hide React Flow attribution */
+        .react-flow__attribution {
+          display: none !important;
         }
       `}</style>
       <ReactFlow
@@ -310,8 +307,14 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         connectionLineType={ConnectionLineType.Bezier}
         defaultEdgeOptions={{
           type: 'default',
-          style: { stroke: 'var(--color-edge-default-stroke)', strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--color-edge-default-stroke)' },
+          style: { 
+            stroke: 'var(--color-edge-default-stroke)', 
+            strokeWidth: 2,
+          },
+          markerEnd: { 
+            type: MarkerType.ArrowClosed, 
+            color: 'var(--color-edge-default-stroke)' 
+          },
         }}
         deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode={['Meta', 'Ctrl']}

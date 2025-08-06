@@ -51,7 +51,8 @@ export const csvConfig: ConnectionType = {
       type: 'number',
       defaultValue: 1,
       validation: (value) => {
-        if (value < 1) return 'Line number must be 1 or greater';
+        if (typeof value === 'number' && value < 1) return 'Line number must be 1 or greater';
+        if (value === null || value === '') return 'Line number is required';
         return null;
       },
       helpText: 'Line number where data starts (1-based)'
@@ -135,7 +136,8 @@ export const excelConfig: ConnectionType = {
       type: 'number',
       defaultValue: 1,
       validation: (value) => {
-        if (value < 1) return 'Row number must be 1 or greater';
+        if (typeof value === 'number' && value < 1) return 'Row number must be 1 or greater';
+        if (value === null || value === '') return 'Row number is required';
         return null;
       },
       helpText: 'Row number where data starts (1-based)'

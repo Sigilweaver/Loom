@@ -233,7 +233,7 @@ export default function XMLViewer({
 
   return (
     <div 
-      className="bg-theme-bg-elevated border-l border-theme-border-primary flex flex-col h-full relative"
+      className="bg-theme-modal-container-bg border-l border-theme-modal-container-border flex flex-col h-full relative"
       style={{ width: `${width}px` }}
     >
       {/* Resize handle */}
@@ -244,7 +244,7 @@ export default function XMLViewer({
       />
       
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-theme-bg-secondary">
+      <div className="flex items-center gap-3 p-4 border-b bg-theme-modal-header-bg border-theme-modal-header-border">
         {/* Code icon */}
         <div className="flex-shrink-0">
           <svg className="w-5 h-5 text-theme-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,20 +253,20 @@ export default function XMLViewer({
         </div>
         
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-theme-text-primary">XML Viewer</h2>
+          <h2 className="text-lg font-semibold text-theme-modal-header-text">XML Viewer</h2>
         </div>
         
         <div className="flex gap-2">
           <button
             onClick={copyToClipboard}
-            className="px-3 py-1.5 bg-theme-interactive-accent hover:bg-theme-interactive-accent-hover text-theme-text-inverse rounded text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-theme-modal-btn-primary-bg hover:bg-theme-modal-btn-primary-bg-hover text-theme-modal-btn-primary-text border border-theme-modal-btn-primary-border hover:border-theme-modal-btn-primary-border-hover rounded text-sm font-medium transition-colors"
             title="Copy formatted XML to clipboard"
           >
             Copy
           </button>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 bg-theme-interactive-secondary hover:bg-theme-interactive-secondary-hover text-theme-text-inverse rounded text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-theme-modal-btn-secondary-bg hover:bg-theme-modal-btn-secondary-bg-hover text-theme-modal-btn-secondary-text border border-theme-modal-btn-secondary-border hover:border-theme-modal-btn-secondary-border-hover rounded text-sm font-medium transition-colors"
             title="Close XML viewer"
           >
             ✕
@@ -275,15 +275,15 @@ export default function XMLViewer({
       </div>
       
       {/* Description below header */}
-      <div className="px-4 py-3 bg-theme-info-bg border-b border-theme-info-border">
-        <p className="text-sm text-theme-info-text">
+      <div className="px-4 py-3 bg-theme-modal-header-bg border-b border-theme-modal-header-border">
+        <p className="text-sm text-theme-modal-header-text opacity-75">
           Live XML representation of the current workflow
         </p>
       </div>
       
       {/* XML Content with syntax highlighting */}
-      <div className="flex-1 overflow-auto p-4 bg-theme-bg-secondary">
-        <div className="bg-theme-bg-elevated p-4 rounded border font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+      <div className="flex-1 overflow-auto p-4 bg-theme-modal-content-bg">
+        <div className="bg-theme-surface-elevated p-4 rounded border font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
           {highlightedXml}
         </div>
       </div>
