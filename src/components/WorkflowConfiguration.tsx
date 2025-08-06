@@ -29,7 +29,7 @@ export default function WorkflowConfiguration({
   // Simple markdown rendering for preview
   const renderMarkdown = (text: string) => {
     return (
-      <div className="prose prose-sm max-w-none prose-headings:text-theme-text-primary prose-p:text-theme-text-secondary prose-strong:text-theme-text-primary prose-code:text-theme-syntax-declaration prose-code:bg-theme-bg-tertiary prose-code:px-1 prose-code:rounded">
+      <div className="prose prose-sm max-w-none prose-headings:text-theme-text-primary prose-p:text-theme-text-secondary prose-strong:text-theme-text-primary prose-code:text-theme-text-primary prose-code:bg-theme-surface-panel prose-code:px-1 prose-code:rounded">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {text || 'No description provided.'}
         </ReactMarkdown>
@@ -48,7 +48,7 @@ export default function WorkflowConfiguration({
           type="text"
           value={workflowMeta.name}
           onChange={(e) => handleFieldChange('name', e.target.value)}
-          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-bg-elevated text-theme-text-primary"
+          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-surface-elevated text-theme-text-primary"
           placeholder="Enter workflow name..."
         />
       </div>
@@ -61,14 +61,14 @@ export default function WorkflowConfiguration({
           </label>
           <button
             onClick={() => setPreviewMode(!previewMode)}
-            className="text-xs text-theme-interactive-accent hover:text-theme-interactive-accent-hover transition-colors"
+            className="text-xs text-theme-text-secondary hover:text-theme-text-primary transition-colors"
           >
             {previewMode ? 'Edit' : 'Preview'}
           </button>
         </div>
         
         {previewMode ? (
-          <div className="w-full min-h-[100px] px-3 py-2 border border-theme-border-primary rounded-md text-sm bg-theme-bg-tertiary">
+          <div className="w-full min-h-[100px] px-3 py-2 border border-theme-border-primary rounded-md text-sm bg-theme-surface-panel">
             {renderMarkdown(workflowMeta.description)}
           </div>
         ) : (
@@ -92,13 +92,13 @@ export default function WorkflowConfiguration({
               }
               // Don't prevent any other keys - allow natural text input
             }}
-            className="w-full min-h-[100px] px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus resize-vertical bg-theme-bg-elevated text-theme-text-primary"
+            className="w-full min-h-[100px] px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus resize-vertical bg-theme-surface-elevated text-theme-text-primary"
             placeholder="Enter workflow description... (Markdown supported: **bold**, *italic*, `code`, # headers, - lists)"
             rows={4}
           />
         )}
         
-        <div className="text-xs text-theme-text-muted mt-1">
+        <div className="text-xs text-theme-text-tertiary mt-1">
           Supports Markdown: **bold**, *italic*, `code`, # headers, - lists, [links](url)
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function WorkflowConfiguration({
           type="text"
           value={workflowMeta.author}
           onChange={(e) => handleFieldChange('author', e.target.value)}
-          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-bg-elevated text-theme-text-primary"
+          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-surface-elevated text-theme-text-primary"
           placeholder="Enter author name..."
         />
       </div>
@@ -120,7 +120,7 @@ export default function WorkflowConfiguration({
       {/* Workflow Info (Read-only) */}
       <div className="border-t border-theme-border-primary pt-4 space-y-2">
         <h4 className="text-sm font-medium text-theme-text-secondary">Workflow Info</h4>
-        <div className="text-xs text-theme-text-muted space-y-1">
+        <div className="text-xs text-theme-text-tertiary space-y-1">
           <div>ID: {workflowMeta.workflowId}</div>
           <div>Created: {new Date(workflowMeta.created).toLocaleString()}</div>
         </div>

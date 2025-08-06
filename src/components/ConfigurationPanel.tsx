@@ -161,10 +161,10 @@ export default function ConfigurationPanel({
         defaultWidth={320}
         minWidth={280}
         maxWidth={600}
-        className="bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col"
+        className="bg-theme-surface-panel border-r border-theme-border-primary flex flex-col"
       >
         {/* Workflow Configuration Header */}
-        <div className="bg-theme-bg-elevated border-b border-theme-border-primary p-4">
+        <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-4">
           <div className="flex items-center space-x-3">
             <div className="text-2xl">⚙️</div>
             <div>
@@ -192,12 +192,12 @@ export default function ConfigurationPanel({
         defaultWidth={320}
         minWidth={280}
         maxWidth={600}
-        className="bg-theme-bg-secondary border-r border-theme-border-primary"
+        className="bg-theme-surface-panel border-r border-theme-border-primary"
       >
         <ConfigurationHeader tool={selectedTool} />
         <div className="p-4 text-center text-theme-text-tertiary">
           <div className="text-sm">Configuration not available for {selectedTool.type} tools</div>
-          <div className="text-xs mt-2 text-theme-text-muted">Coming soon...</div>
+          <div className="text-xs mt-2 text-theme-text-disabled">Coming soon...</div>
         </div>
       </ResizablePanel>
     );
@@ -208,7 +208,7 @@ export default function ConfigurationPanel({
       defaultWidth={320}
       minWidth={280}
       maxWidth={600}
-      className="bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col"
+      className="bg-theme-surface-panel border-r border-theme-border-primary flex flex-col"
     >
       {/* Header */}
       <ConfigurationHeader tool={selectedTool} />

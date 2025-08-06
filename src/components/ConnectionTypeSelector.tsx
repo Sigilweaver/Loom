@@ -56,7 +56,7 @@ export default function ConnectionTypeSelector({
         <select
           value={selectedCategory}
           onChange={(e) => handleCategoryChange(e.target.value as 'file' | 'database' | '')}
-          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-bg-elevated text-theme-text-primary"
+          className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-surface-elevated text-theme-text-primary"
         >
           {!selectedCategory && <option value="">Select a category...</option>}
           {fileTypes.length > 0 && (
@@ -80,7 +80,7 @@ export default function ConnectionTypeSelector({
               const type = getTypesForCategory(selectedCategory).find(t => t.id === e.target.value);
               if (type) handleTypeSelect(type);
             }}
-            className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-bg-elevated text-theme-text-primary"
+            className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus bg-theme-surface-elevated text-theme-text-primary"
           >
             {!selectedType && <option value="">Select a {selectedCategory === 'file' ? 'file type' : 'database type'}...</option>}
             {getTypesForCategory(selectedCategory).map(type => (

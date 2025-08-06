@@ -24,7 +24,7 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
   };
 
   return (
-    <div className="bg-theme-bg-elevated border-b-2 border-theme-border-secondary">
+    <div className="bg-theme-surface-elevated border-b-2 border-theme-border-secondary">
       {/* Tabs */}
       <div className="flex border-b-2 border-theme-border-secondary px-2 pt-2 relative">
         {TABS.map((tab) => (
@@ -33,8 +33,8 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
             onClick={() => onTabChange(tab.id)}
             className={`px-3 py-2 text-sm font-medium border-2 rounded-t-lg transition-colors flex items-center gap-2 mr-1 relative ${
               activeTab === tab.id
-                ? `border-theme-border-secondary border-b-theme-bg-elevated bg-theme-bg-elevated text-theme-text-primary z-10`
-                : 'border-theme-border-primary text-theme-text-tertiary hover:text-theme-text-secondary hover:border-theme-border-secondary bg-theme-bg-secondary z-0'
+                ? `border-theme-border-secondary border-b-theme-surface-elevated bg-theme-surface-elevated text-theme-text-primary z-10`
+                : 'border-theme-border-primary text-theme-text-tertiary hover:text-theme-text-secondary hover:border-theme-border-secondary bg-theme-surface-panel z-0'
             }`}
             style={{
               marginBottom: '-2px',
@@ -54,7 +54,7 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
               key={tool.type}
               draggable
               onDragStart={(e) => handleDragStart(e, tool.type)}
-              className="border-2 rounded-lg p-4 bg-theme-workflow-node-bg shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
+              className="border-2 rounded-lg p-4 bg-theme-surface-elevated shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
               style={{
                 width: '100px',  // Same as canvas tools
                 height: '100px',

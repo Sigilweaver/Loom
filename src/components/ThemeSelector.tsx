@@ -13,7 +13,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ className = '' }) 
       <select
         value={currentTheme.id}
         onChange={(e) => setTheme(e.target.value)}
-        className="appearance-none bg-theme-bg-elevated border border-theme-border-primary rounded px-3 py-1.5 pr-8 text-sm text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus transition-colors"
+        className="appearance-none bg-theme-surface-elevated border border-theme-border-primary rounded px-3 py-1.5 pr-8 text-sm text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus transition-colors"
         title="Select theme"
       >
         {availableThemes.map((theme) => (
@@ -43,7 +43,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
   return (
     <button
       onClick={toggleTheme}
-      className={`p-2 rounded hover:bg-theme-interactive-secondary transition-colors ${className}`}
+      className={`p-2 rounded hover:bg-theme-surface-panel transition-colors ${className}`}
       title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
     >
       {isDark ? (

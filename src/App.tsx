@@ -347,7 +347,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="h-screen flex flex-col bg-theme-workflow-canvas">
+      <div className="h-screen flex flex-col bg-theme-surface-app">
         <Header
           onNewWorkflow={newWorkflow}
           onImportWorkflow={importWorkflow}

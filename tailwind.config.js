@@ -7,78 +7,296 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Theme-aware colors using CSS custom properties
+        // Component-specific theming using CSS custom properties
         'theme': {
-          // Background colors
-          'bg-primary': 'var(--color-bg-primary)',
-          'bg-secondary': 'var(--color-bg-secondary)',
-          'bg-tertiary': 'var(--color-bg-tertiary)',
-          'bg-elevated': 'var(--color-bg-elevated)',
+          // Global surfaces
+          'surface-page': 'var(--color-surface-page)',
+          'surface-panel': 'var(--color-surface-panel)',
+          'surface-elevated': 'var(--color-surface-elevated)',
+          'surface-overlay': 'var(--color-surface-overlay)',
+          'surface-canvas': 'var(--color-surface-canvas)',
           
-          // Text colors
+          // Global text
           'text-primary': 'var(--color-text-primary)',
           'text-secondary': 'var(--color-text-secondary)',
           'text-tertiary': 'var(--color-text-tertiary)',
           'text-inverse': 'var(--color-text-inverse)',
-          'text-muted': 'var(--color-text-muted)',
+          'text-disabled': 'var(--color-text-disabled)',
           
-          // Border colors
+          // Global borders
           'border-primary': 'var(--color-border-primary)',
           'border-secondary': 'var(--color-border-secondary)',
           'border-focus': 'var(--color-border-focus)',
-          'border-error': 'var(--color-border-error)',
-          'border-success': 'var(--color-border-success)',
+          'border-divider': 'var(--color-border-divider)',
           
-          // Tool category colors
-          'tool-inout': 'var(--color-tool-inout)',
-          'tool-preparation': 'var(--color-tool-preparation)',
-          'tool-join': 'var(--color-tool-join)',
-          'tool-aggregate': 'var(--color-tool-aggregate)',
-          'tool-favorites': 'var(--color-tool-favorites)',
-          'tool-default': 'var(--color-tool-default)',
+          // Legacy compatibility classes (to be migrated)
+          'bg-elevated': 'var(--color-surface-elevated)',
+          'bg-secondary': 'var(--color-surface-panel)',
+          'workflow-canvas': 'var(--color-surface-canvas)',
+          'workflow-node-bg': 'var(--color-surface-elevated)',
           
-          // Interactive states
-          'interactive-primary': 'var(--color-interactive-primary)',
-          'interactive-primary-hover': 'var(--color-interactive-primary-hover)',
-          'interactive-primary-active': 'var(--color-interactive-primary-active)',
-          'interactive-primary-disabled': 'var(--color-interactive-primary-disabled)',
-          'interactive-secondary': 'var(--color-interactive-secondary)',
-          'interactive-secondary-hover': 'var(--color-interactive-secondary-hover)',
-          'interactive-secondary-active': 'var(--color-interactive-secondary-active)',
-          'interactive-secondary-disabled': 'var(--color-interactive-secondary-disabled)',
-          'interactive-accent': 'var(--color-interactive-accent)',
-          'interactive-accent-hover': 'var(--color-interactive-accent-hover)',
-          'interactive-accent-active': 'var(--color-interactive-accent-active)',
+          // Additional missing classes for forms and semantic colors
+          'text-muted': 'var(--color-text-tertiary)',
+          'bg-tertiary': 'var(--color-surface-panel)',
+          'interactive-accent': 'var(--color-text-secondary)',
+          'interactive-accent-hover': 'var(--color-text-primary)',
+          'interactive-secondary': 'var(--color-surface-panel)',
+          'border-error': 'var(--color-border-primary)', // Will be updated when semantic borders are added
+          'syntax-declaration': 'var(--color-text-primary)', // Will be updated when syntax highlighting is added
           
-          // Semantic colors
-          'error-bg': 'var(--color-error-bg)',
-          'error-border': 'var(--color-error-border)',
-          'error-text': 'var(--color-error-text)',
-          'error-accent': 'var(--color-error-accent)',
-          'warning-bg': 'var(--color-warning-bg)',
-          'warning-border': 'var(--color-warning-border)',
-          'warning-text': 'var(--color-warning-text)',
-          'warning-accent': 'var(--color-warning-accent)',
-          'success-bg': 'var(--color-success-bg)',
-          'success-border': 'var(--color-success-border)',
-          'success-text': 'var(--color-success-text)',
-          'success-accent': 'var(--color-success-accent)',
-          'info-bg': 'var(--color-info-bg)',
-          'info-border': 'var(--color-info-border)',
-          'info-text': 'var(--color-info-text)',
-          'info-accent': 'var(--color-info-accent)',
+          // Header component
+          'header-bg': 'var(--color-header-bg)',
+          'header-logo-icon': 'var(--color-header-logo-icon)',
+          'header-logo-text': 'var(--color-header-logo-text)',
+          'header-title-text': 'var(--color-header-title-text)',
+          'header-metadata-text': 'var(--color-header-metadata-text)',
+          'header-metadata-divider': 'var(--color-header-metadata-divider)',
+          'header-divider': 'var(--color-header-divider)',
           
-          // Workflow colors
-          'workflow-canvas': 'var(--color-workflow-canvas)',
-          'workflow-grid-primary': 'var(--color-workflow-grid-primary)',
-          'workflow-grid-secondary': 'var(--color-workflow-grid-secondary)',
-          'workflow-edge-default': 'var(--color-workflow-edge-default)',
-          'workflow-edge-hover': 'var(--color-workflow-edge-hover)',
-          'workflow-edge-selected': 'var(--color-workflow-edge-selected)',
-          'workflow-edge-rejected': 'var(--color-workflow-edge-rejected)',
-          'workflow-node-bg': 'var(--color-workflow-node-bg)',
-          'workflow-handle-input': 'var(--color-workflow-handle-input)',
-          'workflow-handle-output': 'var(--color-workflow-handle-output)',
+          // Header buttons
+          'header-btn-new-bg': 'var(--color-header-btn-new-bg)',
+          'header-btn-new-bg-hover': 'var(--color-header-btn-new-bg-hover)',
+          'header-btn-new-bg-active': 'var(--color-header-btn-new-bg-active)',
+          'header-btn-new-bg-disabled': 'var(--color-header-btn-new-bg-disabled)',
+          'header-btn-new-border': 'var(--color-header-btn-new-border)',
+          'header-btn-new-border-hover': 'var(--color-header-btn-new-border-hover)',
+          'header-btn-new-border-active': 'var(--color-header-btn-new-border-active)',
+          'header-btn-new-border-disabled': 'var(--color-header-btn-new-border-disabled)',
+          'header-btn-new-text': 'var(--color-header-btn-new-text)',
+          'header-btn-new-text-hover': 'var(--color-header-btn-new-text-hover)',
+          'header-btn-new-text-active': 'var(--color-header-btn-new-text-active)',
+          'header-btn-new-text-disabled': 'var(--color-header-btn-new-text-disabled)',
+          
+          'header-btn-import-bg': 'var(--color-header-btn-import-bg)',
+          'header-btn-import-bg-hover': 'var(--color-header-btn-import-bg-hover)',
+          'header-btn-import-bg-active': 'var(--color-header-btn-import-bg-active)',
+          'header-btn-import-bg-disabled': 'var(--color-header-btn-import-bg-disabled)',
+          'header-btn-import-border': 'var(--color-header-btn-import-border)',
+          'header-btn-import-border-hover': 'var(--color-header-btn-import-border-hover)',
+          'header-btn-import-border-active': 'var(--color-header-btn-import-border-active)',
+          'header-btn-import-border-disabled': 'var(--color-header-btn-import-border-disabled)',
+          'header-btn-import-text': 'var(--color-header-btn-import-text)',
+          'header-btn-import-text-hover': 'var(--color-header-btn-import-text-hover)',
+          'header-btn-import-text-active': 'var(--color-header-btn-import-text-active)',
+          'header-btn-import-text-disabled': 'var(--color-header-btn-import-text-disabled)',
+          
+          'header-btn-export-bg': 'var(--color-header-btn-export-bg)',
+          'header-btn-export-bg-hover': 'var(--color-header-btn-export-bg-hover)',
+          'header-btn-export-bg-active': 'var(--color-header-btn-export-bg-active)',
+          'header-btn-export-bg-disabled': 'var(--color-header-btn-export-bg-disabled)',
+          'header-btn-export-border': 'var(--color-header-btn-export-border)',
+          'header-btn-export-border-hover': 'var(--color-header-btn-export-border-hover)',
+          'header-btn-export-border-active': 'var(--color-header-btn-export-border-active)',
+          'header-btn-export-border-disabled': 'var(--color-header-btn-export-border-disabled)',
+          'header-btn-export-text': 'var(--color-header-btn-export-text)',
+          'header-btn-export-text-hover': 'var(--color-header-btn-export-text-hover)',
+          'header-btn-export-text-active': 'var(--color-header-btn-export-text-active)',
+          'header-btn-export-text-disabled': 'var(--color-header-btn-export-text-disabled)',
+          
+          'header-btn-viewcode-bg': 'var(--color-header-btn-viewcode-bg)',
+          'header-btn-viewcode-bg-hover': 'var(--color-header-btn-viewcode-bg-hover)',
+          'header-btn-viewcode-bg-active': 'var(--color-header-btn-viewcode-bg-active)',
+          'header-btn-viewcode-bg-disabled': 'var(--color-header-btn-viewcode-bg-disabled)',
+          'header-btn-viewcode-border': 'var(--color-header-btn-viewcode-border)',
+          'header-btn-viewcode-border-hover': 'var(--color-header-btn-viewcode-border-hover)',
+          'header-btn-viewcode-border-active': 'var(--color-header-btn-viewcode-border-active)',
+          'header-btn-viewcode-border-disabled': 'var(--color-header-btn-viewcode-border-disabled)',
+          'header-btn-viewcode-text': 'var(--color-header-btn-viewcode-text)',
+          'header-btn-viewcode-text-hover': 'var(--color-header-btn-viewcode-text-hover)',
+          'header-btn-viewcode-text-active': 'var(--color-header-btn-viewcode-text-active)',
+          'header-btn-viewcode-text-disabled': 'var(--color-header-btn-viewcode-text-disabled)',
+          
+          'header-btn-preview-bg': 'var(--color-header-btn-preview-bg)',
+          'header-btn-preview-bg-hover': 'var(--color-header-btn-preview-bg-hover)',
+          'header-btn-preview-bg-active': 'var(--color-header-btn-preview-bg-active)',
+          'header-btn-preview-bg-disabled': 'var(--color-header-btn-preview-bg-disabled)',
+          'header-btn-preview-border': 'var(--color-header-btn-preview-border)',
+          'header-btn-preview-border-hover': 'var(--color-header-btn-preview-border-hover)',
+          'header-btn-preview-border-active': 'var(--color-header-btn-preview-border-active)',
+          'header-btn-preview-border-disabled': 'var(--color-header-btn-preview-border-disabled)',
+          'header-btn-preview-text': 'var(--color-header-btn-preview-text)',
+          'header-btn-preview-text-hover': 'var(--color-header-btn-preview-text-hover)',
+          'header-btn-preview-text-active': 'var(--color-header-btn-preview-text-active)',
+          'header-btn-preview-text-disabled': 'var(--color-header-btn-preview-text-disabled)',
+          
+          'header-btn-run-bg': 'var(--color-header-btn-run-bg)',
+          'header-btn-run-bg-hover': 'var(--color-header-btn-run-bg-hover)',
+          'header-btn-run-bg-active': 'var(--color-header-btn-run-bg-active)',
+          'header-btn-run-bg-disabled': 'var(--color-header-btn-run-bg-disabled)',
+          'header-btn-run-border': 'var(--color-header-btn-run-border)',
+          'header-btn-run-border-hover': 'var(--color-header-btn-run-border-hover)',
+          'header-btn-run-border-active': 'var(--color-header-btn-run-border-active)',
+          'header-btn-run-border-disabled': 'var(--color-header-btn-run-border-disabled)',
+          'header-btn-run-text': 'var(--color-header-btn-run-text)',
+          'header-btn-run-text-hover': 'var(--color-header-btn-run-text-hover)',
+          'header-btn-run-text-active': 'var(--color-header-btn-run-text-active)',
+          'header-btn-run-text-disabled': 'var(--color-header-btn-run-text-disabled)',
+          
+          // Header theme selector
+          'header-theme-trigger-bg': 'var(--color-header-theme-trigger-bg)',
+          'header-theme-trigger-bg-hover': 'var(--color-header-theme-trigger-bg-hover)',
+          'header-theme-trigger-bg-active': 'var(--color-header-theme-trigger-bg-active)',
+          'header-theme-trigger-bg-disabled': 'var(--color-header-theme-trigger-bg-disabled)',
+          'header-theme-trigger-border': 'var(--color-header-theme-trigger-border)',
+          'header-theme-trigger-border-hover': 'var(--color-header-theme-trigger-border-hover)',
+          'header-theme-trigger-border-active': 'var(--color-header-theme-trigger-border-active)',
+          'header-theme-trigger-border-disabled': 'var(--color-header-theme-trigger-border-disabled)',
+          'header-theme-trigger-text': 'var(--color-header-theme-trigger-text)',
+          'header-theme-trigger-text-hover': 'var(--color-header-theme-trigger-text-hover)',
+          'header-theme-trigger-text-active': 'var(--color-header-theme-trigger-text-active)',
+          'header-theme-trigger-text-disabled': 'var(--color-header-theme-trigger-text-disabled)',
+          
+          'header-theme-dropdown-bg': 'var(--color-header-theme-dropdown-bg)',
+          'header-theme-dropdown-border': 'var(--color-header-theme-dropdown-border)',
+          'header-theme-dropdown-shadow': 'var(--color-header-theme-dropdown-shadow)',
+          
+          'header-theme-option-bg': 'var(--color-header-theme-option-bg)',
+          'header-theme-option-bg-hover': 'var(--color-header-theme-option-bg-hover)',
+          'header-theme-option-bg-active': 'var(--color-header-theme-option-bg-active)',
+          'header-theme-option-bg-disabled': 'var(--color-header-theme-option-bg-disabled)',
+          'header-theme-option-border': 'var(--color-header-theme-option-border)',
+          'header-theme-option-border-hover': 'var(--color-header-theme-option-border-hover)',
+          'header-theme-option-border-active': 'var(--color-header-theme-option-border-active)',
+          'header-theme-option-border-disabled': 'var(--color-header-theme-option-border-disabled)',
+          'header-theme-option-text': 'var(--color-header-theme-option-text)',
+          'header-theme-option-text-hover': 'var(--color-header-theme-option-text-hover)',
+          'header-theme-option-text-active': 'var(--color-header-theme-option-text-active)',
+          'header-theme-option-text-disabled': 'var(--color-header-theme-option-text-disabled)',
+          
+          // Configuration panel
+          'config-panel-bg': 'var(--color-config-panel-bg)',
+          'config-panel-border': 'var(--color-config-panel-border)',
+          'config-panel-shadow': 'var(--color-config-panel-shadow)',
+          
+          'config-header-bg': 'var(--color-config-header-bg)',
+          'config-header-border': 'var(--color-config-header-border)',
+          'config-header-text': 'var(--color-config-header-text)',
+          
+          'config-section-bg': 'var(--color-config-section-bg)',
+          'config-section-border': 'var(--color-config-section-border)',
+          'config-section-title': 'var(--color-config-section-title)',
+          
+          'config-field-label': 'var(--color-config-field-label)',
+          
+          // Tool palette
+          'tool-palette-bg': 'var(--color-tool-palette-bg)',
+          'tool-palette-border': 'var(--color-tool-palette-border)',
+          'tool-palette-shadow': 'var(--color-tool-palette-shadow)',
+          
+          'tool-search-icon': 'var(--color-tool-search-icon)',
+          
+          'tool-category-header-bg': 'var(--color-tool-category-header-bg)',
+          'tool-category-header-text': 'var(--color-tool-category-header-text)',
+          'tool-category-header-border': 'var(--color-tool-category-header-border)',
+          'tool-category-expanded-bg': 'var(--color-tool-category-expanded-bg)',
+          
+          'tool-item-icon': 'var(--color-tool-item-icon)',
+          'tool-item-label': 'var(--color-tool-item-label)',
+          
+          'tool-drag-preview-bg': 'var(--color-tool-drag-preview-bg)',
+          'tool-drag-preview-border': 'var(--color-tool-drag-preview-border)',
+          'tool-drag-preview-shadow': 'var(--color-tool-drag-preview-shadow)',
+          
+          // Canvas
+          'canvas-bg': 'var(--color-canvas-bg)',
+          'canvas-grid-primary': 'var(--color-canvas-grid-primary)',
+          'canvas-grid-secondary': 'var(--color-canvas-grid-secondary)',
+          
+          'canvas-minimap-bg': 'var(--color-canvas-minimap-bg)',
+          'canvas-minimap-border': 'var(--color-canvas-minimap-border)',
+          'canvas-minimap-viewport': 'var(--color-canvas-minimap-viewport)',
+          
+          'canvas-controls-bg': 'var(--color-canvas-controls-bg)',
+          'canvas-controls-border': 'var(--color-canvas-controls-border)',
+          'canvas-controls-shadow': 'var(--color-canvas-controls-shadow)',
+          'canvas-controls-btn-bg': 'var(--color-canvas-controls-btn-bg)',
+          'canvas-controls-btn-border': 'var(--color-canvas-controls-btn-border)',
+          'canvas-controls-btn-text': 'var(--color-canvas-controls-btn-text)',
+          'canvas-controls-btn-bg-hover': 'var(--color-canvas-controls-btn-bg-hover)',
+          'canvas-controls-btn-border-hover': 'var(--color-canvas-controls-btn-border-hover)',
+          'canvas-controls-btn-text-hover': 'var(--color-canvas-controls-btn-text-hover)',
+          'canvas-controls-btn-bg-active': 'var(--color-canvas-controls-btn-bg-active)',
+          'canvas-controls-btn-border-active': 'var(--color-canvas-controls-btn-border-active)',
+          'canvas-controls-btn-text-active': 'var(--color-canvas-controls-btn-text-active)',
+          'canvas-controls-btn-bg-disabled': 'var(--color-canvas-controls-btn-bg-disabled)',
+          'canvas-controls-btn-border-disabled': 'var(--color-canvas-controls-btn-border-disabled)',
+          'canvas-controls-btn-text-disabled': 'var(--color-canvas-controls-btn-text-disabled)',
+          
+          // Workflow nodes
+          'node-default-bg': 'var(--color-node-default-bg)',
+          'node-default-border': 'var(--color-node-default-border)',
+          'node-default-shadow': 'var(--color-node-default-shadow)',
+          
+          'node-selected-bg': 'var(--color-node-selected-bg)',
+          'node-selected-border': 'var(--color-node-selected-border)',
+          'node-selected-shadow': 'var(--color-node-selected-shadow)',
+          
+          'node-dragging-bg': 'var(--color-node-dragging-bg)',
+          'node-dragging-border': 'var(--color-node-dragging-border)',
+          'node-dragging-shadow': 'var(--color-node-dragging-shadow)',
+          
+          'node-header-bg': 'var(--color-node-header-bg)',
+          'node-header-text': 'var(--color-node-header-text)',
+          'node-header-icon': 'var(--color-node-header-icon)',
+          
+          'node-content-bg': 'var(--color-node-content-bg)',
+          'node-content-text': 'var(--color-node-content-text)',
+          
+          'node-handle-input-bg': 'var(--color-node-handle-input-bg)',
+          'node-handle-input-border': 'var(--color-node-handle-input-border)',
+          'node-handle-input-connected': 'var(--color-node-handle-input-connected)',
+          
+          'node-handle-output-bg': 'var(--color-node-handle-output-bg)',
+          'node-handle-output-border': 'var(--color-node-handle-output-border)',
+          'node-handle-output-connected': 'var(--color-node-handle-output-connected)',
+          
+          // Workflow edges
+          'edge-default-stroke': 'var(--color-edge-default-stroke)',
+          'edge-default-stroke-hover': 'var(--color-edge-default-stroke-hover)',
+          
+          'edge-selected-stroke': 'var(--color-edge-selected-stroke)',
+          'edge-selected-stroke-hover': 'var(--color-edge-selected-stroke-hover)',
+          
+          'edge-animated-stroke': 'var(--color-edge-animated-stroke)',
+          'edge-animated-stroke-hover': 'var(--color-edge-animated-stroke-hover)',
+          
+          'edge-invalid-stroke': 'var(--color-edge-invalid-stroke)',
+          'edge-invalid-stroke-hover': 'var(--color-edge-invalid-stroke-hover)',
+          
+          // Modals
+          'modal-overlay': 'var(--color-modal-overlay)',
+          
+          'modal-container-bg': 'var(--color-modal-container-bg)',
+          'modal-container-border': 'var(--color-modal-container-border)',
+          'modal-container-shadow': 'var(--color-modal-container-shadow)',
+          
+          'modal-header-bg': 'var(--color-modal-header-bg)',
+          'modal-header-border': 'var(--color-modal-header-border)',
+          'modal-header-text': 'var(--color-modal-header-text)',
+          
+          'modal-content-bg': 'var(--color-modal-content-bg)',
+          'modal-content-text': 'var(--color-modal-content-text)',
+          
+          // Notifications
+          'notification-success-bg': 'var(--color-notification-success-bg)',
+          'notification-success-border': 'var(--color-notification-success-border)',
+          'notification-success-text': 'var(--color-notification-success-text)',
+          'notification-success-icon': 'var(--color-notification-success-icon)',
+          
+          'notification-warning-bg': 'var(--color-notification-warning-bg)',
+          'notification-warning-border': 'var(--color-notification-warning-border)',
+          'notification-warning-text': 'var(--color-notification-warning-text)',
+          'notification-warning-icon': 'var(--color-notification-warning-icon)',
+          
+          'notification-error-bg': 'var(--color-notification-error-bg)',
+          'notification-error-border': 'var(--color-notification-error-border)',
+          'notification-error-text': 'var(--color-notification-error-text)',
+          'notification-error-icon': 'var(--color-notification-error-icon)',
+          
+          'notification-info-bg': 'var(--color-notification-info-bg)',
+          'notification-info-border': 'var(--color-notification-info-border)',
+          'notification-info-text': 'var(--color-notification-info-text)',
+          'notification-info-icon': 'var(--color-notification-info-icon)',
           
           // Syntax highlighting
           'syntax-tag': 'var(--color-syntax-tag)',
@@ -87,6 +305,21 @@ export default {
           'syntax-comment': 'var(--color-syntax-comment)',
           'syntax-declaration': 'var(--color-syntax-declaration)',
           'syntax-text': 'var(--color-syntax-text)',
+          'syntax-bg': 'var(--color-syntax-bg)',
+          'syntax-selection': 'var(--color-syntax-selection)',
+          
+          // Form controls
+          'form-label': 'var(--color-form-label)',
+          'form-help-text': 'var(--color-form-help-text)',
+          'form-error-text': 'var(--color-form-error-text)',
+          'form-success-text': 'var(--color-form-success-text)',
+          
+          // Tool category colors (preserved for visual recognition)
+          'tool-inout': 'var(--color-tool-inout)',
+          'tool-preparation': 'var(--color-tool-preparation)',
+          'tool-join': 'var(--color-tool-join)',
+          'tool-aggregate': 'var(--color-tool-aggregate)',
+          'tool-favorites': 'var(--color-tool-favorites)',
         }
       }
     },

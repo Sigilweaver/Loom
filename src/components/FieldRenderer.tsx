@@ -40,9 +40,9 @@ export default function FieldRenderer({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             className={`
-              w-full px-3 py-2 border rounded-md text-sm bg-theme-bg-elevated text-theme-text-primary
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
               ${error 
-                ? 'border-theme-border-error focus:border-theme-border-error focus:ring-theme-border-error' 
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
                 : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
               }
               focus:outline-none focus:ring-1
@@ -58,10 +58,10 @@ export default function FieldRenderer({
             value={value || ''}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
             className={`
-              w-full px-3 py-2 border rounded-md text-sm
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
               ${error 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
+                : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
               }
               focus:outline-none focus:ring-1
             `}
@@ -76,9 +76,9 @@ export default function FieldRenderer({
               type="checkbox"
               checked={value || false}
               onChange={(e) => onChange(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-theme-border-primary text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-theme-text-primary">
               {field.helpText || 'Enable this option'}
             </span>
           </label>
@@ -90,10 +90,10 @@ export default function FieldRenderer({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             className={`
-              w-full px-3 py-2 border rounded-md text-sm
+              w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
               ${error 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
+                : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
               }
               focus:outline-none focus:ring-1
             `}
@@ -115,16 +115,16 @@ export default function FieldRenderer({
               value={value || ''}
               onChange={(e) => onChange(e.target.value)}
               className={`
-                w-full px-3 py-2 border rounded-md text-sm
+                w-full px-3 py-2 border rounded-md text-sm bg-theme-surface-elevated text-theme-text-primary
                 ${error 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
+                  : 'border-theme-border-primary focus:border-theme-border-focus focus:ring-theme-border-focus'
                 }
                 focus:outline-none focus:ring-1
               `}
               placeholder="Copy and paste file path here..."
             />
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-theme-text-tertiary">
               💡 Copy the full file path from your file explorer and paste it here
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function FieldRenderer({
 
       default:
         return (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-theme-text-tertiary">
             Unsupported field type: {field.type}
           </div>
         );
@@ -143,7 +143,7 @@ export default function FieldRenderer({
     <div className="space-y-3">
       {/* Field Label */}
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-theme-text-secondary">
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -162,7 +162,7 @@ export default function FieldRenderer({
 
       {/* Help Text */}
       {field.helpText && !error && field.type !== 'boolean' && (
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-theme-text-tertiary">
           {field.helpText}
         </div>
       )}

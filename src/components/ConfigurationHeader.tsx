@@ -9,7 +9,7 @@ export default function ConfigurationHeader({ tool }: ConfigurationHeaderProps) 
   const toolDefinition = getToolDefinition(tool.type);
   
   return (
-    <div className="bg-theme-bg-elevated border-b border-theme-border-primary p-4">
+    <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-4">
       <div className="flex items-center space-x-3">
         <div className="text-2xl">{toolDefinition?.icon || '⚙️'}</div>
         <div>

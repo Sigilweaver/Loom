@@ -155,7 +155,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
           target: connection.target,
           sourceHandle: connection.sourceHandle,
           targetHandle: connection.targetHandle,
-          style: { stroke: 'var(--color-workflow-edge-rejected)', strokeWidth: 3, strokeDasharray: '5,5' },
+          style: { stroke: 'var(--color-edge-invalid-stroke)', strokeWidth: 3, strokeDasharray: '5,5' },
           animated: true,
           type: 'default'
         };
@@ -276,19 +276,19 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     <div className="flex-1 h-full relative">
       <style>{`
         .react-flow__edge.selected {
-          stroke: var(--color-workflow-edge-selected) !important;
+          stroke: var(--color-edge-selected-stroke) !important;
           stroke-width: 3px !important;
         }
         .react-flow__edge.selected .react-flow__edge-path {
-          stroke: var(--color-workflow-edge-selected) !important;
+          stroke: var(--color-edge-selected-stroke) !important;
           stroke-width: 3px !important;
         }
         .react-flow__edge:hover {
-          stroke: var(--color-workflow-edge-hover) !important;
+          stroke: var(--color-edge-default-stroke-hover) !important;
           stroke-width: 3px !important;
         }
         .react-flow__edge:hover .react-flow__edge-path {
-          stroke: var(--color-workflow-edge-hover) !important;
+          stroke: var(--color-edge-default-stroke-hover) !important;
           stroke-width: 3px !important;
         }
       `}</style>
@@ -310,8 +310,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         connectionLineType={ConnectionLineType.Bezier}
         defaultEdgeOptions={{
           type: 'default',
-          style: { stroke: 'var(--color-workflow-edge-default)', strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--color-workflow-edge-default)' },
+          style: { stroke: 'var(--color-edge-default-stroke)', strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--color-edge-default-stroke)' },
         }}
         deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode={['Meta', 'Ctrl']}
@@ -326,15 +326,15 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         snapToGrid={snapToGrid}
         snapGrid={snapGrid}
         fitView
-        className="bg-theme-workflow-canvas"
+        className="bg-theme-surface-canvas"
       >
         <Controls showInteractive={false}>
           <ControlButton
             onClick={() => setSnapToGrid(!snapToGrid)}
             title={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'}
             style={{
-              backgroundColor: snapToGrid ? 'var(--color-interactive-accent)' : undefined,
-              color: snapToGrid ? 'var(--color-text-inverse)' : undefined,
+              backgroundColor: snapToGrid ? 'var(--color-canvas-controls-btn-bg-active)' : undefined,
+              color: snapToGrid ? 'var(--color-canvas-controls-btn-text-active)' : undefined,
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -346,7 +346,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
           variant={BackgroundVariant.Dots} 
           gap={snapGrid[0]} 
           size={snapToGrid ? 2 : 1}
-          color={snapToGrid ? 'var(--color-workflow-grid-primary)' : 'var(--color-workflow-grid-secondary)'}
+          color={snapToGrid ? 'var(--color-canvas-grid-primary)' : 'var(--color-canvas-grid-secondary)'}
         />
       </ReactFlow>
       
