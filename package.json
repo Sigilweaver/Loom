@@ -1,0 +1,22 @@
+{
+  "name": "sigilweaver-website",
+  "version": "1.0.0",
+  "description": "Sigilweaver website favicon generation and build tools",
+  "scripts": {
+    "generate-favicon": "node generate-favicon.js",
+    "build": "echo 'Build complete'",
+    "dev": "echo 'Development server would start here'"
+  },
+  "devDependencies": {
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.32.6"
+  },
+  "keywords": [
+    "data-engineering",
+    "visualization",
+    "pipeline",
+    "open-source"
+  ],
+  "author": "Sigilweaver Team",
+  "license": "MIT"
+}
