@@ -92,7 +92,6 @@ dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
@@ -111,6 +110,3 @@ package-lock.json
 # Auto-generated files
 *.auto.js
 *.auto.ts
-
-# Include important assets
-!public/assets/
