@@ -59,6 +59,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   const [snapToGrid, setSnapToGrid] = useState(true); // Default to enabled
   const snapGrid: [number, number] = [20, 20]; // Match the background grid size
   
+  // Utility function to snap coordinates to grid
+  const snapToGridCoords = (x: number, y: number): { x: number, y: number } => {
+    if (!snapToGrid) return { x, y };
+    
+    return {
+      x: Math.round(x / snapGrid[0]) * snapGrid[0],
+      y: Math.round(y / snapGrid[1]) * snapGrid[1],
+    };
+  };
+  
   // Expose fitView function to parent component
   useImperativeHandle(ref, () => ({
     fitView: () => {
@@ -238,9 +248,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       y: position.y - (toolSize / 2),
     };
 
-    // React Flow will handle snapping automatically when snapToGrid is enabled
-    onAddTool(toolType, centeredPosition.x, centeredPosition.y);
-  }, [onAddTool, screenToFlowPosition]);
+    // Apply snap to grid if enabled
+    const snappedPosition = snapToGridCoords(centeredPosition.x, centeredPosition.y);
+
+    onAddTool(toolType, snappedPosition.x, snappedPosition.y);
+  }, [onAddTool, screenToFlowPosition, snapToGridCoords]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -248,9 +260,12 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   }, []);
 
   const onNodeDragStop = useCallback((_event: React.MouseEvent | React.TouchEvent, node: Node) => {
-    // React Flow will handle snapping automatically when snapToGrid is enabled
-    onToolMove(node.id, node.position.x, node.position.y);
-  }, [onToolMove]);
+    // Apply snap to grid if enabled
+    const snappedPosition = snapToGridCoords(node.position.x, node.position.y);
+    
+    // Update the tool position with snapped coordinates
+    onToolMove(node.id, snappedPosition.x, snappedPosition.y);
+  }, [onToolMove, snapToGridCoords]);
 
   // Handle wheel events for zooming and panning
   const handleWheel = useCallback((event: React.WheelEvent) => {
