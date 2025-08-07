@@ -8,7 +8,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: '📂',
     category: 'inout',
     defaultConfig: {
-      path: '',
+      placeholder: 'Configuration coming soon...',
     },
     sockets: [
       { id: 0, direction: 'output' }
@@ -20,7 +20,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: '💾',
     category: 'inout',
     defaultConfig: {
-      path: '',
+      placeholder: 'Configuration coming soon...',
     },
     sockets: [
       { id: 0, direction: 'input' }
