@@ -16,10 +16,16 @@ const version = packageJson.version
 function createWindow(): void {
   const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`
   
+  // Icon path - different for dev vs production
+  const iconPath = isDev 
+    ? join(__dirname, '../public/assets/icon-512.png')
+    : join(__dirname, '../dist/assets/icon-512.png')
+  
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: windowTitle,
+    icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload.js'),
       nodeIntegration: false,
