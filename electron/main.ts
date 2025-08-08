@@ -2,15 +2,24 @@ import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const isDev = process.env.IS_DEV === 'true' || process.env.NODE_ENV === 'development'
 
+// Read version from package.json
+const packagePath = join(__dirname, '../package.json')
+const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'))
+const version = packageJson.version
+
 function createWindow(): void {
+  const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`
+  
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: windowTitle,
     webPreferences: {
       preload: join(__dirname, '../preload.js'),
       nodeIntegration: false,
@@ -28,6 +37,11 @@ function createWindow(): void {
     console.log('Loading production file:', join(__dirname, '../dist/index.html'))
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
+
+  // Ensure title is set after page loads
+  mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.setTitle(windowTitle)
+  })
 
   // Create menu
   const template: any = [

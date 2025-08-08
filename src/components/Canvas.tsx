@@ -1,4 +1,6 @@
-import React, { useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useCallback, useMemo, useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { calculateMenuPosition } from '../utils/menuPositioning';
 import {
   ReactFlow,
   Node,
@@ -14,6 +16,7 @@ import {
   MarkerType,
   ConnectionLineType,
   PanOnScrollMode,
+  MiniMap,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Tool, Wire } from '../types/workflow';
@@ -21,6 +24,7 @@ import { getToolDefinition } from '../data/tools';
 import WorkflowNode from './WorkflowNode';
 import { wouldCreateCycle } from '../utils/loopDetection';
 import Notification from './Notification';
+import { useTheme } from '../contexts/ThemeContext';
 
 export interface CanvasRef {
   fitView: () => void;
@@ -54,11 +58,21 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   onToolSelect
 }, ref) => {
   const { screenToFlowPosition, fitView } = useReactFlow();
+  const { currentTheme } = useTheme();
   
   // Snap to grid state
   const [snapToGrid, setSnapToGrid] = useState(true); // Default to enabled
   const snapGrid: [number, number] = [20, 20]; // Match the background grid size
+
+  // Minimap toggle state
+  const [showMinimap, setShowMinimap] = useState(false);
+  const [minimapPosition, setMinimapPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
+  const [showPositionMenu, setShowPositionMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   
+  // Ref for the minimap button to calculate menu position
+  const minimapButtonRef = useRef<HTMLDivElement>(null);
+
   // Utility function to snap coordinates to grid
   const snapToGridCoords = (x: number, y: number): { x: number, y: number } => {
     if (!snapToGrid) return { x, y };
@@ -68,7 +82,86 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       y: Math.round(y / snapGrid[1]) * snapGrid[1],
     };
   };
-  
+
+  // Function to get node color based on tool category for the minimap
+  const getMinimapNodeColor = useCallback((node: Node) => {
+    const tool = tools.find(t => t.id === node.id);
+    if (!tool) return currentTheme.colors.canvas.minimap.viewport;
+    
+    const definition = getToolDefinition(tool.type);
+    if (!definition) return currentTheme.colors.canvas.minimap.viewport;
+    
+    // Get the category color from the theme's tool colors
+    switch (definition.category) {
+      case 'inout':
+        return currentTheme.colors.palette.tools.inout[500];
+      case 'preparation':
+        return currentTheme.colors.palette.tools.preparation[500];
+      case 'join':
+        return currentTheme.colors.palette.tools.join[500];
+      case 'aggregate':
+        return currentTheme.colors.palette.tools.aggregate[500];
+      default:
+        return currentTheme.colors.canvas.minimap.viewport;
+    }
+  }, [tools, currentTheme]);
+
+  // Handle minimap position change
+  const handlePositionChange = useCallback((position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => {
+    setMinimapPosition(position);
+    setShowPositionMenu(false);
+  }, []);
+
+  // Handle minimap button context menu
+    const handleMinimapButtonContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    
+    if (minimapButtonRef.current && !showPositionMenu) {
+      const rect = minimapButtonRef.current.getBoundingClientRect();
+      
+      // Use the reusable smart positioning utility - automatically avoids screen edges
+      const position = calculateMenuPosition(
+        rect,
+        { width: 100, height: 160 }, // Menu dimensions - compact width for content
+        4, // Offset
+        'bottom' // Preferred placement
+      );
+      
+      setMenuPosition({ x: position.x, y: position.y });
+    }
+    
+    setShowPositionMenu(!showPositionMenu);
+  }, [showPositionMenu]);
+
+  // Calculate minimap offset to avoid overlapping with controls
+  const getMinimapStyle = useCallback(() => {
+    const baseStyle = {
+      borderRadius: 6,
+      boxShadow: 'var(--color-canvas-controls-shadow)',
+      background: 'var(--color-canvas-minimap-bg)',
+      border: '1px solid var(--color-canvas-minimap-border)',
+      width: 180,
+      height: 120,
+    };
+
+    // Controls are vertical, so we need horizontal offset
+    // Controls are typically about 40px wide, so we offset by 50px to give some spacing
+    const controlsOffset = 50;
+    
+    switch (minimapPosition) {
+      case 'top-left':
+        return { ...baseStyle, marginLeft: controlsOffset };
+      case 'bottom-left':
+        return { ...baseStyle, marginLeft: controlsOffset };
+      case 'top-right':
+        return { ...baseStyle, marginRight: controlsOffset };
+      case 'bottom-right':
+        return { ...baseStyle, marginRight: controlsOffset };
+      default:
+        return baseStyle;
+    }
+  }, [minimapPosition]);
+
   // Expose fitView function to parent component
   useImperativeHandle(ref, () => ({
     fitView: () => {
@@ -215,6 +308,9 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   }, [tools, onToolSelect, setNodes]);
 
   const onPaneClick = useCallback(() => {
+    // Close position menu when clicking elsewhere
+    setShowPositionMenu(false);
+    
     // Deselect tool when clicking on empty canvas
     if (onToolSelect) {
       onToolSelect(null);
@@ -346,7 +442,27 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         fitView
         className="bg-theme-surface-canvas"
       >
-        <Controls showInteractive={false}>
+        <Controls showInteractive={false} position={minimapPosition}>
+          {/* Minimap toggle button with position menu */}
+          <div ref={minimapButtonRef}>
+            <ControlButton
+              onClick={() => setShowMinimap((v) => !v)}
+              onContextMenu={handleMinimapButtonContextMenu}
+              title={showMinimap ? 'Hide minimap (Right-click for position)' : 'Show minimap (Right-click for position)'}
+              style={{
+                backgroundColor: showMinimap ? 'var(--color-canvas-controls-btn-bg-active)' : undefined,
+                color: showMinimap ? 'var(--color-canvas-controls-btn-text-active)' : undefined,
+              }}
+            >
+              {/* Minimap icon */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <rect x="7" y="7" width="4" height="4" fill="currentColor"/>
+                <rect x="13" y="13" width="4" height="4" fill="currentColor"/>
+              </svg>
+            </ControlButton>
+          </div>
+          {/* Snap to grid button */}
           <ControlButton
             onClick={() => setSnapToGrid(!snapToGrid)}
             title={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'}
@@ -360,6 +476,17 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
             </svg>
           </ControlButton>
         </Controls>
+        {/* MiniMap component, conditionally rendered */}
+        {showMinimap && (
+          <MiniMap
+            position={minimapPosition}
+            nodeColor={getMinimapNodeColor}
+            maskColor="var(--color-canvas-minimap-viewport)"
+            style={getMinimapStyle()}
+            pannable
+            zoomable
+          />
+        )}
         <Background 
           variant={BackgroundVariant.Dots} 
           gap={snapGrid[0]} 
@@ -376,6 +503,66 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         onClose={hideNotification}
         duration={6000}
       />
+
+      {/* Position selection menu portal */}
+      {showPositionMenu && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: `${menuPosition.x}px`,
+            top: `${menuPosition.y}px`,
+            background: 'var(--color-canvas-controls-bg)',
+            border: '1px solid var(--color-canvas-controls-border)',
+            borderRadius: '6px',
+            boxShadow: 'var(--color-canvas-controls-shadow)',
+            zIndex: 10000,
+            width: '100px', // Fixed width to fit content better
+            overflow: 'hidden',
+          }}
+        >
+          {[
+            { value: 'top-left', label: 'Top Left' },
+            { value: 'top-right', label: 'Top Right' },
+            { value: 'bottom-left', label: 'Bottom Left' },
+            { value: 'bottom-right', label: 'Bottom Right' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handlePositionChange(option.value as any)}
+              style={{
+                width: '100%',
+                padding: '6px 8px', // Reduced padding for more compact feel
+                border: 'none',
+                background: minimapPosition === option.value 
+                  ? 'var(--color-canvas-controls-btn-bg-active)' 
+                  : 'transparent',
+                color: minimapPosition === option.value 
+                  ? 'var(--color-canvas-controls-btn-text-active)' 
+                  : 'var(--color-canvas-controls-btn-text)',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+                transition: 'background-color 0.2s, color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                if (minimapPosition !== option.value) {
+                  e.currentTarget.style.background = 'var(--color-canvas-controls-btn-bg-hover)';
+                  e.currentTarget.style.color = 'var(--color-canvas-controls-btn-text-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (minimapPosition !== option.value) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--color-canvas-controls-btn-text)';
+                }
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
   );
 });

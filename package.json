@@ -2,6 +2,8 @@
   "name": "workflow-designer",
   "private": true,
   "version": "0.1.0",
+  "description": "Sigilweaver - Advanced Workflow Designer and Automation Tool",
+  "author": "SigilWeaver Development Team",
   "type": "module",
   "main": "dist-electron/main.js",
   "homepage": "./",
