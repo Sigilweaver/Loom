@@ -197,8 +197,8 @@ The mystical color palette is defined in Tailwind config:
 ## Contact
 
 - **Website**: sigilweaver.com
-- **Email**: contact@sigilweaver.com
-- **Support**: support@sigilweaver.com
+- **Email**: 
+- **Support**: 
 - **GitHub**: github.com/sigilweaver/sigilweaver
 
 ## License
