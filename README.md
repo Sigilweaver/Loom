@@ -1,11 +1,11 @@
 # Sigilweaver.com Website
 
-A mystical landing page for the Sigilweaver data pipeline tool, featuring an interactive demo and modern web design.
+A mystical landing page for the Sigilweaver data pipeline tool, featuring an interactive frontend demo and modern web design.
 
 ## Features
 
 - **Responsive Design**: Modern, mobile-first design with Tailwind CSS
-- **Interactive Demo**: Drag-and-drop workflow builder with XML export
+- **Interactive Frontend Demo**: Drag-and-drop workflow builder with XML export (UI-only, no server backend)
 - **Mystical Theme**: Deep purples, blues, and gold accents with enchanting animations
 - **Performance Optimized**: Vanilla JavaScript with GSAP animations
 - **Accessibility**: Keyboard navigation and screen reader support
@@ -48,11 +48,13 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 - Wicked Fast Performance (Dask-powered)
 - Enterprise-Grade Security (compliance ready)
 
-### Interactive Demo
+### Interactive Frontend Demo
 - Drag-and-drop workflow builder
 - Node-based canvas interaction
 - Real-time XML workflow generation
 - Properties panel for node configuration
+
+**Note**: This is a frontend-only demonstration showing the user interface. No server backend is connected - all functionality is simulated in the browser for UI preview purposes.
 
 ### Technical Features
 - Frontend: React + Vite + Electron
@@ -117,9 +119,11 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
    - Point A record for `sigilweaver.com` to your server IP
    - Point CNAME record for `www.sigilweaver.com` to `sigilweaver.com`
 
-## Interactive Demo Features
+## Interactive Frontend Demo Features
 
 The demo page (`/demo.html`) includes:
+
+**Note**: This is a UI-only demonstration without server backend connectivity.
 
 - **Node Templates**: Drag from sidebar to canvas
 - **Visual Workflow**: Connect nodes with automatic line drawing
