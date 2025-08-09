@@ -156,6 +156,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.style.setProperty('--color-canvas-minimap-bg', colors.canvas.minimap.background);
     root.style.setProperty('--color-canvas-minimap-border', colors.canvas.minimap.border);
     root.style.setProperty('--color-canvas-minimap-viewport', colors.canvas.minimap.viewport);
+    root.style.setProperty('--color-canvas-minimap-mask', colors.canvas.minimap.mask);
     root.style.setProperty('--color-canvas-controls-bg', colors.canvas.controls.background);
     root.style.setProperty('--color-canvas-controls-border', colors.canvas.controls.border);
     root.style.setProperty('--color-canvas-controls-shadow', colors.canvas.controls.shadow);

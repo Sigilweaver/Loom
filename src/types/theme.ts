@@ -314,6 +314,7 @@ export interface ThemeColors {
       background: string;
       border: string;
       viewport: string;
+      mask: string;
     };
     controls: {
       background: string;

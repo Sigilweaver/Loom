@@ -752,6 +752,7 @@ export const lightTheme: Theme = {
         background: lightPalette.foundation.white,
         border: lightPalette.gray[200],
         viewport: lightPalette.brand.primary[500],
+        mask: 'rgba(139, 92, 246, 0.3)', // Semi-transparent purple overlay
       },
       controls: {
         background: lightPalette.foundation.white,
@@ -1589,6 +1590,7 @@ export const darkTheme: Theme = {
         background: darkPalette.gray[100],
         border: darkPalette.gray[300],
         viewport: darkPalette.brand.primary[500],
+        mask: 'rgba(139, 92, 246, 0.3)', // Semi-transparent purple overlay
       },
       controls: {
         background: darkPalette.gray[200],
@@ -2426,6 +2428,7 @@ export const highContrastTheme: Theme = {
         background: lightPalette.foundation.white,
         border: lightPalette.foundation.black,
         viewport: '#0066cc',
+        mask: 'rgba(0, 102, 204, 0.4)', // Semi-transparent blue overlay for high contrast
       },
       controls: {
         background: lightPalette.foundation.white,
@@ -3411,6 +3414,7 @@ export const sigilweaverTheme: Theme = {
         background: sigilweaverPalette.gray[300],
         border: sigilweaverPalette.gray[400],
         viewport: sigilweaverPalette.brand.primary[500],
+        mask: 'rgba(139, 92, 246, 0.3)', // Semi-transparent purple overlay
       },
       controls: {
         background: sigilweaverPalette.gray[300],

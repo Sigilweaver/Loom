@@ -481,7 +481,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({
           <MiniMap
             position={minimapPosition}
             nodeColor={getMinimapNodeColor}
-            maskColor="var(--color-canvas-minimap-viewport)"
+            maskColor="var(--color-canvas-minimap-mask)"
             style={getMinimapStyle()}
             pannable
             zoomable
