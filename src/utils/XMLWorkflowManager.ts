@@ -1,4 +1,6 @@
 import { Tool, Wire, WorkflowMeta, ToolConfig } from '../domain/workflow/entities/workflow';
+// Use the frontend's package.json version for XML <Workflow version="...">
+import pkg from '../../package.json';
 import { v4 as uuidv4 } from 'uuid';
 
 export class XMLWorkflowManager {
@@ -13,8 +15,8 @@ export class XMLWorkflowManager {
   }
 
   private createNewWorkflow(): Document {
-    const xmlString = `<?xml version="1.0" encoding="UTF-8"?>
-<Workflow version="1.0" xmlns="https://example.com/workflow-schema">
+  const xmlString = `<?xml version="1.0" encoding="UTF-8"?>
+<Workflow version="${pkg.version}" xmlns="https://docs.sigilweaver.com/schema/workflow">
   <Meta>
     <n>New Workflow</n>
     <Description>
@@ -41,6 +43,11 @@ export class XMLWorkflowManager {
 
   // Export the entire XML document as string
   toXMLString(): string {
+    // Ensure the root <Workflow> element has the current frontend version
+    const root = this.document.querySelector('Workflow');
+    if (root) {
+      root.setAttribute('version', pkg.version);
+    }
     return new XMLSerializer().serializeToString(this.document);
   }
 
