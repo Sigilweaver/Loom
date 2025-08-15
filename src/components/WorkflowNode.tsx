@@ -58,7 +58,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
 
   return (
     <div
-      className="border-2 rounded-lg p-4 bg-theme-node-default-bg shadow-lg hover:shadow-xl transition-shadow select-none"
+      className="sig-node border-2 rounded-lg p-4 bg-theme-node-default-bg shadow-lg hover:shadow-xl transition-shadow select-none"
       style={{
         width: '100px',  // Square dimensions
         height: '100px',

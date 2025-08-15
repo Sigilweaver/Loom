@@ -18,10 +18,11 @@ interface Props {
   onNodeDragStop: (e: React.MouseEvent, node: Node) => void;
   onWheel: (e: React.WheelEvent) => void;
   nodeTypes: NodeTypes;
+  onSelectionChange?: (sel: { nodes: Node[]; edges: Edge[] }) => void;
   children?: React.ReactNode;
 }
 
-export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapGrid, nodeTypes, children, ...handlers }) => (
+export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapGrid, nodeTypes, children, onSelectionChange, ...handlers }) => (
   <ReactFlow
     nodes={nodes}
     edges={edges}
@@ -31,20 +32,22 @@ export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapG
       type: 'default',
       markerEnd: { type: MarkerType.ArrowClosed, color: 'currentColor' },
     }}
-    deleteKeyCode={['Delete', 'Backspace']}
-    multiSelectionKeyCode={['Meta', 'Ctrl']}
+  deleteKeyCode={['Delete', 'Backspace']}
+  multiSelectionKeyCode={['Meta', 'Control']}
     panOnScroll
     panOnScrollMode={PanOnScrollMode.Free}
     panOnScrollSpeed={0.8}
     zoomOnScroll
     zoomOnPinch
     zoomActivationKeyCode="ControlLeft"
-    panOnDrag={[1, 2]}
-    selectNodesOnDrag={false}
+  panOnDrag={[2]}
+  selectNodesOnDrag
+  selectionOnDrag
     snapToGrid={snapToGrid}
     snapGrid={snapGrid}
     fitView
-    className="bg-theme-surface-canvas"
+  className="bg-theme-surface-canvas"
+  {...(onSelectionChange ? { onSelectionChange } : {})}
     {...handlers}
   >
     {children}
