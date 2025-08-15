@@ -16,23 +16,8 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState<Theme>(sigilweaverTheme);
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedThemeId = localStorage.getItem('sigilweaver-theme');
-    if (savedThemeId) {
-      const theme = getThemeById(savedThemeId);
-      setCurrentTheme(theme);
-      applyThemeVariables(theme);
-    } else {
-      applyThemeVariables(sigilweaverTheme);
-    }
-  }, []);
-
-  // Apply CSS custom properties when theme changes
-  const applyThemeVariables = (theme: Theme) => {
+// Apply CSS custom properties when theme changes (kept outside component to avoid HMR churn)
+const applyThemeVariables = (theme: Theme) => {
     const root = document.documentElement;
     const { colors } = theme;
 
@@ -283,7 +268,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Set theme attribute for CSS selectors
     root.setAttribute('data-theme', theme.id);
-  };
+};
+
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const [currentTheme, setCurrentTheme] = useState<Theme>(sigilweaverTheme);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedThemeId = localStorage.getItem('sigilweaver-theme');
+    if (savedThemeId) {
+      const theme = getThemeById(savedThemeId);
+      setCurrentTheme(theme);
+      applyThemeVariables(theme);
+    } else {
+      applyThemeVariables(sigilweaverTheme);
+    }
+  }, []);
 
   const setTheme = (themeId: string) => {
     const theme = getThemeById(themeId);
@@ -305,3 +305,5 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
+
+export default ThemeProvider;

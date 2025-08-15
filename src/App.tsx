@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ReactFlowProvider, Edge } from '@xyflow/react';
+import { ReactFlowProvider } from '@xyflow/react';
 import ToolPalette from './components/ToolPalette';
 import Canvas, { CanvasRef } from './components/Canvas';
 import XMLViewer from './components/XMLViewer';
@@ -7,13 +7,16 @@ import Header from './components/Header';
 import Notification from './components/Notification';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { Tool, Wire, ToolCategory, WorkflowMeta } from './types/workflow';
+import { Tool, Wire, ToolCategory } from './domain/workflow/entities/workflow';
 import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
-import { EdgeManager } from './utils/EdgeManager';
+import { EdgeManager } from '@domain/workflow/services/edgeManager';
 import { getToolDefinition } from './data/tools';
 import { getConnectionType } from './config/connectionTypes';
 import { v4 as uuidv4 } from 'uuid';
+import { useWorkflowStore } from '@state/workflowStore';
+import { useUIStore, startNotificationAutoHide } from '@state/uiStore';
+import { wouldCreateCycle } from '@domain/workflow/services/loopDetection';
 
 function App() {
   const [activeTab, setActiveTab] = useState<ToolCategory>('favorites');
@@ -21,21 +24,29 @@ function App() {
   const [xmlViewerVisible, setXmlViewerVisible] = useState(false);
   
   // Derived state from XML
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [wires, setWires] = useState<Wire[]>([]);
-  const [workflowMeta, setWorkflowMeta] = useState<WorkflowMeta>({
-    name: 'New Workflow',
-    description: 'A new workflow',
-    author: 'SigilWeaver',
-    workflowId: uuidv4(),
-    created: new Date().toISOString(),
-  });
-  
-  // Edge state for React Flow (managed separately for performance)
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const tools = useWorkflowStore(s => s.tools);
+  const wires = useWorkflowStore(s => s.wires);
+  const workflowMeta = useWorkflowStore(s => s.workflowMeta);
+  const edges = useWorkflowStore(s => s.edges);
+  const selectedTool = useWorkflowStore(s => s.selectedTool);
+  const toolConfigurations = useWorkflowStore(s => s.toolConfigurations);
+  const setFromXML = useWorkflowStore(s => s.setFromXML);
+  const setEdges = useWorkflowStore(s => s.setEdges);
+  const setSelectedTool = useWorkflowStore(s => s.setSelectedTool);
+  const setToolConfigurations = useWorkflowStore(s => s.setToolConfigurations);
+  const updateWorkflowMetaLocal = useWorkflowStore(s => s.updateWorkflowMeta);
   
   // Edge manager for optimistic updates
-  const edgeManager = useMemo(() => new EdgeManager(xmlManager, setEdges, []), [xmlManager]);
+  const edgeManager = useMemo(() => new EdgeManager(
+    xmlManager,
+    (updater) => {
+      // Apply functional update using current store edges
+      const current = useWorkflowStore.getState().edges;
+      const next = updater(current);
+      setEdges(next);
+    },
+    []
+  ), [xmlManager, setEdges]);
   
   // Update edgeManager with current tools whenever tools change
   useEffect(() => {
@@ -46,33 +57,17 @@ function App() {
   const canvasRef = useRef<CanvasRef>(null);
   
   // Configuration state
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
-  const [toolConfigurations, setToolConfigurations] = useState<Map<string, ToolConfiguration>>(new Map());
+  // selectedTool & toolConfigurations now from store
 
-  // Notification state
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: 'error' | 'warning' | 'success' | 'info';
-    isVisible: boolean;
-  }>({
-    message: '',
-    type: 'info',
-    isVisible: false
-  });
-
-  const showNotification = (message: string, type: 'error' | 'warning' | 'success' | 'info') => {
-    setNotification({
-      message,
-      type,
-      isVisible: true
-    });
-  };
+  // UI notifications via store
+  const notification = useUIStore(s => s.notification);
+  const showNotification = useUIStore(s => s.showNotification);
+  const hideNotification = useUIStore(s => s.hideNotification);
+  useEffect(() => { startNotificationAutoHide(); }, []);
 
   // Update derived state whenever XML changes (excluding edges - managed separately)
   const updateStateFromXML = () => {
-    setTools(xmlManager.getTools());
-    setWires(xmlManager.getWires());
-    setWorkflowMeta(xmlManager.getMetadata());
+    setFromXML(xmlManager.getTools(), xmlManager.getWires(), xmlManager.getMetadata());
   };
 
   // Rebuild tool configurations from XML data
@@ -155,25 +150,20 @@ function App() {
     };
   }, []);
 
-  const hideNotification = () => {
-    setNotification(prev => ({ ...prev, isVisible: false }));
-  };
+  // hideNotification now from store
 
   // Configuration functions
   const handleConfigurationChange = (toolId: string, config: ToolConfiguration) => {
-    setToolConfigurations(prev => new Map(prev.set(toolId, config)));
+  const newMap = new Map(toolConfigurations);
+  newMap.set(toolId, config);
+  setToolConfigurations(newMap);
     
     // Find the connection type to get its category (File/Database)
     const connectionType = config.connectionType ? getConnectionType(config.connectionType) : null;
     
     // Update tool config in tools array and XML
-    setTools((prevTools: Tool[]) => 
-      prevTools.map((tool: Tool) => 
-        tool.id === toolId 
-          ? { ...tool, config: { ...tool.config, ...config.parameters } }
-          : tool
-      )
-    );
+  // Update in local store mirror (XML is source of truth; we rebuild from XML below)
+  // We'll rely on updateStateFromXML after xmlManager update
     
     // Update the XML with the new configuration including Category and Type
     const configWithMeta = {
@@ -191,10 +181,7 @@ function App() {
   // Workflow meta update function
   const handleWorkflowMetaChange = (meta: { name: string; description: string; author: string }) => {
     // Update local state immediately for responsive UI
-    setWorkflowMeta(prev => ({
-      ...prev,
-      ...meta
-    }));
+  updateWorkflowMetaLocal(meta);
     
     // Update XML in background
     xmlManager.updateMetadata(meta);
@@ -294,40 +281,30 @@ function App() {
   };
 
   const addWire = (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => {
-    // Validate connection
     const fromTool = tools.find(t => t.id === from.tool);
     const toTool = tools.find(t => t.id === to.tool);
-    
     if (!fromTool || !toTool) return;
-    
     const fromSocket = fromTool.sockets.find(s => s.id === from.socket);
     const toSocket = toTool.sockets.find(s => s.id === to.socket);
-    
     if (!fromSocket || !toSocket) return;
-    
-    // Ensure we're connecting output to input
-    if (fromSocket.direction !== 'output' || toSocket.direction !== 'input') {
-      showNotification('Invalid connection: Can only connect outputs to inputs', 'error');
-      return;
-    }
-    
-    // Check if target input already has a connection (unless it allows multiple)
+    if (fromSocket.direction !== 'output' || toSocket.direction !== 'input') { showNotification('Invalid connection: Can only connect outputs to inputs', 'error'); return; }
     if (!toSocket.multiple) {
       const existingWire = wires.find(w => w.to.tool === to.tool && w.to.socket === to.socket);
-      if (existingWire) {
-        showNotification('Input already connected. Disconnect existing wire first.', 'warning');
-        return;
-      }
+      if (existingWire) { showNotification('Input already connected. Disconnect existing wire first.', 'warning'); return; }
     }
-
+    const createsCycle = wouldCreateCycle(tools, wires, from.tool, to.tool);
     const newWire: Wire = { from, to };
     try {
       edgeManager.addWire(newWire);
-      // Update wires state for validation logic (but not edges - EdgeManager handles that)
       updateStateFromXML();
-    } catch (error) {
-      showNotification('Failed to create connection', 'error');
-    }
+      if (createsCycle) {
+        const fromName = getToolDefinition(fromTool.type)?.name || 'Unknown';
+        const toName = getToolDefinition(toTool.type)?.name || 'Unknown';
+        showNotification(`Connection "${fromName}" to "${toName}" creates a loop.`, 'warning');
+        const edgeId = `${encodeURIComponent(from.tool)}_${from.socket}_${encodeURIComponent(to.tool)}_${to.socket}`;
+        setTimeout(() => { removeWire(edgeId); }, 3000);
+      }
+    } catch (error) { showNotification('Failed to create connection', 'error'); }
   };
 
   const removeWire = (wireId: string) => {
@@ -414,7 +391,7 @@ function App() {
           type={notification.type}
           isVisible={notification.isVisible}
           onClose={hideNotification}
-          duration={6000}
+          duration={notification.duration}
         />
       </div>
     </ThemeProvider>

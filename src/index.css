@@ -15,3 +15,62 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Accessible focus outlines harmonized with the active theme */
+:root {
+  --focus-outline-color: var(--color-border-focus, #a78bfa);
+}
+
+/* Only on keyboard focus */
+*:focus-visible {
+  outline: 2px solid var(--focus-outline-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tab buttons integrate with the continuous top line without double borders when focused */
+[role="tab"]:focus-visible {
+  position: relative;
+  z-index: 30;
+}
+
+/* Edge coloring states using theme CSS variables */
+.react-flow__edge .react-flow__edge-path {
+  stroke: var(--color-edge-default-stroke) !important;
+}
+.react-flow__edge .react-flow__edge-textbg, .react-flow__edge .react-flow__edge-text {
+  fill: var(--color-edge-default-stroke);
+}
+.react-flow__edge:hover .react-flow__edge-path,
+.react-flow__edge .react-flow__edge-path:hover {
+  stroke: var(--color-edge-default-stroke-hover) !important;
+}
+.react-flow__edge:hover .react-flow__edge-textbg, .react-flow__edge:hover .react-flow__edge-text {
+  fill: var(--color-edge-default-stroke-hover);
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-edge-selected-stroke) !important;
+}
+.react-flow__edge.selected .react-flow__edge-textbg, .react-flow__edge.selected .react-flow__edge-text {
+  fill: var(--color-edge-selected-stroke);
+}
+.react-flow__edge.selected:hover .react-flow__edge-path,
+.react-flow__edge.selected .react-flow__edge-path:hover {
+  stroke: var(--color-edge-selected-stroke-hover) !important;
+}
+.react-flow__edge.selected:hover .react-flow__edge-textbg, .react-flow__edge.selected:hover .react-flow__edge-text {
+  fill: var(--color-edge-selected-stroke-hover);
+}
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke: var(--color-edge-animated-stroke) !important;
+}
+.react-flow__edge.animated .react-flow__edge-textbg, .react-flow__edge.animated .react-flow__edge-text {
+  fill: var(--color-edge-animated-stroke);
+}
+.react-flow__edge.animated:hover .react-flow__edge-path,
+.react-flow__edge.animated .react-flow__edge-path:hover {
+  stroke: var(--color-edge-animated-stroke-hover) !important;
+}
+.react-flow__edge.animated:hover .react-flow__edge-textbg, .react-flow__edge.animated:hover .react-flow__edge-text {
+  fill: var(--color-edge-animated-stroke-hover);
+}

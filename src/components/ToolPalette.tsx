@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToolCategory } from '../types/workflow';
+import { ToolCategory } from '../domain/workflow/entities/workflow';
 import { getToolsByCategory } from '../data/tools';
 
 interface ToolPaletteProps {
@@ -26,15 +26,17 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
   return (
     <div className="bg-theme-surface-elevated border-b-2 border-theme-border-secondary">
       {/* Tabs */}
-      <div className="flex border-b-2 border-theme-border-secondary px-2 pt-2 relative">
+      <div className="flex border-b-2 border-theme-border-primary px-2 pt-2 relative" role="tablist" aria-label="Tool categories">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             className={`px-3 py-2 text-sm font-medium border-2 rounded-t-lg transition-colors flex items-center gap-2 mr-1 relative ${
               activeTab === tab.id
-                ? `border-theme-border-secondary border-b-theme-surface-elevated bg-theme-surface-elevated text-theme-text-primary z-10`
-                : 'border-theme-border-primary text-theme-text-tertiary hover:text-theme-text-secondary hover:border-theme-border-secondary bg-theme-surface-panel z-0'
+                ? 'bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary border-b-theme-surface-elevated z-20 shadow-sm'
+                : 'bg-theme-surface-panel text-theme-text-tertiary border-theme-border-secondary hover:text-theme-text-secondary hover:border-theme-border-primary z-0'
             }`}
             style={{
               marginBottom: '-2px',

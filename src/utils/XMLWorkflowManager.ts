@@ -1,4 +1,4 @@
-import { Tool, Wire, WorkflowMeta, ToolConfig } from '../types/workflow';
+import { Tool, Wire, WorkflowMeta, ToolConfig } from '../domain/workflow/entities/workflow';
 import { v4 as uuidv4 } from 'uuid';
 
 export class XMLWorkflowManager {
@@ -102,12 +102,18 @@ export class XMLWorkflowManager {
       }
 
       // Parse sockets
-      const sockets = Array.from(toolEl.querySelectorAll('Sockets Socket')).map(socketEl => ({
-        id: parseInt(socketEl.getAttribute('id') || '0'),
-        direction: socketEl.getAttribute('direction') as 'input' | 'output',
-        type: socketEl.getAttribute('type') || undefined,
-        multiple: socketEl.getAttribute('multiple') === 'true',
-      }));
+  const sockets = Array.from(toolEl.querySelectorAll('Sockets Socket')).map(socketEl => {
+        const idAttr = socketEl.getAttribute('id');
+        const dirAttr = socketEl.getAttribute('direction') as 'input' | 'output' | null;
+        if (!idAttr || !dirAttr) return null;
+        const sockType = socketEl.getAttribute('type');
+        return {
+          id: parseInt(idAttr),
+          direction: dirAttr,
+          ...(sockType ? { type: sockType } : {}),
+          multiple: socketEl.getAttribute('multiple') === 'true'
+        };
+  }).filter((s): s is { id: number; direction: 'input' | 'output'; type?: string; multiple: boolean } => s !== null);
 
       tools.push({ id, type, x, y, config, sockets });
     });

@@ -1,5 +1,5 @@
 import { Edge, MarkerType } from '@xyflow/react';
-import { Wire, Tool } from '../types/workflow';
+import { Wire, Tool } from '../domain/workflow/entities/workflow';
 import { XMLWorkflowManager } from './XMLWorkflowManager';
 import { wouldCreateCycle } from './loopDetection';
 import { getThemeColor } from './themeColors';
@@ -26,16 +26,16 @@ export class EdgeManager {
     const parts = edgeId.split('_');
     if (parts.length !== 4) return null;
     
+    const [p0,p1,p2,p3] = parts;
+    if (p0 == null || p1 == null || p2 == null || p3 == null) return null;
     try {
       return {
-        fromTool: decodeURIComponent(parts[0]),
-        fromSocket: parseInt(parts[1]),
-        toTool: decodeURIComponent(parts[2]),
-        toSocket: parseInt(parts[3])
+        fromTool: decodeURIComponent(p0),
+        fromSocket: parseInt(p1),
+        toTool: decodeURIComponent(p2),
+        toSocket: parseInt(p3)
       };
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   // Create React Flow edge from wire - Clean, maintainable approach using theme system

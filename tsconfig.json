@@ -11,11 +11,24 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
+  "strict": true,
+  "noUncheckedIndexedAccess": true,
+  "exactOptionalPropertyTypes": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@domain/*": ["domain/*"],
+      "@state/*": ["state/*"],
+      "@ui/*": ["ui/*"],
+      "@theming/*": ["theming/*"],
+      "@utils/*": ["utils/*"],
+      "@data/*": ["data/*"],
+      "@components/*": ["components/*"],
+      "@contexts/*": ["contexts/*"]
+    }
   },
   "include": ["src", "electron"],
   "references": [{ "path": "./tsconfig.node.json" }]

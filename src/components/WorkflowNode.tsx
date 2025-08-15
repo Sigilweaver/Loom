@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { Tool, ToolDefinition, Socket } from '../types/workflow';
+import { Tool, ToolDefinition, Socket } from '../domain/workflow/entities/workflow';
 
 interface WorkflowNodeProps {
   data: {

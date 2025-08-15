@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape -- Regex patterns include forward slashes and character classes; disabling to keep readable explicit escaping */
 import React, { useState } from 'react';
 
 interface XMLViewerProps {
@@ -11,10 +12,12 @@ function formatXML(xml: string): string {
   const PADDING = '  '; // 2 spaces for each level
   
   // First, normalize the XML by removing existing formatting
-  let formatted = xml.replace(/>\s*</g, '><');
+  // Collapse whitespace between tags
+  let formatted = xml.replace(/>\s+</g, '><');
   
   // Add line breaks between tags
-  formatted = formatted.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
+  // Insert newline between adjacent tags
+  formatted = formatted.replace(/></g, '>\n<');
   
   let pad = 0;
   
@@ -88,7 +91,7 @@ function highlightXML(xml: string): JSX.Element[] {
     };
     
     // Parse the trimmed line for different XML components
-    const xmlRegex = /(<\?[^>]*\?>|<!--[^>]*-->|<!\[CDATA\[.*?\]\]>|<\/?\w+[^>]*>)/g;
+  const xmlRegex = /(<\?[^>]*\?>|<!--[^>]*-->|<!\[CDATA\[.*?\]\]>|<[/]?\w+[^>]*>)/g;
     let match;
     
     while ((match = xmlRegex.exec(trimmedLine)) !== null) {
@@ -110,12 +113,13 @@ function highlightXML(xml: string): JSX.Element[] {
       } else if (xmlElement.startsWith('<![CDATA[')) {
         // CDATA
         addPart(xmlElement, 'text-yellow-700 bg-yellow-50');
-      } else if (xmlElement.startsWith('</')) {
-        // Closing tag
-        const tagMatch = xmlElement.match(/<\/(\w+)>/);
+  } else if (xmlElement.startsWith('</')) {
+  // Closing tag (use RegExp constructor to avoid escaped forward slash in literal)
+  const closingTagRegex = new RegExp('</(\\w+)>');
+  const tagMatch = xmlElement.match(closingTagRegex);
         if (tagMatch) {
           addPart('</', 'text-theme-syntax-tag');
-          addPart(tagMatch[1], 'text-theme-syntax-tag font-semibold');
+                    if (tagMatch[1]) addPart(tagMatch[1], 'text-theme-syntax-tag font-semibold');
           addPart('>', 'text-theme-syntax-tag');
         } else {
           addPart(xmlElement, 'text-theme-syntax-tag');
@@ -124,11 +128,11 @@ function highlightXML(xml: string): JSX.Element[] {
         // Opening tag with potential attributes
         const tagParts = xmlElement.match(/^(<)(\w+)(.*?)(\/?>)$/);
         if (tagParts) {
-          addPart(tagParts[1], 'text-theme-syntax-tag'); // <
-          addPart(tagParts[2], 'text-theme-syntax-tag font-semibold'); // tag name
+          if (tagParts[1]) addPart(tagParts[1], 'text-theme-syntax-tag'); // <
+          if (tagParts[2]) addPart(tagParts[2], 'text-theme-syntax-tag font-semibold'); // tag name
           
           // Parse attributes
-          const attributes = tagParts[3];
+                    const attributes = tagParts[3] || '';
           const attrRegex = /\s+(\w+)="([^"]*)"/g;
           let attrMatch;
           let lastAttrIndex = 0;
@@ -140,10 +144,14 @@ function highlightXML(xml: string): JSX.Element[] {
             }
             
             addPart(' ', 'text-theme-text-tertiary');
-            addPart(attrMatch[1], 'text-theme-syntax-attribute'); // attribute name
+            if (attrMatch[1]) {
+              addPart(attrMatch[1], 'text-theme-syntax-attribute'); // attribute name
+            }
             addPart('=', 'text-theme-text-tertiary');
             addPart('"', 'text-theme-syntax-value');
-            addPart(attrMatch[2], 'text-theme-syntax-value'); // attribute value
+            if (attrMatch[2]) {
+              addPart(attrMatch[2], 'text-theme-syntax-value'); // attribute value
+            }
             addPart('"', 'text-theme-syntax-value');
             
             lastAttrIndex = attrMatch.index + attrMatch[0].length;
@@ -154,7 +162,7 @@ function highlightXML(xml: string): JSX.Element[] {
             addPart(attributes.substring(lastAttrIndex), 'text-theme-text-tertiary');
           }
           
-          addPart(tagParts[4], 'text-theme-syntax-tag'); // /> or >
+                    if (tagParts[4]) addPart(tagParts[4], 'text-theme-syntax-tag'); // /> or >
         } else {
           addPart(xmlElement, 'text-theme-syntax-tag');
         }
@@ -183,8 +191,6 @@ export default function XMLViewer({
 }: XMLViewerProps) {
   const [width, setWidth] = useState(384); // Default width (w-96 = 384px)
   const [isResizing, setIsResizing] = useState(false);
-
-  if (!isVisible) return null;
 
   const formattedXml = formatXML(xmlContent);
   const highlightedXml = highlightXML(formattedXml);
@@ -216,20 +222,20 @@ export default function XMLViewer({
 
   // Add global mouse event listeners when resizing
   React.useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      };
-    }
-  }, [isResizing]);
+    if (!isResizing) return;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove]);
+
+  if (!isVisible) return null;
 
   return (
     <div 

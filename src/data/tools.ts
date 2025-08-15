@@ -1,4 +1,4 @@
-import { ToolDefinition } from '../types/workflow';
+import { ToolDefinition } from '../domain/workflow/entities/workflow';
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // In/Out Tools

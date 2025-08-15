@@ -201,7 +201,8 @@ ipcMain.handle('save-file', async (_event, content: string, filename: string) =>
 
 ipcMain.handle('show-save-dialog', async (_event, defaultPath?: string) => {
   const result = await dialog.showSaveDialog({
-    defaultPath,
+    // Cast because defaultPath may be undefined; omit if undefined
+    ...(defaultPath ? { defaultPath } : {}),
     filters: [
       { name: 'XML Files', extensions: ['xml'] },
       { name: 'All Files', extensions: ['*'] }

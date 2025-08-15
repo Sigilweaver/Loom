@@ -1,4 +1,4 @@
-import { Tool, Wire } from '../types/workflow';
+import { Tool, Wire } from '../domain/workflow/entities/workflow';
 
 /**
  * Efficient cycle detection using DFS with coloring

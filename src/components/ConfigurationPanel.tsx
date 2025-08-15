@@ -1,4 +1,4 @@
-import { Tool } from '../types/workflow';
+import { Tool } from '../domain/workflow/entities/workflow';
 import { ToolConfiguration } from '../types/configuration';
 import ConfigurationHeader from './ConfigurationHeader';
 import WorkflowConfiguration from './WorkflowConfiguration';

@@ -1,4 +1,4 @@
-import { Tool } from '../types/workflow';
+import { Tool } from '../domain/workflow/entities/workflow';
 import { getToolDefinition } from '../data/tools';
 
 interface ConfigurationHeaderProps {
