@@ -134,6 +134,16 @@ const applyThemeVariables = (theme: Theme) => {
     root.style.setProperty('--color-tool-drag-preview-border', colors.toolPalette.tools.dragPreview.border);
     root.style.setProperty('--color-tool-drag-preview-shadow', colors.toolPalette.tools.dragPreview.shadow);
 
+    // Tool tabs accent border (pastel brand for Sigilweaver, fallback to secondary border)
+    try {
+      const pastelAccent = theme.id === 'sigilweaver'
+        ? (colors.palette as any)?.brand?.primary?.[200] ?? colors.borders.focus
+        : colors.borders.secondary;
+      root.style.setProperty('--color-tool-tab-accent', pastelAccent);
+    } catch {
+      root.style.setProperty('--color-tool-tab-accent', colors.borders.secondary);
+    }
+
     // Canvas
     root.style.setProperty('--color-canvas-bg', colors.canvas.background);
     root.style.setProperty('--color-canvas-grid-primary', colors.canvas.grid.primary);

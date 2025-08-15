@@ -27,7 +27,7 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
     <div className="bg-theme-surface-elevated border-b-2 border-theme-border-secondary">
       {/* Tabs */}
       <div className="flex border-b-2 border-theme-border-primary px-2 pt-2 relative" role="tablist" aria-label="Tool categories">
-        {TABS.map((tab) => (
+  {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
@@ -35,11 +35,13 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
             aria-selected={activeTab === tab.id}
             className={`px-3 py-2 text-sm font-medium border-2 rounded-t-lg transition-colors flex items-center gap-2 mr-1 relative ${
               activeTab === tab.id
-                ? 'bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary border-b-theme-surface-elevated z-20 shadow-sm'
-                : 'bg-theme-surface-panel text-theme-text-tertiary border-theme-border-secondary hover:text-theme-text-secondary hover:border-theme-border-primary z-0'
+    ? 'bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary border-b-theme-surface-elevated z-20 shadow-sm'
+    : 'bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary z-0'
             }`}
             style={{
               marginBottom: '-2px',
+              // Use the exact separator color (same as the tablist bottom border)
+              borderColor: 'var(--color-border-primary)',
             }}
           >
             <span className="text-base">{tab.icon}</span>
