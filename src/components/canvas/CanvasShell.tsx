@@ -43,6 +43,8 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);
+  // Track pointer state to avoid resyncing nodes during active drags/lasso
+  const isPointerDownRef = useRef(false);
   const isFirefox = useMemo(() => typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent), []);
   // Track latest tools from store to avoid races when wiring after paste
   const latestToolsRef = useRef<Tool[]>(tools);
@@ -55,7 +57,28 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   useImperativeHandle(ref, () => ({ fitView: () => fitView({ duration:800, padding:0.1 }) }), [fitView]);
   const nodes: Node[] = useMemo(() => tools.map(tool => ({ id: tool.id, type:'workflow', position:{ x: tool.x, y: tool.y }, data:{ tool, definition:getToolDefinition(tool.type), onToolMove }, deletable:true, selectable:true })), [tools, onToolMove]);
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes); const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
-  React.useEffect(()=>{ setNodes(curr=>{ const sel=new Map(curr.map(n=>[n.id,n.selected])); return nodes.map(n=>({...n, selected: sel.get(n.id)||false})); }); }, [nodes, setNodes]);
+  React.useEffect(()=>{
+    setNodes(curr => {
+      // Avoid replacing nodes array while user is dragging/lassoing to prevent selection flicker
+      if (isPointerDownRef.current) return curr;
+      const sel = new Map(curr.map(n => [n.id, n.selected]));
+      const currMap = new Map(curr.map(n => [n.id, n]));
+      const next = nodes.map(n => {
+        const prev = currMap.get(n.id);
+        if (prev) {
+          const selected = sel.get(n.id) || false;
+          const samePos = prev.position.x === n.position.x && prev.position.y === n.position.y;
+          const sameType = prev.type === n.type;
+          // Keep previous node instance when structure/position unchanged; update data + selected only
+          return (samePos && sameType)
+            ? { ...prev, data: n.data, selected }
+            : { ...n, selected };
+        }
+        return { ...n, selected: false };
+      });
+      return next;
+    });
+  }, [nodes, setNodes]);
   React.useEffect(()=>{ setEdges(edges); }, [edges, setEdges]);
   const onConnect = useCallback((c:Connection)=>{ if(c.source&&c.target&&c.sourceHandle&&c.targetHandle){ const fromSocket=parseInt(c.sourceHandle.replace('output-','')); const toSocket=parseInt(c.targetHandle.replace('input-','')); onAddWire({ tool:c.source, socket:fromSocket }, { tool:c.target, socket:toSocket }); } }, [onAddWire]);
   const onEdgesDelete = useCallback((es:Edge[])=>{ es.forEach(e=>onRemoveWire(e.id)); }, [onRemoveWire]);
@@ -348,8 +371,8 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
       ref={keyScopeRef}
       tabIndex={0}
   onPaste={onPaste}
-      onKeyDown={onKeyDown}
-      onMouseDown={() => keyScopeRef.current?.focus()}
+  onKeyDown={onKeyDown}
+  onMouseDown={(e) => { if (e.button === 0) { isPointerDownRef.current = true; const onUp = () => { isPointerDownRef.current = false; window.removeEventListener('mouseup', onUp); }; window.addEventListener('mouseup', onUp); } keyScopeRef.current?.focus(); }}
       className="flex-1 h-full min-h-0"
       style={{ outline: 'none' }}
     >
