@@ -126,13 +126,15 @@
         <section class="py-16">
             <div class="container mx-auto px-6 text-center">
                 <h1 class="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent">Download Sigilweaver</h1>
-                <p class="text-mystic-200 text-lg md:text-xl max-w-3xl mx-auto">Get the latest builds for your platform. No telemetry. No tracking. Just pure data magic.</p>
+                <p class="text-mystic-200 text-lg md:text-xl max-w-3xl mx-auto">Get the latest builds for your platform.</p>
 
                 <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                     <a id="auto-download-btn" href="http://download.sigilweaver.com/latest/sigilweaver.appimage" class="bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 px-8 py-4 rounded-lg font-semibold hover:from-gold-400 hover:to-gold-300 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75">
                         Download for Your OS
                     </a>
-                    <a href="http://download.sigilweaver.com/latest/" class="border-2 border-mystic-500 hover:border-gold-400 px-8 py-4 rounded-lg font-semibold transition-all hover:bg-mystic-500/10 backdrop-blur-sm" target="_blank" rel="noopener noreferrer">Browse Files</a>
+                    <a href="https://github.com/sigilweaver?tab=repositories" class="border-2 border-mystic-500 hover:border-gold-400 px-8 py-4 rounded-lg font-semibold transition-all hover:bg-mystic-500/10 backdrop-blur-sm" target="_blank" rel="noopener noreferrer">
+                        View Source
+                    </a>
                 </div>
 
                 <p id="detected-os" class="mt-3 text-mystic-300 text-sm"></p>
@@ -156,6 +158,7 @@
                         <h2 class="text-2xl font-bold text-mystic-200 mb-2">macOS (Universal)</h2>
                         <p class="text-mystic-300 mb-4">Drag-and-drop installer image.</p>
                         <a href="http://download.sigilweaver.com/latest/sigilweaver.dmg" class="inline-block bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg">Download .dmg</a>
+                        <p class="text-mystic-400 text-xs mt-3">Unsigned build: right-click the app and choose “Open”, or allow in System Settings → Privacy & Security.</p>
                     </article>
 
                     <!-- Windows EXE -->
@@ -163,6 +166,7 @@
                         <h2 class="text-2xl font-bold text-mystic-200 mb-2">Windows</h2>
                         <p class="text-mystic-300 mb-4">Standard installer.</p>
                         <a href="http://download.sigilweaver.com/latest/sigilweaver.exe" class="inline-block bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg">Download .exe</a>
+                        <p class="text-mystic-400 text-xs mt-3">Unsigned build: Windows SmartScreen may warn. Click “More info” → “Run anyway”.</p>
                     </article>
 
                     <!-- Linux Snap -->
@@ -179,12 +183,6 @@
                         <a href="http://download.sigilweaver.com/latest/sigilweaver.zip" class="inline-block bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg">Download .zip</a>
                     </article>
 
-                    <!-- All files -->
-                    <article class="bg-mystic-700/30 p-6 rounded-xl backdrop-blur-sm border border-mystic-600/50">
-                        <h2 class="text-2xl font-bold text-mystic-200 mb-2">All Files</h2>
-                        <p class="text-mystic-300 mb-4">Prefer to explore? Browse the latest directory.</p>
-                        <a href="http://download.sigilweaver.com/latest/" target="_blank" rel="noopener noreferrer" class="inline-block border border-mystic-500 hover:border-gold-400 px-6 py-3 rounded-lg">Open Folder</a>
-                    </article>
                 </div>
             </div>
         </section>
@@ -209,7 +207,7 @@
                     <ul class="space-y-2 text-mystic-400">
                         <li><a href="/downloads" class="hover:text-gold-400 transition-colors">Downloads</a></li>
                         <li><a href="/contributing.html" class="hover:text-gold-400 transition-colors">Contributing</a></li>
-                        <li><a href="https://github.com/sigilweaver" class="hover:text-gold-400 transition-colors">GitHub</a></li>
+                        <li><a href="https://github.com/sigilweaver?tab=repositories" class="hover:text-gold-400 transition-colors">Source</a></li>
                     </ul>
                 </div>
 
