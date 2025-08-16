@@ -17,10 +17,27 @@ import { CanvasDragAndDropLayer } from './CanvasDragAndDropLayer';
 import { generateUniqueId } from '@utils/id';
 
 export interface CanvasRef { fitView: () => void; }
-interface Props { tools: Tool[]; wires: Wire[]; edges: Edge[]; onAddTool:(type:string,x:number,y:number,idOverride?:string)=>void; onAddWire:(f:{tool:string;socket:number}, t:{tool:string;socket:number})=>void; onRemoveWire:(id:string)=>void; onRemoveTool:(id:string)=>void; onToolMove:(id:string,x:number,y:number)=>void; onToolSelect?: (tool:Tool|null)=>void; }
+interface Props {
+  tools: Tool[];
+  wires: Wire[];
+  edges: Edge[];
+  onAddTool: (type: string, x: number, y: number, idOverride?: string) => void;
+  onAddWire: (f: { tool: string; socket: number }, t: { tool: string; socket: number }) => void;
+  onRemoveWire: (id: string) => void;
+  onRemoveTool: (id: string) => void;
+  onToolMove: (id: string, x: number, y: number) => void;
+  onToolSelect?: (tool: Tool | null) => void;
+  onBatchAdd?: (
+    toolAdds: { id: string; type: string; x: number; y: number }[],
+    wiresToAdd: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[]
+  ) => void;
+}
 const nodeTypes = { workflow: WorkflowNode };
-export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect }, ref) => {
+export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd }, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
+  // Track latest tools from store to avoid races when wiring after paste
+  const latestToolsRef = useRef<Tool[]>(tools);
+  useEffect(() => { latestToolsRef.current = tools; }, [tools]);
   const minimapButtonRef = useRef<HTMLDivElement>(null);
   const minimapVisible = useUIStore(s=>s.minimapVisible); const minimapPosition = useUIStore(s=>s.minimapPosition); const positionMenuOpen = useUIStore(s=>s.positionMenuOpen); const positionMenuCoords = useUIStore(s=>s.positionMenuCoords); const toggleMinimap = useUIStore(s=>s.toggleMinimap); const setMinimapPosition = useUIStore(s=>s.setMinimapPosition); const openPositionMenu = useUIStore(s=>s.openPositionMenu); const closePositionMenu = useUIStore(s=>s.closePositionMenu);
   const snapGrid:[number,number] = [20,20];
@@ -135,6 +152,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
         const baseX = lastPos ? lastPos.x : cb.minX + 20;
         const baseY = lastPos ? lastPos.y : cb.minY + 20;
         const newIds: string[] = [];
+        const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
         cb.tools.forEach(ts => {
           const newId = generateUniqueId(existingIds, 8);
           existingIds.add(newId);
@@ -143,15 +161,33 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
           const nx = ts.x - cb.minX + baseX;
           const ny = ts.y - cb.minY + baseY;
           const snapped = snap(nx, ny);
-          onAddTool(ts.type, snapped.x, snapped.y, newId);
+          toolAdds.push({ id: newId, type: ts.type, x: snapped.x, y: snapped.y });
         });
+        // Prepare remapped wires
+        const remappedWires: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[] = [];
         cb.wires.forEach(w => {
           const fromId = idMap.get(w.from.tool);
           const toId = idMap.get(w.to.tool);
           if (fromId && toId) {
-            onAddWire({ tool: fromId, socket: w.from.socket }, { tool: toId, socket: w.to.socket });
+            remappedWires.push({ from: { tool: fromId, socket: w.from.socket }, to: { tool: toId, socket: w.to.socket } });
           }
         });
+        if (typeof (onBatchAdd) === 'function') {
+          onBatchAdd(toolAdds, remappedWires);
+        } else {
+          // Fallback: add tools immediately and wires after nodes are present
+          toolAdds.forEach(t => onAddTool(t.type, t.x, t.y, t.id));
+          const addWiresWhenReady = (retries = 0) => {
+            const presentInRF = newIds.every(id => !!getNodes().find(n => n.id === id));
+            const presentInStore = newIds.every(id => latestToolsRef.current.some(tt => tt.id === id));
+            if (!(presentInRF && presentInStore) && retries < 40) {
+              setTimeout(() => addWiresWhenReady(retries + 1), 25);
+              return;
+            }
+            remappedWires.forEach(w => onAddWire(w.from, w.to));
+          };
+          addWiresWhenReady();
+        }
         // Reset incremental offset since we now use mouse position
         setPasteOffset({ x: 20, y: 20 });
         // Select newly pasted nodes to ease moving them as a group

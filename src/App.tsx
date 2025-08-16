@@ -261,6 +261,42 @@ function App() {
     showNotification('Preview functionality will show expected workflow output and flow analysis. Coming soon!', 'info');
   };
 
+  // Batch add for paste operations: add tools first, then wires, and sync once
+  const batchAddToolsAndWires = (
+    toolAdds: { id: string; type: string; x: number; y: number }[],
+    wiresToAdd: Wire[]
+  ) => {
+    try {
+      // Add tools
+      for (const ta of toolAdds) {
+        const definition = getToolDefinition(ta.type);
+        if (!definition) continue;
+        const newTool: Tool = {
+          id: ta.id,
+          type: ta.type,
+          x: ta.x,
+          y: ta.y,
+          config: { ...definition.defaultConfig },
+          sockets: [...definition.sockets],
+        };
+        xmlManager.addTool(newTool);
+      }
+      // Add wires directly via EdgeManager (avoid UI validation races)
+      for (const w of wiresToAdd) {
+        try {
+          edgeManager.addWire(w);
+        } catch {
+          // ignore individual failures during batch to avoid blocking the rest
+        }
+      }
+      // Sync state once at the end
+      updateStateFromXML();
+      edgeManager.syncFromXML();
+    } catch (e) {
+      showNotification('Failed to paste tools/wires', 'error');
+    }
+  };
+
   const addTool = (toolType: string, x: number, y: number, idOverride?: string) => {
     const definition = getToolDefinition(toolType);
     if (!definition) return;
@@ -371,6 +407,7 @@ function App() {
                 onRemoveTool={removeTool}
                 onToolSelect={handleToolSelect}
                 onToolMove={moveTool}
+                onBatchAdd={batchAddToolsAndWires}
               />
               
               {/* XML Viewer Side Panel */}
