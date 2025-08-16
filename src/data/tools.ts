@@ -4,7 +4,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // In/Out Tools
   {
     type: 'Input',
-    name: 'Input Data',
+    name: 'Input',
     icon: '📂',
     category: 'inout',
     defaultConfig: {
@@ -16,7 +16,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     type: 'Output',
-    name: 'Output Data',
+    name: 'Output',
     icon: '💾',
     category: 'inout',
     defaultConfig: {

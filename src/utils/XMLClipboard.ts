@@ -87,10 +87,11 @@ export function applyClipboardFragment(xmlManager: XMLWorkflowManager, fragmentX
     const type = tEl.getAttribute('type') || '';
     const x = parseFloat(tEl.getAttribute('x') || '0');
     const y = parseFloat(tEl.getAttribute('y') || '0');
-    const newId = generateUniqueId(existingIds, 8);
-    existingIds.add(newId);
-    idMap.set(oldId, newId);
-    addedIds.push(newId);
+  // Preserve original ID when no conflict, otherwise generate a new unique ID
+  const assignId = existingIds.has(oldId) ? generateUniqueId(existingIds, 8) : oldId;
+  existingIds.add(assignId);
+  idMap.set(oldId, assignId);
+  addedIds.push(assignId);
 
     // Parse config
     const config: ToolConfig = {};
@@ -116,7 +117,7 @@ export function applyClipboardFragment(xmlManager: XMLWorkflowManager, fragmentX
 
     const nx = (Number.isFinite(x) ? x : 0) - minX + anchor.x;
     const ny = (Number.isFinite(y) ? y : 0) - minY + anchor.y;
-    const tool: Tool = { id: newId, type, x: nx, y: ny, config, sockets };
+  const tool: Tool = { id: idMap.get(oldId)!, type, x: nx, y: ny, config, sockets };
     xmlManager.addTool(tool);
   });
 
