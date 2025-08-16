@@ -11,6 +11,7 @@ import { Tool, Wire, ToolCategory } from './domain/workflow/entities/workflow';
 import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
 import { HistoryManager } from './utils/HistoryManager';
+import { buildClipboardFragment, applyClipboardFragment } from './utils/XMLClipboard';
 import { EdgeManager } from '@domain/workflow/services/edgeManager';
 import { getToolDefinition } from './data/tools';
 import { getConnectionType } from './config/connectionTypes';
@@ -370,6 +371,33 @@ function App() {
     edgeManager.syncFromXML();
   };
 
+  // XML clipboard: build a fragment for selected tools
+  const buildCopyFragment = (selectedIds: string[]): string => {
+    try {
+  const xml = xmlManager.toXMLString();
+  return buildClipboardFragment(xml, selectedIds);
+    } catch {
+      return '';
+    }
+  };
+
+  // XML clipboard: paste a fragment at anchor and update state/history
+  const pasteFragmentAt = async (anchor: { x: number; y: number }, fragment: string): Promise<string[]> => {
+    if (!fragment) return [];
+    try {
+      const preXml = xmlManager.toXMLString();
+      history.begin(preXml, 'Paste');
+  const newIds = applyClipboardFragment(xmlManager, fragment, anchor);
+      updateStateFromXML();
+      edgeManager.syncFromXML();
+      history.commit(xmlManager.toXMLString(), { label: 'Paste' });
+      return newIds;
+    } catch (e) {
+      showNotification('Failed to paste fragment', 'error');
+      return [];
+    }
+  };
+
   const addWire = (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => {
     const fromTool = tools.find(t => t.id === from.tool);
     const toTool = tools.find(t => t.id === to.tool);
@@ -470,6 +498,8 @@ function App() {
                 onBatchAdd={batchAddToolsAndWires}
                 onBeginTransaction={() => history.begin(xmlManager.toXMLString(), 'Move Nodes')}
                 onCommitTransaction={() => history.commit(xmlManager.toXMLString(), { label: 'Move Nodes' })}
+                onBuildCopyFragment={buildCopyFragment}
+                onPasteXMLAt={pasteFragmentAt}
               />
               
               {/* XML Viewer Side Panel */}

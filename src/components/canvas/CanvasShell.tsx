@@ -34,9 +34,12 @@ interface Props {
   ) => void;
   onBeginTransaction?: () => void;
   onCommitTransaction?: () => void;
+  // XML clipboard integration from App
+  onBuildCopyFragment?: (selectedIds: string[]) => string;
+  onPasteXMLAt?: (anchor: { x: number; y: number }, fragment: string) => Promise<string[]>;
 }
 const nodeTypes = { workflow: WorkflowNode };
-export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd, onBeginTransaction, onCommitTransaction }, ref) => {
+export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd, onBeginTransaction, onCommitTransaction, onBuildCopyFragment, onPasteXMLAt }, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     const clientY = (e as MouseEvent).clientY ?? (e as React.MouseEvent).clientY;
     lastMouseFlowPosRef.current = screenToFlowPosition({ x: clientX, y: clientY });
     // Build a paste-only menu if clipboard exists
-    const hasClipboard = !!(CanvasShell as any)._clipboard;
+    const hasClipboard = !!(CanvasShell as any)._xmlClipboard || !!(CanvasShell as any)._clipboard;
     if (!hasClipboard) return;
     setActionsCoords({ x: clientX, y: clientY });
     setActionsOpen(true);
@@ -151,8 +154,21 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   const doCopy = useCallback(() => {
     const selectedIds = getSelectedIds();
     if (selectedIds.size === 0) return;
+    const ids = tools.filter(t => selectedIds.has(t.id)).map(t => t.id);
+    if (ids.length === 0) return;
+    if (onBuildCopyFragment) {
+      const fragment = onBuildCopyFragment(ids);
+      if (fragment) {
+        (CanvasShell as any)._xmlClipboard = fragment;
+        // Try writing to system clipboard; ignore errors
+        if (navigator?.clipboard?.writeText) {
+          navigator.clipboard.writeText(fragment).catch(() => {});
+        }
+      }
+      return;
+    }
+    // Legacy in-memory clipboard structure
     type ToolSnapshot = { id: string; type: string; x: number; y: number };
-    const setClipboard = (data: { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number }) => { (CanvasShell as any)._clipboard = data; };
     const selectedTools = tools.filter(t => selectedIds.has(t.id));
     if (selectedTools.length === 0) return;
     const minX = Math.min(...selectedTools.map(t => t.x));
@@ -160,8 +176,8 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     const toolSnaps: ToolSnapshot[] = selectedTools.map(t => ({ id: t.id, type: t.type, x: t.x, y: t.y }));
     const selSet = new Set(selectedTools.map(t => t.id));
     const innerWires = wires.filter(w => selSet.has(w.from.tool) && selSet.has(w.to.tool));
-    setClipboard({ tools: toolSnaps, wires: innerWires, minX, minY });
-  }, [getSelectedIds, tools, wires]);
+    (CanvasShell as any)._clipboard = { tools: toolSnaps, wires: innerWires, minX, minY };
+  }, [getSelectedIds, tools, wires, onBuildCopyFragment]);
   const doCut = useCallback(() => {
     doCopy();
     const selectedIds = getSelectedIds();
@@ -178,54 +194,96 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     onToolSelect?.(null);
   }, [getSelectedIds, onRemoveTool, setNodes, onToolSelect]);
   const doPaste = useCallback(() => {
-    type ToolSnapshot = { id: string; type: string; x: number; y: number };
-    const getClipboard = () => (CanvasShell as any)._clipboard as { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number } | undefined;
-    const cb = getClipboard();
-    if (!cb) return;
-    const existingIds = new Set(tools.map(t => t.id));
-    const idMap = new Map<string, string>();
-    const lastPos = lastMouseFlowPosRef.current;
-    const baseX = lastPos ? lastPos.x : cb.minX + 20;
-    const baseY = lastPos ? lastPos.y : cb.minY + 20;
-    const newIds: string[] = [];
-    const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
-    cb.tools.forEach(ts => {
-      const newId = generateUniqueId(existingIds, 8);
-      existingIds.add(newId);
-      idMap.set(ts.id, newId);
-      newIds.push(newId);
-      const nx = ts.x - cb.minX + baseX;
-      const ny = ts.y - cb.minY + baseY;
-      const snapped = snap(nx, ny);
-      toolAdds.push({ id: newId, type: ts.type, x: snapped.x, y: snapped.y });
-    });
-    const remappedWires: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[] = [];
-    cb.wires.forEach(w => {
-      const fromId = idMap.get(w.from.tool);
-      const toId = idMap.get(w.to.tool);
-      if (fromId && toId) {
-        remappedWires.push({ from: { tool: fromId, socket: w.from.socket }, to: { tool: toId, socket: w.to.socket } });
-      }
-    });
-    if (typeof onBatchAdd === 'function') {
-      onBatchAdd(toolAdds, remappedWires);
-    } else {
-      toolAdds.forEach(t => onAddTool(t.type, t.x, t.y, t.id));
-      const addWiresWhenReady = (retries = 0) => {
-        const presentInRF = newIds.every(id => !!getNodes().find(n => n.id === id));
-        const presentInStore = newIds.every(id => latestToolsRef.current.some(tt => tt.id === id));
-        if (!(presentInRF && presentInStore) && retries < 40) {
-          setTimeout(() => addWiresWhenReady(retries + 1), 25);
-          return;
+    // XML-first path if provided by parent
+    if (onPasteXMLAt) {
+      const useFragment = (fragment: string) => {
+        if (fragment && fragment.includes('<WorkflowFragment')) {
+          const lastPos = lastMouseFlowPosRef.current;
+          const anchor = lastPos ?? { x: 20, y: 20 };
+          onPasteXMLAt(anchor, fragment).then(newIds => {
+            if (Array.isArray(newIds) && newIds.length > 0) {
+              setTimeout(() => {
+                setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
+              }, 0);
+            }
+          }).catch(() => { /* fall back below */ });
+          return true;
         }
-        remappedWires.forEach(w => onAddWire(w.from, w.to));
+        return false;
       };
-      addWiresWhenReady();
+      if (navigator?.clipboard?.readText) {
+        navigator.clipboard.readText().then(txt => {
+          if (!useFragment(txt || '')) {
+            const local = (CanvasShell as any)._xmlClipboard || '';
+            if (!useFragment(local)) {
+              // fall through to legacy
+              legacyPaste();
+            }
+          }
+        }).catch(() => {
+          const local = (CanvasShell as any)._xmlClipboard || '';
+          if (!useFragment(local)) {
+            legacyPaste();
+          }
+        });
+        return;
+      }
+      const local = (CanvasShell as any)._xmlClipboard || '';
+      if (useFragment(local)) return;
+      // fall through if nothing usable
     }
-    setTimeout(() => {
-      setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
-    }, 0);
-  }, [onBatchAdd, onAddTool, onAddWire, getNodes, snap, tools]);
+    const legacyPaste = () => {
+      type ToolSnapshot = { id: string; type: string; x: number; y: number };
+      const getClipboard = () => (CanvasShell as any)._clipboard as { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number } | undefined;
+      const cb = getClipboard();
+      if (!cb) return;
+      const existingIds = new Set(tools.map(t => t.id));
+      const idMap = new Map<string, string>();
+      const lastPos = lastMouseFlowPosRef.current;
+      const baseX = lastPos ? lastPos.x : cb.minX + 20;
+      const baseY = lastPos ? lastPos.y : cb.minY + 20;
+      const newIds: string[] = [];
+      const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
+      cb.tools.forEach(ts => {
+        const newId = generateUniqueId(existingIds, 8);
+        existingIds.add(newId);
+        idMap.set(ts.id, newId);
+        newIds.push(newId);
+        const nx = ts.x - cb.minX + baseX;
+        const ny = ts.y - cb.minY + baseY;
+        const snapped = snap(nx, ny);
+        toolAdds.push({ id: newId, type: ts.type, x: snapped.x, y: snapped.y });
+      });
+      const remappedWires: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[] = [];
+      cb.wires.forEach(w => {
+        const fromId = idMap.get(w.from.tool);
+        const toId = idMap.get(w.to.tool);
+        if (fromId && toId) {
+          remappedWires.push({ from: { tool: fromId, socket: w.from.socket }, to: { tool: toId, socket: w.to.socket } });
+        }
+      });
+      if (typeof onBatchAdd === 'function') {
+        onBatchAdd(toolAdds, remappedWires);
+      } else {
+        toolAdds.forEach(t => onAddTool(t.type, t.x, t.y, t.id));
+        const addWiresWhenReady = (retries = 0) => {
+          const presentInRF = newIds.every(id => !!getNodes().find(n => n.id === id));
+          const presentInStore = newIds.every(id => latestToolsRef.current.some(tt => tt.id === id));
+          if (!(presentInRF && presentInStore) && retries < 40) {
+            setTimeout(() => addWiresWhenReady(retries + 1), 25);
+            return;
+          }
+          remappedWires.forEach(w => onAddWire(w.from, w.to));
+        };
+        addWiresWhenReady();
+      }
+      setTimeout(() => {
+        setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
+      }, 0);
+    };
+    legacyPaste();
+  }, [onBatchAdd, onAddTool, onAddWire, getNodes, snap, tools, onPasteXMLAt, setNodes]);
+  
 
   // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -284,7 +342,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
         items={(() => {
           const selectedIds = getNodes().filter(n => n.selected).map(n => n.id);
           const hasSelection = selectedIds.length > 0;
-          const hasClipboard = !!(CanvasShell as any)._clipboard;
+          const hasClipboard = !!(CanvasShell as any)._xmlClipboard || !!(CanvasShell as any)._clipboard;
           const items: ActionItem[] = [];
           // If there's a selection, show full set. If invoked on empty pane, show Paste only.
           const mod = navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
