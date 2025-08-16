@@ -13,7 +13,7 @@ import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
 import { EdgeManager } from '@domain/workflow/services/edgeManager';
 import { getToolDefinition } from './data/tools';
 import { getConnectionType } from './config/connectionTypes';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUniqueId } from './utils/id';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useUIStore, startNotificationAutoHide } from '@state/uiStore';
 import { wouldCreateCycle } from '@domain/workflow/services/loopDetection';
@@ -266,7 +266,7 @@ function App() {
     if (!definition) return;
 
     const newTool: Tool = {
-      id: uuidv4(),
+      id: generateUniqueId(new Set(tools.map(t => t.id)), 8),
       type: toolType,
       x,
       y,
