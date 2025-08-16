@@ -19,8 +19,31 @@ interface Props {
 export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose }) => {
   if (!open || !coords || !items || items.length === 0) return null;
   const [hoveredKey, setHoveredKey] = React.useState<string | null>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handlePointerDown, true);
+    document.addEventListener('contextmenu', handlePointerDown, true);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown, true);
+      document.removeEventListener('contextmenu', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open, onClose]);
   return createPortal(
     <div
+      ref={containerRef}
       style={{
         position: 'fixed',
         left: coords.x,
