@@ -1,3 +1,13 @@
+## CI builds
+
+GitHub Actions workflow at `.github/workflows/build.yml` builds artifacts for:
+- Zipped web bundle (dist-web.zip)
+- Linux: AppImage and Snap
+- macOS: dmg and zip
+- Windows: nsis and portable
+
+macOS signing/notarization is not configured; builds are unsigned for local testing. To enable signing, set the appropriate Apple ID and certificate secrets and update electron-builder config.
+
 # Sigilweaver
 
 A visual workflow designer application built with Electron, React, Vite, and TypeScript. Similar to Alteryx, this application allows you to create data processing workflows using a drag-and-drop interface.

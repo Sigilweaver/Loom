@@ -11,9 +11,11 @@
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "build:web": "tsc && vite build",
-    "build:electron": "electron-builder",
+  "build:electron": "electron-builder",
     "build:linux": "npm run build:web && electron-builder --linux",
     "build:win": "npm run build:web && electron-builder --win",
+  "build:mac": "npm run build:web && electron-builder --mac",
+  "build:web:zip": "npm run build:web && cd dist && zip -r ../dist-web.zip .",
     "preview": "vite preview",
     "electron": "wait-on tcp:5173 && cross-env IS_DEV=true electron .",
     "electron:pack": "electron-builder --dir",
@@ -132,6 +134,14 @@
       ],
       "publisherName": "SigilWeaver Development Team",
       "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "public/assets/icon-512.png"
     },
     "nsis": {
       "oneClick": false,
