@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { Tool, Wire, ToolCategory } from './domain/workflow/entities/workflow';
 import { ToolConfiguration } from './types/configuration';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
+import { HistoryManager } from './utils/HistoryManager';
 import { EdgeManager } from '@domain/workflow/services/edgeManager';
 import { getToolDefinition } from './data/tools';
 import { getConnectionType } from './config/connectionTypes';
@@ -21,6 +22,7 @@ import { wouldCreateCycle } from '@domain/workflow/services/loopDetection';
 function App() {
   const [activeTab, setActiveTab] = useState<ToolCategory>('favorites');
   const [xmlManager] = useState<XMLWorkflowManager>(() => new XMLWorkflowManager());
+  const [history] = useState<HistoryManager>(() => new HistoryManager());
   const [xmlViewerVisible, setXmlViewerVisible] = useState(false);
   
   // Derived state from XML
@@ -143,12 +145,44 @@ function App() {
     rebuildToolConfigurations(); // Load configurations from initial XML
     // Initialize edges from XML
     setEdges(edgeManager.getEdgesFromXML());
+    // Initialize history with initial XML snapshot
+    try {
+      history.checkpoint(xmlManager.toXMLString(), 'Initial');
+    } catch {}
     
     // Cleanup EdgeManager on unmount
     return () => {
       edgeManager.destroy();
     };
   }, []);
+
+  // Global undo/redo shortcuts (when not typing)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isTyping) return;
+      const isUndo = (e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && !e.shiftKey;
+      const isRedo = ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && e.shiftKey)
+        || ((e.key === 'y' || e.key === 'Y') && (e.ctrlKey || e.metaKey));
+      if (!isUndo && !isRedo) return;
+      e.preventDefault();
+      const currentXml = xmlManager.toXMLString();
+      const entry = isUndo ? history.undo(currentXml) : history.redo(currentXml);
+      if (entry) {
+        try {
+          xmlManager.loadFromXML(entry.xml);
+          updateStateFromXML();
+          edgeManager.syncFromXML();
+          setSelectedTool(null);
+        } catch (err) {
+          console.error('History restore failed:', err);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [history, xmlManager, edgeManager, setSelectedTool]);
 
   // hideNotification now from store
 
@@ -198,7 +232,9 @@ function App() {
   }, []);
 
   const newWorkflow = () => {
-    xmlManager.newWorkflow();
+  const preXml = xmlManager.toXMLString();
+  history.checkpoint(preXml, 'Before New');
+  xmlManager.newWorkflow();
     updateStateFromXML();
     setSelectedTool(null);
     setToolConfigurations(new Map()); // New workflow has no configurations
@@ -215,9 +251,11 @@ function App() {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+    reader.onload = (e) => {
         try {
           const xmlContent = e.target?.result as string;
+      const preXml = xmlManager.toXMLString();
+      history.checkpoint(preXml, 'Before Import');
           xmlManager.loadFromXML(xmlContent);
           updateStateFromXML();
           setSelectedTool(null);
@@ -267,6 +305,8 @@ function App() {
     wiresToAdd: Wire[]
   ) => {
     try {
+  const preXml = xmlManager.toXMLString();
+  history.begin(preXml, 'Paste');
       // Add tools
       for (const ta of toolAdds) {
         const definition = getToolDefinition(ta.type);
@@ -292,6 +332,7 @@ function App() {
       // Sync state once at the end
       updateStateFromXML();
       edgeManager.syncFromXML();
+  history.commit(xmlManager.toXMLString(), { label: 'Paste' });
     } catch (e) {
       showNotification('Failed to paste tools/wires', 'error');
     }
@@ -301,7 +342,9 @@ function App() {
     const definition = getToolDefinition(toolType);
     if (!definition) return;
 
-    const newTool: Tool = {
+  const preXml = xmlManager.toXMLString();
+  history.checkpoint(preXml, 'Before Add Tool');
+  const newTool: Tool = {
       id: idOverride ?? generateUniqueId(new Set(tools.map(t => t.id)), 8),
       type: toolType,
       x,
@@ -331,8 +374,10 @@ function App() {
     const createsCycle = wouldCreateCycle(tools, wires, from.tool, to.tool);
     const newWire: Wire = { from, to };
     try {
+  const preXml = xmlManager.toXMLString();
       edgeManager.addWire(newWire);
       updateStateFromXML();
+  history.checkpoint(preXml, 'Before Connect');
       if (createsCycle) {
         const fromName = getToolDefinition(fromTool.type)?.name || 'Unknown';
         const toName = getToolDefinition(toTool.type)?.name || 'Unknown';
@@ -345,21 +390,25 @@ function App() {
 
   const removeWire = (wireId: string) => {
     try {
+      const preXml = xmlManager.toXMLString();
       edgeManager.removeWire(wireId);
       // Update wires state for validation logic (but not edges - EdgeManager handles that)
       updateStateFromXML();
+      history.checkpoint(preXml, 'Before Disconnect');
     } catch (error) {
       showNotification('Failed to remove connection', 'error');
     }
   };
 
   const removeTool = (toolId: string) => {
-    xmlManager.removeTool(toolId);
+  const preXml = xmlManager.toXMLString();
+  xmlManager.removeTool(toolId);
     updateStateFromXML();
+  history.checkpoint(preXml, 'Before Delete Tool');
   };
 
   const moveTool = (toolId: string, x: number, y: number) => {
-    xmlManager.updateToolPosition(toolId, x, y);
+  xmlManager.updateToolPosition(toolId, x, y);
     updateStateFromXML();
   };
 
@@ -408,6 +457,8 @@ function App() {
                 onToolSelect={handleToolSelect}
                 onToolMove={moveTool}
                 onBatchAdd={batchAddToolsAndWires}
+                onBeginTransaction={() => history.begin(xmlManager.toXMLString(), 'Move Nodes')}
+                onCommitTransaction={() => history.commit(xmlManager.toXMLString(), { label: 'Move Nodes' })}
               />
               
               {/* XML Viewer Side Panel */}

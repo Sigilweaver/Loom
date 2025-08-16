@@ -32,9 +32,11 @@ interface Props {
     toolAdds: { id: string; type: string; x: number; y: number }[],
     wiresToAdd: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[]
   ) => void;
+  onBeginTransaction?: () => void;
+  onCommitTransaction?: () => void;
 }
 const nodeTypes = { workflow: WorkflowNode };
-export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd }, ref) => {
+export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd, onBeginTransaction, onCommitTransaction }, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,9 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     setActionsCoords({ x: clientX, y: clientY });
     setActionsOpen(true);
   }, [screenToFlowPosition]);
+  const onNodeDragStart = useCallback((_e: React.MouseEvent, _n: Node) => {
+    onBeginTransaction?.();
+  }, [onBeginTransaction]);
   const onNodeDragStop = useCallback((_e:React.MouseEvent, _n:Node)=>{
     // Persist positions for all selected nodes (group move)
     const current = getNodes();
@@ -90,7 +95,8 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
       const s = snap(nd.position.x, nd.position.y);
       onToolMove(nd.id, s.x, s.y);
     });
-  }, [getNodes, onToolMove, snap]);
+    onCommitTransaction?.();
+  }, [getNodes, onToolMove, snap, onCommitTransaction]);
   const handleMinimapButtonContextMenu = useCallback((e:React.MouseEvent)=>{ e.preventDefault(); if(minimapButtonRef.current && !positionMenuOpen){ const rect = minimapButtonRef.current.getBoundingClientRect(); const pos = calculateMenuPosition(rect, { width:100, height:160 }, 4, 'bottom'); openPositionMenu({ x: pos.x, y: pos.y }); } else if(positionMenuOpen) { closePositionMenu(); } }, [positionMenuOpen, openPositionMenu, closePositionMenu]);
   const handlePositionSelect = useCallback((p:'top-left'|'top-right'|'bottom-left'|'bottom-right')=>setMinimapPosition(p), [setMinimapPosition]);
   const handleWheel = useCallback((_e:React.WheelEvent)=>{}, []);
@@ -265,7 +271,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   .react-flow__edge.animated .react-flow__edge-path{stroke:var(--color-edge-animated-stroke)!important}
   .react-flow__edge.animated:hover .react-flow__edge-path,.react-flow__edge.animated .react-flow__edge-path:hover{stroke:var(--color-edge-animated-stroke-hover)!important}
   `}</style>
-  <CanvasSurface nodes={flowNodes} edges={flowEdges} snapToGrid={snapToGrid} snapGrid={snapGrid} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodesDelete={onNodesDelete} onEdgesDelete={onEdgesDelete} onConnect={onConnect} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={onPaneClick} onPaneContextMenu={onPaneContextMenu} onDrop={()=>{}} onDragOver={()=>{}} onNodeDragStop={onNodeDragStop} onWheel={handleWheel} onMouseMove={onMouseMove} onSelectionChange={onSelectionChange} nodeTypes={nodeTypes}>
+  <CanvasSurface nodes={flowNodes} edges={flowEdges} snapToGrid={snapToGrid} snapGrid={snapGrid} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodesDelete={onNodesDelete} onEdgesDelete={onEdgesDelete} onConnect={onConnect} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={onPaneClick} onPaneContextMenu={onPaneContextMenu} onDrop={()=>{}} onDragOver={()=>{}} onNodeDragStart={onNodeDragStart} onNodeDragStop={onNodeDragStop} onWheel={handleWheel} onMouseMove={onMouseMove} onSelectionChange={onSelectionChange} nodeTypes={nodeTypes}>
         <CanvasControls minimapVisible={minimapVisible} minimapPosition={minimapPosition} snapToGrid={snapToGrid} onToggleMinimap={toggleMinimap} onToggleSnap={toggleSnapToGrid} onContextMenuMinimap={handleMinimapButtonContextMenu} minimapButtonRef={minimapButtonRef} actionsButtonRef={actionsButtonRef} onActionsClick={openActionsMenu} />
         <CanvasMinimap visible={minimapVisible} position={minimapPosition} nodeColor={getNodeColor} style={getMinimapStyle()} />
   </CanvasSurface>
