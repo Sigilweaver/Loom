@@ -11,82 +11,28 @@ permissions:
 
 jobs:
   build-web-zip:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-      - name: Ensure zip is installed
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y zip
-      - run: npm run build:web
-      - name: Zip web dist
-        run: |
-          cd dist
-          zip -r ../dist-web.zip .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-dist-zip
-          path: dist-web.zip
+    uses: ./.github/workflows/build-web.yml
+    with:
+      node-version: '22'
+    secrets: inherit
 
   build-linux:
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-      - name: Ensure snapcraft is available (for .snap build)
-        run: |
-          if command -v snap >/dev/null 2>&1; then
-            sudo snap install snapcraft --classic || true
-          else
-            sudo apt-get update -y
-            sudo apt-get install -y snapcraft || true
-          fi
-      - run: npm run build:linux
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-artifacts
-          path: dist/*
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      node-version: '22'
+    secrets: inherit
 
   build-macos:
-    runs-on: macos-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-      - run: npm run build:mac
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: dist/*
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      node-version: '22'
+    secrets: inherit
 
   build-windows:
-    runs-on: windows-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-      - run: npm run build:win
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-artifacts
-          path: dist/*
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      node-version: '22'
+    secrets: inherit
 
   publish-assets:
     name: Publish to GitHub Release and Cloudflare R2
@@ -187,19 +133,29 @@ jobs:
 
       - name: Mirror generic assets to Cloudflare R2 (S3 API)
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
           AWS_DEFAULT_REGION: auto
           AWS_EC2_METADATA_DISABLED: "true"
-          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${R2_S3_ENDPOINT:-}" ] || [ -z "${R2_ACCESS_KEY_ID:-}" ] || [ -z "${R2_SECRET_ACCESS_KEY:-}" ] || [ -z "${R2_BUCKET:-}" ]; then
-            echo "Cloudflare R2 secrets not set. Skipping R2 upload."
+          # Resolve endpoint from R2_* secrets only
+          AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID:-}"
+          AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY:-}"
+          if [ -z "${R2_S3_ENDPOINT:-}" ] && [ -n "${R2_ACCOUNT_ID:-}" ]; then
+            R2_S3_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          fi
+
+          if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${R2_BUCKET:-}" ] || [ -z "${R2_S3_ENDPOINT:-}" ]; then
+            echo "Cloudflare R2 secrets not set (need access key, secret, bucket, and endpoint or account id). Skipping R2 upload."
             exit 0
           fi
+
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
           if ! command -v aws >/dev/null 2>&1; then
             echo "AWS CLI not found. Installing..."
             sudo apt-get update -y
@@ -208,6 +164,9 @@ jobs:
           for f in release-assets/*; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
-            echo "Uploading $base to R2 bucket $R2_BUCKET"
+            echo "Uploading $base to R2 bucket $R2_BUCKET (root and latest/)"
+            # Root generic filename
             aws s3 cp "$f" "s3://$R2_BUCKET/$base" --endpoint-url "$R2_S3_ENDPOINT"
+            # Also to 'latest/' prefix
+            aws s3 cp "$f" "s3://$R2_BUCKET/latest/$base" --endpoint-url "$R2_S3_ENDPOINT"
           done
