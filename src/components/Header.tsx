@@ -15,8 +15,6 @@ interface HeaderProps {
     workflowId: string;
     created: string;
   };
-  toolCount: number;
-  wireCount: number;
 }
 
 export default function Header({ 
@@ -26,10 +24,12 @@ export default function Header({
   onShowXMLViewer, 
   onPreviewWorkflow,
   onShowNotification,
-  workflowMeta,
-  toolCount,
-  wireCount
+  workflowMeta
 }: HeaderProps) {
+  const truncate = (value: string, max: number) =>
+    value.length > max ? value.slice(0, max).trimEnd() + '…' : value;
+
+  const truncatedWorkflowName = truncate(workflowMeta.name, 60);
   return (
     <header className="bg-theme-header-bg shadow-lg border-b border-theme-border-primary">
       <div className="px-4 py-3">
@@ -40,12 +40,8 @@ export default function Header({
               <SigilWeaverLogo className="text-theme-header-logo-icon opacity-75" size="md" />
               <h1 className="text-xl font-bold text-theme-header-title-text">Sigilweaver</h1>
             </div>
-            <div className="flex items-center gap-4 text-sm text-theme-header-metadata-text opacity-75">
-              <span className="font-medium">{workflowMeta.name}</span>
-              <span style={{ color: 'var(--color-header-metadata-divider)' }}>•</span>
-              <span>{toolCount} tools</span>
-              <span style={{ color: 'var(--color-header-metadata-divider)' }}>•</span>
-              <span>{wireCount} connections</span>
+            <div className="text-sm text-theme-header-metadata-text opacity-75">
+              <span className="font-medium" title={workflowMeta.name}>{truncatedWorkflowName}</span>
             </div>
           </div>
 

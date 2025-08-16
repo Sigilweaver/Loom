@@ -338,8 +338,6 @@ function App() {
           onPreviewWorkflow={previewWorkflow}
           onShowNotification={showNotification}
           workflowMeta={workflowMeta}
-          toolCount={tools.length}
-          wireCount={wires.length}
         />
         
         <ToolPalette 
