@@ -17,6 +17,7 @@ interface Props {
   onDragOver: (e: React.DragEvent) => void;
   onNodeDragStop: (e: React.MouseEvent, node: Node) => void;
   onWheel: (e: React.WheelEvent) => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
   nodeTypes: NodeTypes;
   onSelectionChange?: (sel: { nodes: Node[]; edges: Edge[] }) => void;
   children?: React.ReactNode;

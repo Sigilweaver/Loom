@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 
 interface Props {
-  onAddTool: (type: string, x: number, y: number) => void;
+  onAddTool: (type: string, x: number, y: number, idOverride?: string) => void;
   snap: (x: number, y: number) => { x: number; y: number };
   screenToFlowPosition: (p: { x: number; y: number }) => { x: number; y: number };
   children: React.ReactNode;

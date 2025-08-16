@@ -38,6 +38,8 @@ code {
 .react-flow__selection {
   border: none !important;
   background: transparent !important;
+  /* never block interactions with nodes */
+  pointer-events: none !important;
 }
 .sig-lasso-active .react-flow__selection {
   border: 2px solid var(--color-edge-selected-stroke, var(--color-border-focus, #a78bfa)) !important;
@@ -48,6 +50,8 @@ code {
 .react-flow__nodesselection-rect {
   border: none !important;
   background: transparent !important;
+  /* ensure this overlay never intercepts clicks or drags */
+  pointer-events: none !important;
   /* draw the outline with a pseudo-element so we can offset & round it */
 }
 .react-flow__nodesselection-rect::after {

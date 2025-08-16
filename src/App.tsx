@@ -261,12 +261,12 @@ function App() {
     showNotification('Preview functionality will show expected workflow output and flow analysis. Coming soon!', 'info');
   };
 
-  const addTool = (toolType: string, x: number, y: number) => {
+  const addTool = (toolType: string, x: number, y: number, idOverride?: string) => {
     const definition = getToolDefinition(toolType);
     if (!definition) return;
 
     const newTool: Tool = {
-      id: generateUniqueId(new Set(tools.map(t => t.id)), 8),
+      id: idOverride ?? generateUniqueId(new Set(tools.map(t => t.id)), 8),
       type: toolType,
       x,
       y,
