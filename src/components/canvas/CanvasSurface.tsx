@@ -12,7 +12,9 @@ interface Props {
   onEdgesDelete: OnEdgesDelete;
   onConnect: OnConnect;
   onNodeClick: (e: React.MouseEvent, node: Node) => void;
+  onNodeContextMenu?: (e: MouseEvent | React.MouseEvent, node: Node) => void;
   onPaneClick: () => void;
+  onPaneContextMenu?: (e: MouseEvent | React.MouseEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onNodeDragStop: (e: React.MouseEvent, node: Node) => void;

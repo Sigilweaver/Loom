@@ -9,10 +9,12 @@ interface Props {
   onToggleSnap: () => void;
   onContextMenuMinimap: (e: React.MouseEvent) => void;
   minimapButtonRef: React.RefObject<HTMLDivElement>;
+  actionsButtonRef?: React.RefObject<HTMLDivElement>;
+  onActionsClick?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
 }
 
-export const CanvasControls: React.FC<Props> = ({ minimapVisible, minimapPosition, snapToGrid, onToggleMinimap, onToggleSnap, onContextMenuMinimap, minimapButtonRef, children }) => (
+export const CanvasControls: React.FC<Props> = ({ minimapVisible, minimapPosition, snapToGrid, onToggleMinimap, onToggleSnap, onContextMenuMinimap, minimapButtonRef, actionsButtonRef, onActionsClick, children }) => (
   <Controls showInteractive={false} position={minimapPosition}>
     <div ref={minimapButtonRef}>
       <ControlButton
@@ -43,6 +45,16 @@ export const CanvasControls: React.FC<Props> = ({ minimapVisible, minimapPositio
         <path d="M3 3h2v2H3V3zm4 0h2v2H7V3zm4 0h2v2h-2V3zm4 0h2v2h-2V3zm4 0h2v2h-2V3zM3 7h2v2H3V7zm4 0h2v2H7V7zm4 0h2v2h-2V7zm4 0h2v2h-2V7zm4 0h2v2h-2V7zM3 11h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM3 15h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM3 19h2v2H3v-2zm4 0h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z" />
       </svg>
     </ControlButton>
+    <div ref={actionsButtonRef}>
+      <ControlButton
+        onClick={onActionsClick}
+        title="Actions (Copy, Cut, Paste, Delete)"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+        </svg>
+      </ControlButton>
+    </div>
     {children}
   </Controls>
 );
