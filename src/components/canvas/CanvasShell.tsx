@@ -43,6 +43,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);
+  const isFirefox = useMemo(() => typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent), []);
   // Track latest tools from store to avoid races when wiring after paste
   const latestToolsRef = useRef<Tool[]>(tools);
   useEffect(() => { latestToolsRef.current = tools; }, [tools]);
@@ -283,6 +284,38 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     };
     legacyPaste();
   }, [onBatchAdd, onAddTool, onAddWire, getNodes, snap, tools, onPasteXMLAt, setNodes]);
+
+  // Handle native paste event (works in Firefox). Prefer event.clipboardData over async clipboard.
+  const onPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const text = e.clipboardData?.getData('text/plain') || '';
+    // Only intercept if we can actually use the pasted text
+    const tryUse = (fragment: string) => {
+      if (!onPasteXMLAt) return false;
+      if (!fragment || !fragment.includes('<WorkflowFragment')) return false;
+      e.preventDefault();
+      const anchor = lastMouseFlowPosRef.current ?? { x: 20, y: 20 };
+      onPasteXMLAt(anchor, fragment).then(newIds => {
+        if (Array.isArray(newIds) && newIds.length > 0) {
+          setTimeout(() => {
+            setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
+          }, 0);
+        }
+      }).catch(() => {});
+      return true;
+    };
+
+    if (tryUse(text)) return;
+    const local = (CanvasShell as any)._xmlClipboard || '';
+    if (tryUse(local)) return;
+    // Fallback to legacy clipboard if available
+    // If legacy clipboard exists, prevent default and run legacy paste
+    const legacy = (CanvasShell as any)._clipboard;
+    if (legacy) {
+      e.preventDefault();
+      // Reuse doPaste's legacy logic by invoking it; it will fall back to local clipboard
+      doPaste();
+    }
+  }, [onPasteXMLAt, setNodes, doPaste]);
   
 
   // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
@@ -300,16 +333,21 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
     const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
     if (!(isCopy || isCut || isPaste)) return;
+    // Firefox cannot use async clipboard reliably on keydown; let the native paste event fire
+    if (isPaste && isFirefox) {
+      return; // do not preventDefault; onPaste handler will handle it
+    }
     e.preventDefault();
     if (isCopy) doCopy();
     if (isCut) doCut();
     if (isPaste) doPaste();
-  }, [setNodes, setEdges, onToolSelect, getNodes, tools, wires, onRemoveTool, onAddTool, onAddWire, snap]);
+  }, [setNodes, setEdges, onToolSelect, getNodes, tools, wires, onRemoveTool, onAddTool, onAddWire, snap, isFirefox, doCopy, doCut, doPaste]);
   const getNodeColor = useNodeColor(tools); const getMinimapStyle = useMinimapStyle(minimapPosition);
   return (
     <div
       ref={keyScopeRef}
       tabIndex={0}
+  onPaste={onPaste}
       onKeyDown={onKeyDown}
       onMouseDown={() => keyScopeRef.current?.focus()}
       className="flex-1 h-full min-h-0"
