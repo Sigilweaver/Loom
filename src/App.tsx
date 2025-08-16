@@ -244,8 +244,8 @@ function App() {
 
   const importWorkflow = () => {
     const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xml';
+  input.type = 'file';
+  input.accept = '.swwf';
     input.onchange = (event) => {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (!file) return;
@@ -284,10 +284,21 @@ function App() {
     const xml = xmlManager.toXMLString();
     const blob = new Blob([xml], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
-    
+    // Build readable yet filesystem-safe name preserving spaces with underscores
+    const buildSafeName = (name: string) => {
+      // Replace disallowed characters with underscores
+      let safe = (name || 'Workflow').replace(/[<>:\"/\\|?*\x00-\x1F]/g, '_');
+      // Collapse whitespace and tighten underscores
+      safe = safe.replace(/\s+/g, ' ').replace(/\s*_\s*/g, '_').trim();
+      if (!safe || /^\.+$/.test(safe)) safe = 'workflow';
+      if (safe.length > 120) safe = safe.slice(0, 120).trim();
+      return safe;
+    };
+    const baseName = buildSafeName(workflowMeta.name);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflowMeta.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.xml`;
+    // Use .swwf (Sigilweaver Workflow) extension
+    a.download = `${baseName}.swwf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
