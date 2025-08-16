@@ -9,6 +9,8 @@ interface ConfigurationPanelProps {
   configuration: ToolConfiguration | null;
   onConfigurationChange: (toolId: string, config: ToolConfiguration) => void;
   onShowNotification: (message: string, type: 'error' | 'warning' | 'success' | 'info') => void;
+  toolCount?: number;
+  wireCount?: number;
   workflowMeta: {
     name: string;
     description: string;
@@ -25,6 +27,8 @@ export default function ConfigurationPanel({
   // onConfigurationChange,
   // onShowNotification,
   workflowMeta,
+  toolCount,
+  wireCount,
   onWorkflowMetaChange
 }: ConfigurationPanelProps) {
 
@@ -52,6 +56,8 @@ export default function ConfigurationPanel({
         <div className="flex-1 overflow-y-auto p-4">
           <WorkflowConfiguration
             workflowMeta={workflowMeta}
+            toolCount={toolCount ?? 0}
+            wireCount={wireCount ?? 0}
             onWorkflowMetaChange={onWorkflowMetaChange}
           />
         </div>

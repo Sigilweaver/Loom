@@ -41,7 +41,7 @@ export default function Header({
               <h1 className="text-xl font-bold text-theme-header-title-text">Sigilweaver</h1>
             </div>
             <div className="text-sm text-theme-header-metadata-text opacity-75">
-              <span className="font-medium" title={workflowMeta.name}>{truncatedWorkflowName}</span>
+              <div className="font-medium" title={workflowMeta.name}>{truncatedWorkflowName}</div>
             </div>
           </div>
 

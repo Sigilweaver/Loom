@@ -10,11 +10,15 @@ interface WorkflowConfigurationProps {
     workflowId: string;
     created: string;
   };
+  toolCount?: number;
+  wireCount?: number;
   onWorkflowMetaChange: (meta: { name: string; description: string; author: string }) => void;
 }
 
 export default function WorkflowConfiguration({
   workflowMeta,
+  toolCount = 0,
+  wireCount = 0,
   onWorkflowMetaChange
 }: WorkflowConfigurationProps) {
   const [previewMode, setPreviewMode] = useState(true); // Default to preview mode
@@ -123,6 +127,10 @@ export default function WorkflowConfiguration({
         <div className="text-xs text-theme-text-tertiary space-y-1">
           <div>ID: {workflowMeta.workflowId}</div>
           <div>Created: {new Date(workflowMeta.created).toLocaleString()}</div>
+          <div className="mt-2 space-y-1">
+            <div>Tools: <span className="font-mono tabular-nums text-theme-text-secondary">{toolCount}</span></div>
+            <div>Wires: <span className="font-mono tabular-nums text-theme-text-secondary">{wireCount}</span></div>
+          </div>
         </div>
       </div>
     </div>
