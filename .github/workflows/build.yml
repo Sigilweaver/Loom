@@ -3,8 +3,8 @@ name: Build Releases
 on:
   workflow_dispatch:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -136,6 +136,7 @@ jobs:
           fail_on_unmatched_files: false
 
       - name: Mirror generic assets to Cloudflare R2 (Wrangler)
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.R2_API_TOKEN }}
@@ -155,9 +156,7 @@ jobs:
           for f in release-assets/*; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
-            echo "Uploading $base to R2 bucket $R2_BUCKET (root and latest/) via Wrangler"
-            # Root generic filename
-            wrangler r2 object put "$R2_BUCKET/$base" --file="$f"
-            # Also to 'latest/' prefix
+            echo "Uploading $base to R2 bucket $R2_BUCKET latest via Wrangler"
+            # Upload to 'latest/' prefix
             wrangler r2 object put "$R2_BUCKET/latest/$base" --file="$f"
           done
