@@ -35,6 +35,8 @@ interface Props {
 const nodeTypes = { workflow: WorkflowNode };
 export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, onAddTool, onAddWire, onRemoveWire, onRemoveTool, onToolMove, onToolSelect, onBatchAdd }, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
+  // Keyboard scope: only active when this wrapper has focus
+  const keyScopeRef = useRef<HTMLDivElement>(null);
   // Track latest tools from store to avoid races when wiring after paste
   const latestToolsRef = useRef<Tool[]>(tools);
   useEffect(() => { latestToolsRef.current = tools; }, [tools]);
@@ -95,113 +97,118 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
       window.removeEventListener('mouseup', onMouseUp);
     };
   }, []);
-  // Esc clears selection; Ctrl/Cmd+C/X/V for copy/cut/paste with new IDs & preserved inner wires
-  useEffect(()=>{
-    const onKeyDown=(e:KeyboardEvent)=>{
-      const target = e.target as HTMLElement | null;
-      const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (isTyping) return;
-      if(e.key==='Escape'){
-        setNodes(ns=>ns.map(n=>({...n, selected:false})));
-        setEdges(es=>es.map(edge=>({...edge, selected:false })));
-        onToolSelect?.(null);
-        return;
-      }
-      const isCopy = (e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey);
-      const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
-      const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
-      if (!(isCopy || isCut || isPaste)) return;
-      e.preventDefault();
+  // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
+  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null;
+    const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+    if (isTyping) return;
+    if (e.key === 'Escape') {
+      setNodes(ns => ns.map(n => ({ ...n, selected: false })));
+      setEdges(es => es.map(edge => ({ ...edge, selected: false })));
+      onToolSelect?.(null);
+      return;
+    }
+    const isCopy = (e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey);
+    const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
+    const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
+    if (!(isCopy || isCut || isPaste)) return;
+    e.preventDefault();
 
-      const rfNodes = getNodes();
-      const selectedIds = new Set(rfNodes.filter(n=>n.selected).map(n=>n.id));
-      if (selectedIds.size === 0 && (isCopy || isCut)) return;
+    const rfNodes = getNodes();
+    const selectedIds = new Set(rfNodes.filter(n => n.selected).map(n => n.id));
+    if (selectedIds.size === 0 && (isCopy || isCut)) return;
 
-      type ToolSnapshot = { id: string; type: string; x: number; y: number };
-      const setClipboard = (data: { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number }) => { (CanvasShell as any)._clipboard = data; };
-      const getClipboard = () => (CanvasShell as any)._clipboard as { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number } | undefined;
-  const setPasteOffset = (off: { x: number; y: number }) => { (CanvasShell as any)._pasteOffset = off; };
-  const getPasteOffset = () => (CanvasShell as any)._pasteOffset as { x: number; y: number } | undefined;
+    type ToolSnapshot = { id: string; type: string; x: number; y: number };
+    const setClipboard = (data: { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number }) => { (CanvasShell as any)._clipboard = data; };
+    const getClipboard = () => (CanvasShell as any)._clipboard as { tools: ToolSnapshot[]; wires: Wire[]; minX: number; minY: number } | undefined;
+    const setPasteOffset = (off: { x: number; y: number }) => { (CanvasShell as any)._pasteOffset = off; };
+    const getPasteOffset = () => (CanvasShell as any)._pasteOffset as { x: number; y: number } | undefined;
 
-      if (isCopy || isCut) {
-        const selectedTools = tools.filter(t => selectedIds.has(t.id));
-        if (selectedTools.length === 0) return;
-        const minX = Math.min(...selectedTools.map(t=>t.x));
-        const minY = Math.min(...selectedTools.map(t=>t.y));
-        const toolSnaps: ToolSnapshot[] = selectedTools.map(t=>({ id: t.id, type: t.type, x: t.x, y: t.y }));
-        const selSet = new Set(selectedTools.map(t=>t.id));
-        const innerWires = wires.filter(w => selSet.has(w.from.tool) && selSet.has(w.to.tool));
-        setClipboard({ tools: toolSnaps, wires: innerWires, minX, minY });
-        if (!getPasteOffset()) setPasteOffset({ x: 20, y: 20 });
-      }
+    if (isCopy || isCut) {
+      const selectedTools = tools.filter(t => selectedIds.has(t.id));
+      if (selectedTools.length === 0) return;
+      const minX = Math.min(...selectedTools.map(t => t.x));
+      const minY = Math.min(...selectedTools.map(t => t.y));
+      const toolSnaps: ToolSnapshot[] = selectedTools.map(t => ({ id: t.id, type: t.type, x: t.x, y: t.y }));
+      const selSet = new Set(selectedTools.map(t => t.id));
+      const innerWires = wires.filter(w => selSet.has(w.from.tool) && selSet.has(w.to.tool));
+      setClipboard({ tools: toolSnaps, wires: innerWires, minX, minY });
+      if (!getPasteOffset()) setPasteOffset({ x: 20, y: 20 });
+    }
 
-      if (isCut) {
-        selectedIds.forEach(id => onRemoveTool(id));
-        setNodes(ns=>ns.map(n=>({...n, selected:false})));
-        onToolSelect?.(null);
-        return;
-      }
+    if (isCut) {
+      selectedIds.forEach(id => onRemoveTool(id));
+      setNodes(ns => ns.map(n => ({ ...n, selected: false })));
+      onToolSelect?.(null);
+      return;
+    }
 
-      if (isPaste) {
-        const cb = getClipboard();
-        if (!cb) return;
-        const existingIds = new Set(tools.map(t=>t.id));
-        const idMap = new Map<string,string>();
-        // If we have a last mouse pos, place the selection's top-left (minX/minY) under the cursor
-        const lastPos = lastMouseFlowPosRef.current;
-        const baseX = lastPos ? lastPos.x : cb.minX + 20;
-        const baseY = lastPos ? lastPos.y : cb.minY + 20;
-        const newIds: string[] = [];
-        const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
-        cb.tools.forEach(ts => {
-          const newId = generateUniqueId(existingIds, 8);
-          existingIds.add(newId);
-          idMap.set(ts.id, newId);
-          newIds.push(newId);
-          const nx = ts.x - cb.minX + baseX;
-          const ny = ts.y - cb.minY + baseY;
-          const snapped = snap(nx, ny);
-          toolAdds.push({ id: newId, type: ts.type, x: snapped.x, y: snapped.y });
-        });
-        // Prepare remapped wires
-        const remappedWires: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[] = [];
-        cb.wires.forEach(w => {
-          const fromId = idMap.get(w.from.tool);
-          const toId = idMap.get(w.to.tool);
-          if (fromId && toId) {
-            remappedWires.push({ from: { tool: fromId, socket: w.from.socket }, to: { tool: toId, socket: w.to.socket } });
-          }
-        });
-        if (typeof (onBatchAdd) === 'function') {
-          onBatchAdd(toolAdds, remappedWires);
-        } else {
-          // Fallback: add tools immediately and wires after nodes are present
-          toolAdds.forEach(t => onAddTool(t.type, t.x, t.y, t.id));
-          const addWiresWhenReady = (retries = 0) => {
-            const presentInRF = newIds.every(id => !!getNodes().find(n => n.id === id));
-            const presentInStore = newIds.every(id => latestToolsRef.current.some(tt => tt.id === id));
-            if (!(presentInRF && presentInStore) && retries < 40) {
-              setTimeout(() => addWiresWhenReady(retries + 1), 25);
-              return;
-            }
-            remappedWires.forEach(w => onAddWire(w.from, w.to));
-          };
-          addWiresWhenReady();
+    if (isPaste) {
+      const cb = getClipboard();
+      if (!cb) return;
+      const existingIds = new Set(tools.map(t => t.id));
+      const idMap = new Map<string, string>();
+      // If we have a last mouse pos, place the selection's top-left (minX/minY) under the cursor
+      const lastPos = lastMouseFlowPosRef.current;
+      const baseX = lastPos ? lastPos.x : cb.minX + 20;
+      const baseY = lastPos ? lastPos.y : cb.minY + 20;
+      const newIds: string[] = [];
+      const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
+      cb.tools.forEach(ts => {
+        const newId = generateUniqueId(existingIds, 8);
+        existingIds.add(newId);
+        idMap.set(ts.id, newId);
+        newIds.push(newId);
+        const nx = ts.x - cb.minX + baseX;
+        const ny = ts.y - cb.minY + baseY;
+        const snapped = snap(nx, ny);
+        toolAdds.push({ id: newId, type: ts.type, x: snapped.x, y: snapped.y });
+      });
+      // Prepare remapped wires
+      const remappedWires: { from: { tool: string; socket: number }; to: { tool: string; socket: number } }[] = [];
+      cb.wires.forEach(w => {
+        const fromId = idMap.get(w.from.tool);
+        const toId = idMap.get(w.to.tool);
+        if (fromId && toId) {
+          remappedWires.push({ from: { tool: fromId, socket: w.from.socket }, to: { tool: toId, socket: w.to.socket } });
         }
-        // Reset incremental offset since we now use mouse position
-        setPasteOffset({ x: 20, y: 20 });
-        // Select newly pasted nodes to ease moving them as a group
-        setTimeout(() => {
-          setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
-        }, 0);
+      });
+      if (typeof onBatchAdd === 'function') {
+        onBatchAdd(toolAdds, remappedWires);
+      } else {
+        // Fallback: add tools immediately and wires after nodes are present
+        toolAdds.forEach(t => onAddTool(t.type, t.x, t.y, t.id));
+        const addWiresWhenReady = (retries = 0) => {
+          const presentInRF = newIds.every(id => !!getNodes().find(n => n.id === id));
+          const presentInStore = newIds.every(id => latestToolsRef.current.some(tt => tt.id === id));
+          if (!(presentInRF && presentInStore) && retries < 40) {
+            setTimeout(() => addWiresWhenReady(retries + 1), 25);
+            return;
+          }
+          remappedWires.forEach(w => onAddWire(w.from, w.to));
+        };
+        addWiresWhenReady();
       }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return ()=> window.removeEventListener('keydown', onKeyDown);
+      // Reset incremental offset since we now use mouse position
+      setPasteOffset({ x: 20, y: 20 });
+      // Select newly pasted nodes to ease moving them as a group
+      setTimeout(() => {
+        setNodes(ns => ns.map(n => ({ ...n, selected: newIds.includes(n.id) })));
+      }, 0);
+    }
   }, [setNodes, setEdges, onToolSelect, getNodes, tools, wires, onRemoveTool, onAddTool, onAddWire, snap]);
   const getNodeColor = useNodeColor(tools); const getMinimapStyle = useMinimapStyle(minimapPosition);
   return (
+    <div
+      ref={keyScopeRef}
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      onMouseDown={() => keyScopeRef.current?.focus()}
+      className="flex-1 h-full min-h-0"
+      style={{ outline: 'none' }}
+    >
     <CanvasDragAndDropLayer onAddTool={onAddTool} snap={snap} screenToFlowPosition={screenToFlowPosition}>
+      <div className="flex-1 h-full min-h-0">
   <style>{`
   /* keep React Flow default selected styles visible */
   .react-flow__node.dragging{opacity:.8!important}
@@ -217,9 +224,11 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   <CanvasSurface nodes={flowNodes} edges={flowEdges} snapToGrid={snapToGrid} snapGrid={snapGrid} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodesDelete={onNodesDelete} onEdgesDelete={onEdgesDelete} onConnect={onConnect} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onDrop={()=>{}} onDragOver={()=>{}} onNodeDragStop={onNodeDragStop} onWheel={handleWheel} onMouseMove={onMouseMove} onSelectionChange={onSelectionChange} nodeTypes={nodeTypes}>
         <CanvasControls minimapVisible={minimapVisible} minimapPosition={minimapPosition} snapToGrid={snapToGrid} onToggleMinimap={toggleMinimap} onToggleSnap={toggleSnapToGrid} onContextMenuMinimap={handleMinimapButtonContextMenu} minimapButtonRef={minimapButtonRef} />
         <CanvasMinimap visible={minimapVisible} position={minimapPosition} nodeColor={getNodeColor} style={getMinimapStyle()} />
-      </CanvasSurface>
+  </CanvasSurface>
+  </div>
       <CanvasPositionMenu open={positionMenuOpen} coords={positionMenuCoords} currentPosition={minimapPosition} onSelect={handlePositionSelect} onClose={closePositionMenu} />
-    </CanvasDragAndDropLayer>
+  </CanvasDragAndDropLayer>
+  </div>
   );
 });
 CanvasShell.displayName = 'CanvasShell';
