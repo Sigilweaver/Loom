@@ -355,12 +355,18 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     const isCopy = (e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey);
     const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
     const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
-    if (!(isCopy || isCut || isPaste)) return;
+    const isSelectAll = (e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey);
+    if (!(isCopy || isCut || isPaste || isSelectAll)) return;
     // Firefox cannot use async clipboard reliably on keydown; let the native paste event fire
     if (isPaste && isFirefox) {
       return; // do not preventDefault; onPaste handler will handle it
     }
     e.preventDefault();
+    if (isSelectAll) {
+      setNodes(ns => ns.map(n => ({ ...n, selected: true })));
+      onToolSelect?.(null);
+      return;
+    }
     if (isCopy) doCopy();
     if (isCut) doCut();
     if (isPaste) doPaste();
