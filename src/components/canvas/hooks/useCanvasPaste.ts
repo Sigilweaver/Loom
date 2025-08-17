@@ -1,15 +1,14 @@
 import { useCallback } from 'react';
+import { getXMLClipboard, getLegacyClipboard } from '../clipboardStore';
 
 export interface UseCanvasPasteParams {
   onPasteXMLAt?: (anchor: { x: number; y: number }, fragment: string) => Promise<string[]>;
   setNodes: React.Dispatch<React.SetStateAction<any[]>>; // React Flow Node[] but avoid tight coupling here
   doPaste: () => void;
   getAnchor: () => { x: number; y: number };
-  getLocalXMLClipboard: () => string;
-  hasLegacyClipboard: () => boolean;
 }
 
-export function useCanvasPaste({ onPasteXMLAt, setNodes, doPaste, getAnchor, getLocalXMLClipboard, hasLegacyClipboard }: UseCanvasPasteParams) {
+export function useCanvasPaste({ onPasteXMLAt, setNodes, doPaste, getAnchor }: UseCanvasPasteParams) {
   return useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     const text = e.clipboardData?.getData('text/plain') || '';
 
@@ -29,12 +28,12 @@ export function useCanvasPaste({ onPasteXMLAt, setNodes, doPaste, getAnchor, get
     };
 
     if (tryUse(text)) return;
-    const local = getLocalXMLClipboard();
+    const local = getXMLClipboard();
     if (tryUse(local)) return;
 
-    if (hasLegacyClipboard()) {
+    if (!!getLegacyClipboard()) {
       e.preventDefault();
       doPaste();
     }
-  }, [onPasteXMLAt, setNodes, doPaste, getAnchor, getLocalXMLClipboard, hasLegacyClipboard]);
+  }, [onPasteXMLAt, setNodes, doPaste, getAnchor]);
 }

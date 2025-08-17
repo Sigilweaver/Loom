@@ -205,9 +205,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     onPasteXMLAt: onPasteXMLAt as any,
     setNodes,
     doPaste,
-    getAnchor: () => lastMouseFlowPosRef.current ?? { x: 20, y: 20 },
-    getLocalXMLClipboard: () => (CanvasShell as any)._xmlClipboard || '',
-    hasLegacyClipboard: () => !!(CanvasShell as any)._clipboard,
+  getAnchor: () => lastMouseFlowPosRef.current ?? { x: 20, y: 20 },
   });
   
 
