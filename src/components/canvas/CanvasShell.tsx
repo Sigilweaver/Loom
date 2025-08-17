@@ -179,6 +179,61 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     const rfNodes = getNodes();
     return new Set(rfNodes.filter(n => n.selected).map(n => n.id));
   }, [getNodes]);
+  // Alignment & distribution helpers
+  const applyPositions = useCallback((updates: { id: string; x: number; y: number }[]) => {
+    if (!updates.length) return;
+    onBeginTransaction?.();
+    updates.forEach(u => onToolMove(u.id, u.x, u.y));
+    onCommitTransaction?.();
+  }, [onBeginTransaction, onCommitTransaction, onToolMove]);
+  const alignHorizontally = useCallback(() => {
+    const rfNodes = getNodes().filter(n => n.selected);
+    if (rfNodes.length < 2) return;
+    const avgY = rfNodes.reduce((acc, n) => acc + n.position.y, 0) / rfNodes.length;
+    const updates = rfNodes.map(n => {
+      const s = snap(n.position.x, avgY);
+      return { id: n.id, x: s.x, y: s.y };
+    });
+  applyPositions(updates);
+  }, [getNodes, snap, applyPositions]);
+  const alignVertically = useCallback(() => {
+    const rfNodes = getNodes().filter(n => n.selected);
+    if (rfNodes.length < 2) return;
+    const avgX = rfNodes.reduce((acc, n) => acc + n.position.x, 0) / rfNodes.length;
+    const updates = rfNodes.map(n => {
+      const s = snap(avgX, n.position.y);
+      return { id: n.id, x: s.x, y: s.y };
+    });
+  applyPositions(updates);
+  }, [getNodes, snap, applyPositions]);
+  const distributeHorizontally = useCallback(() => {
+    const rfNodes = getNodes().filter(n => n.selected).sort((a,b)=>a.position.x-b.position.x);
+    const count = rfNodes.length;
+    if (count < 3) return; // nothing to distribute with 2
+  const minX = rfNodes[0]!.position.x;
+  const maxX = rfNodes[count-1]!.position.x;
+    const step = (maxX - minX) / (count - 1);
+    const updates = rfNodes.map((n, idx) => {
+      const targetX = minX + step * idx;
+      const s = snap(targetX, n.position.y);
+      return { id: n.id, x: s.x, y: s.y };
+    });
+  applyPositions(updates);
+  }, [getNodes, snap, applyPositions]);
+  const distributeVertically = useCallback(() => {
+    const rfNodes = getNodes().filter(n => n.selected).sort((a,b)=>a.position.y-b.position.y);
+    const count = rfNodes.length;
+    if (count < 3) return;
+  const minY = rfNodes[0]!.position.y;
+  const maxY = rfNodes[count-1]!.position.y;
+    const step = (maxY - minY) / (count - 1);
+    const updates = rfNodes.map((n, idx) => {
+      const targetY = minY + step * idx;
+      const s = snap(n.position.x, targetY);
+      return { id: n.id, x: s.x, y: s.y };
+    });
+  applyPositions(updates);
+  }, [getNodes, snap, applyPositions]);
   const doCopy = useCallback(() => {
     const selectedIds = getSelectedIds();
     if (selectedIds.size === 0) return;
@@ -492,6 +547,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
         items={(() => {
           const selectedIds = getNodes().filter(n => n.selected).map(n => n.id);
           const hasSelection = selectedIds.length > 0;
+          const multiSelection = selectedIds.length > 1;
           const hasClipboard = !!(CanvasShell as any)._xmlClipboard || !!(CanvasShell as any)._clipboard;
           const items: ActionItem[] = [];
           // If there's a selection, show full set. If invoked on empty pane, show Paste only.
@@ -501,6 +557,12 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
             items.push({ key: 'cut', label: 'Cut', onClick: doCut, hint: `${mod}+X` });
             if (hasClipboard) items.push({ key: 'paste', label: 'Paste', onClick: doPaste, hint: `${mod}+V` });
             items.push({ key: 'delete', label: 'Delete', onClick: doDelete, hint: 'Del' });
+            if (multiSelection) {
+              items.push({ key: 'align-h', label: 'Align Horizontally', onClick: alignHorizontally });
+              items.push({ key: 'align-v', label: 'Align Vertically', onClick: alignVertically });
+              items.push({ key: 'dist-h', label: 'Distribute Horizontally', onClick: distributeHorizontally });
+              items.push({ key: 'dist-v', label: 'Distribute Vertically', onClick: distributeVertically });
+            }
           } else if (hasClipboard) {
             items.push({ key: 'paste', label: 'Paste', onClick: doPaste, hint: `${mod}+V` });
           }
