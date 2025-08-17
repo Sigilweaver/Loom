@@ -14,6 +14,7 @@ interface Props {
   onNodeClick: (e: React.MouseEvent, node: Node) => void;
   onNodeContextMenu?: (e: MouseEvent | React.MouseEvent, node: Node) => void;
   onPaneClick: () => void;
+  onEdgeContextMenu?: (e: React.MouseEvent, edge: Edge) => void;
   onPaneContextMenu?: (e: MouseEvent | React.MouseEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -31,6 +32,7 @@ export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapG
     nodes={nodes}
     edges={edges}
     nodeTypes={nodeTypes}
+  onEdgeContextMenu={handlers.onEdgeContextMenu as any}
     connectionLineType={ConnectionLineType.Bezier}
     defaultEdgeOptions={{
       type: 'default',

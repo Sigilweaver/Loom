@@ -399,24 +399,27 @@ function App() {
   };
 
   const addWire = (from: { tool: string; socket: number }, to: { tool: string; socket: number }) => {
-    const fromTool = tools.find(t => t.id === from.tool);
-    const toTool = tools.find(t => t.id === to.tool);
+    // Use XML as source-of-truth to avoid races with store state during replace/remove+add sequences
+    const xmlTools = xmlManager.getTools();
+    const xmlWires = xmlManager.getWires();
+    const fromTool = xmlTools.find(t => t.id === from.tool);
+    const toTool = xmlTools.find(t => t.id === to.tool);
     if (!fromTool || !toTool) return;
     const fromSocket = fromTool.sockets.find(s => s.id === from.socket);
     const toSocket = toTool.sockets.find(s => s.id === to.socket);
     if (!fromSocket || !toSocket) return;
     if (fromSocket.direction !== 'output' || toSocket.direction !== 'input') { showNotification('Invalid connection: Can only connect outputs to inputs', 'error'); return; }
     if (!toSocket.multiple) {
-      const existingWire = wires.find(w => w.to.tool === to.tool && w.to.socket === to.socket);
+      const existingWire = xmlWires.find(w => w.to.tool === to.tool && w.to.socket === to.socket);
       if (existingWire) { showNotification('Input already connected. Disconnect existing wire first.', 'warning'); return; }
     }
-    const createsCycle = wouldCreateCycle(tools, wires, from.tool, to.tool);
+    const createsCycle = wouldCreateCycle(xmlTools, xmlWires, from.tool, to.tool);
     const newWire: Wire = { from, to };
     try {
-  const preXml = xmlManager.toXMLString();
+      const preXml = xmlManager.toXMLString();
       edgeManager.addWire(newWire);
       updateStateFromXML();
-  history.checkpoint(preXml, 'Before Connect');
+      history.checkpoint(preXml, 'Before Connect');
       if (createsCycle) {
         const fromName = getToolDefinition(fromTool.type)?.name || 'Unknown';
         const toName = getToolDefinition(toTool.type)?.name || 'Unknown';

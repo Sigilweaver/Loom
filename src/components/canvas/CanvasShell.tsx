@@ -130,6 +130,10 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   // Actions menu (left-click)
   const [actionsOpen, setActionsOpen] = React.useState(false);
   const [actionsCoords, setActionsCoords] = React.useState<{ x: number; y: number } | null>(null);
+  // Edge context menu state
+  const [edgeMenuOpen, setEdgeMenuOpen] = React.useState(false);
+  const [edgeMenuCoords, setEdgeMenuCoords] = React.useState<{ x: number; y: number } | null>(null);
+  const [edgeMenuEdge, setEdgeMenuEdge] = React.useState<Edge | null>(null);
   const openActionsMenu = useCallback(() => {
     if (!actionsButtonRef.current) return;
     const rect = actionsButtonRef.current.getBoundingClientRect();
@@ -372,6 +376,85 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     if (isPaste) doPaste();
   }, [setNodes, setEdges, onToolSelect, getNodes, tools, wires, onRemoveTool, onAddTool, onAddWire, snap, isFirefox, doCopy, doCut, doPaste]);
   const getNodeColor = useNodeColor(tools); const getMinimapStyle = useMinimapStyle(minimapPosition);
+  // Helper: get tool by id
+  const toolById = useCallback((id: string) => tools.find(t => t.id === id), [tools]);
+  // Helper: is socket occupied (for single-connection sockets)
+  const isTargetSocketOccupied = useCallback((toolId: string, socket: number) => {
+    return wires.some(w => w.to.tool === toolId && w.to.socket === socket);
+  }, [wires]);
+  const isSourceSocketOccupied = useCallback((toolId: string, socket: number) => {
+    return wires.some(w => w.from.tool === toolId && w.from.socket === socket);
+  }, [wires]);
+  // Build edge menu items dynamically
+  const buildEdgeMenuItems = useCallback((edge: Edge): ActionItem[] => {
+    const items: ActionItem[] = [];
+    const parsed = {
+      sourceTool: edge.source,
+      sourceSocket: parseInt(String(edge.sourceHandle || '').replace('output-','')),
+      targetTool: edge.target,
+      targetSocket: parseInt(String(edge.targetHandle || '').replace('input-',''))
+    };
+    // Delete
+    items.push({ key: 'delete-edge', label: 'Delete', onClick: () => onRemoveWire(edge.id) });
+    // Change input to ... (target side)
+    const targetTool = toolById(parsed.targetTool);
+    if (targetTool) {
+      const inputSockets = targetTool.sockets.filter(s => s.direction === 'input');
+      const viableInputs = inputSockets.filter(s => s.id !== parsed.targetSocket);
+      if (viableInputs.length > 0) {
+        viableInputs.forEach(s => {
+          // If socket allows multiple or is not occupied, offer it
+          const occupied = isTargetSocketOccupied(targetTool.id, s.id);
+          const canUse = s.multiple || !occupied;
+          if (canUse) {
+            items.push({
+              key: `change-input-${s.id}`,
+              label: `Change input to ${s.type ?? s.id}`,
+              onClick: () => {
+                // delete then recreate with new target socket (remove-first to respect single-connection on unchanged source output)
+                onBeginTransaction?.();
+                onRemoveWire(edge.id);
+                onAddWire({ tool: parsed.sourceTool, socket: parsed.sourceSocket }, { tool: targetTool.id, socket: s.id });
+                onCommitTransaction?.();
+              }
+            });
+          }
+        });
+      }
+    }
+    // Change output to ... (source side)
+    const sourceTool = toolById(parsed.sourceTool);
+    if (sourceTool) {
+      const outputSockets = sourceTool.sockets.filter(s => s.direction === 'output');
+      const viableOutputs = outputSockets.filter(s => s.id !== parsed.sourceSocket);
+      if (viableOutputs.length > 0) {
+        viableOutputs.forEach(s => {
+          const occupied = isSourceSocketOccupied(sourceTool.id, s.id);
+          const canUse = s.multiple || !occupied;
+          if (canUse) {
+            items.push({
+              key: `change-output-${s.id}`,
+              label: `Change output to ${s.type ?? s.id}`,
+              onClick: () => {
+                // remove-first to respect single-connection on unchanged target input
+                onBeginTransaction?.();
+                onRemoveWire(edge.id);
+                onAddWire({ tool: sourceTool.id, socket: s.id }, { tool: parsed.targetTool, socket: parsed.targetSocket });
+                onCommitTransaction?.();
+              }
+            });
+          }
+        });
+      }
+    }
+    return items;
+  }, [onAddWire, onRemoveWire, onBeginTransaction, onCommitTransaction, toolById, isTargetSocketOccupied, isSourceSocketOccupied]);
+  const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
+    e.preventDefault();
+    setEdgeMenuEdge(edge);
+    setEdgeMenuCoords({ x: e.clientX, y: e.clientY });
+    setEdgeMenuOpen(true);
+  }, []);
   return (
     <div
       ref={keyScopeRef}
@@ -396,7 +479,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   .react-flow__edge.animated .react-flow__edge-path{stroke:var(--color-edge-animated-stroke)!important}
   .react-flow__edge.animated:hover .react-flow__edge-path,.react-flow__edge.animated .react-flow__edge-path:hover{stroke:var(--color-edge-animated-stroke-hover)!important}
   `}</style>
-  <CanvasSurface nodes={flowNodes} edges={flowEdges} snapToGrid={snapToGrid} snapGrid={snapGrid} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodesDelete={onNodesDelete} onEdgesDelete={onEdgesDelete} onConnect={onConnect} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={onPaneClick} onPaneContextMenu={onPaneContextMenu} onDrop={()=>{}} onDragOver={()=>{}} onNodeDragStart={onNodeDragStart} onNodeDragStop={onNodeDragStop} onWheel={handleWheel} onMouseMove={onMouseMove} onSelectionChange={onSelectionChange} nodeTypes={nodeTypes}>
+  <CanvasSurface nodes={flowNodes} edges={flowEdges} snapToGrid={snapToGrid} snapGrid={snapGrid} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodesDelete={onNodesDelete} onEdgesDelete={onEdgesDelete} onConnect={onConnect} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={onPaneClick} onEdgeContextMenu={onEdgeContextMenu} onPaneContextMenu={onPaneContextMenu} onDrop={()=>{}} onDragOver={()=>{}} onNodeDragStart={onNodeDragStart} onNodeDragStop={onNodeDragStop} onWheel={handleWheel} onMouseMove={onMouseMove} onSelectionChange={onSelectionChange} nodeTypes={nodeTypes}>
         <CanvasControls minimapVisible={minimapVisible} minimapPosition={minimapPosition} snapToGrid={snapToGrid} onToggleMinimap={toggleMinimap} onToggleSnap={toggleSnapToGrid} onContextMenuMinimap={handleMinimapButtonContextMenu} minimapButtonRef={minimapButtonRef} actionsButtonRef={actionsButtonRef} onActionsClick={openActionsMenu} />
         <CanvasMinimap visible={minimapVisible} position={minimapPosition} nodeColor={getNodeColor} style={getMinimapStyle()} />
   </CanvasSurface>
@@ -423,6 +506,12 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
           }
           return items;
         })()}
+      />
+      <CanvasActionMenu
+        open={edgeMenuOpen && !!edgeMenuEdge}
+        coords={edgeMenuCoords}
+        onClose={() => setEdgeMenuOpen(false)}
+        items={edgeMenuEdge ? buildEdgeMenuItems(edgeMenuEdge) : []}
       />
   </CanvasDragAndDropLayer>
   </div>
