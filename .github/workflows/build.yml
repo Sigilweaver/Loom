@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -41,7 +42,7 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
   build-web-zip:
-    if: needs.validate-tag-on-main.outputs.run == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true'
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-web.yml
     with:
@@ -49,7 +50,7 @@ jobs:
     secrets: inherit
 
   build-linux:
-    if: needs.validate-tag-on-main.outputs.run == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true'
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-linux.yml
     with:
@@ -57,7 +58,7 @@ jobs:
     secrets: inherit
 
   build-macos:
-    if: needs.validate-tag-on-main.outputs.run == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true'
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-macos.yml
     with:
@@ -65,7 +66,7 @@ jobs:
     secrets: inherit
 
   build-windows:
-    if: needs.validate-tag-on-main.outputs.run == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true'
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-windows.yml
     with:
@@ -81,7 +82,7 @@ jobs:
       - build-linux
       - build-macos
       - build-windows
-    if: needs.validate-tag-on-main.outputs.run == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true'
     permissions:
       contents: write
     steps:
@@ -176,7 +177,7 @@ jobs:
           fail_on_unmatched_files: false
 
       - name: Mirror generic assets to Backblaze B2 (S3 API)
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         env:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
