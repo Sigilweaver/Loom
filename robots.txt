@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://sigilweaver.com/sitemap.xml
+Sitemap: https://sigilweaver.app/sitemap.xml
 
 # Block access to development files
 Disallow: /css/

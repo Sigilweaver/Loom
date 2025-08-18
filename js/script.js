@@ -1,4 +1,4 @@
-// Sigilweaver.com Interactive JavaScript
+// sigilweaver.app Interactive JavaScript
 
 // Initialize loading state
 let isInitialized = false;

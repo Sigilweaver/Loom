@@ -1,4 +1,4 @@
-# Sigilweaver.com Website
+# sigilweaver.app Website
 
 A mystical landing page for the Sigilweaver data pipeline tool, featuring an interactive frontend demo and modern web design.
 
@@ -23,7 +23,7 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 ## File Structure
 
 ```
-/srv/swag/www/sigilweaver.com/
+/srv/swag/www/sigilweaver.app/
 ├── index.html          # Main landing page
 ├── demo.html           # Interactive demo page
 ├── demo.js             # Demo functionality
@@ -72,8 +72,8 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 
 1. **Clone/Copy Files**:
    ```bash
-   # Files are already in /srv/swag/www/sigilweaver.com/
-   cd /srv/swag/www/sigilweaver.com
+   # Files are already in /srv/swag/www/sigilweaver.app/
+   cd /srv/swag/www/sigilweaver.app
    ```
 
 2. **Serve Locally** (for development):
@@ -97,10 +97,10 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 1. **Nginx Configuration**:
    ```bash
    # Copy nginx config to sites-available
-   sudo cp nginx.conf /etc/nginx/sites-available/sigilweaver.com
+   sudo cp nginx.conf /etc/nginx/sites-available/sigilweaver.app
    
    # Enable the site
-   sudo ln -s /etc/nginx/sites-available/sigilweaver.com /etc/nginx/sites-enabled/
+   sudo ln -s /etc/nginx/sites-available/sigilweaver.app /etc/nginx/sites-enabled/
    
    # Test configuration
    sudo nginx -t
@@ -112,12 +112,12 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 2. **SSL Setup** (recommended):
    ```bash
    # Using Certbot for Let's Encrypt
-   sudo certbot --nginx -d sigilweaver.com -d www.sigilweaver.com
+   sudo certbot --nginx -d sigilweaver.app -d www.sigilweaver.app
    ```
 
 3. **DNS Configuration**:
-   - Point A record for `sigilweaver.com` to your server IP
-   - Point CNAME record for `www.sigilweaver.com` to `sigilweaver.com`
+   - Point A record for `sigilweaver.app` to your server IP
+   - Point CNAME record for `www.sigilweaver.app` to `sigilweaver.app`
 
 ## Interactive Frontend Demo Features
 
@@ -196,7 +196,7 @@ The mystical color palette is defined in Tailwind config:
 
 ## Contact
 
-- **Website**: sigilweaver.com
+- **Website**: sigilweaver.app
 - **Email**: 
 - **Support**: 
 - **GitHub**: github.com/sigilweaver/sigilweaver
