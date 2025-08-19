@@ -83,7 +83,8 @@
     "vite": "^5.0.8",
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5",
-    "vitest": "^1.6.0",
+  "vitest": "^1.6.0",
+  "@vitest/coverage-v8": "^1.6.0",
     "wait-on": "^7.2.0"
   },
   "build": {

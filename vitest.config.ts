@@ -20,6 +20,22 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [],
-    include: ['src/**/*.test.{ts,tsx}','src/**/__tests__/**/*.{ts,tsx}']
+    include: ['src/**/*.test.{ts,tsx}','src/**/__tests__/**/*.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: 'coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/__tests__/**',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
+        '**/*.d.ts',
+        '**/vite-env.d.ts',
+        'electron/**',
+        'dist/**',
+        'dist-electron/**'
+      ]
+    }
   }
 });
