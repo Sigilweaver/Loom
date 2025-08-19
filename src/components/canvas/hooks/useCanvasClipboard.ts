@@ -80,7 +80,7 @@ export function useCanvasClipboard({ tools, wires, getNodes, snap, onBuildCopyFr
   }, [getSelectedIds, onRemoveTool, setNodes, onToolSelect]);
 
   const doPaste = useCallback(() => {
-    const useFragment = (fragment: string) => {
+    const tryUseFragment = (fragment: string) => {
       if (!onPasteXMLAt) return false;
       if (fragment && fragment.includes('<WorkflowFragment')) {
         const lastPos = lastMouseFlowPosRef.current;
@@ -99,13 +99,13 @@ export function useCanvasClipboard({ tools, wires, getNodes, snap, onBuildCopyFr
 
     if (onPasteXMLAt && navigator?.clipboard?.readText) {
       navigator.clipboard.readText().then(txt => {
-        if (!useFragment(txt || '')) {
+        if (!tryUseFragment(txt || '')) {
           const local = getXMLClipboard();
-          if (!useFragment(local)) legacyPaste();
+          if (!tryUseFragment(local)) legacyPaste();
         }
       }).catch(() => {
         const local = getXMLClipboard();
-        if (!useFragment(local)) legacyPaste();
+        if (!tryUseFragment(local)) legacyPaste();
       });
       return;
     }

@@ -90,7 +90,7 @@ export const CanvasMenus: React.FC<Props> = ({
     };
     items.push({ key: 'delete-edge', label: 'Delete', onClick: () => onRemoveWire(edge.id) });
 
-    const toolById = (id: string) => tools.find(t => t.id === id);
+  const toolById = (id: string) => tools.find(t => t.id === id);
     const isTargetSocketOccupied = (toolId: string, socket: number) => wires.some(w => w.to.tool === toolId && w.to.socket === socket);
     const isSourceSocketOccupied = (toolId: string, socket: number) => wires.some(w => w.from.tool === toolId && w.from.socket === socket);
 
@@ -101,11 +101,11 @@ export const CanvasMenus: React.FC<Props> = ({
       const viableInputs = inputSockets.filter(s => s.id !== parsed.targetSocket);
       viableInputs.forEach(s => {
         const occupied = isTargetSocketOccupied(targetTool.id, s.id);
-        const canUse = (s as any).multiple || !occupied;
+        const canUse = s.multiple ?? !occupied ? true : !occupied;
         if (canUse) {
           items.push({
             key: `change-input-${s.id}`,
-            label: `Change input to ${(s as any).type ?? s.id}`,
+            label: `Change input to ${s.type ?? String(s.id)}`,
             onClick: () => {
               onBeginTransaction?.();
               onRemoveWire(edge.id);
@@ -124,11 +124,11 @@ export const CanvasMenus: React.FC<Props> = ({
       const viableOutputs = outputSockets.filter(s => s.id !== parsed.sourceSocket);
       viableOutputs.forEach(s => {
         const occupied = isSourceSocketOccupied(sourceTool.id, s.id);
-        const canUse = (s as any).multiple || !occupied;
+        const canUse = s.multiple ?? !occupied ? true : !occupied;
         if (canUse) {
           items.push({
             key: `change-output-${s.id}`,
-            label: `Change output to ${(s as any).type ?? s.id}`,
+            label: `Change output to ${s.type ?? String(s.id)}`,
             onClick: () => {
               onBeginTransaction?.();
               onRemoveWire(edge.id);

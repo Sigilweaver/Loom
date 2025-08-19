@@ -5,7 +5,10 @@ const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 
 function randomInt(maxExclusive: number): number {
   // Prefer crypto.getRandomValues when available
-  const cryptoObj = (globalThis as any).crypto as { getRandomValues?: (arr: Uint32Array) => Uint32Array } | undefined;
+  const cryptoObj: { getRandomValues?: (arr: Uint32Array) => Uint32Array } | undefined =
+    typeof globalThis !== 'undefined' && typeof (globalThis as unknown as { crypto?: unknown }).crypto !== 'undefined'
+      ? ((globalThis as unknown as { crypto?: { getRandomValues?: (arr: Uint32Array) => Uint32Array } }).crypto)
+      : undefined;
   if (cryptoObj?.getRandomValues) {
     // Generate a 32-bit number and mod by maxExclusive
     const buf = new Uint32Array(1);

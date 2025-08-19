@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
+import type { Node, Edge } from '@xyflow/react';
+import type { Tool } from '@domain/workflow/entities/workflow';
 
 export interface UseCanvasKeyboardParams {
   isFirefox: boolean;
-  setNodes: React.Dispatch<React.SetStateAction<any[]>>;
-  setEdges: React.Dispatch<React.SetStateAction<any[]>>;
-  onToolSelect?: (tool: any | null) => void;
+  setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  onToolSelect: ((tool: Tool | null) => void) | undefined;
   doCopy: () => void;
   doCut: () => void;
   doPaste: () => void;

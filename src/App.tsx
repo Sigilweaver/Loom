@@ -149,7 +149,10 @@ function App() {
     // Initialize history with initial XML snapshot
     try {
       history.checkpoint(xmlManager.toXMLString(), 'Initial');
-    } catch {}
+    } catch (err) {
+      // Non-fatal: history may not be initialized in some environments
+  console.warn('Initial history checkpoint failed', err);
+    }
     
     // Cleanup EdgeManager on unmount
     return () => {
@@ -287,9 +290,13 @@ function App() {
     const url = URL.createObjectURL(blob);
     // Build readable yet filesystem-safe name preserving spaces with underscores
     const buildSafeName = (name: string) => {
-      // Replace disallowed characters with underscores
-      let safe = (name || 'Workflow').replace(/[<>:\"/\\|?*\x00-\x1F]/g, '_');
-      // Collapse whitespace and tighten underscores
+      const base = (name || 'Workflow');
+      // Replace disallowed characters with underscores; remove ASCII control chars via code-point filter
+      const withoutControls = Array.from(base).map(ch => {
+        const cp = ch.codePointAt(0) ?? 0;
+        return cp >= 0x20 ? ch : '_';
+      }).join('');
+      let safe = withoutControls.replace(/[<>:"/\\|?*]/g, '_');
       safe = safe.replace(/\s+/g, ' ').replace(/\s*_\s*/g, '_').trim();
       if (!safe || /^\.+$/.test(safe)) safe = 'workflow';
       if (safe.length > 120) safe = safe.slice(0, 120).trim();

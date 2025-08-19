@@ -136,12 +136,12 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
     getNodes,
     snap,
     onBuildCopyFragment,
-    onPasteXMLAt: onPasteXMLAt as any,
+  onPasteXMLAt,
     onBatchAdd,
     onAddTool,
     onAddWire,
     onRemoveTool,
-    setNodes: (updater) => setNodes((ns:any) => updater(ns)),
+  setNodes: (updater) => setNodes((ns) => updater(ns)),
     onToolSelect,
   });
   const onMouseMove = useCallback((e: React.MouseEvent) => {
@@ -202,7 +202,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
 
   // Handle native paste event (works in Firefox). Prefer event.clipboardData over async clipboard.
   const onPaste = useCanvasPaste({
-    onPasteXMLAt: onPasteXMLAt as any,
+    onPasteXMLAt,
     setNodes,
     doPaste,
   getAnchor: () => lastMouseFlowPosRef.current ?? { x: 20, y: 20 },
@@ -210,7 +210,7 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   
 
   // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
-  const onKeyDown = useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect: onToolSelect as any, doCopy, doCut, doPaste });
+  const onKeyDown = useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste });
   const getNodeColor = useNodeColor(tools); const getMinimapStyle = useMinimapStyle(minimapPosition);
   // Edge menu items now built in CanvasMenus
   const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {

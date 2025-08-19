@@ -136,8 +136,9 @@ const applyThemeVariables = (theme: Theme) => {
 
     // Tool tabs accent border (pastel brand for Sigilweaver, fallback to secondary border)
     try {
+      const palette = colors.palette as unknown as { brand?: { primary?: Record<string | number, string> } } | undefined;
       const pastelAccent = theme.id === 'sigilweaver'
-        ? (colors.palette as any)?.brand?.primary?.[200] ?? colors.borders.focus
+        ? palette?.brand?.primary?.[200] ?? colors.borders.focus
         : colors.borders.secondary;
       root.style.setProperty('--color-tool-tab-accent', pastelAccent);
     } catch {

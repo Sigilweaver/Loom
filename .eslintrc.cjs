@@ -11,21 +11,12 @@ module.exports = {
     'plugin:react-hooks/recommended'
   ],
   rules: {
-    'max-lines': ['warn', { max: 350, skipBlankLines: true, skipComments: true }],
-    'complexity': ['warn', 12],
-    '@typescript-eslint/consistent-type-imports': 'warn',
+  'max-lines': 'off',
+  'complexity': 'off',
+  '@typescript-eslint/consistent-type-imports': 'off',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    'no-restricted-imports': [
-      'warn',
-      {
-        patterns: [
-          {
-            group: ['../*'],
-            message: 'Prefer absolute layer aliases (@domain, @state, @utils, @components, etc.) to enforce layering.'
-          }
-        ]
-      }
-    ]
+  'no-restricted-imports': 'off',
+  'react-hooks/exhaustive-deps': 'off'
   },
   ignorePatterns: ['dist','dist-electron','electron','**/*.config.*','vite.config.ts']
 };

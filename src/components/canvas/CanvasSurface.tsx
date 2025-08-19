@@ -32,7 +32,7 @@ export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapG
     nodes={nodes}
     edges={edges}
     nodeTypes={nodeTypes}
-  onEdgeContextMenu={handlers.onEdgeContextMenu as any}
+  onEdgeContextMenu={handlers.onEdgeContextMenu ?? (() => {})}
     connectionLineType={ConnectionLineType.Bezier}
     defaultEdgeOptions={{
       type: 'default',
