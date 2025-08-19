@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["**"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "**/.vscode/**"
+      - "**/.github/ISSUE_TEMPLATE/**"
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "**/.vscode/**"
+      - "**/.github/ISSUE_TEMPLATE/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Lint • Type-check • Test • Build (web)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint (CI)
+        run: npm run lint:ci
+
+      - name: Unit tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Ensure zip is installed
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y zip
+
+      - name: Build web
+        run: npm run build:web
+
+      - name: Zip web dist
+        run: |
+          cd dist
+          zip -r ../dist-web.zip .
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: |
+            dist/**
+            dist-web.zip
+          if-no-files-found: warn
+          retention-days: 7
