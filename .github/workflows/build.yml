@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-      - 'nightly'
 
 permissions:
   contents: write
@@ -206,43 +205,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Ensure required B2_* vars are present
           if [ -z "${B2_APPLICATION_KEY_ID:-}" ] || [ -z "${B2_APPLICATION_KEY:-}" ] || [ -z "${B2_BUCKET_NAME:-}" ] || [ -z "${B2_ENDPOINT_URL:-}" ]; then
-            echo "B2 secrets not set (need B2_APPLICATION_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, B2_ENDPOINT_URL). Skipping B2 upload."
+            echo "B2 secrets missing; skipping upload."
             exit 0
           fi
-
-          # Map B2_* env vars to AWS_* for awscli compatibility
           export AWS_ACCESS_KEY_ID="${B2_APPLICATION_KEY_ID}"
           export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
           export AWS_DEFAULT_REGION="${B2_DEFAULT_REGION:-us-east-1}"
-
-          # Determine channel (stable for v* tags, nightly for tag named exactly 'nightly')
-          channel="stable"
-          if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
           now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           version_label="${GITHUB_REF_NAME}"
-
-          # Destination prefix differs for nightly channel to avoid overwriting stable generic assets
           dest_prefix="latest"
-          if [ "$channel" = "nightly" ]; then dest_prefix="latest/nightly"; fi
-
-          # Upload generic assets (nightly goes under latest/nightly/)
           asset_cache_control="max-age=300,public"
           for f in release-assets/*; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
-            echo "Uploading $base to B2 bucket $B2_BUCKET_NAME $dest_prefix via S3 API"
+            echo "Uploading $base to $dest_prefix via S3 API"
             aws s3 cp "$f" "s3://$B2_BUCKET_NAME/$dest_prefix/$base" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
           done
-
-          # Upload checksum file if present (nightly path if nightly)
           if [ -f release-assets/sha256sum.txt ]; then
-            echo "Uploading sha256sum.txt"
             aws s3 cp release-assets/sha256sum.txt "s3://$B2_BUCKET_NAME/$dest_prefix/sha256sum.txt" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
           fi
-
-          # Build assets array
           assets_json="["
           first=1
           for f in release-assets/*; do
@@ -264,41 +246,28 @@ jobs:
             if [ $first -eq 1 ]; then assets_json="$assets_json$item"; first=0; else assets_json="$assets_json,$item"; fi
           done
           assets_json="$assets_json]"
-
           mkdir -p release-assets/manifests
-          if [ "$channel" = "stable" ]; then
-            printf '{"schemaVersion":1,"channel":"stable","version":"%s","date":"%s","commit":"%s","assets":%s,"nightly":{"url":"https://%s.%s/latest/nightly/manifest.json"}}' \
-              "$version_label" "$now_iso" "$GITHUB_SHA" "$assets_json" "$B2_BUCKET_NAME" "$B2_ENDPOINT_URL" \
-              > release-assets/manifests/manifest.stable.json
-            # Publish stable manifest via staging copy
-            manifest_cache_control="max-age=60,public"
-            versioned_manifest_cache_control="max-age=31536000,public,immutable"
-            aws s3 cp release-assets/manifests/manifest.stable.json "s3://$B2_BUCKET_NAME/latest/stable/.staging/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
-            aws s3 cp "s3://$B2_BUCKET_NAME/latest/stable/.staging/manifest.json" "s3://$B2_BUCKET_NAME/latest/stable/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
-            # Versioned manifest and index update
-            aws s3 cp release-assets/manifests/manifest.stable.json "s3://$B2_BUCKET_NAME/releases/${version_label}/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$versioned_manifest_cache_control"
-            # Update releases/index.json (best-effort)
-            if command -v jq >/dev/null 2>&1 && aws s3 cp "s3://$B2_BUCKET_NAME/releases/index.json" /tmp/rindex.json --endpoint-url "https://$B2_ENDPOINT_URL" 2>/dev/null; then
-              jq --arg v "$version_label" --arg d "$now_iso" --arg u "https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${version_label}/manifest.json" \
-                 '(.schemaVersion=1) | (.generatedAt=now|toiso8601) | (.latest=$v) | (.releases=((.releases // []) | map(select(.version!=$v)) + [{version:$v,date:$d,manifestUrl:$u}]))' \
-                 /tmp/rindex.json > /tmp/rindex.new.json || true
-            fi
-            if [ ! -s /tmp/rindex.new.json ]; then
-              printf '{"schemaVersion":1,"generatedAt":"%s","latest":"%s","releases":[{"version":"%s","date":"%s","manifestUrl":"https://%s.%s/releases/%s/manifest.json"}]}' \
-                "$now_iso" "$version_label" "$version_label" "$now_iso" "$B2_BUCKET_NAME" "$B2_ENDPOINT_URL" "$version_label" \
-                > /tmp/rindex.new.json
-            fi
-            index_cache_control="max-age=300,public"
-            aws s3 cp /tmp/rindex.new.json "s3://$B2_BUCKET_NAME/releases/.staging/index.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$index_cache_control"
-            aws s3 cp "s3://$B2_BUCKET_NAME/releases/.staging/index.json" "s3://$B2_BUCKET_NAME/releases/index.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$index_cache_control"
-          else
-            printf '{"schemaVersion":1,"channel":"nightly","buildId":"%s","date":"%s","commit":"%s","assets":%s}' \
-              "$GITHUB_SHA" "$now_iso" "$GITHUB_SHA" "$assets_json" \
-              > release-assets/manifests/manifest.nightly.json
-            manifest_cache_control="max-age=60,public"
-            aws s3 cp release-assets/manifests/manifest.nightly.json "s3://$B2_BUCKET_NAME/latest/nightly/.staging/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
-            aws s3 cp "s3://$B2_BUCKET_NAME/latest/nightly/.staging/manifest.json" "s3://$B2_BUCKET_NAME/latest/nightly/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
+          printf '{"schemaVersion":1,"channel":"stable","version":"%s","date":"%s","commit":"%s","assets":%s}' \
+            "$version_label" "$now_iso" "$GITHUB_SHA" "$assets_json" \
+            > release-assets/manifests/manifest.stable.json
+          manifest_cache_control="max-age=60,public"
+          versioned_manifest_cache_control="max-age=31536000,public,immutable"
+          aws s3 cp release-assets/manifests/manifest.stable.json "s3://$B2_BUCKET_NAME/latest/stable/.staging/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
+          aws s3 cp "s3://$B2_BUCKET_NAME/latest/stable/.staging/manifest.json" "s3://$B2_BUCKET_NAME/latest/stable/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$manifest_cache_control"
+          aws s3 cp release-assets/manifests/manifest.stable.json "s3://$B2_BUCKET_NAME/releases/${version_label}/manifest.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$versioned_manifest_cache_control"
+          if command -v jq >/dev/null 2>&1 && aws s3 cp "s3://$B2_BUCKET_NAME/releases/index.json" /tmp/rindex.json --endpoint-url "https://$B2_ENDPOINT_URL" 2>/dev/null; then
+            jq --arg v "$version_label" --arg d "$now_iso" --arg u "https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${version_label}/manifest.json" \
+               '(.schemaVersion=1) | (.generatedAt=now|toiso8601) | (.latest=$v) | (.releases=((.releases // []) | map(select(.version!=$v)) + [{version:$v,date:$d,manifestUrl:$u}]))' \
+               /tmp/rindex.json > /tmp/rindex.new.json || true
           fi
+          if [ ! -s /tmp/rindex.new.json ]; then
+            printf '{"schemaVersion":1,"generatedAt":"%s","latest":"%s","releases":[{"version":"%s","date":"%s","manifestUrl":"https://%s.%s/releases/%s/manifest.json"}]}' \
+              "$now_iso" "$version_label" "$version_label" "$now_iso" "$B2_BUCKET_NAME" "$B2_ENDPOINT_URL" "$version_label" \
+              > /tmp/rindex.new.json
+          fi
+          index_cache_control="max-age=300,public"
+          aws s3 cp /tmp/rindex.new.json "s3://$B2_BUCKET_NAME/releases/.staging/index.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$index_cache_control"
+          aws s3 cp "s3://$B2_BUCKET_NAME/releases/.staging/index.json" "s3://$B2_BUCKET_NAME/releases/index.json" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$index_cache_control"
 
       - name: Summary of uploaded assets
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -314,16 +283,9 @@ jobs:
             for f in release-assets/*; do
               [ -e "$f" ] || continue
               base=$(basename "$f")
-              channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
-              dest_prefix="latest"; if [ "$channel" = "nightly" ]; then dest_prefix="latest/nightly"; fi
-              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/${dest_prefix}/${base}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/${base}" >> "$GITHUB_STEP_SUMMARY"
             done
-            channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
-            if [ "$channel" = "stable" ]; then
-              echo "Stable manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/stable/manifest.json" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "Nightly manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/nightly/manifest.json" >> "$GITHUB_STEP_SUMMARY"
-            fi
+            echo "Stable manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/stable/manifest.json" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No release-assets present." >> "$GITHUB_STEP_SUMMARY"
           fi
