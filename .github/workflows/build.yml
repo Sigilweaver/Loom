@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-      - 'nightly*'
+      - 'nightly'
 
 permissions:
   contents: write
@@ -217,25 +217,29 @@ jobs:
           export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
           export AWS_DEFAULT_REGION="${B2_DEFAULT_REGION:-us-east-1}"
 
-          # Determine channel (stable for v* tags, nightly for nightly* tags)
+          # Determine channel (stable for v* tags, nightly for tag named exactly 'nightly')
           channel="stable"
-          if [[ "${GITHUB_REF_NAME}" == nightly* ]]; then channel="nightly"; fi
+          if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
           now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           version_label="${GITHUB_REF_NAME}"
 
-          # Upload generic assets
+          # Destination prefix differs for nightly channel to avoid overwriting stable generic assets
+          dest_prefix="latest"
+          if [ "$channel" = "nightly" ]; then dest_prefix="latest/nightly"; fi
+
+          # Upload generic assets (nightly goes under latest/nightly/)
           asset_cache_control="max-age=300,public"
           for f in release-assets/*; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
-            echo "Uploading $base to B2 bucket $B2_BUCKET_NAME latest via S3 API"
-            aws s3 cp "$f" "s3://$B2_BUCKET_NAME/latest/$base" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
+            echo "Uploading $base to B2 bucket $B2_BUCKET_NAME $dest_prefix via S3 API"
+            aws s3 cp "$f" "s3://$B2_BUCKET_NAME/$dest_prefix/$base" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
           done
 
-          # Upload checksum file if present
+          # Upload checksum file if present (nightly path if nightly)
           if [ -f release-assets/sha256sum.txt ]; then
             echo "Uploading sha256sum.txt"
-            aws s3 cp release-assets/sha256sum.txt "s3://$B2_BUCKET_NAME/latest/sha256sum.txt" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
+            aws s3 cp release-assets/sha256sum.txt "s3://$B2_BUCKET_NAME/$dest_prefix/sha256sum.txt" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
           fi
 
           # Build assets array
@@ -255,7 +259,7 @@ jobs:
             esac
             size=$(stat -c %s "$f" 2>/dev/null || echo 0)
             sha=$(sha256sum "$f" 2>/dev/null | awk '{print $1}')
-            url="https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/${base}"
+            url="https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/$dest_prefix/${base}"
             item="{\"id\":\"$id\",\"os\":\"$os\",\"arch\":\"any\",\"kind\":\"$kind\",\"fileName\":\"$base\",\"url\":\"$url\",\"size\":$size,\"sha256\":\"$sha\"}"
             if [ $first -eq 1 ]; then assets_json="$assets_json$item"; first=0; else assets_json="$assets_json,$item"; fi
           done
@@ -310,9 +314,11 @@ jobs:
             for f in release-assets/*; do
               [ -e "$f" ] || continue
               base=$(basename "$f")
-              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/${base}" >> "$GITHUB_STEP_SUMMARY"
+              channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
+              dest_prefix="latest"; if [ "$channel" = "nightly" ]; then dest_prefix="latest/nightly"; fi
+              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/${dest_prefix}/${base}" >> "$GITHUB_STEP_SUMMARY"
             done
-            channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly* ]]; then channel="nightly"; fi
+            channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly ]]; then channel="nightly"; fi
             if [ "$channel" = "stable" ]; then
               echo "Stable manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/stable/manifest.json" >> "$GITHUB_STEP_SUMMARY"
             else
