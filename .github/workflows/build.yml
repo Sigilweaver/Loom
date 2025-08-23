@@ -4,43 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      build_web:
-        description: Build web zip
-        type: boolean
-        default: true
-      build_linux:
-        description: Build Linux artifacts
-        type: boolean
-        default: true
-      build_macos:
-        description: Build macOS artifacts
-        type: boolean
-        default: true
-      build_windows:
-        description: Build Windows artifacts
-        type: boolean
-        default: true
-      mirror_b2:
-        description: Mirror generic assets to Backblaze B2 (latest/)
-        type: boolean
-        default: true
-      upload_release:
-        description: Upload artifacts to GitHub Release (manual runs)
-        type: boolean
-        default: false
-      version_label:
-        description: Optional version label for manifest on manual runs
-        type: string
-        default: ''
-      channel:
-        description: Release channel for manual runs
-        type: choice
-        options:
-          - stable
-          - nightly
-        default: stable
+      - 'nightly*'
 
 permissions:
   contents: write
@@ -79,7 +43,7 @@ jobs:
           fi
 
   build-web-zip:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_web) || needs.validate-tag-on-main.outputs.run == 'true' }}
+    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-web.yml
     with:
@@ -87,7 +51,7 @@ jobs:
     secrets: inherit
 
   build-linux:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_linux) || needs.validate-tag-on-main.outputs.run == 'true' }}
+    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-linux.yml
     with:
@@ -95,7 +59,7 @@ jobs:
     secrets: inherit
 
   build-macos:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_macos) || needs.validate-tag-on-main.outputs.run == 'true' }}
+    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-macos.yml
     with:
@@ -103,7 +67,7 @@ jobs:
     secrets: inherit
 
   build-windows:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_windows) || needs.validate-tag-on-main.outputs.run == 'true' }}
+    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-windows.yml
     with:
@@ -119,7 +83,7 @@ jobs:
       - build-linux
       - build-macos
       - build-windows
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.validate-tag-on-main.outputs.run == 'true' }}
+    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     permissions:
       contents: write
     steps:
@@ -218,8 +182,8 @@ jobs:
             echo "No files in release-assets to checksum"
           fi
 
-      - name: Upload built artifacts to GitHub Release (on tag or manual opt-in)
-        if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.upload_release) }}
+      - name: Upload built artifacts to GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -231,15 +195,13 @@ jobs:
           fail_on_unmatched_files: false
 
       - name: Mirror generic assets and manifests to Backblaze B2 (S3 API)
-        if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.mirror_b2) }}
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         env:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_ENDPOINT_URL: ${{ secrets.B2_ENDPOINT_URL }}
           B2_DEFAULT_REGION: us-east-1
-          INPUT_CHANNEL: ${{ inputs.channel }}
-          DISPATCH_VERSION_LABEL: ${{ inputs.version_label }}
         shell: bash
         run: |
           set -euo pipefail
@@ -254,17 +216,11 @@ jobs:
           export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
           export AWS_DEFAULT_REGION="${B2_DEFAULT_REGION:-us-east-1}"
 
-          # Determine channel and version label
-          channel="${INPUT_CHANNEL:-stable}"
-          if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then channel="stable"; fi
-
+          # Determine channel (stable for v* tags, nightly for nightly* tags)
+          channel="stable"
+          if [[ "${GITHUB_REF_NAME}" == nightly* ]]; then channel="nightly"; fi
           now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
-            version_label="${GITHUB_REF_NAME}"
-          else
-            version_label="${DISPATCH_VERSION_LABEL:-}"
-          fi
-          if [ -z "${version_label}" ]; then version_label="${GITHUB_SHA}"; fi
+          version_label="${GITHUB_REF_NAME}"
 
           # Upload generic assets
           asset_cache_control="max-age=300,public"
@@ -340,11 +296,10 @@ jobs:
           fi
 
       - name: Summary of uploaded assets
-        if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.mirror_b2) }}
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         env:
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_ENDPOINT_URL: ${{ secrets.B2_ENDPOINT_URL }}
-          INPUT_CHANNEL: ${{ inputs.channel }}
         shell: bash
         run: |
           set -euo pipefail
@@ -356,8 +311,7 @@ jobs:
               base=$(basename "$f")
               echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/${base}" >> "$GITHUB_STEP_SUMMARY"
             done
-            channel="${INPUT_CHANNEL:-stable}"
-            if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then channel="stable"; fi
+            channel="stable"; if [[ "${GITHUB_REF_NAME}" == nightly* ]]; then channel="nightly"; fi
             if [ "$channel" = "stable" ]; then
               echo "Stable manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/stable/manifest.json" >> "$GITHUB_STEP_SUMMARY"
             else
