@@ -182,8 +182,9 @@ jobs:
             echo "No files in release-assets to checksum"
           fi
 
-      - name: Upload built artifacts to GitHub Release
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      - name: Upload built artifacts to GitHub Release (stable tags only)
+        # Only create / update a GitHub Release for stable version tags (v*) to avoid storing many nightly releases
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
           files: |
