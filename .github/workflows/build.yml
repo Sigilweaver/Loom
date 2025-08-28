@@ -186,10 +186,22 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
+          # IMPORTANT: Avoid uploading files with duplicate basenames from different platform artifact folders.
+          # GitHub Release assets must have unique names; previously we uploaded entire folders which
+          # produced collisions (e.g. multiple index.html, manifest.json, builder-debug.yml) leading to
+          # softprops/action-gh-release attempting an update call that returned 404.
+          # We now explicitly enumerate only distributable binaries & updater metadata.
           files: |
-            linux-artifacts/*
-            macos-artifacts/*
-            windows-artifacts/*
+            linux-artifacts/*.AppImage
+            linux-artifacts/*.snap
+            linux-artifacts/latest-linux.yml
+            macos-artifacts/*.dmg
+            macos-artifacts/*.zip
+            macos-artifacts/*.blockmap
+            macos-artifacts/latest-mac.yml
+            windows-artifacts/*.exe
+            windows-artifacts/*.blockmap
+            windows-artifacts/latest.yml
             web-dist-zip/dist-web.zip
             release-assets/sha256sum.txt
           fail_on_unmatched_files: false
