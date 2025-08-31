@@ -10,13 +10,18 @@ export interface UseCanvasKeyboardParams {
   doCopy: () => void;
   doCut: () => void;
   doPaste: () => void;
+  moveSelectedNodes: (e: React.KeyboardEvent) => boolean;
 }
 
-export function useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste }: UseCanvasKeyboardParams) {
+export function useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste, moveSelectedNodes }: UseCanvasKeyboardParams) {
   return useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement | null;
     const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
     if (isTyping) return;
+    
+    // Try arrow key movement first
+    if (moveSelectedNodes(e)) return;
+    
     if (e.key === 'Escape') {
       setNodes(ns => ns.map(n => ({ ...n, selected: false })));
       setEdges(es => es.map(edge => ({ ...edge, selected: false })));
@@ -38,5 +43,5 @@ export function useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect,
     if (isCopy) doCopy();
     if (isCut) doCut();
     if (isPaste) doPaste();
-  }, [isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste]);
+  }, [isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste, moveSelectedNodes]);
 }

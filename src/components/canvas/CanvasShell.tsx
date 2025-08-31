@@ -11,6 +11,7 @@ import { useCanvasPaste } from './hooks/useCanvasPaste';
 import { useCanvasKeyboard } from './hooks/useCanvasKeyboard';
 import { useCanvasClipboard } from './hooks/useCanvasClipboard';
 import { useNodeResync } from './hooks/useNodeResync';
+import { useArrowKeyMovement } from './hooks/useArrowKeyMovement';
 import { useMinimapStyle } from './hooks/useMinimapStyle';
 import { useNodeColor } from './hooks/useNodeColor';
 import { CanvasControls } from './CanvasControls';
@@ -208,9 +209,18 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(({ tools, wires, edges, 
   getAnchor: () => lastMouseFlowPosRef.current ?? { x: 20, y: 20 },
   });
   
+  // Arrow key movement for selected nodes
+  const moveSelectedNodes = useArrowKeyMovement({
+    getNodes,
+    snap,
+    onToolMove,
+    onBeginTransaction,
+    onCommitTransaction,
+    gridSize: snapGrid
+  });
 
   // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
-  const onKeyDown = useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste });
+  const onKeyDown = useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect, doCopy, doCut, doPaste, moveSelectedNodes });
   const getNodeColor = useNodeColor(tools); const getMinimapStyle = useMinimapStyle(minimapPosition);
   // Edge menu items now built in CanvasMenus
   const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
