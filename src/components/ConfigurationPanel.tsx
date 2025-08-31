@@ -1,14 +1,10 @@
 import { Tool } from '../domain/workflow/entities/workflow';
-import { ToolConfiguration } from '../types/configuration';
 import ConfigurationHeader from './ConfigurationHeader';
 import WorkflowConfiguration from './WorkflowConfiguration';
 import ResizablePanel from './ResizablePanel';
 
 interface ConfigurationPanelProps {
   selectedTool: Tool | null;
-  configuration: ToolConfiguration | null;
-  onConfigurationChange: (toolId: string, config: ToolConfiguration) => void;
-  onShowNotification: (message: string, type: 'error' | 'warning' | 'success' | 'info') => void;
   toolCount?: number;
   wireCount?: number;
   workflowMeta: {
@@ -23,9 +19,6 @@ interface ConfigurationPanelProps {
 
 export default function ConfigurationPanel({
   selectedTool,
-  // configuration,
-  // onConfigurationChange,
-  // onShowNotification,
   workflowMeta,
   toolCount,
   wireCount,
