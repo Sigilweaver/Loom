@@ -32,6 +32,7 @@
     "analyze": "npm run build:web && npx vite-bundle-analyzer dist",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run src/domain src/state"
   },
   "dependencies": {
