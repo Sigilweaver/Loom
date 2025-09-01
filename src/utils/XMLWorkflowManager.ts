@@ -8,10 +8,41 @@ export class XMLWorkflowManager {
 
   constructor(xmlString?: string) {
     if (xmlString) {
-      this.document = new DOMParser().parseFromString(xmlString, 'text/xml');
+      this.document = this.parseXML(xmlString);
     } else {
       this.document = this.createNewWorkflow();
     }
+  }
+
+  // Parse XML with security protections
+  private parseXML(xmlString: string): Document {
+    // Basic sanitization - remove dangerous patterns
+    const sanitized = this.sanitizeXML(xmlString);
+    
+    const doc = new DOMParser().parseFromString(sanitized, 'text/xml');
+    
+    // Check for parsing errors
+    const errorNode = doc.querySelector('parsererror');
+    if (errorNode) {
+      throw new Error('Invalid XML format');
+    }
+    
+    return doc;
+  }
+
+  // Basic XML sanitization to prevent XXE and other attacks
+  private sanitizeXML(xmlString: string): string {
+    // Remove XML external entity declarations (XXE prevention)
+    const sanitized = xmlString
+      // Remove DOCTYPE declarations (main XXE vector)
+      .replace(/<!DOCTYPE[^>]*>/gi, '')
+      // Remove XML entity references (except safe built-ins)
+      .replace(/&(?!amp;|lt;|gt;|quot;|apos;)[^;]+;/g, '')
+      // Remove processing instructions (except XML declaration)
+      .replace(/<\?(?!xml\s)[^>]*\?>/gi, '');
+      // Note: Keeping CDATA sections as they're used legitimately in workflow descriptions
+    
+    return sanitized;
   }
 
   private createNewWorkflow(): Document {
@@ -343,13 +374,7 @@ export class XMLWorkflowManager {
 
   // Load workflow from XML string
   loadFromXML(xmlString: string): void {
-    const newDoc = new DOMParser().parseFromString(xmlString, 'text/xml');
-    
-    // Check for parsing errors
-    const errorNode = newDoc.querySelector('parsererror');
-    if (errorNode) {
-      throw new Error('Invalid XML format');
-    }
+    const newDoc = this.parseXML(xmlString);
     
     // Validate basic structure
     if (!newDoc.querySelector('Workflow')) {
