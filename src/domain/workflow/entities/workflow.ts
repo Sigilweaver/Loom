@@ -1,5 +1,7 @@
 // Domain entities and type contracts for workflow graph (moved from src/types/workflow.ts)
-import { FieldValue } from '../../../types/configuration';
+
+// Tool configuration value type for XML storage
+export type FieldValue = string | number | boolean | string[] | null | Record<string, unknown>[];
 
 export interface WorkflowMeta {
   name: string;

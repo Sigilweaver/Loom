@@ -54,9 +54,6 @@ function App() {
   
   // Canvas ref for calling fitView
   const canvasRef = useRef<CanvasRef>(null);
-  
-  // Configuration state
-  // selectedTool & toolConfigurations now from store
 
   // UI notifications via store
   const notification = useUIStore(s => s.notification);
