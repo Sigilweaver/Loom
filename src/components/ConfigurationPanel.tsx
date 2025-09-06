@@ -2,6 +2,7 @@ import { Tool } from '../domain/workflow/entities/workflow';
 import ConfigurationHeader from './ConfigurationHeader';
 import WorkflowConfiguration from './WorkflowConfiguration';
 import ResizablePanel from './ResizablePanel';
+import { DataSourceSelector } from './DataSourceSelector';
 
 interface ConfigurationPanelProps {
   selectedTool: Tool | null;
@@ -64,13 +65,28 @@ export default function ConfigurationPanel({
       defaultWidth={320}
       minWidth={280}
       maxWidth={600}
-      className="bg-theme-surface-panel border-r border-theme-border-primary"
+      className="bg-theme-surface-panel border-r border-theme-border-primary flex flex-col"
     >
       <ConfigurationHeader tool={selectedTool} />
-      <div className="p-4 text-center text-theme-text-tertiary">
-        <div className="text-sm">Configuration not available for {selectedTool.type} tools</div>
-        <div className="text-xs mt-2 text-theme-text-disabled">Coming soon...</div>
-      </div>
+      
+      {/* Input tool configuration */}
+      {selectedTool.type === 'Input' ? (
+        <div className="flex-1 overflow-hidden">
+          <DataSourceSelector
+            onSelect={(dataSource) => {
+              console.log('Selected data source:', dataSource);
+              // TODO: Update tool configuration with selected data source
+            }}
+            selectedId={selectedTool.config?.dataSourceType as string}
+          />
+        </div>
+      ) : (
+        /* Default placeholder for other tools */
+        <div className="p-4 text-center text-theme-text-tertiary">
+          <div className="text-sm">Configuration not available for {selectedTool.type} tools</div>
+          <div className="text-xs mt-2 text-theme-text-disabled">Coming soon...</div>
+        </div>
+      )}
     </ResizablePanel>
   );
 }
