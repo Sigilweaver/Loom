@@ -45,7 +45,7 @@ jobs:
         run: npm run type-check
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:ci
 
       - name: Unit tests with coverage
         run: npx vitest run --coverage
