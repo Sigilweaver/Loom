@@ -84,12 +84,17 @@ export default function ConfigurationPanel({
                   const defaultConfig = getDefaultCSVConfig();
                   // Preserve existing file path if any
                   const existingFilePath = selectedTool.config?.filePath;
-                  onToolConfigChange?.(selectedTool.id, {
+                  const newConfig: ToolConfig = {
                     category: defaultConfig.category,
                     type: defaultConfig.type,
-                    filePath: existingFilePath,
-                    options: defaultConfig.options
-                  });
+                  };
+                  if (existingFilePath !== undefined && existingFilePath !== null) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  if (defaultConfig.options !== undefined && defaultConfig.options !== null) {
+                    newConfig.options = defaultConfig.options as Record<string, unknown>;
+                  }
+                  onToolConfigChange?.(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -104,9 +109,11 @@ export default function ConfigurationPanel({
               onChangeDataSource={() => {
                 // Reset to data source selector while preserving file path
                 const currentFilePath = selectedTool.config?.filePath;
-                onToolConfigChange?.(selectedTool.id, {
-                  filePath: currentFilePath
-                });
+                const newConfig: ToolConfig = {};
+                if (currentFilePath !== undefined && currentFilePath !== null) {
+                  newConfig.filePath = currentFilePath;
+                }
+                onToolConfigChange?.(selectedTool.id, newConfig);
               }}
             />
           ) : (
