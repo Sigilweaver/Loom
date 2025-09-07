@@ -155,8 +155,10 @@ export class XMLWorkflowManager {
                   // Convert boolean fields
                   options[optionEl.tagName] = value.toLowerCase() === 'true';
                 } else {
-                  // Keep as string
-                  options[optionEl.tagName] = value;
+                  // Keep as string, but unescape special characters
+                  let textValue = value;
+                  textValue = textValue.replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\s/g, ' ');
+                  options[optionEl.tagName] = textValue;
                 }
               }
             });
@@ -248,7 +250,10 @@ export class XMLWorkflowManager {
                 if (Array.isArray(optionsRecord[optionName])) {
                   optionEl.textContent = optionsRecord[optionName].join(',');
                 } else {
-                  optionEl.textContent = String(optionsRecord[optionName]);
+                  let textValue = String(optionsRecord[optionName]);
+                  // Escape special characters for XML storage
+                  textValue = textValue.replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/^ $/, '\\s');
+                  optionEl.textContent = textValue;
                 }
                 optionsEl.appendChild(optionEl);
                 hasNonDefaultOptions = true;
@@ -270,7 +275,10 @@ export class XMLWorkflowManager {
                 if (Array.isArray(value)) {
                   optionEl.textContent = value.join(',');
                 } else {
-                  optionEl.textContent = String(value);
+                  let textValue = String(value);
+                  // Escape special characters for XML storage
+                  textValue = textValue.replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/^ $/, '\\s');
+                  optionEl.textContent = textValue;
                 }
                 optionsEl.appendChild(optionEl);
                 hasNonDefaultOptions = true;
@@ -396,7 +404,10 @@ export class XMLWorkflowManager {
                 if (Array.isArray(optionsRecord[optionName])) {
                   optionEl.textContent = optionsRecord[optionName].join(',');
                 } else {
-                  optionEl.textContent = String(optionsRecord[optionName]);
+                  let textValue = String(optionsRecord[optionName]);
+                  // Escape special characters for XML storage
+                  textValue = textValue.replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/^ $/, '\\s');
+                  optionEl.textContent = textValue;
                 }
                 optionsEl.appendChild(optionEl);
                 hasNonDefaultOptions = true;
@@ -418,7 +429,10 @@ export class XMLWorkflowManager {
                 if (Array.isArray(value)) {
                   optionEl.textContent = value.join(',');
                 } else {
-                  optionEl.textContent = String(value);
+                  let textValue = String(value);
+                  // Escape special characters for XML storage
+                  textValue = textValue.replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/^ $/, '\\s');
+                  optionEl.textContent = textValue;
                 }
                 optionsEl.appendChild(optionEl);
                 hasNonDefaultOptions = true;
