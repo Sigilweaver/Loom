@@ -52,10 +52,55 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
     });
   };
 
+  // Auto-detect delimiter based on file extension
+  const getDelimiterFromFilename = (filename: string): string => {
+    const ext = filename.toLowerCase().split('.').pop();
+    switch (ext) {
+      case 'tsv':
+      case 'tab':
+        return '\t';
+      case 'csv':
+        return ',';
+      case 'txt':
+      case 'dat':
+        // For generic text files, check if user has already set a delimiter
+        return options.sep || ',';
+      default:
+        return ',';
+    }
+  };
+
   const updateFilePath = (value: string) => {
     const newConfig = { ...config };
     if (value) {
       newConfig.filePath = value;
+      
+      // Auto-detect and set delimiter if user hasn't explicitly set one
+      // Only auto-set if current delimiter is default (comma) or not set
+      const currentDelimiter = options.sep || ',';
+      const isDefaultDelimiter = currentDelimiter === ',';
+      
+      if (isDefaultDelimiter) {
+        const autoDelimiter = getDelimiterFromFilename(value);
+        if (autoDelimiter !== currentDelimiter) {
+          const newOptions = { ...options };
+          newOptions.sep = autoDelimiter;
+          newConfig.options = newOptions;
+          
+          // Update custom delimiter state to match
+          if (autoDelimiter === '\t') {
+            setIsCustomDelimiter(false);
+            setCustomDelimiter('');
+          } else if (autoDelimiter === ',') {
+            setIsCustomDelimiter(false);
+            setCustomDelimiter('');
+          } else {
+            // For other delimiters, show as custom
+            setIsCustomDelimiter(true);
+            setCustomDelimiter(autoDelimiter);
+          }
+        }
+      }
     } else {
       delete newConfig.filePath;
     }
@@ -122,7 +167,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             <div className="text-xl">📄</div>
             <div>
               <h3 className="font-medium text-theme-text-primary">CSV Data Source</h3>
-              <p className="text-xs text-theme-text-tertiary">Comma-separated values file</p>
+              <p className="text-xs text-theme-text-tertiary">Delimited text files (CSV, TSV, TAB, TXT)</p>
             </div>
           </div>
           {onChangeDataSource && (
@@ -164,8 +209,10 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                     console.log('Calling Electron showOpenDialog...');
                     const filePath = await window.electronAPI.showOpenDialog({
                       filters: [
+                        { name: 'Delimited Text Files', extensions: ['csv', 'tsv', 'tab', 'txt', 'dat'] },
                         { name: 'CSV Files', extensions: ['csv'] },
-                        { name: 'Text Files', extensions: ['txt'] },
+                        { name: 'TSV Files', extensions: ['tsv', 'tab'] },
+                        { name: 'Text Files', extensions: ['txt', 'dat'] },
                         { name: 'All Files', extensions: ['*'] }
                       ]
                     });
@@ -182,7 +229,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                   // Fallback for web browser
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.accept = '.csv,.txt';
+                  input.accept = '.csv,.tsv,.tab,.txt,.dat';
                   input.onchange = (e) => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
