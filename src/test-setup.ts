@@ -17,6 +17,7 @@ global.IntersectionObserver = class {
   get root() { return null; }
   get rootMargin() { return ''; }
   get thresholds() { return []; }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 // Mock ResizeObserver (used by ReactFlow and other components)
@@ -25,6 +26,7 @@ global.ResizeObserver = class {
   disconnect() {}
   observe() {}
   unobserve() {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 // Mock window.matchMedia
@@ -45,6 +47,7 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock getComputedStyle for layout tests
 global.getComputedStyle = () => ({
   getPropertyValue: () => '',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }) as any;
 
 // Mock requestAnimationFrame and cancelAnimationFrame

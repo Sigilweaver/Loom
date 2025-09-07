@@ -336,7 +336,9 @@ describe('XMLWorkflowManager - Metadata Operations', () => {
     test('handles null and undefined values gracefully', () => {
       // TypeScript should prevent this, but test runtime behavior
       manager.updateMetadata({ 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         name: null as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         description: undefined as any,
         author: 'Valid Author'
       });

@@ -27,6 +27,7 @@ describe('XMLWorkflowManager CSV Configuration', () => {
       type: 'Input',
       x: 100,
       y: 200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       config: csvConfig as any,
       sockets: [{ id: 0, direction: 'output', multiple: false }]
     });
@@ -96,6 +97,7 @@ describe('XMLWorkflowManager CSV Configuration', () => {
     expect(tool.config.type).toBe('csv');
     expect(tool.config.filePath).toBe('/path/to/data.csv');
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = tool.config.options as any;
     expect(options.sep).toBe(';');
     expect(options.encoding).toBe('latin1');
@@ -124,6 +126,7 @@ describe('XMLWorkflowManager CSV Configuration', () => {
       type: 'Input',
       x: 100,
       y: 200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       config: csvConfig as any,
       sockets: [{ id: 0, direction: 'output', multiple: false }]
     });

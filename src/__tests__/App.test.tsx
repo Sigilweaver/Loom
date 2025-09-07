@@ -82,8 +82,10 @@ vi.mock('../components/ToolPalette', () => ({
 }));
 
 vi.mock('../components/Canvas', () => {
-  const forwardRef = require('react').forwardRef;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { forwardRef } = require('react');
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     default: forwardRef((_props: any, ref: any) => (
       <div data-testid="canvas" ref={ref}>Canvas</div>
     ))

@@ -256,6 +256,7 @@ describe('XMLWorkflowManager - Edge Cases and Error Scenarios', () => {
     });
 
     test('handles configuration with circular references', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const circularObj: any = { name: 'circular' };
       circularObj.self = circularObj;
 
@@ -421,6 +422,7 @@ describe('XMLWorkflowManager - Edge Cases and Error Scenarios', () => {
 
       // Try to add an invalid tool (this might not fail, depending on implementation)
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invalidTool: any = {
           id: null,
           type: undefined,

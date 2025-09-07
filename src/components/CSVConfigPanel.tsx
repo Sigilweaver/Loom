@@ -14,7 +14,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
 
   const options = config.options || {};
 
-  const updateOption = (key: keyof CSVOptions, value: any) => {
+  const updateOption = (key: keyof CSVOptions, value: unknown) => {
     const newOptions = { ...options };
     
     // Remove if reverting to default, otherwise set value
@@ -23,7 +23,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
         !isDifferentFromDefault(key, value)) {
       delete newOptions[key];
     } else {
-      (newOptions as any)[key] = value;
+      (newOptions as Record<string, unknown>)[key] = value;
     }
 
     onChange({
@@ -447,7 +447,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             </label>
             <select
               value={options.on_bad_lines || ''}
-              onChange={(e) => updateOption('on_bad_lines', e.target.value === 'error' || !e.target.value ? undefined : e.target.value as any)}
+              onChange={(e) => updateOption('on_bad_lines', e.target.value === 'error' || !e.target.value ? undefined : e.target.value)}
               className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
                          bg-theme-surface-elevated text-theme-text-primary
                          focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"

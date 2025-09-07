@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Notification from './components/Notification';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { Tool, Wire, ToolCategory } from './domain/workflow/entities/workflow';
+import { Tool, Wire, ToolCategory, ToolConfig } from './domain/workflow/entities/workflow';
 import { XMLWorkflowManager } from './utils/XMLWorkflowManager';
 import { HistoryManager } from './utils/HistoryManager';
 import { buildClipboardFragment, applyClipboardFragment } from './utils/XMLClipboard';
@@ -129,7 +129,7 @@ function App() {
   };
 
   // Tool configuration update function
-  const handleToolConfigChange = (toolId: string, config: any) => {
+  const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
     const preXml = xmlManager.toXMLString();
     history.checkpoint(preXml, 'Before Config Change');
     

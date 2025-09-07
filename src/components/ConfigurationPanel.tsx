@@ -1,4 +1,4 @@
-import { Tool } from '../domain/workflow/entities/workflow';
+import { Tool, ToolConfig } from '../domain/workflow/entities/workflow';
 import ConfigurationHeader from './ConfigurationHeader';
 import WorkflowConfiguration from './WorkflowConfiguration';
 import ResizablePanel from './ResizablePanel';
@@ -18,7 +18,7 @@ interface ConfigurationPanelProps {
     created: string;
   };
   onWorkflowMetaChange: (meta: { name: string; description: string; author: string }) => void;
-  onToolConfigChange?: (toolId: string, config: any) => void;
+  onToolConfigChange?: (toolId: string, config: ToolConfig) => void;
 }
 
 export default function ConfigurationPanel({
@@ -99,7 +99,7 @@ export default function ConfigurationPanel({
             <CSVConfigPanel
               config={selectedTool.config as unknown as CSVConfig}
               onChange={(config) => {
-                onToolConfigChange?.(selectedTool.id, config);
+                onToolConfigChange?.(selectedTool.id, config as unknown as ToolConfig);
               }}
               onChangeDataSource={() => {
                 // Reset to data source selector while preserving file path

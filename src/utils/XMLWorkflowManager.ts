@@ -138,7 +138,7 @@ export class XMLWorkflowManager {
         Array.from(configEl.children).forEach(child => {
           if (child.tagName === 'options') {
             // Handle nested options element
-            const options: Record<string, any> = {};
+            const options: Record<string, unknown> = {};
             Array.from(child.children).forEach(optionEl => {
               const value = optionEl.textContent;
               if (value) {
@@ -218,7 +218,7 @@ export class XMLWorkflowManager {
       // Handle options specially - create nested <options> element
       const options = tool.config.options;
       if (options && typeof options === 'object' && !Array.isArray(options) && options.constructor === Object) {
-        const optionsRecord = options as Record<string, any>;
+        const optionsRecord = options as Record<string, unknown>;
         if (Object.keys(optionsRecord).length > 0) {
           const optionsEl = this.document.createElement('options');
           let hasNonDefaultOptions = false;
@@ -366,7 +366,7 @@ export class XMLWorkflowManager {
       // Handle options specially - create nested <options> element
       const options = configuration.options;
       if (options && typeof options === 'object' && !Array.isArray(options) && options.constructor === Object) {
-        const optionsRecord = options as Record<string, any>;
+        const optionsRecord = options as Record<string, unknown>;
         if (Object.keys(optionsRecord).length > 0) {
           const optionsEl = this.document.createElement('options');
           let hasNonDefaultOptions = false;

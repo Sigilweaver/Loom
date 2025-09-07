@@ -34,7 +34,7 @@ export interface CSVOptions {
   cache_dates?: boolean;
   iterator?: boolean;
   chunksize?: number;
-  compression?: string | Record<string, any>;
+  compression?: string | Record<string, unknown>;
   thousands?: string;
   decimal?: string;
   lineterminator?: string;
@@ -49,7 +49,7 @@ export interface CSVOptions {
   low_memory?: boolean;
   memory_map?: boolean;
   float_precision?: 'high' | 'legacy' | 'round_trip';
-  storage_options?: Record<string, any>;
+  storage_options?: Record<string, unknown>;
   dtype_backend?: 'numpy_nullable' | 'pyarrow';
   encoding_errors?: 'strict' | 'ignore' | 'replace';
 }
@@ -62,22 +62,22 @@ export interface CSVConfig {
 }
 
 // Pandas defaults - only store non-default values in XML
-export const PANDAS_CSV_DEFAULTS: Required<Omit<CSVOptions, 'converters' | 'date_parser' | 'storage_options'>> = {
+export const PANDAS_CSV_DEFAULTS: Record<string, unknown> = {
   sep: ',',
-  delimiter: undefined as any, // alias for sep
+  delimiter: undefined, // alias for sep
   header: 'infer',
-  names: undefined as any,
-  index_col: undefined as any,
-  usecols: undefined as any,
-  dtype: undefined as any,
-  engine: undefined as any, // pandas auto-selects
-  true_values: undefined as any,
-  false_values: undefined as any,
+  names: undefined,
+  index_col: undefined,
+  usecols: undefined,
+  dtype: undefined,
+  engine: undefined, // pandas auto-selects
+  true_values: undefined,
+  false_values: undefined,
   skipinitialspace: false,
-  skiprows: undefined as any,
+  skiprows: undefined,
   skipfooter: 0,
-  nrows: undefined as any,
-  na_values: undefined as any,
+  nrows: undefined,
+  na_values: undefined,
   keep_default_na: true,
   na_filter: true,
   verbose: false,
@@ -85,28 +85,28 @@ export const PANDAS_CSV_DEFAULTS: Required<Omit<CSVOptions, 'converters' | 'date
   parse_dates: false,
   infer_datetime_format: false,
   keep_date_col: false,
-  date_format: undefined as any,
+  date_format: undefined,
   dayfirst: false,
   cache_dates: true,
   iterator: false,
-  chunksize: undefined as any,
+  chunksize: undefined,
   compression: 'infer',
-  thousands: undefined as any,
+  thousands: undefined,
   decimal: '.',
-  lineterminator: undefined as any,
+  lineterminator: undefined,
   quotechar: '"',
   quoting: 0, // csv.QUOTE_MINIMAL
   doublequote: true,
-  escapechar: undefined as any,
-  comment: undefined as any,
-  encoding: undefined as any, // pandas auto-detects by default
+  escapechar: undefined,
+  comment: undefined,
+  encoding: undefined, // pandas auto-detects by default
   encoding_errors: 'strict',
-  dialect: undefined as any,
+  dialect: undefined,
   on_bad_lines: 'error',
   delim_whitespace: false,
   low_memory: true,
   memory_map: false,
-  float_precision: undefined as any,
+  float_precision: undefined,
   dtype_backend: 'numpy_nullable',
 };
 
@@ -122,7 +122,7 @@ export function getDefaultCSVConfig(): CSVConfig {
 }
 
 // Check if a value differs from pandas default
-export function isDifferentFromDefault(key: keyof CSVOptions, value: any): boolean {
+export function isDifferentFromDefault(key: keyof CSVOptions, value: unknown): boolean {
   const defaultValue = PANDAS_CSV_DEFAULTS[key as keyof typeof PANDAS_CSV_DEFAULTS];
   
   // Handle arrays
