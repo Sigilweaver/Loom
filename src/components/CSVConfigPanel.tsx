@@ -9,10 +9,16 @@ interface CSVConfigPanelProps {
 
 export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange, onChangeDataSource }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [customDelimiter, setCustomDelimiter] = useState('');
-  const [customHeaderRow, setCustomHeaderRow] = useState('');
-
+  
   const options = config.options || {};
+  
+  // Check if current separator is a custom one (not in presets)
+  const currentSep = options.sep || ',';
+  const isCurrentSepInPresets = DELIMITER_PRESETS.some(p => p.value === currentSep && p.value !== 'custom');
+  
+  const [isCustomDelimiter, setIsCustomDelimiter] = useState(!isCurrentSepInPresets);
+  const [customDelimiter, setCustomDelimiter] = useState(isCurrentSepInPresets ? '' : currentSep);
+  const [customHeaderRow, setCustomHeaderRow] = useState('');
 
   const updateOption = (key: keyof CSVOptions, value: unknown) => {
     const newOptions = { ...options };
@@ -45,8 +51,10 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
   // Handle delimiter selection
   const handleDelimiterChange = (preset: string) => {
     if (preset === 'custom') {
-      setCustomDelimiter(options.sep || '');
+      setIsCustomDelimiter(true);
+      setCustomDelimiter(options.sep || ','); // Initialize with current separator
     } else {
+      setIsCustomDelimiter(false);
       updateOption('sep', preset);
       setCustomDelimiter('');
     }
@@ -69,8 +77,14 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
   };
 
   const getCurrentDelimiterPreset = () => {
+    // If we're in custom mode, return 'custom'
+    if (isCustomDelimiter) {
+      return 'custom';
+    }
+    
+    // Otherwise, find the preset that matches current separator
     const currentSep = options.sep || ','; // Default to comma if not set
-    const preset = DELIMITER_PRESETS.find(p => p.value === currentSep);
+    const preset = DELIMITER_PRESETS.find(p => p.value === currentSep && p.value !== 'custom');
     return preset ? preset.value : 'custom';
   };
 
@@ -206,8 +220,17 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                   type="text"
                   value={customDelimiter}
                   onChange={(e) => {
-                    setCustomDelimiter(e.target.value);
-                    updateOption('sep', e.target.value);
+                    const newDelimiter = e.target.value;
+                    setCustomDelimiter(newDelimiter);
+                    updateOption('sep', newDelimiter);
+                    
+                    // Check if the entered delimiter matches a preset
+                    const matchingPreset = DELIMITER_PRESETS.find(p => p.value === newDelimiter && p.value !== 'custom');
+                    if (matchingPreset) {
+                      // Switch back to preset mode
+                      setIsCustomDelimiter(false);
+                      setCustomDelimiter('');
+                    }
                   }}
                   placeholder="Enter custom delimiter"
                   maxLength={5}
