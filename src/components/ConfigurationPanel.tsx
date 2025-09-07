@@ -3,6 +3,8 @@ import ConfigurationHeader from './ConfigurationHeader';
 import WorkflowConfiguration from './WorkflowConfiguration';
 import ResizablePanel from './ResizablePanel';
 import { DataSourceSelector } from './DataSourceSelector';
+import { CSVConfigPanel } from './CSVConfigPanel';
+import { getDefaultCSVConfig, CSVConfig } from '../domain/dataSources/csv';
 
 interface ConfigurationPanelProps {
   selectedTool: Tool | null;
@@ -16,6 +18,7 @@ interface ConfigurationPanelProps {
     created: string;
   };
   onWorkflowMetaChange: (meta: { name: string; description: string; author: string }) => void;
+  onToolConfigChange?: (toolId: string, config: any) => void;
 }
 
 export default function ConfigurationPanel({
@@ -23,7 +26,8 @@ export default function ConfigurationPanel({
   workflowMeta,
   toolCount,
   wireCount,
-  onWorkflowMetaChange
+  onWorkflowMetaChange,
+  onToolConfigChange
 }: ConfigurationPanelProps) {
 
   // Show workflow configuration if no tool is selected
@@ -72,13 +76,46 @@ export default function ConfigurationPanel({
       {/* Input tool configuration */}
       {selectedTool.type === 'Input' ? (
         <div className="flex-1 overflow-hidden">
-          <DataSourceSelector
-            onSelect={(dataSource) => {
-              console.log('Selected data source:', dataSource);
-              // TODO: Update tool configuration with selected data source
-            }}
-            selectedId={selectedTool.config?.dataSourceType as string}
-          />
+          {/* Show data source selector if no data source selected */}
+          {!selectedTool.config?.category ? (
+            <DataSourceSelector
+              onSelect={(dataSource) => {
+                if (dataSource.id === 'csv') {
+                  const defaultConfig = getDefaultCSVConfig();
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  onToolConfigChange?.(selectedTool.id, {
+                    category: defaultConfig.category,
+                    type: defaultConfig.type,
+                    filePath: existingFilePath,
+                    options: defaultConfig.options
+                  });
+                }
+              }}
+              selectedId={selectedTool.config?.type as string}
+            />
+          ) : selectedTool.config.category === 'file' && selectedTool.config.type === 'csv' ? (
+            /* CSV Configuration Panel */
+            <CSVConfigPanel
+              config={selectedTool.config as unknown as CSVConfig}
+              onChange={(config) => {
+                onToolConfigChange?.(selectedTool.id, config);
+              }}
+              onChangeDataSource={() => {
+                // Reset to data source selector while preserving file path
+                const currentFilePath = selectedTool.config?.filePath;
+                onToolConfigChange?.(selectedTool.id, {
+                  filePath: currentFilePath
+                });
+              }}
+            />
+          ) : (
+            /* Other data source types */
+            <div className="p-4 text-center text-theme-text-tertiary">
+              <div className="text-sm">Configuration for {String(selectedTool.config.type)} not yet implemented</div>
+              <div className="text-xs mt-2 text-theme-text-disabled">Coming soon...</div>
+            </div>
+          )}
         </div>
       ) : (
         /* Default placeholder for other tools */

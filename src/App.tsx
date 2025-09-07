@@ -128,6 +128,18 @@ function App() {
     xmlManager.updateMetadata(meta);
   };
 
+  // Tool configuration update function
+  const handleToolConfigChange = (toolId: string, config: any) => {
+    const preXml = xmlManager.toXMLString();
+    history.checkpoint(preXml, 'Before Config Change');
+    
+    // Update XML with new configuration
+    xmlManager.updateToolConfiguration(toolId, config);
+    
+    // Update local state
+    updateStateFromXML();
+  };
+
   // Listen for menu actions from Electron
   useEffect(() => {
     // Remove Electron menu listener for pure web app
@@ -388,6 +400,7 @@ function App() {
             toolCount={tools.length}
             wireCount={wires.length}
             onWorkflowMetaChange={handleWorkflowMetaChange}
+            onToolConfigChange={handleToolConfigChange}
           />
           
           <ReactFlowProvider>

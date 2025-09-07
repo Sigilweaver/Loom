@@ -27,7 +27,7 @@ function createWindow(): void {
     title: windowTitle,
     icon: iconPath,
     webPreferences: {
-      preload: join(__dirname, '../preload.js'),
+      preload: join(__dirname, '../dist-electron/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -210,4 +210,31 @@ ipcMain.handle('show-save-dialog', async (_event, defaultPath?: string) => {
   })
   
   return result.canceled ? null : result.filePath
+})
+
+ipcMain.handle('show-open-dialog', async (_event, options?: any) => {
+  console.log('show-open-dialog called with options:', options);
+  
+  // Get the focused window to attach the dialog to
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  
+  const dialogOptions = {
+    properties: ['openFile'] as const,
+    filters: [
+      { name: 'CSV Files', extensions: ['csv'] },
+      { name: 'Text Files', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    ...options
+  };
+  
+  const result = focusedWindow 
+    ? await dialog.showOpenDialog(focusedWindow, dialogOptions)
+    : await dialog.showOpenDialog(dialogOptions);
+  
+  console.log('Dialog result:', result);
+  console.log('FilePaths:', result.filePaths);
+  console.log('Returning:', result.canceled ? null : result.filePaths[0]);
+  
+  return result.canceled ? null : result.filePaths[0];
 })

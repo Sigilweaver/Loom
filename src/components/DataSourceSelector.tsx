@@ -16,7 +16,7 @@ const DATA_SOURCES: DataSource[] = [
     name: 'CSV',
     category: 'file',
     description: 'Comma-separated values file',
-    enabled: false
+    enabled: true
   },
   {
     id: 'excel',
