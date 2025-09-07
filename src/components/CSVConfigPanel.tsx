@@ -1,5 +1,19 @@
 import { useState } from 'react';
-import { CSVOptions, CSVConfig, DELIMITER_PRESETS, HEADER_OPTIONS, isDifferentFromDefault } from '../domain/dataSources/csv';
+import { 
+  CSVOptions, 
+  CSVConfig, 
+  DELIMITER_PRESETS, 
+  HEADER_OPTIONS, 
+  ENCODING_OPTIONS,
+  ENGINE_OPTIONS,
+  QUOTING_OPTIONS,
+  ON_BAD_LINES_OPTIONS,
+  ENCODING_ERRORS_OPTIONS,
+  FLOAT_PRECISION_OPTIONS,
+  DTYPE_BACKEND_OPTIONS,
+  COMPRESSION_OPTIONS,
+  isDifferentFromDefault 
+} from '../domain/dataSources/csv';
 
 interface CSVConfigPanelProps {
   config: CSVConfig;
@@ -189,10 +203,10 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
           </div>
         </div>
 
-        {/* Standard Options */}
+        {/* Basic Options - Top 5 Most Used */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-theme-text-primary border-b border-theme-border-primary pb-1">
-            Basic Options
+            Basic Options (Most Commonly Used)
           </h3>
 
           {/* Delimiter */}
@@ -290,11 +304,20 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
           </label>
           <input
             type="text"
-            value={options.usecols?.join(',') || ''}
+            value={
+              Array.isArray(options.usecols) ? 
+              options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
+              ''
+            }
             onChange={(e) => {
               const value = e.target.value.trim();
               if (value) {
-                const cols = value.split(',').map(c => c.trim()).filter(c => c);
+                const cols = value.split(',').map(c => {
+                  const trimmed = c.trim();
+                  if (!trimmed) return null;
+                  const num = parseInt(trimmed);
+                  return isNaN(num) ? trimmed : num;
+                }).filter(c => c !== null) as (string | number)[];
                 updateOption('usecols', cols.length > 0 ? cols : undefined);
               } else {
                 updateOption('usecols', undefined);
@@ -310,21 +333,30 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
           </p>
         </div>
 
-        {/* Row Limits */}
+        {/* Row Controls */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-theme-text-secondary mb-2">
               Skip Rows
             </label>
             <input
-              type="number"
-              value={options.skiprows ?? ''}
+              type="text"
+              value={Array.isArray(options.skiprows) ? options.skiprows.join(',') : (options.skiprows ?? '')}
               onChange={(e) => {
-                const value = parseInt(e.target.value);
-                updateOption('skiprows', isNaN(value) || value === 0 ? undefined : value);
+                const value = e.target.value.trim();
+                if (!value) {
+                  updateOption('skiprows', undefined);
+                } else if (value.includes(',')) {
+                  // Multiple row numbers
+                  const rows = value.split(',').map(r => parseInt(r.trim())).filter(r => !isNaN(r) && r >= 0);
+                  updateOption('skiprows', rows.length > 0 ? rows : undefined);
+                } else {
+                  // Single row number
+                  const row = parseInt(value);
+                  updateOption('skiprows', isNaN(row) || row < 0 ? undefined : row);
+                }
               }}
-              placeholder="Number of rows to skip (default: 0)"
-              min="0"
+              placeholder="Row number or comma-separated list (e.g., 0,1,2)"
               className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
                          bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
                          focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
@@ -394,91 +426,866 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
 
       {/* Advanced Options */}
       {showAdvanced && (
-        <div className="space-y-4 border-t border-theme-border-primary pt-4">
+        <div className="space-y-6 border-t border-theme-border-primary pt-4">
           <h3 className="text-sm font-semibold text-theme-text-primary">
             Advanced Parameters
           </h3>
           
-          {/* Encoding */}
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-              Encoding
-            </label>
-            <select
-              value={options.encoding || ''}
-              onChange={(e) => updateOption('encoding', e.target.value || undefined)}
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            >
-              <option value="">Auto-detect (default)</option>
-              <option value="utf-8">UTF-8</option>
-              <option value="latin1">Latin-1 (ISO-8859-1)</option>
-              <option value="cp1252">Windows-1252</option>
-              <option value="ascii">ASCII</option>
-              <option value="utf-16">UTF-16</option>
-            </select>
-            <p className="text-xs text-theme-text-tertiary mt-1">
-              Leave as auto-detect unless you have encoding issues
-            </p>
+          {/* Parsing & Structure */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Parsing & Structure
+            </h4>
+            
+            {/* Engine */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Parser Engine
+              </label>
+              <select
+                value={options.engine || ''}
+                onChange={(e) => updateOption('engine', e.target.value || undefined)}
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              >
+                {ENGINE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                C engine is fastest, Python is most feature-complete
+              </p>
+            </div>
+
+            {/* Column Names */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Column Names (optional)
+              </label>
+              <input
+                type="text"
+                value={options.names?.join(',') || ''}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (value) {
+                    const names = value.split(',').map(n => n.trim()).filter(n => n);
+                    updateOption('names', names.length > 0 ? names : undefined);
+                  } else {
+                    updateOption('names', undefined);
+                  }
+                }}
+                placeholder="e.g., name,age,salary"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Custom column names to use (overrides header)
+              </p>
+            </div>
+
+            {/* Index Column */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Index Column (optional)
+              </label>
+              <input
+                type="text"
+                value={
+                  options.index_col === false ? 'false' :
+                  Array.isArray(options.index_col) ? options.index_col.join(',') :
+                  options.index_col || ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (!value) {
+                    updateOption('index_col', undefined);
+                  } else if (value === 'false') {
+                    updateOption('index_col', false);
+                  } else if (value.includes(',')) {
+                    // Multiple columns
+                    const cols = value.split(',').map(c => {
+                      const trimmed = c.trim();
+                      const num = parseInt(trimmed);
+                      return isNaN(num) ? trimmed : num;
+                    }).filter(c => c !== '');
+                    updateOption('index_col', cols.length > 0 ? cols : undefined);
+                  } else {
+                    // Single column
+                    const num = parseInt(value);
+                    updateOption('index_col', isNaN(num) ? value : num);
+                  }
+                }}
+                placeholder="Column name/index, comma-separated, or 'false'"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Column(s) to use as row labels, or 'false' to prevent index
+              </p>
+            </div>
+
+            {/* Data Types */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Data Types (optional)
+              </label>
+              <input
+                type="text"
+                value={
+                  typeof options.dtype === 'string' ? options.dtype :
+                  options.dtype ? Object.entries(options.dtype).map(([k, v]) => `${k}:${v}`).join(',') :
+                  ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (!value) {
+                    updateOption('dtype', undefined);
+                  } else if (value.includes(':')) {
+                    // Object format: column:type,column:type
+                    const pairs = value.split(',').map(pair => {
+                      const [col, type] = pair.split(':').map(s => s.trim());
+                      return col && type ? [col, type] : null;
+                    }).filter(Boolean) as [string, string][];
+                    if (pairs.length > 0) {
+                      updateOption('dtype', Object.fromEntries(pairs));
+                    } else {
+                      updateOption('dtype', undefined);
+                    }
+                  } else {
+                    // String format: all columns same type
+                    updateOption('dtype', value);
+                  }
+                }}
+                placeholder="str, int64, float64, or col1:str,col2:int64"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Global type or column-specific: col1:str,col2:int64
+              </p>
+            </div>
           </div>
 
-          {/* Quote Character */}
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-              Quote Character
-            </label>
-            <input
-              type="text"
-              value={options.quotechar ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                updateOption('quotechar', value === '"' || !value ? undefined : value);
-              }}
-              placeholder='" (double quote - default)'
-              maxLength={1}
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            />
+          {/* Data Handling */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Data Handling
+            </h4>
+
+            {/* True/False Values */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  True Values
+                </label>
+                <input
+                  type="text"
+                  value={options.true_values?.join(',') || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                      const values = value.split(',').map(v => v.trim()).filter(v => v);
+                      updateOption('true_values', values.length > 0 ? values : undefined);
+                    } else {
+                      updateOption('true_values', undefined);
+                    }
+                  }}
+                  placeholder="yes,y,1"
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  False Values
+                </label>
+                <input
+                  type="text"
+                  value={options.false_values?.join(',') || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                      const values = value.split(',').map(v => v.trim()).filter(v => v);
+                      updateOption('false_values', values.length > 0 ? values : undefined);
+                    } else {
+                      updateOption('false_values', undefined);
+                    }
+                  }}
+                  placeholder="no,n,0"
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+            </div>
+
+            {/* Skip Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Skip Initial Space
+                </label>
+                <select
+                  value={options.skipinitialspace ? 'true' : 'false'}
+                  onChange={(e) => updateOption('skipinitialspace', e.target.value === 'true' ? true : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="false">No (default)</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Skip Footer Rows
+                </label>
+                <input
+                  type="number"
+                  value={options.skipfooter ?? ''}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    updateOption('skipfooter', isNaN(value) || value === 0 ? undefined : value);
+                  }}
+                  placeholder="0 (default)"
+                  min="0"
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Comment Character */}
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-              Comment Character
-            </label>
-            <input
-              type="text"
-              value={options.comment ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                updateOption('comment', value || undefined);
-              }}
-              placeholder="Character to mark comments (e.g., #)"
-              maxLength={1}
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            />
+          {/* Missing Values */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Missing Values
+            </h4>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Keep Default NA Values
+                </label>
+                <select
+                  value={options.keep_default_na === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('keep_default_na', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Yes (default)</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  NA Value Detection
+                </label>
+                <select
+                  value={options.na_filter === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('na_filter', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Enable (default)</option>
+                  <option value="false">Disable</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Date/Time */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Date/Time
+            </h4>
+
+            {/* Parse Dates */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Parse Dates
+              </label>
+              <input
+                type="text"
+                value={
+                  typeof options.parse_dates === 'boolean' ? (options.parse_dates ? 'true' : 'false') :
+                  Array.isArray(options.parse_dates) ? options.parse_dates.join(',') :
+                  options.parse_dates ? Object.entries(options.parse_dates).map(([k, v]) => `${k}:[${Array.isArray(v) ? v.join(',') : v}]`).join(';') :
+                  ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (!value || value === 'false') {
+                    updateOption('parse_dates', undefined);
+                  } else if (value === 'true') {
+                    updateOption('parse_dates', true);
+                  } else if (value.includes(':')) {
+                    // Object format: name:[col1,col2];name2:[col3]
+                    const pairs = value.split(';').map(pair => {
+                      const [name, cols] = pair.split(':');
+                      if (name && cols) {
+                        const colList = cols.replace(/[\[\]]/g, '').split(',').map(c => c.trim()).filter(c => c);
+                        return [name.trim(), colList];
+                      }
+                      return null;
+                    }).filter(Boolean) as [string, string[]][];
+                    if (pairs.length > 0) {
+                      updateOption('parse_dates', Object.fromEntries(pairs));
+                    } else {
+                      updateOption('parse_dates', undefined);
+                    }
+                  } else {
+                    // Array format: col1,col2,col3
+                    const cols = value.split(',').map(c => c.trim()).filter(c => c);
+                    updateOption('parse_dates', cols.length > 0 ? cols : undefined);
+                  }
+                }}
+                placeholder="true, col1,col2, or date:[col1,col2];timestamp:[col3]"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                true (index), columns, or named: date:[col1,col2]
+              </p>
+            </div>
+
+            {/* Date Format & Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Date Format
+                </label>
+                <input
+                  type="text"
+                  value={options.date_format || ''}
+                  onChange={(e) => updateOption('date_format', e.target.value || undefined)}
+                  placeholder="%Y-%m-%d, %m/%d/%Y, ISO8601, mixed"
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Day First
+                </label>
+                <select
+                  value={options.dayfirst ? 'true' : 'false'}
+                  onChange={(e) => updateOption('dayfirst', e.target.value === 'true' ? true : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="false">No (default)</option>
+                  <option value="true">Yes (DD/MM format)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Cache Dates
+                </label>
+                <select
+                  value={options.cache_dates === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('cache_dates', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Yes (default)</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Keep Date Columns
+                </label>
+                <select
+                  value={options.keep_date_col ? 'true' : 'false'}
+                  onChange={(e) => updateOption('keep_date_col', e.target.value === 'true' ? true : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="false">No (default)</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Text Processing */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Text Processing
+            </h4>
+
+            {/* Encoding */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Encoding
+                </label>
+                <select
+                  value={options.encoding || ''}
+                  onChange={(e) => updateOption('encoding', e.target.value || undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  {ENCODING_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Encoding Errors
+                </label>
+                <select
+                  value={options.encoding_errors || 'strict'}
+                  onChange={(e) => updateOption('encoding_errors', e.target.value === 'strict' ? undefined : e.target.value)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  {ENCODING_ERRORS_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quote & Escape Characters */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Quote Character
+                </label>
+                <input
+                  type="text"
+                  value={options.quotechar ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateOption('quotechar', value === '"' || !value ? undefined : value);
+                  }}
+                  placeholder='" (default)'
+                  maxLength={1}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Escape Character
+                </label>
+                <input
+                  type="text"
+                  value={options.escapechar ?? ''}
+                  onChange={(e) => updateOption('escapechar', e.target.value || undefined)}
+                  placeholder="None (default)"
+                  maxLength={1}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Comment Character
+                </label>
+                <input
+                  type="text"
+                  value={options.comment ?? ''}
+                  onChange={(e) => updateOption('comment', e.target.value || undefined)}
+                  placeholder="None (default)"
+                  maxLength={1}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+            </div>
+
+            {/* Quoting & Line Options */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Quoting Behavior
+                </label>
+                <select
+                  value={options.quoting ?? 0}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    updateOption('quoting', value === 0 ? undefined : value);
+                  }}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  {QUOTING_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Double Quote
+                </label>
+                <select
+                  value={options.doublequote === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('doublequote', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Yes (default)</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Line Terminator
+                </label>
+                <input
+                  type="text"
+                  value={options.lineterminator ?? ''}
+                  onChange={(e) => updateOption('lineterminator', e.target.value || undefined)}
+                  placeholder="Auto (default)"
+                  maxLength={2}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+            </div>
+
+            {/* Dialect */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                CSV Dialect (optional)
+              </label>
+              <input
+                type="text"
+                value={options.dialect ?? ''}
+                onChange={(e) => updateOption('dialect', e.target.value || undefined)}
+                placeholder="excel, excel-tab, unix"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Overrides delimiter, quoting, and other text processing options
+              </p>
+            </div>
+          </div>
+
+          {/* Performance & Memory */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Performance & Memory
+            </h4>
+
+            {/* Chunking & Iteration */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Iterator Mode
+                </label>
+                <select
+                  value={options.iterator ? 'true' : 'false'}
+                  onChange={(e) => updateOption('iterator', e.target.value === 'true' ? true : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="false">No (default)</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Chunk Size
+                </label>
+                <input
+                  type="number"
+                  value={options.chunksize ?? ''}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    updateOption('chunksize', isNaN(value) ? undefined : value);
+                  }}
+                  placeholder="No chunking (default)"
+                  min="1"
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+            </div>
+
+            {/* Memory Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Low Memory Mode
+                </label>
+                <select
+                  value={options.low_memory === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('low_memory', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Yes (default)</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Memory Mapping
+                </label>
+                <select
+                  value={options.memory_map ? 'true' : 'false'}
+                  onChange={(e) => updateOption('memory_map', e.target.value === 'true' ? true : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="false">No (default)</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Compression */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Compression
+              </label>
+              <select
+                value={options.compression === 'infer' || !options.compression ? 'infer' : 
+                       typeof options.compression === 'string' ? options.compression : 'custom'}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateOption('compression', value === 'infer' ? undefined : 
+                              value === '' ? undefined : value);
+                }}
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              >
+                {COMPRESSION_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Error Handling */}
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
               Error Handling
-            </label>
-            <select
-              value={options.on_bad_lines || ''}
-              onChange={(e) => updateOption('on_bad_lines', e.target.value === 'error' || !e.target.value ? undefined : e.target.value)}
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            >
-              <option value="">Error (default - stop on bad lines)</option>
-              <option value="warn">Warn (show warning but continue)</option>
-              <option value="skip">Skip (silently skip bad lines)</option>
-            </select>
+            </h4>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Bad Lines Handling
+                </label>
+                <select
+                  value={options.on_bad_lines || 'error'}
+                  onChange={(e) => updateOption('on_bad_lines', e.target.value === 'error' ? undefined : e.target.value)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  {ON_BAD_LINES_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Skip Blank Lines
+                </label>
+                <select
+                  value={options.skip_blank_lines === false ? 'false' : 'true'}
+                  onChange={(e) => updateOption('skip_blank_lines', e.target.value === 'false' ? false : undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  <option value="true">Yes (default)</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Numeric & Formatting */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Numeric & Formatting
+            </h4>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Thousands Separator
+                </label>
+                <input
+                  type="text"
+                  value={options.thousands ?? ''}
+                  onChange={(e) => updateOption('thousands', e.target.value || undefined)}
+                  placeholder="None (default)"
+                  maxLength={1}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Decimal Point
+                </label>
+                <input
+                  type="text"
+                  value={options.decimal ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateOption('decimal', value === '.' || !value ? undefined : value);
+                  }}
+                  placeholder=". (default)"
+                  maxLength={1}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                  Float Precision
+                </label>
+                <select
+                  value={options.float_precision || ''}
+                  onChange={(e) => updateOption('float_precision', e.target.value || undefined)}
+                  className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                             bg-theme-surface-elevated text-theme-text-primary
+                             focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+                >
+                  {FLOAT_PRECISION_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Storage & Backend */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              Storage & Backend
+            </h4>
+
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Data Type Backend
+              </label>
+              <select
+                value={options.dtype_backend || 'numpy_nullable'}
+                onChange={(e) => updateOption('dtype_backend', e.target.value === 'numpy_nullable' ? undefined : e.target.value)}
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              >
+                {DTYPE_BACKEND_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                PyArrow backend is experimental but may offer better performance
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Storage Options (optional)
+              </label>
+              <input
+                type="text"
+                value={
+                  options.storage_options ? 
+                  Object.entries(options.storage_options).map(([k, v]) => `${k}:${v}`).join(',') : 
+                  ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (!value) {
+                    updateOption('storage_options', undefined);
+                  } else {
+                    const pairs = value.split(',').map(pair => {
+                      const [key, val] = pair.split(':').map(s => s.trim());
+                      return key && val ? [key, val] : null;
+                    }).filter(Boolean) as [string, string][];
+                    if (pairs.length > 0) {
+                      updateOption('storage_options', Object.fromEntries(pairs));
+                    } else {
+                      updateOption('storage_options', undefined);
+                    }
+                  }
+                }}
+                placeholder="host:example.com,port:443,username:user"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Connection options for remote files (key:value,key:value)
+              </p>
+            </div>
           </div>
         </div>
       )}
