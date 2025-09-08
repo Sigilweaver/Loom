@@ -36,6 +36,13 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
 
   // Local state for Column Names input to avoid frequent state updates
   const [localColumnNames, setLocalColumnNames] = useState(options.names?.join(',') || '');
+  
+  // Local state for Columns to Use input to avoid frequent state updates
+  const [localColumnsToUse, setLocalColumnsToUse] = useState(
+    Array.isArray(options.usecols) ? 
+    options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
+    ''
+  );
 
   const updateOption = (key: keyof CSVOptions, value: unknown) => {
     const newOptions = { ...options };
@@ -65,10 +72,34 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
     }
   }, []);
 
+  // Optimized update function for Columns to Use that only updates on blur/enter
+  const updateColumnsToUse = useCallback((value: string) => {
+    if (value.trim()) {
+      const cols = value.split(',').map(c => {
+        const trimmed = c.trim();
+        if (!trimmed) return null;
+        const num = parseInt(trimmed);
+        return isNaN(num) ? trimmed : num;
+      }).filter(c => c !== null) as (string | number)[];
+      updateOption('usecols', cols.length > 0 ? cols : undefined);
+    } else {
+      updateOption('usecols', undefined);
+    }
+  }, []);
+
   // Sync local state when external config changes
   useEffect(() => {
     setLocalColumnNames(options.names?.join(',') || '');
   }, [options.names]);
+
+  // Sync local state for columns to use when external config changes
+  useEffect(() => {
+    setLocalColumnsToUse(
+      Array.isArray(options.usecols) ? 
+      options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
+      ''
+    );
+  }, [options.usecols]);
 
   // Auto-detect delimiter based on file extension
   const getDelimiterFromFilename = (filename: string): string => {
@@ -579,23 +610,16 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
               </label>
               <input
                 type="text"
-                value={
-                  Array.isArray(options.usecols) ? 
-                  options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
-                  ''
-                }
+                value={localColumnsToUse}
                 onChange={(e) => {
-                  const value = e.target.value.trim();
-                  if (value) {
-                    const cols = value.split(',').map(c => {
-                      const trimmed = c.trim();
-                      if (!trimmed) return null;
-                      const num = parseInt(trimmed);
-                      return isNaN(num) ? trimmed : num;
-                    }).filter(c => c !== null) as (string | number)[];
-                    updateOption('usecols', cols.length > 0 ? cols : undefined);
-                  } else {
-                    updateOption('usecols', undefined);
+                  setLocalColumnsToUse(e.target.value);
+                }}
+                onBlur={(e) => {
+                  updateColumnsToUse(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    updateColumnsToUse(e.currentTarget.value);
                   }
                 }}
                 placeholder="e.g., name,age,salary or 0,1,2"
