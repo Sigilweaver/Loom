@@ -157,14 +157,28 @@ export function getDefaultCSVConfig(): CSVConfig {
 export function isDifferentFromDefault(key: keyof CSVOptions, value: unknown): boolean {
   const defaultValue = PANDAS_CSV_DEFAULTS[key as keyof typeof PANDAS_CSV_DEFAULTS];
   
-  // Handle arrays
-  if (Array.isArray(value) && Array.isArray(defaultValue)) {
-    return JSON.stringify(value) !== JSON.stringify(defaultValue);
-  }
-  
-  // Handle undefined/null
+  // Handle undefined/null values first
   if (value === undefined || value === null) {
     return false; // Don't serialize undefined/null values
+  }
+  
+  // Handle arrays - optimize comparison
+  if (Array.isArray(value)) {
+    // If default is not an array (like undefined), any non-empty array is different
+    if (!Array.isArray(defaultValue)) {
+      return value.length > 0; // Empty arrays are same as undefined
+    }
+    // Both are arrays - do efficient comparison
+    if (value.length !== defaultValue.length) {
+      return true;
+    }
+    // Compare elements without JSON.stringify for better performance
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] !== defaultValue[i]) {
+        return true;
+      }
+    }
+    return false;
   }
   
   return value !== defaultValue;

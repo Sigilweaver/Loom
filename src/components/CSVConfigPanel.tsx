@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { 
   CSVOptions, 
   CSVConfig, 
@@ -34,6 +34,9 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
   const [customDelimiter, setCustomDelimiter] = useState(isCurrentSepInPresets ? '' : currentSep);
   const [customHeaderRow, setCustomHeaderRow] = useState('');
 
+  // Local state for Column Names input to avoid frequent state updates
+  const [localColumnNames, setLocalColumnNames] = useState(options.names?.join(',') || '');
+
   const updateOption = (key: keyof CSVOptions, value: unknown) => {
     const newOptions = { ...options };
     
@@ -51,6 +54,21 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
       options: newOptions
     });
   };
+
+  // Optimized update function for Column Names that only updates on blur/enter
+  const updateColumnNames = useCallback((value: string) => {
+    if (value.trim()) {
+      const names = value.split(',').map(n => n.trim()).filter(n => n);
+      updateOption('names', names.length > 0 ? names : undefined);
+    } else {
+      updateOption('names', undefined);
+    }
+  }, []);
+
+  // Sync local state when external config changes
+  useEffect(() => {
+    setLocalColumnNames(options.names?.join(',') || '');
+  }, [options.names]);
 
   // Auto-detect delimiter based on file extension
   const getDelimiterFromFilename = (filename: string): string => {
@@ -392,14 +410,16 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
               </label>
               <input
                 type="text"
-                value={options.names?.join(',') || ''}
+                value={localColumnNames}
                 onChange={(e) => {
-                  const value = e.target.value.trim();
-                  if (value) {
-                    const names = value.split(',').map(n => n.trim()).filter(n => n);
-                    updateOption('names', names.length > 0 ? names : undefined);
-                  } else {
-                    updateOption('names', undefined);
+                  setLocalColumnNames(e.target.value);
+                }}
+                onBlur={(e) => {
+                  updateColumnNames(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    updateColumnNames(e.currentTarget.value);
                   }
                 }}
                 placeholder="e.g., name,age,salary"
