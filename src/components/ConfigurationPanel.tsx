@@ -34,9 +34,9 @@ export default function ConfigurationPanel({
   if (!selectedTool) {
     return (
       <ResizablePanel
-        defaultWidth={320}
-        minWidth={280}
-        maxWidth={600}
+        defaultWidth={450}
+        minWidth={320}
+        maxWidth={800}
         className="bg-theme-surface-panel border-r border-theme-border-primary flex flex-col"
       >
         {/* Workflow Configuration Header */}
@@ -66,9 +66,9 @@ export default function ConfigurationPanel({
   // Show basic placeholder for all tools except workflow configuration
   return (
     <ResizablePanel
-      defaultWidth={320}
-      minWidth={280}
-      maxWidth={600}
+      defaultWidth={450}
+      minWidth={320}
+      maxWidth={800}
       className="bg-theme-surface-panel border-r border-theme-border-primary flex flex-col"
     >
       <ConfigurationHeader tool={selectedTool} />

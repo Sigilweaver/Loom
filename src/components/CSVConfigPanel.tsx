@@ -241,10 +241,10 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
           </div>
         </div>
 
-        {/* Basic Options - Top 5 Most Used */}
+        {/* Basic Options (Most Commonly Used) */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-theme-text-primary border-b border-theme-border-primary pb-1">
-            Basic Options (Most Commonly Used)
+            Basic Options
           </h3>
 
           {/* Delimiter */}
@@ -284,7 +284,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                       setCustomDelimiter('');
                     }
                   }}
-                  placeholder="Enter custom delimiter"
+                  placeholder="Enter custom delimiter (regex supported)"
                   maxLength={5}
                   className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
                              bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
