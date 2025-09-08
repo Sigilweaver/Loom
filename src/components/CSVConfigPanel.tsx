@@ -334,119 +334,6 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             )}
           </div>
         </div>
-
-        {/* Column Selection */}
-        <div>
-          <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-            Columns to Use (optional)
-          </label>
-          <input
-            type="text"
-            value={
-              Array.isArray(options.usecols) ? 
-              options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
-              ''
-            }
-            onChange={(e) => {
-              const value = e.target.value.trim();
-              if (value) {
-                const cols = value.split(',').map(c => {
-                  const trimmed = c.trim();
-                  if (!trimmed) return null;
-                  const num = parseInt(trimmed);
-                  return isNaN(num) ? trimmed : num;
-                }).filter(c => c !== null) as (string | number)[];
-                updateOption('usecols', cols.length > 0 ? cols : undefined);
-              } else {
-                updateOption('usecols', undefined);
-              }
-            }}
-            placeholder="e.g., name,age,salary or 0,1,2"
-            className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                       bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                       focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-          />
-          <p className="text-xs text-theme-text-tertiary mt-1">
-            Comma-separated column names or indices
-          </p>
-        </div>
-
-        {/* Row Controls */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-              Skip Rows
-            </label>
-            <input
-              type="text"
-              value={Array.isArray(options.skiprows) ? options.skiprows.join(',') : (options.skiprows ?? '')}
-              onChange={(e) => {
-                const value = e.target.value.trim();
-                if (!value) {
-                  updateOption('skiprows', undefined);
-                } else if (value.includes(',')) {
-                  // Multiple row numbers
-                  const rows = value.split(',').map(r => parseInt(r.trim())).filter(r => !isNaN(r) && r >= 0);
-                  updateOption('skiprows', rows.length > 0 ? rows : undefined);
-                } else {
-                  // Single row number
-                  const row = parseInt(value);
-                  updateOption('skiprows', isNaN(row) || row < 0 ? undefined : row);
-                }
-              }}
-              placeholder="Row number or comma-separated list (e.g., 0,1,2)"
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-              Max Rows
-            </label>
-            <input
-              type="number"
-              value={options.nrows ?? ''}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                updateOption('nrows', isNaN(value) ? undefined : value);
-              }}
-              placeholder="All rows (no limit)"
-              min="1"
-              className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                         bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                         focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-            />
-          </div>
-        </div>
-
-        {/* Missing Values */}
-        <div>
-          <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-            Additional Missing Values (optional)
-          </label>
-          <input
-            type="text"
-            value={options.na_values?.join(',') || ''}
-            onChange={(e) => {
-              const value = e.target.value.trim();
-              if (value) {
-                const values = value.split(',').map(v => v.trim()).filter(v => v);
-                updateOption('na_values', values.length > 0 ? values : undefined);
-              } else {
-                updateOption('na_values', undefined);
-              }
-            }}
-            placeholder="e.g., NULL,N/A,missing"
-            className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
-                       bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                       focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
-          />
-          <p className="text-xs text-theme-text-tertiary mt-1">
-            Comma-separated values to treat as NaN (in addition to defaults)
-          </p>
-        </div>
       </div>
 
       {/* Advanced Options Toggle */}
@@ -501,7 +388,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             {/* Column Names */}
             <div>
               <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-                Column Names (optional)
+                Column Names
               </label>
               <input
                 type="text"
@@ -528,7 +415,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             {/* Index Column */}
             <div>
               <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-                Index Column (optional)
+                Index Column
               </label>
               <input
                 type="text"
@@ -570,7 +457,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             {/* Data Types */}
             <div>
               <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-                Data Types (optional)
+                Data Types
               </label>
               <input
                 type="text"
@@ -665,6 +552,91 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
               </div>
             </div>
 
+            {/* Column Selection */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Columns to Use
+              </label>
+              <input
+                type="text"
+                value={
+                  Array.isArray(options.usecols) ? 
+                  options.usecols.map(col => typeof col === 'number' ? col.toString() : col).join(',') : 
+                  ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (value) {
+                    const cols = value.split(',').map(c => {
+                      const trimmed = c.trim();
+                      if (!trimmed) return null;
+                      const num = parseInt(trimmed);
+                      return isNaN(num) ? trimmed : num;
+                    }).filter(c => c !== null) as (string | number)[];
+                    updateOption('usecols', cols.length > 0 ? cols : undefined);
+                  } else {
+                    updateOption('usecols', undefined);
+                  }
+                }}
+                placeholder="e.g., name,age,salary or 0,1,2"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Comma-separated column names or indices
+              </p>
+            </div>
+
+            {/* Skip Rows */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Skip Rows
+              </label>
+              <input
+                type="text"
+                value={Array.isArray(options.skiprows) ? options.skiprows.join(',') : (options.skiprows ?? '')}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (!value) {
+                    updateOption('skiprows', undefined);
+                  } else if (value.includes(',')) {
+                    // Multiple row numbers
+                    const rows = value.split(',').map(r => parseInt(r.trim())).filter(r => !isNaN(r) && r >= 0);
+                    updateOption('skiprows', rows.length > 0 ? rows : undefined);
+                  } else {
+                    // Single row number
+                    const row = parseInt(value);
+                    updateOption('skiprows', isNaN(row) || row < 0 ? undefined : row);
+                  }
+                }}
+                placeholder="Row number or comma-separated list (e.g., 0,1,2)"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+            </div>
+
+            {/* Max Rows */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Max Rows
+              </label>
+              <input
+                type="number"
+                value={options.nrows ?? ''}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  updateOption('nrows', isNaN(value) ? undefined : value);
+                }}
+                placeholder="All rows (no limit)"
+                min="1"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+            </div>
+
             {/* Skip Options */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -742,6 +714,33 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                   <option value="false">Disable</option>
                 </select>
               </div>
+            </div>
+
+            {/* Additional Missing Values */}
+            <div>
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
+                Additional Missing Values
+              </label>
+              <input
+                type="text"
+                value={options.na_values?.join(',') || ''}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  if (value) {
+                    const values = value.split(',').map(v => v.trim()).filter(v => v);
+                    updateOption('na_values', values.length > 0 ? values : undefined);
+                  } else {
+                    updateOption('na_values', undefined);
+                  }
+                }}
+                placeholder="e.g., NULL,N/A,missing"
+                className="w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm
+                           bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
+                           focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus"
+              />
+              <p className="text-xs text-theme-text-tertiary mt-1">
+                Comma-separated values to treat as NaN (in addition to defaults)
+              </p>
             </div>
           </div>
 
@@ -1031,7 +1030,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             {/* Dialect */}
             <div>
               <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-                CSV Dialect (optional)
+                CSV Dialect
               </label>
               <input
                 type="text"
@@ -1290,7 +1289,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
 
             <div>
               <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-                Storage Options (optional)
+                Storage Options
               </label>
               <input
                 type="text"
