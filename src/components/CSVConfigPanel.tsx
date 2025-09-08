@@ -199,14 +199,9 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
             />
             <button
               onClick={async () => {
-                console.log('Browse button clicked');
-                console.log('window.electronAPI available:', !!window.electronAPI);
-                console.log('showOpenDialog available:', !!window.electronAPI?.showOpenDialog);
-                
                 // Use Electron's file dialog if available, otherwise fallback
                 if (window.electronAPI?.showOpenDialog) {
                   try {
-                    console.log('Calling Electron showOpenDialog...');
                     const filePath = await window.electronAPI.showOpenDialog({
                       filters: [
                         { name: 'Delimited Text Files', extensions: ['csv', 'tsv', 'tab', 'txt', 'dat'] },
@@ -216,16 +211,13 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                         { name: 'All Files', extensions: ['*'] }
                       ]
                     });
-                    console.log('Electron dialog returned:', filePath);
                     if (filePath) {
-                      console.log('Setting file path to:', filePath);
                       updateFilePath(filePath);
                     }
                   } catch (error) {
                     console.error('Error opening file dialog:', error);
                   }
                 } else {
-                  console.log('Using fallback browser file input');
                   // Fallback for web browser
                   const input = document.createElement('input');
                   input.type = 'file';
@@ -234,7 +226,6 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
                       // In browser, we can only get the file name
-                      console.log('Browser fallback - file name:', file.name);
                       updateFilePath(file.name);
                     }
                   };
