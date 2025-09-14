@@ -128,29 +128,5 @@
             </a>
 
     </main>
-    
-    <!-- Simple JavaScript for error reporting -->
-    <script>
-        // Log 404 errors for analytics
-        if (window.navigator && 'sendBeacon' in navigator) {
-            const errorData = {
-                type: '404',
-                url: window.location.href,
-                referrer: document.referrer,
-                timestamp: Date.now()
-            };
-            
-            // In production, you would send this to your analytics endpoint
-            console.log('404 Error logged:', errorData);
-        }
-        
-        // Focus management for accessibility
-        document.addEventListener('DOMContentLoaded', function() {
-            const mainContent = document.getElementById('main-content');
-            if (mainContent) {
-                mainContent.focus();
-            }
-        });
-    </script>
 </body>
 </html>
