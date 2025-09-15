@@ -40,12 +40,12 @@ export interface ToolDefinition {
   type: string;
   name: string;
   icon: string;
-  category: 'inout' | 'preparation' | 'join' | 'aggregate';
+  category: 'inout' | 'preparation' | 'join' | 'aggregate' | 'testing';
   defaultConfig: ToolConfig;
   sockets: Socket[];
 }
 
-export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join' | 'aggregate';
+export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join' | 'aggregate' | 'testing';
 
 export interface ConnectionState {
   isConnecting: boolean;

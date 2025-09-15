@@ -13,6 +13,10 @@ const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] = 
   { id: 'preparation', name: 'Preparation', color: 'bg-theme-tool-preparation', icon: '🔧' },
   { id: 'join', name: 'Join', color: 'bg-theme-tool-join', icon: '🔗' },
   { id: 'aggregate', name: 'Aggregate', color: 'bg-theme-tool-aggregate', icon: '📊' },
+  // Testing tab only visible in development mode
+  ...(import.meta.env.MODE === 'development' ? [
+    { id: 'testing' as ToolCategory, name: 'Testing', color: 'bg-theme-tool-preparation', icon: '🧪' }
+  ] : []),
 ];
 
 export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps) {

@@ -4,6 +4,7 @@ import WorkflowConfiguration from './WorkflowConfiguration';
 import ResizablePanel from './ResizablePanel';
 import { DataSourceSelector } from './DataSourceSelector';
 import { CSVConfigPanel } from './CSVConfigPanel';
+import { ConfigTestingPanel } from './ConfigTestingPanel';
 import { getDefaultCSVConfig, CSVConfig } from '../domain/dataSources/csv';
 
 interface ConfigurationPanelProps {
@@ -123,6 +124,16 @@ export default function ConfigurationPanel({
               <div className="text-xs mt-2 text-theme-text-disabled">Coming soon...</div>
             </div>
           )}
+        </div>
+      ) : selectedTool.type === 'ConfigTesting' ? (
+        /* Config Testing Tool (Development Only) */
+        <div className="flex-1 overflow-hidden">
+          <ConfigTestingPanel
+            config={selectedTool.config}
+            onChange={(config) => {
+              onToolConfigChange?.(selectedTool.id, config as ToolConfig);
+            }}
+          />
         </div>
       ) : (
         /* Default placeholder for other tools */
