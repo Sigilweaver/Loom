@@ -1,5 +1,5 @@
 import React from 'react';
-import { ConfigFile, BrowserFileWarning } from './primitives';
+import { ConfigFile, ConfigBoolean, BrowserFileWarning } from './primitives';
 
 interface ConfigTestingPanelProps {
   config: Record<string, unknown>;
@@ -118,6 +118,109 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({ config, 
             </div>
           </div>
 
+          {/* ConfigBoolean Primitive Test */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              ConfigBoolean - Checkbox Input
+            </h4>
+            
+            {/* Basic Boolean Example */}
+            <ConfigBoolean
+              value={config.hasHeader as boolean | string | undefined}
+              onChange={(value) => updateConfig('hasHeader', value)}
+              label="Has Header Row"
+              description="First row contains column names"
+              defaultValue={true}
+            />
+            
+            {/* Boolean with false default */}
+            <ConfigBoolean
+              value={config.skipBadLines as boolean | string | undefined}
+              onChange={(value) => updateConfig('skipBadLines', value)}
+              label="Skip Bad Lines"
+              description="Skip lines with parsing errors instead of failing"
+              defaultValue={false}
+            />
+            
+            {/* Boolean for optional feature */}
+            <ConfigBoolean
+              value={config.inferSchemaLength as boolean | string | undefined}
+              onChange={(value) => updateConfig('inferSchemaLength', value)}
+              label="Infer Schema Length"
+              description="Scan more rows to infer column types"
+              defaultValue={false}
+            />
+            
+            {/* Disabled example */}
+            <ConfigBoolean
+              value={config.readOnly as boolean | string | undefined}
+              onChange={(value) => updateConfig('readOnly', value)}
+              label="Read Only Mode (Disabled)"
+              description="This option is currently disabled"
+              defaultValue={true}
+              disabled={true}
+            />
+            
+            <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded">
+              <div className="font-medium mb-2">Current Boolean Values (undefined = use default):</div>
+              <div>Has Header: <code className="bg-theme-surface-panel px-1 rounded">
+                {config.hasHeader == null ? 'undefined (default: true)' : config.hasHeader.toString()}
+              </code></div>
+              <div>Skip Bad Lines: <code className="bg-theme-surface-panel px-1 rounded">
+                {config.skipBadLines == null ? 'undefined (default: false)' : config.skipBadLines.toString()}
+              </code></div>
+              <div>Infer Schema: <code className="bg-theme-surface-panel px-1 rounded">
+                {config.inferSchemaLength == null ? 'undefined (default: false)' : config.inferSchemaLength.toString()}
+              </code></div>
+              <div>Read Only: <code className="bg-theme-surface-panel px-1 rounded">
+                {config.readOnly == null ? 'undefined (default: true)' : config.readOnly.toString()}
+              </code></div>
+            </div>
+            
+            {/* XML Emission Demo */}
+            <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded border-l-2 border-theme-interactive-accent">
+              <div className="font-medium mb-2">XML Emission Logic (automatic):</div>
+              <div className="font-mono text-xs space-y-1">
+                {config.hasHeader != null ? (
+                  <div className="text-theme-text-primary">
+                    has_header="{config.hasHeader.toString()}" 
+                    <span className="text-theme-text-tertiary ml-2">// Override default</span>
+                  </div>
+                ) : (
+                  <div className="text-theme-text-disabled">
+                    {/* has_header omitted - using Polars default (true) */}
+                  </div>
+                )}
+                
+                {config.skipBadLines != null ? (
+                  <div className="text-theme-text-primary">
+                    skip_bad_lines="{config.skipBadLines.toString()}"
+                    <span className="text-theme-text-tertiary ml-2">// Override default</span>
+                  </div>
+                ) : (
+                  <div className="text-theme-text-disabled">
+                    {/* skip_bad_lines omitted - using Polars default (false) */}
+                  </div>
+                )}
+                
+                {config.inferSchemaLength != null ? (
+                  <div className="text-theme-text-primary">
+                    infer_schema_length="{config.inferSchemaLength.toString()}"
+                    <span className="text-theme-text-tertiary ml-2">// Override default</span>
+                  </div>
+                ) : (
+                  <div className="text-theme-text-disabled">
+                    {/* infer_schema_length omitted - using Polars default (false) */}
+                  </div>
+                )}
+              </div>
+              <div className="mt-2 text-theme-text-disabled">
+                ConfigBoolean automatically sets undefined when value equals default. 
+                XML generation simply checks: if (value != null) emit_attribute();
+              </div>
+            </div>
+          </div>
+
           {/* Placeholder for other primitives */}
           <div className="space-y-4 border-t border-theme-border-primary pt-4">
             <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
@@ -147,7 +250,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({ config, 
           <div className="text-center py-8 text-theme-text-tertiary border-t border-theme-border-primary">
             <div className="text-2xl mb-2">🏗️</div>
             <p className="text-sm font-medium">More Primitives Coming Soon</p>
-            <p className="text-xs mt-1">ConfigBoolean, ConfigText, ConfigNumber, ConfigSelect</p>
+            <p className="text-xs mt-1">ConfigText, ConfigNumber, ConfigSelect</p>
           </div>
         </div>
       </div>
