@@ -818,7 +818,7 @@ export const CSVConfigPanel: React.FC<CSVConfigPanelProps> = ({ config, onChange
                     const pairs = value.split(';').map(pair => {
                       const [name, cols] = pair.split(':');
                       if (name && cols) {
-                        const colList = cols.replace(/[\[\]]/g, '').split(',').map(c => c.trim()).filter(c => c);
+                        const colList = cols.replace(/[[\]]/g, '').split(',').map(c => c.trim()).filter(c => c);
                         return [name.trim(), colList];
                       }
                       return null;
