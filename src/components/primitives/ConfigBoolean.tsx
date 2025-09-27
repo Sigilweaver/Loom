@@ -1,8 +1,15 @@
-import React from 'react';
+import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import React from "react";
+import { calculateShouldEmit, useXMLEmission } from "./hooks";
 
 export interface ConfigBooleanProps {
   value: boolean | string | undefined; // Allow undefined for "not set" state
-  onChange: (value: boolean | undefined) => void; // undefined = use default (don't emit)
+  onChange: (
+    value: boolean | undefined,
+    emitPatch: XMLEmissionMap,
+    shouldEmit: boolean
+  ) => void;
+  configKey: string;
   label?: string;
   description?: string;
   defaultValue?: boolean;
@@ -14,12 +21,11 @@ export interface ConfigBooleanProps {
  * (only emit when different from default)
  */
 export const shouldEmitBoolean = (
-  value: boolean | string | undefined, 
+  value: boolean | string | undefined,
   defaultValue: boolean = false
 ): boolean => {
-  if (value === undefined) return false;
-  const booleanValue = typeof value === 'string' ? value === 'true' : Boolean(value);
-  return booleanValue !== defaultValue;
+  const normalized = value === undefined ? undefined : getBooleanForXML(value);
+  return calculateShouldEmit(normalized, defaultValue);
 };
 
 /**
@@ -28,25 +34,27 @@ export const shouldEmitBoolean = (
 export const getBooleanForXML = (
   value: boolean | string | undefined
 ): boolean => {
-  return typeof value === 'string' ? value === 'true' : Boolean(value);
+  return typeof value === "string" ? value === "true" : Boolean(value);
 };
 
 /**
  * Simple boolean checkbox primitive with no business logic
  * Tracks value vs defaultValue for XML emission logic
- * 
+ *
  * @example
  * // Simple checkbox
- * <ConfigBoolean 
- *   value={hasHeader} 
- *   onChange={setHasHeader} 
- *   label="Has Header Row" 
+ * <ConfigBoolean
+ *   value={hasHeader}
+ *   onChange={(value, emitPatch) => updateConfig(value, emitPatch)}
+ *   configKey="options.hasHeader"
+ *   label="Has Header Row"
  * />
- * 
+ *
  * // With default value tracking
- * <ConfigBoolean 
- *   value={skipRows} 
- *   onChange={setSkipRows} 
+ * <ConfigBoolean
+ *   value={skipRows}
+ *   onChange={(value, emitPatch) => updateConfig(value, emitPatch)}
+ *   configKey="options.skip_rows"
  *   label="Skip Initial Rows"
  *   defaultValue={false}
  *   description="Skip the first row when reading"
@@ -55,29 +63,35 @@ export const getBooleanForXML = (
 export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   value,
   onChange,
+  configKey,
   label = "Enable Option",
   description,
   defaultValue = false,
-  disabled = false
+  disabled = false,
 }) => {
-  
+  const normalizedValue =
+    value === undefined ? undefined : getBooleanForXML(value);
+
+  const { shouldEmit, evaluate, build } = useXMLEmission<boolean>({
+    configKey,
+    value: normalizedValue,
+    defaultValue,
+  });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
-    
-    // Core philosophy: Only emit values that differ from defaults
-    // If the new value equals the default, pass undefined (don't emit)
-    if (newValue === defaultValue) {
-      onChange(undefined);
-    } else {
-      onChange(newValue);
-    }
+    const nextShouldEmit = evaluate(newValue);
+    const emitPatch = build(nextShouldEmit);
+    const emittedValue = nextShouldEmit ? newValue : undefined;
+    onChange(emittedValue, emitPatch, nextShouldEmit);
   };
 
   // Get the effective boolean value for display (use default if undefined)
-  const effectiveValue = value === undefined ? defaultValue : getBooleanForXML(value);
-  
+  const effectiveValue =
+    normalizedValue === undefined ? defaultValue : normalizedValue;
+
   // Check if this value would be emitted in XML
-  const willEmitInXML = shouldEmitBoolean(value, defaultValue);
+  const willEmitInXML = shouldEmit;
 
   return (
     <div>

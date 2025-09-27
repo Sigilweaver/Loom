@@ -1,7 +1,14 @@
 // Domain entities and type contracts for workflow graph (moved from src/types/workflow.ts)
 
 // Tool configuration value type for XML storage
-export type FieldValue = string | number | boolean | string[] | null | Record<string, unknown>[] | Record<string, unknown>;
+export type FieldValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | null
+  | Record<string, unknown>[]
+  | Record<string, unknown>;
 
 export interface WorkflowMeta {
   name: string;
@@ -11,13 +18,18 @@ export interface WorkflowMeta {
   created: string;
 }
 
-export interface ToolConfig {
-  [key: string]: FieldValue;
+export interface XMLEmissionMap {
+  [key: string]: boolean | XMLEmissionMap | undefined;
 }
+
+export type ToolConfig = {
+  [key: string]: FieldValue | XMLEmissionMap | undefined;
+  _emit?: XMLEmissionMap;
+};
 
 export interface Socket {
   id: number;
-  direction: 'input' | 'output';
+  direction: "input" | "output";
   type?: string;
   multiple?: boolean;
 }
@@ -40,18 +52,24 @@ export interface ToolDefinition {
   type: string;
   name: string;
   icon: string;
-  category: 'inout' | 'preparation' | 'join' | 'aggregate' | 'testing';
+  category: "inout" | "preparation" | "join" | "aggregate" | "testing";
   defaultConfig: ToolConfig;
   sockets: Socket[];
 }
 
-export type ToolCategory = 'favorites' | 'inout' | 'preparation' | 'join' | 'aggregate' | 'testing';
+export type ToolCategory =
+  | "favorites"
+  | "inout"
+  | "preparation"
+  | "join"
+  | "aggregate"
+  | "testing";
 
 export interface ConnectionState {
   isConnecting: boolean;
   startTool?: string;
   startSocket?: number;
-  startSocketType?: 'input' | 'output';
+  startSocketType?: "input" | "output";
   currentX?: number;
   currentY?: number;
 }
