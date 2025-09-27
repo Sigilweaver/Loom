@@ -10,3 +10,8 @@ export {
 } from './ConfigBoolean';
 export { BrowserFileWarning, type BrowserFileWarningProps } from './BrowserFileWarning';
 export { FileConfigSection, type FileConfigSectionProps } from './FileConfigSection';
+export { ConfigField, type ConfigFieldProps } from './ConfigField';
+export {
+  ConfigValidationMessage,
+  type ConfigValidationMessageProps,
+} from './ConfigValidationMessage';

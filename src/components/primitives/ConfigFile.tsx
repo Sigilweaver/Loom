@@ -1,6 +1,7 @@
 import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
-import React from "react";
+import React, { useId } from "react";
 import { BrowserFileWarning } from "./BrowserFileWarning";
+import { ConfigField } from "./ConfigField";
 import { useXMLEmission } from "./hooks";
 
 export interface FileFilter {
@@ -62,7 +63,9 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   showBrowserWarning = true,
   defaultValue = "",
 }) => {
-  const { build, evaluate } = useXMLEmission<string>({
+  const inputId = useId();
+
+  const { build, evaluate, shouldEmit } = useXMLEmission<string>({
     configKey,
     value,
     defaultValue,
@@ -104,13 +107,16 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   };
 
   return (
-    <div>
-      <label className="block text-sm font-medium text-theme-text-secondary mb-2">
-        {label}
-      </label>
+    <ConfigField
+      label={label}
+      labelFor={inputId}
+      willEmit={shouldEmit}
+      className="space-y-3"
+    >
       <div className="flex space-x-2">
         <input
           type="text"
+          id={inputId}
           value={value}
           onChange={(e) => {
             const nextValue = e.target.value;
@@ -139,6 +145,6 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
 
       {/* Browser limitation warning */}
       {showBrowserWarning && <BrowserFileWarning className="mt-2" />}
-    </div>
+    </ConfigField>
   );
 };
