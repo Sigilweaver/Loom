@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ConfigBoolean } from "../ConfigBoolean";
 
@@ -27,7 +27,9 @@ describe("ConfigBoolean", () => {
 
     render(<Wrapper />);
 
-    const checkbox = screen.getByLabelText("Enable feature") as HTMLInputElement;
+    const checkbox = screen.getByLabelText(
+      "Enable feature"
+    ) as HTMLInputElement;
     const description = screen.getByText("Toggle to enable feature");
 
     expect(checkbox.checked).toBe(false);
