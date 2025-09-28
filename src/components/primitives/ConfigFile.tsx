@@ -18,12 +18,15 @@ export interface ConfigFileProps {
   ) => void;
   placeholder?: string;
   label?: string;
+  description?: React.ReactNode;
   filters?: FileFilter[];
   accept?: string; // For browser fallback
   disabled?: boolean;
   showBrowserWarning?: boolean; // Whether to show browser limitation warning
   configKey: string;
   defaultValue?: string;
+  inlineMessage?: React.ReactNode;
+  required?: boolean;
 }
 
 /**
@@ -57,13 +60,17 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   configKey,
   placeholder = "Enter file path or click Browse...",
   label = "File Path",
+  description,
   filters = [{ name: "All Files", extensions: ["*"] }],
   accept = "*",
   disabled = false,
   showBrowserWarning = true,
   defaultValue = "",
+  inlineMessage,
+  required = false,
 }) => {
   const inputId = useId();
+  const descriptionId = description ? `${inputId}-description` : undefined;
 
   const { shouldEmit, commit } = usePrimitiveEmission<string>({
     configKey,
@@ -107,7 +114,11 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
     <ConfigField
       label={label}
       labelFor={inputId}
+      description={description}
+      descriptionId={descriptionId}
       willEmit={shouldEmit}
+      inlineMessage={inlineMessage}
+      required={required}
       className="space-y-3"
     >
       <div className="flex space-x-2">
@@ -121,6 +132,7 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
           }}
           placeholder={placeholder}
           disabled={disabled}
+          aria-describedby={descriptionId}
           className="flex-1 px-3 py-2 text-sm border rounded-md border-theme-border-primary bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button

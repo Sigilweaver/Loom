@@ -1,5 +1,6 @@
 import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
-import React from "react";
+import React, { ReactNode, useId } from "react";
+import { ConfigField } from "./ConfigField";
 import { calculateShouldEmit, usePrimitiveEmission } from "./hooks";
 
 export interface ConfigBooleanProps {
@@ -14,6 +15,8 @@ export interface ConfigBooleanProps {
   description?: string;
   defaultValue?: boolean;
   disabled?: boolean;
+  inlineMessage?: ReactNode;
+  required?: boolean;
 }
 
 /**
@@ -68,6 +71,8 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   description,
   defaultValue = false,
   disabled = false,
+  inlineMessage,
+  required = false,
 }) => {
   const normalizedValue =
     value === undefined ? undefined : getBooleanForXML(value);
@@ -78,6 +83,9 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
     defaultValue,
     onChange,
   });
+
+  const inputId = useId();
+  const descriptionId = description ? `${inputId}-description` : undefined;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
@@ -92,34 +100,25 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   const willEmitInXML = shouldEmit;
 
   return (
-    <div>
-      <div className="flex items-start space-x-3">
-        <input
-          type="checkbox"
-          checked={effectiveValue}
-          onChange={handleChange}
-          disabled={disabled}
-          className="mt-1 h-4 w-4 text-theme-interactive-accent rounded border-theme-border-primary 
-                     focus:ring-1 focus:ring-theme-border-focus focus:ring-offset-0
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        <div className="flex-1">
-          <label className="text-sm font-medium text-theme-text-primary cursor-pointer select-none">
-            {label}
-          </label>
-          {description && (
-            <p className="text-xs text-theme-text-tertiary mt-1">
-              {description}
-            </p>
-          )}
-          {/* Subtle indicator when value will be emitted in XML */}
-          {willEmitInXML && (
-            <div className="text-xs text-theme-text-disabled mt-1">
-              • Will override default ({defaultValue.toString()}) in XML
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <ConfigField
+      label={label}
+      labelFor={inputId}
+      description={description}
+      descriptionId={descriptionId}
+      inlineMessage={inlineMessage}
+      willEmit={willEmitInXML}
+      required={required}
+      contentClassName="flex items-center gap-3"
+    >
+      <input
+        type="checkbox"
+        id={inputId}
+        checked={effectiveValue}
+        onChange={handleChange}
+        disabled={disabled}
+        aria-describedby={descriptionId}
+        className="h-4 w-4 text-theme-interactive-accent rounded border-theme-border-primary focus:ring-1 focus:ring-theme-border-focus focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+      />
+    </ConfigField>
   );
 };

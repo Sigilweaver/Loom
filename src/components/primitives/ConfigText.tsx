@@ -198,6 +198,7 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
 }) => {
   const inputId = useId();
   const messageId = `${inputId}-validation`;
+  const descriptionId = description ? `${inputId}-description` : undefined;
   const isTextarea = variant === "textarea";
   const isChar = variant === "char";
 
@@ -425,6 +426,17 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
       ? null
       : validationState.message;
 
+  const describedBy = useMemo(() => {
+    const ids = [] as string[];
+    if (descriptionId) {
+      ids.push(descriptionId);
+    }
+    if (validationMessage) {
+      ids.push(messageId);
+    }
+    return ids.length > 0 ? ids.join(" ") : undefined;
+  }, [descriptionId, validationMessage, messageId]);
+
   const baseInputClasses =
     "w-full px-3 py-2 border border-theme-border-primary rounded-md text-sm " +
     "bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary " +
@@ -441,8 +453,10 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
       label={label}
       labelFor={inputId}
       description={description}
+      descriptionId={descriptionId}
       inlineMessage={inlineMessage}
       willEmit={shouldEmit}
+      required={required}
     >
       {isTextarea ? (
         <textarea
@@ -455,7 +469,7 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
           rows={rows}
           className={clsx(baseInputClasses, "resize-y", textAreaClassName)}
           aria-invalid={validationMessage ? true : undefined}
-          aria-describedby={validationMessage ? messageId : undefined}
+          aria-describedby={describedBy}
           spellCheck={spellCheck}
         />
       ) : (
@@ -473,7 +487,7 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
           maxLength={maxLengthAttr}
           className={clsx(baseInputClasses, inputClassName)}
           aria-invalid={validationMessage ? true : undefined}
-          aria-describedby={validationMessage ? messageId : undefined}
+          aria-describedby={describedBy}
         />
       )}
 

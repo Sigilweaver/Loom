@@ -2,14 +2,17 @@ import clsx from "clsx";
 import React, { PropsWithChildren, ReactNode } from "react";
 
 export interface ConfigFieldProps {
-  label?: ReactNode;
-  labelFor?: string;
-  description?: ReactNode;
-  inlineMessage?: ReactNode;
-  willEmit?: boolean;
-  willEmitMessage?: ReactNode;
-  className?: string;
-  contentClassName?: string;
+  label?: ReactNode | undefined;
+  labelFor?: string | undefined;
+  description?: ReactNode | undefined;
+  descriptionId?: string | undefined;
+  inlineMessage?: ReactNode | undefined;
+  willEmit?: boolean | undefined;
+  willEmitMessage?: ReactNode | undefined;
+  required?: boolean | undefined;
+  hideLabel?: boolean | undefined;
+  className?: string | undefined;
+  contentClassName?: string | undefined;
 }
 
 /**
@@ -21,9 +24,12 @@ export const ConfigField: React.FC<PropsWithChildren<ConfigFieldProps>> = ({
   label,
   labelFor,
   description,
+  descriptionId,
   inlineMessage,
   willEmit = false,
   willEmitMessage = "Overrides default in XML",
+  required = false,
+  hideLabel = false,
   className,
   contentClassName,
   children,
@@ -35,9 +41,17 @@ export const ConfigField: React.FC<PropsWithChildren<ConfigFieldProps>> = ({
           {label ? (
             <label
               htmlFor={typeof labelFor === "string" ? labelFor : undefined}
-              className="block text-sm font-medium text-theme-text-secondary"
+              className={clsx(
+                "block text-sm font-medium text-theme-text-secondary",
+                hideLabel && "sr-only"
+              )}
             >
-              {label}
+              <span>{label}</span>
+              {required && (
+                <span className="ml-1 text-theme-status-error" aria-hidden>
+                  *
+                </span>
+              )}
             </label>
           ) : (
             <span />
@@ -49,7 +63,10 @@ export const ConfigField: React.FC<PropsWithChildren<ConfigFieldProps>> = ({
         </div>
       )}
       {description && (
-        <p className="text-xs text-theme-text-tertiary leading-relaxed">
+        <p
+          id={descriptionId}
+          className="text-xs text-theme-text-tertiary leading-relaxed"
+        >
           {description}
         </p>
       )}
