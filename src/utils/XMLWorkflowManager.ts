@@ -143,7 +143,15 @@ export class XMLWorkflowManager {
     }
 
     if (typeof value === "string") {
-      return value.trim().length > 0;
+      if (value.length === 0) {
+        return false;
+      }
+
+      if (value.trim().length > 0) {
+        return true;
+      }
+
+      return value.length === 1;
     }
 
     if (typeof value === "number" || typeof value === "boolean") {

@@ -23,6 +23,8 @@ describe("XMLWorkflowManager emission controls", () => {
     expect(manager.shouldEmitValue(null)).toBe(false);
     expect(manager.shouldEmitValue("")).toBe(false);
     expect(manager.shouldEmitValue("   ")).toBe(false);
+    expect(manager.shouldEmitValue(" ")).toBe(true);
+    expect(manager.shouldEmitValue("\t")).toBe(true);
     expect(manager.shouldEmitValue("value")).toBe(true);
     expect(manager.shouldEmitValue(0)).toBe(true);
     expect(manager.shouldEmitValue(false)).toBe(true);

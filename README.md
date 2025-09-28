@@ -1,6 +1,7 @@
 ## CI builds
 
 GitHub Actions workflow at `.github/workflows/build.yml` builds artifacts for:
+
 - Zipped web bundle (dist-web.zip)
 - Linux: AppImage and Snap
 - macOS: dmg and zip
@@ -74,6 +75,10 @@ src/
 └── main.tsx       # Application entry point
 ```
 
+## Configuration Primitives
+
+Looking for guidance on the reusable configuration controls (`ConfigSelect`, `ConfigNumberRange`, `ConfigBoolean`, etc.)? Start with the philosophy outlined in [`docs/configuration-primitives-philosophy.md`](docs/configuration-primitives-philosophy.md) for defaults, emission wiring, and UX tips.
+
 ## Workflow XML Format
 
 The application generates XML workflows in the following format:
@@ -88,15 +93,18 @@ See the Notes folder for a complete example of the XML format.
 ## Available Tools
 
 ### In/Out (Green)
+
 - **Input Data**: Read data from files
 - **Output Data**: Write data to files
 
 ### Preparation (Blue)
+
 - **Filter**: Filter rows based on conditions
 - **Select**: Select specific columns
 - **Sort**: Sort data by columns
 
 ### Join (Purple)
+
 - **Union**: Combine datasets vertically
 - **Join**: Join datasets on common keys
 

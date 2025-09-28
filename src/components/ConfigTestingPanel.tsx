@@ -611,7 +611,9 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
             </h4>
 
             <ConfigNumberRange
-              value={config.rowSampleRange as ConfigNumberRangeValue | undefined}
+              value={
+                config.rowSampleRange as ConfigNumberRangeValue | undefined
+              }
               onChange={(value, emitPatch, shouldEmit) =>
                 updateConfig("rowSampleRange", value, emitPatch, shouldEmit)
               }

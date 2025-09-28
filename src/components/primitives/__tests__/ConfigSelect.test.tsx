@@ -2,12 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+
 import { ConfigSelect } from "../ConfigSelect";
 
-const OPTIONS = [
-  { value: "comma", label: "Comma" },
-  { value: "tab", label: "Tab" },
-  { value: "pipe", label: "Pipe" },
+const DELIMITER_OPTIONS = [
+  { value: ",", label: "Comma (,)" },
+  { value: "\t", label: "Tab (\\t)" },
+  { value: "|", label: "Pipe (|)" },
 ];
 
 describe("ConfigSelect", () => {
@@ -26,31 +27,87 @@ describe("ConfigSelect", () => {
           }}
           configKey="csv.delimiter"
           label="Delimiter"
-          options={OPTIONS}
-          defaultValue={","}
+          options={DELIMITER_OPTIONS}
+          defaultValue=","
           placeholder="Choose delimiter"
+          emptyOptionLabel="Choose delimiter"
         />
       );
     };
 
     render(<Wrapper />);
 
-    const select = screen.getByLabelText("Delimiter") as HTMLSelectElement;
+    const trigger = screen.getByRole("button", { name: "Delimiter" });
+    expect(trigger).toHaveTextContent("Comma (,)");
 
-    await user.selectOptions(select, "tab");
+    await user.click(trigger);
+    const tabOption = await screen.findByRole("option", { name: /Tab/ });
+    await user.click(tabOption);
 
     expect(handleChange).toHaveBeenLastCalledWith(
-      "tab",
+      "\t",
       { csv: { delimiter: true } },
       true
     );
 
-    await user.selectOptions(select, "");
+    await user.click(trigger);
+    const placeholderOption = await screen.findByRole("option", {
+      name: /Choose delimiter/i,
+    });
+    await user.click(placeholderOption);
 
     expect(handleChange).toHaveBeenLastCalledWith(
       undefined,
       { csv: { delimiter: false } },
       false
+    );
+  });
+
+  it("shows the default option label when no value is provided", () => {
+    render(
+      <ConfigSelect
+        value={undefined}
+        onChange={vi.fn()}
+        configKey="csv.delimiter"
+        label="Delimiter"
+        options={DELIMITER_OPTIONS}
+        defaultValue=","
+        placeholder="Use detected delimiter"
+        emptyOptionLabel="Use detected delimiter"
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Delimiter" });
+    expect(trigger).toHaveTextContent("Comma (,)");
+  });
+
+  it("emits a literal tab character when the Tab option is selected", async () => {
+    const user = userEvent.setup();
+    const handleChange = vi.fn();
+
+    render(
+      <ConfigSelect
+        value={undefined}
+        onChange={handleChange}
+        configKey="csv.delimiter"
+        label="Delimiter"
+        options={DELIMITER_OPTIONS}
+        defaultValue=","
+        placeholder="Use detected delimiter"
+        emptyOptionLabel="Use detected delimiter"
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Delimiter" });
+    await user.click(trigger);
+
+    const tabOption = await screen.findByRole("option", { name: /Tab/ });
+    await user.click(tabOption);
+
+    expect(handleChange).toHaveBeenLastCalledWith(
+      "\t",
+      { csv: { delimiter: true } },
+      true
     );
   });
 
@@ -64,29 +121,29 @@ describe("ConfigSelect", () => {
         onChange={handleChange}
         configKey="csv.encoding"
         label="Encoding"
-        options={OPTIONS}
+        options={DELIMITER_OPTIONS}
         searchable
       />
     );
 
-    const search = screen.getByPlaceholderText(
-      "Search options..."
-    ) as HTMLInputElement;
+    const trigger = screen.getByRole("button", { name: "Encoding" });
+    await user.click(trigger);
 
+    const search = await screen.findByPlaceholderText("Search options...");
     await user.type(search, "tab");
 
     const optionsAfterFilter = screen.getAllByRole("option");
-    expect(optionsAfterFilter.map((option) => option.textContent)).toEqual([
-      "Choose an option",
-      "Tab",
-    ]);
+    expect(
+      optionsAfterFilter.map((option) => option.textContent?.trim())
+    ).toEqual(["Tab (\\t)"]);
 
     await user.clear(search);
     await user.type(search, "zzz");
 
-    expect(
-      await screen.findByText("No options match your search.")
-    ).toBeInTheDocument();
+    const noMatchMessages = await screen.findAllByText(
+      "No options match your search."
+    );
+    expect(noMatchMessages.length).toBeGreaterThan(0);
   });
 
   it("displays base empty message when no options are available", () => {
@@ -101,7 +158,7 @@ describe("ConfigSelect", () => {
     );
 
     expect(screen.getByText("No options available.")).toBeInTheDocument();
-    const select = screen.getByLabelText("Encoding") as HTMLSelectElement;
-    expect(select.disabled).toBe(true);
+    const trigger = screen.getByRole("button", { name: "Encoding" });
+    expect(trigger).toBeDisabled();
   });
 });

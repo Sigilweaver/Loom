@@ -82,4 +82,44 @@ describe("ConfigText", () => {
     expect(handleChange).not.toHaveBeenCalled();
     expect(message).toHaveAttribute("role", "alert");
   });
+
+  it("still emits values that fail validation while surfacing warnings", async () => {
+    const user = userEvent.setup();
+    const handleChange = vi.fn();
+
+    const Wrapper = () => {
+      const [value, setValue] = useState<string | undefined>(undefined);
+      return (
+        <ConfigText
+          value={value}
+          onChange={(nextValue, emitPatch, shouldEmit) => {
+            setValue(nextValue);
+            handleChange(nextValue, emitPatch, shouldEmit);
+          }}
+          configKey="options.filePattern"
+          label="File Pattern"
+          validation={{
+            pattern: /^.*\.csv$/i,
+            message: "Filename must end with .csv",
+            allowEmpty: true,
+          }}
+        />
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+
+    await user.type(input, "data.txt");
+
+    const warning = await screen.findByText("Filename must end with .csv");
+    expect(warning).toBeInTheDocument();
+
+    expect(handleChange).toHaveBeenLastCalledWith(
+      "data.txt",
+      { options: { filePattern: true } },
+      true
+    );
+  });
 });

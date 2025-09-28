@@ -380,10 +380,6 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
   }, [value, formatDisplayValue, evaluateValidation, reset]);
 
   useEffect(() => {
-    if (!validationState.valid) {
-      return;
-    }
-
     const normalized = validationState.normalized;
     const candidate =
       normalized === "" && !emitEmptyString ? undefined : normalized;
