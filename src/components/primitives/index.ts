@@ -18,6 +18,16 @@ export {
   type FileFilter,
 } from "./ConfigFile";
 export {
+  ConfigNumberRange,
+  type ConfigNumberRangeProps,
+  type ConfigNumberRangeValue,
+} from "./ConfigNumberRange";
+export {
+  ConfigSelect,
+  type ConfigSelectOption,
+  type ConfigSelectProps,
+} from "./ConfigSelect";
+export {
   ConfigText,
   type ConfigTextPresetOption,
   type ConfigTextProps,
