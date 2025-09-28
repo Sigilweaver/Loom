@@ -1,6 +1,11 @@
 import { ToolConfig, XMLEmissionMap } from "@domain/workflow/entities/workflow";
 import React from "react";
-import { BrowserFileWarning, ConfigBoolean, ConfigFile } from "./primitives";
+import {
+  BrowserFileWarning,
+  ConfigBoolean,
+  ConfigFile,
+  ConfigText,
+} from "./primitives";
 import { mergeEmitPatch } from "./primitives/hooks";
 
 interface ConfigTestingPanelProps {
@@ -71,7 +76,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
 
             {/* CSV Filter Example */}
             <ConfigFile
-              value={(config.testCSVFile as string) || ""}
+              value={config.testCSVFile as string | undefined}
               onChange={(value, emitPatch, shouldEmit) =>
                 updateConfig("testCSVFile", value, emitPatch, shouldEmit)
               }
@@ -87,7 +92,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
 
             {/* Excel Filter Example */}
             <ConfigFile
-              value={(config.testExcelFile as string) || ""}
+              value={config.testExcelFile as string | undefined}
               onChange={(value, emitPatch, shouldEmit) =>
                 updateConfig("testExcelFile", value, emitPatch, shouldEmit)
               }
@@ -103,7 +108,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
 
             {/* Data Files Filter Example */}
             <ConfigFile
-              value={(config.testDataFile as string) || ""}
+              value={config.testDataFile as string | undefined}
               onChange={(value, emitPatch, shouldEmit) =>
                 updateConfig("testDataFile", value, emitPatch, shouldEmit)
               }
@@ -126,7 +131,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
 
             {/* Custom Filter Example */}
             <ConfigFile
-              value={(config.testCustomFile as string) || ""}
+              value={config.testCustomFile as string | undefined}
               onChange={(value, emitPatch, shouldEmit) =>
                 updateConfig("testCustomFile", value, emitPatch, shouldEmit)
               }
@@ -329,7 +334,83 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
             </div>
           </div>
 
-          {/* Placeholder for other primitives */}
+          {/* ConfigText Primitive Test */}
+          <div className="space-y-4 border-t border-theme-border-primary pt-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              ConfigText - Text & Character Inputs
+            </h4>
+
+            <ConfigText
+              value={config.datasetName as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("datasetName", value, emitPatch, shouldEmit)
+              }
+              configKey="datasetName"
+              label="Dataset Name"
+              description="Name shown in the workflow UI"
+              placeholder="e.g. Marketing Leads"
+              minLength={3}
+              validation={{ allowEmpty: true }}
+              trim
+            />
+
+            <ConfigText
+              value={config.delimiter as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("delimiter", value, emitPatch, shouldEmit)
+              }
+              configKey="delimiter"
+              label="Delimiter"
+              description="Override the detected delimiter"
+              variant="char"
+              presetOptions={[",", "\\t", "|", ";", " "]}
+              validation={{ allowEmpty: true }}
+              inlineMessage="Select a common delimiter or type a single character"
+            />
+
+            <ConfigText
+              value={config.filePattern as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("filePattern", value, emitPatch, shouldEmit)
+              }
+              configKey="filePattern"
+              label="File Pattern"
+              description="Realtime regex validation ensures the filename ends with .csv"
+              placeholder="example.csv"
+              validation={{
+                pattern: /^.*\.csv$/i,
+                message: "Filename must end with .csv",
+                allowEmpty: true,
+                debounceMs: 250,
+              }}
+            />
+
+            <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded">
+              <div className="font-medium mb-2">Current Text Values:</div>
+              <div>
+                Dataset Name:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {(config.datasetName as string) || "none"}
+                </code>
+              </div>
+              <div>
+                Delimiter:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {(config.delimiter as string)
+                    ? JSON.stringify(config.delimiter)
+                    : "none"}
+                </code>
+              </div>
+              <div>
+                File Pattern:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {(config.filePattern as string) || "none"}
+                </code>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional reusable components */}
           <div className="space-y-4 border-t border-theme-border-primary pt-4">
             <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
               Reusable UI Components
@@ -364,9 +445,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
           <div className="text-center py-8 text-theme-text-tertiary border-t border-theme-border-primary">
             <div className="text-2xl mb-2">🏗️</div>
             <p className="text-sm font-medium">More Primitives Coming Soon</p>
-            <p className="text-xs mt-1">
-              ConfigText, ConfigNumber, ConfigSelect
-            </p>
+            <p className="text-xs mt-1">ConfigNumber, ConfigSelect</p>
           </div>
         </div>
       </div>

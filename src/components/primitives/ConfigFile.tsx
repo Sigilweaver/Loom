@@ -2,7 +2,7 @@ import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
 import React, { useId } from "react";
 import { BrowserFileWarning } from "./BrowserFileWarning";
 import { ConfigField } from "./ConfigField";
-import { useXMLEmission } from "./hooks";
+import { usePrimitiveEmission } from "./hooks";
 
 export interface FileFilter {
   name: string;
@@ -10,9 +10,9 @@ export interface FileFilter {
 }
 
 export interface ConfigFileProps {
-  value: string;
+  value: string | undefined;
   onChange: (
-    value: string,
+    value: string | undefined,
     emitPatch: XMLEmissionMap,
     shouldEmit: boolean
   ) => void;
@@ -65,10 +65,11 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
 }) => {
   const inputId = useId();
 
-  const { build, evaluate, shouldEmit } = useXMLEmission<string>({
+  const { shouldEmit, commit } = usePrimitiveEmission<string>({
     configKey,
     value,
     defaultValue,
+    onChange,
   });
 
   const handleBrowseClick = async () => {
@@ -81,9 +82,7 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
           filters: filters,
         });
         if (filePath) {
-          const nextShouldEmit = evaluate(filePath);
-          const emitPatch = build(nextShouldEmit);
-          onChange(filePath, emitPatch, nextShouldEmit);
+          commit(filePath);
         }
       } catch (error) {
         console.error("Error opening file dialog:", error);
@@ -97,9 +96,7 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) {
           // In browser, we can only get the file name
-          const nextShouldEmit = evaluate(file.name);
-          const emitPatch = build(nextShouldEmit);
-          onChange(file.name, emitPatch, nextShouldEmit);
+          commit(file.name);
         }
       };
       input.click();
@@ -117,27 +114,19 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
         <input
           type="text"
           id={inputId}
-          value={value}
+          value={value ?? ""}
           onChange={(e) => {
             const nextValue = e.target.value;
-            const nextShouldEmit = evaluate(nextValue);
-            const emitPatch = build(nextShouldEmit);
-            onChange(nextValue, emitPatch, nextShouldEmit);
+            commit(nextValue);
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 px-3 py-2 border border-theme-border-primary rounded-md text-sm 
-                     bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary
-                     focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-3 py-2 text-sm border rounded-md border-theme-border-primary bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           onClick={handleBrowseClick}
           disabled={disabled}
-          className="px-4 py-2 bg-theme-surface-panel border border-theme-border-primary rounded-md text-sm
-                     text-theme-text-primary hover:bg-theme-surface-elevated transition-colors
-                     focus:outline-none focus:ring-1 focus:ring-theme-border-focus
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm transition-colors border rounded-md bg-theme-surface-panel border-theme-border-primary text-theme-text-primary hover:bg-theme-surface-elevated focus:outline-none focus:ring-1 focus:ring-theme-border-focus disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Browse
         </button>

@@ -20,12 +20,9 @@ const STATE_STYLES: Record<ValidationState, string> = {
 /**
  * Consistent presentation for validation feedback under config primitives.
  */
-export const ConfigValidationMessage: React.FC<ConfigValidationMessageProps> = ({
-  state = "info",
-  message,
-  className,
-  id,
-}) => {
+export const ConfigValidationMessage: React.FC<
+  ConfigValidationMessageProps
+> = ({ state = "info", message, className, id }) => {
   if (!message) {
     return null;
   }

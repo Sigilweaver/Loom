@@ -1,6 +1,6 @@
 import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
 import React from "react";
-import { calculateShouldEmit, useXMLEmission } from "./hooks";
+import { calculateShouldEmit, usePrimitiveEmission } from "./hooks";
 
 export interface ConfigBooleanProps {
   value: boolean | string | undefined; // Allow undefined for "not set" state
@@ -72,18 +72,16 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   const normalizedValue =
     value === undefined ? undefined : getBooleanForXML(value);
 
-  const { shouldEmit, evaluate, build } = useXMLEmission<boolean>({
+  const { shouldEmit, commit } = usePrimitiveEmission<boolean>({
     configKey,
     value: normalizedValue,
     defaultValue,
+    onChange,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
-    const nextShouldEmit = evaluate(newValue);
-    const emitPatch = build(nextShouldEmit);
-    const emittedValue = nextShouldEmit ? newValue : undefined;
-    onChange(emittedValue, emitPatch, nextShouldEmit);
+    commit(newValue);
   };
 
   // Get the effective boolean value for display (use default if undefined)
