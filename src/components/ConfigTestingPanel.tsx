@@ -4,9 +4,86 @@ import {
   BrowserFileWarning,
   ConfigBoolean,
   ConfigFile,
+  ConfigNumberRange,
+  ConfigSelect,
   ConfigText,
+  type ConfigNumberRangeValue,
 } from "./primitives";
 import { mergeEmitPatch } from "./primitives/hooks";
+
+const CSV_DELIMITER_OPTIONS = [
+  {
+    value: ",",
+    label: "Comma (,)",
+    description: "Default for most CSV exports",
+    keywords: ["comma", "csv", "delimiter"],
+  },
+  {
+    value: "\t",
+    label: "Tab (\\t)",
+    description: "Tab separated values (TSV)",
+    keywords: ["tab", "tsv"],
+  },
+  {
+    value: "|",
+    label: "Pipe (|)",
+    keywords: ["pipe", "log"],
+  },
+  {
+    value: ";",
+    label: "Semicolon (;)",
+    keywords: ["semicolon", "regional"],
+  },
+  {
+    value: ":",
+    label: "Colon (:)",
+    keywords: ["custom"],
+  },
+];
+
+const FILE_ENCODING_OPTIONS = [
+  {
+    value: "utf-8",
+    label: "UTF-8 (default)",
+    description: "Unicode, works for most datasets",
+    keywords: ["unicode", "default"],
+  },
+  {
+    value: "utf-16le",
+    label: "UTF-16 Little Endian",
+    keywords: ["unicode", "double-byte"],
+  },
+  {
+    value: "iso-8859-1",
+    label: "ISO-8859-1",
+    description: "Latin-1 / Western European",
+    keywords: ["latin", "iso"],
+  },
+  {
+    value: "windows-1252",
+    label: "Windows-1252",
+    keywords: ["windows", "legacy"],
+  },
+];
+
+const THEME_MODE_OPTIONS = [
+  {
+    value: "system",
+    label: "Follow system",
+    description: "Automatically switches between dark and light",
+  },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  {
+    value: "high-contrast",
+    label: "High contrast",
+    description: "Optimised for accessibility",
+    disabled: true,
+  },
+];
+
+const ROW_SAMPLE_DEFAULT: ConfigNumberRangeValue = { start: 1, end: 100 };
+const BATCH_WINDOW_DEFAULT: ConfigNumberRangeValue = { start: 0, end: 500 };
 
 interface ConfigTestingPanelProps {
   config: ToolConfig;
@@ -40,6 +117,46 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
 
     onChange(nextConfig);
   };
+
+  const validateBatchWindow = React.useCallback(
+    (range: ConfigNumberRangeValue) => {
+      if (range.start != null && range.end != null) {
+        const span = range.end - range.start;
+        if (span > 500) {
+          return "Limit batches to 500 rows at a time.";
+        }
+      }
+      return null;
+    },
+    []
+  );
+
+  const formatRangeSummary = (range: ConfigNumberRangeValue | undefined) => {
+    if (!range) {
+      return "none";
+    }
+    const { start, end } = range;
+    if (start === undefined && end === undefined) {
+      return "none";
+    }
+    return JSON.stringify(range);
+  };
+
+  const selectDelimiterValue = config.selectDelimiter as string | undefined;
+  const selectDelimiterSummary = selectDelimiterValue
+    ? JSON.stringify(selectDelimiterValue)
+    : "none";
+  const fileEncodingValue = config.fileEncoding as string | undefined;
+  const fileEncodingSummary = fileEncodingValue ?? "none";
+  const themeModeValue = config.themeMode as string | undefined;
+  const themeModeSummary = themeModeValue ?? "system (default)";
+
+  const rowSampleRangeSummary = formatRangeSummary(
+    config.rowSampleRange as ConfigNumberRangeValue | undefined
+  );
+  const batchWindowSummary = formatRangeSummary(
+    config.batchWindow as ConfigNumberRangeValue | undefined
+  );
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar">
@@ -410,6 +527,143 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
             </div>
           </div>
 
+          {/* ConfigSelect Primitive Test */}
+          <div className="space-y-4 border-t border-theme-border-primary pt-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              ConfigSelect - Dropdown Inputs
+            </h4>
+
+            <ConfigSelect
+              value={config.selectDelimiter as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("selectDelimiter", value, emitPatch, shouldEmit)
+              }
+              configKey="csv.delimiter"
+              label="Delimiter Override"
+              description="Pick a delimiter when auto-detection struggles. Search is enabled to make it easy to find uncommon separators."
+              options={CSV_DELIMITER_OPTIONS}
+              searchable
+              placeholder="Use detected delimiter"
+              emptyOptionLabel="Use detected delimiter"
+              defaultValue={","}
+              inlineMessage="Emits only when different from the CSV default (comma)."
+            />
+
+            <ConfigSelect
+              value={config.fileEncoding as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("fileEncoding", value, emitPatch, shouldEmit)
+              }
+              configKey="csv.encoding"
+              label="File Encoding"
+              description="Required field that demonstrates validation and search placeholder customisation."
+              options={FILE_ENCODING_OPTIONS}
+              searchable
+              searchPlaceholder="Search hundreds of encodings"
+              required
+              defaultValue="utf-8"
+              inlineMessage="Empty option removed because this field is required."
+            />
+
+            <ConfigSelect
+              value={config.themeMode as string | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("themeMode", value, emitPatch, shouldEmit)
+              }
+              configKey="ui.theme"
+              label="Theme Mode"
+              description="Search is disabled to keep this focused. The control locks when Read Only Mode (above) is active."
+              options={THEME_MODE_OPTIONS}
+              placeholder="Follow system preference"
+              emptyOptionLabel="Follow system preference"
+              searchable={false}
+              disabled={config.readOnly === true}
+              inlineMessage="Per-instance search toggle off"
+            />
+
+            <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded">
+              <div className="font-medium mb-2">Current Select Values:</div>
+              <div>
+                Delimiter Override:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {selectDelimiterSummary}
+                </code>
+              </div>
+              <div>
+                File Encoding:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {fileEncodingSummary}
+                </code>
+              </div>
+              <div>
+                Theme Mode:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {themeModeSummary}
+                </code>
+              </div>
+            </div>
+          </div>
+
+          {/* ConfigNumberRange Primitive Test */}
+          <div className="space-y-4 border-t border-theme-border-primary pt-4">
+            <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+              ConfigNumberRange - Numeric Ranges
+            </h4>
+
+            <ConfigNumberRange
+              value={config.rowSampleRange as ConfigNumberRangeValue | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("rowSampleRange", value, emitPatch, shouldEmit)
+              }
+              configKey="csv.preview.row_range"
+              label="Row Sample Window"
+              description="Controls how many rows the preview should read. Allows partial ranges so you can set just a start or end."
+              inlineMessage="Runs validation on change for snappy feedback."
+              defaultValue={ROW_SAMPLE_DEFAULT}
+              min={1}
+              max={5000}
+              debounceMs={150}
+            />
+
+            <ConfigNumberRange
+              value={config.batchWindow as ConfigNumberRangeValue | undefined}
+              onChange={(value, emitPatch, shouldEmit) =>
+                updateConfig("batchWindow", value, emitPatch, shouldEmit)
+              }
+              configKey="csv.import.batch_window"
+              label="Batch Upload Window"
+              description="Requires both start and end, clamps to bounds, and enforces a maximum span via custom validation."
+              inlineMessage="Validation waits for blur so operators can tab through quickly."
+              defaultValue={BATCH_WINDOW_DEFAULT}
+              required
+              allowPartial={false}
+              integerOnly
+              min={0}
+              max={1000}
+              clampToBounds
+              validationMode="blur"
+              debounceMs={0}
+              layout="stacked"
+              customValidator={validateBatchWindow}
+            />
+
+            <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded">
+              <div className="font-medium mb-2">Current Range Values:</div>
+              <div>
+                Row Sample Range:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {rowSampleRangeSummary}
+                </code>
+              </div>
+              <div>
+                Batch Window:{" "}
+                <code className="bg-theme-surface-panel px-1 rounded">
+                  {batchWindowSummary}
+                </code>
+              </div>
+            </div>
+          </div>
+
           {/* Additional reusable components */}
           <div className="space-y-4 border-t border-theme-border-primary pt-4">
             <h4 className="text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
@@ -431,21 +685,15 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
             <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded">
               <div className="font-medium mb-1">Note:</div>
               <p>
-                The ConfigFile primitive above automatically includes this
-                warning when showBrowserWarning=true (default).
+                ConfigFile adds this warning automatically when
+                showBrowserWarning=true. Mix and match the new select and range
+                primitives above to mock future configuration ideas.
               </p>
               <p className="mt-1">
-                You can also use BrowserFileWarning standalone in other
-                file-related components.
+                Want to experiment with another primitive? Duplicate one of the
+                examples and point the configKey at a different path.
               </p>
             </div>
-          </div>
-
-          {/* Coming soon */}
-          <div className="text-center py-8 text-theme-text-tertiary border-t border-theme-border-primary">
-            <div className="text-2xl mb-2">🏗️</div>
-            <p className="text-sm font-medium">More Primitives Coming Soon</p>
-            <p className="text-xs mt-1">ConfigNumber, ConfigSelect</p>
           </div>
         </div>
       </div>
