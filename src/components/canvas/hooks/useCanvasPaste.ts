@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Node } from '@xyflow/react';
-import { getXMLClipboard, getLegacyClipboard } from '../clipboardStore';
+import { getXMLClipboard, getLegacyClipboard } from '@state/clipboardStore';
 
 export interface UseCanvasPasteParams {
   onPasteXMLAt: ((anchor: { x: number; y: number }, fragment: string) => Promise<string[]>) | undefined;

@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import type { Node } from '@xyflow/react';
 import type { Tool, Wire } from '@domain/workflow/entities/workflow';
 import { generateUniqueId } from '@utils/id';
-import { getXMLClipboard, setXMLClipboard, getLegacyClipboard, setLegacyClipboard } from '../clipboardStore';
+import { getXMLClipboard, setXMLClipboard, getLegacyClipboard, setLegacyClipboard } from '@state/clipboardStore';
 
 export interface ClipboardDeps {
   tools: Tool[];

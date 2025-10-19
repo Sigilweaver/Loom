@@ -21,7 +21,7 @@ import { CanvasMenus } from './CanvasMenus';
 import { CanvasSurface } from './CanvasSurface';
 import { CanvasDragAndDropLayer } from './CanvasDragAndDropLayer';
 import { alignHorizontally as doAlignH, alignVertically as doAlignV, distributeHorizontally as doDistH, distributeVertically as doDistV, type PositionUpdate } from '@utils/alignDistribute';
-import { getXMLClipboard, getLegacyClipboard } from './clipboardStore';
+import { getXMLClipboard, getLegacyClipboard } from '@state/clipboardStore';
 
 export interface CanvasRef { fitView: () => void; }
 interface Props {

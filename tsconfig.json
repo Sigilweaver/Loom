@@ -21,8 +21,6 @@
     "paths": {
       "@domain/*": ["./src/domain/*"],
       "@state/*": ["./src/state/*"],
-      "@ui/*": ["./src/ui/*"],
-      "@theming/*": ["./src/theming/*"],
       "@utils/*": ["./src/utils/*"],
       "@data/*": ["./src/data/*"],
       "@components/*": ["./src/components/*"],
