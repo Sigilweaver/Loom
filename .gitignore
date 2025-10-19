@@ -110,3 +110,7 @@ package-lock.json
 # Auto-generated files
 *.auto.js
 *.auto.ts
+
+# Copilot files
+.github/copilot-instructions.md
+.github/copilot/
