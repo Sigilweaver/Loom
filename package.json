@@ -33,7 +33,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:unit": "vitest run src/domain src/state"
+    "test:unit": "vitest run src/domain src/state",
+    "test:ui": "vitest --ui",
+    "verify": "npm run -s type-check && npm run -s test && npm run -s lint && echo 'All checks passed!'",
+    "verify:quick": "npm run -s type-check && npm run -s test && echo 'Quick check passed!'"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.16",
