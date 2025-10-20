@@ -1,38 +1,49 @@
+import { useHistoryStore } from "@state/historyStore";
+import { useWorkflowStore } from "@state/workflowStore";
 import { getDefaultCSVConfig } from "../domain/dataSources/csv";
-import { Tool, ToolConfig } from "../domain/workflow/entities/workflow";
+import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { DataSourceSelector } from "./DataSourceSelector";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
 
-interface ConfigurationPanelProps {
-  selectedTool: Tool | null;
-  toolCount?: number;
-  wireCount?: number;
-  workflowMeta: {
-    name: string;
-    description: string;
-    author: string;
-    workflowId: string;
-    created: string;
-  };
-  onWorkflowMetaChange: (meta: {
-    name: string;
-    description: string;
-    author: string;
-  }) => void;
-  onToolConfigChange?: (toolId: string, config: ToolConfig) => void;
-}
+export default function ConfigurationPanel() {
+  // Access stores directly
+  const selectedTool = useWorkflowStore((s) => s.selectedTool);
+  const tools = useWorkflowStore((s) => s.tools);
+  const wires = useWorkflowStore((s) => s.wires);
+  const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
+  const updateWorkflowMeta = useWorkflowStore((s) => s.updateWorkflowMeta);
+  const updateToolConfiguration = useWorkflowStore(
+    (s) => s.updateToolConfiguration
+  );
 
-export default function ConfigurationPanel({
-  selectedTool,
-  workflowMeta,
-  toolCount,
-  wireCount,
-  onWorkflowMetaChange,
-  onToolConfigChange,
-}: ConfigurationPanelProps) {
+  const saveSnapshot = useHistoryStore((s) => s.saveSnapshot);
+
+  // Handler functions
+  const handleWorkflowMetaChange = (meta: {
+    name: string;
+    description: string;
+    author: string;
+  }) => {
+    // Save snapshot before change
+    saveSnapshot(tools, wires, workflowMeta);
+
+    // Update meta in store
+    updateWorkflowMeta(meta);
+  };
+
+  const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
+    // Save snapshot before change
+    saveSnapshot(tools, wires, workflowMeta);
+
+    // Update configuration in store
+    updateToolConfiguration(toolId, config);
+  };
+
+  const toolCount = tools.length;
+  const wireCount = wires.length;
   // Show workflow configuration if no tool is selected
   if (!selectedTool) {
     return (
@@ -61,9 +72,9 @@ export default function ConfigurationPanel({
         <div className="flex-1 p-4 overflow-y-auto">
           <WorkflowConfiguration
             workflowMeta={workflowMeta}
-            toolCount={toolCount ?? 0}
-            wireCount={wireCount ?? 0}
-            onWorkflowMetaChange={onWorkflowMetaChange}
+            toolCount={toolCount}
+            wireCount={wireCount}
+            onWorkflowMetaChange={handleWorkflowMetaChange}
           />
         </div>
       </ResizablePanel>
@@ -110,7 +121,7 @@ export default function ConfigurationPanel({
                       unknown
                     >;
                   }
-                  onToolConfigChange?.(selectedTool.id, newConfig);
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -143,7 +154,7 @@ export default function ConfigurationPanel({
                   ) {
                     newConfig.filePath = currentFilePath;
                   }
-                  onToolConfigChange?.(selectedTool.id, newConfig);
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }}
                 className="px-3 py-1 text-xs transition-colors border rounded bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-surface-elevated"
               >
@@ -173,7 +184,7 @@ export default function ConfigurationPanel({
           <ConfigTestingPanel
             config={selectedTool.config}
             onChange={(config) => {
-              onToolConfigChange?.(selectedTool.id, config as ToolConfig);
+              handleToolConfigChange(selectedTool.id, config as ToolConfig);
             }}
           />
         </div>
