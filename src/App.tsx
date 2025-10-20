@@ -2,7 +2,7 @@ import { useHistoryStore } from "@state/historyStore";
 import { startNotificationAutoHide, useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import ConfigurationPanel from "./components/ConfigurationPanel";
 import Header from "./components/Header";
@@ -10,12 +10,8 @@ import Notification from "./components/Notification";
 import ToolPalette from "./components/ToolPalette";
 import XMLViewer from "./components/XMLViewer";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { ToolCategory } from "./domain/workflow/entities/workflow";
-import { WorkflowSerializer } from "./domain/workflow/services/WorkflowSerializer";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<ToolCategory>("favorites");
-
   // Zustand stores - primary state
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
@@ -34,11 +30,9 @@ function App() {
   const canvasRef = useRef<CanvasRef>(null);
 
   // UI notifications and state via store
-  const notification = useUIStore((s) => s.notification);
   const showNotification = useUIStore((s) => s.showNotification);
-  const hideNotification = useUIStore((s) => s.hideNotification);
   const xmlViewerVisible = useUIStore((s) => s.xmlViewerVisible);
-  const setXmlViewerVisible = useUIStore((s) => s.setXmlViewerVisible);
+
   useEffect(() => {
     startNotificationAutoHide();
   }, []);
@@ -101,18 +95,12 @@ function App() {
     showNotification,
   ]);
 
-  // Memoize JSON serialization - only recompute when workflow data changes
-  const workflowJSON = useMemo(
-    () => WorkflowSerializer.toJSON(tools, wires, workflowMeta),
-    [tools, wires, workflowMeta]
-  );
-
   return (
     <ThemeProvider>
       <div className="h-screen flex flex-col bg-theme-surface-page">
         <Header />
 
-        <ToolPalette activeTab={activeTab} onTabChange={setActiveTab} />
+        <ToolPalette />
 
         <div className="flex-1 flex overflow-hidden">
           {/* Configuration Panel - Left Side */}
@@ -122,26 +110,14 @@ function App() {
             <div className="flex-1 flex">
               <Canvas ref={canvasRef} />
 
-              {/* JSON Viewer Side Panel - uses memoized workflowJSON */}
-              {xmlViewerVisible && (
-                <XMLViewer
-                  isVisible={xmlViewerVisible}
-                  xmlContent={workflowJSON}
-                  onClose={() => setXmlViewerVisible(false)}
-                />
-              )}
+              {/* JSON Viewer Side Panel - computes JSON internally */}
+              {xmlViewerVisible && <XMLViewer />}
             </div>
           </ReactFlowProvider>
         </div>
 
-        {/* Notification System */}
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          isVisible={notification.isVisible}
-          onClose={hideNotification}
-          duration={notification.duration}
-        />
+        {/* Notification System - uses uiStore internally */}
+        <Notification />
       </div>
     </ThemeProvider>
   );

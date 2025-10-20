@@ -1,51 +1,77 @@
-import React from 'react';
-import { ToolCategory } from '../domain/workflow/entities/workflow';
-import { getToolsByCategory } from '../data/tools';
+import React from "react";
+import { getToolsByCategory } from "../data/tools";
+import { ToolCategory } from "../domain/workflow/entities/workflow";
+import { useUIStore } from "../state/uiStore";
 
-interface ToolPaletteProps {
-  activeTab: ToolCategory;
-  onTabChange: (tab: ToolCategory) => void;
-}
+const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] =
+  [
+    {
+      id: "favorites",
+      name: "Favorites",
+      color: "bg-theme-tool-favorites",
+      icon: "⭐",
+    },
+    { id: "inout", name: "In/Out", color: "bg-theme-tool-inout", icon: "📁" },
+    {
+      id: "preparation",
+      name: "Preparation",
+      color: "bg-theme-tool-preparation",
+      icon: "🔧",
+    },
+    { id: "join", name: "Join", color: "bg-theme-tool-join", icon: "🔗" },
+    {
+      id: "aggregate",
+      name: "Aggregate",
+      color: "bg-theme-tool-aggregate",
+      icon: "📊",
+    },
+    // Testing tab only visible in development mode
+    ...(import.meta.env.MODE === "development"
+      ? [
+          {
+            id: "testing" as ToolCategory,
+            name: "Testing",
+            color: "bg-theme-tool-preparation",
+            icon: "🧪",
+          },
+        ]
+      : []),
+  ];
 
-const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] = [
-  { id: 'favorites', name: 'Favorites', color: 'bg-theme-tool-favorites', icon: '⭐' },
-  { id: 'inout', name: 'In/Out', color: 'bg-theme-tool-inout', icon: '📁' },
-  { id: 'preparation', name: 'Preparation', color: 'bg-theme-tool-preparation', icon: '🔧' },
-  { id: 'join', name: 'Join', color: 'bg-theme-tool-join', icon: '🔗' },
-  { id: 'aggregate', name: 'Aggregate', color: 'bg-theme-tool-aggregate', icon: '📊' },
-  // Testing tab only visible in development mode
-  ...(import.meta.env.MODE === 'development' ? [
-    { id: 'testing' as ToolCategory, name: 'Testing', color: 'bg-theme-tool-preparation', icon: '🧪' }
-  ] : []),
-];
+export default function ToolPalette() {
+  const activeTab = useUIStore((s) => s.activeToolTab);
+  const setActiveTab = useUIStore((s) => s.setActiveToolTab);
 
-export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps) {
   const tools = getToolsByCategory(activeTab);
 
   const handleDragStart = (e: React.DragEvent, toolType: string) => {
-    e.dataTransfer.setData('application/reactflow', toolType);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData("application/reactflow", toolType);
+    e.dataTransfer.effectAllowed = "move";
   };
 
   return (
     <div className="bg-theme-surface-elevated border-b-2 border-theme-border-secondary">
       {/* Tabs */}
-      <div className="flex border-b-2 border-theme-border-primary px-2 pt-2 relative" role="tablist" aria-label="Tool categories">
-  {TABS.map((tab) => (
+      <div
+        className="flex border-b-2 border-theme-border-primary px-2 pt-2 relative"
+        role="tablist"
+        aria-label="Tool categories"
+      >
+        {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => setActiveTab(tab.id)}
             role="tab"
             aria-selected={activeTab === tab.id}
             className={`px-3 py-2 text-sm font-medium border-2 rounded-t-lg transition-colors flex items-center gap-2 mr-1 relative ${
               activeTab === tab.id
-    ? 'bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary border-b-theme-surface-elevated z-20 shadow-sm'
-    : 'bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary z-0'
+                ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary border-b-theme-surface-elevated z-20 shadow-sm"
+                : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary z-0"
             }`}
             style={{
-              marginBottom: '-2px',
+              marginBottom: "-2px",
               // Use the exact separator color (same as the tablist bottom border)
-              borderColor: 'var(--color-border-primary)',
+              borderColor: "var(--color-border-primary)",
             }}
           >
             <span className="text-base">{tab.icon}</span>
@@ -64,13 +90,18 @@ export default function ToolPalette({ activeTab, onTabChange }: ToolPaletteProps
               onDragStart={(e) => handleDragStart(e, tool.type)}
               className="border-2 rounded-lg p-4 bg-theme-surface-elevated shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
               style={{
-                width: '100px',  // Same as canvas tools
-                height: '100px',
-                borderColor: 
-                  tool.category === 'inout' ? 'var(--color-tool-inout)' :
-                  tool.category === 'preparation' ? 'var(--color-tool-preparation)' :
-                  tool.category === 'join' ? 'var(--color-tool-join)' :
-                  tool.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)',
+                width: "100px", // Same as canvas tools
+                height: "100px",
+                borderColor:
+                  tool.category === "inout"
+                    ? "var(--color-tool-inout)"
+                    : tool.category === "preparation"
+                      ? "var(--color-tool-preparation)"
+                      : tool.category === "join"
+                        ? "var(--color-tool-join)"
+                        : tool.category === "aggregate"
+                          ? "var(--color-tool-aggregate)"
+                          : "var(--color-tool-default)",
               }}
             >
               <div>

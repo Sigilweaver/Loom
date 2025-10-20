@@ -1,11 +1,8 @@
 /* eslint-disable no-useless-escape -- Regex patterns include forward slashes and character classes; disabling to keep readable explicit escaping */
-import React, { useState } from "react";
-
-interface XMLViewerProps {
-  isVisible: boolean;
-  xmlContent: string; // Can be XML or JSON
-  onClose: () => void;
-}
+import React, { useMemo, useState } from "react";
+import { WorkflowSerializer } from "../domain/workflow/services/WorkflowSerializer";
+import { useUIStore } from "../state/uiStore";
+import { useWorkflowStore } from "../state/workflowStore";
 
 // Detect if content is JSON
 function isJSON(content: string): boolean {
@@ -338,11 +335,19 @@ function highlightXML(xml: string): JSX.Element[] {
   });
 }
 
-export default function XMLViewer({
-  isVisible,
-  xmlContent,
-  onClose,
-}: XMLViewerProps) {
+export default function XMLViewer() {
+  const isVisible = useUIStore((s) => s.xmlViewerVisible);
+  const setXmlViewerVisible = useUIStore((s) => s.setXmlViewerVisible);
+  const tools = useWorkflowStore((s) => s.tools);
+  const wires = useWorkflowStore((s) => s.wires);
+  const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
+
+  // Compute JSON content from workflow state
+  const xmlContent = useMemo(
+    () => WorkflowSerializer.toJSON(tools, wires, workflowMeta),
+    [tools, wires, workflowMeta]
+  );
+
   const [width, setWidth] = useState(384); // Default width (w-96 = 384px)
   const [isResizing, setIsResizing] = useState(false);
 
@@ -443,7 +448,7 @@ export default function XMLViewer({
             Copy
           </button>
           <button
-            onClick={onClose}
+            onClick={() => setXmlViewerVisible(false)}
             className="px-3 py-1.5 bg-theme-modal-btn-secondary-bg hover:bg-theme-modal-btn-secondary-bg-hover text-theme-modal-btn-secondary-text border border-theme-modal-btn-secondary-border hover:border-theme-modal-btn-secondary-border-hover rounded text-sm font-medium transition-colors"
             title={`Close ${isJsonFormat ? "JSON" : "XML"} viewer`}
           >

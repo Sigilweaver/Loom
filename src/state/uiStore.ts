@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ToolCategory } from "../domain/workflow/entities/workflow";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
@@ -17,6 +18,7 @@ interface UIState {
   positionMenuOpen: boolean;
   positionMenuCoords: { x: number; y: number } | null;
   xmlViewerVisible: boolean;
+  activeToolTab: ToolCategory;
   notification: NotificationState;
   toggleSnapToGrid: () => void;
   toggleMinimap: () => void;
@@ -24,6 +26,7 @@ interface UIState {
   openPositionMenu: (coords: { x: number; y: number }) => void;
   closePositionMenu: () => void;
   setXmlViewerVisible: (visible: boolean) => void;
+  setActiveToolTab: (tab: ToolCategory) => void;
   showNotification: (
     message: string,
     type?: NotificationType,
@@ -33,42 +36,52 @@ interface UIState {
   maybeAutoHide: () => void;
 }
 
-export const useUIStore = create<UIState>((set, get) => ({
-  snapToGrid: true,
-  minimapVisible: false,
-  minimapPosition: "bottom-right",
-  positionMenuOpen: false,
-  positionMenuCoords: null,
-  xmlViewerVisible: false,
-  notification: { message: "", type: "info", isVisible: false, duration: 6000 },
+export const useUIStore = create<UIState>()((set) => ({
+  snapToGrid: false,
   toggleSnapToGrid: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+
+  minimapVisible: true,
   toggleMinimap: () => set((s) => ({ minimapVisible: !s.minimapVisible })),
+  minimapPosition: "bottom-right",
   setMinimapPosition: (pos) =>
     set({ minimapPosition: pos, positionMenuOpen: false }),
+
+  positionMenuOpen: false,
+  positionMenuCoords: null,
   openPositionMenu: (coords) =>
     set({ positionMenuOpen: true, positionMenuCoords: coords }),
   closePositionMenu: () => set({ positionMenuOpen: false }),
+
+  xmlViewerVisible: false,
   setXmlViewerVisible: (visible) => set({ xmlViewerVisible: visible }),
-  showNotification: (message, type = "info", duration = 6000) =>
+
+  activeToolTab: "favorites",
+  setActiveToolTab: (tab) => set({ activeToolTab: tab }),
+
+  notification: {
+    message: "",
+    type: "info",
+    isVisible: false,
+    duration: 4000,
+  },
+  showNotification: (message, type = "info", duration = 4000) => {
+    const expiresAt = Date.now() + duration;
     set({
-      notification: {
-        message,
-        type,
-        isVisible: true,
-        duration,
-        expiresAt: Date.now() + duration,
-      },
-    }),
+      notification: { message, type, isVisible: true, duration, expiresAt },
+    });
+  },
   hideNotification: () =>
-    set((s) => ({ notification: { ...s.notification, isVisible: false } })),
+    set((s) => ({
+      notification: { ...s.notification, isVisible: false },
+    })),
   maybeAutoHide: () => {
-    const { notification } = get();
+    const state = useUIStore.getState();
     if (
-      notification.isVisible &&
-      notification.expiresAt &&
-      Date.now() >= notification.expiresAt
+      state.notification.isVisible &&
+      state.notification.expiresAt &&
+      Date.now() >= state.notification.expiresAt
     ) {
-      set({ notification: { ...notification, isVisible: false } });
+      state.hideNotification();
     }
   },
 }));
