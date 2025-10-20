@@ -310,20 +310,6 @@ function App() {
     addTool(newTool);
   };
 
-  // Copy/paste operations (simplified for now - will implement JSON clipboard later)
-  const buildCopyFragment = (_selectedIds: string[]): string => {
-    // TODO: Implement JSON-based clipboard
-    return "";
-  };
-
-  const pasteFragmentAt = async (
-    _anchor: { x: number; y: number },
-    _fragment: string
-  ): Promise<string[]> => {
-    // TODO: Implement JSON-based clipboard
-    return [];
-  };
-
   const handleAddWire = (
     from: { tool: string; socket: number },
     to: { tool: string; socket: number }
@@ -456,8 +442,6 @@ function App() {
                 onBatchAdd={handleBatchAddToolsAndWires}
                 onBeginTransaction={handleBeginTransaction}
                 onCommitTransaction={handleCommitTransaction}
-                onBuildCopyFragment={buildCopyFragment}
-                onPasteXMLAt={pasteFragmentAt}
               />
 
               {/* JSON Viewer Side Panel - uses memoized workflowJSON */}

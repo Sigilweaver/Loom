@@ -1,39 +1,7 @@
-import React, {
-  useRef,
-  useMemo,
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-  useEffect,
-} from "react";
-import "@xyflow/react/dist/style.css";
-import {
-  useReactFlow,
-  useNodesState,
-  useEdgesState,
-  type Node,
-  type Edge,
-  type Connection,
-} from "@xyflow/react";
-import { Tool, Wire } from "@domain/workflow/entities/workflow";
-import WorkflowNode from "../WorkflowNode";
 import { getToolDefinition } from "@data/tools";
-import { calculateMenuPosition } from "@utils/menuPositioning";
+import { Tool, Wire } from "@domain/workflow/entities/workflow";
+import { getLegacyClipboard, getXMLClipboard } from "@state/clipboardStore";
 import { useUIStore } from "@state/uiStore";
-import { useSnapToGrid } from "./hooks/useSnapToGrid";
-import { useCanvasPaste } from "./hooks/useCanvasPaste";
-import { useCanvasKeyboard } from "./hooks/useCanvasKeyboard";
-import { useCanvasClipboard } from "./hooks/useCanvasClipboard";
-import { useNodeResync } from "./hooks/useNodeResync";
-import { useArrowKeyMovement } from "./hooks/useArrowKeyMovement";
-import { useMinimapStyle } from "./hooks/useMinimapStyle";
-import { useNodeColor } from "./hooks/useNodeColor";
-import { CanvasControls } from "./CanvasControls";
-import { CanvasMinimap } from "./CanvasMinimap";
-import { CanvasPositionMenu } from "./CanvasPositionMenu";
-import { CanvasMenus } from "./CanvasMenus";
-import { CanvasSurface } from "./CanvasSurface";
-import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import {
   alignHorizontally as doAlignH,
   alignVertically as doAlignV,
@@ -41,7 +9,39 @@ import {
   distributeVertically as doDistV,
   type PositionUpdate,
 } from "@utils/alignDistribute";
-import { getXMLClipboard, getLegacyClipboard } from "@state/clipboardStore";
+import { calculateMenuPosition } from "@utils/menuPositioning";
+import {
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
+  type Connection,
+  type Edge,
+  type Node,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
+import WorkflowNode from "../WorkflowNode";
+import { CanvasControls } from "./CanvasControls";
+import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
+import { CanvasMenus } from "./CanvasMenus";
+import { CanvasMinimap } from "./CanvasMinimap";
+import { CanvasPositionMenu } from "./CanvasPositionMenu";
+import { CanvasSurface } from "./CanvasSurface";
+import { useArrowKeyMovement } from "./hooks/useArrowKeyMovement";
+import { useCanvasClipboard } from "./hooks/useCanvasClipboard";
+import { useCanvasKeyboard } from "./hooks/useCanvasKeyboard";
+import { useCanvasPaste } from "./hooks/useCanvasPaste";
+import { useMinimapStyle } from "./hooks/useMinimapStyle";
+import { useNodeColor } from "./hooks/useNodeColor";
+import { useNodeResync } from "./hooks/useNodeResync";
+import { useSnapToGrid } from "./hooks/useSnapToGrid";
 
 export interface CanvasRef {
   fitView: () => void;
@@ -68,12 +68,6 @@ interface Props {
   ) => void;
   onBeginTransaction?: () => void;
   onCommitTransaction?: () => void;
-  // XML clipboard integration from App
-  onBuildCopyFragment?: (selectedIds: string[]) => string;
-  onPasteXMLAt?: (
-    anchor: { x: number; y: number },
-    fragment: string
-  ) => Promise<string[]>;
 }
 const nodeTypes = { workflow: WorkflowNode };
 export const CanvasShell = forwardRef<CanvasRef, Props>(
@@ -91,8 +85,6 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(
       onBatchAdd,
       onBeginTransaction,
       onCommitTransaction,
-      onBuildCopyFragment,
-      onPasteXMLAt,
     },
     ref
   ) => {
@@ -296,27 +288,19 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(
     }, []);
     const closeActionsMenu = useCallback(() => setActionsOpen(false), []);
     // Clipboard hook (copy/cut/delete/paste + anchor)
-    const {
-      doCopy,
-      doCut,
-      doDelete,
-      doPaste,
-      setPasteAnchor,
-      lastMouseFlowPosRef,
-    } = useCanvasClipboard({
-      tools,
-      wires,
-      getNodes,
-      snap,
-      onBuildCopyFragment,
-      onPasteXMLAt,
-      onBatchAdd,
-      onAddTool,
-      onAddWire,
-      onRemoveTool,
-      setNodes: (updater) => setNodes((ns) => updater(ns)),
-      onToolSelect,
-    });
+    const { doCopy, doCut, doDelete, doPaste, setPasteAnchor } =
+      useCanvasClipboard({
+        tools,
+        wires,
+        getNodes,
+        snap,
+        onBatchAdd,
+        onAddTool,
+        onAddWire,
+        onRemoveTool,
+        setNodes: (updater) => setNodes((ns) => updater(ns)),
+        onToolSelect,
+      });
     const onMouseMove = useCallback(
       (e: React.MouseEvent) => {
         const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -386,10 +370,8 @@ export const CanvasShell = forwardRef<CanvasRef, Props>(
 
     // Handle native paste event (works in Firefox). Prefer event.clipboardData over async clipboard.
     const onPaste = useCanvasPaste({
-      onPasteXMLAt,
       setNodes,
       doPaste,
-      getAnchor: () => lastMouseFlowPosRef.current ?? { x: 20, y: 20 },
     });
 
     // Arrow key movement for selected nodes
