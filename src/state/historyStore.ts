@@ -1,19 +1,26 @@
 /**
- * historyStore - Undo/Redo history management with JSON snapshots
+ * historyStore - Clean undo/redo system with predictable behavior
  *
- * Provides undo/redo functionality using JSON-based state snapshots.
- * Much faster and more reliable than XML serialization (93% faster).
+ * Design Philosophy:
+ * - Past stack: States you can undo TO (previous states)
+ * - Future stack: States you can redo TO (forward states after undo)
+ * - Simple API: Just call pushState() after each action
+ * - Automatic: undo/redo manage state movement internally
  *
- * Key Features:
- * - JSON snapshots for instant state capture
- * - Configurable history depth (default: 50)
- * - Integrates seamlessly with workflowStore
- * - No parsing errors - guaranteed accurate snapshots
+ * Example Flow:
+ *   Start: []
+ *   Add tool A: past=[empty]
+ *   Add tool B: past=[empty, A]
+ *   Undo: past=[empty], future=[A, B], returns A
+ *   Undo: past=[], future=[empty, A, B], returns empty
+ *   Redo: past=[empty], future=[A, B], returns A
+ *   Add tool C: past=[empty, A], future=[] (future cleared on new action)
  */
 
 import { Tool, Wire, WorkflowMeta } from "@domain/workflow/entities/workflow";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { useWorkflowStore } from "./workflowStore";
 
 /**
  * Workflow snapshot - complete state at a point in time
@@ -29,7 +36,7 @@ export interface WorkflowSnapshot {
  * History store state
  */
 interface HistoryState {
-  // History stacks
+  // History stacks - past contains states to undo TO, future contains states to redo TO
   past: WorkflowSnapshot[];
   future: WorkflowSnapshot[];
 
@@ -37,9 +44,9 @@ interface HistoryState {
   maxHistoryDepth: number;
 
   // Actions
-  saveSnapshot: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
-  undo: () => WorkflowSnapshot | null | undefined;
-  redo: () => WorkflowSnapshot | null | undefined;
+  pushState: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
+  undo: () => WorkflowSnapshot | null;
+  redo: () => WorkflowSnapshot | null;
   canUndo: () => boolean;
   canRedo: () => boolean;
   clear: () => void;
@@ -58,20 +65,22 @@ function deepClone<T>(obj: T): T {
  * History store for undo/redo functionality
  *
  * @example
- * // Save a snapshot after user action
- * const { tools, wires, workflowMeta } = workflowStore.getState();
- * historyStore.getState().saveSnapshot(tools, wires, workflowMeta);
+ * // After user adds a tool - push the state BEFORE the addition
+ * historyStore.getState().pushState(tools, wires, workflowMeta);
+ * // Then make the change
+ * workflowStore.getState().addTool(newTool);
  *
- * // Undo
- * const snapshot = historyStore.getState().undo();
- * if (snapshot) {
- *   workflowStore.getState().loadWorkflow(snapshot.tools, snapshot.wires, snapshot.meta);
+ * // Undo - pass current state, get previous state back
+ * const { tools, wires, workflowMeta } = workflowStore.getState();
+ * const prevState = historyStore.getState().undo(tools, wires, workflowMeta);
+ * if (prevState) {
+ *   workflowStore.getState().loadWorkflow(prevState.tools, prevState.wires, prevState.meta);
  * }
  *
- * // Redo
- * const snapshot = historyStore.getState().redo();
- * if (snapshot) {
- *   workflowStore.getState().loadWorkflow(snapshot.tools, snapshot.wires, snapshot.meta);
+ * // Redo - pass current state, get next state back
+ * const nextState = historyStore.getState().redo(tools, wires, workflowMeta);
+ * if (nextState) {
+ *   workflowStore.getState().loadWorkflow(nextState.tools, nextState.wires, nextState.meta);
  * }
  */
 export const useHistoryStore = create<HistoryState>()(
@@ -82,19 +91,18 @@ export const useHistoryStore = create<HistoryState>()(
       maxHistoryDepth: 50,
 
       /**
-       * Save current workflow state as a snapshot
+       * Push current state to history
        *
-       * Creates a deep copy of the state using JSON serialization,
-       * which is fast and reliable. Clears the future stack (can't redo
-       * after new changes). Enforces max history depth.
+       * Call this BEFORE making a change that should be undoable.
+       * This saves the current state so you can undo back to it.
+       * Clears the future stack (can't redo after new actions).
        *
-       * @param tools - Current tools array
-       * @param wires - Current wires array
-       * @param meta - Current workflow metadata
+       * @param tools - Current tools array (before change)
+       * @param wires - Current wires array (before change)
+       * @param meta - Current workflow metadata (before change)
        */
-      saveSnapshot: (tools, wires, meta) =>
+      pushState: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) =>
         set((state) => {
-          // Create snapshot with deep clone
           const snapshot: WorkflowSnapshot = {
             tools: deepClone(tools),
             wires: deepClone(wires),
@@ -102,7 +110,6 @@ export const useHistoryStore = create<HistoryState>()(
             timestamp: Date.now(),
           };
 
-          // Add to past, enforce max depth
           let newPast = [...state.past, snapshot];
           if (newPast.length > state.maxHistoryDepth) {
             newPast = newPast.slice(newPast.length - state.maxHistoryDepth);
@@ -117,11 +124,10 @@ export const useHistoryStore = create<HistoryState>()(
       /**
        * Undo to previous state
        *
-       * Pops the most recent snapshot from the past stack and returns it.
-       * The current state should be saved to the future stack by the caller
-       * before applying the undo.
+       * Reads current state from workflowStore, saves it to future, pops from past.
+       * Returns the previous state to restore, or null if nothing to undo.
        *
-       * @returns The previous snapshot, or null if can't undo
+       * @returns The previous state to restore, or null
        */
       undo: () => {
         const state = get();
@@ -129,27 +135,36 @@ export const useHistoryStore = create<HistoryState>()(
           return null;
         }
 
-        const snapshot = state.past[state.past.length - 1];
-        if (!snapshot) {
+        // Get the state to restore (from end of past stack)
+        const restoreState = state.past[state.past.length - 1];
+        if (!restoreState) {
           return null;
         }
 
+        // Read current state directly from workflowStore
+        const currentWorkflow = useWorkflowStore.getState();
+        const currentSnapshot: WorkflowSnapshot = {
+          tools: deepClone(currentWorkflow.tools),
+          wires: deepClone(currentWorkflow.wires),
+          meta: deepClone(currentWorkflow.workflowMeta),
+          timestamp: Date.now(),
+        };
+
         set({
           past: state.past.slice(0, -1),
-          // Future is managed by the caller to include current state
+          future: [...state.future, currentSnapshot],
         });
 
-        return snapshot;
+        return restoreState;
       },
 
       /**
        * Redo to next state
        *
-       * Pops the most recent snapshot from the future stack and returns it.
-       * The current state should be saved to the past stack by the caller
-       * before applying the redo.
+       * Reads current state from workflowStore, saves it to past, pops from future.
+       * Returns the next state to restore, or null if nothing to redo.
        *
-       * @returns The next snapshot, or null if can't redo
+       * @returns The next state to restore, or null
        */
       redo: () => {
         const state = get();
@@ -157,17 +172,32 @@ export const useHistoryStore = create<HistoryState>()(
           return null;
         }
 
-        const snapshot = state.future[state.future.length - 1];
-        if (!snapshot) {
+        // Get the state to restore (from end of future stack)
+        const restoreState = state.future[state.future.length - 1];
+        if (!restoreState) {
           return null;
         }
 
+        // Read current state directly from workflowStore
+        const currentWorkflow = useWorkflowStore.getState();
+        const currentSnapshot: WorkflowSnapshot = {
+          tools: deepClone(currentWorkflow.tools),
+          wires: deepClone(currentWorkflow.wires),
+          meta: deepClone(currentWorkflow.workflowMeta),
+          timestamp: Date.now(),
+        };
+
+        let newPast = [...state.past, currentSnapshot];
+        if (newPast.length > state.maxHistoryDepth) {
+          newPast = newPast.slice(newPast.length - state.maxHistoryDepth);
+        }
+
         set({
+          past: newPast,
           future: state.future.slice(0, -1),
-          // Past is managed by the caller to include current state
         });
 
-        return snapshot;
+        return restoreState;
       },
 
       /**

@@ -67,7 +67,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const batchAddToolsAndWires = useWorkflowStore(
     (s) => s.batchAddToolsAndWires
   );
-  const saveSnapshot = useHistoryStore((s) => s.saveSnapshot);
+  const pushState = useHistoryStore((s) => s.pushState);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
 
   // Handler functions (replace props with direct store calls)
@@ -85,19 +85,19 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         sockets: getToolDefinition(type)?.sockets || [],
       };
 
-      saveSnapshot(tools, wires, workflowMeta);
+      pushState(tools, wires, workflowMeta);
       addTool(newTool);
     },
-    [addTool, saveSnapshot, tools, wires, workflowMeta]
+    [addTool, pushState, tools, wires, workflowMeta]
   );
 
   const handleRemoveTool = useCallback(
     (id: string) => {
       console.log("[CanvasShell] Removing tool:", id);
-      saveSnapshot(tools, wires, workflowMeta);
+      pushState(tools, wires, workflowMeta);
       removeTool(id);
     },
-    [removeTool, saveSnapshot, tools, wires, workflowMeta]
+    [removeTool, pushState, tools, wires, workflowMeta]
   );
 
   const handleToolMove = useCallback(
@@ -116,10 +116,10 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     ) => {
       console.log("[CanvasShell] Adding wire:", from, "->", to);
       const wire: Wire = { from, to };
-      saveSnapshot(tools, wires, workflowMeta);
+      pushState(tools, wires, workflowMeta);
       addWire(wire);
     },
-    [addWire, saveSnapshot, tools, wires, workflowMeta]
+    [addWire, pushState, tools, wires, workflowMeta]
   );
 
   const handleRemoveWire = useCallback(
@@ -137,13 +137,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
           tool: decodeURIComponent(parts[2]),
           socket: parseInt(parts[3], 10),
         };
-        saveSnapshot(tools, wires, workflowMeta);
+        pushState(tools, wires, workflowMeta);
         removeWire(from, to);
       } else {
         console.warn("[CanvasShell] Invalid wire ID format:", id);
       }
     },
-    [removeWire, saveSnapshot, tools, wires, workflowMeta]
+    [removeWire, pushState, tools, wires, workflowMeta]
   );
 
   const handleBatchAdd = useCallback(
@@ -177,10 +177,10 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         to: w.to,
       }));
 
-      saveSnapshot(tools, wires, workflowMeta);
+      pushState(tools, wires, workflowMeta);
       batchAddToolsAndWires(fullTools, fullWires);
     },
-    [batchAddToolsAndWires, saveSnapshot, tools, wires, workflowMeta]
+    [batchAddToolsAndWires, pushState, tools, wires, workflowMeta]
   );
 
   const handleBeginTransaction = useCallback(() => {
@@ -190,8 +190,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   const handleCommitTransaction = useCallback(() => {
     console.log("[CanvasShell] Commit transaction (drag end)");
-    saveSnapshot(tools, wires, workflowMeta);
-  }, [saveSnapshot, tools, wires, workflowMeta]);
+    pushState(tools, wires, workflowMeta);
+  }, [pushState, tools, wires, workflowMeta]);
 
   const handleToolSelect = useCallback((tool: Tool | null) => {
     console.log("[CanvasShell] Tool selected:", tool?.id || "none");

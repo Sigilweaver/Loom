@@ -13,14 +13,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   // Zustand stores - primary state
-  const tools = useWorkflowStore((s) => s.tools);
-  const wires = useWorkflowStore((s) => s.wires);
-  const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
 
   // History store
-  const saveSnapshot = useHistoryStore((s) => s.saveSnapshot);
   const undo = useHistoryStore((s) => s.undo);
   const redo = useHistoryStore((s) => s.redo);
   const canUndo = useHistoryStore((s) => s.canUndo());
@@ -36,12 +32,6 @@ function App() {
   useEffect(() => {
     startNotificationAutoHide();
   }, []);
-
-  // Initialize with empty workflow and first snapshot
-  useEffect(() => {
-    // Save initial snapshot for undo/redo
-    saveSnapshot(tools, wires, workflowMeta);
-  }, []); // Only run once on mount
 
   // Global undo/redo shortcuts (when not typing)
   useEffect(() => {

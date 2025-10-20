@@ -1,7 +1,7 @@
-import { useWorkflowStore } from "@state/workflowStore";
+import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { useWorkflowStore } from "@state/workflowStore";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { ThemeSelector } from "./ThemeSelector";
 
@@ -14,14 +14,14 @@ export default function Header() {
   const newWorkflow = useWorkflowStore((s) => s.newWorkflow);
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
 
-  const saveSnapshot = useHistoryStore((s) => s.saveSnapshot);
+  const pushState = useHistoryStore((s) => s.pushState);
 
   const showNotification = useUIStore((s) => s.showNotification);
   const setXmlViewerVisible = useUIStore((s) => s.setXmlViewerVisible);
 
   const handleNewWorkflow = () => {
-    // Save snapshot before clearing
-    saveSnapshot(tools, wires, workflowMeta);
+    // Save current state before clearing
+    pushState(tools, wires, workflowMeta);
 
     // Clear workflow
     newWorkflow();
@@ -41,8 +41,8 @@ export default function Header() {
         try {
           const content = e.target?.result as string;
 
-          // Save snapshot before import
-          saveSnapshot(tools, wires, workflowMeta);
+          // Save current state before import
+          pushState(tools, wires, workflowMeta);
 
           // Parse JSON workflow file
           const {

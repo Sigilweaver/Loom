@@ -19,7 +19,7 @@ export default function ConfigurationPanel() {
     (s) => s.updateToolConfiguration
   );
 
-  const saveSnapshot = useHistoryStore((s) => s.saveSnapshot);
+  const pushState = useHistoryStore((s) => s.pushState);
 
   // Handler functions
   const handleWorkflowMetaChange = (meta: {
@@ -27,16 +27,16 @@ export default function ConfigurationPanel() {
     description: string;
     author: string;
   }) => {
-    // Save snapshot before change
-    saveSnapshot(tools, wires, workflowMeta);
+    // Save current state before change
+    pushState(tools, wires, workflowMeta);
 
     // Update meta in store
     updateWorkflowMeta(meta);
   };
 
   const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
-    // Save snapshot before change
-    saveSnapshot(tools, wires, workflowMeta);
+    // Save current state before change
+    pushState(tools, wires, workflowMeta);
 
     // Update configuration in store
     updateToolConfiguration(toolId, config);
