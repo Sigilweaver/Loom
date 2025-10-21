@@ -335,15 +335,23 @@ function highlightXML(xml: string): JSX.Element[] {
   });
 }
 
-export default function XMLViewer() {
-  const isVisible = useUIStore((s) => s.xmlViewerVisible);
-  const setXmlViewerVisible = useUIStore((s) => s.setXmlViewerVisible);
+/**
+ * WorkflowViewer - Display current workflow data in formatted JSON/XML
+ *
+ * Shows the serialized workflow state for debugging and inspection.
+ * Automatically detects format and applies syntax highlighting.
+ */
+export default function WorkflowViewer() {
+  const isVisible = useUIStore((s) => s.workflowViewerVisible);
+  const setWorkflowViewerVisible = useUIStore(
+    (s) => s.setWorkflowViewerVisible
+  );
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
 
   // Compute JSON content from workflow state
-  const xmlContent = useMemo(
+  const workflowContent = useMemo(
     () => WorkflowSerializer.toJSON(tools, wires, workflowMeta),
     [tools, wires, workflowMeta]
   );
@@ -352,10 +360,10 @@ export default function XMLViewer() {
   const [isResizing, setIsResizing] = useState(false);
 
   // Detect format and format/highlight accordingly
-  const isJsonFormat = isJSON(xmlContent);
+  const isJsonFormat = isJSON(workflowContent);
   const formattedContent = isJsonFormat
-    ? formatJSON(xmlContent)
-    : formatXML(xmlContent);
+    ? formatJSON(workflowContent)
+    : formatXML(workflowContent);
   const highlightedContent = isJsonFormat
     ? highlightJSON(formattedContent)
     : highlightXML(formattedContent);
@@ -448,7 +456,7 @@ export default function XMLViewer() {
             Copy
           </button>
           <button
-            onClick={() => setXmlViewerVisible(false)}
+            onClick={() => setWorkflowViewerVisible(false)}
             className="px-3 py-1.5 bg-theme-modal-btn-secondary-bg hover:bg-theme-modal-btn-secondary-bg-hover text-theme-modal-btn-secondary-text border border-theme-modal-btn-secondary-border hover:border-theme-modal-btn-secondary-border-hover rounded text-sm font-medium transition-colors"
             title={`Close ${isJsonFormat ? "JSON" : "XML"} viewer`}
           >

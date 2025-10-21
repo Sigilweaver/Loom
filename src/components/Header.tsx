@@ -17,7 +17,9 @@ export default function Header() {
   const pushState = useHistoryStore((s) => s.pushState);
 
   const showNotification = useUIStore((s) => s.showNotification);
-  const setXmlViewerVisible = useUIStore((s) => s.setXmlViewerVisible);
+  const setWorkflowViewerVisible = useUIStore(
+    (s) => s.setWorkflowViewerVisible
+  );
 
   const handleNewWorkflow = () => {
     // Save current state before clearing
@@ -113,8 +115,8 @@ export default function Header() {
     }
   };
 
-  const handleShowXMLViewer = () => {
-    setXmlViewerVisible(true);
+  const handleShowWorkflowViewer = () => {
+    setWorkflowViewerVisible(true);
   };
 
   const handlePreviewWorkflow = () => {
@@ -191,13 +193,13 @@ export default function Header() {
             </button>
 
             <button
-              onClick={handleShowXMLViewer}
+              onClick={handleShowWorkflowViewer}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors
                 bg-theme-header-btn-viewcode-bg border border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text
                 hover:bg-theme-header-btn-viewcode-bg-hover hover:border-theme-header-btn-viewcode-border-hover hover:text-theme-header-btn-viewcode-text-hover
                 active:bg-theme-header-btn-viewcode-bg-active active:border-theme-header-btn-viewcode-border-active active:text-theme-header-btn-viewcode-text-active
                 disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled"
-              title="Show XML Viewer (Ctrl+Alt+X)"
+              title="Show Workflow Viewer (Ctrl+Alt+X)"
             >
               View Code
             </button>

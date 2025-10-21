@@ -48,8 +48,8 @@ vi.mock("../components/Canvas", () => {
   };
 });
 
-vi.mock("../components/XMLViewer", () => ({
-  default: () => <div data-testid="xml-viewer">XML Viewer</div>,
+vi.mock("../components/WorkflowViewer", () => ({
+  default: () => <div data-testid="workflow-viewer">Workflow Viewer</div>,
 }));
 
 vi.mock("../components/Header", () => ({

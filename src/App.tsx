@@ -8,7 +8,7 @@ import ConfigurationPanel from "./components/ConfigurationPanel";
 import Header from "./components/Header";
 import Notification from "./components/Notification";
 import ToolPalette from "./components/ToolPalette";
-import XMLViewer from "./components/XMLViewer";
+import WorkflowViewer from "./components/WorkflowViewer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
@@ -27,7 +27,7 @@ function App() {
 
   // UI notifications and state via store
   const showNotification = useUIStore((s) => s.showNotification);
-  const xmlViewerVisible = useUIStore((s) => s.xmlViewerVisible);
+  const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
 
   useEffect(() => {
     startNotificationAutoHide();
@@ -101,7 +101,7 @@ function App() {
               <Canvas ref={canvasRef} />
 
               {/* JSON Viewer Side Panel - computes JSON internally */}
-              {xmlViewerVisible && <XMLViewer />}
+              {workflowViewerVisible && <WorkflowViewer />}
             </div>
           </ReactFlowProvider>
         </div>

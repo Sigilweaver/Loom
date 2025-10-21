@@ -17,7 +17,7 @@ interface UIState {
   minimapPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   positionMenuOpen: boolean;
   positionMenuCoords: { x: number; y: number } | null;
-  xmlViewerVisible: boolean;
+  workflowViewerVisible: boolean;
   activeToolTab: ToolCategory;
   notification: NotificationState;
   toggleSnapToGrid: () => void;
@@ -25,7 +25,7 @@ interface UIState {
   setMinimapPosition: (pos: UIState["minimapPosition"]) => void;
   openPositionMenu: (coords: { x: number; y: number }) => void;
   closePositionMenu: () => void;
-  setXmlViewerVisible: (visible: boolean) => void;
+  setWorkflowViewerVisible: (visible: boolean) => void;
   setActiveToolTab: (tab: ToolCategory) => void;
   showNotification: (
     message: string,
@@ -63,8 +63,9 @@ export const useUIStore = create<UIState>()((set) => ({
     set({ positionMenuOpen: true, positionMenuCoords: coords }),
   closePositionMenu: () => set({ positionMenuOpen: false }),
 
-  xmlViewerVisible: false,
-  setXmlViewerVisible: (visible) => set({ xmlViewerVisible: visible }),
+  workflowViewerVisible: false,
+  setWorkflowViewerVisible: (visible) =>
+    set({ workflowViewerVisible: visible }),
 
   activeToolTab: "favorites",
   setActiveToolTab: (tab) => set({ activeToolTab: tab }),
