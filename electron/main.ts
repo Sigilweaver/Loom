@@ -68,7 +68,7 @@ function createWindow(): void {
             const result = await dialog.showOpenDialog(mainWindow, {
               properties: ['openFile'],
               filters: [
-                { name: 'Workflow Files', extensions: ['xml'] },
+                { name: 'Workflow Files', extensions: ['swwf'] },
                 { name: 'All Files', extensions: ['*'] }
               ]
             })
@@ -82,14 +82,6 @@ function createWindow(): void {
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow.webContents.send('menu-action', 'save-workflow')
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Export XML',
-          accelerator: 'CmdOrCtrl+E',
-          click: () => {
-            mainWindow.webContents.send('menu-action', 'export-xml')
           }
         },
         { type: 'separator' },
@@ -145,26 +137,18 @@ function createWindow(): void {
       label: 'Developer',
       submenu: [
         {
-          label: 'Show XML Viewer',
+          label: 'Show Workflow Viewer',
           accelerator: 'CmdOrCtrl+Alt+X',
           click: () => {
-            console.log('Show XML Viewer menu clicked');
-            mainWindow.webContents.send('menu-action', 'show-xml-viewer')
+            console.log('Show Workflow Viewer menu clicked');
+            mainWindow.webContents.send('menu-action', 'show-workflow-viewer')
           }
         },
         {
-          label: 'Hide XML Viewer',
+          label: 'Hide Workflow Viewer',
           accelerator: 'CmdOrCtrl+Alt+H',
           click: () => {
-            mainWindow.webContents.send('menu-action', 'hide-xml-viewer')
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Export Current XML',
-          accelerator: 'CmdOrCtrl+Shift+E',
-          click: () => {
-            mainWindow.webContents.send('menu-action', 'export-current-xml')
+            mainWindow.webContents.send('menu-action', 'hide-workflow-viewer')
           }
         }
       ]
@@ -204,7 +188,7 @@ ipcMain.handle('show-save-dialog', async (_event, defaultPath?: string) => {
     // Cast because defaultPath may be undefined; omit if undefined
     ...(defaultPath ? { defaultPath } : {}),
     filters: [
-      { name: 'XML Files', extensions: ['xml'] },
+      { name: 'Workflow Files', extensions: ['swwf'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   })
