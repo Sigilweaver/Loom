@@ -1,29 +1,33 @@
 /**
  * Integration Tests: Multi-Store Workflows (Simplified)
- * 
+ *
  * Tests real-world scenarios involving multiple stores:
  * - Workflow + History (undo/redo workflows)
  * - Workflow + UI (notifications on errors)
  * - Cross-store state independence
- * 
+ *
  * Note: Clipboard integration tests are in clipboardStore.test.ts
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { useWorkflowStore } from '../workflowStore';
-import { useHistoryStore } from '../historyStore';
-import { useUIStore } from '../uiStore';
-import type { Tool, Wire, WorkflowMeta } from '../../domain/workflow/entities/workflow';
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import type {
+  Tool,
+  Wire,
+  WorkflowMeta,
+} from "../../domain/workflow/entities/workflow";
+import { useHistoryStore } from "../historyStore";
+import { useUIStore } from "../uiStore";
+import { useWorkflowStore } from "../workflowStore";
 
 // Mock ID generation for predictable tests
-vi.mock('@utils/id', () => ({
+vi.mock("@utils/id", () => ({
   generateUniqueId: vi.fn(() => {
     let counter = 0;
     return () => `test-id-${counter++}`;
-  })()
+  })(),
 }));
 
-describe('Store Integration Tests', () => {
+describe("Store Integration Tests", () => {
   beforeEach(() => {
     // Reset all stores to clean state
     useWorkflowStore.setState({
@@ -31,34 +35,35 @@ describe('Store Integration Tests', () => {
       wires: [],
       edges: [],
       workflowMeta: {
-        name: '',
-        description: '',
-        author: '',
-        workflowId: 'test-workflow',
-        created: new Date().toISOString()
+        name: "",
+        description: "",
+        author: "",
+        workflowId: "test-workflow",
+        created: new Date().toISOString(),
       },
-      selectedTool: null
+      selectedTool: null,
     });
 
     useHistoryStore.getState().clear();
     useUIStore.getState().hideNotification();
   });
 
-  describe('Workflow + History Integration', () => {
-    test('should create history snapshot when adding tools', () => {
+  describe("Workflow + History Integration", () => {
+    test("should create history snapshot when adding tools", () => {
       const { pushState } = useHistoryStore.getState();
-      const { addTool, tools, wires, workflowMeta } = useWorkflowStore.getState();
+      const { addTool, tools, wires, workflowMeta } =
+        useWorkflowStore.getState();
 
       // Push current state before making changes
       pushState(tools, wires, workflowMeta);
 
       const tool: Tool = {
-        id: 'tool1',
-        type: 'Input',
+        id: "tool1",
+        type: "Input",
         x: 100,
         y: 200,
         config: {},
-        sockets: [{ id: 1, direction: 'output', multiple: false }]
+        sockets: [{ id: 1, direction: "output", multiple: false }],
       };
 
       addTool(tool);
@@ -72,33 +77,33 @@ describe('Store Integration Tests', () => {
       expect(prevState?.tools).toHaveLength(0);
     });
 
-    test('should restore complete workflow state on undo', () => {
+    test("should restore complete workflow state on undo", () => {
       const { pushState, undo } = useHistoryStore.getState();
       const { loadWorkflow } = useWorkflowStore.getState();
 
       // Initial workflow
       const initialTools: Tool[] = [
         {
-          id: 'tool1',
-          type: 'Input',
+          id: "tool1",
+          type: "Input",
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: 'output', multiple: false }]
-        }
+          sockets: [{ id: 1, direction: "output", multiple: false }],
+        },
       ];
 
       const initialWires: Wire[] = [];
       const initialMeta: WorkflowMeta = {
-        name: 'Initial',
-        description: 'First version',
-        author: 'Test',
-        workflowId: 'test-id',
-        created: new Date().toISOString()
+        name: "Initial",
+        description: "First version",
+        author: "Test",
+        workflowId: "test-id",
+        created: new Date().toISOString(),
       };
 
       loadWorkflow(initialTools, initialWires, initialMeta);
-      
+
       // Save snapshot
       pushState(
         useWorkflowStore.getState().tools,
@@ -110,23 +115,26 @@ describe('Store Integration Tests', () => {
       const newTools: Tool[] = [
         ...initialTools,
         {
-          id: 'tool2',
-          type: 'Output',
+          id: "tool2",
+          type: "Output",
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: 'input', multiple: false }]
-        }
+          sockets: [{ id: 1, direction: "input", multiple: false }],
+        },
       ];
 
       const newWires: Wire[] = [
-        { from: { tool: 'tool1', socket: 1 }, to: { tool: 'tool2', socket: 1 } }
+        {
+          from: { tool: "tool1", socket: 1 },
+          to: { tool: "tool2", socket: 1 },
+        },
       ];
 
       const newMeta: WorkflowMeta = {
         ...initialMeta,
-        name: 'Modified',
-        description: 'Second version'
+        name: "Modified",
+        description: "Second version",
       };
 
       loadWorkflow(newTools, newWires, newMeta);
@@ -134,23 +142,23 @@ describe('Store Integration Tests', () => {
       const modifiedState = useWorkflowStore.getState();
       expect(modifiedState.tools).toHaveLength(2);
       expect(modifiedState.wires).toHaveLength(1);
-      expect(modifiedState.workflowMeta.name).toBe('Modified');
+      expect(modifiedState.workflowMeta.name).toBe("Modified");
 
       // Undo to initial state
       const prevState = undo();
       expect(prevState).toBeDefined();
-      
+
       if (prevState) {
         loadWorkflow(prevState.tools, prevState.wires, prevState.meta);
-        
+
         const restoredState = useWorkflowStore.getState();
         expect(restoredState.tools).toHaveLength(1);
         expect(restoredState.wires).toHaveLength(0);
-        expect(restoredState.workflowMeta.name).toBe('Initial');
+        expect(restoredState.workflowMeta.name).toBe("Initial");
       }
     });
 
-    test('should maintain history through multiple operations', () => {
+    test("should maintain history through multiple operations", () => {
       const { pushState, undo, redo } = useHistoryStore.getState();
       const { addTool, removeTool } = useWorkflowStore.getState();
 
@@ -162,12 +170,12 @@ describe('Store Integration Tests', () => {
       );
 
       const tool1: Tool = {
-        id: 'tool1',
-        type: 'Input',
+        id: "tool1",
+        type: "Input",
         x: 100,
         y: 200,
         config: {},
-        sockets: []
+        sockets: [],
       };
 
       addTool(tool1);
@@ -181,12 +189,12 @@ describe('Store Integration Tests', () => {
       );
 
       const tool2: Tool = {
-        id: 'tool2',
-        type: 'Output',
+        id: "tool2",
+        type: "Output",
         x: 300,
         y: 200,
         config: {},
-        sockets: []
+        sockets: [],
       };
 
       addTool(tool2);
@@ -199,33 +207,40 @@ describe('Store Integration Tests', () => {
         useWorkflowStore.getState().workflowMeta
       );
 
-      removeTool('tool1');
+      removeTool("tool1");
       expect(useWorkflowStore.getState().tools).toHaveLength(1);
 
       // Undo remove
       const state1 = undo();
       if (state1) {
-        useWorkflowStore.getState().loadWorkflow(state1.tools, state1.wires, state1.meta);
+        useWorkflowStore
+          .getState()
+          .loadWorkflow(state1.tools, state1.wires, state1.meta);
         expect(useWorkflowStore.getState().tools).toHaveLength(2);
       }
 
       // Undo second add
       const state2 = undo();
       if (state2) {
-        useWorkflowStore.getState().loadWorkflow(state2.tools, state2.wires, state2.meta);
+        useWorkflowStore
+          .getState()
+          .loadWorkflow(state2.tools, state2.wires, state2.meta);
         expect(useWorkflowStore.getState().tools).toHaveLength(1);
       }
 
       // Redo
       const state3 = redo();
       if (state3) {
-        useWorkflowStore.getState().loadWorkflow(state3.tools, state3.wires, state3.meta);
+        useWorkflowStore
+          .getState()
+          .loadWorkflow(state3.tools, state3.wires, state3.meta);
         expect(useWorkflowStore.getState().tools).toHaveLength(2);
       }
     });
 
-    test('should handle rapid undo/redo operations', () => {
-      const { pushState, undo, redo, canUndo, canRedo } = useHistoryStore.getState();
+    test("should handle rapid undo/redo operations", () => {
+      const { pushState, undo, redo, canUndo, canRedo } =
+        useHistoryStore.getState();
 
       // Build up history with 5 states
       for (let i = 0; i < 5; i++) {
@@ -233,11 +248,11 @@ describe('Store Integration Tests', () => {
         pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
         workflow.addTool({
           id: `tool${i}`,
-          type: i % 2 === 0 ? 'Input' : 'Output',
+          type: i % 2 === 0 ? "Input" : "Output",
           x: i * 100,
           y: 200,
           config: {},
-          sockets: []
+          sockets: [],
         });
       }
 
@@ -249,7 +264,9 @@ describe('Store Integration Tests', () => {
       for (let i = 0; i < 3; i++) {
         const prev = undo();
         if (prev) {
-          useWorkflowStore.getState().loadWorkflow(prev.tools, prev.wires, prev.meta);
+          useWorkflowStore
+            .getState()
+            .loadWorkflow(prev.tools, prev.wires, prev.meta);
         }
       }
 
@@ -261,7 +278,9 @@ describe('Store Integration Tests', () => {
       for (let i = 0; i < 2; i++) {
         const next = redo();
         if (next) {
-          useWorkflowStore.getState().loadWorkflow(next.tools, next.wires, next.meta);
+          useWorkflowStore
+            .getState()
+            .loadWorkflow(next.tools, next.wires, next.meta);
         }
       }
 
@@ -269,34 +288,30 @@ describe('Store Integration Tests', () => {
     });
   });
 
-  describe('Workflow + UI Integration', () => {
-    test('should show notification on workflow errors', () => {
+  describe("Workflow + UI Integration", () => {
+    test("should show notification on workflow errors", () => {
       const { showNotification } = useUIStore.getState();
       const { validateWire } = useWorkflowStore.getState();
 
       // Create invalid wire (non-existent tools)
       const invalidWire: Wire = {
-        from: { tool: 'nonexistent1', socket: 1 },
-        to: { tool: 'nonexistent2', socket: 1 }
+        from: { tool: "nonexistent1", socket: 1 },
+        to: { tool: "nonexistent2", socket: 1 },
       };
 
       const result = validateWire(invalidWire);
 
       if (!result.valid) {
-        showNotification(
-          result.error || 'Unknown error',
-          'error',
-          5000
-        );
+        showNotification(result.error || "Unknown error", "error", 5000);
       }
 
       const notification = useUIStore.getState().notification;
       expect(notification.isVisible).toBe(true);
-      expect(notification.type).toBe('error');
-      expect(notification.message).toContain('Tool');
+      expect(notification.type).toBe("error");
+      expect(notification.message).toContain("Tool");
     });
 
-    test('should track UI preferences across workflow operations', () => {
+    test("should track UI preferences across workflow operations", () => {
       const { toggleMinimap } = useUIStore.getState();
       const { addTool } = useWorkflowStore.getState();
 
@@ -309,12 +324,12 @@ describe('Store Integration Tests', () => {
 
       // Add tool (shouldn't affect UI state)
       const tool: Tool = {
-        id: 'tool1',
-        type: 'Input',
+        id: "tool1",
+        type: "Input",
         x: 100,
         y: 200,
         config: {},
-        sockets: []
+        sockets: [],
       };
 
       addTool(tool);
@@ -324,33 +339,35 @@ describe('Store Integration Tests', () => {
       expect(useWorkflowStore.getState().tools).toHaveLength(1);
     });
 
-    test('should handle concurrent notifications', () => {
+    test("should handle concurrent notifications", () => {
       const { showNotification, hideNotification } = useUIStore.getState();
 
-      showNotification('First error', 'error', 5000);
-      expect(useUIStore.getState().notification.message).toBe('First error');
+      showNotification("First error", "error", 5000);
+      expect(useUIStore.getState().notification.message).toBe("First error");
 
-      showNotification('Second error', 'error', 5000);
-      expect(useUIStore.getState().notification.message).toBe('Second error');
+      showNotification("Second error", "error", 5000);
+      expect(useUIStore.getState().notification.message).toBe("Second error");
 
       hideNotification();
       expect(useUIStore.getState().notification.isVisible).toBe(false);
     });
   });
 
-  describe('Cross-Store State Consistency', () => {
-    test('should maintain independent state across stores', () => {
+  describe("Cross-Store State Consistency", () => {
+    test("should maintain independent state across stores", () => {
       // Modify each store
-      useWorkflowStore.getState().updateWorkflowMeta({ name: 'Test Workflow' });
+      useWorkflowStore.getState().updateWorkflowMeta({ name: "Test Workflow" });
       useHistoryStore.getState().setMaxDepth(25);
-      
+
       const ui = useUIStore.getState();
       if (ui.minimapVisible) {
         ui.toggleMinimap();
       }
 
       // Verify state was set correctly
-      expect(useWorkflowStore.getState().workflowMeta.name).toBe('Test Workflow');
+      expect(useWorkflowStore.getState().workflowMeta.name).toBe(
+        "Test Workflow"
+      );
       expect(useHistoryStore.getState().maxHistoryDepth).toBe(25);
       expect(useUIStore.getState().minimapVisible).toBe(false);
 
@@ -360,21 +377,21 @@ describe('Store Integration Tests', () => {
         wires: [],
         edges: [],
         workflowMeta: {
-          name: '',
-          description: '',
-          author: '',
-          workflowId: 'new-id',
-          created: new Date().toISOString()
+          name: "",
+          description: "",
+          author: "",
+          workflowId: "new-id",
+          created: new Date().toISOString(),
         },
-        selectedTool: null
+        selectedTool: null,
       });
 
-      expect(useWorkflowStore.getState().workflowMeta.name).toBe('');
+      expect(useWorkflowStore.getState().workflowMeta.name).toBe("");
       expect(useHistoryStore.getState().maxHistoryDepth).toBe(25); // Unchanged
       expect(useUIStore.getState().minimapVisible).toBe(false); // Unchanged
     });
 
-    test('should allow history depth configuration during workflow', () => {
+    test("should allow history depth configuration during workflow", () => {
       const workflow = useWorkflowStore.getState();
       const history = useHistoryStore.getState();
 
@@ -383,14 +400,18 @@ describe('Store Integration Tests', () => {
 
       // Add 5 tools (exceeds depth)
       for (let i = 0; i < 5; i++) {
-        history.pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
+        history.pushState(
+          workflow.tools,
+          workflow.wires,
+          workflow.workflowMeta
+        );
         workflow.addTool({
           id: `tool${i}`,
-          type: 'Input',
+          type: "Input",
           x: i * 100,
           y: 200,
           config: {},
-          sockets: []
+          sockets: [],
         });
       }
 
@@ -410,8 +431,8 @@ describe('Store Integration Tests', () => {
     });
   });
 
-  describe('Complex Workflow Scenarios', () => {
-    test('should handle full workflow lifecycle', () => {
+  describe("Complex Workflow Scenarios", () => {
+    test("should handle full workflow lifecycle", () => {
       const history = useHistoryStore.getState();
       const ui = useUIStore.getState();
 
@@ -420,12 +441,12 @@ describe('Store Integration Tests', () => {
       history.pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
 
       const tool1: Tool = {
-        id: 'input',
-        type: 'Input',
+        id: "input",
+        type: "Input",
         x: 100,
         y: 200,
-        config: { filename: 'data.csv' },
-        sockets: [{ id: 1, direction: 'output', multiple: false }]
+        config: { filename: "data.csv" },
+        sockets: [{ id: 1, direction: "output", multiple: false }],
       };
 
       workflow.addTool(tool1);
@@ -435,15 +456,15 @@ describe('Store Integration Tests', () => {
       history.pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
 
       const tool2: Tool = {
-        id: 'filter',
-        type: 'Filter',
+        id: "filter",
+        type: "Filter",
         x: 300,
         y: 200,
-        config: { condition: 'x > 0' },
+        config: { condition: "x > 0" },
         sockets: [
-          { id: 1, direction: 'input', multiple: false },
-          { id: 2, direction: 'output', multiple: false }
-        ]
+          { id: 1, direction: "input", multiple: false },
+          { id: 2, direction: "output", multiple: false },
+        ],
       };
 
       workflow.addTool(tool2);
@@ -453,8 +474,8 @@ describe('Store Integration Tests', () => {
       history.pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
 
       const wire: Wire = {
-        from: { tool: 'input', socket: 1 },
-        to: { tool: 'filter', socket: 1 }
+        from: { tool: "input", socket: 1 },
+        to: { tool: "filter", socket: 1 },
       };
 
       workflow.addWire(wire);
@@ -471,7 +492,9 @@ describe('Store Integration Tests', () => {
       // 5. Undo wire addition
       const prevState = history.undo();
       if (prevState) {
-        useWorkflowStore.getState().loadWorkflow(prevState.tools, prevState.wires, prevState.meta);
+        useWorkflowStore
+          .getState()
+          .loadWorkflow(prevState.tools, prevState.wires, prevState.meta);
       }
 
       expect(useWorkflowStore.getState().tools).toHaveLength(2);
@@ -481,7 +504,9 @@ describe('Store Integration Tests', () => {
       // 6. Redo wire addition
       const nextState = history.redo();
       if (nextState) {
-        useWorkflowStore.getState().loadWorkflow(nextState.tools, nextState.wires, nextState.meta);
+        useWorkflowStore
+          .getState()
+          .loadWorkflow(nextState.tools, nextState.wires, nextState.meta);
       }
 
       expect(useWorkflowStore.getState().wires).toHaveLength(1); // Wire restored
