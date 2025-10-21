@@ -1,6 +1,5 @@
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
-import { getDefaultCSVConfig } from "../domain/dataSources/csv";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
@@ -99,7 +98,12 @@ export default function ConfigurationPanel() {
             <DataSourceSelector
               onSelect={(dataSource) => {
                 if (dataSource.id === "csv") {
-                  const defaultConfig = getDefaultCSVConfig();
+                  // Create minimal CSV config - full configuration UI to be built with primitives
+                  const defaultConfig = {
+                    category: "file" as const,
+                    type: "csv" as const,
+                    options: {},
+                  };
                   // Preserve existing file path if any
                   const existingFilePath = selectedTool.config?.filePath;
                   const newConfig: ToolConfig = {

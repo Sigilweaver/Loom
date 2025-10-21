@@ -1,224 +1,242 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { writeFile } from 'node:fs/promises'
-import { readFileSync } from 'node:fs'
+import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import { readFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const isDev = process.env.IS_DEV === 'true' || process.env.NODE_ENV === 'development'
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const isDev =
+  process.env.IS_DEV === "true" || process.env.NODE_ENV === "development";
 
 // Read version from package.json
-const packagePath = join(__dirname, '../package.json')
-const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'))
-const version = packageJson.version
+const packagePath = join(__dirname, "../package.json");
+const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+const version = packageJson.version;
 
 function createWindow(): void {
-  const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`
-  
+  const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`;
+
   // Icon path - different for dev vs production
-  const iconPath = isDev 
-    ? join(__dirname, '../public/assets/icon-512.png')
-    : join(__dirname, '../dist/assets/icon-512.png')
-  
+  const iconPath = isDev
+    ? join(__dirname, "../public/assets/icon-512.png")
+    : join(__dirname, "../dist/assets/icon-512.png");
+
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: windowTitle,
     icon: iconPath,
     webPreferences: {
-      preload: join(__dirname, '../dist-electron/preload.js'),
+      preload: join(__dirname, "../dist-electron/preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
-  })
+  });
 
-  console.log('isDev:', isDev, 'NODE_ENV:', process.env.NODE_ENV, 'IS_DEV:', process.env.IS_DEV)
+  console.log(
+    "isDev:",
+    isDev,
+    "NODE_ENV:",
+    process.env.NODE_ENV,
+    "IS_DEV:",
+    process.env.IS_DEV
+  );
 
   if (isDev) {
-    console.log('Loading development URL: http://localhost:5173')
-    mainWindow.loadURL('http://localhost:5173')
+    console.log("Loading development URL: http://localhost:5173");
+    mainWindow.loadURL("http://localhost:5173");
     // mainWindow.webContents.openDevTools() // Disabled for cleaner experience
   } else {
-    console.log('Loading production file:', join(__dirname, '../dist/index.html'))
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+    console.log(
+      "Loading production file:",
+      join(__dirname, "../dist/index.html")
+    );
+    mainWindow.loadFile(join(__dirname, "../dist/index.html"));
   }
 
   // Ensure title is set after page loads
-  mainWindow.webContents.once('did-finish-load', () => {
-    mainWindow.setTitle(windowTitle)
-  })
+  mainWindow.webContents.once("did-finish-load", () => {
+    mainWindow.setTitle(windowTitle);
+  });
 
   // Create menu
   const template: any = [
     {
-      label: 'File',
+      label: "File",
       submenu: [
         {
-          label: 'New Workflow',
-          accelerator: 'CmdOrCtrl+N',
+          label: "New Workflow",
+          accelerator: "CmdOrCtrl+N",
           click: () => {
-            mainWindow.webContents.send('menu-action', 'new-workflow')
-          }
+            mainWindow.webContents.send("menu-action", "new-workflow");
+          },
         },
         {
-          label: 'Open Workflow',
-          accelerator: 'CmdOrCtrl+O',
+          label: "Open Workflow",
+          accelerator: "CmdOrCtrl+O",
           click: async () => {
             const result = await dialog.showOpenDialog(mainWindow, {
-              properties: ['openFile'],
+              properties: ["openFile"],
               filters: [
-                { name: 'Workflow Files', extensions: ['swwf'] },
-                { name: 'All Files', extensions: ['*'] }
-              ]
-            })
+                { name: "Workflow Files", extensions: ["swwf"] },
+                { name: "All Files", extensions: ["*"] },
+              ],
+            });
             if (!result.canceled) {
-              mainWindow.webContents.send('menu-action', 'open-workflow', result.filePaths[0])
+              mainWindow.webContents.send(
+                "menu-action",
+                "open-workflow",
+                result.filePaths[0]
+              );
             }
-          }
+          },
         },
         {
-          label: 'Save Workflow',
-          accelerator: 'CmdOrCtrl+S',
+          label: "Save Workflow",
+          accelerator: "CmdOrCtrl+S",
           click: () => {
-            mainWindow.webContents.send('menu-action', 'save-workflow')
-          }
+            mainWindow.webContents.send("menu-action", "save-workflow");
+          },
         },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
+        { type: "separator" },
+        { role: "quit" },
+      ],
     },
     {
-      label: 'Edit',
+      label: "Edit",
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectall' }
-      ]
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectall" },
+      ],
     },
     {
-      label: 'View',
+      label: "View",
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
     },
     {
-      label: 'Workflow',
-      submenu: [
-        {
-          label: 'Run Workflow',
-          accelerator: 'F5',
-          click: () => {
-            mainWindow.webContents.send('menu-action', 'run-workflow')
-          }
-        },
-        {
-          label: 'Validate Workflow',
-          accelerator: 'CmdOrCtrl+T',
-          click: () => {
-            mainWindow.webContents.send('menu-action', 'validate-workflow')
-          }
-        }
-      ]
-    },
-    {
-      label: 'Developer',
+      label: "Workflow",
       submenu: [
         {
-          label: 'Show Workflow Viewer',
-          accelerator: 'CmdOrCtrl+Alt+X',
+          label: "Run Workflow",
+          accelerator: "F5",
           click: () => {
-            console.log('Show Workflow Viewer menu clicked');
-            mainWindow.webContents.send('menu-action', 'show-workflow-viewer')
-          }
+            mainWindow.webContents.send("menu-action", "run-workflow");
+          },
         },
         {
-          label: 'Hide Workflow Viewer',
-          accelerator: 'CmdOrCtrl+Alt+H',
+          label: "Validate Workflow",
+          accelerator: "CmdOrCtrl+T",
           click: () => {
-            mainWindow.webContents.send('menu-action', 'hide-workflow-viewer')
-          }
-        }
-      ]
-    }
-  ]
+            mainWindow.webContents.send("menu-action", "validate-workflow");
+          },
+        },
+      ],
+    },
+    {
+      label: "Developer",
+      submenu: [
+        {
+          label: "Show Workflow Viewer",
+          accelerator: "CmdOrCtrl+Alt+X",
+          click: () => {
+            console.log("Show Workflow Viewer menu clicked");
+            mainWindow.webContents.send("menu-action", "show-workflow-viewer");
+          },
+        },
+        {
+          label: "Hide Workflow Viewer",
+          accelerator: "CmdOrCtrl+Alt+H",
+          click: () => {
+            mainWindow.webContents.send("menu-action", "hide-workflow-viewer");
+          },
+        },
+      ],
+    },
+  ];
 
-  const menu = Menu.buildFromTemplate(template)
-  Menu.setApplicationMenu(menu)
-  console.log('Menu created with Developer submenu');
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+  console.log("Menu created with Developer submenu");
 }
 
 app.whenReady().then(() => {
-  createWindow()
+  createWindow();
 
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+  app.on("activate", function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
 
 // IPC handlers
-ipcMain.handle('save-file', async (_event, content: string, filename: string) => {
-  try {
-    await writeFile(filename, content, 'utf8')
-    return filename
-  } catch (error) {
-    console.error('Error saving file:', error)
-    return null
+ipcMain.handle(
+  "save-file",
+  async (_event, content: string, filename: string) => {
+    try {
+      await writeFile(filename, content, "utf8");
+      return filename;
+    } catch (error) {
+      console.error("Error saving file:", error);
+      return null;
+    }
   }
-})
+);
 
-ipcMain.handle('show-save-dialog', async (_event, defaultPath?: string) => {
+ipcMain.handle("show-save-dialog", async (_event, defaultPath?: string) => {
   const result = await dialog.showSaveDialog({
     // Cast because defaultPath may be undefined; omit if undefined
     ...(defaultPath ? { defaultPath } : {}),
     filters: [
-      { name: 'Workflow Files', extensions: ['swwf'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
-  })
-  
-  return result.canceled ? null : result.filePath
-})
+      { name: "Workflow Files", extensions: ["swwf"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+  });
 
-ipcMain.handle('show-open-dialog', async (_event, options?: any) => {
-  console.log('show-open-dialog called with options:', options);
-  
+  return result.canceled ? null : result.filePath;
+});
+
+ipcMain.handle("show-open-dialog", async (_event, options?: any) => {
+  console.log("show-open-dialog called with options:", options);
+
   // Get the focused window to attach the dialog to
   const focusedWindow = BrowserWindow.getFocusedWindow();
-  
+
   const dialogOptions = {
-    properties: ['openFile'] as const,
+    properties: ["openFile"] as const,
     filters: [
-      { name: 'CSV Files', extensions: ['csv'] },
-      { name: 'Text Files', extensions: ['txt'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: "CSV Files", extensions: ["csv"] },
+      { name: "Text Files", extensions: ["txt"] },
+      { name: "All Files", extensions: ["*"] },
     ],
-    ...options
+    ...options,
   };
-  
-  const result = focusedWindow 
+
+  const result = focusedWindow
     ? await dialog.showOpenDialog(focusedWindow, dialogOptions)
     : await dialog.showOpenDialog(dialogOptions);
-  
-  console.log('Dialog result:', result);
-  console.log('FilePaths:', result.filePaths);
-  console.log('Returning:', result.canceled ? null : result.filePaths[0]);
-  
+
+  console.log("Dialog result:", result);
+  console.log("FilePaths:", result.filePaths);
+  console.log("Returning:", result.canceled ? null : result.filePaths[0]);
+
   return result.canceled ? null : result.filePaths[0];
-})
+});
