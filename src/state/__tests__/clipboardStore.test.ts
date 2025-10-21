@@ -424,7 +424,7 @@ describe("clipboardStore", () => {
       expect(newToolIds).toHaveLength(1);
       expect(batchAddSpy).toHaveBeenCalledTimes(1);
 
-      const [pastedTools, pastedWires] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0];
       expect(pastedTools).toHaveLength(1);
       expect(pastedTools[0].x).toBe(300); // New X position
       expect(pastedTools[0].y).toBe(400); // New Y position

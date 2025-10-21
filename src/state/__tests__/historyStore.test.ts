@@ -462,7 +462,9 @@ describe("historyStore", () => {
         useHistoryStore.getState().pushState([tool], [], meta);
 
         // Mutate nested config
-        (tool.config as { options: { nested: { deep: string } } }).options.nested.deep = "mutated";
+        (
+          tool.config as { options: { nested: { deep: string } } }
+        ).options.nested.deep = "mutated";
 
         const snapshot = useHistoryStore.getState().past[0];
         const snapshotConfig = snapshot?.tools[0]?.config as {
@@ -474,7 +476,10 @@ describe("historyStore", () => {
       it("should clone wires", () => {
         const meta = createTestMeta();
         const wires: Wire[] = [
-          { from: { tool: "tool1", socket: 1 }, to: { tool: "tool2", socket: 2 } },
+          {
+            from: { tool: "tool1", socket: 1 },
+            to: { tool: "tool2", socket: 2 },
+          },
         ];
 
         useHistoryStore.getState().pushState([], wires, meta);
