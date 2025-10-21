@@ -36,9 +36,20 @@ interface UIState {
   maybeAutoHide: () => void;
 }
 
+// Load persisted snap state (default: true)
+const loadSnapToGrid = (): boolean => {
+  const saved = localStorage.getItem("sigilweaver-snap-to-grid");
+  return saved !== null ? saved === "true" : true; // Default: ON
+};
+
 export const useUIStore = create<UIState>()((set) => ({
-  snapToGrid: false,
-  toggleSnapToGrid: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+  snapToGrid: loadSnapToGrid(),
+  toggleSnapToGrid: () =>
+    set((s) => {
+      const newValue = !s.snapToGrid;
+      localStorage.setItem("sigilweaver-snap-to-grid", String(newValue));
+      return { snapToGrid: newValue };
+    }),
 
   minimapVisible: true,
   toggleMinimap: () => set((s) => ({ minimapVisible: !s.minimapVisible })),

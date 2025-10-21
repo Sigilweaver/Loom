@@ -189,9 +189,16 @@ export class WorkflowSerializer {
                 `Tool ${index} socket ${socketIndex} field "direction" must be "input" or "output"`
               );
             }
-            if (typeof s.multiple !== "boolean") {
+            // 'multiple' is optional, only validate if present
+            if (s.multiple !== undefined && typeof s.multiple !== "boolean") {
               errors.push(
-                `Tool ${index} socket ${socketIndex} field "multiple" must be a boolean`
+                `Tool ${index} socket ${socketIndex} field "multiple" must be a boolean if present`
+              );
+            }
+            // 'type' is optional, only validate if present
+            if (s.type !== undefined && typeof s.type !== "string") {
+              errors.push(
+                `Tool ${index} socket ${socketIndex} field "type" must be a string if present`
               );
             }
           });
