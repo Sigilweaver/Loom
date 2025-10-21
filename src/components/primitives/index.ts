@@ -7,7 +7,7 @@ export {
 } from "./BrowserFileWarning";
 export {
   ConfigBoolean,
-  getBooleanForXML,
+  getBooleanForSerialization,
   shouldEmitBoolean,
   type ConfigBooleanProps,
 } from "./ConfigBoolean";

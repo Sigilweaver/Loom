@@ -3,9 +3,9 @@ import {
   buildEmitPatch,
   calculateShouldEmit,
   mergeEmitPatch,
-} from "../useXMLEmission";
+} from "../useEmission";
 
-describe("useXMLEmission helpers", () => {
+describe("useEmission helpers", () => {
   test("calculateShouldEmit handles primitive comparisons", () => {
     expect(calculateShouldEmit(undefined, false)).toBe(false);
     expect(calculateShouldEmit(true, false)).toBe(true);

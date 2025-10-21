@@ -1,6 +1,6 @@
 // Domain entities and type contracts for workflow graph (moved from src/types/workflow.ts)
 
-// Tool configuration value type for XML storage
+// Tool configuration value type for serialization
 export type FieldValue =
   | string
   | number
@@ -18,13 +18,17 @@ export interface WorkflowMeta {
   created: string;
 }
 
-export interface XMLEmissionMap {
-  [key: string]: boolean | XMLEmissionMap | undefined;
+/**
+ * Tracks which configuration fields differ from defaults and should be serialized.
+ * This is format-agnostic and applies to JSON, XML, or any other serialization format.
+ */
+export interface EmissionMap {
+  [key: string]: boolean | EmissionMap | undefined;
 }
 
 export type ToolConfig = {
-  [key: string]: FieldValue | XMLEmissionMap | undefined;
-  _emit?: XMLEmissionMap;
+  [key: string]: FieldValue | EmissionMap | undefined;
+  _emit?: EmissionMap;
 };
 
 export interface Socket {

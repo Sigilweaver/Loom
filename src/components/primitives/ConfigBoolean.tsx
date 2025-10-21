@@ -1,4 +1,4 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import React, { ReactNode, useId } from "react";
 import { ConfigField } from "./ConfigField";
 import { calculateShouldEmit, usePrimitiveEmission } from "./hooks";
@@ -7,7 +7,7 @@ export interface ConfigBooleanProps {
   value: boolean | string | undefined; // Allow undefined for "not set" state
   onChange: (
     value: boolean | undefined,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     shouldEmit: boolean
   ) => void;
   configKey: string;
@@ -20,21 +20,22 @@ export interface ConfigBooleanProps {
 }
 
 /**
- * Utility function to check if a boolean value should be emitted in XML
- * (only emit when different from default)
+ * Utility function to check if a boolean value should be serialized
+ * (only serialize when different from default)
  */
 export const shouldEmitBoolean = (
   value: boolean | string | undefined,
   defaultValue: boolean = false
 ): boolean => {
-  const normalized = value === undefined ? undefined : getBooleanForXML(value);
+  const normalized =
+    value === undefined ? undefined : getBooleanForSerialization(value);
   return calculateShouldEmit(normalized, defaultValue);
 };
 
 /**
- * Utility function to get the boolean value for XML emission
+ * Utility function to get the boolean value for serialization
  */
-export const getBooleanForXML = (
+export const getBooleanForSerialization = (
   value: boolean | string | undefined
 ): boolean => {
   return typeof value === "string" ? value === "true" : Boolean(value);
@@ -42,7 +43,7 @@ export const getBooleanForXML = (
 
 /**
  * Simple boolean checkbox primitive with no business logic
- * Tracks value vs defaultValue for XML emission logic
+ * Tracks value vs defaultValue for emission logic
  *
  * @example
  * // Simple checkbox
@@ -75,7 +76,7 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   required = false,
 }) => {
   const normalizedValue =
-    value === undefined ? undefined : getBooleanForXML(value);
+    value === undefined ? undefined : getBooleanForSerialization(value);
 
   const { shouldEmit, commit } = usePrimitiveEmission<boolean>({
     configKey,
@@ -96,8 +97,8 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   const effectiveValue =
     normalizedValue === undefined ? defaultValue : normalizedValue;
 
-  // Check if this value would be emitted in XML
-  const willEmitInXML = shouldEmit;
+  // Check if this value would be serialized
+  const willEmit = shouldEmit;
 
   return (
     <ConfigField
@@ -106,7 +107,7 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
       description={description}
       descriptionId={descriptionId}
       inlineMessage={inlineMessage}
-      willEmit={willEmitInXML}
+      willEmit={willEmit}
       required={required}
       contentClassName="flex items-center gap-3"
     >

@@ -1,4 +1,4 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import clsx from "clsx";
 import React, {
   ChangeEvent,
@@ -23,7 +23,7 @@ export interface ConfigNumberRangeProps {
   value: ConfigNumberRangeValue | undefined;
   onChange: (
     value: ConfigNumberRangeValue | undefined,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     shouldEmit: boolean
   ) => void;
   configKey: string;

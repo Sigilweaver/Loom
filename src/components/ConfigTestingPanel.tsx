@@ -1,4 +1,4 @@
-import { ToolConfig, XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { ToolConfig, EmissionMap } from "@domain/workflow/entities/workflow";
 import React from "react";
 import {
   BrowserFileWarning,
@@ -97,7 +97,7 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
   const updateConfig = (
     key: string,
     value: unknown,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     _shouldEmit: boolean
   ) => {
     const nextConfig: ToolConfig = { ...config };

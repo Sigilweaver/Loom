@@ -1,4 +1,4 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import React, { useId } from "react";
 import { BrowserFileWarning } from "./BrowserFileWarning";
 import { ConfigField } from "./ConfigField";
@@ -13,7 +13,7 @@ export interface ConfigFileProps {
   value: string | undefined;
   onChange: (
     value: string | undefined,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     shouldEmit: boolean
   ) => void;
   placeholder?: string;

@@ -38,12 +38,8 @@ interface ClipboardState {
   // Current clipboard data
   clipboard: ClipboardData | null;
 
-  // Legacy XML clipboard (for backward compatibility if needed)
-  xmlClipboard: string;
-
   // Actions
   setClipboard: (data: ClipboardData | null) => void;
-  setXMLClipboard: (xml: string) => void;
   clearClipboard: () => void;
 
   // High-level operations
@@ -67,7 +63,6 @@ export const useClipboardStore = create<ClipboardState>()(
   devtools(
     (set, get) => ({
       clipboard: null,
-      xmlClipboard: "",
 
       /**
        * Set clipboard data
@@ -78,20 +73,11 @@ export const useClipboardStore = create<ClipboardState>()(
         }),
 
       /**
-       * Set XML clipboard (legacy)
-       */
-      setXMLClipboard: (xml) =>
-        set({
-          xmlClipboard: xml,
-        }),
-
-      /**
        * Clear clipboard
        */
       clearClipboard: () =>
         set({
           clipboard: null,
-          xmlClipboard: "",
         }),
 
       /**
@@ -235,11 +221,3 @@ export const useClipboardStore = create<ClipboardState>()(
 export const useClipboard = () => useClipboardStore((state) => state.clipboard);
 export const useHasClipboard = () =>
   useClipboardStore((state) => state.clipboard !== null);
-
-// Legacy compatibility exports (for gradual migration)
-export const getXMLClipboard = () => useClipboardStore.getState().xmlClipboard;
-export const setXMLClipboard = (value: string) =>
-  useClipboardStore.getState().setXMLClipboard(value);
-export const getLegacyClipboard = () => useClipboardStore.getState().clipboard;
-export const setLegacyClipboard = (value: ClipboardData | null) =>
-  useClipboardStore.getState().setClipboard(value);

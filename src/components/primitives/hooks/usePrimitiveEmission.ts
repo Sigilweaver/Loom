@@ -1,6 +1,6 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import { useCallback } from "react";
-import { useXMLEmission } from "./useXMLEmission";
+import { useEmission } from "./useEmission";
 
 export interface UsePrimitiveEmissionOptions<T> {
   configKey: string;
@@ -8,7 +8,7 @@ export interface UsePrimitiveEmissionOptions<T> {
   defaultValue: T;
   onChange: (
     value: T | undefined,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     shouldEmit: boolean
   ) => void;
 }
@@ -18,14 +18,14 @@ export interface UsePrimitiveEmissionResult<T> {
   commit: (candidate: T | undefined) => {
     shouldEmit: boolean;
     emittedValue: T | undefined;
-    emitPatch: XMLEmissionMap;
+    emitPatch: EmissionMap;
   };
   evaluate: (candidate: T | undefined) => boolean;
-  build: (shouldEmit: boolean) => XMLEmissionMap;
+  build: (shouldEmit: boolean) => EmissionMap;
 }
 
 /**
- * Small helper that wraps useXMLEmission and produces a commit helper so
+ * Small helper that wraps useEmission and produces a commit helper so
  * primitives can avoid repeating evaluate/build/onChange wiring.
  */
 export function usePrimitiveEmission<T>({
@@ -34,7 +34,7 @@ export function usePrimitiveEmission<T>({
   defaultValue,
   onChange,
 }: UsePrimitiveEmissionOptions<T>): UsePrimitiveEmissionResult<T> {
-  const { shouldEmit, evaluate, build } = useXMLEmission<T>({
+  const { shouldEmit, evaluate, build } = useEmission<T>({
     configKey,
     value,
     defaultValue,

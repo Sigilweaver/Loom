@@ -59,8 +59,8 @@ describe("WorkflowStore", () => {
     });
   });
 
-  describe("setFromXML", () => {
-    test("sets tools, wires, and metadata from XML data", () => {
+  describe("loadWorkflow", () => {
+    test("sets tools, wires, and metadata from workflow data", () => {
       const tools: Tool[] = [
         {
           id: "tool1",
@@ -98,7 +98,7 @@ describe("WorkflowStore", () => {
         created: "2025-08-01T12:00:00.000Z",
       };
 
-      useWorkflowStore.getState().setFromXML(tools, wires, meta);
+      useWorkflowStore.getState().loadWorkflow(tools, wires, meta);
 
       const state = useWorkflowStore.getState();
       expect(state.tools).toEqual(tools);
@@ -106,8 +106,8 @@ describe("WorkflowStore", () => {
       expect(state.workflowMeta).toEqual(meta);
     });
 
-    test("preserves edges and selectedTool when setting from XML", () => {
-      const edges: Edge[] = [
+    test("resets edges and selectedTool when loading workflow", () => {
+      const oldEdges: Edge[] = [
         {
           id: "edge1",
           source: "tool1",
@@ -127,7 +127,7 @@ describe("WorkflowStore", () => {
       };
 
       // Set initial state
-      useWorkflowStore.setState({ edges, selectedTool });
+      useWorkflowStore.setState({ edges: oldEdges, selectedTool });
 
       const tools: Tool[] = [
         {
@@ -148,14 +148,14 @@ describe("WorkflowStore", () => {
         created: "2025-09-01T00:00:00.000Z",
       };
 
-      useWorkflowStore.getState().setFromXML(tools, [], meta);
+      useWorkflowStore.getState().loadWorkflow(tools, [], meta);
 
       const state = useWorkflowStore.getState();
       expect(state.tools).toEqual(tools);
       expect(state.wires).toEqual([]);
       expect(state.workflowMeta).toEqual(meta);
-      expect(state.edges).toEqual(edges); // Preserved
-      expect(state.selectedTool).toEqual(selectedTool); // Preserved
+      expect(state.edges).toEqual([]); // Reset (synced from empty wires)
+      expect(state.selectedTool).toBeNull(); // Reset
     });
 
     test("handles empty arrays for tools and wires", () => {
@@ -167,7 +167,7 @@ describe("WorkflowStore", () => {
         created: "2025-09-01T00:00:00.000Z",
       };
 
-      useWorkflowStore.getState().setFromXML([], [], meta);
+      useWorkflowStore.getState().loadWorkflow([], [], meta);
 
       const state = useWorkflowStore.getState();
       expect(state.tools).toEqual([]);
@@ -716,7 +716,7 @@ describe("WorkflowStore", () => {
         created: "2025-09-01T12:00:00.000Z",
       };
 
-      useWorkflowStore.getState().setFromXML(tools, wires, meta);
+      useWorkflowStore.getState().loadWorkflow(tools, wires, meta);
 
       // Step 2: Set edges
       const edges: Edge[] = [
@@ -799,7 +799,7 @@ describe("WorkflowStore", () => {
       ];
 
       // Load the complex state
-      useWorkflowStore.getState().setFromXML(complexTools, complexWires, {
+      useWorkflowStore.getState().loadWorkflow(complexTools, complexWires, {
         name: "Complex Workflow",
         description: "A complex test workflow",
         author: "Complex Author",
@@ -885,8 +885,8 @@ describe("WorkflowStore", () => {
   });
 
   describe("Coverage Gaps - Edge Cases", () => {
-    describe("setFromXML edge cases", () => {
-      test("should set tools, wires, and meta from XML data (line 64)", () => {
+    describe("loadWorkflow edge cases", () => {
+      test("should set tools, wires, and meta from workflow data (line 64)", () => {
         const tools: Tool[] = [
           {
             id: "tool1",
@@ -921,7 +921,7 @@ describe("WorkflowStore", () => {
           created: new Date().toISOString(),
         };
 
-        useWorkflowStore.getState().setFromXML(tools, wires, meta);
+        useWorkflowStore.getState().loadWorkflow(tools, wires, meta);
 
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(2);

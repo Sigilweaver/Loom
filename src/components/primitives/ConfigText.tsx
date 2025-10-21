@@ -1,4 +1,4 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import clsx from "clsx";
 import React, {
   ChangeEvent,
@@ -50,7 +50,7 @@ export interface ConfigTextProps {
   value: string | undefined;
   onChange: (
     value: string | undefined,
-    emitPatch: XMLEmissionMap,
+    emitPatch: EmissionMap,
     shouldEmit: boolean
   ) => void;
   configKey: string;

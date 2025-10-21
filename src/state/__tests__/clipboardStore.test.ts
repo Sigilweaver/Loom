@@ -21,7 +21,6 @@ describe("clipboardStore", () => {
     // Reset clipboard store
     useClipboardStore.setState({
       clipboard: null,
-      xmlClipboard: "",
     });
 
     // Reset workflow store with sample data
@@ -46,11 +45,6 @@ describe("clipboardStore", () => {
     test("should have null clipboard initially", () => {
       const state = useClipboardStore.getState();
       expect(state.clipboard).toBeNull();
-    });
-
-    test("should have empty XML clipboard initially", () => {
-      const state = useClipboardStore.getState();
-      expect(state.xmlClipboard).toBe("");
     });
   });
 
@@ -85,27 +79,8 @@ describe("clipboardStore", () => {
     });
   });
 
-  describe("setXMLClipboard", () => {
-    test("should set XML clipboard string", () => {
-      const xml = "<workflow><tool>test</tool></workflow>";
-
-      useClipboardStore.getState().setXMLClipboard(xml);
-
-      const state = useClipboardStore.getState();
-      expect(state.xmlClipboard).toBe(xml);
-    });
-
-    test("should allow setting empty XML string", () => {
-      useClipboardStore.getState().setXMLClipboard("test");
-      expect(useClipboardStore.getState().xmlClipboard).toBe("test");
-
-      useClipboardStore.getState().setXMLClipboard("");
-      expect(useClipboardStore.getState().xmlClipboard).toBe("");
-    });
-  });
-
   describe("clearClipboard", () => {
-    test("should clear both clipboard and XML clipboard", () => {
+    test("should clear clipboard", () => {
       const clipboardData: ClipboardData = {
         tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
         wires: [],
@@ -114,16 +89,13 @@ describe("clipboardStore", () => {
       };
 
       useClipboardStore.getState().setClipboard(clipboardData);
-      useClipboardStore.getState().setXMLClipboard("<test>");
 
       expect(useClipboardStore.getState().clipboard).not.toBeNull();
-      expect(useClipboardStore.getState().xmlClipboard).not.toBe("");
 
       useClipboardStore.getState().clearClipboard();
 
       const state = useClipboardStore.getState();
       expect(state.clipboard).toBeNull();
-      expect(state.xmlClipboard).toBe("");
     });
   });
 

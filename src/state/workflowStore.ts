@@ -21,7 +21,6 @@ interface WorkflowState {
   selectedTool: Tool | null;
 
   // Legacy actions (kept for backward compatibility during migration)
-  setFromXML: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
   setEdges: (edges: Edge[]) => void;
   setSelectedTool: (tool: Tool | null) => void;
   updateToolPositionLocal: (toolId: string, x: number, y: number) => void;
@@ -124,14 +123,6 @@ export const useWorkflowStore = create<WorkflowState>()(
       selectedTool: null,
 
       // Legacy actions (kept for backward compatibility)
-      setFromXML: (tools, wires, meta) =>
-        set((state) => {
-          state.tools = tools;
-          state.wires = wires;
-          state.workflowMeta = meta;
-          get().syncEdges();
-        }),
-
       setEdges: (edges) =>
         set((state) => {
           state.edges = edges;

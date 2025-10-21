@@ -1,18 +1,18 @@
-import { XMLEmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap } from "@domain/workflow/entities/workflow";
 import { useCallback, useMemo } from "react";
 
 type Path = string[];
 
-export interface UseXMLEmissionOptions<T> {
+export interface UseEmissionOptions<T> {
   configKey: string;
   value: T | undefined;
   defaultValue: T;
 }
 
-export interface UseXMLEmissionResult<T> {
+export interface UseEmissionResult<T> {
   shouldEmit: boolean;
-  emitPatch: XMLEmissionMap;
-  build: (shouldEmit: boolean) => XMLEmissionMap;
+  emitPatch: EmissionMap;
+  build: (shouldEmit: boolean) => EmissionMap;
   evaluate: (candidate: T | undefined) => boolean;
 }
 
@@ -65,14 +65,14 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
 const buildPatchFromPath = (
   path: Path,
   shouldEmit: boolean
-): XMLEmissionMap => {
+): EmissionMap => {
   if (path.length === 0) {
     return {};
   }
 
   const head = path[0]!;
   const rest = path.slice(1);
-  const result: XMLEmissionMap = {};
+  const result: EmissionMap = {};
   if (rest.length === 0) {
     result[head] = shouldEmit;
     return result;
@@ -112,16 +112,16 @@ export const calculateShouldEmit = <T>(
 export const buildEmitPatch = (
   configKey: string | Path,
   shouldEmit: boolean
-): XMLEmissionMap => {
+): EmissionMap => {
   const path = Array.isArray(configKey) ? configKey : splitConfigKey(configKey);
   return buildPatchFromPath(path, shouldEmit);
 };
 
 export const mergeEmitPatch = (
-  base: XMLEmissionMap | undefined,
-  patch: XMLEmissionMap
-): XMLEmissionMap => {
-  const result: XMLEmissionMap = { ...(base ?? {}) };
+  base: EmissionMap | undefined,
+  patch: EmissionMap
+): EmissionMap => {
+  const result: EmissionMap = { ...(base ?? {}) };
 
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) {
@@ -135,9 +135,9 @@ export const mergeEmitPatch = (
 
     if (isPlainObject(value)) {
       const existing = isPlainObject(result[key])
-        ? (result[key] as XMLEmissionMap)
+        ? (result[key] as EmissionMap)
         : undefined;
-      result[key] = mergeEmitPatch(existing, value as XMLEmissionMap);
+      result[key] = mergeEmitPatch(existing, value as EmissionMap);
     }
   }
 
@@ -145,8 +145,8 @@ export const mergeEmitPatch = (
 };
 
 export const emissionMapsEqual = (
-  a: XMLEmissionMap | undefined,
-  b: XMLEmissionMap | undefined
+  a: EmissionMap | undefined,
+  b: EmissionMap | undefined
 ): boolean => {
   if (a === b) {
     return true;
@@ -157,11 +157,11 @@ export const emissionMapsEqual = (
   return deepEqual(a, b);
 };
 
-export function useXMLEmission<T>({
+export function useEmission<T>({
   configKey,
   value,
   defaultValue,
-}: UseXMLEmissionOptions<T>): UseXMLEmissionResult<T> {
+}: UseEmissionOptions<T>): UseEmissionResult<T> {
   const path = useMemo(() => splitConfigKey(configKey), [configKey]);
 
   const shouldEmit = useMemo(
