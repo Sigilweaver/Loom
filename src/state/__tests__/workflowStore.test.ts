@@ -759,4 +759,505 @@ describe('WorkflowStore', () => {
       expect(state.workflowMeta).not.toBe(originalMeta); // Different object reference
     });
   });
+
+  describe('Coverage Gaps - Edge Cases', () => {
+    describe('setFromXML edge cases', () => {
+      test('should set tools, wires, and meta from XML data (line 64)', () => {
+        const tools: Tool[] = [
+          {
+            id: 'tool1',
+            type: 'Input',
+            x: 100,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'output', multiple: false }]
+          },
+          {
+            id: 'tool2',
+            type: 'Output',
+            x: 300,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'input', multiple: false }]
+          }
+        ];
+
+        const wires: Wire[] = [
+          { from: { tool: 'tool1', socket: 1 }, to: { tool: 'tool2', socket: 1 } }
+        ];
+
+        const meta: WorkflowMeta = {
+          name: 'Test',
+          description: 'Test',
+          author: 'Test',
+          workflowId: 'test-id',
+          created: new Date().toISOString()
+        };
+
+        useWorkflowStore.getState().setFromXML(tools, wires, meta);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(2);
+        expect(state.wires).toHaveLength(1);
+        expect(state.workflowMeta.name).toBe('Test');
+        // syncEdges is called automatically
+      });
+    });
+
+    describe('removeTool edge cases', () => {
+      test('should handle removing non-existent tool gracefully (lines 91-93)', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ tools: [tool], wires: [] });
+
+        // Try to remove non-existent tool
+        useWorkflowStore.getState().removeTool('nonexistent');
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(1); // Original tool still there
+        expect(state.tools[0]?.id).toBe('tool1');
+      });
+
+      test('should remove tool without wires', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ tools: [tool], wires: [] });
+        useWorkflowStore.getState().removeTool('tool1');
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(0);
+      });
+    });
+
+    describe('updateToolPosition edge cases', () => {
+      test('should handle updating non-existent tool gracefully (lines 177-179)', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ tools: [tool], wires: [] });
+
+        // Try to update non-existent tool
+        useWorkflowStore.getState().updateToolPosition('nonexistent', 500, 600);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools[0]?.x).toBe(100); // Original position unchanged
+        expect(state.tools[0]?.y).toBe(200);
+      });
+
+      test('should update position without affecting other properties', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: { filename: 'test.csv' },
+          sockets: [{ id: 1, direction: 'output', multiple: false }]
+        };
+
+        useWorkflowStore.setState({ tools: [tool], wires: [] });
+
+        useWorkflowStore.getState().updateToolPosition('tool1', 500, 600);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools[0]?.x).toBe(500);
+        expect(state.tools[0]?.y).toBe(600);
+        expect(state.tools[0]?.config).toEqual({ filename: 'test.csv' });
+        expect(state.tools[0]?.sockets).toHaveLength(1);
+      });
+    });
+
+    describe('validateWire socket validation', () => {
+      test('should reject wire with invalid from socket (lines 226-227)', () => {
+        const tool1: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'output', multiple: false }]
+        };
+
+        const tool2: Tool = {
+          id: 'tool2',
+          type: 'Output',
+          x: 300,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'input', multiple: false }]
+        };
+
+        useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
+
+        // Try to connect with non-existent socket
+        const wire: Wire = {
+          from: { tool: 'tool1', socket: 999 }, // Invalid socket
+          to: { tool: 'tool2', socket: 1 }
+        };
+
+        const result = useWorkflowStore.getState().validateWire(wire);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Socket not found');
+      });
+
+      test('should reject wire with invalid to socket', () => {
+        const tool1: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'output', multiple: false }]
+        };
+
+        const tool2: Tool = {
+          id: 'tool2',
+          type: 'Output',
+          x: 300,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'input', multiple: false }]
+        };
+
+        useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
+
+        // Try to connect to non-existent socket
+        const wire: Wire = {
+          from: { tool: 'tool1', socket: 1 },
+          to: { tool: 'tool2', socket: 999 } // Invalid socket
+        };
+
+        const result = useWorkflowStore.getState().validateWire(wire);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Socket not found');
+      });
+
+      test('should validate multiple=true sockets correctly', () => {
+        const tool1: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'output', multiple: false }]
+        };
+
+        const tool2: Tool = {
+          id: 'union',
+          type: 'Union',
+          x: 300,
+          y: 200,
+          config: {},
+          sockets: [{ id: 1, direction: 'input', multiple: true }] // Multiple inputs allowed
+        };
+
+        useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
+
+        // Connect first wire
+        const wire1: Wire = {
+          from: { tool: 'tool1', socket: 1 },
+          to: { tool: 'union', socket: 1 }
+        };
+        useWorkflowStore.getState().addWire(wire1);
+
+        // Try to connect second wire to same input (should succeed because multiple=true)
+        const tool3: Tool = {
+          id: 'tool3',
+          type: 'Input',
+          x: 100,
+          y: 400,
+          config: {},
+          sockets: [{ id: 1, direction: 'output', multiple: false }]
+        };
+
+        useWorkflowStore.setState({
+          tools: [tool1, tool2, tool3],
+          wires: [wire1]
+        });
+
+        const wire2: Wire = {
+          from: { tool: 'tool3', socket: 1 },
+          to: { tool: 'union', socket: 1 }
+        };
+
+        const result = useWorkflowStore.getState().validateWire(wire2);
+        expect(result.valid).toBe(true); // Should be valid because multiple=true
+      });
+    });
+
+    describe('loadWorkflow edge cases', () => {
+      test('should clear selection on load (lines 326-327)', () => {
+        // Setup: tool selected
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({
+          tools: [tool],
+          wires: [],
+          selectedTool: tool // Pass the actual tool object
+        });
+
+        expect(useWorkflowStore.getState().selectedTool?.id).toBe('tool1');
+
+        // Load new workflow
+        const newTool: Tool = {
+          id: 'tool2',
+          type: 'Filter',
+          x: 300,
+          y: 400,
+          config: {},
+          sockets: []
+        };
+
+        const meta: WorkflowMeta = {
+          name: 'New Workflow',
+          description: '',
+          author: '',
+          workflowId: 'new-id',
+          created: new Date().toISOString()
+        };
+
+        useWorkflowStore.getState().loadWorkflow([newTool], [], meta);
+
+        const state = useWorkflowStore.getState();
+        expect(state.selectedTool).toBeNull(); // Selection cleared
+        expect(state.tools).toHaveLength(1);
+        expect(state.tools[0]?.id).toBe('tool2');
+      });
+
+      test('should sync edges after loading workflow', () => {
+        const tools: Tool[] = [
+          {
+            id: 'tool1',
+            type: 'Input',
+            x: 100,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'output', multiple: false }]
+          },
+          {
+            id: 'tool2',
+            type: 'Output',
+            x: 300,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'input', multiple: false }]
+          }
+        ];
+
+        const wires: Wire[] = [
+          { from: { tool: 'tool1', socket: 1 }, to: { tool: 'tool2', socket: 1 } }
+        ];
+
+        const meta: WorkflowMeta = {
+          name: 'Test',
+          description: '',
+          author: '',
+          workflowId: 'test-id',
+          created: new Date().toISOString()
+        };
+
+        useWorkflowStore.getState().loadWorkflow(tools, wires, meta);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(2);
+        expect(state.wires).toHaveLength(1);
+        // syncEdges is called automatically
+      });
+    });
+
+    describe('batchAddToolsAndWires', () => {
+      test('should add tools and wires atomically (lines 359, 361)', () => {
+        const tools: Tool[] = [
+          {
+            id: 'tool1',
+            type: 'Input',
+            x: 100,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'output', multiple: false }]
+          },
+          {
+            id: 'tool2',
+            type: 'Output',
+            x: 300,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'input', multiple: false }]
+          }
+        ];
+
+        const wires: Wire[] = [
+          { from: { tool: 'tool1', socket: 1 }, to: { tool: 'tool2', socket: 1 } }
+        ];
+
+        useWorkflowStore.getState().batchAddToolsAndWires(tools, wires);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(2);
+        expect(state.wires).toHaveLength(1);
+        // syncEdges is called automatically
+      });
+
+      test('should handle empty arrays', () => {
+        useWorkflowStore.getState().batchAddToolsAndWires([], []);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(0);
+        expect(state.wires).toHaveLength(0);
+      });
+
+      test('should sync edges after batch operation', () => {
+        // Add initial tool
+        const initialTool: Tool = {
+          id: 'initial',
+          type: 'Input',
+          x: 0,
+          y: 0,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ tools: [initialTool], wires: [], edges: [] });
+
+        // Batch add new tools and wires
+        const newTools: Tool[] = [
+          {
+            id: 'tool1',
+            type: 'Filter',
+            x: 100,
+            y: 200,
+            config: {},
+            sockets: [
+              { id: 1, direction: 'input', multiple: false },
+              { id: 2, direction: 'output', multiple: false }
+            ]
+          },
+          {
+            id: 'tool2',
+            type: 'Output',
+            x: 300,
+            y: 200,
+            config: {},
+            sockets: [{ id: 1, direction: 'input', multiple: false }]
+          }
+        ];
+
+        const newWires: Wire[] = [
+          { from: { tool: 'tool1', socket: 2 }, to: { tool: 'tool2', socket: 1 } }
+        ];
+
+        useWorkflowStore.getState().batchAddToolsAndWires(newTools, newWires);
+
+        const state = useWorkflowStore.getState();
+        expect(state.tools).toHaveLength(3); // initial + 2 new
+        expect(state.wires).toHaveLength(1);
+        // syncEdges is called automatically
+      });
+    });
+
+    describe('Selector Hooks', () => {
+      test('should access tools via getState', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ tools: [tool] });
+
+        const tools = useWorkflowStore.getState().tools;
+        expect(tools).toHaveLength(1);
+        expect(tools[0]?.id).toBe('tool1');
+      });
+
+      test('should access wires via getState', () => {
+        const wire: Wire = {
+          from: { tool: 'tool1', socket: 1 },
+          to: { tool: 'tool2', socket: 1 }
+        };
+
+        useWorkflowStore.setState({ wires: [wire] });
+
+        const wires = useWorkflowStore.getState().wires;
+        expect(wires).toHaveLength(1);
+        expect(wires[0]?.from.tool).toBe('tool1');
+      });
+
+      test('should access edges via getState', () => {
+        const edge: Edge = {
+          id: 'edge1',
+          source: 'tool1',
+          target: 'tool2',
+          sourceHandle: 'output-1',
+          targetHandle: 'input-1'
+        };
+
+        useWorkflowStore.setState({ edges: [edge] });
+
+        const edges = useWorkflowStore.getState().edges;
+        expect(edges).toHaveLength(1);
+        expect(edges[0]?.id).toBe('edge1');
+      });
+
+      test('should access workflowMeta via getState', () => {
+        const meta: WorkflowMeta = {
+          name: 'Test Workflow',
+          description: 'Description',
+          author: 'Author',
+          workflowId: 'test-id',
+          created: new Date().toISOString()
+        };
+
+        useWorkflowStore.setState({ workflowMeta: meta });
+
+        const storedMeta = useWorkflowStore.getState().workflowMeta;
+        expect(storedMeta.name).toBe('Test Workflow');
+      });
+
+      test('should access selectedTool via getState', () => {
+        const tool: Tool = {
+          id: 'tool1',
+          type: 'Input',
+          x: 100,
+          y: 200,
+          config: {},
+          sockets: []
+        };
+
+        useWorkflowStore.setState({ selectedTool: tool });
+
+        const selectedTool = useWorkflowStore.getState().selectedTool;
+        expect(selectedTool?.id).toBe('tool1');
+      });
+    });
+  });
 });
