@@ -18,5 +18,5 @@ module.exports = {
   'no-restricted-imports': 'off',
   'react-hooks/exhaustive-deps': 'off'
   },
-  ignorePatterns: ['dist','dist-electron','electron','**/*.config.*','vite.config.ts']
+  ignorePatterns: ['dist','dist-electron','electron','**/*.config.*','vite.config.ts','.eslintrc.cjs']
 };
