@@ -15,14 +15,14 @@ describe("HistoryManager", () => {
       expect(manager.size()).toEqual({ undo: 0, redo: 0 });
     });
 
-    it("should initialize with initial XML and label", () => {
+    it("should initialize with initial workflow and label", () => {
       const mgr = new HistoryManager("<initial/>", "Start");
 
       expect(mgr.canUndo()).toBe(true);
       expect(mgr.size()).toEqual({ undo: 1, redo: 0 });
     });
 
-    it("should initialize with initial XML without label", () => {
+    it("should initialize with initial workflow without label", () => {
       const mgr = new HistoryManager("<initial/>");
 
       expect(mgr.canUndo()).toBe(true);
@@ -43,7 +43,7 @@ describe("HistoryManager", () => {
       manager.checkpoint("<state2/>");
 
       const undone = manager.undo("<state2/>");
-      expect(undone?.xml).toBe("<state2/>");
+      expect(undone?.workflow).toBe("<state2/>");
       expect(manager.canRedo()).toBe(true);
 
       // New checkpoint should clear redo
@@ -55,7 +55,7 @@ describe("HistoryManager", () => {
       manager.checkpoint("<state1/>");
 
       const undone = manager.undo("<current/>");
-      expect(undone?.xml).toBe("<state1/>");
+      expect(undone?.workflow).toBe("<state1/>");
       expect(undone?.label).toBeUndefined();
     });
 
@@ -91,7 +91,7 @@ describe("HistoryManager", () => {
       manager.commit("<modified/>");
 
       const undone = manager.undo("<modified/>");
-      expect(undone?.xml).toBe("<original/>");
+      expect(undone?.workflow).toBe("<original/>");
     });
 
     it("should clear redo stack on begin", () => {
@@ -110,7 +110,7 @@ describe("HistoryManager", () => {
 
       expect(manager.canUndo()).toBe(true);
       const undone = manager.undo("<current/>");
-      expect(undone?.xml).toBe("<state1/>");
+      expect(undone?.workflow).toBe("<state1/>");
       expect(undone?.label).toBe("Direct commit");
     });
 
@@ -124,10 +124,10 @@ describe("HistoryManager", () => {
       expect(manager.size()).toEqual({ undo: 2, redo: 0 });
 
       const undo1 = manager.undo("<state3/>");
-      expect(undo1?.xml).toBe("<state2/>");
+      expect(undo1?.workflow).toBe("<state2/>");
 
       const undo2 = manager.undo("<state2/>");
-      expect(undo2?.xml).toBe("<state1/>");
+      expect(undo2?.workflow).toBe("<state1/>");
     });
 
     it("should preserve label from begin in committed entry", () => {
@@ -161,7 +161,7 @@ describe("HistoryManager", () => {
       manager.checkpoint("<state2/>");
 
       const undone = manager.undo("<state2/>");
-      expect(undone?.xml).toBe("<state2/>");
+      expect(undone?.workflow).toBe("<state2/>");
     });
 
     it("should add current state to redo stack", () => {
@@ -189,13 +189,13 @@ describe("HistoryManager", () => {
       manager.checkpoint("<state3/>");
 
       const undo1 = manager.undo("<state3/>");
-      expect(undo1?.xml).toBe("<state3/>");
+      expect(undo1?.workflow).toBe("<state3/>");
 
       const undo2 = manager.undo("<state3/>");
-      expect(undo2?.xml).toBe("<state2/>");
+      expect(undo2?.workflow).toBe("<state2/>");
 
       const undo3 = manager.undo("<state2/>");
-      expect(undo3?.xml).toBe("<state1/>");
+      expect(undo3?.workflow).toBe("<state1/>");
 
       expect(manager.canUndo()).toBe(false);
     });
@@ -204,7 +204,7 @@ describe("HistoryManager", () => {
       manager.checkpoint("<state1/>", "TestLabel");
 
       const undone = manager.undo("<current/>");
-      expect(undone?.xml).toBe("<state1/>");
+      expect(undone?.workflow).toBe("<state1/>");
       expect(undone?.label).toBe("TestLabel");
       expect(undone?.ts).toBeDefined();
     });
@@ -223,7 +223,7 @@ describe("HistoryManager", () => {
       manager.undo("<state2/>");
       const redone = manager.redo("<state1/>");
 
-      expect(redone?.xml).toBe("<state2/>");
+      expect(redone?.workflow).toBe("<state2/>");
     });
 
     it("should add current state to undo stack on redo", () => {
@@ -257,13 +257,13 @@ describe("HistoryManager", () => {
       manager.undo("<state2/>");
 
       const redo1 = manager.redo("<state1/>");
-      expect(redo1?.xml).toBe("<state2/>");
+      expect(redo1?.workflow).toBe("<state2/>");
 
       const redo2 = manager.redo("<state1/>");
-      expect(redo2?.xml).toBe("<state3/>");
+      expect(redo2?.workflow).toBe("<state3/>");
 
       const redo3 = manager.redo("<state2/>");
-      expect(redo3?.xml).toBe("<state3/>");
+      expect(redo3?.workflow).toBe("<state3/>");
     });
 
     it("should preserve timestamp on redo", () => {
@@ -377,7 +377,7 @@ describe("HistoryManager", () => {
       manager.commit("<state3/>");
 
       const undone = manager.undo("<state3/>");
-      expect(undone?.xml).toBe("<state3/>"); // The checkpoint, not the cancelled transaction
+      expect(undone?.workflow).toBe("<state3/>"); // The checkpoint, not the cancelled transaction
     });
 
     it("should handle long undo/redo chain", () => {
@@ -426,26 +426,26 @@ describe("HistoryManager", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle empty XML strings", () => {
+    it("should handle empty workflow strings", () => {
       manager.checkpoint("");
       const undone = manager.undo("");
-      expect(undone?.xml).toBe("");
+      expect(undone?.workflow).toBe("");
     });
 
-    it("should handle very long XML strings", () => {
+    it("should handle very long workflow strings", () => {
       const longXml = "<root>" + "x".repeat(10000) + "</root>";
       manager.checkpoint(longXml);
 
       const undone = manager.undo("<current/>");
-      expect(undone?.xml).toBe(longXml);
+      expect(undone?.workflow).toBe(longXml);
     });
 
-    it("should handle special characters in XML", () => {
+    it("should handle special characters in workflow", () => {
       const specialXml = "<root>&lt;&gt;&amp;&quot;&apos;</root>";
       manager.checkpoint(specialXml);
 
       const undone = manager.undo("<current/>");
-      expect(undone?.xml).toBe(specialXml);
+      expect(undone?.workflow).toBe(specialXml);
     });
 
     it("should handle rapid successive operations", () => {

@@ -1,5 +1,5 @@
 export type HistoryEntry = {
-  xml: string;
+  workflow: string;
   label?: string;
   ts: number;
 };
@@ -9,54 +9,66 @@ export class HistoryManager {
   private redoStack: HistoryEntry[] = [];
   private pendingBegin: HistoryEntry | null = null;
 
-  constructor(initialXml?: string, label?: string) {
-    if (initialXml) {
-      this.checkpoint(initialXml, label ?? 'Initial');
+  constructor(initialWorkflow?: string, label?: string) {
+    if (initialWorkflow) {
+      this.checkpoint(initialWorkflow, label ?? "Initial");
     }
   }
 
-  begin(currentXml: string, label?: string) {
+  begin(currentWorkflow: string, label?: string) {
     // Start a transaction by capturing baseline; clear redo stack for new branch
-    this.pendingBegin = { xml: currentXml, ts: Date.now(), ...(label ? { label } : {}) } as HistoryEntry;
+    this.pendingBegin = {
+      workflow: currentWorkflow,
+      ts: Date.now(),
+      ...(label ? { label } : {}),
+    } as HistoryEntry;
     this.redoStack = [];
   }
 
-  commit(currentXml: string, meta?: { label?: string }) {
+  commit(currentWorkflow: string, meta?: { label?: string }) {
     // If no transaction, treat as checkpoint
     if (!this.pendingBegin) {
-      this.checkpoint(currentXml, meta?.label);
+      this.checkpoint(currentWorkflow, meta?.label);
       return;
     }
     // Push the baseline (pre-change) so undo returns to it
     this.undoStack.push(this.pendingBegin);
     this.pendingBegin = null;
-    // After commit, we are at currentXml (working state). Redo stack cleared already in begin().
+    // After commit, we are at currentWorkflow (working state). Redo stack cleared already in begin().
   }
 
-  checkpoint(currentXml: string, label?: string) {
+  checkpoint(currentWorkflow: string, label?: string) {
     // Push current snapshot to undo stack as a state we can go back to
-    this.undoStack.push({ xml: currentXml, ts: Date.now(), ...(label ? { label } : {}) } as HistoryEntry);
+    this.undoStack.push({
+      workflow: currentWorkflow,
+      ts: Date.now(),
+      ...(label ? { label } : {}),
+    } as HistoryEntry);
     this.redoStack = [];
   }
 
-  canUndo() { return this.undoStack.length > 0; }
-  canRedo() { return this.redoStack.length > 0; }
+  canUndo() {
+    return this.undoStack.length > 0;
+  }
+  canRedo() {
+    return this.redoStack.length > 0;
+  }
 
-  undo(currentXml: string): HistoryEntry | null {
+  undo(currentWorkflow: string): HistoryEntry | null {
     if (!this.canUndo()) return null;
     const target = this.undoStack.pop()!;
     // Current becomes a redo entry
-    this.redoStack.push({ xml: currentXml, ts: Date.now() });
+    this.redoStack.push({ workflow: currentWorkflow, ts: Date.now() });
     // Cancel any pending txn
     this.pendingBegin = null;
     return target;
   }
 
-  redo(currentXml: string): HistoryEntry | null {
+  redo(currentWorkflow: string): HistoryEntry | null {
     if (!this.canRedo()) return null;
     const target = this.redoStack.pop()!;
     // Current becomes an undo entry
-    this.undoStack.push({ xml: currentXml, ts: Date.now() });
+    this.undoStack.push({ workflow: currentWorkflow, ts: Date.now() });
     // Cancel any pending txn
     this.pendingBegin = null;
     return target;
@@ -68,5 +80,7 @@ export class HistoryManager {
     this.pendingBegin = null;
   }
 
-  size() { return { undo: this.undoStack.length, redo: this.redoStack.length }; }
+  size() {
+    return { undo: this.undoStack.length, redo: this.redoStack.length };
+  }
 }

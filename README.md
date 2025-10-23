@@ -17,7 +17,7 @@ A visual workflow designer application built with Electron, React, Vite, and Typ
 
 - **Visual Workflow Designer**: Drag and drop tools onto a canvas to create workflows
 - **Tool Categories**: Organized tools into Favorites, In/Out, Preparation, and Join categories
-- **Real-time XML Generation**: Automatically generates XML representation of workflows
+- **Real-time Workflow Serialization**: Automatically serializes workflows to JSON format
 - **Loop Detection**: Built-in validation to detect and warn about workflow loops
 - **Desktop Application**: Cross-platform desktop app built with Electron
 
@@ -71,7 +71,7 @@ src/
 ├── components/     # React components
 ├── data/          # Tool definitions and configurations
 ├── types/         # TypeScript type definitions
-├── utils/         # Utility functions (XML generation, etc.)
+├── utils/         # Utility functions (workflow serialization, etc.)
 └── main.tsx       # Application entry point
 ```
 
@@ -79,16 +79,15 @@ src/
 
 Looking for guidance on the reusable configuration controls (`ConfigSelect`, `ConfigNumberRange`, `ConfigBoolean`, etc.)? Start with the philosophy outlined in [`docs/configuration-primitives-philosophy.md`](docs/configuration-primitives-philosophy.md) for defaults, emission wiring, and UX tips.
 
-## Workflow XML Format
+## Workflow File Format
 
-The application generates XML workflows in the following format:
+The application serializes workflows to JSON format (.swwf files):
 
 - **Meta**: Workflow metadata (name, description, author, etc.)
-- **Hierarchy**: Nested groups and tools with positioning
-- **Edges**: Connections between tools
-- **Config**: Tool-specific configuration
+- **Tools**: Tool instances with positioning and configuration
+- **Wires**: Connections between tools
 
-See the Notes folder for a complete example of the XML format.
+See the WorkflowSerializer for details on the v2.0 JSON format.
 
 ## Available Tools
 
@@ -112,7 +111,7 @@ See the Notes folder for a complete example of the XML format.
 
 The application includes a traditional desktop menu bar with:
 
-- **File**: New, Open, Save, Export XML
+- **File**: New, Open, Save, Export Workflow
 - **Edit**: Standard editing operations
 - **View**: Display options and developer tools
 - **Workflow**: Run and validate workflows
@@ -123,7 +122,7 @@ This is an early-stage project. The focus is currently on:
 
 1. UI/UX improvements
 2. Additional tool types
-3. Enhanced XML generation
+3. Enhanced workflow serialization
 4. Workflow execution engine
 
 ## License

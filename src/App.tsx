@@ -87,20 +87,20 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="h-screen flex flex-col bg-theme-surface-page">
+      <div className="flex flex-col h-screen bg-theme-surface-page">
         <Header />
 
         <ToolPalette />
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
           {/* Configuration Panel - Left Side */}
           <ConfigurationPanel />
 
           <ReactFlowProvider>
-            <div className="flex-1 flex">
+            <div className="flex flex-1">
               <Canvas ref={canvasRef} />
 
-              {/* JSON Viewer Side Panel - computes JSON internally */}
+              {/* Workflow Viewer Side Panel - computes JSON internally */}
               {workflowViewerVisible && <WorkflowViewer />}
             </div>
           </ReactFlowProvider>
