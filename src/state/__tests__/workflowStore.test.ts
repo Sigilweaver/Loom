@@ -92,7 +92,7 @@ describe("WorkflowStore", () => {
 
       const meta: WorkflowMeta = {
         name: "Imported Workflow",
-        description: "A workflow imported from XML",
+        description: "A workflow imported from file",
         author: "Test Author",
         workflowId: "imported-id",
         created: "2025-08-01T12:00:00.000Z",
@@ -694,7 +694,7 @@ describe("WorkflowStore", () => {
 
   describe("Store Integration", () => {
     test("multiple operations work together correctly", () => {
-      // Step 1: Load from XML
+      // Step 1: Load workflow
       const tools: Tool[] = [
         {
           id: "integration-tool",

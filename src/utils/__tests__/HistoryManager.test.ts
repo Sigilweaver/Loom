@@ -433,19 +433,19 @@ describe("HistoryManager", () => {
     });
 
     it("should handle very long workflow strings", () => {
-      const longXml = "<root>" + "x".repeat(10000) + "</root>";
-      manager.checkpoint(longXml);
+      const longContent = "<root>" + "x".repeat(10000) + "</root>";
+      manager.checkpoint(longContent);
 
       const undone = manager.undo("<current/>");
-      expect(undone?.workflow).toBe(longXml);
+      expect(undone?.workflow).toBe(longContent);
     });
 
     it("should handle special characters in workflow", () => {
-      const specialXml = "<root>&lt;&gt;&amp;&quot;&apos;</root>";
-      manager.checkpoint(specialXml);
+      const specialContent = "<root>&lt;&gt;&amp;&quot;&apos;</root>";
+      manager.checkpoint(specialContent);
 
       const undone = manager.undo("<current/>");
-      expect(undone?.workflow).toBe(specialXml);
+      expect(undone?.workflow).toBe(specialContent);
     });
 
     it("should handle rapid successive operations", () => {

@@ -1,4 +1,4 @@
-import { ToolConfig, EmissionMap } from "@domain/workflow/entities/workflow";
+import { EmissionMap, ToolConfig } from "@domain/workflow/entities/workflow";
 import React from "react";
 import {
   BrowserFileWarning,
@@ -388,10 +388,10 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
               </div>
             </div>
 
-            {/* XML Emission Demo */}
+            {/* Serialization Emission Demo */}
             <div className="text-xs text-theme-text-tertiary bg-theme-surface-elevated p-3 rounded border-l-2 border-theme-interactive-accent">
               <div className="font-medium mb-2">
-                XML Emission Logic (automatic):
+                Serialization Emission Logic (automatic):
               </div>
               <div className="font-mono text-xs space-y-1">
                 {config.hasHeader != null ? (
@@ -435,8 +435,8 @@ export const ConfigTestingPanel: React.FC<ConfigTestingPanelProps> = ({
               </div>
               <div className="mt-2 text-theme-text-disabled">
                 ConfigBoolean automatically sets undefined when value equals
-                default. XML generation simply checks: if (value != null)
-                emit_attribute();
+                default. Serialization simply checks: if (value != null)
+                emit_field();
               </div>
               {config._emit && (
                 <div className="mt-3 text-xs">

@@ -3,8 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import App from "../App";
 
 // Mock the entire App dependencies to see if it can render
-// No need to mock XMLWorkflowManager, HistoryManager, EdgeManager - they're no longer used
-// App now uses Zustand stores which are automatically mocked in test environment
+// App uses Zustand stores which are automatically mocked in test environment
 
 vi.mock("../data/tools", () => ({
   getToolDefinition: vi.fn((type) => ({

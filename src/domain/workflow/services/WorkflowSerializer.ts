@@ -2,8 +2,7 @@
  * WorkflowSerializer - JSON-based workflow serialization service
  *
  * Provides stateless methods for serializing/deserializing workflow state
- * to/from JSON format. Replaces XML-based serialization with a simpler,
- * faster, and more maintainable JSON approach.
+ * to/from JSON format.
  *
  * File Format: .swwf v2.0 (JSON)
  */
@@ -272,8 +271,7 @@ export class WorkflowSerializer {
   }
 
   /**
-   * Check if a string appears to be JSON (vs XML)
-   * Useful for auto-detection of legacy XML files
+   * Check if a string appears to be JSON
    *
    * @param content - File content to check
    * @returns true if content appears to be JSON
@@ -283,7 +281,7 @@ export class WorkflowSerializer {
    * if (WorkflowSerializer.isJSON(content)) {
    *   // Parse as JSON
    * } else {
-   *   // Convert from XML
+   *   // Handle invalid format
    * }
    */
   static isJSON(content: string): boolean {

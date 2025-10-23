@@ -27,7 +27,7 @@ export const ConfigField: React.FC<PropsWithChildren<ConfigFieldProps>> = ({
   descriptionId,
   inlineMessage,
   willEmit = false,
-  willEmitMessage = "Overrides default in XML",
+  willEmitMessage = "Overrides default",
   required = false,
   hideLabel = false,
   className,

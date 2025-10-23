@@ -20,7 +20,6 @@ export interface WorkflowMeta {
 
 /**
  * Tracks which configuration fields differ from defaults and should be serialized.
- * This is format-agnostic and applies to JSON, XML, or any other serialization format.
  */
 export interface EmissionMap {
   [key: string]: boolean | EmissionMap | undefined;

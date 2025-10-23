@@ -431,12 +431,12 @@ describe("WorkflowSerializer", () => {
       expect(WorkflowSerializer.isJSON('  \n  {"version": "2.0"}')).toBe(true);
     });
 
-    it("should reject XML content", () => {
+    it("should reject non-JSON content", () => {
       expect(WorkflowSerializer.isJSON("<workflow>")).toBe(false);
     });
 
     it("should reject plain text", () => {
-      expect(WorkflowSerializer.isJSON("not json or xml")).toBe(false);
+      expect(WorkflowSerializer.isJSON("not json")).toBe(false);
     });
   });
 
