@@ -1,130 +1,29 @@
-## CI builds
-
-GitHub Actions workflow at `.github/workflows/build.yml` builds artifacts for:
-
-- Zipped web bundle (dist-web.zip)
-- Linux: AppImage and Snap
-- macOS: dmg and zip
-- Windows: nsis and portable
-
-macOS signing/notarization is not configured; builds are unsigned for local testing. To enable signing, set the appropriate Apple ID and certificate secrets and update electron-builder config.
-
 # Sigilweaver
 
-A visual workflow designer application built with Electron, React, Vite, and TypeScript. Similar to Alteryx, this application allows you to create data processing workflows using a drag-and-drop interface.
+Sigilweaver is a visual workflow designer for building and executing data processing pipelines through an intuitive drag-and-drop interface. Built as a cross-platform desktop application, it empowers users to create complex data transformations without writing code.
+
+**Website**: [sigilweaver.app](https://sigilweaver.app/)  
+**Downloads**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)  
+**Documentation**: [docs.sigilweaver.app](https://docs.sigilweaver.app/)
 
 ## Features
 
-- **Visual Workflow Designer**: Drag and drop tools onto a canvas to create workflows
-- **Tool Categories**: Organized tools into Favorites, In/Out, Preparation, and Join categories
-- **Real-time Workflow Serialization**: Automatically serializes workflows to JSON format
-- **Loop Detection**: Built-in validation to detect and warn about workflow loops
-- **Desktop Application**: Cross-platform desktop app built with Electron
+- **Visual Workflow Designer**: Drag and drop tools onto an infinite canvas to build data pipelines
+- **Smart Connection Validation**: Real-time cycle detection prevents invalid workflow structures
+- **Workflow Persistence**: Save and share workflows as portable `.swwf` JSON files
+- **Undo/Redo System**: Full history tracking for confident workflow editing
+- **Organized Tool Library**: Browse tools by category (In/Out, Preparation, Join, and more)
+- **Modern Desktop Experience**: Native desktop application with traditional menu bar and keyboard shortcuts
+- **Extensible Architecture**: Domain-driven design makes adding new tools and capabilities straightforward
 
-## Getting Started
+## Installation
 
-### Prerequisites
+### For Users
 
-- Node.js (v18 or higher)
-- npm
+Download the latest release for your platform:
 
-### Installation
+- **Linux**: [AppImage](https://download.sigilweaver.app/latest/sigilweaver.appimage) | [Snap](https://download.sigilweaver.app/latest/sigilweaver.snap)
+- **macOS**: [DMG](https://download.sigilweaver.app/latest/sigilweaver.dmg)
+- **Windows**: [Installer](https://download.sigilweaver.app/latest/sigilweaver.exe)
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-### Development
-
-To run the application in development mode:
-
-```bash
-npm run electron:dev
-```
-
-This will start both the Vite dev server and the Electron application.
-
-### Building
-
-To build the application for production:
-
-```bash
-npm run build
-```
-
-## Architecture
-
-### Tech Stack
-
-- **Electron**: Desktop application framework
-- **React**: UI library
-- **Vite**: Build tool and dev server
-- **TypeScript**: Type-safe JavaScript
-- **Tailwind CSS**: Utility-first CSS framework
-
-### Project Structure
-
-```
-src/
-├── components/     # React components
-├── data/          # Tool definitions and configurations
-├── types/         # TypeScript type definitions
-├── utils/         # Utility functions (workflow serialization, etc.)
-└── main.tsx       # Application entry point
-```
-
-## Configuration Primitives
-
-Looking for guidance on the reusable configuration controls (`ConfigSelect`, `ConfigNumberRange`, `ConfigBoolean`, etc.)? Start with the philosophy outlined in [`docs/configuration-primitives-philosophy.md`](docs/configuration-primitives-philosophy.md) for defaults, emission wiring, and UX tips.
-
-## Workflow File Format
-
-The application serializes workflows to JSON format (.swwf files):
-
-- **Meta**: Workflow metadata (name, description, author, etc.)
-- **Tools**: Tool instances with positioning and configuration
-- **Wires**: Connections between tools
-
-See the WorkflowSerializer for details on the v2.0 JSON format.
-
-## Available Tools
-
-### In/Out (Green)
-
-- **Input Data**: Read data from files
-- **Output Data**: Write data to files
-
-### Preparation (Blue)
-
-- **Filter**: Filter rows based on conditions
-- **Select**: Select specific columns
-- **Sort**: Sort data by columns
-
-### Join (Purple)
-
-- **Union**: Combine datasets vertically
-- **Join**: Join datasets on common keys
-
-## Menu System
-
-The application includes a traditional desktop menu bar with:
-
-- **File**: New, Open, Save, Export Workflow
-- **Edit**: Standard editing operations
-- **View**: Display options and developer tools
-- **Workflow**: Run and validate workflows
-
-## Contributing
-
-This is an early-stage project. The focus is currently on:
-
-1. UI/UX improvements
-2. Additional tool types
-3. Enhanced workflow serialization
-4. Workflow execution engine
-
-## License
-
-[Add your license here]
+Visit [sigilweaver.app/downloads](https://sigilweaver.app/downloads) for installation instructions and all available versions.
