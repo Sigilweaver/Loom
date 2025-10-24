@@ -67,6 +67,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const batchAddToolsAndWires = useWorkflowStore(
     (s) => s.batchAddToolsAndWires
   );
+  const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   const pushState = useHistoryStore((s) => s.pushState);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
 
@@ -193,11 +194,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     pushState(tools, wires, workflowMeta);
   }, [pushState, tools, wires, workflowMeta]);
 
-  const handleToolSelect = useCallback((tool: Tool | null) => {
-    console.log("[CanvasShell] Tool selected:", tool?.id || "none");
-    // Tool selection is managed by parent component (App.tsx) via workflowStore
-    // No local state needed here
-  }, []);
+  const handleToolSelect = useCallback(
+    (tool: Tool | null) => {
+      console.log("[CanvasShell] Tool selected:", tool?.id || "none");
+      setSelectedTool(tool);
+    },
+    [setSelectedTool]
+  );
 
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);

@@ -11,12 +11,28 @@ export {
   shouldEmitBoolean,
   type ConfigBooleanProps,
 } from "./ConfigBoolean";
+export {
+  ConfigColumnList,
+  type ColumnOperation,
+  type ConfigColumnListProps,
+  type ItemHandlers,
+} from "./ConfigColumnList";
 export { ConfigField, type ConfigFieldProps } from "./ConfigField";
 export {
   ConfigFile,
   type ConfigFileProps,
   type FileFilter,
 } from "./ConfigFile";
+export {
+  ConfigKeyValueList,
+  type ConfigKeyValueListProps,
+  type KeyValuePair,
+} from "./ConfigKeyValueList";
+export {
+  ConfigMultiSelect,
+  type ConfigMultiSelectProps,
+} from "./ConfigMultiSelect";
+export { ConfigNumber, type ConfigNumberProps } from "./ConfigNumber";
 export {
   ConfigNumberRange,
   type ConfigNumberRangeProps,
