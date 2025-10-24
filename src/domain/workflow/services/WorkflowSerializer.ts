@@ -46,10 +46,20 @@ export class WorkflowSerializer {
    * fs.writeFile('workflow.swwf', json);
    */
   static toJSON(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
+    // Strip _emit from all tool configs (runtime-only metadata)
+    const cleanTools = tools.map((tool) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _emit, ...cleanConfig } = tool.config;
+      return {
+        ...tool,
+        config: cleanConfig,
+      };
+    });
+
     const workflow: WorkflowJSON = {
       version: this.VERSION,
       meta,
-      tools,
+      tools: cleanTools,
       wires,
     };
 

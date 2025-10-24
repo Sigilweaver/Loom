@@ -228,7 +228,7 @@ export default function WorkflowViewer() {
 
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-theme-modal-header-text">
-            "Workflow Viewer"
+            Workflow Viewer
           </h2>
         </div>
 

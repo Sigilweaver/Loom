@@ -62,10 +62,12 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
   return false;
 };
 
-const buildPatchFromPath = (
-  path: Path,
-  shouldEmit: boolean
-): EmissionMap => {
+const buildPatchFromPath = (path: Path, shouldEmit: boolean): EmissionMap => {
+  // Don't create entries for false values - emission map should only contain true values
+  if (!shouldEmit) {
+    return {};
+  }
+
   if (path.length === 0) {
     return {};
   }
@@ -74,11 +76,15 @@ const buildPatchFromPath = (
   const rest = path.slice(1);
   const result: EmissionMap = {};
   if (rest.length === 0) {
-    result[head] = shouldEmit;
+    result[head] = true;
     return result;
   }
 
-  result[head] = buildPatchFromPath(rest, shouldEmit);
+  const nestedPatch = buildPatchFromPath(rest, shouldEmit);
+  // Only create parent key if nested patch has content
+  if (Object.keys(nestedPatch).length > 0) {
+    result[head] = nestedPatch;
+  }
   return result;
 };
 
