@@ -7,6 +7,9 @@ from app import __version__
 from app.api.router import api_router
 from app.config import settings
 
+# Import to register all tool implementations
+import app.domain.tools.register  # noqa: F401
+
 # Create FastAPI application
 app = FastAPI(
     title="SigilWeaver Backend",
