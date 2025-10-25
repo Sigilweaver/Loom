@@ -48,11 +48,8 @@ describe("ConfigBoolean", () => {
 
     await user.click(checkbox);
 
-    expect(handleChange).toHaveBeenLastCalledWith(
-      undefined,
-      { options: { flag: false } },
-      false
-    );
+    // When returning to default (false), emission patch should be empty (not { flag: false })
+    expect(handleChange).toHaveBeenLastCalledWith(undefined, {}, false);
     expect(checkbox.checked).toBe(false);
   });
 });

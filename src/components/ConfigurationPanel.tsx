@@ -1,8 +1,10 @@
+import { CSVMode } from "@domain/dataSources/csv";
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
+import { CsvConfiguration } from "./CsvConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
@@ -98,32 +100,24 @@ export default function ConfigurationPanel() {
             <DataSourceSelector
               onSelect={(dataSource) => {
                 if (dataSource.id === "csv") {
-                  // Create minimal CSV config - full configuration UI to be built with primitives
-                  const defaultConfig = {
+                  // CSV with mode selection
+                  const dataSourceWithMode = dataSource as typeof dataSource & {
+                    selectedMode?: string;
+                  };
+                  const selectedMode =
+                    dataSourceWithMode.selectedMode || "scan"; // Default to scan mode
+                  const newConfig: ToolConfig = {
                     category: "file" as const,
                     type: "csv" as const,
-                    options: {},
+                    csvMode: selectedMode,
                   };
                   // Preserve existing file path if any
                   const existingFilePath = selectedTool.config?.filePath;
-                  const newConfig: ToolConfig = {
-                    category: defaultConfig.category,
-                    type: defaultConfig.type,
-                  };
                   if (
                     existingFilePath !== undefined &&
                     existingFilePath !== null
                   ) {
                     newConfig.filePath = existingFilePath;
-                  }
-                  if (
-                    defaultConfig.options !== undefined &&
-                    defaultConfig.options !== null
-                  ) {
-                    newConfig.options = defaultConfig.options as Record<
-                      string,
-                      unknown
-                    >;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
                 }
@@ -132,43 +126,14 @@ export default function ConfigurationPanel() {
             />
           ) : selectedTool.config.category === "file" &&
             selectedTool.config.type === "csv" ? (
-            /* CSV Configuration Panel - TODO: Build with primitives */
-            <div className="p-4 space-y-4">
-              <div className="p-3 border rounded-md bg-theme-surface-elevated border-theme-border-primary">
-                <div className="flex items-center space-x-3">
-                  <div className="text-xl">📄</div>
-                  <div>
-                    <h3 className="font-medium text-theme-text-primary">
-                      CSV Data Source
-                    </h3>
-                    <p className="text-xs text-theme-text-tertiary">
-                      Configuration panel coming soon
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  // Reset to data source selector while preserving file path
-                  const currentFilePath = selectedTool.config?.filePath;
-                  const newConfig: ToolConfig = {};
-                  if (
-                    currentFilePath !== undefined &&
-                    currentFilePath !== null
-                  ) {
-                    newConfig.filePath = currentFilePath;
-                  }
-                  handleToolConfigChange(selectedTool.id, newConfig);
-                }}
-                className="px-3 py-1 text-xs transition-colors border rounded bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-surface-elevated"
-              >
-                Change Data Source
-              </button>
-              <div className="text-xs text-theme-text-tertiary">
-                The CSV configuration panel will be rebuilt using the new
-                primitive components.
-              </div>
-            </div>
+            /* CSV Configuration Panel */
+            <CsvConfiguration
+              mode={(selectedTool.config.csvMode as CSVMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
           ) : (
             /* Other data source types */
             <div className="p-4 text-center text-theme-text-tertiary">

@@ -19,11 +19,10 @@ describe("useEmission helpers", () => {
 
   test("buildEmitPatch creates nested emission maps", () => {
     expect(buildEmitPatch("filePath", true)).toEqual({ filePath: true });
-    expect(buildEmitPatch("options.sep", false)).toEqual({
-      options: { sep: false },
-    });
-    expect(buildEmitPatch(["options", "header"], true)).toEqual({
-      options: { header: true },
+    // False values should result in empty object (not emitted)
+    expect(buildEmitPatch("options.sep", false)).toEqual({});
+    expect(buildEmitPatch("csv.delimiter", true)).toEqual({
+      csv: { delimiter: true },
     });
   });
 

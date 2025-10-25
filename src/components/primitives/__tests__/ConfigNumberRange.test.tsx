@@ -50,11 +50,8 @@ describe("ConfigNumberRange", () => {
     await user.clear(end);
 
     await waitFor(() => {
-      expect(handleChange).toHaveBeenLastCalledWith(
-        undefined,
-        { csv: { rowRange: false } },
-        false
-      );
+      // When returning to default (empty/undefined), emission patch should be empty (not { rowRange: false })
+      expect(handleChange).toHaveBeenLastCalledWith(undefined, {}, false);
     });
   });
 

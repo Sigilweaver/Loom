@@ -76,10 +76,7 @@ describe("ConfigFile", () => {
 
     fireEvent.change(input, { target: { value: "" } });
 
-    expect(handleChange).toHaveBeenLastCalledWith(
-      undefined,
-      { file: { path: false } },
-      false
-    );
+    // When returning to default (empty), emission patch should be empty (not { path: false })
+    expect(handleChange).toHaveBeenLastCalledWith(undefined, {}, false);
   });
 });

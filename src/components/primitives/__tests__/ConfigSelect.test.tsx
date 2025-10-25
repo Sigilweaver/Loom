@@ -51,16 +51,13 @@ describe("ConfigSelect", () => {
     );
 
     await user.click(trigger);
-    const placeholderOption = await screen.findByRole("option", {
+    const placeholderOption = screen.getByRole("option", {
       name: /Choose delimiter/i,
     });
     await user.click(placeholderOption);
 
-    expect(handleChange).toHaveBeenLastCalledWith(
-      undefined,
-      { csv: { delimiter: false } },
-      false
-    );
+    // When returning to default, emission patch should be empty (not { delimiter: false })
+    expect(handleChange).toHaveBeenLastCalledWith(undefined, {}, false);
   });
 
   it("shows the default option label when no value is provided", () => {

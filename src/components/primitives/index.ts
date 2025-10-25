@@ -44,6 +44,10 @@ export {
   type ConfigSelectProps,
 } from "./ConfigSelect";
 export {
+  ConfigSelectWithCustom,
+  type ConfigSelectWithCustomProps,
+} from "./ConfigSelectWithCustom";
+export {
   ConfigText,
   type ConfigTextPresetOption,
   type ConfigTextProps,
