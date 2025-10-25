@@ -48,9 +48,9 @@ class DataSchema(BaseModel):
 
 
 class DataPreview(BaseModel):
-    """Preview data response with schema and sample rows"""
+    """Data preview with schema and sample rows"""
 
-    schema: DataSchema
-    data: list[dict[str, Any]]  # Array of row objects
-    total_rows: int | None
+    data_schema: DataSchema
+    data: list[dict[str, Any]]
+    total_rows: int | None = None  # None if unknown without full scan
     returned_rows: int
