@@ -1,9 +1,9 @@
 """Register all tool implementations"""
 
 # Import tool implementations to trigger @register_tool decorators
-from app.domain.tools.implementations import InputTool, FilterTool, SelectTool
+from app.domain.tools.implementations import InputTool, FilterTool, SelectTool, FormulaTool
 
 # Tools are automatically registered via @register_tool decorator
 # This file just needs to be imported somewhere to trigger registration
 
-__all__ = ["InputTool", "FilterTool", "SelectTool"]
+__all__ = ["InputTool", "FilterTool", "SelectTool", "FormulaTool"]
