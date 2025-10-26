@@ -463,6 +463,8 @@ export default {
             "var(--color-syntax-number, var(--color-syntax-value))", // Fallback to value color
           "syntax-keyword":
             "var(--color-syntax-keyword, var(--color-syntax-declaration))", // Fallback to declaration color
+          "syntax-function":
+            "var(--color-syntax-function, var(--color-syntax-attribute))", // Fallback to attribute color
 
           // Form controls
           "form-label": "var(--color-form-label)",

@@ -1,8 +1,11 @@
 /* eslint-disable no-useless-escape -- Regex patterns include forward slashes and character classes; disabling to keep readable explicit escaping */
 import React, { useMemo, useState } from "react";
 import { WorkflowSerializer } from "../domain/workflow/services/WorkflowSerializer";
+import { WorkflowToPython } from "../domain/workflow/services/WorkflowToPython";
 import { useUIStore } from "../state/uiStore";
 import { useWorkflowStore } from "../state/workflowStore";
+
+type ViewMode = "json" | "python";
 
 // Function to format JSON with proper indentation
 function formatJSON(json: string): string {
@@ -125,6 +128,117 @@ function highlightJSON(json: string): JSX.Element[] {
   });
 }
 
+// Simple Python syntax highlighter
+function highlightPython(code: string): JSX.Element[] {
+  const lines = code.split("\n");
+
+  return lines.map((line, index) => {
+    const leadingWhitespace = line.match(/^(\s*)/)?.[1] || "";
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      return <div key={index} className="h-6 leading-relaxed"></div>;
+    }
+
+    const parts: JSX.Element[] = [];
+    let partKey = 0;
+
+    // Add leading whitespace
+    if (leadingWhitespace) {
+      parts.push(
+        <span key={partKey++} className="whitespace-pre">
+          {leadingWhitespace}
+        </span>
+      );
+    }
+
+    // Python syntax highlighting regex
+    const pythonRegex =
+      /(#.*$)|(\"(?:[^\"\\]|\\.)*\"|\'(?:[^\'\\]|\\.)*\')|(\bimport\b|\bfrom\b|\bdef\b|\bclass\b|\breturn\b|\bif\b|\belse\b|\belif\b|\bfor\b|\bwhile\b|\btry\b|\bexcept\b|\bwith\b|\bas\b|\bin\b|\band\b|\bor\b|\bnot\b|\bNone\b|\bTrue\b|\bFalse\b)|(\b\d+\.?\d*\b)|([\[\]\(\)\{\},:])|(\bpl\.\w+|\.\w+)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = pythonRegex.exec(trimmedLine)) !== null) {
+      // Add text before match
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-text">
+            {trimmedLine.substring(lastIndex, match.index)}
+          </span>
+        );
+      }
+
+      if (match[1]) {
+        // Comment
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-comment italic">
+            {match[1]}
+          </span>
+        );
+      } else if (match[2]) {
+        // String
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-value">
+            {match[2]}
+          </span>
+        );
+      } else if (match[3]) {
+        // Keyword
+        parts.push(
+          <span
+            key={partKey++}
+            className="font-medium text-theme-syntax-keyword"
+          >
+            {match[3]}
+          </span>
+        );
+      } else if (match[4]) {
+        // Number
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-number">
+            {match[4]}
+          </span>
+        );
+      } else if (match[5]) {
+        // Punctuation
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-tag">
+            {match[5]}
+          </span>
+        );
+      } else if (match[6]) {
+        // Method/function calls
+        parts.push(
+          <span key={partKey++} className="text-theme-syntax-function">
+            {match[6]}
+          </span>
+        );
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < trimmedLine.length) {
+      parts.push(
+        <span key={partKey++} className="text-theme-syntax-text">
+          {trimmedLine.substring(lastIndex)}
+        </span>
+      );
+    }
+
+    return (
+      <div key={index} className="font-mono leading-relaxed">
+        {parts.length > 0 ? (
+          parts
+        ) : (
+          <span className="text-theme-syntax-text">{trimmedLine}</span>
+        )}
+      </div>
+    );
+  });
+}
+
 /**
  * WorkflowViewer - Display current workflow data in formatted JSON
  *
@@ -140,18 +254,29 @@ export default function WorkflowViewer() {
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
 
+  const [viewMode, setViewMode] = useState<ViewMode>("json");
+  const [width, setWidth] = useState(384); // Default width (w-96 = 384px)
+  const [isResizing, setIsResizing] = useState(false);
+
   // Compute JSON content from workflow state
   const workflowContent = useMemo(
     () => WorkflowSerializer.toJSON(tools, wires, workflowMeta),
     [tools, wires, workflowMeta]
   );
 
-  const [width, setWidth] = useState(384); // Default width (w-96 = 384px)
-  const [isResizing, setIsResizing] = useState(false);
+  // Compute Python code from workflow state
+  const pythonContent = useMemo(
+    () => WorkflowToPython.toPython(tools, wires),
+    [tools, wires]
+  );
 
-  // Format and highlight JSON content
-  const formattedContent = formatJSON(workflowContent);
-  const highlightedContent = highlightJSON(formattedContent);
+  // Format and highlight based on mode
+  const formattedContent = viewMode === "json" 
+    ? formatJSON(workflowContent)
+    : pythonContent;
+  const highlightedContent = viewMode === "json"
+    ? highlightJSON(formattedContent)
+    : highlightPython(formattedContent);
 
   const copyToClipboard = async () => {
     try {
@@ -236,7 +361,7 @@ export default function WorkflowViewer() {
           <button
             onClick={copyToClipboard}
             className="px-3 py-1.5 bg-theme-modal-btn-primary-bg hover:bg-theme-modal-btn-primary-bg-hover text-theme-modal-btn-primary-text border border-theme-modal-btn-primary-border hover:border-theme-modal-btn-primary-border-hover rounded text-sm font-medium transition-colors"
-            title="Copy formatted JSON to clipboard"
+            title={`Copy ${viewMode === "json" ? "JSON" : "Python code"} to clipboard`}
           >
             Copy
           </button>
@@ -245,15 +370,42 @@ export default function WorkflowViewer() {
             className="px-3 py-1.5 bg-theme-modal-btn-secondary-bg hover:bg-theme-modal-btn-secondary-bg-hover text-theme-modal-btn-secondary-text border border-theme-modal-btn-secondary-border hover:border-theme-modal-btn-secondary-border-hover rounded text-sm font-medium transition-colors"
             title="Close workflow viewer"
           >
-            ✕
+            X
           </button>
         </div>
       </div>
 
-      {/* Description below header */}
+      {/* Tab bar */}
+      <div className="flex border-b bg-theme-modal-header-bg border-theme-modal-header-border">
+        <button
+          onClick={() => setViewMode("json")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            viewMode === "json"
+              ? "text-theme-modal-header-text border-b-2 border-theme-interactive-accent"
+              : "text-theme-text-tertiary hover:text-theme-modal-header-text"
+          }`}
+        >
+          JSON
+        </button>
+        <button
+          onClick={() => setViewMode("python")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            viewMode === "python"
+              ? "text-theme-modal-header-text border-b-2 border-theme-interactive-accent"
+              : "text-theme-text-tertiary hover:text-theme-modal-header-text"
+          }`}
+        >
+          Python
+        </button>
+      </div>
+
+      {/* Description below tabs */}
       <div className="px-4 py-3 border-b bg-theme-modal-header-bg border-theme-modal-header-border">
         <p className="text-sm opacity-75 text-theme-modal-header-text">
-          Live JSON representation of the current workflow (v2.0 format)
+          {viewMode === "json" 
+            ? "Live JSON representation of the current workflow (v2.0 format)"
+            : "Executable Python code using Polars (generated from workflow)"
+          }
         </p>
       </div>
 
