@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Tool, ToolDefinition, Socket } from '../domain/workflow/entities/workflow';
+import { useSocketPreview } from '../hooks/useSocketPreview';
 
 interface WorkflowNodeProps {
   data: {
@@ -10,7 +11,8 @@ interface WorkflowNodeProps {
 }
 
 export default function WorkflowNode({ data }: WorkflowNodeProps) {
-  const { definition } = data;
+  const { definition, tool } = data;
+  const { previewSocket } = useSocketPreview();
 
   const inputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'input');
   const outputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'output');
@@ -76,6 +78,10 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           type="target"
           position={Position.Left}
           id={`input-${socket.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            previewSocket(tool.id, socket.id, "input");
+          }}
           style={{
             top: getSocketPosition(index, inputSockets.length),
             left: '-9px',
@@ -85,8 +91,9 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             border: '2px solid var(--color-socket-input-border)',
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            cursor: 'pointer',
           }}
-          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''}`}
+          title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''} - Click to preview`}
         >
           {/* Socket type indicator (L, R, etc.) */}
           {socket.type && (
@@ -161,6 +168,10 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           type="source"
           position={Position.Right}
           id={`output-${socket.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            previewSocket(tool.id, socket.id, "output");
+          }}
           style={{
             top: getSocketPosition(index, outputSockets.length),
             right: '-9px',
@@ -170,8 +181,9 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             border: '2px solid var(--color-socket-output-border)',
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            cursor: 'pointer',
           }}
-          title={`Output ${socket.id}${socket.type ? ` (${socket.type})` : ''}`}
+          title={`Output ${socket.id}${socket.type ? ` (${socket.type})` : ''} - Click to preview`}
         >
           {socket.type && (
             <div style={{

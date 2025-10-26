@@ -3,6 +3,18 @@ import type { ToolCategory } from "../domain/workflow/entities/workflow";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
+type BottomPaneTab = "preview" | "logs";
+
+export interface PreviewState {
+  toolId: string;
+  socketId: number;
+  socketDirection: "input" | "output";
+  data: Record<string, unknown>[];
+  schema: Array<{ name: string; dtype: string; nullable: boolean }>;
+  loading: boolean;
+  error: string | null;
+}
+
 interface NotificationState {
   message: string;
   type: NotificationType;
@@ -19,6 +31,10 @@ interface UIState {
   positionMenuCoords: { x: number; y: number } | null;
   workflowViewerVisible: boolean;
   activeToolTab: ToolCategory;
+  bottomPaneOpen: boolean;
+  bottomPaneHeight: number;
+  activeBottomTab: BottomPaneTab;
+  previewState: PreviewState | null;
   notification: NotificationState;
   toggleSnapToGrid: () => void;
   toggleMinimap: () => void;
@@ -27,6 +43,13 @@ interface UIState {
   closePositionMenu: () => void;
   setWorkflowViewerVisible: (visible: boolean) => void;
   setActiveToolTab: (tab: ToolCategory) => void;
+  setBottomPaneOpen: (open: boolean) => void;
+  toggleBottomPane: () => void;
+  setBottomPaneHeight: (height: number) => void;
+  setActiveBottomTab: (tab: BottomPaneTab) => void;
+  setPreviewState: (state: PreviewState | null) => void;
+  setPreviewLoading: (loading: boolean) => void;
+  setPreviewError: (error: string | null) => void;
   showNotification: (
     message: string,
     type?: NotificationType,
@@ -69,6 +92,22 @@ export const useUIStore = create<UIState>()((set) => ({
 
   activeToolTab: "favorites",
   setActiveToolTab: (tab) => set({ activeToolTab: tab }),
+
+  bottomPaneOpen: false,
+  bottomPaneHeight: 300,
+  activeBottomTab: "preview",
+  setBottomPaneOpen: (open) => set({ bottomPaneOpen: open }),
+  toggleBottomPane: () => set((s) => ({ bottomPaneOpen: !s.bottomPaneOpen })),
+  setBottomPaneHeight: (height) =>
+    set({ bottomPaneHeight: Math.max(100, Math.min(height, window.innerHeight * 0.6)) }),
+  setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
+
+  previewState: null,
+  setPreviewState: (state) => set({ previewState: state }),
+  setPreviewLoading: (loading) =>
+    set((s) => (s.previewState ? { previewState: { ...s.previewState, loading } } : {})),
+  setPreviewError: (error) =>
+    set((s) => (s.previewState ? { previewState: { ...s.previewState, error, loading: false } } : {})),
 
   notification: {
     message: "",

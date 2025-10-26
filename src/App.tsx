@@ -9,6 +9,7 @@ import Header from "./components/Header";
 import Notification from "./components/Notification";
 import ToolPalette from "./components/ToolPalette";
 import WorkflowViewer from "./components/WorkflowViewer";
+import BottomPane from "./components/BottomPane";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
@@ -96,9 +97,16 @@ function App() {
           {/* Configuration Panel - Left Side */}
           <ConfigurationPanel />
 
+          {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
           <ReactFlowProvider>
-            <div className="flex flex-1">
-              <Canvas ref={canvasRef} />
+            <div className="flex flex-1 overflow-hidden">
+              {/* Canvas and Bottom Pane */}
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <Canvas ref={canvasRef} />
+                
+                {/* Bottom Pane for Preview/Logs */}
+                <BottomPane />
+              </div>
 
               {/* Workflow Viewer Side Panel - computes JSON internally */}
               {workflowViewerVisible && <WorkflowViewer />}

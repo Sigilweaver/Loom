@@ -20,6 +20,7 @@ export default function Header() {
   const setWorkflowViewerVisible = useUIStore(
     (s) => s.setWorkflowViewerVisible
   );
+  const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
 
   const handleNewWorkflow = () => {
     // Save current state before clearing
@@ -120,8 +121,10 @@ export default function Header() {
   };
 
   const handlePreviewWorkflow = () => {
+    // Open the bottom pane to show preview
+    setBottomPaneOpen(true);
     showNotification(
-      "Preview functionality will show expected workflow output and flow analysis. Coming soon!",
+      "Bottom pane opened. Preview will show data when connected to backend.",
       "info"
     );
   };

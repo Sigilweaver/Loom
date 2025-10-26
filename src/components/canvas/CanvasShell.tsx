@@ -4,6 +4,7 @@ import { useClipboardStore } from "@state/clipboardStore";
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useSocketPreview } from "../../hooks/useSocketPreview";
 import {
   alignHorizontally as doAlignH,
   alignVertically as doAlignV,
@@ -70,6 +71,9 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   const pushState = useHistoryStore((s) => s.pushState);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
+  const setPreviewState = useUIStore((s) => s.setPreviewState);
+  
+  const { previewSocket } = useSocketPreview();
 
   // Handler functions (replace props with direct store calls)
   const handleAddTool = useCallback(
@@ -285,9 +289,18 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const onNodeClick = useCallback(
     (_e: React.MouseEvent, n: Node) => {
       const tool = tools.find((t) => t.id === n.id);
-      if (tool) handleToolSelect(tool);
+      if (tool) {
+        handleToolSelect(tool);
+        
+        // Preview first output socket of the selected tool
+        const definition = getToolDefinition(tool.type);
+        const firstOutputSocket = definition?.sockets.find(s => s.direction === 'output');
+        if (firstOutputSocket) {
+          previewSocket(tool.id, firstOutputSocket.id, 'output');
+        }
+      }
     },
-    [tools, handleToolSelect]
+    [tools, handleToolSelect, previewSocket]
   );
   const onNodeContextMenu = useCallback(
     (e: MouseEvent | React.MouseEvent, n: Node) => {
@@ -314,7 +327,9 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     closePositionMenu();
     handleToolSelect(null);
     setNodes((ns) => ns.map((n) => ({ ...n, selected: false })));
-  }, [closePositionMenu, handleToolSelect, setNodes]);
+    // Clear preview when clicking away
+    setPreviewState(null);
+  }, [closePositionMenu, handleToolSelect, setNodes, setPreviewState]);
   const onPaneContextMenu = useCallback(
     (e: MouseEvent | React.MouseEvent) => {
       e.preventDefault();
