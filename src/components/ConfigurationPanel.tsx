@@ -7,6 +7,7 @@ import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
+import { FormulaConfiguration } from "./FormulaConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
 
@@ -162,6 +163,14 @@ export default function ConfigurationPanel() {
         /* Filter Tool Configuration */
         <div className="flex-1 overflow-hidden">
           <FilterConfiguration
+            config={selectedTool.config}
+            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+          />
+        </div>
+      ) : selectedTool.type === "Formula" ? (
+        /* Formula Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          <FormulaConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
           />
