@@ -10,12 +10,13 @@ class Settings(BaseSettings):
 
     # Server
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 58000  # High port to avoid collisions with common services
     reload: bool = False
     log_level: str = "info"
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:5173"]  # Vite dev server default
+    cors_mode: str = "development"  # "development" (permissive) | "production" (strict)
 
     # Execution limits
     max_execution_time_seconds: int = 300

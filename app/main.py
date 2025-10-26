@@ -20,9 +20,16 @@ app = FastAPI(
 )
 
 # Configure CORS middleware
+# In development mode (bundled desktop app), allow all origins
+# In production mode (external server), use strict origin list
+if settings.cors_mode == "development":
+    cors_origins = ["*"]  # Permissive for local development
+else:
+    cors_origins = settings.cors_origins  # Strict for server deployment
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
