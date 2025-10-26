@@ -19,6 +19,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "src/**/__tests__/**/*.{ts,tsx}"],
+    exclude: [
+      "**/*.integration.test.{ts,tsx}", // Exclude integration tests by default
+      "**/__tests__/**/*.integration.test.{ts,tsx}",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

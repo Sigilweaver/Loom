@@ -33,6 +33,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run src/domain src/state",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:ui": "vitest --ui",
     "verify": "npm run -s type-check && npm run -s test && npm run -s lint",
     "verify:quick": "npm run -s type-check && npm run -s test"
@@ -116,7 +117,7 @@
       ]
     },
     "win": {
-      "icon": "public/assets/icon-512.png",
+      "icon": "public/assets/app-icon.ico",
       "target": [
         {
           "target": "nsis",
