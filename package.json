@@ -1,7 +1,7 @@
 {
-  "name": "workflow-designer",
+  "name": "sigilweaver",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sigilweaver - Advanced Workflow Designer and Automation Tool",
   "author": "SigilWeaver Development Team",
   "type": "module",
