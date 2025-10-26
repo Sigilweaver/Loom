@@ -1,10 +1,12 @@
 import { CSVMode } from "@domain/dataSources/csv";
+import { CSVOutputMode } from "@domain/dataSources/csvOutput";
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
+import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
@@ -158,6 +160,48 @@ export default function ConfigurationPanel() {
               handleToolConfigChange(selectedTool.id, config as ToolConfig);
             }}
           />
+        </div>
+      ) : selectedTool.type === "Output" ? (
+        /* Output Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          {/* Show data source selector if no type selected */}
+          {!selectedTool.config?.type ? (
+            <DataSourceSelector
+              onSelect={(dataSource) => {
+                if (dataSource.id === "csv") {
+                  // CSV with mode selection (default to sink)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "csv" as const,
+                    csvMode: "sink", // Default to streaming mode
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
+                }
+              }}
+              selectedId={selectedTool.config?.type as string}
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "csv" ? (
+            /* CSV Output Configuration Panel */
+            <CsvOutputConfiguration
+              mode={(selectedTool.config.csvMode as CSVOutputMode) || "sink"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : (
+            /* Other output types */
+            <div className="p-4 text-center text-theme-text-tertiary">
+              <div className="text-sm">
+                Configuration for {String(selectedTool.config.type)} output not yet
+                implemented
+              </div>
+              <div className="mt-2 text-xs text-theme-text-disabled">
+                Coming soon...
+              </div>
+            </div>
+          )}
         </div>
       ) : selectedTool.type === "Filter" ? (
         /* Filter Tool Configuration */
