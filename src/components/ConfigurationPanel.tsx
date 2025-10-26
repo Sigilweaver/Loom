@@ -6,6 +6,7 @@ import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
+import { FilterConfiguration } from "./FilterConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
 
@@ -155,6 +156,14 @@ export default function ConfigurationPanel() {
             onChange={(config) => {
               handleToolConfigChange(selectedTool.id, config as ToolConfig);
             }}
+          />
+        </div>
+      ) : selectedTool.type === "Filter" ? (
+        /* Filter Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          <FilterConfiguration
+            config={selectedTool.config}
+            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
           />
         </div>
       ) : (
