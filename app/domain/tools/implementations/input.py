@@ -159,3 +159,57 @@ class InputTool(BaseTool):
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[int, str],
+    ) -> tuple[list[str], dict[int, str]]:
+        """Generate Python code for Input tool"""
+        from app.domain.workflow.code_generator import PythonCodeGenerator
+
+        lines = []
+        source_type = config.get("type", "csv")
+        source_path = config.get("source", "")
+        
+        var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
+        
+        if not source_path:
+            lines.append(f'{var_name} = None  # ERROR: No source file specified')
+            return (lines, {0: var_name})
+        
+        if source_type == "csv":
+            mode = config.get("csvMode", "scan")
+            func_name = "read_csv" if mode == "read" else "scan_csv"
+            
+            # Build CSV options
+            options = []
+            csv_kwargs = self._build_csv_kwargs(config)
+            
+            for key, value in csv_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+                elif isinstance(value, list) and value:
+                    # For columns, new_columns, null_values
+                    if all(isinstance(v, str) for v in value):
+                        escaped = [f'"{PythonCodeGenerator.escape_string(v)}"' for v in value]
+                        options.append(f'{key}=[{", ".join(escaped)}]')
+            
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
+            
+            # If read mode, convert to lazy
+            if mode == "read":
+                lines.append(f'{var_name} = {var_name}.lazy()')
+        else:
+            lines.append(f'# TODO: {source_type} input not yet supported in code generation')
+        
+        return (lines, {0: var_name})

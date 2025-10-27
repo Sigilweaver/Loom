@@ -4,7 +4,7 @@ import polars as pl
 import pytest
 from pathlib import Path
 
-from app.api.models.workflow import Workflow, Tool, Wire, WireEndpoint, WorkflowMeta
+from app.api.models.workflow import Workflow, Tool, Wire, WireEndpoint, Socket, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.tools.registry import ToolRegistry
 
@@ -27,7 +27,7 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-                sockets=[],
+                sockets=[Socket(id=0, direction="output")],
             ),
             Tool(
                 id="output1",
@@ -40,18 +40,24 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
                     "csvMode": "sink",  # Streaming mode
                     "include_header": True,
                 },
-                sockets=[],
+                sockets=[Socket(id=0, direction="input")],
             ),
         ],
         wires=[
             Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
         ],
-        meta=WorkflowMeta(name="Test CSV Output Sink"),
+        meta=WorkflowMeta(
+            name="Test CSV Output Sink",
+            description="Test",
+            author="Test",
+            workflowId="test-sink",
+            created="2024-01-01",
+        ),
     )
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
-    result = await executor.execute()
+    executor = WorkflowExecutor()
+    result = await executor.execute_workflow(workflow)
 
     # Verify output file was created
     assert output_file.exists()
@@ -76,7 +82,7 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
@@ -85,18 +91,24 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
                     "include_header": True,
                     "separator": ",",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="input")],
             ),
         ],
         wires=[
             Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
         ],
-        meta=WorkflowMeta(name="Test CSV Output Write"),
+        meta=WorkflowMeta(
+            name="Test CSV Output Write",
+            description="Test",
+            author="Test",
+            workflowId="test-write",
+            created="2024-01-01",
+        ),
     )
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
-    result = await executor.execute()
+    executor = WorkflowExecutor()
+    result = await executor.execute_workflow(workflow)
 
     # Verify output file was created
     assert output_file.exists()
@@ -118,27 +130,33 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "sink",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="input")],
             ),
         ],
         wires=[
             Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
         ],
-        meta=WorkflowMeta(name="Test Directory Creation"),
+        meta=WorkflowMeta(
+            name="Test Directory Creation",
+            description="Test",
+            author="Test",
+            workflowId="test-dir",
+            created="2024-01-01",
+        ),
     )
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
-    await executor.execute()
+    executor = WorkflowExecutor()
+    result = await executor.execute_workflow(workflow)
 
-    # Verify nested directories were created
+    # Verify output file was created
     assert output_file.exists()
     assert output_file.parent.exists()
 
@@ -155,7 +173,7 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
@@ -164,18 +182,24 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
                     "separator": "\t",  # Tab-separated
                     "include_header": True,
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="input")],
             ),
         ],
         wires=[
             Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
         ],
-        meta=WorkflowMeta(name="Test TSV Output"),
+        meta=WorkflowMeta(
+            name="Test TSV Output",
+            description="Test",
+            author="Test",
+            workflowId="test-tsv",
+            created="2024-01-01",
+        ),
     )
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
-    await executor.execute()
+    executor = WorkflowExecutor()
+    await executor.execute_workflow(workflow)
 
     # Verify file was created and has tab separator
     assert output_file.exists()
@@ -233,12 +257,16 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="output")],
             ),
             Tool(id="filter1", type="Filter", x=0, y=0, config={
                     "expression": "pl.col('age') > 25",
                 },
-            sockets=[],
+            sockets=[
+                Socket(id=0, direction="input"),
+                Socket(id=1, direction="output"),  # T output
+                Socket(id=2, direction="output"),  # F output
+            ],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
@@ -246,25 +274,25 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
                     "csvMode": "sink",
                     "include_header": True,
                 },
-            sockets=[],
+            sockets=[Socket(id=0, direction="input")],
             ),
         ],
         wires=[
             Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="filter1", socket=0)),
-            Wire(
-                id="wire2",
-                from_tool="filter1",
-                from_socket=1,  # True output
-                to_tool="output1",
-                to_socket=0,
-            ),
+            Wire(from_=WireEndpoint(tool="filter1", socket=1), to=WireEndpoint(tool="output1", socket=0)),
         ],
-        meta=WorkflowMeta(name="Test Pipeline with Output"),
+        meta=WorkflowMeta(
+            name="Test Pipeline with Output",
+            description="Test",
+            author="Test",
+            workflowId="test-pipeline",
+            created="2024-01-01",
+        ),
     )
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
-    await executor.execute()
+    executor = WorkflowExecutor()
+    await executor.execute_workflow(workflow)
 
     # Verify output file was created and contains filtered data
     assert output_file.exists()

@@ -67,3 +67,33 @@ class BaseTool(ABC):
         Override this if your tool has specific validation requirements.
         """
         return []
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[int, str],
+    ) -> tuple[list[str], dict[int, str]]:
+        """
+        Generate Python code for this tool.
+
+        Args:
+            tool_id: Unique identifier for this tool instance
+            config: Tool-specific configuration
+            input_vars: Dict of socket_id -> variable name for inputs
+
+        Returns:
+            (code_lines, output_vars): 
+                - code_lines: List of Python code lines
+                - output_vars: Dict of socket_id -> variable name for outputs
+
+        Override this to provide code generation for your tool.
+        Default implementation returns a TODO comment.
+        """
+        from app.domain.workflow.code_generator import PythonCodeGenerator
+        
+        var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
+        return (
+            [f"# TODO: {self.__class__.__name__} code generation not implemented"],
+            {1: var_name},
+        )
