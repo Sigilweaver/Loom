@@ -134,6 +134,8 @@ export class WorkflowToPython {
         return this.generateFormulaCode(tool, inputs, dataframeNames);
       case "Multiplier":
         return this.generateMultiplierCode(tool, inputs, dataframeNames);
+      case "Output":
+        return this.generateOutputCode(tool, inputs, dataframeNames);
       default:
         lines.push(`# TODO: ${tool.type} not yet supported in code generation`);
         return lines;
@@ -294,6 +296,103 @@ export class WorkflowToPython {
   }
   
   /**
+   * Generate code for Output tool
+   */
+  private static generateOutputCode(
+    tool: Tool,
+    inputs: Array<{fromTool: string; fromSocket: number; toSocket: number}>,
+    dataframeNames: Map<string, string>
+  ): string[] {
+    const lines: string[] = [];
+    const config = tool.config;
+    const outputType = config.type || "csv";
+    const destination = String(config.destination || "");
+    
+    if (inputs.length === 0) {
+      lines.push(`# ERROR: Output ${tool.id} has no input`);
+      return lines;
+    }
+    
+    const input = inputs[0]!; // Safe: length check above guarantees this exists
+    const inputVar = dataframeNames.get(`${input.fromTool}_${input.fromSocket}`);
+    if (!inputVar) {
+      lines.push(`# ERROR: Output ${tool.id} input not found`);
+      return lines;
+    }
+    
+    if (!destination) {
+      lines.push(`# ERROR: Output ${tool.id} has no destination specified`);
+      return lines;
+    }
+    
+    if (outputType === "csv") {
+      const mode = config.csvMode || "sink";
+      
+      // Build CSV options
+      const options: string[] = [];
+      
+      // Common CSV parameters - only add if different from defaults
+      if (config.separator !== undefined && config.separator !== "," && typeof config.separator === "string") {
+        options.push(`separator="${this.escapeString(config.separator)}"`);
+      }
+      if (config.include_header === false) {
+        options.push(`include_header=False`);
+      }
+      if (config.include_bom === true) {
+        options.push(`include_bom=True`);
+      }
+      if (config.quote_char !== undefined && config.quote_char !== '"') {
+        if (config.quote_char === "" || config.quote_char === null) {
+          options.push(`quote_char=None`);
+        } else if (typeof config.quote_char === "string") {
+          options.push(`quote_char="${this.escapeString(config.quote_char)}"`);
+        }
+      }
+      if (config.line_terminator !== undefined && config.line_terminator !== "\n" && typeof config.line_terminator === "string") {
+        options.push(`line_terminator="${this.escapeString(config.line_terminator)}"`);
+      }
+      if (config.quote_style !== undefined && config.quote_style !== "necessary" && typeof config.quote_style === "string") {
+        options.push(`quote_style="${config.quote_style}"`);
+      }
+      if (config.null_value !== undefined && config.null_value !== "" && typeof config.null_value === "string") {
+        options.push(`null_value="${this.escapeString(config.null_value)}"`);
+      }
+      if (config.datetime_format !== undefined && config.datetime_format !== null && typeof config.datetime_format === "string") {
+        options.push(`datetime_format="${this.escapeString(config.datetime_format)}"`);
+      }
+      if (config.date_format !== undefined && config.date_format !== null && typeof config.date_format === "string") {
+        options.push(`date_format="${this.escapeString(config.date_format)}"`);
+      }
+      if (config.time_format !== undefined && config.time_format !== null && typeof config.time_format === "string") {
+        options.push(`time_format="${this.escapeString(config.time_format)}"`);
+      }
+      if (config.float_precision !== undefined && config.float_precision !== null && typeof config.float_precision === "number") {
+        options.push(`float_precision=${config.float_precision}`);
+      }
+      if (config.float_scientific !== undefined && config.float_scientific !== null) {
+        options.push(`float_scientific=${config.float_scientific ? "True" : "False"}`);
+      }
+      if (config.batch_size !== undefined && config.batch_size !== null && typeof config.batch_size === "number") {
+        options.push(`batch_size=${config.batch_size}`);
+      }
+      
+      // Generate the output call
+      const optStr = options.length > 0 ? `, ${options.join(", ")}` : "";
+      if (mode === "sink") {
+        // Lazy execution - sink_csv
+        lines.push(`${inputVar}.sink_csv("${this.escapePath(destination)}"${optStr})`);
+      } else {
+        // Eager execution - collect then write_csv
+        lines.push(`${inputVar}.collect().write_csv("${this.escapePath(destination)}"${optStr})`);
+      }
+    } else {
+      lines.push(`# ERROR: Output type '${outputType}' not yet supported in code generation`);
+    }
+    
+    return lines;
+  }
+  
+  /**
    * Build map of inputs for each tool
    */
   private static buildInputMap(wires: Wire[]): Map<string, Array<{fromTool: string; fromSocket: number; toSocket: number}>> {
@@ -378,5 +477,17 @@ export class WorkflowToPython {
    */
   private static escapePath(path: string): string {
     return path.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+  
+  /**
+   * Escape string for use in Python code (handles special characters)
+   */
+  private static escapeString(str: string): string {
+    return str
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/\t/g, "\\t");
   }
 }

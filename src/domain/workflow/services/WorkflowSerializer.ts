@@ -7,7 +7,7 @@
  * File Format: .swwf v2.0 (JSON)
  */
 
-import { Tool, Wire, WorkflowMeta } from "@domain/workflow/entities/workflow";
+import { Tool, ToolConfig, Wire, WorkflowMeta } from "@domain/workflow/entities/workflow";
 
 /**
  * JSON workflow file format (v2.0)
@@ -34,6 +34,75 @@ export class WorkflowSerializer {
   private static readonly VERSION = "2.0";
 
   /**
+   * Filter config fields based on emission map
+   * Only includes fields marked for emission (where _emit[field] === true)
+   * 
+   * Always includes structural fields regardless of emission:
+   * - category: Data source category (file, database, etc.)
+   * - type: Data source type (csv, parquet, etc.)
+   * - csvMode: CSV reading mode (scan, read, batched)
+   *
+   * @param config - Tool configuration
+   * @param emit - Emission map indicating which fields to serialize
+   * @returns Filtered configuration with only emitted fields
+   */
+  private static filterEmittedFields(
+    config: Record<string, unknown>,
+    emit: Record<string, unknown> | undefined
+  ): ToolConfig {
+    // Fields that must always be included (structural/discriminator fields)
+    const alwaysInclude = new Set(['category', 'type', 'csvMode']);
+
+    if (!emit) {
+      // No emission map means include all fields (except _emit)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _emit, ...rest } = config;
+      return rest as ToolConfig;
+    }
+
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(config)) {
+      if (key === "_emit") {
+        // Never include _emit in serialized output
+        continue;
+      }
+
+      // Always include structural fields
+      if (alwaysInclude.has(key)) {
+        result[key] = value;
+        continue;
+      }
+
+      const emitValue = emit[key];
+
+      if (emitValue === true) {
+        // Field is marked for emission
+        result[key] = value;
+      } else if (
+        typeof emitValue === "object" &&
+        emitValue !== null &&
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+        // Recursively filter nested objects
+        const nested = this.filterEmittedFields(
+          value as Record<string, unknown>,
+          emitValue as Record<string, unknown>
+        );
+        // Only include parent key if nested object has content
+        if (Object.keys(nested).length > 0) {
+          result[key] = nested;
+        }
+      }
+      // If emitValue is false/undefined, don't include the field
+    }
+
+    return result as ToolConfig;
+  }
+
+  /**
    * Serialize workflow state to JSON string
    *
    * @param tools - Array of tools in the workflow
@@ -46,13 +115,17 @@ export class WorkflowSerializer {
    * fs.writeFile('workflow.swwf', json);
    */
   static toJSON(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
-    // Strip _emit from all tool configs (runtime-only metadata)
+    // Filter configs based on _emit map (only include fields marked for emission)
     const cleanTools = tools.map((tool) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _emit, ...cleanConfig } = tool.config;
+      const emit = tool.config._emit as Record<string, unknown> | undefined;
+      const filteredConfig = this.filterEmittedFields(
+        tool.config as Record<string, unknown>,
+        emit
+      );
+
       return {
         ...tool,
-        config: cleanConfig,
+        config: filteredConfig,
       };
     });
 

@@ -200,6 +200,26 @@ export async function executeWorkflow(
 }
 
 /**
+ * Generate Python code preview for a workflow
+ * 
+ * This endpoint generates executable Python code using Polars that
+ * replicates the workflow's data transformations.
+ * 
+ * @param workflow - The complete workflow definition
+ * @returns Generated Python code as a string
+ */
+export async function previewCode(
+  workflow: WorkflowJSON
+): Promise<{ code: string }> {
+  return apiRequest<{ code: string }>('/workflow/preview_code', {
+    method: 'POST',
+    body: JSON.stringify({
+      workflow,
+    }),
+  });
+}
+
+/**
  * Health check endpoint
  * 
  * @returns Backend health status

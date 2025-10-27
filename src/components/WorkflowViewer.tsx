@@ -1,7 +1,7 @@
 /* eslint-disable no-useless-escape -- Regex patterns include forward slashes and character classes; disabling to keep readable explicit escaping */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { WorkflowSerializer } from "../domain/workflow/services/WorkflowSerializer";
-import { WorkflowToPython } from "../domain/workflow/services/WorkflowToPython";
+import { useCodePreview } from "../api/hooks";
 import { useUIStore } from "../state/uiStore";
 import { useWorkflowStore } from "../state/workflowStore";
 
@@ -258,17 +258,37 @@ export default function WorkflowViewer() {
   const [width, setWidth] = useState(384); // Default width (w-96 = 384px)
   const [isResizing, setIsResizing] = useState(false);
 
+  // Use code preview hook for backend-generated Python
+  const { code: pythonCode, loading: pythonLoading, error: pythonError, generateCode } = useCodePreview();
+
   // Compute JSON content from workflow state
   const workflowContent = useMemo(
     () => WorkflowSerializer.toJSON(tools, wires, workflowMeta),
     [tools, wires, workflowMeta]
   );
 
-  // Compute Python code from workflow state
-  const pythonContent = useMemo(
-    () => WorkflowToPython.toPython(tools, wires),
-    [tools, wires]
-  );
+  // Parse workflow for Python generation
+  const workflowJSON = useMemo(() => {
+    try {
+      return JSON.parse(workflowContent);
+    } catch {
+      return null;
+    }
+  }, [workflowContent]);
+
+  // Fetch Python code from backend when switching to Python view
+  useEffect(() => {
+    if (isVisible && viewMode === "python" && workflowJSON && !pythonCode && !pythonLoading) {
+      generateCode(workflowJSON);
+    }
+  }, [isVisible, viewMode, workflowJSON, pythonCode, pythonLoading, generateCode]);
+
+  // Determine content to display based on mode
+  const pythonContent = pythonError 
+    ? `# Error generating code:\n# ${pythonError}`
+    : pythonLoading
+    ? "# Generating code..."
+    : pythonCode || "# No code generated yet";
 
   // Format and highlight based on mode
   const formattedContent = viewMode === "json" 

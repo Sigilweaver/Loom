@@ -7,6 +7,7 @@ import {
   getToolSchema,
   previewTool,
   executeWorkflow,
+  previewCode,
   BackendError,
   type SchemaResponse,
   type ExecuteResponse,
@@ -183,4 +184,53 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult {
   );
 
   return { result, loading, error, execute };
+}
+
+export interface UseCodePreviewResult {
+  code: string | null;
+  loading: boolean;
+  error: string | null;
+  generateCode: (workflow: WorkflowJSON) => Promise<void>;
+}
+
+/**
+ * Hook for generating Python code preview from workflow
+ * 
+ * @example
+ * const { code, loading, error, generateCode } = useCodePreview();
+ * 
+ * // Generate code when user switches to Python tab
+ * useEffect(() => {
+ *   if (isVisible && viewMode === 'python') {
+ *     generateCode(workflow);
+ *   }
+ * }, [isVisible, viewMode]);
+ */
+export function useCodePreview(): UseCodePreviewResult {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateCode = useCallback(
+    async (workflow: WorkflowJSON) => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const result = await previewCode(workflow);
+        setCode(result.code);
+      } catch (err) {
+        const message = err instanceof BackendError 
+          ? err.message 
+          : 'Failed to generate code preview';
+        setError(message);
+        setCode(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  return { code, loading, error, generateCode };
 }

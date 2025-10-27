@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getToolSchema, previewTool, executeWorkflow, healthCheck, BackendError } from '../backend';
+import { getToolSchema, previewTool, executeWorkflow, previewCode, healthCheck, BackendError } from '../backend';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 
 // Mock fetch globally
@@ -261,6 +261,58 @@ describe('Backend API Client', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('previewCode', () => {
+    it('should generate Python code from workflow', async () => {
+      const mockResponse = {
+        code: '#!/usr/bin/env python3\nimport polars as pl\n\ndf_input1 = pl.scan_csv("/test/data.csv")\n',
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await previewCode(mockWorkflow);
+
+      expect(result).toEqual(mockResponse);
+      expect(result.code).toContain('import polars as pl');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/workflow/preview_code',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            workflow: mockWorkflow,
+          }),
+        })
+      );
+    });
+
+    it('should throw BackendError on code generation error', async () => {
+      const mockErrorResponse = {
+        detail: 'Code generation failed',
+        error_type: 'CodeGenerationError',
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: vi.fn().mockResolvedValue(mockErrorResponse),
+      } as unknown as Response);
+
+      try {
+        await previewCode(mockWorkflow);
+        expect.fail('Should have thrown BackendError');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BackendError);
+        if (error instanceof BackendError) {
+          expect(error.message).toBe('Code generation failed');
+          expect(error.statusCode).toBe(500);
+        }
+      }
     });
   });
 });
