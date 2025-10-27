@@ -27,6 +27,7 @@ export interface ConfigFileProps {
   defaultValue?: string;
   inlineMessage?: React.ReactNode;
   required?: boolean;
+  mode?: "open" | "save"; // Whether to open existing file or save new file
 }
 
 /**
@@ -68,6 +69,7 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   defaultValue = "",
   inlineMessage,
   required = false,
+  mode = "open", // Default to opening existing files
 }) => {
   const inputId = useId();
   const descriptionId = description ? `${inputId}-description` : undefined;
@@ -83,7 +85,24 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
     if (disabled) return;
 
     // Use Electron's file dialog if available
-    if (window.electronAPI?.showOpenDialog) {
+    if (mode === "save" && window.electronAPI?.showSaveDialog) {
+      // Save dialog for output files (can create new files)
+      try {
+        const options: { filters: FileFilter[]; defaultPath?: string } = {
+          filters: filters,
+        };
+        if (value) {
+          options.defaultPath = value;
+        }
+        const filePath = await window.electronAPI.showSaveDialog(options);
+        if (filePath) {
+          commit(filePath);
+        }
+      } catch (error) {
+        console.error("Error opening save dialog:", error);
+      }
+    } else if (mode === "open" && window.electronAPI?.showOpenDialog) {
+      // Open dialog for input files (must exist)
       try {
         const filePath = await window.electronAPI.showOpenDialog({
           filters: filters,

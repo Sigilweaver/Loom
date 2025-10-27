@@ -129,32 +129,37 @@ export const CsvConfiguration: React.FC<CsvConfigurationProps> = ({
     { value: "", label: "None", description: "No quote character" },
   ];
 
+  const modeOptions: ConfigSelectOption[] = [
+    { value: "scan", label: CSV_MODE_INFO.scan.name },
+    { value: "read", label: CSV_MODE_INFO.read.name },
+    { value: "batched", label: CSV_MODE_INFO.batched.name },
+  ];
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-        {/* Header with Mode Switcher */}
+      {/* Mode Selector */}
+      <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-theme-text-primary">
-            CSV Data Source
-          </h3>
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-theme-text-secondary">
-              Reading Mode:
+          <div>
+            <label className="block mb-2 text-sm font-medium text-theme-text-primary">
+              Reading Mode
             </label>
-            <select
+            <ConfigSelect
               value={mode}
-              onChange={(e) => handleModeChange(e.target.value as CSVMode)}
-              className="px-3 py-1.5 text-sm border rounded bg-theme-surface-panel border-theme-border-primary text-theme-text-primary hover:bg-theme-surface-elevated focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
-            >
-              <option value="scan">Polars Scan (Lazy)</option>
-              <option value="read">Polars Read (Eager)</option>
-              <option value="batched">Polars Batched Read</option>
-            </select>
-            <span className="text-xs text-theme-text-tertiary">
-              {modeInfo.description}
-            </span>
+              options={modeOptions}
+              onChange={(value) => handleModeChange(value as CSVMode)}
+              placeholder="Select reading mode..."
+              configKey="csvMode"
+              searchable={false}
+            />
           </div>
+          <p className="text-xs text-theme-text-tertiary">
+            {modeInfo.description}
+          </p>
         </div>
+      </div>
+
+      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
 
         {/* Common Options */}
         <div className="space-y-4">

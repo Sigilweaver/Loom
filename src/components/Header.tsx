@@ -2,6 +2,8 @@ import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useExecutionStore } from "@state/executionStore";
+import { useWorkflowExecute } from "../api/hooks";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { ThemeSelector } from "./ThemeSelector";
 
@@ -21,6 +23,18 @@ export default function Header() {
     (s) => s.setWorkflowViewerVisible
   );
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
+  const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
+
+  // Execution state
+  const isExecuting = useExecutionStore((s) => s.isExecuting);
+  const startExecution = useExecutionStore((s) => s.startExecution);
+  const finishExecution = useExecutionStore((s) => s.finishExecution);
+  const failExecution = useExecutionStore((s) => s.failExecution);
+  const addLog = useExecutionStore((s) => s.addLog);
+  const clearLogs = useExecutionStore((s) => s.clearLogs);
+
+  // Execution hook
+  const { execute } = useWorkflowExecute();
 
   const handleNewWorkflow = () => {
     // Save current state before clearing
@@ -129,6 +143,69 @@ export default function Header() {
     );
   };
 
+  const handleRunWorkflow = async () => {
+    try {
+      // Validate workflow has tools
+      if (tools.length === 0) {
+        showNotification("Cannot execute empty workflow", "error");
+        return;
+      }
+
+      // Find output tools
+      const outputTools = tools.filter((t) => t.type === "Output");
+      if (outputTools.length === 0) {
+        showNotification("Workflow must have at least one Output tool", "error");
+        return;
+      }
+
+      // Clear previous logs and start execution
+      clearLogs();
+      startExecution();
+
+      // Open bottom pane to logs tab
+      setBottomPaneOpen(true);
+      setActiveBottomTab("logs");
+
+      // Add initial log
+      addLog({
+        level: "info",
+        message: `Starting workflow execution: ${workflowMeta.name}`,
+      });
+
+      // Serialize workflow
+      const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+      const workflow = JSON.parse(workflowJSON);
+
+      addLog({
+        level: "info",
+        message: `Executing ${tools.length} tools with ${wires.length} connections`,
+      });
+
+      // Execute workflow
+      await execute(workflow);
+
+      // Success
+      addLog({
+        level: "success",
+        message: "Workflow execution completed successfully",
+      });
+
+      finishExecution({ tool_id: "", outputs: {} });
+      showNotification("Workflow executed successfully!", "success");
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      
+      addLog({
+        level: "error",
+        message: `Execution failed: ${message}`,
+      });
+
+      failExecution(message);
+      showNotification(`Execution failed: ${message}`, "error");
+    }
+  };
+
   const truncate = (value: string, max: number) =>
     value.length > max ? value.slice(0, max).trimEnd() + "…" : value;
 
@@ -222,22 +299,16 @@ export default function Header() {
             </button>
 
             <button
-              onClick={() => {
-                if (confirm("This will run the workflow. Continue?")) {
-                  showNotification(
-                    "Workflow execution not yet implemented",
-                    "info"
-                  );
-                }
-              }}
+              onClick={handleRunWorkflow}
+              disabled={isExecuting}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors
                 bg-theme-header-btn-run-bg border border-theme-header-btn-run-border text-theme-header-btn-run-text
                 hover:bg-theme-header-btn-run-bg-hover hover:border-theme-header-btn-run-border-hover hover:text-theme-header-btn-run-text-hover
                 active:bg-theme-header-btn-run-bg-active active:border-theme-header-btn-run-border-active active:text-theme-header-btn-run-text-active
-                disabled:bg-theme-header-btn-run-bg-disabled disabled:border-theme-header-btn-run-border-disabled disabled:text-theme-header-btn-run-text-disabled"
+                disabled:bg-theme-header-btn-run-bg-disabled disabled:border-theme-header-btn-run-border-disabled disabled:text-theme-header-btn-run-text-disabled disabled:cursor-not-allowed"
               title="Run Workflow (F5)"
             >
-              Run
+              {isExecuting ? "Running..." : "Run"}
             </button>
           </div>
         </div>

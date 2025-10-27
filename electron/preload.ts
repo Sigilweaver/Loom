@@ -7,8 +7,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: async (content: string, filename: string) => {
     return ipcRenderer.invoke('save-file', content, filename)
   },
-  showSaveDialog: async (defaultPath?: string) => {
-    return ipcRenderer.invoke('show-save-dialog', defaultPath)
+  showSaveDialog: async (options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
+    return ipcRenderer.invoke('show-save-dialog', options)
   },
   showOpenDialog: async (options?: any) => {
     return ipcRenderer.invoke('show-open-dialog', options)

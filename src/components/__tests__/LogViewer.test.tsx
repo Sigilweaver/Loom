@@ -1,9 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@contexts/ThemeContext";
 import LogViewer from "../LogViewer";
+import { useExecutionStore } from "@state/executionStore";
 
 describe("LogViewer", () => {
+  beforeEach(() => {
+    // Clear logs before each test
+    useExecutionStore.getState().clearLogs();
+  });
+
   it("renders empty state when no logs are provided", () => {
     render(
       <ThemeProvider>
@@ -15,21 +21,22 @@ describe("LogViewer", () => {
   });
 
   it("renders logs correctly", () => {
-    const logs = [
-      "Starting execution...",
-      "Processing row 1",
-      "Processing row 2",
-      "Completed successfully",
-    ];
+    // Add logs to the store
+    const addLog = useExecutionStore.getState().addLog;
+    addLog({ level: "info", message: "Starting execution..." });
+    addLog({ level: "info", message: "Processing row 1" });
+    addLog({ level: "info", message: "Processing row 2" });
+    addLog({ level: "success", message: "Completed successfully" });
 
     render(
       <ThemeProvider>
-        <LogViewer logs={logs} />
+        <LogViewer />
       </ThemeProvider>
     );
 
-    logs.forEach((log) => {
-      expect(screen.getByText(log)).toBeInTheDocument();
-    });
+    expect(screen.getByText("Starting execution...")).toBeInTheDocument();
+    expect(screen.getByText("Processing row 1")).toBeInTheDocument();
+    expect(screen.getByText("Processing row 2")).toBeInTheDocument();
+    expect(screen.getByText("Completed successfully")).toBeInTheDocument();
   });
 });

@@ -12,12 +12,20 @@ interface ElectronOpenDialogOptions {
   message?: string;
 }
 
+interface ElectronSaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  filters?: ElectronFileFilter[];
+  message?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
       onMenuAction: (callback: (action: string, data?: unknown) => void) => void
       saveFile: (content: string, filename: string) => Promise<string | null>
-      showSaveDialog: (defaultPath?: string) => Promise<string | null>
+      showSaveDialog: (options?: ElectronSaveDialogOptions) => Promise<string | null>
       showOpenDialog: (options?: ElectronOpenDialogOptions) => Promise<string | null>
     }
   }

@@ -201,11 +201,10 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("show-save-dialog", async (_event, defaultPath?: string) => {
+ipcMain.handle("show-save-dialog", async (_event, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
   const result = await dialog.showSaveDialog({
-    // Cast because defaultPath may be undefined; omit if undefined
-    ...(defaultPath ? { defaultPath } : {}),
-    filters: [
+    ...(options?.defaultPath ? { defaultPath: options.defaultPath } : {}),
+    filters: options?.filters || [
       { name: "Workflow Files", extensions: ["swwf"] },
       { name: "All Files", extensions: ["*"] },
     ],

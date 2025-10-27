@@ -106,14 +106,9 @@ export const CsvOutputConfiguration: React.FC<CsvOutputConfigurationProps> = ({
       <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
         <div className="space-y-3">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-theme-text-primary">
-                Output Mode
-              </label>
-              <span className="px-2 py-1 text-xs rounded-md bg-theme-accent-muted text-theme-accent-text">
-                {modeInfo.badge}
-              </span>
-            </div>
+            <label className="block mb-2 text-sm font-medium text-theme-text-primary">
+              Output Mode
+            </label>
             <ConfigSelect
               value={mode}
               options={modeOptions}
@@ -144,6 +139,7 @@ export const CsvOutputConfiguration: React.FC<CsvOutputConfigurationProps> = ({
                   updateConfig("destination", value, emitPatch, shouldEmit)
                 }
                 configKey="destination"
+                mode="save"
                 accept=".csv"
                 filters={[
                   { name: "CSV Files", extensions: ["csv"] },
