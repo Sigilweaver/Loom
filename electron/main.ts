@@ -202,7 +202,15 @@ ipcMain.handle(
 );
 
 ipcMain.handle("show-save-dialog", async (_event, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
-  const result = await dialog.showSaveDialog({
+  // Get the focused window, or fallback to any window
+  const parentWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+
+  if (!parentWindow) {
+    console.error("No window available for dialog");
+    return null;
+  }
+
+  const result = await dialog.showSaveDialog(parentWindow, {
     ...(options?.defaultPath ? { defaultPath: options.defaultPath } : {}),
     filters: options?.filters || [
       { name: "Workflow Files", extensions: ["swwf"] },
@@ -216,8 +224,13 @@ ipcMain.handle("show-save-dialog", async (_event, options?: { defaultPath?: stri
 ipcMain.handle("show-open-dialog", async (_event, options?: any) => {
   console.log("show-open-dialog called with options:", options);
 
-  // Get the focused window to attach the dialog to
-  const focusedWindow = BrowserWindow.getFocusedWindow();
+  // Get the focused window, or fallback to any window
+  const parentWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+
+  if (!parentWindow) {
+    console.error("No window available for dialog");
+    return null;
+  }
 
   const dialogOptions = {
     properties: ["openFile"] as const,
@@ -229,9 +242,7 @@ ipcMain.handle("show-open-dialog", async (_event, options?: any) => {
     ...options,
   };
 
-  const result = focusedWindow
-    ? await dialog.showOpenDialog(focusedWindow, dialogOptions)
-    : await dialog.showOpenDialog(dialogOptions);
+  const result = await dialog.showOpenDialog(parentWindow, dialogOptions);
 
   console.log("Dialog result:", result);
   console.log("FilePaths:", result.filePaths);
