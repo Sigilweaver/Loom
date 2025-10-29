@@ -1,0 +1,75 @@
+name: Build Frontend Full
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+        default: '22'
+
+jobs:
+  build-full:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact-name: linux-full-artifacts
+          - os: windows-latest
+            platform: win
+            artifact-name: windows-full-artifacts
+          - os: macos-latest
+            platform: mac
+            artifact-name: macos-full-artifacts
+    
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: 'frontend/package-lock.json'
+      
+      - name: Install frontend dependencies
+        run: npm ci
+      
+      - name: Install snapcraft (Linux only)
+        if: matrix.platform == 'linux'
+        run: |
+          if command -v snap >/dev/null 2>&1; then
+            sudo snap install snapcraft --classic || true
+          else
+            sudo apt-get update -y
+            sudo apt-get install -y snapcraft || true
+          fi
+      
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-${{ matrix.platform }}
+          path: frontend/resources/backend
+      
+      - name: Make backend executable (Unix)
+        if: matrix.platform != 'win'
+        run: chmod +x resources/backend/sigilweaver-backend
+      
+      - name: Build full version
+        run: npm run build:${{ matrix.platform }}:full
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: frontend/dist/*

@@ -1,0 +1,55 @@
+{
+  "extends": "./package.json",
+  "productName": "Sigilweaver-Client",
+  "build": {
+    "appId": "com.sigilweaver.workflow-designer-client",
+    "extraResources": [],
+    "linux": {
+      "icon": "public/assets/icon-512.png",
+      "category": "Development",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "snap",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "snap": {
+        "confinement": "strict"
+      }
+    },
+    "win": {
+      "icon": "public/assets/app-icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "publisherName": "SigilWeaver Development Team",
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/assets/icon-512.png"
+    }
+  }
+}
