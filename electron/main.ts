@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
 import { readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -201,14 +201,32 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("show-save-dialog", async (_event, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
-  // Get the focused window, or fallback to any window
-  const parentWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+ipcMain.handle("read-file", async (_event, filePath: string) => {
+  try {
+    const content = await readFile(filePath, "utf8");
+    return content;
+  } catch (error) {
+    console.error("Error reading file:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("show-save-dialog", async (event, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
+  // Get the window that sent this IPC message
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
 
   if (!parentWindow) {
-    console.error("No window available for dialog");
+    console.error("Could not determine parent window from IPC sender");
     return null;
   }
+
+  if (parentWindow.isMinimized()) {
+    parentWindow.restore();
+  }
+  
+  // Simple approach: just ensure window is visible and focused
+  parentWindow.show();
+  parentWindow.focus();
 
   const result = await dialog.showSaveDialog(parentWindow, {
     ...(options?.defaultPath ? { defaultPath: options.defaultPath } : {}),
@@ -221,16 +239,24 @@ ipcMain.handle("show-save-dialog", async (_event, options?: { defaultPath?: stri
   return result.canceled ? null : result.filePath;
 });
 
-ipcMain.handle("show-open-dialog", async (_event, options?: any) => {
+ipcMain.handle("show-open-dialog", async (event, options?: any) => {
   console.log("show-open-dialog called with options:", options);
 
-  // Get the focused window, or fallback to any window
-  const parentWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  // Get the window that sent this IPC message
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
 
   if (!parentWindow) {
-    console.error("No window available for dialog");
+    console.error("Could not determine parent window from IPC sender");
     return null;
   }
+
+  if (parentWindow.isMinimized()) {
+    parentWindow.restore();
+  }
+  
+  // Simple approach: just ensure window is visible and focused
+  parentWindow.show();
+  parentWindow.focus();
 
   const dialogOptions = {
     properties: ["openFile"] as const,

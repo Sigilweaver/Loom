@@ -25,6 +25,7 @@ declare global {
     electronAPI?: {
       onMenuAction: (callback: (action: string, data?: unknown) => void) => void
       saveFile: (content: string, filename: string) => Promise<string | null>
+      readFile: (filePath: string) => Promise<string>
       showSaveDialog: (options?: ElectronSaveDialogOptions) => Promise<string | null>
       showOpenDialog: (options?: ElectronOpenDialogOptions) => Promise<string | null>
     }

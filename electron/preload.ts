@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: async (content: string, filename: string) => {
     return ipcRenderer.invoke('save-file', content, filename)
   },
+  readFile: async (filePath: string) => {
+    return ipcRenderer.invoke('read-file', filePath)
+  },
   showSaveDialog: async (options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
     return ipcRenderer.invoke('show-save-dialog', options)
   },

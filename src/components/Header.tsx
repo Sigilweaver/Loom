@@ -45,55 +45,97 @@ export default function Header() {
     setSelectedTool(null);
   };
 
-  const handleImportWorkflow = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".swwf";
-    input.onchange = (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+  const handleImportWorkflow = async () => {
+    // Use Electron's native dialog if available
+    if (window.electronAPI?.showOpenDialog && window.electronAPI?.readFile) {
+      try {
+        const filePath = await window.electronAPI.showOpenDialog({
+          filters: [
+            { name: "Workflow Files", extensions: ["swwf"] },
+            { name: "All Files", extensions: ["*"] },
+          ],
+          properties: ["openFile"],
+        });
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const content = e.target?.result as string;
+        if (!filePath) return;
 
-          // Save current state before import
-          pushState(tools, wires, workflowMeta);
+        // Read file content via IPC
+        const content = await window.electronAPI.readFile(filePath);
 
-          // Parse JSON workflow file
-          const {
-            tools: importedTools,
-            wires: importedWires,
-            meta,
-          } = WorkflowSerializer.fromJSON(content);
+        // Save current state before import
+        pushState(tools, wires, workflowMeta);
 
-          // Load into store
-          loadWorkflow(importedTools, importedWires, meta);
-          setSelectedTool(null);
+        // Parse JSON workflow file
+        const {
+          tools: importedTools,
+          wires: importedWires,
+          meta,
+        } = WorkflowSerializer.fromJSON(content);
 
-          showNotification(
-            `Workflow "${meta.name}" imported successfully!`,
-            "success"
-          );
-        } catch (error) {
-          console.error("Error importing workflow:", error);
-          showNotification(
-            "Failed to import workflow. Please check the file format.",
-            "error"
-          );
-        }
+        // Load into store
+        loadWorkflow(importedTools, importedWires, meta);
+        setSelectedTool(null);
+
+        showNotification(
+          `Workflow "${meta.name}" imported successfully!`,
+          "success"
+        );
+      } catch (error) {
+        console.error("Error importing workflow:", error);
+        showNotification(
+          "Failed to import workflow. Please check the file format.",
+          "error"
+        );
+      }
+    } else {
+      // Fallback for web browser
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".swwf";
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const content = e.target?.result as string;
+
+            // Save current state before import
+            pushState(tools, wires, workflowMeta);
+
+            // Parse JSON workflow file
+            const {
+              tools: importedTools,
+              wires: importedWires,
+              meta,
+            } = WorkflowSerializer.fromJSON(content);
+
+            // Load into store
+            loadWorkflow(importedTools, importedWires, meta);
+            setSelectedTool(null);
+
+            showNotification(
+              `Workflow "${meta.name}" imported successfully!`,
+              "success"
+            );
+          } catch (error) {
+            console.error("Error importing workflow:", error);
+            showNotification(
+              "Failed to import workflow. Please check the file format.",
+              "error"
+            );
+          }
+        };
+        reader.readAsText(file);
       };
-      reader.readAsText(file);
-    };
-    input.click();
+      input.click();
+    }
   };
 
   const handleExportWorkflow = async () => {
     try {
       const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
 
       // Build filesystem-safe filename
       const buildSafeName = (name: string) => {
@@ -115,15 +157,36 @@ export default function Header() {
       };
 
       const baseName = buildSafeName(workflowMeta.name);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${baseName}.swwf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      showNotification("Workflow exported successfully!", "success");
+      // Use Electron's native save dialog if available
+      if (window.electronAPI?.showSaveDialog && window.electronAPI?.saveFile) {
+        const filePath = await window.electronAPI.showSaveDialog({
+          defaultPath: `${baseName}.swwf`,
+          filters: [
+            { name: "Workflow Files", extensions: ["swwf"] },
+            { name: "All Files", extensions: ["*"] },
+          ],
+        });
+
+        if (filePath) {
+          await window.electronAPI.saveFile(json, filePath);
+          showNotification("Workflow exported successfully!", "success");
+        }
+      } else {
+        // Fallback for web browser
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${baseName}.swwf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showNotification("Workflow exported successfully!", "success");
+      }
     } catch (error) {
       console.error("Export error:", error);
       showNotification("Failed to export workflow", "error");
