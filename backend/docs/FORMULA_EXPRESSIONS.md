@@ -69,11 +69,11 @@ Use `{column}` syntax to reference columns. The backend automatically converts t
 
 ### When Simple Mode Works
 
-✅ Column references: `{column}`  
-✅ Arithmetic: `+`, `-`, `*`, `/`, `**`, `%`  
-✅ Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`  
-✅ Logical: `&` (and), `|` (or), `~` (not)  
-✅ Parentheses for grouping
+Column references: `{column}`  
+Arithmetic: `+`, `-`, `*`, `/`, `**`, `%`  
+Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`  
+Logical: `&` (and), `|` (or), `~` (not)  
+Parentheses for grouping
 
 ## Advanced Mode (For Complex Logic)
 

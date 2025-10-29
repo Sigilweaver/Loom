@@ -45,7 +45,7 @@ async function generateFavicons() {
                 .resize(size, size)
                 .png()
                 .toFile(path.join(__dirname, 'assets', name));
-            console.log(`  ✅ Generated ${name} (${size}x${size})`);
+            console.log(`  Generated ${name} (${size}x${size})`);
         }
         
         // Create ICO file from multiple PNGs
@@ -64,7 +64,7 @@ async function generateFavicons() {
             console.log('⚠️  Sharp not found. Installing dependencies...');
             await installDependencies();
         } else {
-            console.error('❌ Error generating favicons:', error.message);
+            console.error('Error generating favicons:', error.message);
             await fallbackGeneration();
         }
     }
@@ -85,14 +85,14 @@ async function createIcoFile() {
         
         const icoBuffer = await pngToIco(buffers);
         await fs.writeFile(path.join(__dirname, 'assets', 'favicon.ico'), icoBuffer);
-        console.log('  ✅ Generated favicon.ico (16x16, 32x32, 48x48)');
+        console.log('  Generated favicon.ico (16x16, 32x32, 48x48)');
         
     } catch (error) {
         console.log('  ⚠️  png-to-ico not available, using 32x32 PNG as ICO fallback');
         // Fallback: copy 32x32 PNG as ICO
         const png32 = await fs.readFile(path.join(__dirname, 'assets', 'favicon-32x32.png'));
         await fs.writeFile(path.join(__dirname, 'assets', 'favicon.ico'), png32);
-        console.log('  ✅ Generated favicon.ico (32x32 fallback)');
+        console.log('  Generated favicon.ico (32x32 fallback)');
     }
 }
 
@@ -109,11 +109,11 @@ async function installDependencies() {
         
         npm.on('close', (code) => {
             if (code === 0) {
-                console.log('✅ Dependencies installed successfully!');
+                console.log('Dependencies installed successfully!');
                 console.log('🔄 Re-running favicon generation...');
                 generateFavicons().then(resolve).catch(reject);
             } else {
-                console.log('❌ Failed to install dependencies. Trying fallback method...');
+                console.log('Failed to install dependencies. Trying fallback method...');
                 fallbackGeneration().then(resolve).catch(reject);
             }
         });
@@ -161,7 +161,7 @@ async function ensurePackageJson() {
         };
         
         await fs.writeFile(packagePath, JSON.stringify(packageJson, null, 2));
-        console.log('✅ Created package.json');
+        console.log('Created package.json');
     }
 }
 

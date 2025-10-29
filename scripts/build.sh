@@ -5,6 +5,10 @@ echo "=========================================="
 echo "Building Sigilweaver Complete Application"
 echo "=========================================="
 
+# Get script directory and navigate to project root
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
 # Determine platform
 PLATFORM="${1:-linux}"
 
@@ -15,9 +19,7 @@ echo ""
 # Build backend executable
 echo "Step 1/2: Building backend executable..."
 echo "------------------------------------------"
-cd backend
-./build_executable.sh
-cd ..
+"$SCRIPT_DIR/build_backend.sh"
 
 echo ""
 echo "Step 2/2: Building frontend + Electron..."
@@ -45,7 +47,7 @@ cd ..
 
 echo ""
 echo "=========================================="
-echo "✓ Build complete!"
+echo "Build complete!"
 echo "=========================================="
 echo ""
 echo "Output location: frontend/dist/"

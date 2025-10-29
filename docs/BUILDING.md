@@ -134,7 +134,7 @@ The dev script automatically detects development mode and uses the Python source
 ## Troubleshooting
 
 ### Backend fails to start
-- Check logs in Electron console (View → Toggle Developer Tools)
+- Check logs in Electron console (View -> Toggle Developer Tools)
 - Look for `[Backend]` messages
 - Verify backend executable exists: `backend/dist/backend`
 

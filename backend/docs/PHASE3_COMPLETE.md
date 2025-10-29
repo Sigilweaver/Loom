@@ -4,7 +4,7 @@
 
 The backend now provides everything the frontend needs to continue building the workflow UI:
 
-### ✅ Core Execution System (20 tests passing)
+### Core Execution System (20 tests passing)
 
 1. **ExecutionGraph** - Workflow compilation and validation
    - Topological sort for execution order
@@ -35,9 +35,9 @@ The backend now provides everything the frontend needs to continue building the 
 
 ### Frontend Can Now Build:
 
-✅ **Dynamic Tool Configuration UIs**
+**Dynamic Tool Configuration UIs**
 ```typescript
-// User connects Input → Filter
+// User connects Input -> Filter
 // Frontend fetches schema from Input tool
 const schema = await getToolSchema("input1");
 // schema.outputs["0"].data_schema.columns = [
@@ -54,7 +54,7 @@ const schema = await getToolSchema("input1");
 </select>
 ```
 
-✅ **Real-time Data Previews**
+**Real-time Data Previews**
 ```typescript
 // User clicks "Preview" button on a tool
 const preview = await executeToolPreview("filter1");
@@ -62,7 +62,7 @@ const preview = await executeToolPreview("filter1");
 <Table data={preview.outputs["1"].data} />
 ```
 
-✅ **Expression Builders**
+**Expression Builders**
 ```typescript
 // Show available columns with types for formula building
 <ExpressionBuilder 
@@ -144,13 +144,13 @@ POST http://localhost:8000/api/workflow/execute
 ### Schema Propagation Flow
 ```
 Input Tool
-  ↓ Backend reads CSV header → Returns schema
+  ↓ Backend reads CSV header -> Returns schema
   
 Filter Tool
-  ↓ Backend uses upstream schema → Returns same schema
+  ↓ Backend uses upstream schema -> Returns same schema
   
 Select Tool (keep name, age only)
-  ↓ Backend removes columns → Returns updated schema
+  ↓ Backend removes columns -> Returns updated schema
 ```
 
 Frontend can fetch schema at any point to populate UI controls!
@@ -165,7 +165,7 @@ Frontend can fetch schema at any point to populate UI controls!
 
 ### Immediate (Can Start Now):
 1. **Implement schema fetching in workflow builder**
-   - When user connects wire → fetch downstream tool schema
+   - When user connects wire -> fetch downstream tool schema
    - Use schema to populate configuration UI
    
 2. **Build tool configuration panels**
@@ -204,10 +204,10 @@ uvicorn app.main:app --reload
 ## Summary
 
 **You're no longer blocked!** The backend provides:
-- ✅ Schema information for dynamic UI building
-- ✅ Preview functionality for user feedback
-- ✅ Full workflow execution
-- ✅ Comprehensive test coverage
-- ✅ Clear API documentation
+- Schema information for dynamic UI building
+- Preview functionality for user feedback
+- Full workflow execution
+- Comprehensive test coverage
+- Clear API documentation
 
 The frontend can now build tool configuration UIs, expression builders, and preview panels with real backend data. 🚀

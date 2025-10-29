@@ -33,21 +33,21 @@ Convenient React hooks wrapping API calls:
 
 ### 3. **Tests**
 - **Unit tests** (`src/api/__tests__/backend.test.ts`): 6/7 passing
-- **Integration test** (`src/api/__tests__/backend.integration.test.ts`): ✅ PASSING
+- **Integration test** (`src/api/__tests__/backend.integration.test.ts`): PASSING
 
 ## Verified Connectivity
 
 ```bash
 # Backend is running on port 8000
 http://localhost:8000/api/health/
-✅ {"status":"healthy","version":"0.1.0","message":"SigilWeaver Backend is running"}
+{"status":"healthy","version":"0.1.0","message":"SigilWeaver Backend is running"}
 
 # Frontend is running on port 5173
 http://localhost:5173
-✅ Vite dev server active
+Vite dev server active
 
 # Integration test passes
-✅ Frontend successfully calls backend
+Frontend successfully calls backend
 ```
 
 ## Usage Examples
@@ -175,7 +175,7 @@ function RunWorkflowButton() {
       </button>
       
       {error && <p className="error">{error}</p>}
-      {result && <p>✅ Workflow executed successfully!</p>}
+      {result && <p>Workflow executed successfully!</p>}
     </div>
   );
 }
@@ -198,10 +198,10 @@ Start with the Input tool (CSV configuration):
 
 ### 3. **Implement More Tools**
 The backend already has:
-- ✅ Input (CSV)
-- ✅ Filter (row filtering)
-- ✅ Select (column selection)
-- ✅ Formula (computed columns)
+- Input (CSV)
+- Filter (row filtering)
+- Select (column selection)
+- Formula (computed columns)
 
 Next tools to implement:
 - Union (combine datasets)
@@ -241,21 +241,21 @@ npm test -- src/api/__tests__/backend.integration.test.ts
 cd ../backend
 source .venv/bin/activate
 python -m pytest
-# ✅ 27 tests passing
+# 27 tests passing
 ```
 
 ## Status Summary
 
 | Component | Status |
 |-----------|--------|
-| Backend API | ✅ Running (port 8000) |
-| Frontend Dev Server | ✅ Running (port 5173) |
-| CORS Configuration | ✅ Configured |
-| API Client | ✅ Created |
-| React Hooks | ✅ Created |
-| Type Safety | ✅ Full TypeScript |
-| Tests | ✅ Integration passing |
-| Documentation | ✅ Complete |
+| Backend API | Running (port 8000) |
+| Frontend Dev Server | Running (port 5173) |
+| CORS Configuration | Configured |
+| API Client | Created |
+| React Hooks | Created |
+| Type Safety | Full TypeScript |
+| Tests | Integration passing |
+| Documentation | Complete |
 
 **You're now unblocked for full-stack development!** 🚀
 

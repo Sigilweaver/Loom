@@ -68,7 +68,7 @@ Yes, Electron is bulky and has quirks. But Linux and macOS are criminally unders
 Python is my strongest language, has excellent data tooling, packages portably (PyInstaller), and enables rapid iteration. Go or Rust would be faster, but Python's ecosystem (FastAPI, Polars, Pydantic) gets a working product in users' hands faster.
 
 **Why Polars?**  
-Polars is the best dataframe library for an MVP: lazy evaluation, blazing performance, production-ready. Eventually I may add Dask for multi-machine clusters, but for now, no competitor offers that capability anyway. Polars hits the sweet spot of speed and simplicity.
+Polars is the best dataframe library for an MVP: lazy evaluation, blazing performance, production-ready. Eventually I may add Dask/Pandas support for multi-machine clusters, but for now, no competitor offers that capability anyway. Polars hits the sweet spot of speed and simplicity.
 
 ## Installation
 

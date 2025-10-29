@@ -52,10 +52,10 @@ POST /api/tool/schema
 ```
 
 **Frontend use cases:**
-- User adds a Filter tool → fetch schema from upstream Input tool → populate column dropdown in Filter config UI
-- User adds a Formula tool → fetch schema → show available columns for expression builder
-- User adds a Select tool → fetch schema → show checkboxes for available columns
-- User connects a wire → validate that referenced columns exist
+- User adds a Filter tool -> fetch schema from upstream Input tool -> populate column dropdown in Filter config UI
+- User adds a Formula tool -> fetch schema -> show available columns for expression builder
+- User adds a Select tool -> fetch schema -> show checkboxes for available columns
+- User connects a wire -> validate that referenced columns exist
 
 ### 2. **Tool Preview Endpoint** - Execute Single Tool with Sample Data
 
@@ -92,8 +92,8 @@ POST /api/tool/execute
 ```
 
 **Frontend use cases:**
-- User clicks "Preview" button on a tool → show sample data in a table
-- User modifies tool configuration → re-fetch preview to see changes
+- User clicks "Preview" button on a tool -> show sample data in a table
+- User modifies tool configuration -> re-fetch preview to see changes
 - User wants to verify filter expression works correctly
 
 ### 3. **Workflow Execution Endpoint** - Execute Complete Workflow
@@ -172,7 +172,7 @@ const columns = outputs["0"].data_schema.columns;
 ### Step 2: User Adds Filter Tool
 
 ```typescript
-// User connects Input → Filter
+// User connects Input -> Filter
 workflow.tools.push({
   id: "filter1",
   type: "Filter",
@@ -240,22 +240,22 @@ The backend uses Polars data types that match your TypeScript enum:
 
 With these endpoints available, the frontend can:
 
-✅ **Tool Configuration UIs**
+**Tool Configuration UIs**
 - Populate column dropdowns based on upstream tool schemas
 - Show type-aware operators (numeric vs string)
 - Validate column references before execution
 
-✅ **Expression Builders**
+**Expression Builders**
 - Show available columns with types
 - Suggest appropriate functions based on column type
 - Build Polars expressions like `pl.col('age') > 30`
 
-✅ **Data Preview**
+**Data Preview**
 - Show sample data at any point in workflow
 - Update preview as user modifies tool configuration
 - Help users debug their workflows
 
-✅ **Schema Visualization**
+**Schema Visualization**
 - Show column badges on tool nodes
 - Indicate schema changes (columns added/removed)
 - Highlight type mismatches

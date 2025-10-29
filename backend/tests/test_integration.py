@@ -29,9 +29,9 @@ def sample_csv(tmp_path):
 async def test_frontend_schema_workflow(sample_csv):
     """
     Test the critical workflow frontend needs:
-    1. Load CSV → get schema (column names + types)
-    2. Add Filter → schema unchanged
-    3. Add Select → schema shows only selected columns
+    1. Load CSV -> get schema (column names + types)
+    2. Add Filter -> schema unchanged
+    3. Add Select -> schema shows only selected columns
     
     This is what frontend needs to populate dropdowns and build tool UIs.
     """
@@ -90,8 +90,8 @@ async def test_frontend_schema_workflow(sample_csv):
     for col in columns:
         assert col.dtype is not None
     
-    print("✅ Frontend can get column list: ", column_names)
-    print("✅ Frontend can get column types")
+    print("Frontend can get column list: ", column_names)
+    print("Frontend can get column types")
     
     
     # Step 2: Add Filter tool - schema should pass through unchanged
@@ -127,7 +127,7 @@ async def test_frontend_schema_workflow(sample_csv):
     filter_columns = [col.name for col in filter_schema.columns]
     
     assert set(filter_columns) == {"id", "name", "age", "salary", "department"}
-    print("✅ Filter preserves schema, frontend sees same columns")
+    print("Filter preserves schema, frontend sees same columns")
     
     
     # Step 3: Add Select tool - schema should show only selected columns
@@ -163,14 +163,14 @@ async def test_frontend_schema_workflow(sample_csv):
     select_columns = [col.name for col in select_schema.columns]
     
     assert set(select_columns) == {"name", "age", "salary"}
-    print("✅ Select updates schema, frontend sees reduced column list")
+    print("Select updates schema, frontend sees reduced column list")
     
     print("\n=== Summary ===")
     print("Frontend now has everything needed to:")
-    print("1. ✅ Get column names from Input tool")
-    print("2. ✅ See column types for validation")
-    print("3. ✅ Track schema changes through workflow")
-    print("4. ✅ Populate dropdowns with available columns")
+    print("1. Get column names from Input tool")
+    print("2. See column types for validation")
+    print("3. Track schema changes through workflow")
+    print("4. Populate dropdowns with available columns")
 
 
 @pytest.mark.asyncio
@@ -247,5 +247,5 @@ async def test_frontend_preview_workflow(sample_csv):
     rows = preview_data["data"]
     assert len(rows) == 3  # Charlie(35), David(40), Eve(45) - Bob(30) and Alice(25) filtered out
     
-    print("✅ Frontend can get preview data with actual rows")
-    print(f"✅ Preview shows {len(rows)} rows")
+    print("Frontend can get preview data with actual rows")
+    print(f"Preview shows {len(rows)} rows")

@@ -212,17 +212,17 @@ async function testExpression() {
 
 ```typescript
 // 1. User selects column from dropdown
-// → Inserts: pl.col('age')
+// -> Inserts: pl.col('age')
 
 // 2. User clicks ">" button
-// → Expression: pl.col('age') >
+// -> Expression: pl.col('age') >
 
 // 3. User types: 30
-// → Expression: pl.col('age') > 30
+// -> Expression: pl.col('age') > 30
 
 // 4. User enters column name: is_adult
 // 5. User clicks Preview
-// → Backend executes, shows result
+// -> Backend executes, shows result
 
 // That's it! Simple and powerful.
 ```
