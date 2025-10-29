@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 # Check if backend executable exists
 if [ ! -f "backend/dist/backend" ] && [ ! -f "backend/dist/backend.exe" ]; then
     echo "ERROR: Backend executable not found!"
-    echo "Run: ./build-all.sh first"
+    echo "Run: ./scripts/build-all.sh first"
     exit 1
 fi
 
@@ -28,7 +28,7 @@ elif [ -d "frontend/dist/mac" ]; then
     UNPACKED="frontend/dist/mac/Sigilweaver.app/Contents/MacOS"
 else
     echo "ERROR: No unpacked build found"
-    echo "Run: ./build-all.sh first"
+    echo "Run: ./scripts/build-all.sh first"
     exit 1
 fi
 
