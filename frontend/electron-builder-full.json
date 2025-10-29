@@ -1,63 +1,61 @@
 {
   "extends": "./package.json",
   "productName": "Sigilweaver",
-  "build": {
-    "appId": "com.sigilweaver.workflow-designer",
-    "extraResources": [
+  "appId": "com.sigilweaver.workflow-designer",
+  "extraResources": [
+    {
+      "from": "resources/backend/",
+      "to": "backend/",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "linux": {
+    "icon": "public/assets/icon-512.png",
+    "category": "Development",
+    "target": [
       {
-        "from": "resources/backend/",
-        "to": "backend/",
-        "filter": [
-          "**/*"
+        "target": "AppImage",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "snap",
+        "arch": [
+          "x64"
         ]
       }
     ],
-    "linux": {
-      "icon": "public/assets/icon-512.png",
-      "category": "Development",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "snap",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "snap": {
-        "confinement": "classic"
-      }
-    },
-    "win": {
-      "icon": "public/assets/app-icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "publisherName": "SigilWeaver Development Team",
-      "verifyUpdateCodeSignature": false
-    },
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": [
-        "dmg"
-      ],
-      "icon": "public/assets/icon-512.png"
+    "snap": {
+      "confinement": "classic"
     }
+  },
+  "win": {
+    "icon": "public/assets/app-icon.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "publisherName": "SigilWeaver Development Team",
+    "verifyUpdateCodeSignature": false
+  },
+  "mac": {
+    "category": "public.app-category.developer-tools",
+    "target": [
+      "dmg"
+    ],
+    "icon": "public/assets/icon-512.png"
   }
 }
