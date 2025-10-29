@@ -20,9 +20,11 @@ jobs:
           - os: windows-latest
             platform: win
             artifact-name: windows-full-artifacts
-          - os: macos-latest
-            platform: mac
-            artifact-name: macos-full-artifacts
+          # macOS builds disabled - too expensive!!! ($0.08/min vs $0.008/min for Linux)
+          # Will re-enable when I have a self-hosted macOS runner
+          # - os: macos-latest
+          #   platform: mac
+          #   artifact-name: macos-full-artifacts
     
     runs-on: ${{ matrix.os }}
     defaults:
