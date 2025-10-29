@@ -100,7 +100,7 @@
     ],
     "extraResources": [
       {
-        "from": "../sigilweaver-backend/dist/",
+        "from": "../backend/dist/",
         "to": "backend/",
         "filter": [
           "**/*"

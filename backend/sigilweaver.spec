@@ -69,7 +69,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='sigilweaver-backend',
+    name='backend',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -238,7 +238,7 @@ npm test -- src/api/__tests__/backend.integration.test.ts
 
 **Backend Tests:**
 ```bash
-cd ../sigilweaver-backend
+cd ../backend
 source .venv/bin/activate
 python -m pytest
 # ✅ 27 tests passing

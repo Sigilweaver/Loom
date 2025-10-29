@@ -15,14 +15,14 @@ echo ""
 # Build backend executable
 echo "Step 1/2: Building backend executable..."
 echo "------------------------------------------"
-cd sigilweaver-backend
+cd backend
 ./build_executable.sh
 cd ..
 
 echo ""
 echo "Step 2/2: Building frontend + Electron..."
 echo "------------------------------------------"
-cd sigilweaver-frontend
+cd frontend
 
 case "$PLATFORM" in
   linux)
@@ -48,5 +48,5 @@ echo "=========================================="
 echo "✓ Build complete!"
 echo "=========================================="
 echo ""
-echo "Output location: sigilweaver-frontend/dist/"
-ls -lh sigilweaver-frontend/dist/
+echo "Output location: frontend/dist/"
+ls -lh frontend/dist/

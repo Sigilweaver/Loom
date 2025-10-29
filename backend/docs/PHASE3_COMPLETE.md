@@ -193,7 +193,7 @@ Frontend can fetch schema at any point to populate UI controls!
 ## Running the Backend
 
 ```bash
-cd sigilweaver-backend
+cd backend
 source .venv/bin/activate
 uvicorn app.main:app --reload
 

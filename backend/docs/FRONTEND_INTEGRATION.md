@@ -288,7 +288,7 @@ The backend is running on `http://localhost:8000`. You can test with:
 
 ```bash
 # Start backend
-cd sigilweaver-backend
+cd backend
 source .venv/bin/activate
 uvicorn app.main:app --reload
 

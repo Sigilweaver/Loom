@@ -28,13 +28,13 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
     return {
       command: "python",
       args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
-      cwd: join(__dirname, "../../sigilweaver-backend"),
+      cwd: join(__dirname, "../../backend"),
     };
   }
 
   // Production: run bundled executable
   const ext = process.platform === "win32" ? ".exe" : "";
-  const backendExe = join(process.resourcesPath, "backend", `sigilweaver-backend${ext}`);
+  const backendExe = join(process.resourcesPath, "backend", `backend${ext}`);
   
   return {
     command: backendExe,

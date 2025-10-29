@@ -9,7 +9,7 @@ Successfully implemented and **TESTED** a complete standalone packaging solution
 ```bash
 $ ./Sigilweaver-0.2.0.AppImage
 [Main] Starting backend...
-[Backend] Starting: /tmp/.mount_SigilwXXX/resources/backend/sigilweaver-backend 
+[Backend] Starting: /tmp/.mount_SigilwXXX/resources/backend/backend 
 [Backend] INFO: Started server process [XXXXX]
 [Backend] INFO: Application startup complete.
 [Backend] INFO: Uvicorn running on http://127.0.0.1:8000
@@ -20,16 +20,16 @@ $ ./Sigilweaver-0.2.0.AppImage
 
 ## Files Created
 
-1. **`sigilweaver-backend/sigilweaver.spec`** - PyInstaller configuration
-2. **`sigilweaver-backend/build_executable.sh`** - Backend build script
+1. **`backend/sigilweaver.spec`** - PyInstaller configuration
+2. **`backend/build_executable.sh`** - Backend build script
 3. **`build-all.sh`** - Unified build script (root)
 4. **`BUILD.md`** - Complete build documentation
 
 ## Files Modified
 
-1. **`sigilweaver-backend/pyproject.toml`** - Added PyInstaller to build dependencies
-2. **`sigilweaver-frontend/electron/main.ts`** - Added backend process management
-3. **`sigilweaver-frontend/package.json`** - Added extraResources for backend bundle
+1. **`backend/pyproject.toml`** - Added PyInstaller to build dependencies
+2. **`frontend/electron/main.ts`** - Added backend process management
+3. **`frontend/package.json`** - Added extraResources for backend bundle
 
 ## How It Works
 
@@ -57,7 +57,7 @@ npm run dev → Electron → spawn("python", ["-m", "uvicorn", ...])
 
 ### 1. First-time Backend Setup
 ```bash
-cd sigilweaver-backend
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[build]"
@@ -71,7 +71,7 @@ cd ..  # Back to repo root
 
 ### 3. Test the Package
 ```bash
-./sigilweaver-frontend/dist/linux-unpacked/sigilweaver
+./frontend/dist/linux-unpacked/sigilweaver
 ```
 
 Watch the console for `[Backend]` messages - backend should start automatically!

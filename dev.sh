@@ -18,10 +18,10 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # Check if backend virtual environment exists
-if [ ! -d "sigilweaver-backend/.venv" ]; then
+if [ ! -d "backend/.venv" ]; then
     echo -e "${RED}ERROR: Backend virtual environment not found!${NC}"
     echo -e "${YELLOW}Please set up the backend first:${NC}"
-    echo "  cd sigilweaver-backend"
+    echo "  cd backend"
     echo "  python -m venv .venv"
     echo "  source .venv/bin/activate"
     echo "  pip install -e \".[dev]\""
@@ -29,10 +29,10 @@ if [ ! -d "sigilweaver-backend/.venv" ]; then
 fi
 
 # Check if frontend node_modules exists
-if [ ! -d "sigilweaver-frontend/node_modules" ]; then
+if [ ! -d "frontend/node_modules" ]; then
     echo -e "${RED}ERROR: Frontend dependencies not installed!${NC}"
     echo -e "${YELLOW}Please set up the frontend first:${NC}"
-    echo "  cd sigilweaver-frontend"
+    echo "  cd frontend"
     echo "  npm install"
     exit 1
 fi
@@ -50,7 +50,7 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # Start backend in background
 echo -e "${GREEN}Starting Python backend...${NC}"
-cd sigilweaver-backend
+cd backend
 (
     source .venv/bin/activate
     uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 2>&1 | sed "s/^/[BACKEND] /"
@@ -63,7 +63,7 @@ sleep 2
 
 # Start frontend (Vite dev server)
 echo -e "${GREEN}Starting Vite dev server...${NC}"
-cd sigilweaver-frontend
+cd frontend
 (
     npm run dev 2>&1 | sed "s/^/[FRONTEND] /"
 ) &
@@ -75,7 +75,7 @@ sleep 3
 
 # Optionally start Electron (uncomment if you want Electron to auto-launch)
 # echo -e "${GREEN}Starting Electron...${NC}"
-# cd sigilweaver-frontend
+# cd frontend
 # (
 #     npm run electron 2>&1 | sed "s/^/[ELECTRON] /"
 # ) &
@@ -90,7 +90,7 @@ echo -e "API Docs:       ${GREEN}http://localhost:8000/docs${NC}"
 echo -e "Frontend:       ${GREEN}http://localhost:5173${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo -e "${YELLOW}To launch Electron, run in another terminal:${NC}"
-echo -e "   cd sigilweaver-frontend && npm run electron"
+echo -e "   cd frontend && npm run electron"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""

@@ -6,26 +6,26 @@ set -e
 cd "$(dirname "$0")"
 
 # Check if backend executable exists
-if [ ! -f "sigilweaver-backend/dist/sigilweaver-backend" ] && [ ! -f "sigilweaver-backend/dist/sigilweaver-backend.exe" ]; then
+if [ ! -f "backend/dist/backend" ] && [ ! -f "backend/dist/backend.exe" ]; then
     echo "ERROR: Backend executable not found!"
     echo "Run: ./build-all.sh first"
     exit 1
 fi
 
 # Check if frontend is built
-if [ ! -d "sigilweaver-frontend/dist-electron" ]; then
+if [ ! -d "frontend/dist-electron" ]; then
     echo "ERROR: Frontend not built!"
-    echo "Run: cd sigilweaver-frontend && npm run build:web"
+    echo "Run: cd frontend && npm run build:web"
     exit 1
 fi
 
 # Find the unpacked directory
-if [ -d "sigilweaver-frontend/dist/linux-unpacked" ]; then
-    UNPACKED="sigilweaver-frontend/dist/linux-unpacked"
-elif [ -d "sigilweaver-frontend/dist/win-unpacked" ]; then
-    UNPACKED="sigilweaver-frontend/dist/win-unpacked"
-elif [ -d "sigilweaver-frontend/dist/mac" ]; then
-    UNPACKED="sigilweaver-frontend/dist/mac/Sigilweaver.app/Contents/MacOS"
+if [ -d "frontend/dist/linux-unpacked" ]; then
+    UNPACKED="frontend/dist/linux-unpacked"
+elif [ -d "frontend/dist/win-unpacked" ]; then
+    UNPACKED="frontend/dist/win-unpacked"
+elif [ -d "frontend/dist/mac" ]; then
+    UNPACKED="frontend/dist/mac/Sigilweaver.app/Contents/MacOS"
 else
     echo "ERROR: No unpacked build found"
     echo "Run: ./build-all.sh first"

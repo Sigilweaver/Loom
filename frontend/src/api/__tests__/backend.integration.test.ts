@@ -12,8 +12,8 @@ import { getToolSchema, previewTool, executeWorkflow, healthCheck } from '../bac
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
-// Path to test fixture created in sigilweaver-backend
-const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/sigilweaver-backend/tests/fixtures/sample.csv';
+// Path to test fixture created in backend
+const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
 
 describe('Backend E2E Integration', () => {
   describe('Health Check', () => {

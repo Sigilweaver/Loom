@@ -10,7 +10,7 @@ Sigilweaver uses PyInstaller to bundle the Python backend into a standalone exec
 
 ### Backend
 - Python 3.11+
-- Virtual environment set up in `sigilweaver-backend/.venv`
+- Virtual environment set up in `backend/.venv`
 
 ### Frontend
 - Node.js 18+
@@ -31,14 +31,14 @@ This will:
 1. Build the backend executable with PyInstaller
 2. Build the frontend with Vite
 3. Package everything with electron-builder
-4. Output to `sigilweaver-frontend/dist/`
+4. Output to `frontend/dist/`
 
 ## Manual Build Steps
 
 ### 1. Build Backend Executable
 
 ```bash
-cd sigilweaver-backend
+cd backend
 
 # First time setup
 python -m venv .venv
@@ -49,12 +49,12 @@ pip install -e ".[build]"
 ./build_executable.sh
 ```
 
-This creates: `sigilweaver-backend/dist/sigilweaver-backend[.exe]`
+This creates: `backend/dist/backend[.exe]`
 
 ### 2. Build Frontend + Package
 
 ```bash
-cd sigilweaver-frontend
+cd frontend
 
 # Install dependencies (first time)
 npm install
@@ -68,16 +68,16 @@ npm run build:mac      # macOS DMG/Zip
 ## Output
 
 ### Linux
-- `sigilweaver-frontend/dist/Sigilweaver-<version>.AppImage`
-- `sigilweaver-frontend/dist/sigilweaver_<version>_amd64.snap`
+- `frontend/dist/Sigilweaver-<version>.AppImage`
+- `frontend/dist/sigilweaver_<version>_amd64.snap`
 
 ### Windows
-- `sigilweaver-frontend/dist/Sigilweaver Setup <version>.exe` (installer)
-- `sigilweaver-frontend/dist/Sigilweaver <version>.exe` (portable)
+- `frontend/dist/Sigilweaver Setup <version>.exe` (installer)
+- `frontend/dist/Sigilweaver <version>.exe` (portable)
 
 ### macOS
-- `sigilweaver-frontend/dist/Sigilweaver-<version>.dmg`
-- `sigilweaver-frontend/dist/Sigilweaver-<version>-mac.zip`
+- `frontend/dist/Sigilweaver-<version>.dmg`
+- `frontend/dist/Sigilweaver-<version>-mac.zip`
 
 ## How It Works
 
@@ -110,12 +110,12 @@ Electron main process:
 ### During Development
 ```bash
 # Terminal 1: Backend (with hot reload)
-cd sigilweaver-backend
+cd backend
 source .venv/bin/activate
 python -m uvicorn app.main:app --reload
 
 # Terminal 2: Frontend (with hot reload)
-cd sigilweaver-frontend
+cd frontend
 npm run dev
 ```
 
@@ -128,7 +128,7 @@ The dev script automatically detects development mode and uses the Python source
 ./build-all.sh linux
 
 # Run the packaged app
-./sigilweaver-frontend/dist/linux-unpacked/sigilweaver
+./frontend/dist/linux-unpacked/sigilweaver
 ```
 
 ## Troubleshooting
@@ -136,10 +136,10 @@ The dev script automatically detects development mode and uses the Python source
 ### Backend fails to start
 - Check logs in Electron console (View → Toggle Developer Tools)
 - Look for `[Backend]` messages
-- Verify backend executable exists: `sigilweaver-backend/dist/sigilweaver-backend`
+- Verify backend executable exists: `backend/dist/backend`
 
 ### "Backend not found" error
-- Ensure backend was built: `./sigilweaver-backend/build_executable.sh`
+- Ensure backend was built: `./backend/build_executable.sh`
 - Check `extraResources` in `package.json` points to correct path
 
 ### Large file size
