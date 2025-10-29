@@ -37,17 +37,26 @@ This is a **monorepo** containing both the frontend Electron app and the backend
 
 ```
 sigilweaver-app/
-├── frontend/           # Electron + React + TypeScript
-│   ├── src/           # React components, stores, domain logic
-│   ├── electron/      # Electron main process
-│   └── public/        # Static assets
-├── backend/           # FastAPI + Polars
-│   ├── app/          # API routes, domain logic, tool registry
-│   └── tests/        # Pytest suite
-├── scripts/          # Build and development scripts
-│   ├── dev.sh       # Start dev servers (backend + frontend)
-│   └── build-all.sh # Build standalone application
-└── .github/          # CI/CD workflows for releases
+├── .github/
+│   ├── workflows/         # CI/CD: build, test, release automation
+│   └── copilot-instructions.md  # AI development guidelines
+├── backend/              # FastAPI + Polars
+│   ├── app/             # API routes, domain logic, tool registry
+│   ├── tests/           # Pytest suite
+│   └── docs/            # Backend API and tool documentation
+├── frontend/              # Electron + React + TypeScript
+│   ├── src/              # React components, stores, domain logic
+│   ├── electron/         # Electron main process
+│   ├── docs/             # Frontend integration documentation
+│   └── public/           # Static assets
+├── scripts/             # Build, development, and testing utilities
+│   ├── dev.sh          # Start dev servers (backend + frontend)
+│   ├── build.sh        # Build standalone application
+│   ├── test.sh         # Run all tests (backend + frontend)
+│   ├── test_backend.sh # Backend tests with coverage
+│   ├── test_frontend.sh # Frontend unit tests
+│   └── test_integration.sh # Integration tests with auto-backend-start
+└── docs/               # Project-level documentation
 ```
 
 **Key Technologies**:
