@@ -1,0 +1,32 @@
+name: build-web
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+        default: '22'
+
+jobs:
+  build-web-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+      - run: npm ci
+      - name: Ensure zip is installed
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y zip
+      - run: npm run build:web
+      - name: Zip web dist
+        run: |
+          cd dist
+          zip -r ../dist-web.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-zip
+          path: dist-web.zip

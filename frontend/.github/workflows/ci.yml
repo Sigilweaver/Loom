@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["**"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "**/.vscode/**"
+      - "**/.github/ISSUE_TEMPLATE/**"
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "**/.vscode/**"
+      - "**/.github/ISSUE_TEMPLATE/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      dependency-artifact: ${{ steps.artifact-name.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create dependency archive
+        run: tar -czf node_modules.tar.gz node_modules
+
+      - name: Compute artifact name
+        id: artifact-name
+        run: echo "value=node-modules-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload dependencies artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.value }}
+          path: node_modules.tar.gz
+          retention-days: 1
+
+  lint:
+    name: Lint
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.setup.outputs.dependency-artifact }}
+
+      - name: Extract dependencies
+        run: |
+          tar -xzf node_modules.tar.gz
+          rm node_modules.tar.gz
+
+      - name: Lint
+        run: npm run lint:ci
+
+  type-check:
+    name: Type-check
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.setup.outputs.dependency-artifact }}
+
+      - name: Extract dependencies
+        run: |
+          tar -xzf node_modules.tar.gz
+          rm node_modules.tar.gz
+
+      - name: Type-check
+        run: npm run type-check
+
+  test:
+    name: Unit tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.setup.outputs.dependency-artifact }}
+
+      - name: Extract dependencies
+        run: |
+          tar -xzf node_modules.tar.gz
+          rm node_modules.tar.gz
+
+      - name: Unit tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-web:
+    name: Build web artifact
+    needs:
+      - setup
+      - lint
+      - type-check
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.setup.outputs.dependency-artifact }}
+
+      - name: Extract dependencies
+        run: |
+          tar -xzf node_modules.tar.gz
+          rm node_modules.tar.gz
+
+      - name: Ensure zip is installed
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y zip
+
+      - name: Build web
+        run: npm run build:web
+
+      - name: Zip web dist
+        run: |
+          cd dist
+          zip -r ../dist-web.zip .
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: |
+            dist/**
+            dist-web.zip
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Accessible focus outlines harmonized with the active theme */
+:root {
+  --focus-outline-color: var(--color-border-focus, #a78bfa);
+}
+
+/* Only on keyboard focus */
+*:focus-visible {
+  outline: 2px solid var(--focus-outline-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tab buttons integrate with the continuous top line without double borders when focused */
+[role="tab"]:focus-visible {
+  position: relative;
+  z-index: 30;
+}
+
+/* React Flow selection (marquee) rectangle: hidden by default; shown only while dragging */
+.react-flow__selection {
+  border: none !important;
+  background: transparent !important;
+  /* never block interactions with nodes */
+  pointer-events: none !important;
+}
+.sig-lasso-active .react-flow__selection {
+  border: 2px solid var(--color-edge-selected-stroke, var(--color-border-focus, #a78bfa)) !important;
+  background: color-mix(in oklab, var(--color-edge-selected-stroke, #a78bfa) 12%, transparent);
+}
+
+/* Post-selection group rectangle: 12px padding and rounded corners, no fill */
+.react-flow__nodesselection-rect {
+  border: none !important;
+  background: transparent !important;
+  /* ensure this overlay never intercepts clicks or drags */
+  pointer-events: none !important;
+  /* draw the outline with a pseudo-element so we can offset & round it */
+}
+.react-flow__nodesselection-rect::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  border: 2px solid var(--color-edge-selected-stroke, #a78bfa);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* Selected nodes: add brand halo with a 4px pad (offset outline) and border override */
+.react-flow__nodes .react-flow__node.selected .sig-node {
+  outline: 2px solid var(--color-edge-selected-stroke, #a78bfa) !important;
+  outline-offset: 4px;
+  box-shadow: none !important;
+  /* keep inner border (category) color as-is */
+}
+
+/* Selected handles pop a bit */
+.react-flow__nodes .react-flow__node.selected .react-flow__handle {
+  box-shadow: 0 0 0 2px var(--color-edge-selected-stroke, #a78bfa);
+}
+
+/* Edge coloring states using theme CSS variables */
+.react-flow__edge .react-flow__edge-path {
+  stroke: var(--color-edge-default-stroke) !important;
+}
+.react-flow__edge .react-flow__edge-textbg, .react-flow__edge .react-flow__edge-text {
+  fill: var(--color-edge-default-stroke);
+}
+.react-flow__edge:hover .react-flow__edge-path,
+.react-flow__edge .react-flow__edge-path:hover {
+  stroke: var(--color-edge-default-stroke-hover) !important;
+}
+.react-flow__edge:hover .react-flow__edge-textbg, .react-flow__edge:hover .react-flow__edge-text {
+  fill: var(--color-edge-default-stroke-hover);
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-edge-selected-stroke) !important;
+}
+.react-flow__edge.selected .react-flow__edge-textbg, .react-flow__edge.selected .react-flow__edge-text {
+  fill: var(--color-edge-selected-stroke);
+}
+.react-flow__edge.selected:hover .react-flow__edge-path,
+.react-flow__edge.selected .react-flow__edge-path:hover {
+  stroke: var(--color-edge-selected-stroke-hover) !important;
+}
+.react-flow__edge.selected:hover .react-flow__edge-textbg, .react-flow__edge.selected:hover .react-flow__edge-text {
+  fill: var(--color-edge-selected-stroke-hover);
+}
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke: var(--color-edge-animated-stroke) !important;
+}
+.react-flow__edge.animated .react-flow__edge-textbg, .react-flow__edge.animated .react-flow__edge-text {
+  fill: var(--color-edge-animated-stroke);
+}
+.react-flow__edge.animated:hover .react-flow__edge-path,
+.react-flow__edge.animated .react-flow__edge-path:hover {
+  stroke: var(--color-edge-animated-stroke-hover) !important;
+}
+.react-flow__edge.animated:hover .react-flow__edge-textbg, .react-flow__edge.animated:hover .react-flow__edge-text {
+  fill: var(--color-edge-animated-stroke-hover);
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border-primary);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-focus);
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-primary) transparent;
+}
