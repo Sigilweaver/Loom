@@ -98,6 +98,15 @@
       "public/assets/**/*",
       "!public/assets/generate-favicon.js"
     ],
+    "extraResources": [
+      {
+        "from": "../sigilweaver-backend/dist/",
+        "to": "backend/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "linux": {
       "icon": "public/assets/icon-512.png",
       "category": "Development",

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import { spawn, ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -9,10 +10,106 @@ const __dirname = dirname(__filename);
 const isDev =
   process.env.IS_DEV === "true" || process.env.NODE_ENV === "development";
 
+// Backend process management
+let backendProcess: ChildProcess | null = null;
+const BACKEND_PORT = 8000;
+
 // Read version from package.json
 const packagePath = join(__dirname, "../package.json");
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const version = packageJson.version;
+
+/**
+ * Get the path to the backend executable
+ */
+function getBackendPath(): { command: string; args: string[]; cwd?: string } {
+  if (isDev) {
+    // Development: run Python directly with uvicorn
+    return {
+      command: "python",
+      args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
+      cwd: join(__dirname, "../../sigilweaver-backend"),
+    };
+  }
+
+  // Production: run bundled executable
+  const ext = process.platform === "win32" ? ".exe" : "";
+  const backendExe = join(process.resourcesPath, "backend", `sigilweaver-backend${ext}`);
+  
+  return {
+    command: backendExe,
+    args: [],
+  };
+}
+
+/**
+ * Start the backend server
+ */
+async function startBackend(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { command, args, cwd } = getBackendPath();
+    
+    console.log(`[Backend] Starting: ${command} ${args.join(" ")}`);
+    if (cwd) console.log(`[Backend] Working directory: ${cwd}`);
+
+    backendProcess = spawn(command, args, {
+      cwd,
+      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+    });
+
+    backendProcess.stdout?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) console.log(`[Backend] ${message}`);
+    });
+
+    backendProcess.stderr?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) console.error(`[Backend Error] ${message}`);
+    });
+
+    backendProcess.on("error", (error: Error) => {
+      console.error("[Backend] Failed to start:", error);
+      reject(error);
+    });
+
+    backendProcess.on("exit", (code: number | null) => {
+      console.log(`[Backend] Process exited with code ${code}`);
+      backendProcess = null;
+    });
+
+    // Wait for backend to be ready (check health endpoint)
+    let attempts = 0;
+    const maxAttempts = 30; // 15 seconds
+    const checkInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`);
+        if (response.ok) {
+          clearInterval(checkInterval);
+          console.log("[Backend] Ready!");
+          resolve();
+        }
+      } catch {
+        // Backend not ready yet
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          reject(new Error("Backend failed to start within timeout"));
+        }
+      }
+    }, 500);
+  });
+}
+
+/**
+ * Stop the backend server
+ */
+function stopBackend(): void {
+  if (backendProcess) {
+    console.log("[Backend] Stopping...");
+    backendProcess.kill();
+    backendProcess = null;
+  }
+}
 
 function createWindow(): void {
   const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`;
@@ -175,16 +272,36 @@ function createWindow(): void {
   console.log("Menu created with Developer submenu");
 }
 
-app.whenReady().then(() => {
-  createWindow();
+app.whenReady().then(async () => {
+  try {
+    // Start backend first
+    console.log("[Main] Starting backend...");
+    await startBackend();
+    console.log("[Main] Backend started successfully");
 
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    // Then create window
+    createWindow();
+
+    app.on("activate", function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  } catch (error) {
+    console.error("[Main] Failed to start application:", error);
+    dialog.showErrorBox(
+      "Startup Error",
+      "Failed to start the backend server. Please check the logs and try again."
+    );
+    app.quit();
+  }
 });
 
 app.on("window-all-closed", () => {
+  stopBackend();
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => {
+  stopBackend();
 });
 
 // IPC handlers
