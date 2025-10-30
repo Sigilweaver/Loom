@@ -27,7 +27,7 @@ concurrency:
 jobs:
   test-backend:
     name: Backend - Test & Lint
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         working-directory: backend
@@ -72,7 +72,7 @@ jobs:
 
   test-frontend:
     name: Frontend - Test, Lint & Build
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         working-directory: frontend

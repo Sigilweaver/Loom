@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-web:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         working-directory: frontend

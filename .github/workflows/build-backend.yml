@@ -17,12 +17,11 @@ jobs:
   build-backend:
     strategy:
       matrix:
-        os: [self-hosted, self-hosted, macos-latest]
         include:
-          - os: self-hosted
+          - os: [self-hosted, linux]
             artifact-name: backend-linux
             executable-name: sigilweaver-backend
-          - os: self-hosted
+          - os: [self-hosted, windows]
             artifact-name: backend-win
             executable-name: sigilweaver-backend.exe
           - os: macos-latest
