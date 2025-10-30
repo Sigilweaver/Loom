@@ -233,6 +233,10 @@ jobs:
           export AWS_ACCESS_KEY_ID="${B2_APPLICATION_KEY_ID}"
           export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
           export AWS_DEFAULT_REGION="${B2_DEFAULT_REGION:-us-east-1}"
+          
+          # Configure AWS CLI for B2 S3-compatible API
+          aws configure set s3.signature_version s3v4
+          
           now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           version_label="${GITHUB_REF_NAME}"
           dest_prefix="latest"
