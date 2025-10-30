@@ -1,7 +1,15 @@
 {
-  "extends": "./package.json",
   "productName": "Sigilweaver",
   "appId": "com.sigilweaver.workflow-designer",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "public/assets/**/*",
+    "!public/assets/generate-favicon.js"
+  ],
   "extraResources": [
     {
       "from": "resources/backend/",
@@ -43,6 +51,14 @@
     ],
     "publisherName": "SigilWeaver Development Team",
     "verifyUpdateCodeSignature": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Sigilweaver"
   },
   "mac": {
     "category": "public.app-category.developer-tools",
