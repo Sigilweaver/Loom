@@ -1,7 +1,15 @@
 {
-  "extends": "./package.json",
-  "productName": "Sigilweaver-Client",
   "appId": "com.sigilweaver.workflow-designer-client",
+  "productName": "Sigilweaver-Client",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "public/assets/**/*",
+    "!public/assets/generate-favicon.js"
+  ],
   "extraResources": [],
   "linux": {
     "icon": "public/assets/icon-512.png",
@@ -22,15 +30,11 @@
     "target": [
       {
         "target": "nsis",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
       },
       {
         "target": "portable",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
       }
     ],
     "publisherName": "SigilWeaver Development Team",
@@ -40,6 +44,14 @@
     "category": "public.app-category.developer-tools",
     "target": ["dmg"],
     "icon": "public/assets/icon-512.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Sigilweaver Client"
   },
   "snap": {
     "confinement": "strict"
