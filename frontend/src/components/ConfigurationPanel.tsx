@@ -1,5 +1,7 @@
 import { CSVMode } from "@domain/dataSources/csv";
 import { CSVOutputMode } from "@domain/dataSources/csvOutput";
+import { ParquetMode } from "@domain/dataSources/parquet";
+import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
@@ -7,6 +9,8 @@ import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
+import { ParquetConfiguration } from "./ParquetConfiguration";
+import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
@@ -124,6 +128,27 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "parquet") {
+                  // Parquet with mode selection
+                  const dataSourceWithMode = dataSource as typeof dataSource & {
+                    selectedMode?: string;
+                  };
+                  const selectedMode =
+                    dataSourceWithMode.selectedMode || "scan"; // Default to scan mode
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "parquet" as const,
+                    parquetMode: selectedMode,
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -133,6 +158,16 @@ export default function ConfigurationPanel() {
             /* CSV Configuration Panel */
             <CsvConfiguration
               mode={(selectedTool.config.csvMode as CSVMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "parquet" ? (
+            /* Parquet Configuration Panel */
+            <ParquetConfiguration
+              mode={(selectedTool.config.parquetMode as ParquetMode) || "scan"}
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
@@ -176,6 +211,14 @@ export default function ConfigurationPanel() {
                     csvMode: "sink", // Default to streaming mode
                   };
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "parquet") {
+                  // Parquet with mode selection (default to sink)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "parquet" as const,
+                    parquetMode: "sink", // Default to streaming mode
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -185,6 +228,16 @@ export default function ConfigurationPanel() {
             /* CSV Output Configuration Panel */
             <CsvOutputConfiguration
               mode={(selectedTool.config.csvMode as CSVOutputMode) || "sink"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "parquet" ? (
+            /* Parquet Output Configuration Panel */
+            <ParquetOutputConfiguration
+              mode={(selectedTool.config.parquetMode as ParquetOutputMode) || "sink"}
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)

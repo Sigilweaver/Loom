@@ -32,7 +32,8 @@ const DATA_SOURCES: DataSource[] = [
     name: "Parquet",
     category: "file",
     description: "Apache Parquet columnar storage",
-    enabled: false,
+    enabled: true,
+    defaultMode: "scan",
   },
   {
     id: "json",

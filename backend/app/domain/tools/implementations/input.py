@@ -30,6 +30,7 @@ class InputTool(BaseTool):
         - category: "file"
         - type: "csv" | "parquet" | etc.
         - csvMode: "scan" | "read" | "batched" (for CSV)
+        - parquetMode: "scan" | "read" (for Parquet)
         - source: file path
         - ... other source-specific config
         """
@@ -42,12 +43,15 @@ class InputTool(BaseTool):
         if not source_type:
             raise ToolError("Input tool config missing 'type' field")
 
-        # Get CSV mode if applicable
+        # Get mode for each type
         csv_mode = config.get("csvMode", "scan") if source_type == "csv" else None
+        parquet_mode = config.get("parquetMode", "scan") if source_type == "parquet" else None
 
         # Load data based on type
         if source_type == "csv":
             lf = await self._load_csv(config, csv_mode)
+        elif source_type == "parquet":
+            lf = await self._load_parquet(config, parquet_mode)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -81,6 +85,34 @@ class InputTool(BaseTool):
 
         return lf
 
+    async def _load_parquet(
+        self, config: dict[str, Any], mode: str = "scan"
+    ) -> pl.LazyFrame:
+        """Load Parquet file using appropriate mode"""
+        source = config.get("source")
+        if not source:
+            raise ToolError("Parquet config missing 'source' field")
+
+        # Build Polars scan kwargs from config
+        scan_kwargs = self._build_parquet_kwargs(config)
+
+        # Load based on mode
+        if mode == "scan":
+            # Lazy loading (most efficient)
+            lf = pl.scan_parquet(source, **scan_kwargs)
+        elif mode == "read":
+            # Eager loading, convert to lazy
+            df = pl.read_parquet(source, **scan_kwargs)
+            lf = df.lazy()
+        else:
+            raise ToolError(f"Unknown Parquet mode: {mode}")
+
+        # Handle column selection (not supported as scan parameter)
+        if "columns" in config and config["columns"]:
+            lf = lf.select(config["columns"])
+
+        return lf
+
     def _build_csv_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """Convert frontend config to Polars scan_csv kwargs"""
         kwargs = {}
@@ -109,6 +141,35 @@ class InputTool(BaseTool):
             "truncate_ragged_lines": "truncate_ragged_lines",
             "decimal_comma": "decimal_comma",
             "missing_utf8_is_empty_string": "missing_utf8_is_empty_string",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:  # Skip None values to use Polars defaults
+                    kwargs[polars_key] = value
+
+        return kwargs
+
+    def _build_parquet_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars scan_parquet kwargs"""
+        kwargs = {}
+
+        # Map config keys to Polars parameters
+        # Note: 'columns' is handled separately via .select() after scan
+        key_mapping = {
+            "n_rows": "n_rows",
+            "row_index_name": "row_index_name",
+            "row_index_offset": "row_index_offset",
+            "parallel": "parallel",
+            "use_statistics": "use_statistics",
+            "hive_partitioning": "hive_partitioning",
+            "hive_schema": "hive_schema",
+            "try_parse_hive_dates": "try_parse_hive_dates",
+            "rechunk": "rechunk",
+            "low_memory": "low_memory",
+            "cache": "cache",
+            "retries": "retries",
         }
 
         for config_key, polars_key in key_mapping.items():
@@ -155,7 +216,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["csv"]:  # Will expand this list
+        if source_type and source_type not in ["csv", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -209,6 +270,41 @@ class InputTool(BaseTool):
             # If read mode, convert to lazy
             if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
+        
+        elif source_type == "parquet":
+            mode = config.get("parquetMode", "scan")
+            func_name = "read_parquet" if mode == "read" else "scan_parquet"
+            
+            # Build Parquet options
+            options = []
+            parquet_kwargs = self._build_parquet_kwargs(config)
+            
+            for key, value in parquet_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+                elif isinstance(value, list) and value:
+                    # For columns
+                    if all(isinstance(v, str) for v in value):
+                        escaped = [f'"{PythonCodeGenerator.escape_string(v)}"' for v in value]
+                        options.append(f'{key}=[{", ".join(escaped)}]')
+                elif isinstance(value, dict):
+                    # For hive_schema
+                    options.append(f'{key}={value}')
+            
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
+            
+            # If read mode, convert to lazy
+            if mode == "read":
+                lines.append(f'{var_name} = {var_name}.lazy()')
+        
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')
         
