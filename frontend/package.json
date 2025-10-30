@@ -3,7 +3,11 @@
   "private": true,
   "version": "0.2.1-alpha",
   "description": "Sigilweaver - Advanced Workflow Designer and Automation Tool",
-  "author": "SigilWeaver Development Team",
+  "author": "Sigilweaver Development Team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sigilweaver/sigilweaver-app.git"
+  },
   "type": "module",
   "main": "dist-electron/main.js",
   "homepage": "./",

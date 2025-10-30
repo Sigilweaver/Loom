@@ -1,6 +1,7 @@
 {
   "appId": "com.sigilweaver.workflow-designer-client",
   "productName": "Sigilweaver-Client",
+  "publish": null,
   "directories": {
     "output": "dist"
   },
