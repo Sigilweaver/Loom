@@ -18,10 +18,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: [self-hosted, linux]
+          - os: ubuntu-latest
             artifact-name: backend-linux
             executable-name: sigilweaver-backend
-          - os: [self-hosted, windows]
+          - os: windows-latest
             artifact-name: backend-win
             executable-name: sigilweaver-backend.exe
           # macOS builds disabled - too expensive!!! ($0.08/min vs $0.008/min for Linux)
@@ -37,14 +37,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install lsb-release (Linux only)
-        if: runner.os == 'Linux'
-        run: |
-          if ! command -v lsb_release &> /dev/null; then
-            sudo apt-get update -qq
-            sudo apt-get install -y lsb-release
-          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5

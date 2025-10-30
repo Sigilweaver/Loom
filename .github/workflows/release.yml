@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate-tag-on-main:
     name: Validate tag points to main
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
@@ -73,7 +73,7 @@ jobs:
 
   publish-assets:
     name: Publish to GitHub Release
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs:
       - validate-tag-on-main
       - build-backend
