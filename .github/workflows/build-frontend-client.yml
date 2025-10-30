@@ -14,10 +14,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: self-hosted
             platform: linux
             artifact-name: linux-client-artifacts
-          - os: windows-latest
+          - os: self-hosted
             platform: win
             artifact-name: windows-client-artifacts
           # macOS builds disabled - too expensive!!! ($0.08/min vs $0.008/min for Linux)

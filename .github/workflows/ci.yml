@@ -9,15 +9,13 @@ on:
       - "docs/**"
       - "**/.vscode/**"
       - "**/.github/ISSUE_TEMPLATE/**"
-  # Removed push trigger - only runs on PRs now
-  # Uncomment below to also run on pushes to main:
-  # push:
-  #   branches: ["main"]
-  #   paths-ignore:
-  #     - "**/*.md"
-  #     - "docs/**"
-  #     - "**/.vscode/**"
-  #     - "**/.github/ISSUE_TEMPLATE/**"
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "**/.vscode/**"
+      - "**/.github/ISSUE_TEMPLATE/**"
 
 permissions:
   contents: read
@@ -29,7 +27,7 @@ concurrency:
 jobs:
   test-backend:
     name: Backend - Test & Lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: backend
@@ -74,7 +72,7 @@ jobs:
 
   test-frontend:
     name: Frontend - Test, Lint & Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: frontend
