@@ -230,12 +230,22 @@ jobs:
             echo "B2 secrets missing; skipping upload."
             exit 0
           fi
+          
+          # Extract region from B2 endpoint URL (e.g., s3.us-east-005.backblazeb2.com -> us-east-005)
+          B2_REGION=$(echo "$B2_ENDPOINT_URL" | sed -n 's/^s3\.\([^.]*\)\.backblazeb2\.com$/\1/p')
+          if [ -z "$B2_REGION" ]; then
+            echo "WARNING: Could not extract region from endpoint, using default"
+            B2_REGION="${B2_DEFAULT_REGION:-us-east-1}"
+          fi
+          echo "Using B2 region: $B2_REGION"
+          
           export AWS_ACCESS_KEY_ID="${B2_APPLICATION_KEY_ID}"
           export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
-          export AWS_DEFAULT_REGION="${B2_DEFAULT_REGION:-us-east-1}"
+          export AWS_DEFAULT_REGION="$B2_REGION"
           
           # Configure AWS CLI for B2 S3-compatible API
           aws configure set s3.signature_version s3v4
+          aws configure set s3.addressing_style path
           
           now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           version_label="${GITHUB_REF_NAME}"
