@@ -263,11 +263,21 @@ jobs:
           version_label="${GITHUB_REF_NAME}"
           dest_prefix="latest"
           asset_cache_control="max-age=300,public"
+          
+          # Upload all files (non-directories) to latest/
           for f in release-assets/*; do
             [ -e "$f" ] || continue
-            base=$(basename "$f")
-            echo "Uploading $base to $dest_prefix via S3 API"
-            aws s3 cp "$f" "s3://$B2_BUCKET_NAME/$dest_prefix/$base" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
+            if [ -d "$f" ]; then
+              # Handle directories recursively
+              dir_name=$(basename "$f")
+              echo "Uploading directory $dir_name to $dest_prefix via S3 API"
+              aws s3 cp "$f" "s3://$B2_BUCKET_NAME/$dest_prefix/$dir_name/" --recursive --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
+            else
+              # Handle regular files
+              base=$(basename "$f")
+              echo "Uploading $base to $dest_prefix via S3 API"
+              aws s3 cp "$f" "s3://$B2_BUCKET_NAME/$dest_prefix/$base" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
+            fi
           done
           if [ -f release-assets/SHA256SUMS.txt ]; then
             aws s3 cp release-assets/SHA256SUMS.txt "s3://$B2_BUCKET_NAME/$dest_prefix/SHA256SUMS.txt" --endpoint-url "https://$B2_ENDPOINT_URL" --cache-control "$asset_cache_control"
