@@ -112,3 +112,5 @@ packages/
 # Copilot files
 .github/copilot-instructions.md
 .github/copilot/
+
+resources/
