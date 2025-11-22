@@ -35,8 +35,8 @@ else
     BACKEND_EXT=""
 fi
 
-# Copy and rename the backend executable
-BACKEND_SRC="backend/dist/sigilweaver-backend${BACKEND_EXT}"
+# Copy the backend executable to frontend resources
+BACKEND_SRC="backend/dist/backend${BACKEND_EXT}"
 BACKEND_DEST="frontend/resources/backend/backend${BACKEND_EXT}"
 
 if [ -f "$BACKEND_SRC" ]; then

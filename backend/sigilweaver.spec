@@ -69,14 +69,14 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='sigilweaver-backend',
+    name='backend',  # Must match Electron's expectation: backend.exe
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # No console window (runs in background)
+    console=True,  # MUST be True for uvicorn logging to work on Windows
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

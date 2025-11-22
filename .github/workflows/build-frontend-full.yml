@@ -65,7 +65,7 @@ jobs:
       
       - name: Make backend executable (Unix)
         if: matrix.platform != 'win'
-        run: chmod +x resources/backend/sigilweaver-backend
+        run: chmod +x resources/backend/backend
       
       - name: Build full version
         run: npm run build:${{ matrix.platform }}:full

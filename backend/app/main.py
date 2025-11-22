@@ -51,7 +51,14 @@ async def root():
 
 if __name__ == "__main__":
     """Entry point for PyInstaller executable"""
+    import sys
     import uvicorn
+    
+    # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None)
+    if sys.stdout is None:
+        sys.stdout = open('NUL', 'w')
+    if sys.stderr is None:
+        sys.stderr = open('NUL', 'w')
     
     # Run uvicorn server
     uvicorn.run(

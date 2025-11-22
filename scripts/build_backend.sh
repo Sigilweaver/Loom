@@ -31,15 +31,15 @@ echo "Building executable with PyInstaller..."
 pyinstaller sigilweaver.spec --clean
 
 # Check if build succeeded
-if [ -f "dist/sigilweaver-backend" ] || [ -f "dist/sigilweaver-backend.exe" ]; then
+if [ -f "dist/backend" ] || [ -f "dist/backend.exe" ]; then
     echo ""
     echo "=========================================="
     echo "Build successful!"
     echo "=========================================="
-    if [ -f "dist/sigilweaver-backend" ]; then
-        ls -lh dist/sigilweaver-backend
+    if [ -f "dist/backend" ]; then
+        ls -lh dist/backend
     else
-        ls -lh dist/sigilweaver-backend.exe
+        ls -lh dist/backend.exe
     fi
 else
     echo ""
