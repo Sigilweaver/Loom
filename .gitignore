@@ -1,4 +1,13 @@
+# GitHub Copilot files
 .github/copilot
 .github/copilot-instructions.md
 
+# Untracked Testing Directory
 .untracked
+
+# Local environment variables
+.env
+
+# Python cache files
+__pycache__/
+*.pyc

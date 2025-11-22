@@ -109,8 +109,5 @@ packages/
 *.auto.js
 *.auto.ts
 
-# Copilot files
-.github/copilot-instructions.md
-.github/copilot/
-
+# Resource files
 resources/
