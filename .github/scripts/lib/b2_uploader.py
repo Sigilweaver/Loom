@@ -64,6 +64,34 @@ class B2Uploader:
             )
         )
     
+    def _strip_version_from_filename(self, filename: str) -> str:
+        """
+        Strip version string from filename for latest/ uploads.
+        
+        Examples:
+            Sigilweaver-Setup-v0.3.0-alpha.exe -> Sigilweaver-Setup.exe
+            Sigilweaver-v0.3.0-alpha-x64.AppImage -> Sigilweaver-x64.AppImage
+            Sigilweaver-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Client-x64.snap
+        """
+        import re
+        from pathlib import Path as FilePath
+        
+        # Split into name and extension
+        path = FilePath(filename)
+        name = path.stem
+        ext = path.suffix
+        
+        # Remove version pattern: -vX.Y.Z[-prerelease] from name
+        name_no_version = re.sub(
+            r'-v\d+\.\d+\.\d+(?:-[a-z][a-z0-9]*(?:\.[a-z0-9]+)*)?',
+            '',
+            name,
+            flags=re.IGNORECASE
+        )
+        
+        # Reconstruct with extension
+        return name_no_version + ext
+    
     def upload_assets(self, assets_dir: Path, version: str):
         """
         Upload release assets to both latest/ and releases/{version}/.
@@ -82,14 +110,15 @@ class B2Uploader:
             if file.name in ('SHA256SUMS.txt', 'downloads.json'):
                 continue
             
-            # Upload to latest/
+            # Upload to latest/ with version stripped from filename
+            generic_name = self._strip_version_from_filename(file.name)
             self._upload_file(
                 file,
-                f"latest/{file.name}",
+                f"latest/{generic_name}",
                 cache_control="max-age=300,public"
             )
             
-            # Upload to versioned location
+            # Upload to versioned location with original filename
             self._upload_file(
                 file,
                 f"releases/{version}/{file.name}",
@@ -152,6 +181,9 @@ class B2Uploader:
             MetadataDirective='REPLACE'
         )
         
+        # Clean up staging file
+        self.s3.delete_object(Bucket=self.bucket, Key=staging_key)
+        
         print(f"Uploaded manifest: {key}")
     
     def download_json(self, key: str) -> Optional[Dict]:
@@ -202,15 +234,50 @@ class B2Uploader:
             }
         )
     
+    def cleanup_staging_files(self):
+        """
+        Clean up any leftover .staging/ files from previous uploads.
+        This is a safety measure in case cleanup failed during upload.
+        """
+        if self.dry_run:
+            print("[DRY-RUN] Clean up .staging/ files")
+            return
+        
+        try:
+            # List all objects in .staging/
+            response = self.s3.list_objects_v2(
+                Bucket=self.bucket,
+                Prefix='.staging/'
+            )
+            
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    print(f"Cleaning up: {obj['Key']}")
+                    self.s3.delete_object(Bucket=self.bucket, Key=obj['Key'])
+                print(f"Cleaned up {len(response['Contents'])} staging files")
+            else:
+                print("No staging files to clean up")
+        except Exception as e:
+            print(f"Warning: Failed to clean up staging files: {e}")
+    
     def get_base_url(self) -> str:
         """
         Get base URL for accessing uploaded files.
         
+        Prefers B2_CDN_URL if set (for Cloudflare CDN), otherwise uses direct B2 endpoint.
+        This allows using CDN for public downloads while uploading via S3 API.
+        
         Returns:
-            Base URL (e.g., 'https://bucket.s3.endpoint.com')
+            Base URL (e.g., 'https://download.sigilweaver.app' or 'https://bucket.s3.endpoint.com')
         """
         if self.dry_run:
             return "https://example.com"
         
+        # Prefer CDN URL if configured (e.g., Cloudflare proxy)
+        cdn_url = os.environ.get('B2_CDN_URL')
+        if cdn_url:
+            return cdn_url.rstrip('/')
+        
+        # Fall back to direct B2 endpoint
         endpoint = os.environ.get('B2_ENDPOINT_URL', '')
         return f"https://{self.bucket}.{endpoint}"

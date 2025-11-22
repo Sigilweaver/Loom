@@ -16,7 +16,8 @@ Environment variables required:
     B2_APPLICATION_KEY_ID: B2 application key ID
     B2_APPLICATION_KEY: B2 application key
     B2_BUCKET_NAME: B2 bucket name (e.g., sigilweaver-downloads)
-    B2_ENDPOINT_URL: B2 endpoint (e.g., s3.us-east-005.backblazeb2.com)
+    B2_ENDPOINT_URL: B2 S3 endpoint for uploads (e.g., s3.us-east-005.backblazeb2.com)
+    B2_CDN_URL: Public CDN URL for downloads (optional, e.g., https://download.sigilweaver.app)
     GITHUB_SHA: Git commit SHA (optional, defaults to 'unknown')
 """
 
@@ -156,6 +157,11 @@ def main():
             'releases/index.json',
             cache_control='max-age=300,public'
         )
+        print()
+        
+        # Step 6: Clean up staging files
+        print("Step 6: Cleaning up staging files...")
+        uploader.cleanup_staging_files()
         print()
         
         print(f"SUCCESS: Release {args.version} uploaded successfully!")

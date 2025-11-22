@@ -76,8 +76,11 @@ python3 -m pytest tests/ -v
 | `B2_APPLICATION_KEY_ID` | B2 application key ID | `00512345678abcdef` |
 | `B2_APPLICATION_KEY` | B2 application key (secret) | `K005...` |
 | `B2_BUCKET_NAME` | B2 bucket name | `sigilweaver-downloads` |
-| `B2_ENDPOINT_URL` | B2 S3-compatible endpoint | `s3.us-east-005.backblazeb2.com` |
+| `B2_ENDPOINT_URL` | B2 S3-compatible endpoint for uploads | `s3.us-east-005.backblazeb2.com` |
+| `B2_CDN_URL` | Public CDN URL for downloads (optional) | `https://download.sigilweaver.app` |
 | `GITHUB_SHA` | Git commit SHA (optional) | `abc123def456...` |
+
+**Note:** If `B2_CDN_URL` is set, it will be used in manifests for public download URLs instead of the direct B2 endpoint. This allows using a CDN (e.g., Cloudflare) for bandwidth protection while uploading via the S3 API.
 
 ## B2 Bucket Layout
 
@@ -85,16 +88,21 @@ After upload, the bucket structure is:
 
 ```
 sigilweaver-downloads/
-├── latest/                                    # Latest stable release
-│   ├── Sigilweaver-Setup-{version}.exe
-│   ├── Sigilweaver-{version}-x64.AppImage
+├── latest/                                    # Latest stable release (generic names)
+│   ├── Sigilweaver-Setup.exe                  # No version in filename
+│   ├── Sigilweaver-Portable.exe
+│   ├── Sigilweaver-x64.AppImage
+│   ├── Sigilweaver-x64.snap
+│   ├── Sigilweaver-Client-Setup.exe
+│   ├── Sigilweaver-Client-x64.AppImage
+│   ├── Sigilweaver-Web.zip
 │   ├── SHA256SUMS.txt
 │   ├── downloads.json                         # Downloads page manifest
 │   └── stable/
 │       └── manifest.json                      # Stable channel manifest
 ├── releases/
 │   ├── index.json                             # All releases index
-│   ├── v0.2.5-alpha/
+│   ├── v0.2.5-alpha/                          # Versioned files (immutable)
 │   │   ├── Sigilweaver-Setup-v0.2.5-alpha.exe
 │   │   ├── manifest.json
 │   │   └── downloads.json

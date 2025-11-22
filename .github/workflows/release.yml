@@ -213,6 +213,7 @@ jobs:
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_ENDPOINT_URL: ${{ secrets.B2_ENDPOINT_URL }}
+          B2_CDN_URL: ${{ secrets.B2_CDN_URL }}
           GITHUB_SHA: ${{ github.sha }}
         shell: bash
         run: |
