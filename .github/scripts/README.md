@@ -226,6 +226,21 @@ Ensure all B2 credentials are set in GitHub Secrets and passed as `env:` in the 
 
 The script creates missing manifests automatically. This is normal for first-time uploads.
 
+### B2 Version Stacking
+
+B2 keeps old file versions by default when files are re-uploaded. The uploader now automatically deletes old versions before uploading to prevent this. If you have existing stacked versions:
+
+```bash
+# See what versions exist
+python3 .github/scripts/cleanup-b2-versions.py --dry-run
+
+# Clean up all old versions
+python3 .github/scripts/cleanup-b2-versions.py
+
+# Clean up only specific prefix
+python3 .github/scripts/cleanup-b2-versions.py --prefix latest/
+```
+
 ### Dry-run for debugging
 
 Always test with `--dry-run` first:

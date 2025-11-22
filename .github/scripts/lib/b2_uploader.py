@@ -148,6 +148,7 @@ class B2Uploader:
         
         Uploads to .staging/ first, then copies to final location.
         This ensures clients never see partial/corrupted manifests.
+        Deletes old versions to prevent B2 version stacking.
         
         Args:
             manifest_data: Manifest dictionary to serialize as JSON
@@ -161,6 +162,9 @@ class B2Uploader:
             print(f"[DRY-RUN] Upload manifest to {staging_key}")
             print(f"[DRY-RUN] Copy {staging_key} -> {key}")
             return
+        
+        # Delete old versions of final location first
+        self._delete_old_versions(key)
         
         # Upload to staging
         self.s3.put_object(
@@ -210,9 +214,45 @@ class B2Uploader:
                 return None
             raise
     
+    def _delete_old_versions(self, key: str):
+        """
+        Delete all versions of a file to prevent B2 version stacking.
+        B2 keeps old versions by default, which increases storage costs.
+        
+        Args:
+            key: S3 key to delete all versions of
+        """
+        if self.dry_run:
+            return
+        
+        try:
+            # List all versions of this object
+            response = self.s3.list_object_versions(
+                Bucket=self.bucket,
+                Prefix=key
+            )
+            
+            # Delete all versions (current and non-current)
+            for version_type in ['Versions', 'DeleteMarkers']:
+                if version_type in response:
+                    for obj in response[version_type]:
+                        if obj['Key'] == key:  # Exact match only
+                            self.s3.delete_object(
+                                Bucket=self.bucket,
+                                Key=key,
+                                VersionId=obj['VersionId']
+                            )
+        except ClientError as e:
+            # Ignore if object doesn't exist yet
+            if e.response['Error']['Code'] != 'NoSuchKey':
+                print(f"Warning: Could not delete old versions of {key}: {e}")
+    
     def _upload_file(self, local_path: Path, key: str, cache_control: str):
         """
         Upload a single file to B2.
+        
+        Deletes old versions first to prevent B2's version stacking,
+        which would increase storage costs.
         
         Args:
             local_path: Local file path
@@ -224,6 +264,9 @@ class B2Uploader:
             return
         
         print(f"Uploading {local_path.name} -> {key}")
+        
+        # Delete old versions first to prevent stacking
+        self._delete_old_versions(key)
         
         self.s3.upload_file(
             str(local_path),
