@@ -145,7 +145,7 @@ jobs:
         shell: bash
         run: |
           export NOW_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          python3 scripts/generate-downloads-manifest.py
+          python3 .github/scripts/generate-downloads-manifest.py
 
       - name: Validate release assets
         shell: bash
