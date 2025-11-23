@@ -179,6 +179,34 @@ Press `Ctrl+C` to stop all services.
 
 ## Other Helper Scripts
 
+### `b2.py`
+Manage B2 bucket: list contents and download files via CDN.
+
+**Usage**:
+```bash
+# List bucket contents
+./scripts/b2.py list [path]          # List specific path
+./scripts/b2.py list                 # List root
+./scripts/b2.py list latest/         # List /latest/
+./scripts/b2.py list -r              # Recursive list all files
+
+# Download files via CDN
+./scripts/b2.py download [path]      # Download specific path
+./scripts/b2.py download             # Download everything
+./scripts/b2.py download latest/     # Download /latest/ only
+./scripts/b2.py download --dry-run   # Show what would be downloaded
+```
+
+**Downloads to**: `.untracked/b2/sigilweaver-downloads/`
+
+**Features**:
+- Uses CDN URL for downloads (no B2 egress fees)
+- Uses S3 API for listing only
+- Skips files that already exist locally with same size
+- Shows download progress
+
+**Requires**: `.env` file with B2 credentials, `boto3` Python package.
+
 ### `../test-standalone.sh`
 Tests the built standalone package without rebuilding.
 

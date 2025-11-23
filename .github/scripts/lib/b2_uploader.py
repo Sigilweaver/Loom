@@ -12,6 +12,8 @@ from typing import Dict, Optional
 import boto3
 from botocore.exceptions import ClientError
 
+from .manifest_builder import strip_version_from_filename
+
 
 class B2Uploader:
     """Upload release assets to Backblaze B2."""
@@ -64,34 +66,6 @@ class B2Uploader:
             )
         )
     
-    def _strip_version_from_filename(self, filename: str) -> str:
-        """
-        Strip version string from filename for latest/ uploads.
-        
-        Examples:
-            Sigilweaver-Setup-v0.3.0-alpha.exe -> Sigilweaver-Setup.exe
-            Sigilweaver-v0.3.0-alpha-x64.AppImage -> Sigilweaver-x64.AppImage
-            Sigilweaver-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Client-x64.snap
-        """
-        import re
-        from pathlib import Path as FilePath
-        
-        # Split into name and extension
-        path = FilePath(filename)
-        name = path.stem
-        ext = path.suffix
-        
-        # Remove version pattern: -vX.Y.Z[-prerelease] from name
-        name_no_version = re.sub(
-            r'-v\d+\.\d+\.\d+(?:-[a-z][a-z0-9]*(?:\.[a-z0-9]+)*)?',
-            '',
-            name,
-            flags=re.IGNORECASE
-        )
-        
-        # Reconstruct with extension
-        return name_no_version + ext
-    
     def upload_assets(self, assets_dir: Path, version: str):
         """
         Upload release assets to both latest/ and releases/{version}/.
@@ -111,7 +85,7 @@ class B2Uploader:
                 continue
             
             # Upload to latest/ with version stripped from filename
-            generic_name = self._strip_version_from_filename(file.name)
+            generic_name = strip_version_from_filename(file.name)
             self._upload_file(
                 file,
                 f"latest/{generic_name}",
@@ -148,7 +122,8 @@ class B2Uploader:
         
         Uploads to .staging/ first, then copies to final location.
         This ensures clients never see partial/corrupted manifests.
-        Deletes old versions to prevent B2 version stacking.
+        
+        Note: B2 bucket lifecycle settings handle version cleanup automatically.
         
         Args:
             manifest_data: Manifest dictionary to serialize as JSON
@@ -162,9 +137,6 @@ class B2Uploader:
             print(f"[DRY-RUN] Upload manifest to {staging_key}")
             print(f"[DRY-RUN] Copy {staging_key} -> {key}")
             return
-        
-        # Delete old versions of final location first
-        self._delete_old_versions(key)
         
         # Upload to staging
         self.s3.put_object(
@@ -214,45 +186,11 @@ class B2Uploader:
                 return None
             raise
     
-    def _delete_old_versions(self, key: str):
-        """
-        Delete all versions of a file to prevent B2 version stacking.
-        B2 keeps old versions by default, which increases storage costs.
-        
-        Args:
-            key: S3 key to delete all versions of
-        """
-        if self.dry_run:
-            return
-        
-        try:
-            # List all versions of this object
-            response = self.s3.list_object_versions(
-                Bucket=self.bucket,
-                Prefix=key
-            )
-            
-            # Delete all versions (current and non-current)
-            for version_type in ['Versions', 'DeleteMarkers']:
-                if version_type in response:
-                    for obj in response[version_type]:
-                        if obj['Key'] == key:  # Exact match only
-                            self.s3.delete_object(
-                                Bucket=self.bucket,
-                                Key=key,
-                                VersionId=obj['VersionId']
-                            )
-        except ClientError as e:
-            # Ignore if object doesn't exist yet
-            if e.response['Error']['Code'] != 'NoSuchKey':
-                print(f"Warning: Could not delete old versions of {key}: {e}")
-    
     def _upload_file(self, local_path: Path, key: str, cache_control: str):
         """
         Upload a single file to B2.
         
-        Deletes old versions first to prevent B2's version stacking,
-        which would increase storage costs.
+        Note: B2 bucket lifecycle settings handle version cleanup automatically.
         
         Args:
             local_path: Local file path
@@ -264,9 +202,6 @@ class B2Uploader:
             return
         
         print(f"Uploading {local_path.name} -> {key}")
-        
-        # Delete old versions first to prevent stacking
-        self._delete_old_versions(key)
         
         self.s3.upload_file(
             str(local_path),

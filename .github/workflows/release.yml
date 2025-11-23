@@ -134,8 +134,7 @@ jobs:
         shell: bash
         run: |
           if compgen -G "release-assets/*" > /dev/null; then
-            (cd release-assets && sha256sum * > SHA256SUMS.txt)
-            echo "Generated SHA256SUMS.txt"
+            python3 .github/scripts/generate-checksums.py release-assets/
           fi
 
       - name: Generate downloads.json manifest

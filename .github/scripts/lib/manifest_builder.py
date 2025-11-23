@@ -6,11 +6,37 @@ Builds JSON manifests for stable channel and downloads page.
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from .asset_detector import detect_asset_type, is_variant
+
+
+def strip_version_from_filename(filename: str) -> str:
+    """
+    Strip version string from filename.
+    
+    Examples:
+        Sigilweaver-Setup-v0.3.0-alpha.exe -> Sigilweaver-Setup.exe
+        Sigilweaver-v0.3.0-alpha-x64.AppImage -> Sigilweaver-x64.AppImage
+        Sigilweaver-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Client-x64.snap
+    """
+    path = Path(filename)
+    name = path.stem
+    ext = path.suffix
+    
+    # Remove version pattern: -vX.Y.Z[-prerelease] from name
+    name_no_version = re.sub(
+        r'-v\d+\.\d+\.\d+(?:-[a-z][a-z0-9]*(?:\.[a-z0-9]+)*)?',
+        '',
+        name,
+        flags=re.IGNORECASE
+    )
+    
+    # Reconstruct with extension
+    return name_no_version + ext
 
 
 class ManifestBuilder:
@@ -124,13 +150,20 @@ class ManifestBuilder:
             for chunk in iter(lambda: f.read(8192), b''):
                 sha256_hash.update(chunk)
         
+        # For 'latest' paths, use generic filenames (no version)
+        # For versioned paths, keep the original filename
+        if path_prefix == 'latest':
+            url_filename = strip_version_from_filename(file.name)
+        else:
+            url_filename = file.name
+        
         return {
             'id': type_info['id'],
             'os': type_info['os'],
             'arch': 'x64',  # All our builds are x64 for now
             'kind': type_info['kind'],
-            'fileName': file.name,
-            'url': f"{self.base_url}/{path_prefix}/{file.name}",
+            'fileName': file.name,  # Keep original for reference
+            'url': f"{self.base_url}/{path_prefix}/{url_filename}",
             'size': file.stat().st_size,
             'sha256': sha256_hash.hexdigest()
         }

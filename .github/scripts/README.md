@@ -226,9 +226,11 @@ Ensure all B2 credentials are set in GitHub Secrets and passed as `env:` in the 
 
 The script creates missing manifests automatically. This is normal for first-time uploads.
 
-### B2 Version Stacking
+### B2 Version Management
 
-B2 keeps old file versions by default when files are re-uploaded. The uploader now automatically deletes old versions before uploading to prevent this. If you have existing stacked versions:
+The B2 bucket should be configured with "Keep only the last version of the file" in Lifecycle Settings. This ensures B2 automatically deletes old file versions when new ones are uploaded, preventing storage cost accumulation.
+
+If you need to clean up existing old versions:
 
 ```bash
 # See what versions exist

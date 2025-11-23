@@ -47,6 +47,10 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
       
+      - name: Set version from git tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python3 .github/scripts/set-version.py
+      
       - name: Install snapcraft (Linux only)
         if: matrix.platform == 'linux'
         run: |
