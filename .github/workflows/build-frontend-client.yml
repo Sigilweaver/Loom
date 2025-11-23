@@ -49,6 +49,7 @@ jobs:
       
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: .
         run: python3 .github/scripts/set-version.py
       
       - name: Install snapcraft (Linux only)
