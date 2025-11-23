@@ -112,7 +112,7 @@ function stopBackend(): void {
 }
 
 function createWindow(): void {
-  const windowTitle = `Sigilweaver - Version ${version} - EARLY DEVELOPMENT BUILD`;
+  const windowTitle = `Sigilweaver - Version ${version}`;
 
   // Icon path - different for dev vs production
   const iconPath = isDev
