@@ -20,6 +20,9 @@ interface WorkflowState {
   workflowMeta: WorkflowMeta;
   selectedTool: Tool | null;
 
+  // Internal helper for dirty state tracking
+  _markDirty: () => void;
+
   // Legacy actions (kept for backward compatibility during migration)
   setEdges: (edges: Edge[]) => void;
   setSelectedTool: (tool: Tool | null) => void;
@@ -122,6 +125,17 @@ export const useWorkflowStore = create<WorkflowState>()(
       workflowMeta: createDefaultMeta(),
       selectedTool: null,
 
+      // Internal helper to mark active tab as dirty
+      _markDirty: () => {
+        // Dynamically import to avoid circular dependency
+        import("./tabStore").then(({ useTabStore }) => {
+          const activeTabId = useTabStore.getState().activeTabId;
+          if (activeTabId) {
+            useTabStore.getState().markTabDirty(activeTabId);
+          }
+        });
+      },
+
       // Legacy actions (kept for backward compatibility)
       setEdges: (edges) =>
         set((state) => {
@@ -147,6 +161,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         set((state) => {
           state.tools.push(tool);
           get().syncEdges();
+          get()._markDirty();
         }),
 
       removeTool: (toolId) =>
@@ -159,6 +174,7 @@ export const useWorkflowStore = create<WorkflowState>()(
             state.selectedTool = null;
           }
           get().syncEdges();
+          get()._markDirty();
         }),
 
       updateTool: (toolId, updates) =>
@@ -184,6 +200,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           if (tool) {
             tool.config = config;
           }
+          get()._markDirty();
         }),
 
       batchUpdateToolPositions: (updates) =>
@@ -209,6 +226,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.wires.push(wire);
         });
         get().syncEdges();
+        get()._markDirty();
         return { success: true };
       },
 
@@ -225,6 +243,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           );
         });
         get().syncEdges();
+        get()._markDirty();
       },
 
       removeWiresByTool: (toolId) => {
@@ -243,12 +262,14 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.wires.push(...wires);
         });
         get().syncEdges();
+        get()._markDirty();
       },
 
       // NEW: Metadata operations
       updateWorkflowMeta: (meta) =>
         set((state) => {
           Object.assign(state.workflowMeta, meta);
+          get()._markDirty();
         }),
 
       // NEW: Lifecycle operations

@@ -37,16 +37,40 @@ if [ ! -d "frontend/node_modules" ]; then
     exit 1
 fi
 
+# Store PIDs for cleanup
+BACKEND_PID=""
+FRONTEND_PID=""
+
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${YELLOW}Shutting down services...${NC}"
-    kill 0  # Kill all processes in the current process group
-    wait
+    
+    # Kill backend if running
+    if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo -e "${YELLOW}Stopping backend (PID: $BACKEND_PID)...${NC}"
+        kill "$BACKEND_PID" 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        kill -9 "$BACKEND_PID" 2>/dev/null || true
+    fi
+    
+    # Kill frontend if running
+    if [ -n "$FRONTEND_PID" ] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+        echo -e "${YELLOW}Stopping frontend (PID: $FRONTEND_PID)...${NC}"
+        kill "$FRONTEND_PID" 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        kill -9 "$FRONTEND_PID" 2>/dev/null || true
+    fi
+    
+    # Also kill any remaining uvicorn/vite processes on our ports
+    pkill -f "uvicorn app.main:app" 2>/dev/null || true
+    
     echo -e "${GREEN}All services stopped${NC}"
 }
 
 # Trap SIGINT (Ctrl+C) and SIGTERM
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup SIGINT SIGTERM
 
 # Start backend in background
 echo -e "${GREEN}Starting Python backend...${NC}"
@@ -95,5 +119,5 @@ echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""
 
-# Wait for all background processes
-wait
+# Wait for background processes or until interrupted
+wait $BACKEND_PID $FRONTEND_PID 2>/dev/null || cleanup

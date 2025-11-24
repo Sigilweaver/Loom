@@ -2,6 +2,7 @@ import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
 import { useWorkflowExecute } from "../api/hooks";
 import SigilWeaverLogo from "./SigilWeaverLogo";
@@ -17,6 +18,14 @@ export default function Header() {
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
 
   const pushState = useHistoryStore((s) => s.pushState);
+
+  // Tab store
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const getTabById = useTabStore((s) => s.getTabById);
+  const createTab = useTabStore((s) => s.createTab);
+  const setTabFilePath = useTabStore((s) => s.setTabFilePath);
+  const markTabClean = useTabStore((s) => s.markTabClean);
+  const renameTab = useTabStore((s) => s.renameTab);
 
   const showNotification = useUIStore((s) => s.showNotification);
   const setWorkflowViewerVisible = useUIStore(
@@ -37,12 +46,8 @@ export default function Header() {
   const { execute } = useWorkflowExecute();
 
   const handleNewWorkflow = () => {
-    // Save current state before clearing
-    pushState(tools, wires, workflowMeta);
-
-    // Clear workflow
-    newWorkflow();
-    setSelectedTool(null);
+    // Create a new tab instead of clearing current one
+    createTab("Untitled Workflow");
   };
 
   const handleImportWorkflow = async () => {
@@ -62,9 +67,6 @@ export default function Header() {
         // Read file content via IPC
         const content = await window.electronAPI.readFile(filePath);
 
-        // Save current state before import
-        pushState(tools, wires, workflowMeta);
-
         // Parse JSON workflow file
         const {
           tools: importedTools,
@@ -72,8 +74,19 @@ export default function Header() {
           meta,
         } = WorkflowSerializer.fromJSON(content);
 
-        // Load into store
-        loadWorkflow(importedTools, importedWires, meta);
+        // Create new tab with loaded workflow
+        const newTabId = createTab(meta.name, {
+          tools: importedTools,
+          wires: importedWires,
+          workflowMeta: meta,
+        });
+
+        // Set file path and mark clean (just loaded from disk)
+        if (newTabId) {
+          setTabFilePath(newTabId, filePath);
+          markTabClean(newTabId);
+        }
+
         setSelectedTool(null);
 
         showNotification(
@@ -101,9 +114,6 @@ export default function Header() {
           try {
             const content = e.target?.result as string;
 
-            // Save current state before import
-            pushState(tools, wires, workflowMeta);
-
             // Parse JSON workflow file
             const {
               tools: importedTools,
@@ -111,8 +121,13 @@ export default function Header() {
               meta,
             } = WorkflowSerializer.fromJSON(content);
 
-            // Load into store
-            loadWorkflow(importedTools, importedWires, meta);
+            // Create new tab with loaded workflow
+            createTab(meta.name, {
+              tools: importedTools,
+              wires: importedWires,
+              workflowMeta: meta,
+            });
+
             setSelectedTool(null);
 
             showNotification(
@@ -130,6 +145,98 @@ export default function Header() {
         reader.readAsText(file);
       };
       input.click();
+    }
+  };
+
+  const handleSaveWorkflow = async () => {
+    if (!activeTabId) return;
+
+    const activeTab = getTabById(activeTabId);
+    
+    // If tab already has a file path, save to that file
+    if (activeTab?.filePath) {
+      try {
+        const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+
+        if (window.electronAPI?.saveFile) {
+          await window.electronAPI.saveFile(json, activeTab.filePath);
+          markTabClean(activeTabId);
+          showNotification("Workflow saved successfully!", "success");
+        } else {
+          // Fallback: trigger Save As
+          handleSaveAsWorkflow();
+        }
+      } catch (error) {
+        console.error("Save error:", error);
+        showNotification("Failed to save workflow", "error");
+      }
+    } else {
+      // No file path yet, trigger Save As
+      handleSaveAsWorkflow();
+    }
+  };
+
+  const handleSaveAsWorkflow = async () => {
+    if (!activeTabId) return;
+
+    try {
+      const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+
+      // Build filesystem-safe filename
+      const buildSafeName = (name: string) => {
+        const base = name || "Workflow";
+        const withoutControls = Array.from(base)
+          .map((ch) => {
+            const cp = ch.codePointAt(0) ?? 0;
+            return cp >= 0x20 ? ch : "_";
+          })
+          .join("");
+        let safe = withoutControls.replace(/[<>:"/\\|?*]/g, "_");
+        safe = safe
+          .replace(/\s+/g, " ")
+          .replace(/\s*_\s*/g, "_")
+          .trim();
+        if (!safe || /^\.+$/.test(safe)) safe = "workflow";
+        if (safe.length > 120) safe = safe.slice(0, 120).trim();
+        return safe;
+      };
+
+      const baseName = buildSafeName(workflowMeta.name);
+
+      // Use Electron's native save dialog if available
+      if (window.electronAPI?.showSaveDialog && window.electronAPI?.saveFile) {
+        const filePath = await window.electronAPI.showSaveDialog({
+          defaultPath: `${baseName}.swwf`,
+          filters: [
+            { name: "Workflow Files", extensions: ["swwf"] },
+            { name: "All Files", extensions: ["*"] },
+          ],
+        });
+
+        if (filePath) {
+          await window.electronAPI.saveFile(json, filePath);
+          setTabFilePath(activeTabId, filePath);
+          markTabClean(activeTabId);
+          showNotification("Workflow saved successfully!", "success");
+        }
+      } else {
+        // Fallback for web browser
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${baseName}.swwf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showNotification("Workflow saved successfully!", "success");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      showNotification("Failed to save workflow", "error");
     }
   };
 
@@ -318,9 +425,33 @@ export default function Header() {
                 hover:bg-theme-header-btn-import-bg-hover hover:border-theme-header-btn-import-border-hover hover:text-theme-header-btn-import-text-hover
                 active:bg-theme-header-btn-import-bg-active active:border-theme-header-btn-import-border-active active:text-theme-header-btn-import-text-active
                 disabled:bg-theme-header-btn-import-bg-disabled disabled:border-theme-header-btn-import-border-disabled disabled:text-theme-header-btn-import-text-disabled"
-              title="Import Workflow (Ctrl+I)"
+              title="Open Workflow (Ctrl+O)"
             >
-              Import
+              Open
+            </button>
+
+            <button
+              onClick={handleSaveWorkflow}
+              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
+                bg-theme-header-btn-export-bg border border-theme-header-btn-export-border text-theme-header-btn-export-text
+                hover:bg-theme-header-btn-export-bg-hover hover:border-theme-header-btn-export-border-hover hover:text-theme-header-btn-export-text-hover
+                active:bg-theme-header-btn-export-bg-active active:border-theme-header-btn-export-border-active active:text-theme-header-btn-export-text-active
+                disabled:bg-theme-header-btn-export-bg-disabled disabled:border-theme-header-btn-export-border-disabled disabled:text-theme-header-btn-export-text-disabled"
+              title="Save Workflow (Ctrl+S)"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={handleSaveAsWorkflow}
+              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
+                bg-theme-header-btn-export-bg border border-theme-header-btn-export-border text-theme-header-btn-export-text
+                hover:bg-theme-header-btn-export-bg-hover hover:border-theme-header-btn-export-border-hover hover:text-theme-header-btn-export-text-hover
+                active:bg-theme-header-btn-export-bg-active active:border-theme-header-btn-export-border-active active:text-theme-header-btn-export-text-active
+                disabled:bg-theme-header-btn-export-bg-disabled disabled:border-theme-header-btn-export-border-disabled disabled:text-theme-header-btn-export-text-disabled"
+              title="Save Workflow As... (Ctrl+Shift+S)"
+            >
+              Save As
             </button>
 
             <button
@@ -330,7 +461,7 @@ export default function Header() {
                 hover:bg-theme-header-btn-export-bg-hover hover:border-theme-header-btn-export-border-hover hover:text-theme-header-btn-export-text-hover
                 active:bg-theme-header-btn-export-bg-active active:border-theme-header-btn-export-border-active active:text-theme-header-btn-export-text-active
                 disabled:bg-theme-header-btn-export-bg-disabled disabled:border-theme-header-btn-export-border-disabled disabled:text-theme-header-btn-export-text-disabled"
-              title="Export Workflow (Ctrl+E)"
+              title="Export Workflow Copy (Ctrl+E)"
             >
               Export
             </button>
