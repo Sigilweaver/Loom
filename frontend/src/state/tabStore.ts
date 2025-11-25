@@ -27,6 +27,7 @@ import { devtools } from "zustand/middleware";
 import { createLogger } from "@utils/logger";
 import { useWorkflowStore } from "./workflowStore";
 import { useHistoryStore, type WorkflowSnapshot as HistoryWorkflowSnapshot } from "./historyStore";
+import { useSettingsStore } from "./settingsStore";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -103,13 +104,18 @@ interface TabState {
 /**
  * Create default workflow metadata
  */
-const createDefaultMeta = (name: string): WorkflowMeta => ({
-  name,
-  description: "A new workflow",
-  author: "SigilWeaver",
-  workflowId: uuidv4(),
-  created: new Date().toISOString(),
-});
+const createDefaultMeta = (name: string): WorkflowMeta => {
+  // Get author from settings store
+  const author = useSettingsStore.getState().author || 'User';
+  
+  return {
+    name,
+    description: "A new workflow",
+    author,
+    workflowId: uuidv4(),
+    created: new Date().toISOString(),
+  };
+};
 
 /**
  * Create default workflow snapshot

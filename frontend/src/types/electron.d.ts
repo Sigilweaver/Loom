@@ -1,3 +1,5 @@
+import type { AppSettings } from './settings';
+
 interface ElectronFileFilter {
   name: string;
   extensions: string[];
@@ -28,6 +30,8 @@ declare global {
       readFile: (filePath: string) => Promise<string>
       showSaveDialog: (options?: ElectronSaveDialogOptions) => Promise<string | null>
       showOpenDialog: (options?: ElectronOpenDialogOptions) => Promise<string | null>
+      getSettings: () => Promise<AppSettings>
+      setSettings: (settings: AppSettings) => Promise<void>
     }
   }
 }

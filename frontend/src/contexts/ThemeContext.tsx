@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { availableThemes, getThemeById, sigilweaverTheme } from "../themes";
 import { Theme, ThemeContextType } from "../types/theme";
+import { useSettingsStore } from "../state/settingsStore";
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -746,26 +747,19 @@ const applyThemeVariables = (theme: Theme) => {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState<Theme>(sigilweaverTheme);
+  const settingsThemeId = useSettingsStore((s) => s.theme.id);
+  const updateSettingsTheme = useSettingsStore((s) => s.updateTheme);
 
-  // Load theme from localStorage on mount (default: sigilweaverTheme)
+  // Load theme from settings store on mount and when settings change
   useEffect(() => {
-    const savedThemeId = localStorage.getItem("sigilweaver-theme");
-    if (savedThemeId) {
-      const theme = getThemeById(savedThemeId);
-      setCurrentTheme(theme);
-      applyThemeVariables(theme);
-    } else {
-      // First time - set sigilweaver as default and save it
-      applyThemeVariables(sigilweaverTheme);
-      localStorage.setItem("sigilweaver-theme", "sigilweaver");
-    }
-  }, []);
-
-  const setTheme = (themeId: string) => {
-    const theme = getThemeById(themeId);
+    const theme = getThemeById(settingsThemeId);
     setCurrentTheme(theme);
     applyThemeVariables(theme);
-    localStorage.setItem("sigilweaver-theme", themeId);
+  }, [settingsThemeId]);
+
+  const setTheme = (themeId: string) => {
+    // Update settings store - this will trigger the useEffect above
+    updateSettingsTheme(themeId);
   };
 
   const contextValue: ThemeContextType = {

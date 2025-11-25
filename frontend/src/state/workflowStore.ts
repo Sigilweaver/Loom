@@ -12,6 +12,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { createLogger } from "@utils/logger";
+import { useSettingsStore } from "./settingsStore";
 
 interface WorkflowState {
   // State
@@ -64,13 +65,24 @@ interface WorkflowState {
   syncEdges: () => void;
 }
 
-const createDefaultMeta = (): WorkflowMeta => ({
-  name: "New Workflow",
-  description: "A new workflow",
-  author: "SigilWeaver",
-  workflowId: uuidv4(),
-  created: new Date().toISOString(),
-});
+const createDefaultMeta = (): WorkflowMeta => {
+  // Use persistent author from settings store if available
+  const getAuthor = () => {
+    try {
+      return useSettingsStore.getState().author || 'User';
+    } catch {
+      return 'User';
+    }
+  };
+
+  return {
+    name: "New Workflow",
+    description: "A new workflow",
+    author: getAuthor(),
+    workflowId: uuidv4(),
+    created: new Date().toISOString(),
+  };
+};
 
 // Helper to create edge from wire
 const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {

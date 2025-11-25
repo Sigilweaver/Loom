@@ -15,5 +15,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showOpenDialog: async (options?: any) => {
     return ipcRenderer.invoke('show-open-dialog', options)
+  },
+  getSettings: async () => {
+    return ipcRenderer.invoke('get-settings')
+  },
+  setSettings: async (settings: any) => {
+    return ipcRenderer.invoke('set-settings', settings)
   }
 })

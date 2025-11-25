@@ -2,8 +2,9 @@ import { useHistoryStore } from "@state/historyStore";
 import { startNotificationAutoHide, useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
+import { useSettingsStore } from "@state/settingsStore";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import ConfigurationPanel from "./components/ConfigurationPanel";
 import Header from "./components/Header";
@@ -12,9 +13,12 @@ import ToolPalette from "./components/ToolPalette";
 import WorkflowViewer from "./components/WorkflowViewer";
 import BottomPane from "./components/BottomPane";
 import TabBar from "./components/TabBar";
+import SettingsDialog from "./components/SettingsDialog";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
+  const loadSettings = useSettingsStore(s => s.loadSettings);
+  const [showSettings, setShowSettings] = useState(false);
   // Zustand stores - primary state
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
@@ -36,13 +40,35 @@ function App() {
   const showNotification = useUIStore((s) => s.showNotification);
   const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
 
-  // Initialize first tab on mount
+  // Load settings on mount and sync with uiStore, then create initial tab
   useEffect(() => {
-    const tabs = useTabStore.getState().tabs;
-    if (tabs.length === 0) {
-      createTab("Untitled Workflow");
-    }
-  }, [createTab]); // Only run once on mount
+    const initSettings = async () => {
+      await loadSettings();
+      
+      // Sync settings with uiStore on load
+      const settings = useSettingsStore.getState();
+      const { snapToGrid, minimapVisible, minimapPosition } = useUIStore.getState();
+      
+      // Only toggle if different to avoid unnecessary updates
+      if (settings.ui.snapToGrid !== snapToGrid) {
+        useUIStore.getState().toggleSnapToGrid();
+      }
+      if (settings.ui.minimapVisible !== minimapVisible) {
+        useUIStore.getState().toggleMinimap();
+      }
+      if (settings.ui.minimapPosition !== minimapPosition) {
+        useUIStore.getState().setMinimapPosition(settings.ui.minimapPosition);
+      }
+      
+      // Create initial tab AFTER settings are loaded
+      const tabs = useTabStore.getState().tabs;
+      if (tabs.length === 0) {
+        createTab("Untitled Workflow");
+      }
+    };
+    
+    initSettings();
+  }, [loadSettings, createTab]);
 
   // Save current tab before unload
   useEffect(() => {
@@ -177,7 +203,9 @@ function App() {
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen bg-theme-surface-page">
-        <Header />
+        <Header 
+          onShowSettings={() => setShowSettings(true)}
+        />
 
         <ToolPalette />
 
@@ -207,6 +235,8 @@ function App() {
 
         {/* Notification System - uses uiStore internally */}
         <Notification />
+        
+        <SettingsDialog isOpen={showSettings} onClose={() => setShowSettings(false)} />
       </div>
     </ThemeProvider>
   );

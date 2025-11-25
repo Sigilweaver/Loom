@@ -4,11 +4,32 @@ import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { userInfo } from "node:os";
+import Store from "electron-store";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const isDev =
   process.env.IS_DEV === "true" || process.env.NODE_ENV === "development";
+
+// Settings store with base defaults
+const DEFAULT_SETTINGS = {
+  author: 'User',
+  backend: { url: 'http://localhost:8000', autoStart: true },
+  theme: { id: 'sigilweaver' },
+  ui: { snapToGrid: true, minimapVisible: true, minimapPosition: 'bottom-right' as const },
+};
+
+// Get system username for default author (only used if no settings exist)
+const getSystemUsername = (): string => {
+  try {
+    return userInfo().username || 'User';
+  } catch {
+    return 'User';
+  }
+};
+
+const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'sigilweaver-settings' });
 
 // Backend process management
 let backendProcess: ChildProcess | null = null;
@@ -302,6 +323,23 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   stopBackend();
+});
+
+// Settings IPC handlers
+ipcMain.handle('get-settings', async () => {
+  const settings = store.get('settings', DEFAULT_SETTINGS);
+  
+  // If author is still a default value, use OS username instead
+  // This gives us the hierarchy: persisted custom value > OS username > 'User'
+  if (settings.author === 'User' || settings.author === 'SigilWeaver User') {
+    return { ...settings, author: getSystemUsername() };
+  }
+  
+  return settings;
+});
+
+ipcMain.handle('set-settings', async (_event, settings) => {
+  store.set('settings', settings);
 });
 
 // IPC handlers

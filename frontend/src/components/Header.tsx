@@ -5,9 +5,12 @@ import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
 import { useWorkflowExecute } from "../api/hooks";
 import SigilWeaverLogo from "./SigilWeaverLogo";
-import { ThemeSelector } from "./ThemeSelector";
 
-export default function Header() {
+interface HeaderProps {
+  onShowSettings: () => void;
+}
+
+export default function Header({ onShowSettings }: HeaderProps) {
   // Access stores directly
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
@@ -398,7 +401,18 @@ export default function Header() {
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2">
-            <ThemeSelector className="mr-2" />
+            <button
+              onClick={onShowSettings}
+              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
+                bg-theme-header-btn-new-bg border border-theme-header-btn-new-border text-theme-header-btn-new-text
+                hover:bg-theme-header-btn-new-bg-hover hover:border-theme-header-btn-new-border-hover hover:text-theme-header-btn-new-text-hover
+                active:bg-theme-header-btn-new-bg-active active:border-theme-header-btn-new-border-active active:text-theme-header-btn-new-text-active"
+              title="Settings"
+            >
+              Settings
+            </button>
+
+            <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
 
             <button
               onClick={handleNewWorkflow}
