@@ -5,7 +5,6 @@ import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
-import { useSocketPreview } from "../../hooks/useSocketPreview";
 import {
   alignHorizontally as doAlignH,
   alignVertically as doAlignV,
@@ -77,8 +76,6 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const setPreviewState = useUIStore((s) => s.setPreviewState);
   const activeTabId = useTabStore((s) => s.activeTabId);
   const markTabDirty = useTabStore((s) => s.markTabDirty);
-  
-  const { previewSocket } = useSocketPreview();
 
   // Handler functions (replace props with direct store calls)
   const handleAddTool = useCallback(
@@ -321,16 +318,10 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       const tool = tools.find((t) => t.id === n.id);
       if (tool) {
         handleToolSelect(tool);
-        
-        // Preview first output socket of the selected tool
-        const definition = getToolDefinition(tool.type);
-        const firstOutputSocket = definition?.sockets.find(s => s.direction === 'output');
-        if (firstOutputSocket) {
-          previewSocket(tool.id, firstOutputSocket.id, 'output');
-        }
+        // Note: Preview only happens when clicking sockets, not the node itself
       }
     },
-    [tools, handleToolSelect, previewSocket]
+    [tools, handleToolSelect]
   );
   const onNodeContextMenu = useCallback(
     (e: MouseEvent | React.MouseEvent, n: Node) => {
