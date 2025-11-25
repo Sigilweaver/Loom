@@ -20,7 +20,6 @@ function App() {
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
 
   // Tab store
-  const tabs = useTabStore((s) => s.tabs);
   const createTab = useTabStore((s) => s.createTab);
   const saveCurrentTab = useTabStore((s) => s.saveCurrentTab);
 
@@ -43,8 +42,7 @@ function App() {
     if (tabs.length === 0) {
       createTab("Untitled Workflow");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [createTab]); // Only run once on mount
 
   // Save current tab before unload
   useEffect(() => {
@@ -165,7 +163,10 @@ function App() {
           nextIndex = (currentIndex + 1) % currentTabs.length;
         }
 
-        switchTab(currentTabs[nextIndex].id);
+        const nextTab = currentTabs[nextIndex];
+        if (nextTab) {
+          switchTab(nextTab.id);
+        }
       }
     };
 

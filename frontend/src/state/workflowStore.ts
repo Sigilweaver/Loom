@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { createLogger } from "@utils/logger";
 
 interface WorkflowState {
   // State
@@ -114,6 +115,8 @@ const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {
     animated: wouldLoop,
   };
 };
+
+const logger = createLogger('WorkflowStore');
 
 export const useWorkflowStore = create<WorkflowState>()(
   devtools(
@@ -264,6 +267,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       // NEW: Metadata operations
       updateWorkflowMeta: (meta) =>
         set((state) => {
+          logger.debug("Updating workflow metadata:", meta.name || '(name unchanged)');
           Object.assign(state.workflowMeta, meta);
           get()._markDirty();
         }),
@@ -279,6 +283,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         }),
 
       loadWorkflow: (tools, wires, meta) => {
+        logger.info("Loading workflow:", meta.name, `(${tools.length} tools, ${wires.length} wires)`);
         set((state) => {
           state.tools = tools;
           state.wires = wires;

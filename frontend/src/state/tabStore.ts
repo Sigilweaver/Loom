@@ -24,6 +24,7 @@ import {
 } from "@domain/workflow/entities/workflow";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { createLogger } from "@utils/logger";
 import { useWorkflowStore } from "./workflowStore";
 import { useHistoryStore, type WorkflowSnapshot as HistoryWorkflowSnapshot } from "./historyStore";
 import { v4 as uuidv4 } from "uuid";
@@ -134,6 +135,8 @@ function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
+const logger = createLogger('TabStore');
+
 /**
  * Tab store - manages multiple workflow tabs
  *
@@ -171,6 +174,8 @@ export const useTabStore = create<TabState>()(
         
         // Use workflow meta name if provided, otherwise use passed name or default
         const tabName = workflow?.workflowMeta.name || name || "Untitled Workflow";
+
+        logger.info("Creating new tab:", tabName);
 
         // Save current tab state before creating new one
         const currentTabId = get().activeTabId;
@@ -219,8 +224,11 @@ export const useTabStore = create<TabState>()(
         const tab = get().getTabById(tabId);
 
         if (!tab) {
+          logger.warn("Attempted to close non-existent tab:", tabId);
           return false;
         }
+
+        logger.info("Closing tab:", tab.name);
 
         // Check for unsaved changes
         if (tab.isDirty) {
@@ -277,9 +285,11 @@ export const useTabStore = create<TabState>()(
         // Check if tab exists
         const targetTab = tabs.find((t) => t.id === tabId);
         if (!targetTab) {
-          console.warn(`Tab ${tabId} not found`);
+          logger.warn("Tab not found:", tabId);
           return;
         }
+
+        logger.info("Switching to tab:", targetTab.name);
 
         // No-op if already active
         if (tabId === activeTabId) {

@@ -14,6 +14,7 @@ import {
   type PositionUpdate,
 } from "@utils/alignDistribute";
 import { generateUniqueId } from "@utils/id";
+import { createLogger } from "@utils/logger";
 import { calculateMenuPosition } from "@utils/menuPositioning";
 import {
   useEdgesState,
@@ -53,6 +54,7 @@ export interface CanvasRef {
 }
 
 const nodeTypes = { workflow: WorkflowNode };
+const logger = createLogger('CanvasShell');
 
 export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
@@ -81,7 +83,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   // Handler functions (replace props with direct store calls)
   const handleAddTool = useCallback(
     (type: string, x: number, y: number, idOverride?: string) => {
-      console.log("[CanvasShell] Adding tool:", type, "at", x, y);
+      logger.debug("Adding tool:", type, "at", x, y);
 
       // Build tool object
       const newTool: Tool = {
@@ -106,7 +108,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   const handleRemoveTool = useCallback(
     (id: string) => {
-      console.log("[CanvasShell] Removing tool:", id);
+      logger.debug("Removing tool:", id);
       pushState(tools, wires, workflowMeta);
       removeTool(id);
       
@@ -121,7 +123,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const handleToolMove = useCallback(
     (id: string, x: number, y: number) => {
       // Note: No snapshot for moves - too frequent. Snapshot saved on drag end.
-      console.log("[CanvasShell] Moving tool:", id, "to", x, y);
+      logger.debug("Moving tool:", id, "to", x, y);
       updateTool(id, { x, y });
     },
     [updateTool]
@@ -132,7 +134,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       from: { tool: string; socket: number },
       to: { tool: string; socket: number }
     ) => {
-      console.log("[CanvasShell] Adding wire:", from, "->", to);
+      logger.debug("Adding wire:", from, "->", to);
       const wire: Wire = { from, to };
       pushState(tools, wires, workflowMeta);
       addWire(wire);
@@ -147,7 +149,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   const handleRemoveWire = useCallback(
     (id: string) => {
-      console.log("[CanvasShell] Removing wire:", id);
+      logger.debug("Removing wire:", id);
       // Parse wire ID to extract from/to info
       // Format: "encodeURIComponent(from.tool)_from.socket_encodeURIComponent(to.tool)_to.socket"
       const parts = id.split("_");
@@ -168,7 +170,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
           markTabDirty(activeTabId);
         }
       } else {
-        console.warn("[CanvasShell] Invalid wire ID format:", id);
+        logger.warn("Invalid wire ID format:", id);
       }
     },
     [removeWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
@@ -182,8 +184,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         to: { tool: string; socket: number };
       }[]
     ) => {
-      console.log(
-        "[CanvasShell] Batch adding:",
+      logger.debug(
+        "Batch adding:",
         toolAdds.length,
         "tools,",
         wiresToAdd.length,
@@ -217,18 +219,18 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   );
 
   const handleBeginTransaction = useCallback(() => {
-    console.log("[CanvasShell] Begin transaction (drag start)");
+    logger.debug("Begin transaction (drag start)");
     // Optional: Could set a flag here if needed for transaction tracking
   }, []);
 
   const handleCommitTransaction = useCallback(() => {
-    console.log("[CanvasShell] Commit transaction (drag end)");
+    logger.debug("Commit transaction (drag end)");
     pushState(tools, wires, workflowMeta);
   }, [pushState, tools, wires, workflowMeta]);
 
   const handleToolSelect = useCallback(
     (tool: Tool | null) => {
-      console.log("[CanvasShell] Tool selected:", tool?.id || "none");
+      logger.debug("Tool selected:", tool?.id || "none");
       setSelectedTool(tool);
     },
     [setSelectedTool]

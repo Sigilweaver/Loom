@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { createLogger } from '@utils/logger';
+
+const logger = createLogger('WorkflowConfiguration');
 
 interface WorkflowConfigurationProps {
   workflowMeta: {
@@ -24,6 +27,7 @@ export default function WorkflowConfiguration({
   const [previewMode, setPreviewMode] = useState(true); // Default to preview mode
 
   const handleFieldChange = (field: 'name' | 'description' | 'author', value: string) => {
+    logger.debug("Field changed:", field, value.length > 50 ? `${value.substring(0, 50)}...` : value);
     onWorkflowMetaChange({
       ...workflowMeta,
       [field]: value

@@ -1,6 +1,7 @@
 import type { Tool, Wire } from "@domain/workflow/entities/workflow";
 import { useClipboardStore } from "@state/clipboardStore";
 import { generateUniqueId } from "@utils/id";
+import { createLogger } from "@utils/logger";
 import type { Node } from "@xyflow/react";
 import { useCallback, useRef } from "react";
 
@@ -40,6 +41,7 @@ export function useCanvasClipboard({
   setNodes,
   onToolSelect,
 }: ClipboardDeps) {
+  const logger = createLogger('Clipboard');
   const latestToolsRef = useRef<Tool[]>(tools);
   const lastMouseFlowPosRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -53,18 +55,18 @@ export function useCanvasClipboard({
   }, []);
 
   const doCopy = useCallback(() => {
-    console.log("[COPY] Starting copy operation");
+    logger.debug("Starting copy operation");
     const selectedIds = getSelectedIds();
-    console.log("[COPY] Selected IDs:", Array.from(selectedIds));
+    logger.debug("Selected IDs:", Array.from(selectedIds));
 
     if (selectedIds.size === 0) {
-      console.log("[COPY] No tools selected");
+      logger.debug("No tools selected");
       return;
     }
 
     const ids = tools.filter((t) => selectedIds.has(t.id)).map((t) => t.id);
     if (ids.length === 0) {
-      console.log("[COPY] No matching tools found");
+      logger.debug("No matching tools found");
       return;
     }
 
@@ -88,11 +90,11 @@ export function useCanvasClipboard({
     );
 
     const clipboardData = { tools: toolSnaps, wires: innerWires, minX, minY };
-    console.log("[COPY] Clipboard data prepared:", clipboardData);
+    logger.debug("Clipboard data prepared:", clipboardData);
 
     // Update store directly using getState
     useClipboardStore.getState().setClipboard(clipboardData);
-    console.log("[COPY] Clipboard updated in store");
+    logger.debug("Clipboard updated in store");
   }, [getSelectedIds, tools, wires]);
 
   const doCut = useCallback(() => {
@@ -113,13 +115,13 @@ export function useCanvasClipboard({
   }, [getSelectedIds, onRemoveTool, setNodes, onToolSelect]);
 
   const doPaste = useCallback(() => {
-    console.log("[PASTE] Starting paste operation");
+    logger.debug("Starting paste operation");
 
     const cb = useClipboardStore.getState().clipboard;
-    console.log("[PASTE] Clipboard contents:", cb);
+    logger.debug("Clipboard contents:", cb);
 
     if (!cb) {
-      console.log("[PASTE] No clipboard data available");
+      logger.debug("No clipboard data available");
       return;
     }
 
@@ -168,18 +170,18 @@ export function useCanvasClipboard({
       }
     );
 
-    console.log(
-      "[PASTE] About to add tools:",
+    logger.debug(
+      "About to add tools:",
       toolAdds.length,
       "wires:",
       remappedWires.length
     );
 
     if (typeof onBatchAdd === "function") {
-      console.log("[PASTE] Using onBatchAdd");
+      logger.debug("Using onBatchAdd");
       onBatchAdd(toolAdds, remappedWires);
     } else {
-      console.log("[PASTE] Using individual onAddTool");
+      logger.debug("Using individual onAddTool");
       toolAdds.forEach((t) => onAddTool(t.type, t.x, t.y, t.id));
 
       const addWiresWhenReady = (retries = 0) => {

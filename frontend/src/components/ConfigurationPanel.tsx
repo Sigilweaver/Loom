@@ -5,6 +5,7 @@ import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
+import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
@@ -17,6 +18,8 @@ import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
+
+const logger = createLogger('ConfigurationPanel');
 
 export default function ConfigurationPanel() {
   // Access stores directly
@@ -39,6 +42,7 @@ export default function ConfigurationPanel() {
     description: string;
     author: string;
   }) => {
+    logger.info("Workflow metadata updated:", meta.name);
     // Save current state before change
     pushState(tools, wires, workflowMeta);
 
@@ -52,6 +56,7 @@ export default function ConfigurationPanel() {
   };
 
   const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
+    logger.debug("Tool configuration updated:", toolId);
     // Save current state before change
     pushState(tools, wires, workflowMeta);
 

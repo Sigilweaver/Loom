@@ -1,5 +1,4 @@
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
-import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
@@ -14,10 +13,6 @@ export default function Header() {
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
-  const newWorkflow = useWorkflowStore((s) => s.newWorkflow);
-  const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
-
-  const pushState = useHistoryStore((s) => s.pushState);
 
   // Tab store
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -25,7 +20,6 @@ export default function Header() {
   const createTab = useTabStore((s) => s.createTab);
   const setTabFilePath = useTabStore((s) => s.setTabFilePath);
   const markTabClean = useTabStore((s) => s.markTabClean);
-  const renameTab = useTabStore((s) => s.renameTab);
 
   const showNotification = useUIStore((s) => s.showNotification);
   const setWorkflowViewerVisible = useUIStore(
