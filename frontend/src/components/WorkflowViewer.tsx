@@ -1,9 +1,9 @@
-/* eslint-disable no-useless-escape -- Regex patterns include forward slashes and character classes; disabling to keep readable explicit escaping */
 import React, { useMemo, useState, useEffect } from "react";
 import { WorkflowSerializer } from "../domain/workflow/services/WorkflowSerializer";
 import { useCodePreview } from "../api/hooks";
 import { useUIStore } from "../state/uiStore";
 import { useWorkflowStore } from "../state/workflowStore";
+import CodeBlock from "./common/CodeBlock";
 
 type ViewMode = "json" | "python";
 
@@ -17,233 +17,11 @@ function formatJSON(json: string): string {
   }
 }
 
-// Simple JSON syntax highlighter
-function highlightJSON(json: string): JSX.Element[] {
-  const lines = json.split("\n");
-
-  return lines.map((line, index) => {
-    const leadingWhitespace = line.match(/^(\s*)/)?.[1] || "";
-    const trimmedLine = line.trim();
-
-    if (!trimmedLine) {
-      return <div key={index} className="h-6 leading-relaxed"></div>;
-    }
-
-    const parts: JSX.Element[] = [];
-    let partKey = 0;
-
-    // Add leading whitespace
-    if (leadingWhitespace) {
-      parts.push(
-        <span key={partKey++} className="whitespace-pre">
-          {leadingWhitespace}
-        </span>
-      );
-    }
-
-    // JSON syntax highlighting regex
-    const jsonRegex =
-      /("(?:[^"\\]|\\.)*")|(\d+\.?\d*)|(\btrue\b|\bfalse\b|\bnull\b)|([\{\}\[\],:])/g;
-    let lastIndex = 0;
-    let match;
-
-    while ((match = jsonRegex.exec(trimmedLine)) !== null) {
-      // Add text before match
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-text">
-            {trimmedLine.substring(lastIndex, match.index)}
-          </span>
-        );
-      }
-
-      if (match[1]) {
-        // String (property name or value)
-        const str = match[1];
-        // Check if it's a property name (followed by :)
-        const nextChar = trimmedLine[match.index + str.length];
-        if (nextChar === ":") {
-          parts.push(
-            <span
-              key={partKey++}
-              className="font-medium text-theme-syntax-attribute"
-            >
-              {str}
-            </span>
-          );
-        } else {
-          parts.push(
-            <span key={partKey++} className="text-theme-syntax-value">
-              {str}
-            </span>
-          );
-        }
-      } else if (match[2]) {
-        // Number
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-number">
-            {match[2]}
-          </span>
-        );
-      } else if (match[3]) {
-        // Boolean or null
-        parts.push(
-          <span
-            key={partKey++}
-            className="font-medium text-theme-syntax-keyword"
-          >
-            {match[3]}
-          </span>
-        );
-      } else if (match[4]) {
-        // Punctuation
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-tag">
-            {match[4]}
-          </span>
-        );
-      }
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    if (lastIndex < trimmedLine.length) {
-      parts.push(
-        <span key={partKey++} className="text-theme-syntax-text">
-          {trimmedLine.substring(lastIndex)}
-        </span>
-      );
-    }
-
-    return (
-      <div key={index} className="font-mono leading-relaxed">
-        {parts.length > 0 ? (
-          parts
-        ) : (
-          <span className="text-theme-syntax-text">{trimmedLine}</span>
-        )}
-      </div>
-    );
-  });
-}
-
-// Simple Python syntax highlighter
-function highlightPython(code: string): JSX.Element[] {
-  const lines = code.split("\n");
-
-  return lines.map((line, index) => {
-    const leadingWhitespace = line.match(/^(\s*)/)?.[1] || "";
-    const trimmedLine = line.trim();
-
-    if (!trimmedLine) {
-      return <div key={index} className="h-6 leading-relaxed"></div>;
-    }
-
-    const parts: JSX.Element[] = [];
-    let partKey = 0;
-
-    // Add leading whitespace
-    if (leadingWhitespace) {
-      parts.push(
-        <span key={partKey++} className="whitespace-pre">
-          {leadingWhitespace}
-        </span>
-      );
-    }
-
-    // Python syntax highlighting regex
-    const pythonRegex =
-      /(#.*$)|(\"(?:[^\"\\]|\\.)*\"|\'(?:[^\'\\]|\\.)*\')|(\bimport\b|\bfrom\b|\bdef\b|\bclass\b|\breturn\b|\bif\b|\belse\b|\belif\b|\bfor\b|\bwhile\b|\btry\b|\bexcept\b|\bwith\b|\bas\b|\bin\b|\band\b|\bor\b|\bnot\b|\bNone\b|\bTrue\b|\bFalse\b)|(\b\d+\.?\d*\b)|([\[\]\(\)\{\},:])|(\bpl\.\w+|\.\w+)/g;
-    let lastIndex = 0;
-    let match;
-
-    while ((match = pythonRegex.exec(trimmedLine)) !== null) {
-      // Add text before match
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-text">
-            {trimmedLine.substring(lastIndex, match.index)}
-          </span>
-        );
-      }
-
-      if (match[1]) {
-        // Comment
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-comment italic">
-            {match[1]}
-          </span>
-        );
-      } else if (match[2]) {
-        // String
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-value">
-            {match[2]}
-          </span>
-        );
-      } else if (match[3]) {
-        // Keyword
-        parts.push(
-          <span
-            key={partKey++}
-            className="font-medium text-theme-syntax-keyword"
-          >
-            {match[3]}
-          </span>
-        );
-      } else if (match[4]) {
-        // Number
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-number">
-            {match[4]}
-          </span>
-        );
-      } else if (match[5]) {
-        // Punctuation
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-tag">
-            {match[5]}
-          </span>
-        );
-      } else if (match[6]) {
-        // Method/function calls
-        parts.push(
-          <span key={partKey++} className="text-theme-syntax-function">
-            {match[6]}
-          </span>
-        );
-      }
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    if (lastIndex < trimmedLine.length) {
-      parts.push(
-        <span key={partKey++} className="text-theme-syntax-text">
-          {trimmedLine.substring(lastIndex)}
-        </span>
-      );
-    }
-
-    return (
-      <div key={index} className="font-mono leading-relaxed">
-        {parts.length > 0 ? (
-          parts
-        ) : (
-          <span className="text-theme-syntax-text">{trimmedLine}</span>
-        )}
-      </div>
-    );
-  });
-}
-
 /**
- * WorkflowViewer - Display current workflow data in formatted JSON
+ * WorkflowViewer - Display current workflow data in formatted JSON or Python
  *
  * Shows the serialized workflow state for debugging and inspection.
- * Applies JSON syntax highlighting.
+ * Applies syntax highlighting for JSON and Python code.
  */
 export default function WorkflowViewer() {
   const isVisible = useUIStore((s) => s.workflowViewerVisible);
@@ -290,13 +68,10 @@ export default function WorkflowViewer() {
     ? "# Generating code..."
     : pythonCode || "# No code generated yet";
 
-  // Format and highlight based on mode
+  // Format content based on mode
   const formattedContent = viewMode === "json" 
     ? formatJSON(workflowContent)
     : pythonContent;
-  const highlightedContent = viewMode === "json"
-    ? highlightJSON(formattedContent)
-    : highlightPython(formattedContent);
 
   const copyToClipboard = async () => {
     try {
@@ -430,10 +205,12 @@ export default function WorkflowViewer() {
       </div>
 
       {/* Content with syntax highlighting */}
-      <div className="flex-1 p-4 overflow-auto bg-theme-modal-content-bg">
-        <div className="p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap border rounded bg-theme-surface-elevated overflow-wrap-anywhere">
-          {highlightedContent}
-        </div>
+      <div className="flex-1 overflow-auto bg-theme-modal-content-bg">
+        <CodeBlock 
+          code={formattedContent}
+          language={viewMode === "json" ? "json" : "python"}
+          showLineNumbers={true}
+        />
       </div>
     </div>
   );

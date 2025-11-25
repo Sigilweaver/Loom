@@ -151,7 +151,7 @@ export const lightTheme: Theme = {
     },
     canvas: {
       background: lightPalette.gray[50],
-      grid: { primary: lightPalette.gray[200], secondary: lightPalette.gray[100] },
+      grid: { primary: lightPalette.gray[400], secondary: lightPalette.gray[300] },
   minimap: { background: lightPalette.foundation.white, border: lightPalette.gray[200], viewport: BRAND_EDGE, mask: 'rgba(139, 92, 246, 0.3)' },
       controls: {
         background: lightPalette.foundation.white,

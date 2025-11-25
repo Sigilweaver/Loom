@@ -150,7 +150,7 @@ export const darkTheme: Theme = {
     },
     canvas: {
       background: darkPalette.gray[100],
-      grid: { primary: darkPalette.gray[300], secondary: darkPalette.gray[200] },
+      grid: { primary: darkPalette.gray[500], secondary: darkPalette.gray[400] },
       minimap: { background: darkPalette.gray[200], border: darkPalette.gray[300], viewport: BRAND_EDGE, mask: 'rgba(139,92,246,0.25)' },
       controls: {
         background: darkPalette.gray[100],
