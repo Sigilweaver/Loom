@@ -46,6 +46,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
     { id: 'general', label: 'General' },
     { id: 'backend', label: 'Backend' },
     { id: 'appearance', label: 'Appearance' },
+    { id: 'about', label: 'About' },
   ];
 
   return (

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -176,6 +176,23 @@ function createWindow(): void {
   // Ensure title is set after page loads
   mainWindow.webContents.once("did-finish-load", () => {
     mainWindow.setTitle(windowTitle);
+  });
+
+  // Open external links in default browser instead of Electron
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  // Handle navigation to external URLs
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow navigation within the app (dev server or local files)
+    if (url.startsWith('http://localhost:5173') || url.startsWith('file://')) {
+      return;
+    }
+    // Open external URLs in default browser
+    event.preventDefault();
+    shell.openExternal(url);
   });
 
   // Create menu

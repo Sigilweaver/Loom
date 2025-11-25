@@ -120,7 +120,44 @@ code {
   fill: var(--color-edge-animated-stroke-hover);
 }
 
-/* Custom scrollbar styles */
+/* Custom scrollbar styles - Global sleek scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-border-primary, #52525b) 60%, transparent);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--color-border-focus, #a78bfa) 70%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--color-border-focus, #a78bfa);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-border-primary, #52525b) 60%, transparent) transparent;
+}
+
+/* Legacy custom-scrollbar class for backwards compatibility */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
@@ -138,7 +175,6 @@ code {
   background: var(--color-border-focus);
 }
 
-/* Firefox scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-primary) transparent;
