@@ -11,6 +11,7 @@
  */
 
 import { useTabStore } from "@state/tabStore";
+import { useWorkflowStore } from "@state/workflowStore";
 import React, { useState } from "react";
 import Tab from "./Tab";
 
@@ -24,19 +25,7 @@ interface TabContextMenuProps {
 function TabContextMenu({ x, y, tabId, onClose }: TabContextMenuProps) {
   const closeTab = useTabStore((s) => s.closeTab);
   const closeOtherTabs = useTabStore((s) => s.closeOtherTabs);
-  const renameTab = useTabStore((s) => s.renameTab);
   const tabs = useTabStore((s) => s.tabs);
-
-  const handleRename = () => {
-    const tab = tabs.find((t) => t.id === tabId);
-    if (!tab) return;
-
-    const newName = window.prompt("Enter new tab name:", tab.name);
-    if (newName && newName.trim()) {
-      renameTab(tabId, newName.trim());
-    }
-    onClose();
-  };
 
   const handleClose = () => {
     closeTab(tabId);
@@ -62,12 +51,6 @@ function TabContextMenu({ x, y, tabId, onClose }: TabContextMenuProps) {
       onClick={(e) => e.stopPropagation()}
     >
       <button
-        onClick={handleRename}
-        className="w-full px-4 py-2 text-left text-sm text-theme-text-primary hover:bg-theme-surface-elevated transition-colors"
-      >
-        Rename
-      </button>
-      <button
         onClick={handleClose}
         className="w-full px-4 py-2 text-left text-sm text-theme-text-primary hover:bg-theme-surface-elevated transition-colors"
       >
@@ -90,6 +73,7 @@ export default function TabBar() {
   const createTab = useTabStore((s) => s.createTab);
   const closeTab = useTabStore((s) => s.closeTab);
   const switchTab = useTabStore((s) => s.switchTab);
+  const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -110,6 +94,14 @@ export default function TabBar() {
     setContextMenu(null);
   };
 
+  // Get display name for a tab - use workflow metadata for active tab
+  const getTabDisplayName = (tab: typeof tabs[0]) => {
+    if (tab.id === activeTabId) {
+      return workflowMeta.name;
+    }
+    return tab.name;
+  };
+
   return (
     <div className="flex items-center bg-theme-surface-elevated border-b border-theme-border-primary">
       {/* Scrollable tab list - hide scrollbar but keep scroll functionality */}
@@ -117,7 +109,7 @@ export default function TabBar() {
         {tabs.map((tab) => (
           <Tab
             key={tab.id}
-            tab={tab}
+            tab={{ ...tab, name: getTabDisplayName(tab) }}
             isActive={tab.id === activeTabId}
             onSelect={() => switchTab(tab.id)}
             onClose={() => closeTab(tab.id)}

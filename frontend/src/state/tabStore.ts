@@ -161,14 +161,16 @@ export const useTabStore = create<TabState>()(
       /**
        * Create a new tab
        *
-       * @param name - Tab name (defaults to "Untitled Workflow")
+       * @param name - Tab name (defaults to workflow meta name or "Untitled Workflow")
        * @param workflow - Optional workflow to initialize with
        * @returns New tab ID
        */
       createTab: (name?: string, workflow?: WorkflowSnapshot) => {
         const now = new Date().toISOString();
         const tabId = uuidv4();
-        const tabName = name || "Untitled Workflow";
+        
+        // Use workflow meta name if provided, otherwise use passed name or default
+        const tabName = workflow?.workflowMeta.name || name || "Untitled Workflow";
 
         // Save current tab state before creating new one
         const currentTabId = get().activeTabId;
@@ -207,7 +209,7 @@ export const useTabStore = create<TabState>()(
        * Close a tab
        *
        * Shows confirmation dialog if tab has unsaved changes.
-       * Prevents closing the last tab.
+       * If closing the last tab, creates a new empty tab first.
        *
        * @param tabId - ID of tab to close
        * @returns true if closed, false if cancelled
@@ -220,24 +222,24 @@ export const useTabStore = create<TabState>()(
           return false;
         }
 
-        // Prevent closing last tab
-        if (tabs.length <= 1) {
-          console.warn("Cannot close the last tab");
-          return false;
-        }
-
         // Check for unsaved changes
         if (tab.isDirty) {
           const confirmed = window.confirm(
-            `"${tab.name}" has unsaved changes. Close anyway?`
+            `"${tab.name}" has unsaved changes.\n\nClose without saving?`
           );
           if (!confirmed) {
             return false;
           }
         }
 
-        // If closing active tab, switch to another tab first
-        if (tabId === activeTabId) {
+        // If this is the last tab, create a new one first
+        if (tabs.length <= 1) {
+          get().createTab("Untitled Workflow");
+          // The new tab is now active, proceed to close the old one
+        }
+
+        // If closing active tab (and not the only tab), switch to another tab first
+        if (tabId === activeTabId && tabs.length > 1) {
           const currentIndex = tabs.findIndex((t) => t.id === tabId);
           const nextIndex =
             currentIndex > 0 ? currentIndex - 1 : currentIndex + 1;
@@ -374,23 +376,40 @@ export const useTabStore = create<TabState>()(
 
       /**
        * Rename a tab
+       * 
+       * Note: This updates the workflow metadata, which is the source of truth.
+       * The workflow metadata update will then sync the tab name back.
        *
        * @param tabId - ID of tab to rename
        * @param name - New name
        */
       renameTab: (tabId, name) => {
-        set((state) => ({
-          tabs: state.tabs.map((t) =>
-            t.id === tabId
-              ? { ...t, name, lastModified: new Date().toISOString() }
-              : t
-          ),
-        }));
-
-        // Also update workflow meta name if this is the active tab
+        // For the active tab, update the workflow metadata (source of truth)
         if (get().activeTabId === tabId) {
           const workflowStore = useWorkflowStore.getState();
-          workflowStore.updateWorkflowMeta({ name });
+          // Only update if the workflow meta name is different
+          if (workflowStore.workflowMeta.name !== name) {
+            workflowStore.updateWorkflowMeta({ name });
+          }
+        } else {
+          // For inactive tabs, update the tab name directly
+          // (they don't have active workflow state)
+          const currentTab = get().tabs.find((t) => t.id === tabId);
+          if (currentTab?.name !== name) {
+            set((state) => ({
+              tabs: state.tabs.map((t) =>
+                t.id === tabId
+                  ? { ...t, name, lastModified: new Date().toISOString() }
+                  : t
+              ),
+            }));
+            
+            // Also update the stored workflow metadata for this tab
+            const tabData = get().tabData[tabId];
+            if (tabData) {
+              tabData.workflow.workflowMeta.name = name;
+            }
+          }
         }
       },
 
@@ -505,6 +524,17 @@ export const useTabStore = create<TabState>()(
           past: deepClone(data.history.past),
           future: deepClone(data.history.future),
         });
+
+        // Sync tab name with workflow meta name
+        const workflowName = data.workflow.workflowMeta.name;
+        const currentTab = get().getTabById(tabId);
+        if (currentTab && currentTab.name !== workflowName) {
+          set((state) => ({
+            tabs: state.tabs.map((t) =>
+              t.id === tabId ? { ...t, name: workflowName } : t
+            ),
+          }));
+        }
       },
 
       /**

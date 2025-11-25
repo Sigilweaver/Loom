@@ -35,7 +35,7 @@ export default function Tab({
   return (
     <div
       className={`
-        group relative flex items-center gap-2 px-4 py-2 min-w-[120px]
+        group relative flex items-center gap-2 px-4 py-2
         border-r border-theme-border-primary
         cursor-pointer select-none
         transition-colors
@@ -50,42 +50,47 @@ export default function Tab({
       onContextMenu={onContextMenu}
       title={tab.filePath || tab.name}
     >
-      {/* Dirty indicator */}
-      {tab.isDirty && (
-        <div
-          className="w-2 h-2 rounded-full bg-theme-interactive-accent flex-shrink-0"
-          title="Unsaved changes"
-        />
-      )}
-
       {/* Tab name */}
-      <span className="text-sm font-medium flex-shrink-0 px-0.5">{tab.name}</span>
+      <span className="text-sm font-medium pr-0.5">{tab.name}</span>
 
-      {/* Close button */}
-      <button
-        onClick={handleClose}
-        className={`
-          flex-shrink-0 w-4 h-4 rounded
-          flex items-center justify-center
-          opacity-0 group-hover:opacity-100
-          hover:bg-theme-surface-elevated
-          transition-opacity
-          ${isActive ? "text-theme-text-secondary" : "text-theme-text-tertiary"}
-        `}
-        title="Close tab"
-      >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
+      {/* Indicator/Close button container - same position for both */}
+      <div className="relative w-4 h-4 flex-shrink-0">
+        {/* Dirty indicator (circle) - shown when dirty, hidden on hover */}
+        {tab.isDirty && (
+          <div
+            className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity"
+            title="Unsaved changes"
+          >
+            <div className="w-2 h-2 rounded-full bg-theme-interactive-accent" />
+          </div>
+        )}
+
+        {/* Close button - shown on hover (or when not dirty) */}
+        <button
+          onClick={handleClose}
+          className={`
+            absolute inset-0 rounded
+            flex items-center justify-center
+            hover:bg-theme-surface-elevated
+            transition-opacity
+            ${tab.isDirty ? "opacity-0 group-hover:opacity-100" : "opacity-100"}
+            ${isActive ? "text-theme-text-secondary" : "text-theme-text-tertiary"}
+          `}
+          title="Close tab"
         >
-          <path d="M2 2 L10 10 M10 2 L2 10" />
-        </svg>
-      </button>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M2 2 L10 10 M10 2 L2 10" />
+          </svg>
+        </button>
+      </div>
 
       {/* Active indicator (bottom border) */}
       {isActive && (

@@ -4,6 +4,7 @@ import { useClipboardStore } from "@state/clipboardStore";
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useTabStore } from "@state/tabStore";
 import { useSocketPreview } from "../../hooks/useSocketPreview";
 import {
   alignHorizontally as doAlignH,
@@ -72,6 +73,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const pushState = useHistoryStore((s) => s.pushState);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   const setPreviewState = useUIStore((s) => s.setPreviewState);
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const markTabDirty = useTabStore((s) => s.markTabDirty);
   
   const { previewSocket } = useSocketPreview();
 
@@ -92,8 +95,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
       pushState(tools, wires, workflowMeta);
       addTool(newTool);
+      
+      // Mark tab as dirty
+      if (activeTabId) {
+        markTabDirty(activeTabId);
+      }
     },
-    [addTool, pushState, tools, wires, workflowMeta]
+    [addTool, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleRemoveTool = useCallback(
@@ -101,8 +109,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       console.log("[CanvasShell] Removing tool:", id);
       pushState(tools, wires, workflowMeta);
       removeTool(id);
+      
+      // Mark tab as dirty
+      if (activeTabId) {
+        markTabDirty(activeTabId);
+      }
     },
-    [removeTool, pushState, tools, wires, workflowMeta]
+    [removeTool, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleToolMove = useCallback(
@@ -123,8 +136,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       const wire: Wire = { from, to };
       pushState(tools, wires, workflowMeta);
       addWire(wire);
+      
+      // Mark tab as dirty
+      if (activeTabId) {
+        markTabDirty(activeTabId);
+      }
     },
-    [addWire, pushState, tools, wires, workflowMeta]
+    [addWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleRemoveWire = useCallback(
@@ -144,11 +162,16 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         };
         pushState(tools, wires, workflowMeta);
         removeWire(from, to);
+        
+        // Mark tab as dirty
+        if (activeTabId) {
+          markTabDirty(activeTabId);
+        }
       } else {
         console.warn("[CanvasShell] Invalid wire ID format:", id);
       }
     },
-    [removeWire, pushState, tools, wires, workflowMeta]
+    [removeWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleBatchAdd = useCallback(
@@ -184,8 +207,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
       pushState(tools, wires, workflowMeta);
       batchAddToolsAndWires(fullTools, fullWires);
+      
+      // Mark tab as dirty
+      if (activeTabId) {
+        markTabDirty(activeTabId);
+      }
     },
-    [batchAddToolsAndWires, pushState, tools, wires, workflowMeta]
+    [batchAddToolsAndWires, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleBeginTransaction = useCallback(() => {

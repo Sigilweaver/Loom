@@ -4,6 +4,7 @@ import { ParquetMode } from "@domain/dataSources/parquet";
 import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useTabStore } from "@state/tabStore";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
 import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
@@ -29,6 +30,8 @@ export default function ConfigurationPanel() {
   );
 
   const pushState = useHistoryStore((s) => s.pushState);
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const markTabDirty = useTabStore((s) => s.markTabDirty);
 
   // Handler functions
   const handleWorkflowMetaChange = (meta: {
@@ -41,6 +44,11 @@ export default function ConfigurationPanel() {
 
     // Update meta in store
     updateWorkflowMeta(meta);
+    
+    // Mark tab as dirty
+    if (activeTabId) {
+      markTabDirty(activeTabId);
+    }
   };
 
   const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
@@ -49,6 +57,11 @@ export default function ConfigurationPanel() {
 
     // Update configuration in store
     updateToolConfiguration(toolId, config);
+    
+    // Mark tab as dirty
+    if (activeTabId) {
+      markTabDirty(activeTabId);
+    }
   };
 
   const toolCount = tools.length;

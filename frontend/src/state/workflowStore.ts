@@ -127,13 +127,9 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Internal helper to mark active tab as dirty
       _markDirty: () => {
-        // Dynamically import to avoid circular dependency
-        import("./tabStore").then(({ useTabStore }) => {
-          const activeTabId = useTabStore.getState().activeTabId;
-          if (activeTabId) {
-            useTabStore.getState().markTabDirty(activeTabId);
-          }
-        });
+        // Note: This is called internally but the actual tab dirty marking
+        // is handled by components or the tab store itself when workflows change
+        // This avoids circular dependencies between stores
       },
 
       // Legacy actions (kept for backward compatibility)
