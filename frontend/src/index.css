@@ -179,3 +179,14 @@ code {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-primary) transparent;
 }
+
+/* Monaco Editor styling */
+.monaco-editor-wrapper {
+  position: relative;
+}
+
+.monaco-placeholder {
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.5;
+}

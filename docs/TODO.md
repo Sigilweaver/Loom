@@ -10,6 +10,7 @@
   - **Needs Improvement**:
     - Filter Tool: Add syntax highlighting, field insertion helper, common function palette, expression validation
     - Formula Tool: Add syntax highlighting, field insertion helper, common function palette, expression validation
+
   - **Not Yet Implemented**:
     - Select Tool: Column selection interface
     - Sort Tool: Multi-column sorting with direction
@@ -32,6 +33,7 @@
     - Category icons in tool palette
     - UI action icons
     - Accessibility: Better screen reader support
+
   - **Theme Refinement**:
     - Accessibility improvements (WCAG 2.1 AA compliance)
     - Color contrast validation for all themes
@@ -47,11 +49,13 @@
     - Analytics (if any - likely none for desktop app)
     - Third-party services (if any)
     - User rights (data export, deletion)
+
   - **Terms of Use**: Create terms of use/EULA
     - Software license terms (MIT/Apache/proprietary)
     - Acceptable use policy
     - Disclaimers and liability limitations
     - Support and warranty statements
+
   - **Documentation Site**: Set up initial documentation
     - Getting Started guide
     - Tool reference (each tool with examples)
@@ -193,21 +197,25 @@
     - Column-level permissions
     - Data masking/redaction for sensitive fields
     - Compliance logging (GDPR, HIPAA audit trails)
+
   - **Authentication & Authorization**:
     - SSO/SAML integration
     - LDAP/Active Directory support
     - Role-based access control (RBAC)
     - Team/organization management
+
   - **Governance**:
     - Workflow approval processes
     - Change management/versioning
     - Centralized policy enforcement
     - Data retention policies
+
   - **Monitoring & Observability**:
     - Detailed audit logging (who ran what, when)
     - Performance metrics and dashboards
     - Error tracking and alerting
     - Resource usage monitoring
+
   - **Deployment**:
     - On-premise deployment options
     - Air-gapped environment support
@@ -229,9 +237,13 @@
   - **Workflow Assistant**: AI chatbot to help build/debug workflows
     - Challenges: In-dev software makes training difficult, AI suggestions hard to debug
     - Would need mature, stable codebase first
+
   - **AutoML Tools**: Automated model training/selection
+
   - **Prediction/Inference**: Deploy trained models as workflow tools
+
   - **Feature Engineering**: AI-suggested transformations
+
   - **Anomaly Detection**: Automatic data quality checks
 
 - **Collaboration Features via External Repository Software**:

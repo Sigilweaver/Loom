@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { createLogger } from '@utils/logger';
 import MarkdownRenderer from './common/MarkdownRenderer';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-markdown';
-import 'prismjs/themes/prism.css';
+import { CodeEditor } from './common/CodeEditor';
 
 const logger = createLogger('WorkflowConfiguration');
 
@@ -75,34 +72,22 @@ export default function WorkflowConfiguration({
             />
           </div>
         ) : (
-          <div className="w-full min-h-[100px] border border-theme-border-primary rounded-md bg-theme-surface-elevated overflow-hidden">
-            <Editor
+          <div className="w-full border border-theme-border-primary rounded-md overflow-hidden">
+            <CodeEditor
               value={workflowMeta.description}
-              onValueChange={(code) => handleFieldChange('description', code)}
-              highlight={(code) => {
-                const grammar = Prism.languages.markdown;
-                return grammar ? Prism.highlight(code, grammar, 'markdown') : code;
-              }}
-              padding={12}
-              tabSize={2}
-              insertSpaces={true}
+              onChange={(code) => handleFieldChange('description', code)}
+              language="markdown"
+              height="150px"
               placeholder="Enter workflow description... (Markdown supported: **bold**, *italic*, `code`, # headers, - lists)"
-              style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                fontSize: '0.875rem',
-                lineHeight: '1.5',
-                minHeight: '100px',
-                color: 'var(--color-text-primary)',
-                backgroundColor: 'var(--color-surface-elevated)',
-              }}
-              textareaClassName="focus:outline-none"
             />
           </div>
         )}
         
-        <div className="text-xs text-theme-text-tertiary mt-1">
-          Supports Markdown: **bold**, *italic*, `code`, # headers, - lists, [links](url)
-        </div>
+        {!previewMode && (
+          <div className="text-xs text-theme-text-tertiary mt-1">
+            Supports Markdown: **bold**, *italic*, `code`, # headers, - lists, [links](url)
+          </div>
+        )}
       </div>
 
       {/* Author */}

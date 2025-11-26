@@ -3,6 +3,8 @@ import path from "path";
 import { defineConfig } from "vite";
 import electron from "vite-plugin-electron";
 import renderer from "vite-plugin-electron-renderer";
+// @ts-ignore - CJS module in ESM context
+import monacoEditorPlugin from "vite-plugin-monaco-editor";
 
 export default defineConfig({
   resolve: {
@@ -17,6 +19,10 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    // @ts-ignore - CJS module interop issue
+    (monacoEditorPlugin.default || monacoEditorPlugin)({
+      languageWorkers: ['editorWorkerService', 'typescript', 'json'],
+    }),
     electron([
       {
         entry: "electron/main.ts",

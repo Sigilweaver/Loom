@@ -34,8 +34,8 @@ export function buildButtonStates(tokens: {
 // Example convenience wrappers using a palette; still no math, just token picking.
 export function buildPrimaryButtonFromPalette(p: ColorPalette): InteractiveElementStyle {
   return buildButtonStates({
-    bg: { default: p.brand.primary[500], hover: p.brand.primary[400], active: p.brand.primary[600], disabled: p.gray[300] },
-    border: { default: p.brand.primary[600], hover: p.brand.primary[500], active: p.brand.primary[700], disabled: p.gray[400] },
+    bg: { default: p.brand.primary[400], hover: p.brand.primary[300], active: p.brand.primary[500], disabled: p.gray[300] },
+    border: { default: p.brand.primary[500], hover: p.brand.primary[400], active: p.brand.primary[600], disabled: p.gray[400] },
     text: { default: p.foundation.white, hover: p.foundation.white, active: p.foundation.white, disabled: p.gray[500] },
   });
 }

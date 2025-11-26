@@ -1,5 +1,5 @@
-import { ToolConfig, EmissionMap } from "../domain/workflow/entities/workflow";
-import { ConfigText } from "./primitives/ConfigText";
+import { ToolConfig } from "../domain/workflow/entities/workflow";
+import { CodeEditor } from "./common/CodeEditor";
 
 interface FilterConfigurationProps {
   config: ToolConfig;
@@ -10,17 +10,13 @@ export function FilterConfiguration({
   config,
   onChange,
 }: FilterConfigurationProps) {
-  const handleExpressionChange = (
-    value: string | undefined,
-    emitPatch: EmissionMap,
-    _shouldEmit: boolean
-  ) => {
+  const handleExpressionChange = (value: string) => {
     const newConfig = {
       ...config,
       expression: value || "",
       _emit: {
         ...config._emit,
-        ...emitPatch,
+        expression: true,
       },
     };
     onChange(newConfig);
@@ -42,16 +38,21 @@ export function FilterConfiguration({
 
         {/* Expression Input */}
         <div className="space-y-2">
-          <ConfigText
-            configKey="expression"
-            label="Filter Expression"
-            value={(config.expression as string) || ""}
-            onChange={handleExpressionChange}
-            placeholder="pl.col('amount') > 100"
-            variant="textarea"
-            rows={4}
-            description="Write a Polars expression that returns True/False for each row"
-          />
+          <label className="block text-sm font-medium text-theme-text-primary">
+            Filter Expression
+          </label>
+          <div className="border border-theme-border rounded overflow-hidden">
+            <CodeEditor
+              value={(config.expression as string) || ""}
+              onChange={handleExpressionChange}
+              language="python"
+              height="120px"
+              placeholder="pl.col('amount') > 100"
+            />
+          </div>
+          <p className="text-xs text-theme-text-tertiary">
+            Write a Polars expression that returns True/False for each row
+          </p>
         </div>
 
         {/* Examples Section */}
