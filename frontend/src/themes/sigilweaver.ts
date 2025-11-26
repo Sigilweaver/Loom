@@ -11,7 +11,7 @@ export const sigilweaverTheme: Theme = {
     palette: sigilweaverPalette,
     surfaces: { page: sigilweaverPalette.gray[100], panel: sigilweaverPalette.gray[200], elevated: sigilweaverPalette.gray[300], overlay: 'rgba(26,11,46,0.9)', canvas: sigilweaverPalette.gray[200] },
     text: { primary: sigilweaverPalette.gray[950], secondary: sigilweaverPalette.gray[800], tertiary: sigilweaverPalette.gray[700], inverse: sigilweaverPalette.gray[50], disabled: sigilweaverPalette.gray[500] },
-    borders: { primary: sigilweaverPalette.gray[400], secondary: sigilweaverPalette.gray[300], focus: sigilweaverPalette.brand.primary[500], divider: sigilweaverPalette.gray[400] },
+    borders: { primary: sigilweaverPalette.gray[400], secondary: sigilweaverPalette.gray[300], focus: sigilweaverPalette.brand.primary[800], divider: sigilweaverPalette.gray[400] },
     header: {
       background: HEADER_BACKGROUND,
       logo: { icon: sigilweaverPalette.brand.secondary[400], text: sigilweaverPalette.gray[950] },
