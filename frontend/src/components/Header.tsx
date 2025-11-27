@@ -415,18 +415,6 @@ export default function Header({ onShowSettings }: HeaderProps) {
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
 
             <button
-              onClick={handleNewWorkflow}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-new-bg border border-theme-header-btn-new-border text-theme-header-btn-new-text
-                hover:bg-theme-header-btn-new-bg-hover hover:border-theme-header-btn-new-border-hover hover:text-theme-header-btn-new-text-hover
-                active:bg-theme-header-btn-new-bg-active active:border-theme-header-btn-new-border-active active:text-theme-header-btn-new-text-active
-                disabled:bg-theme-header-btn-new-bg-disabled disabled:border-theme-header-btn-new-border-disabled disabled:text-theme-header-btn-new-text-disabled"
-              title="New Workflow (Ctrl+N)"
-            >
-              New
-            </button>
-
-            <button
               onClick={handleImportWorkflow}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors
                 bg-theme-header-btn-import-bg border border-theme-header-btn-import-border text-theme-header-btn-import-text
