@@ -1,6 +1,9 @@
 """Workflow executor - orchestrates tool execution"""
 
+import logging
+import time
 from typing import Any
+from pathlib import Path
 
 import polars as pl
 
@@ -10,6 +13,9 @@ from app.domain.execution.graph import ExecutionGraph
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import ExecutionError, ToolError
 from app.utils.type_mapping import schema_from_polars, dataframe_to_dict_list
+from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowExecutor:
@@ -21,6 +27,7 @@ class WorkflowExecutor:
 
     def __init__(self):
         self.results: dict[str, dict[int, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
+        self.archive_dir: Path | None = None  # Set when archiving is enabled
 
     async def execute_workflow(
         self,
@@ -39,40 +46,98 @@ class WorkflowExecutor:
         Returns:
             Dict with execution results, schemas, and metrics
         """
-        # Build execution graph
-        graph = ExecutionGraph(workflow)
+        start_time = time.time()
+        execution_log = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "target_tool_id": target_tool_id,
+            "preview_limit": preview_limit,
+            "status": "started",
+        }
+        
+        # Initialize archive if enabled
+        if settings.archive_enabled:
+            try:
+                from app.domain.workflow.archive import WorkflowArchive
+                archive = WorkflowArchive(settings.archive_path)
+                self.archive_dir = archive.create_archive(workflow)
+                execution_log["archive_path"] = str(self.archive_dir.relative_to(archive.archive_root))
+                logger.info(f"Workflow archived to: {self.archive_dir}")
+            except Exception as e:
+                logger.error(f"Failed to create workflow archive: {e}")
+                self.archive_dir = None
+        
+        try:
+            # Build execution graph
+            graph = ExecutionGraph(workflow)
 
-        # Validate workflow
-        validation_errors = graph.validate()
-        if validation_errors:
-            raise ExecutionError(f"Workflow validation failed: {', '.join(validation_errors)}")
+            # Validate workflow
+            validation_errors = graph.validate()
+            if validation_errors:
+                error_msg = f"Workflow validation failed: {', '.join(validation_errors)}"
+                execution_log["status"] = "validation_failed"
+                execution_log["error"] = error_msg
+                execution_log["validation_errors"] = validation_errors
+                self._save_execution_log(execution_log, start_time)
+                raise ExecutionError(error_msg)
 
-        # Get execution order
-        execution_order = graph.execution_order()
+            # Get execution order
+            execution_order = graph.execution_order()
+            execution_log["execution_order"] = execution_order
+            execution_log["tool_count"] = len(execution_order)
 
-        # Execute tools in order
-        for tool_id in execution_order:
-            tool = self._get_tool(workflow, tool_id)
+            # Execute tools in order
+            tool_execution_logs = []
+            for tool_id in execution_order:
+                tool_start = time.time()
+                tool = self._get_tool(workflow, tool_id)
 
-            # Gather inputs from previous results
-            inputs = self._gather_inputs(tool_id, graph)
+                # Gather inputs from previous results
+                inputs = self._gather_inputs(tool_id, graph)
 
-            # Execute tool
-            outputs = await self._execute_tool(tool, inputs)
+                # Execute tool
+                outputs = await self._execute_tool(tool, inputs)
 
-            # Store results
-            self.results[tool_id] = outputs
+                # Store results
+                self.results[tool_id] = outputs
+                
+                # Log tool execution
+                tool_execution_logs.append({
+                    "tool_id": tool_id,
+                    "tool_type": tool.type,
+                    "execution_time_ms": (time.time() - tool_start) * 1000,
+                    "status": "success",
+                })
 
-            # Stop if target reached
-            if target_tool_id and tool_id == target_tool_id:
-                break
+                # Stop if target reached
+                if target_tool_id and tool_id == target_tool_id:
+                    break
+            
+            execution_log["tool_executions"] = tool_execution_logs
 
-        # Format results
-        return await self._format_results(
-            workflow, 
-            target_tool_id or execution_order[-1],
-            preview_limit
-        )
+            # Format results
+            result = await self._format_results(
+                workflow, 
+                target_tool_id or execution_order[-1],
+                preview_limit
+            )
+            
+            # Update execution log with success
+            execution_log["status"] = "completed"
+            execution_log["result_summary"] = {
+                "tool_id": result["tool_id"],
+                "output_count": len(result["outputs"]),
+            }
+            self._save_execution_log(execution_log, start_time)
+            
+            return result
+
+        except Exception as e:
+            # Log execution failure
+            execution_log["status"] = "failed"
+            execution_log["error"] = str(e)
+            execution_log["error_type"] = type(e).__name__
+            self._save_execution_log(execution_log, start_time)
+            raise
 
     async def execute_single_tool(
         self,
@@ -235,3 +300,18 @@ class WorkflowExecutor:
             if tool.id == tool_id:
                 return tool
         raise ExecutionError(f"Tool {tool_id} not found in workflow")
+    
+    def _save_execution_log(self, log_data: dict[str, Any], start_time: float) -> None:
+        """Save execution log to archive"""
+        if not self.archive_dir or not settings.archive_enabled:
+            return
+        
+        try:
+            # Add execution time
+            log_data["execution_time_ms"] = (time.time() - start_time) * 1000
+            
+            from app.domain.workflow.archive import WorkflowArchive
+            archive = WorkflowArchive(settings.archive_path)
+            archive.save_execution_log(self.archive_dir, log_data)
+        except Exception as e:
+            logger.error(f"Failed to save execution log: {e}")

@@ -27,5 +27,10 @@ class Settings(BaseSettings):
     allowed_file_paths: list[str] = []
     restrict_file_access: bool = True
 
+    # Workflow Archive
+    archive_enabled: bool = True
+    archive_path: str = "./workflow_archives"
+    archive_retention_days: int = 30  # 0 = keep forever
+
 
 settings = Settings()
