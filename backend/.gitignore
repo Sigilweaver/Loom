@@ -1,3 +1,6 @@
+# Sigilweaver Specific
+workflow_archives/
+
 # Python
 __pycache__/
 *.py[cod]
