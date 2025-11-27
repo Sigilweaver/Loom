@@ -1,10 +1,5 @@
 {
     "name": "sigilweaver-demo",
-    "build": {
-        "command": "npm run build:web",
-        "cwd": "./frontend",
-        "watch_dir": "./frontend"
-    },
     "compatibility_date": "2024-11-26",
     "assets": {
         "directory": "./dist"
