@@ -5,6 +5,7 @@ import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
 import { useWorkflowExecute } from "../api/hooks";
 import SigilWeaverLogo from "./SigilWeaverLogo";
+import { useEffect } from "react";
 
 interface HeaderProps {
   onShowSettings: () => void;
@@ -41,6 +42,85 @@ export default function Header({ onShowSettings }: HeaderProps) {
 
   // Execution hook
   const { execute } = useWorkflowExecute();
+
+  // Listen for menu actions from Electron
+  useEffect(() => {
+    if (!window.electronAPI?.onMenuAction) return;
+
+    window.electronAPI.onMenuAction((action, data) => {
+      switch (action) {
+        case 'new-workflow':
+          handleNewWorkflow();
+          break;
+        case 'open-workflow':
+          if (data) {
+            // Data is the file path from the menu dialog
+            handleOpenWorkflowFromPath(data);
+          } else {
+            handleImportWorkflow();
+          }
+          break;
+        case 'save-workflow':
+          handleSaveWorkflow();
+          break;
+        case 'run-workflow':
+          handleRunWorkflow();
+          break;
+        case 'validate-workflow':
+          // Future implementation
+          showNotification('Workflow validation not yet implemented', 'info');
+          break;
+        case 'show-workflow-viewer':
+          handleShowWorkflowViewer();
+          break;
+        case 'hide-workflow-viewer':
+          setWorkflowViewerVisible(false);
+          break;
+      }
+    });
+  }, []);
+
+  const handleOpenWorkflowFromPath = async (filePath: string) => {
+    try {
+      if (!window.electronAPI?.readFile) return;
+
+      // Read file content via IPC
+      const content = await window.electronAPI.readFile(filePath);
+
+      // Parse JSON workflow file
+      const {
+        tools: importedTools,
+        wires: importedWires,
+        meta,
+      } = WorkflowSerializer.fromJSON(content);
+
+      // Create new tab with loaded workflow
+      const newTabId = createTab(meta.name, {
+        tools: importedTools,
+        wires: importedWires,
+        workflowMeta: meta,
+      });
+
+      // Set file path and mark clean (just loaded from disk)
+      if (newTabId) {
+        setTabFilePath(newTabId, filePath);
+        markTabClean(newTabId);
+      }
+
+      setSelectedTool(null);
+
+      showNotification(
+        `Workflow "${meta.name}" opened successfully!`,
+        "success"
+      );
+    } catch (error) {
+      console.error("Error opening workflow:", error);
+      showNotification(
+        "Failed to open workflow. Please check the file format.",
+        "error"
+      );
+    }
+  };
 
   const handleNewWorkflow = () => {
     // Create a new tab instead of clearing current one

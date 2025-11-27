@@ -235,7 +235,10 @@ function createWindow(): void {
           },
         },
         { type: "separator" },
-        { role: "quit" },
+        { 
+          role: "quit",
+          accelerator: "CmdOrCtrl+Q"
+        },
       ],
     },
     {
