@@ -1,6 +1,7 @@
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import React from 'react';
 
 // Cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {
@@ -85,3 +86,75 @@ Object.defineProperty(global, 'localStorage', {
   value: localStorageMock,
   writable: true,
 });
+
+// Mock Monaco Editor
+vi.mock('@monaco-editor/react', () => ({
+  Editor: vi.fn(({ value, onChange, onMount }) => {
+    // Simulate editor mount
+    if (onMount) {
+      const mockEditor = {
+        getValue: () => value,
+        setValue: (newValue: string) => onChange?.(newValue),
+        updateOptions: vi.fn(),
+        createDecorationsCollection: vi.fn(() => ({
+          clear: vi.fn(),
+        })),
+        onDidChangeModelContent: vi.fn(() => {
+          // Store callback for testing
+          return { dispose: vi.fn() };
+        }),
+        dispose: vi.fn(),
+      };
+
+      const mockMonaco = {
+        editor: {
+          defineTheme: vi.fn(),
+          setTheme: vi.fn(),
+          createDecorationsCollection: vi.fn(),
+        },
+        languages: {
+          registerCompletionItemProvider: vi.fn(() => ({
+            dispose: vi.fn(),
+          })),
+          CompletionItemKind: {
+            Function: 1,
+            Field: 2,
+            Method: 3,
+            Operator: 4,
+          },
+          CompletionItemInsertTextRule: {
+            InsertAsSnippet: 4,
+          },
+        },
+        Range: class {
+          constructor(
+            public startLineNumber: number,
+            public startColumn: number,
+            public endLineNumber: number,
+            public endColumn: number
+          ) {}
+        },
+      };
+
+      setTimeout(() => onMount(mockEditor, mockMonaco), 0);
+    }
+
+    return (
+      React.createElement('textarea', {
+        'data-testid': 'monaco-editor',
+        value: value,
+        onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(e.target.value),
+        placeholder: 'Monaco Editor Mock'
+      })
+    );
+  }),
+  OnMount: vi.fn(),
+}));
+
+// Mock monaco-editor types
+vi.mock('monaco-editor', () => ({
+  editor: {},
+  languages: {},
+  Position: class {},
+  IRange: {},
+}));

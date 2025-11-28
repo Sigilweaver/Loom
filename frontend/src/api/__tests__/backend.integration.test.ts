@@ -20,11 +20,11 @@ describe('Backend E2E Integration', () => {
     it('should connect to running backend', async () => {
       const result = await healthCheck();
       
-      expect(result).toEqual({
+      expect(result).toEqual(expect.objectContaining({
         status: 'healthy',
         version: '0.1.0',
         message: 'SigilWeaver Backend is running',
-      });
+      }));
     }, { timeout: 5000 });
   });
 

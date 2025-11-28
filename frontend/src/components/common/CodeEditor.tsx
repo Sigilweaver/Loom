@@ -186,7 +186,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         };
 
         // Context 1: User typed "pl." - suggest Polars functions
-        if (/\bpl\.$/.test(textBeforeCursor)) {
+        if (/\bpl\.[\w]*$/.test(textBeforeCursor)) {
           if (polarsFunctions?.table_level) {
             polarsFunctions.table_level.forEach(fn => {
               const cleanName = fn.name.replace('pl.', '');
@@ -322,7 +322,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           }
         }
         // Context 4: Operators - suggest comparison/logical operators
-        else if (/\)\s*$/.test(textBeforeCursor) || /['\"]\s*$/.test(textBeforeCursor)) {
+        else if (/\)\s*$/.test(textBeforeCursor) || /['"]\s*$/.test(textBeforeCursor)) {
           // After closing paren or quote, suggest operators
           const operators = [
             { label: '==', insertText: ' == ', detail: 'Equal to' },
