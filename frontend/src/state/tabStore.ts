@@ -28,6 +28,7 @@ import { createLogger } from "@utils/logger";
 import { useWorkflowStore } from "./workflowStore";
 import { useHistoryStore, type WorkflowSnapshot as HistoryWorkflowSnapshot } from "./historyStore";
 import { useSettingsStore } from "./settingsStore";
+import { useUIStore } from "./uiStore";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -310,7 +311,7 @@ export const useTabStore = create<TabState>()(
         // Update active tab
         set({ activeTabId: tabId });
 
-        // Load new tab state
+        // Load new tab state (also clears preview state)
         get().loadTab(tabId);
       },
 
@@ -516,6 +517,8 @@ export const useTabStore = create<TabState>()(
       /**
        * Load a tab's state into workflowStore and historyStore
        *
+       * Also clears preview state since previews are tab-specific.
+       *
        * @param tabId - ID of tab to load
        */
       loadTab: (tabId: string) => {
@@ -526,6 +529,9 @@ export const useTabStore = create<TabState>()(
           console.warn(`No data found for tab ${tabId}`);
           return;
         }
+
+        // Clear preview state - preview is tab-specific and shouldn't persist across tabs
+        useUIStore.getState().setPreviewState(null);
 
         // Load into workflow store
         const workflowStore = useWorkflowStore.getState();
