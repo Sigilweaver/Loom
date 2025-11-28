@@ -19,14 +19,14 @@ class BaseTool(ABC):
 
     @abstractmethod
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[int, pl.LazyFrame]:
         """
         Execute tool logic.
 
         Args:
             config: Tool-specific configuration from workflow JSON
-            inputs: Dict of socket_id -> LazyFrame from connected tools
+            inputs: Dict of socket_id -> LazyFrame (or list of LazyFrames) from connected tools
 
         Returns:
             Dict of socket_id -> LazyFrame for output sockets
@@ -37,14 +37,14 @@ class BaseTool(ABC):
 
     @abstractmethod
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[int, DataSchema | list[DataSchema]]
     ) -> dict[int, DataSchema]:
         """
         Get output schema without executing the tool.
 
         Args:
             config: Tool-specific configuration
-            input_schemas: Dict of socket_id -> DataSchema from input tools
+            input_schemas: Dict of socket_id -> DataSchema (or list) from input tools
 
         Returns:
             Dict of socket_id -> DataSchema for output sockets

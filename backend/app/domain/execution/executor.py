@@ -196,8 +196,19 @@ class WorkflowExecutor:
         input_schemas = {}
         tool_inputs = graph.get_tool_inputs(tool_id)
         for socket_id, source_list in tool_inputs.items():
-            # For now, just use schema from first source (handles Union later)
-            if source_list:
+            if not source_list:
+                continue
+                
+            if len(source_list) > 1:
+                # Multiple inputs (Union tool)
+                schemas = []
+                for source_tool_id, source_socket_id in source_list:
+                    if source_tool_id in self.results:
+                        lf = self.results[source_tool_id][source_socket_id]
+                        schemas.append(schema_from_polars(lf))
+                input_schemas[socket_id] = schemas
+            else:
+                # Single input
                 source_tool_id, source_socket_id = source_list[0]
                 if source_tool_id in self.results:
                     # Get schema from LazyFrame
@@ -271,7 +282,7 @@ class WorkflowExecutor:
         }
 
     async def _execute_tool(
-        self, tool: Tool, inputs: dict[int, pl.LazyFrame]
+        self, tool: Tool, inputs: dict[int, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[int, pl.LazyFrame]:
         """Execute a single tool"""
         try:
@@ -285,11 +296,11 @@ class WorkflowExecutor:
 
     def _gather_inputs(
         self, tool_id: str, graph: ExecutionGraph
-    ) -> dict[int, pl.LazyFrame]:
+    ) -> dict[int, pl.LazyFrame | list[pl.LazyFrame]]:
         """
         Gather inputs for a tool from previous results.
 
-        For tools with multiple inputs on same socket (Union), concatenates them.
+        For tools with multiple inputs on same socket (Union), returns list of LazyFrames.
         """
         inputs = {}
         tool_inputs = graph.get_tool_inputs(tool_id)
@@ -304,7 +315,7 @@ class WorkflowExecutor:
                     )
                 inputs[socket_id] = self.results[source_tool_id][source_socket_id]
             elif len(source_list) > 1:
-                # Multiple inputs (Union tool) - concatenate
+                # Multiple inputs (Union tool) - return list
                 frames = []
                 for source_tool_id, source_socket_id in source_list:
                     if source_tool_id not in self.results:
@@ -313,8 +324,7 @@ class WorkflowExecutor:
                         )
                     frames.append(self.results[source_tool_id][source_socket_id])
                 
-                # Concatenate all inputs
-                inputs[socket_id] = pl.concat(frames)
+                inputs[socket_id] = frames
 
         return inputs
 
