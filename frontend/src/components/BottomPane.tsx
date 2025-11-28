@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useUIStore } from "@state/uiStore";
 import DataTable from "./DataTable.tsx";
 import LogViewer from "./LogViewer.tsx";
+import SocketTabs from "./SocketTabs.tsx";
 
 const BottomPane = () => {
   const {
@@ -95,9 +96,19 @@ const BottomPane = () => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-3 overflow-auto">
-        {activeBottomTab === "preview" && <DataTable />}
-        {activeBottomTab === "logs" && <LogViewer />}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Socket Tabs Sidebar - Only visible in Data Preview mode */}
+        {activeBottomTab === "preview" && (
+          <div className="flex-shrink-0 w-30 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
+            <SocketTabs />
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 p-3 overflow-auto">
+          {activeBottomTab === "preview" && <DataTable />}
+          {activeBottomTab === "logs" && <LogViewer />}
+        </div>
       </div>
     </div>
   );
