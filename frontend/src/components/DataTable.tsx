@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,38 +17,97 @@ export interface ColumnSchema {
   nullable: boolean;
 }
 
+// Max characters to show before truncating
+const MAX_STRING_LENGTH = 50;
+
+// Check if a dtype is numeric
+const isNumericType = (dtype: string): boolean => {
+  const numericTypes = ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64', 'Float32', 'Float64'];
+  return numericTypes.some(t => dtype.includes(t));
+};
+
 const DataTable = () => {
   const previewState = useUIStore((s) => s.previewState);
+  const showNotification = useUIStore((s) => s.showNotification);
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  // Copy value to clipboard
+  const copyToClipboard = useCallback((value: unknown) => {
+    const text = value === null || value === undefined ? '' : String(value);
+    navigator.clipboard.writeText(text).then(() => {
+      showNotification('Copied to clipboard', 'success', 1500);
+    }).catch(() => {
+      showNotification('Failed to copy', 'error', 1500);
+    });
+  }, [showNotification]);
 
   // Create columns definition from schema
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!previewState?.schema) return [];
 
-    return previewState.schema.map((col) => ({
-      accessorKey: col.name,
-      id: col.name,
-      header: () => (
-        <div className="flex flex-col">
-          <div className="font-semibold text-theme-text-primary">{col.name}</div>
-          <div className="text-xs font-normal text-theme-text-secondary mt-0.5">
-            {col.dtype}
-            {col.nullable && " (nullable)"}
-          </div>
-        </div>
+    // Row number column
+    const rowNumberColumn: ColumnDef<Record<string, unknown>> = {
+      id: '_rowNum',
+      header: () => <span className="text-theme-text-tertiary">#</span>,
+      cell: ({ row }) => (
+        <span className="text-theme-text-tertiary select-none">{row.index + 1}</span>
       ),
-      cell: (info) => {
-        const value = info.getValue();
-        if (value === null || value === undefined) {
-          return <span className="italic text-theme-text-secondary">null</span>;
-        }
-        return <span>{String(value)}</span>;
-      },
-      size: 150,
-      minSize: 80,
-      maxSize: 500,
-    }));
-  }, [previewState?.schema]);
+      size: 45,
+      minSize: 45,
+      maxSize: 45,
+      enableSorting: false,
+      enableResizing: false,
+    };
+
+    // Data columns
+    const dataColumns = previewState.schema.map((col) => {
+      const isNumeric = isNumericType(col.dtype);
+      
+      return {
+        accessorKey: col.name,
+        id: col.name,
+        header: () => (
+          <div className="flex flex-col">
+            <div className="font-semibold text-theme-text-primary">{col.name}</div>
+            <div className="text-xs font-normal text-theme-text-secondary mt-0.5">
+              {col.dtype}
+              {col.nullable && " (nullable)"}
+            </div>
+          </div>
+        ),
+        cell: (info: { getValue: () => unknown }) => {
+          const value = info.getValue();
+          
+          // Handle null/undefined
+          if (value === null || value === undefined) {
+            return <span className="italic text-theme-text-tertiary">null</span>;
+          }
+          
+          const stringValue = String(value);
+          const isTruncated = stringValue.length > MAX_STRING_LENGTH;
+          const displayValue = isTruncated 
+            ? stringValue.slice(0, MAX_STRING_LENGTH) + '...' 
+            : stringValue;
+          
+          return (
+            <span 
+              className={`${isNumeric ? 'font-mono' : ''} ${isTruncated ? 'cursor-help' : 'cursor-copy'}`}
+              title={isTruncated ? stringValue : 'Double-click to copy'}
+              onDoubleClick={() => copyToClipboard(value)}
+            >
+              {displayValue}
+            </span>
+          );
+        },
+        size: 150,
+        minSize: 80,
+        maxSize: 500,
+        meta: { isNumeric },
+      };
+    });
+
+    return [rowNumberColumn, ...dataColumns];
+  }, [previewState?.schema, copyToClipboard]);
 
   const table = useReactTable({
     data: previewState?.data || [],
@@ -159,15 +218,21 @@ const DataTable = () => {
                   idx % 2 === 0 ? "" : "bg-theme-surface-elevated"
                 }`}
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="px-3 py-2 border-r text-theme-text-primary border-theme-border-primary last:border-r-0"
-                    style={{ width: cell.column.getSize() }}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const isNumeric = (cell.column.columnDef.meta as { isNumeric?: boolean })?.isNumeric;
+                  const isRowNum = cell.column.id === '_rowNum';
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`px-3 py-2 border-r text-theme-text-primary border-theme-border-primary last:border-r-0 ${
+                        isNumeric ? 'text-right' : ''
+                      } ${isRowNum ? 'bg-theme-surface-elevated' : ''}`}
+                      style={{ width: cell.column.getSize() }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
