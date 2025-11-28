@@ -3,7 +3,7 @@ import { render, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
 import { CodeEditor } from '../CodeEditor';
 import type { PolarsFunctionsResponse } from '../../../api/backend';
-import type { languages } from 'monaco-editor';
+import type { languages, CancellationToken, editor, Position } from 'monaco-editor';
 import type { OnMount } from '@monaco-editor/react';
 
 // Mock data
@@ -53,7 +53,7 @@ vi.mock('@monaco-editor/react', () => ({
         createDecorationsCollection: vi.fn(() => ({ clear: vi.fn() })),
         onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
         getValue: () => '',
-      } as Parameters<OnMount>[0];
+      } as unknown as Parameters<OnMount>[0];
       // Execute onMount asynchronously to simulate real behavior and allow render to finish
       setTimeout(() => onMount(mockEditor, mockMonaco), 0);
     }
@@ -91,7 +91,7 @@ describe('CodeEditor Completion Logic', () => {
   };
 
   // Helper to mock the model state
-  const createMockModel = (lineContent: string, positionColumn: number) => {
+  const createMockModel = (lineContent: string, positionColumn: number): editor.ITextModel => {
     return {
       getLineContent: () => lineContent,
       getWordUntilPosition: () => {
@@ -105,30 +105,34 @@ describe('CodeEditor Completion Logic', () => {
           endColumn: positionColumn,
         };
       },
-    };
+    } as unknown as editor.ITextModel;
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
+  // Mock context and cancellation token for provideCompletionItems
+  const mockContext = { triggerKind: 0 } as languages.CompletionContext;
+  const mockToken = { isCancellationRequested: false, onCancellationRequested: vi.fn() } as unknown as CancellationToken;
+
   it('handles "pl" prefix correctly (General Context)', async () => {
     const provider = await setupEditor();
-    const position = { lineNumber: 1, column: 3 }; // After "pl"
+    const position = { lineNumber: 1, column: 3 } as Position; // After "pl"
     const model = createMockModel('pl', 3);
 
-    const result = provider.provideCompletionItems(model, position);
-    const suggestions = result.suggestions;
+    const result = await provider.provideCompletionItems(model, position, mockContext, mockToken);
+    const suggestions = result?.suggestions ?? [];
 
     // Find pl.col suggestion
     const colSuggestion = suggestions.find((s: languages.CompletionItem) => s.label === 'pl.col');
     expect(colSuggestion).toBeDefined();
 
     // Verify insertText includes "pl." because we are replacing the word "pl"
-    expect(colSuggestion.insertText).toBe("pl.col('${1}')");
+    expect(colSuggestion!.insertText).toBe("pl.col('${1}')");
 
     // Verify range covers "pl"
-    expect(colSuggestion.range).toEqual({
+    expect(colSuggestion!.range).toEqual({
       startLineNumber: 1,
       endLineNumber: 1,
       startColumn: 1, // Start of "pl"
@@ -140,7 +144,7 @@ describe('CodeEditor Completion Logic', () => {
 
   it('handles "pl." prefix correctly (Dot Context)', async () => {
     const provider = await setupEditor();
-    const position = { lineNumber: 1, column: 4 }; // After "pl."
+    const position = { lineNumber: 1, column: 4 } as Position; // After "pl."
     // Monaco's getWordUntilPosition usually stops at dot, so word is empty or just after dot
     const model = {
       getLineContent: () => 'pl.',
@@ -149,20 +153,20 @@ describe('CodeEditor Completion Logic', () => {
         startColumn: 4,
         endColumn: 4,
       }),
-    };
+    } as unknown as editor.ITextModel;
 
-    const result = provider.provideCompletionItems(model, position);
-    const suggestions = result.suggestions;
+    const result = await provider.provideCompletionItems(model, position, mockContext, mockToken);
+    const suggestions = result?.suggestions ?? [];
 
     // Find col suggestion (stripped name)
     const colSuggestion = suggestions.find((s: languages.CompletionItem) => s.label === 'col');
     expect(colSuggestion).toBeDefined();
 
     // Verify insertText DOES NOT include "pl."
-    expect(colSuggestion.insertText).toBe("col('${1}')");
+    expect(colSuggestion!.insertText).toBe("col('${1}')");
 
     // Verify range is at cursor (empty)
-    expect(colSuggestion.range).toEqual({
+    expect(colSuggestion!.range).toEqual({
       startLineNumber: 1,
       endLineNumber: 1,
       startColumn: 4,
@@ -174,7 +178,7 @@ describe('CodeEditor Completion Logic', () => {
 
   it('handles "pl.c" prefix correctly (Dot + Char Context)', async () => {
     const provider = await setupEditor();
-    const position = { lineNumber: 1, column: 5 }; // After "pl.c"
+    const position = { lineNumber: 1, column: 5 } as Position; // After "pl.c"
     // Word is "c"
     const model = {
       getLineContent: () => 'pl.c',
@@ -183,20 +187,20 @@ describe('CodeEditor Completion Logic', () => {
         startColumn: 4,
         endColumn: 5,
       }),
-    };
+    } as unknown as editor.ITextModel;
 
-    const result = provider.provideCompletionItems(model, position);
-    const suggestions = result.suggestions;
+    const result = await provider.provideCompletionItems(model, position, mockContext, mockToken);
+    const suggestions = result?.suggestions ?? [];
 
     // Should still match "pl." context because of regex check on textBeforeCursor
     const colSuggestion = suggestions.find((s: languages.CompletionItem) => s.label === 'col');
     expect(colSuggestion).toBeDefined();
 
     // Verify insertText DOES NOT include "pl."
-    expect(colSuggestion.insertText).toBe("col('${1}')");
+    expect(colSuggestion!.insertText).toBe("col('${1}')");
 
     // Verify range covers "c"
-    expect(colSuggestion.range).toEqual({
+    expect(colSuggestion!.range).toEqual({
       startLineNumber: 1,
       endLineNumber: 1,
       startColumn: 4, // Start of "c"
@@ -208,7 +212,7 @@ describe('CodeEditor Completion Logic', () => {
 
   it('handles "pl.col" prefix correctly (Full Match Context)', async () => {
     const provider = await setupEditor();
-    const position = { lineNumber: 1, column: 7 }; // After "pl.col"
+    const position = { lineNumber: 1, column: 7 } as Position; // After "pl.col"
     // Word is "col"
     const model = {
       getLineContent: () => 'pl.col',
@@ -217,17 +221,17 @@ describe('CodeEditor Completion Logic', () => {
         startColumn: 4,
         endColumn: 7,
       }),
-    };
+    } as unknown as editor.ITextModel;
 
-    const result = provider.provideCompletionItems(model, position);
-    const suggestions = result.suggestions;
+    const result = await provider.provideCompletionItems(model, position, mockContext, mockToken);
+    const suggestions = result?.suggestions ?? [];
 
     // Should still match "pl." context
     const colSuggestion = suggestions.find((s: languages.CompletionItem) => s.label === 'col');
     expect(colSuggestion).toBeDefined();
 
-    expect(colSuggestion.insertText).toBe("col('${1}')");
-    expect(colSuggestion.range).toEqual({
+    expect(colSuggestion!.insertText).toBe("col('${1}')");
+    expect(colSuggestion!.range).toEqual({
       startLineNumber: 1,
       endLineNumber: 1,
       startColumn: 4,

@@ -10,13 +10,19 @@
   - **Needs Improvement**:
     - Filter Tool: Add syntax highlighting, field insertion helper, common function palette, expression validation
     - Formula Tool: Add syntax highlighting, field insertion helper, common function palette, expression validation
+    - Select Tool: Improve column selection interface
+    - Sort Tool: Improve multi-column sorting UI
+    - Join Tool: Improve key selection UX
+    - Summarize Tool: Improve aggregation configuration UX
 
-  - **Not Yet Implemented**:
+  - **Implemented** (v0.x):
     - Select Tool: Column selection interface
     - Sort Tool: Multi-column sorting with direction
-    - Union Tool: Combine multiple datasets
+    - Union Tool: Combine multiple datasets (vertical stacking)
     - Join Tool: Left/right/inner/outer joins with key selection
     - Summarize Tool: Group by + aggregations
+
+  - **Not Yet Implemented**:
     - Pivot Tool: Reshape data from long to wide
     - Unpivot Tool: Reshape data from wide to long
 
@@ -151,14 +157,10 @@
 
 ### Bug Fixes & Known Issues
 
-- **Linux file dialog z-order issue**: File dialogs (Import/Export/CSV Browse) sometimes appear behind the main window on Linux. Root cause is Electron's GTK integration - `GtkFileChooserNative` casting errors suggest compatibility issues between Electron 28 and system GTK. Windows works perfectly using native dialogs.
-  - Current workaround: Use `event.sender` to get parent window (eliminates race conditions)
-  - Still problematic on some Linux window managers/compositors
-  - Potential solutions:
-    - Wait for Electron GTK fixes in future versions
-    - Build custom HTML5-based file picker for Linux
-    - Use different dialog library (e.g., node-file-dialog)
-    - Document as known limitation for Linux users
+- **Linux file dialog z-order issue**: RESOLVED in v0.x
+  - Fixed by upgrading Electron 28.1.0 -> 39.2.4
+  - Electron 36+ uses GTK 4 by default on GNOME, which handles dialog window parenting correctly
+  - Additional benefit: Native GTK 4 file picker includes network locations, favorites, and automatic path resolution
 
 ### Documentation
 
