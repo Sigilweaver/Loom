@@ -4,6 +4,7 @@ import { ThemeProvider } from '../../../contexts/ThemeContext';
 import { CodeEditor } from '../CodeEditor';
 import type { PolarsFunctionsResponse } from '../../../api/backend';
 import type { languages } from 'monaco-editor';
+import type { OnMount } from '@monaco-editor/react';
 
 // Mock data
 const mockFunctions: PolarsFunctionsResponse = {
@@ -29,7 +30,7 @@ const registerCompletionItemProviderSpy = vi.fn(() => ({ dispose: vi.fn() }));
 
 // Override the mock from test-setup.ts
 vi.mock('@monaco-editor/react', () => ({
-  Editor: ({ onMount }: any) => {
+  Editor: ({ onMount }: { onMount?: OnMount }) => {
     // Call onMount immediately with our mock monaco
     if (onMount) {
       const mockMonaco = {
@@ -46,13 +47,13 @@ vi.mock('@monaco-editor/react', () => ({
         Range: class {
           constructor(public startLineNumber: number, public startColumn: number, public endLineNumber: number, public endColumn: number) {}
         },
-      };
+      } as Parameters<OnMount>[1];
       const mockEditor = {
         updateOptions: vi.fn(),
         createDecorationsCollection: vi.fn(() => ({ clear: vi.fn() })),
         onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
         getValue: () => '',
-      };
+      } as Parameters<OnMount>[0];
       // Execute onMount asynchronously to simulate real behavior and allow render to finish
       setTimeout(() => onMount(mockEditor, mockMonaco), 0);
     }
@@ -61,7 +62,7 @@ vi.mock('@monaco-editor/react', () => ({
 }));
 
 describe('CodeEditor Completion Logic', () => {
-  let provider: any;
+  let provider: languages.CompletionItemProvider | undefined;
   
   // Helper to setup the test environment and capture the provider
   const setupEditor = async () => {
@@ -82,9 +83,10 @@ describe('CodeEditor Completion Logic', () => {
     });
 
     // Get the provider from the last call
-    const call = registerCompletionItemProviderSpy.mock.calls[0];
-    if (!call || call.length < 2) throw new Error('No call to registerCompletionItemProvider');
-    provider = call[1];
+    const call = registerCompletionItemProviderSpy.mock.calls[0] as [string, languages.CompletionItemProvider] | undefined;
+    if (!call) throw new Error('No call to registerCompletionItemProvider');
+    const [, capturedProvider] = call;
+    provider = capturedProvider;
     return provider;
   };
 
