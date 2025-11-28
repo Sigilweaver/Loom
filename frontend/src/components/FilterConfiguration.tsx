@@ -1,15 +1,48 @@
-import { ToolConfig } from "../domain/workflow/entities/workflow";
+import { useEffect, useMemo } from "react";
+import { ToolConfig, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
 import { CodeEditor } from "./common/CodeEditor";
+import { useMetadata, usePolarsFunctions } from "../api/hooks";
+import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 
 interface FilterConfigurationProps {
   config: ToolConfig;
   onChange: (config: ToolConfig) => void;
+  toolId: string;
+  tools: Tool[];
+  wires: Wire[];
+  workflowMeta: WorkflowMeta;
 }
 
 export function FilterConfiguration({
   config,
   onChange,
+  toolId,
+  tools,
+  wires,
+  workflowMeta,
 }: FilterConfigurationProps) {
+  const { metadata, fetchMetadata } = useMetadata();
+  const { functions, fetchFunctions } = usePolarsFunctions();
+
+  const columns = metadata?.columns || [];
+
+  // Fetch Polars functions on mount
+  useEffect(() => {
+    if (!functions) {
+      fetchFunctions();
+    }
+  }, [functions, fetchFunctions]);
+
+  // Track wire connections to this tool - only refetch when they change
+  const wireConnections = useMemo(() => {
+    return wires.filter(w => w.to.tool === toolId).map(w => `${w.from.tool}-${w.from.socket}`).sort().join(',');
+  }, [wires, toolId]);
+
+  // Fetch metadata when component mounts or connections change
+  useEffect(() => {
+    const workflow = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+    fetchMetadata(toolId, JSON.parse(workflow));
+  }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
   const handleExpressionChange = (value: string) => {
     const newConfig = {
       ...config,
@@ -46,8 +79,10 @@ export function FilterConfiguration({
               value={(config.expression as string) || ""}
               onChange={handleExpressionChange}
               language="python"
-              height="120px"
-              placeholder="pl.col('amount') > 100"
+              height="150px"
+              placeholder="pl.col('age') > 18"
+              columns={columns}
+              polarsFunctions={functions}
             />
           </div>
           <p className="text-xs text-theme-text-tertiary">

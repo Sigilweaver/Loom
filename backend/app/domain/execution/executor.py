@@ -215,6 +215,61 @@ class WorkflowExecutor:
             },
         }
 
+    async def get_tool_metadata(
+        self,
+        workflow: Workflow,
+        tool_id: str,
+    ) -> dict[str, Any]:
+        """
+        Get metadata for a tool for autocomplete suggestions.
+
+        Returns available columns from input sockets plus common Polars functions.
+
+        Args:
+            workflow: Workflow containing the tool
+            tool_id: Tool ID to get metadata for
+
+        Returns:
+            Dict with columns and Polars function suggestions
+        """
+        # Build execution graph to find dependencies
+        graph = ExecutionGraph(workflow)
+        execution_order = graph.execution_order()
+
+        # Execute upstream tools up to (but not including) target
+        target_index = execution_order.index(tool_id)
+        for upstream_tool_id in execution_order[:target_index]:
+            upstream_tool = self._get_tool(workflow, upstream_tool_id)
+            inputs = self._gather_inputs(upstream_tool_id, graph)
+            outputs = await self._execute_tool(upstream_tool, inputs)
+            self.results[upstream_tool_id] = outputs
+
+        # Get input schemas for target tool
+        columns = []
+        tool_inputs = graph.get_tool_inputs(tool_id)
+        for socket_id, source_list in tool_inputs.items():
+            # For now, just use schema from first source (handles Union later)
+            if source_list:
+                source_tool_id, source_socket_id = source_list[0]
+                if source_tool_id in self.results:
+                    # Get schema from LazyFrame
+                    lf = self.results[source_tool_id][source_socket_id]
+                    schema = schema_from_polars(lf)
+                    columns.extend([
+                        {
+                            "name": col.name,
+                            "dtype": col.dtype.value,
+                            "nullable": col.nullable,
+                        }
+                        for col in schema.columns
+                    ])
+
+        # Return metadata
+        return {
+            "tool_id": tool_id,
+            "columns": columns,
+        }
+
     async def _execute_tool(
         self, tool: Tool, inputs: dict[int, pl.LazyFrame]
     ) -> dict[int, pl.LazyFrame]:

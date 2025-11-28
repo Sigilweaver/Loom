@@ -164,7 +164,7 @@ function createWindow(): void {
   if (isDev) {
     console.log("Loading development URL: http://localhost:5173");
     mainWindow.loadURL("http://localhost:5173");
-    // mainWindow.webContents.openDevTools() // Disabled for cleaner experience
+    mainWindow.webContents.openDevTools();
   } else {
     console.log(
       "Loading production file:",
@@ -172,6 +172,11 @@ function createWindow(): void {
     );
     mainWindow.loadFile(join(__dirname, "../dist/index.html"));
   }
+
+  // Force DevTools open in all modes for debugging
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.openDevTools();
+  });
 
   // Ensure title is set after page loads
   mainWindow.webContents.once("did-finish-load", () => {

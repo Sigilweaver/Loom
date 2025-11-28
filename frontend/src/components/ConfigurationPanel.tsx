@@ -280,6 +280,10 @@ export default function ConfigurationPanel() {
           <FilterConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+            toolId={selectedTool.id}
+            tools={tools}
+            wires={wires}
+            workflowMeta={workflowMeta}
           />
         </div>
       ) : selectedTool.type === "Formula" ? (
@@ -288,6 +292,10 @@ export default function ConfigurationPanel() {
           <FormulaConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+            toolId={selectedTool.id}
+            tools={tools}
+            wires={wires}
+            workflowMeta={workflowMeta}
           />
         </div>
       ) : (

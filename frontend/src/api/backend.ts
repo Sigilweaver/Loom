@@ -231,3 +231,72 @@ export async function healthCheck(): Promise<{
 }> {
   return apiRequest('/health/');
 }
+
+/**
+ * Polars function metadata for autocomplete
+ */
+export interface PolarsFunction {
+  name: string;
+  signature: string;
+  description: string;
+  snippet: string;
+  category: string;
+}
+
+/**
+ * Metadata response from /api/workflow/tool/metadata endpoint
+ */
+export interface MetadataResponse {
+  tool_id: string;
+  columns: ColumnSchema[];
+}
+
+/**
+ * Polars functions response from /api/polars/functions endpoint
+ */
+export interface PolarsFunctionsResponse {
+  table_level: PolarsFunction[];
+  column_methods: {
+    all: PolarsFunction[];
+    string: PolarsFunction[];
+    numeric: PolarsFunction[];
+    datetime: PolarsFunction[];
+  };
+}
+
+/**
+ * Get metadata for a tool for autocomplete suggestions
+ * 
+ * Returns available columns from input sockets.
+ * Use this to populate Monaco editor autocomplete with column names.
+ * 
+ * @param toolId - The ID of the tool to get metadata for
+ * @param workflow - The complete workflow definition
+ * @returns Metadata including columns from input sockets
+ */
+export async function getToolMetadata(
+  toolId: string,
+  workflow: WorkflowJSON
+): Promise<MetadataResponse> {
+  return apiRequest<MetadataResponse>('/workflow/tool/metadata', {
+    method: 'POST',
+    body: JSON.stringify({
+      tool_id: toolId,
+      workflow,
+    }),
+  });
+}
+
+/**
+ * Get available Polars functions for autocomplete
+ * 
+ * Returns all Polars functions categorized by scope and type.
+ * This should be called once on app startup and cached.
+ * 
+ * @returns Polars functions categorized by scope
+ */
+export async function getPolarsFunctions(): Promise<PolarsFunctionsResponse> {
+  return apiRequest<PolarsFunctionsResponse>('/polars/functions', {
+    method: 'GET',
+  });
+}

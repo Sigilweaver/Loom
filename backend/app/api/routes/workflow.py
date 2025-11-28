@@ -41,6 +41,13 @@ class ToolSchemaRequest(BaseModel):
     workflow: Workflow = Field(description="Full workflow for context")
 
 
+class ToolMetadataRequest(BaseModel):
+    """Request to get tool metadata for autocomplete"""
+
+    tool_id: str = Field(description="Tool ID to get metadata for")
+    workflow: Workflow = Field(description="Full workflow for context")
+
+
 @router.post("/execute")
 async def execute_workflow(request: ExecuteWorkflowRequest):
     """
@@ -113,6 +120,34 @@ async def get_tool_schema(request: ToolSchemaRequest):
     try:
         executor = WorkflowExecutor()
         result = await executor.get_tool_schema(
+            workflow=request.workflow,
+            tool_id=request.tool_id,
+        )
+        return result
+
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ExecutionError as e:
+        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+    except ToolError as e:
+        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@router.post("/tool/metadata")
+async def get_tool_metadata(request: ToolMetadataRequest):
+    """
+    Get metadata for a tool for autocomplete suggestions.
+
+    Returns available columns from input sockets plus common Polars functions.
+    Useful for Monaco editor autocomplete in Formula/Filter tools.
+
+    This executes upstream tools to determine input columns.
+    """
+    try:
+        executor = WorkflowExecutor()
+        result = await executor.get_tool_metadata(
             workflow=request.workflow,
             tool_id=request.tool_id,
         )

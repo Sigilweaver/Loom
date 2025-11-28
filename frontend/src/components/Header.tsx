@@ -55,7 +55,7 @@ export default function Header({ onShowSettings }: HeaderProps) {
         case 'open-workflow':
           if (data) {
             // Data is the file path from the menu dialog
-            handleOpenWorkflowFromPath(data);
+            handleOpenWorkflowFromPath(data as string);
           } else {
             handleImportWorkflow();
           }

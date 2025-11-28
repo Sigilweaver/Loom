@@ -1,16 +1,49 @@
-import { ToolConfig, EmissionMap } from "../domain/workflow/entities/workflow";
+import { useEffect, useMemo } from "react";
+import { ToolConfig, EmissionMap, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
 import { ConfigText } from "./primitives/ConfigText";
 import { CodeEditor } from "./common/CodeEditor";
+import { useMetadata, usePolarsFunctions } from "../api/hooks";
+import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 
 interface FormulaConfigurationProps {
   config: ToolConfig;
   onChange: (config: ToolConfig) => void;
+  toolId: string;
+  tools: Tool[];
+  wires: Wire[];
+  workflowMeta: WorkflowMeta;
 }
 
 export function FormulaConfiguration({
   config,
   onChange,
+  toolId,
+  tools,
+  wires,
+  workflowMeta,
 }: FormulaConfigurationProps) {
+  const { metadata, fetchMetadata } = useMetadata();
+  const { functions, fetchFunctions } = usePolarsFunctions();
+
+  const columns = metadata?.columns || [];
+
+  // Fetch Polars functions on mount
+  useEffect(() => {
+    if (!functions) {
+      fetchFunctions();
+    }
+  }, [functions, fetchFunctions]);
+
+  // Track wire connections to this tool - only refetch when they change
+  const wireConnections = useMemo(() => {
+    return wires.filter(w => w.to.tool === toolId).map(w => `${w.from.tool}-${w.from.socket}`).sort().join(',');
+  }, [wires, toolId]);
+
+  // Fetch metadata when component mounts or connections change
+  useEffect(() => {
+    const workflow = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+    fetchMetadata(toolId, JSON.parse(workflow));
+  }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
   const handleColumnNameChange = (
     value: string | undefined,
     emitPatch: EmissionMap,
@@ -79,6 +112,8 @@ export function FormulaConfiguration({
               language="python"
               height="150px"
               placeholder="pl.col('amount') * 1.1"
+              columns={columns}
+              polarsFunctions={functions}
             />
           </div>
           <p className="text-xs text-theme-text-tertiary">

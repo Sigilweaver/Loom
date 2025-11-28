@@ -5,11 +5,15 @@
 import { useState, useCallback } from 'react';
 import {
   getToolSchema,
+  getToolMetadata,
+  getPolarsFunctions,
   previewTool,
   executeWorkflow,
   previewCode,
   BackendError,
   type SchemaResponse,
+  type MetadataResponse,
+  type PolarsFunctionsResponse,
   type ExecuteResponse,
   type WorkflowExecuteResponse,
   type ColumnSchema,
@@ -233,4 +237,110 @@ export function useCodePreview(): UseCodePreviewResult {
   );
 
   return { code, loading, error, generateCode };
+}
+
+export interface UseMetadataResult {
+  metadata: MetadataResponse | null;
+  loading: boolean;
+  error: string | null;
+  fetchMetadata: (toolId: string, workflow: WorkflowJSON) => Promise<void>;
+  getColumns: () => ColumnSchema[];
+}
+
+/**
+ * Hook for fetching tool metadata for autocomplete
+ * 
+ * Returns available columns from input sockets.
+ * 
+ * @example
+ * const { metadata, loading, error, fetchMetadata, getColumns } = useMetadata();
+ * 
+ * // Fetch metadata when tool is connected
+ * useEffect(() => {
+ *   if (tool.hasUpstreamConnection) {
+ *     fetchMetadata(tool.id, workflow);
+ *   }
+ * }, [tool.connections]);
+ * 
+ * // Use columns for autocomplete
+ * const columns = getColumns();
+ */
+export function useMetadata(): UseMetadataResult {
+  const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMetadata = useCallback(async (toolId: string, workflow: WorkflowJSON) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await getToolMetadata(toolId, workflow);
+      setMetadata(result);
+    } catch (err) {
+      const message = err instanceof BackendError 
+        ? err.message 
+        : 'Failed to fetch metadata';
+      setError(message);
+      setMetadata(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getColumns = useCallback((): ColumnSchema[] => {
+    return metadata?.columns || [];
+  }, [metadata]);
+
+  return { metadata, loading, error, fetchMetadata, getColumns };
+}
+
+export interface UsePolarsFunctionsResult {
+  functions: PolarsFunctionsResponse | null;
+  loading: boolean;
+  error: string | null;
+  fetchFunctions: () => Promise<void>;
+}
+
+/**
+ * Hook for fetching Polars functions for autocomplete
+ * 
+ * Should be called once on app startup and cached.
+ * 
+ * @example
+ * const { functions, loading, fetchFunctions } = usePolarsFunctions();
+ * 
+ * // Fetch on mount
+ * useEffect(() => {
+ *   fetchFunctions();
+ * }, []);
+ * 
+ * // Use functions for Monaco autocomplete
+ * const tableFunctions = functions?.table_level || [];
+ * const stringMethods = functions?.column_methods.string || [];
+ */
+export function usePolarsFunctions(): UsePolarsFunctionsResult {
+  const [functions, setFunctions] = useState<PolarsFunctionsResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFunctions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await getPolarsFunctions();
+      setFunctions(result);
+    } catch (err) {
+      const message = err instanceof BackendError 
+        ? err.message 
+        : 'Failed to fetch Polars functions';
+      setError(message);
+      setFunctions(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { functions, loading, error, fetchFunctions };
 }
