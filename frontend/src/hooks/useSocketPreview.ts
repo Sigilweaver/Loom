@@ -3,6 +3,7 @@ import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
+import { getCachedPreview, cachePreview } from "../api/cache";
 
 /**
  * Hook for handling socket preview functionality
@@ -23,7 +24,59 @@ export function useSocketPreview() {
       setBottomPaneOpen(true);
       setActiveBottomTab("preview");
 
-      // Set loading state
+      // Serialize workflow first (needed for cache check)
+      const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+      const workflow = JSON.parse(workflowJSON);
+
+      // For input sockets, we need to find the upstream tool's output
+      let targetToolId = toolId;
+      let targetSocketId = socketId;
+
+      if (socketDirection === "input") {
+        // Find wire connected to this input socket
+        const wire = wires.find(
+          (w) => w.to.tool === toolId && w.to.socket === socketId
+        );
+        
+        if (!wire) {
+          setPreviewState({
+            toolId,
+            socketId,
+            socketDirection,
+            data: [],
+            schema: [],
+            loading: false,
+            error: "No connection to this input socket",
+          });
+          return;
+        }
+
+        // Preview the upstream tool's output socket
+        targetToolId = wire.from.tool;
+        targetSocketId = wire.from.socket;
+      }
+
+      // Check cache first
+      const cached = getCachedPreview(targetToolId, workflow, 100);
+      if (cached) {
+        const socketKey = targetSocketId.toString();
+        const output = cached.outputs[socketKey];
+        
+        if (output) {
+          setPreviewState({
+            toolId,
+            socketId,
+            socketDirection,
+            data: output.data || [],
+            schema: output.data_schema?.columns || [],
+            loading: false,
+            error: null,
+          });
+          return;
+        }
+      }
+
+      // Set loading state (only if not cached)
       setPreviewState({
         toolId,
         socketId,
@@ -35,40 +88,11 @@ export function useSocketPreview() {
       });
 
       try {
-        // Serialize workflow
-        const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
-        const workflow = JSON.parse(workflowJSON);
-
-        // For input sockets, we need to find the upstream tool's output
-        let targetToolId = toolId;
-        let targetSocketId = socketId;
-
-        if (socketDirection === "input") {
-          // Find wire connected to this input socket
-          const wire = wires.find(
-            (w) => w.to.tool === toolId && w.to.socket === socketId
-          );
-          
-          if (!wire) {
-            setPreviewState({
-              toolId,
-              socketId,
-              socketDirection,
-              data: [],
-              schema: [],
-              loading: false,
-              error: "No connection to this input socket",
-            });
-            return;
-          }
-
-          // Preview the upstream tool's output socket
-          targetToolId = wire.from.tool;
-          targetSocketId = wire.from.socket;
-        }
-
         // Execute preview
         const result = await previewTool(targetToolId, workflow, 100);
+        
+        // Cache the result
+        cachePreview(targetToolId, workflow, 100, result);
 
         // Get data for the specific socket
         const socketKey = targetSocketId.toString();

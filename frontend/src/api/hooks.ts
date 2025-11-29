@@ -18,6 +18,14 @@ import {
   type WorkflowExecuteResponse,
   type ColumnSchema,
 } from './backend';
+import {
+  getCachedSchema,
+  cacheSchema,
+  getCachedPreview,
+  cachePreview,
+  getCachedMetadata,
+  cacheMetadata,
+} from './cache';
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 
 export interface UseSchemaResult {
@@ -50,12 +58,22 @@ export function useSchema(): UseSchemaResult {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSchema = useCallback(async (toolId: string, workflow: WorkflowJSON) => {
+    // Check cache first
+    const cached = getCachedSchema(toolId, workflow);
+    if (cached) {
+      setSchema(cached);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
       const result = await getToolSchema(toolId, workflow);
       setSchema(result);
+      // Cache the result
+      cacheSchema(toolId, workflow, result);
     } catch (err) {
       const message = err instanceof BackendError 
         ? err.message 
@@ -107,12 +125,22 @@ export function usePreview(): UsePreviewResult {
 
   const executePreview = useCallback(
     async (toolId: string, workflow: WorkflowJSON, limit = 100) => {
+      // Check cache first
+      const cached = getCachedPreview(toolId, workflow, limit);
+      if (cached) {
+        setPreview(cached);
+        setError(null);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       
       try {
         const result = await previewTool(toolId, workflow, limit);
         setPreview(result);
+        // Cache the result
+        cachePreview(toolId, workflow, limit, result);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
@@ -271,12 +299,22 @@ export function useMetadata(): UseMetadataResult {
   const [error, setError] = useState<string | null>(null);
 
   const fetchMetadata = useCallback(async (toolId: string, workflow: WorkflowJSON) => {
+    // Check cache first
+    const cached = getCachedMetadata(toolId, workflow);
+    if (cached) {
+      setMetadata(cached);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
       const result = await getToolMetadata(toolId, workflow);
       setMetadata(result);
+      // Cache the result
+      cacheMetadata(toolId, workflow, result);
     } catch (err) {
       const message = err instanceof BackendError 
         ? err.message 
@@ -344,3 +382,11 @@ export function usePolarsFunctions(): UsePolarsFunctionsResult {
 
   return { functions, loading, error, fetchFunctions };
 }
+
+// Re-export cache utilities for manual invalidation
+export {
+  invalidateTool,
+  invalidateWireChange,
+  clearCache,
+  getCacheStats,
+} from './cache';
