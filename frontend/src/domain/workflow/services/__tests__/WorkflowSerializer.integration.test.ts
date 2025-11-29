@@ -243,4 +243,117 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
     expect(importedWires).toEqual(wires);
     expect(importedMeta).toEqual(meta);
   });
+
+  it("should always include source and destination fields even without _emit", () => {
+    // Create tools with source/destination but no _emit map
+    const tools: Tool[] = [
+      {
+        id: "input_001",
+        type: "Input",
+        x: 100,
+        y: 100,
+        config: {
+          category: "file",
+          type: "csv",
+          csvMode: "scan",
+          source: "/path/to/input.csv",
+          // No _emit map - source should still be included
+        },
+        sockets: [{ id: "output", direction: "output" }],
+      },
+      {
+        id: "output_001",
+        type: "Output",
+        x: 300,
+        y: 100,
+        config: {
+          category: "file",
+          type: "csv",
+          destination: "/path/to/output.csv",
+          // No _emit map - destination should still be included
+        },
+        sockets: [{ id: "input", direction: "input" }],
+      },
+    ];
+
+    const wires: Wire[] = [
+      {
+        from: { tool: "input_001", socket: "output" },
+        to: { tool: "output_001", socket: "input" },
+      },
+    ];
+
+    const meta: WorkflowMeta = {
+      name: "Source/Destination Test",
+      description: "Tests that source and destination are always serialized",
+      author: "Test Suite",
+      workflowId: "test_source_dest",
+      created: "2025-11-29T00:00:00.000Z",
+    };
+
+    // Export to JSON
+    const json = WorkflowSerializer.toJSON(tools, wires, meta);
+    const parsed = JSON.parse(json);
+
+    // Verify source is included for Input tool
+    const inputTool = parsed.tools.find((t: Tool) => t.id === "input_001");
+    expect(inputTool.config.source).toBe("/path/to/input.csv");
+    expect(inputTool.config.category).toBe("file");
+    expect(inputTool.config.type).toBe("csv");
+    expect(inputTool.config.csvMode).toBe("scan");
+
+    // Verify destination is included for Output tool
+    const outputTool = parsed.tools.find((t: Tool) => t.id === "output_001");
+    expect(outputTool.config.destination).toBe("/path/to/output.csv");
+
+    // Import back and verify
+    const imported = WorkflowSerializer.fromJSON(json);
+    const importedInput = imported.tools.find((t) => t.id === "input_001");
+    const importedOutput = imported.tools.find((t) => t.id === "output_001");
+
+    expect(importedInput?.config.source).toBe("/path/to/input.csv");
+    expect(importedOutput?.config.destination).toBe("/path/to/output.csv");
+  });
+
+  it("should include source/destination even when _emit explicitly marks them false", () => {
+    // This tests that alwaysInclude fields override _emit
+    const tools: Tool[] = [
+      {
+        id: "input_001",
+        type: "Input",
+        x: 100,
+        y: 100,
+        config: {
+          category: "file",
+          type: "csv",
+          source: "/path/to/data.csv",
+          separator: ",",
+          _emit: {
+            source: false, // Even with false, should be included
+            separator: true,
+          },
+        },
+        sockets: [{ id: "output", direction: "output" }],
+      },
+    ];
+
+    const meta: WorkflowMeta = {
+      name: "Emit Override Test",
+      description: "Tests alwaysInclude overrides _emit",
+      author: "Test Suite",
+      workflowId: "test_emit_override",
+      created: "2025-11-29T00:00:00.000Z",
+    };
+
+    const json = WorkflowSerializer.toJSON(tools, [], meta);
+    const parsed = JSON.parse(json);
+
+    const inputTool = parsed.tools[0];
+    // source should be included because it's in alwaysInclude
+    expect(inputTool.config.source).toBe("/path/to/data.csv");
+    // separator should also be included because _emit.separator is true
+    expect(inputTool.config.separator).toBe(",");
+    // _emit should not be in serialized output
+    expect(inputTool.config._emit).toBeUndefined();
+  });
 });

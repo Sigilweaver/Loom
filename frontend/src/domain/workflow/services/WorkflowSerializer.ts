@@ -41,6 +41,8 @@ export class WorkflowSerializer {
    * - category: Data source category (file, database, etc.)
    * - type: Data source type (csv, parquet, etc.)
    * - csvMode: CSV reading mode (scan, read, batched)
+   * - source: File path for Input tools (critical for execution)
+   * - destination: File path for Output tools (critical for execution)
    *
    * @param config - Tool configuration
    * @param emit - Emission map indicating which fields to serialize
@@ -51,7 +53,7 @@ export class WorkflowSerializer {
     emit: Record<string, unknown> | undefined
   ): ToolConfig {
     // Fields that must always be included (structural/discriminator fields)
-    const alwaysInclude = new Set(['category', 'type', 'csvMode']);
+    const alwaysInclude = new Set(['category', 'type', 'csvMode', 'source', 'destination']);
 
     if (!emit) {
       // No emission map means include all fields (except _emit)
