@@ -17,7 +17,6 @@ export interface HeaderRef {
   handleSaveWorkflow: () => void;
   handleSaveAsWorkflow: () => void;
   handleImportWorkflow: () => void;
-  handleExportWorkflow: () => void;
   handleToggleWorkflowViewer: () => void;
   handlePreviewWorkflow: () => void;
   handleRunWorkflow: () => void;
@@ -67,7 +66,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
     handleSaveWorkflow,
     handleSaveAsWorkflow,
     handleImportWorkflow,
-    handleExportWorkflow,
     handleToggleWorkflowViewer,
     handlePreviewWorkflow,
     handleRunWorkflow,
@@ -350,66 +348,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
     }
   };
 
-  const handleExportWorkflow = async () => {
-    try {
-      const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
-
-      // Build filesystem-safe filename
-      const buildSafeName = (name: string) => {
-        const base = name || "Workflow";
-        const withoutControls = Array.from(base)
-          .map((ch) => {
-            const cp = ch.codePointAt(0) ?? 0;
-            return cp >= 0x20 ? ch : "_";
-          })
-          .join("");
-        let safe = withoutControls.replace(/[<>:"/\\|?*]/g, "_");
-        safe = safe
-          .replace(/\s+/g, " ")
-          .replace(/\s*_\s*/g, "_")
-          .trim();
-        if (!safe || /^\.+$/.test(safe)) safe = "workflow";
-        if (safe.length > 120) safe = safe.slice(0, 120).trim();
-        return safe;
-      };
-
-      const baseName = buildSafeName(workflowMeta.name);
-
-      // Use Electron's native save dialog if available
-      if (window.electronAPI?.showSaveDialog && window.electronAPI?.saveFile) {
-        const filePath = await window.electronAPI.showSaveDialog({
-          defaultPath: `${baseName}.swwf`,
-          filters: [
-            { name: "Workflow Files", extensions: ["swwf"] },
-            { name: "All Files", extensions: ["*"] },
-          ],
-        });
-
-        if (filePath) {
-          await window.electronAPI.saveFile(json, filePath);
-          showNotification("Workflow exported successfully!", "success");
-        }
-      } else {
-        // Fallback for web browser
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${baseName}.swwf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        showNotification("Workflow exported successfully!", "success");
-      }
-    } catch (error) {
-      console.error("Export error:", error);
-      showNotification("Failed to export workflow", "error");
-    }
-  };
-
   const handleToggleWorkflowViewer = () => {
     setWorkflowViewerVisible(!workflowViewerVisible);
   };
@@ -591,18 +529,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
               title="Save Workflow As... (Ctrl+Shift+S)"
             >
               Save As
-            </button>
-
-            <button
-              onClick={handleExportWorkflow}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-export-bg border border-theme-header-btn-export-border text-theme-header-btn-export-text
-                hover:bg-theme-header-btn-export-bg-hover hover:border-theme-header-btn-export-border-hover hover:text-theme-header-btn-export-text-hover
-                active:bg-theme-header-btn-export-bg-active active:border-theme-header-btn-export-border-active active:text-theme-header-btn-export-text-active
-                disabled:bg-theme-header-btn-export-bg-disabled disabled:border-theme-header-btn-export-border-disabled disabled:text-theme-header-btn-export-text-disabled"
-              title="Export Workflow Copy (Ctrl+E)"
-            >
-              Export
             </button>
 
             <button

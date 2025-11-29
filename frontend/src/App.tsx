@@ -233,12 +233,6 @@ function App() {
         headerRef.current?.handleImportWorkflow();
       }
 
-      // Ctrl+E: Export Workflow
-      if (mod && (e.key === "e" || e.key === "E")) {
-        e.preventDefault();
-        headerRef.current?.handleExportWorkflow();
-      }
-
       // Ctrl+P: Preview All Tools
       if (mod && (e.key === "p" || e.key === "P")) {
         e.preventDefault();
