@@ -45,7 +45,7 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 
 ### Core Value Props
 - Ultimate Flexibility (desktop, web, cloud)
-- Wicked Fast Performance (Dask-powered)
+- Wicked Fast Performance (Polars-powered)
 - Enterprise-Grade Security (compliance ready)
 
 ### Interactive Frontend Demo
@@ -58,7 +58,7 @@ A mystical landing page for the Sigilweaver data pipeline tool, featuring an int
 
 ### Technical Features
 - Frontend: React + Vite + Electron
-- Backend: Python orchestrator with Dask
+- Backend: Python orchestrator with Polars
 - Enterprise: Zero vendor lock-in, compliance ready
 
 ### Open Source
