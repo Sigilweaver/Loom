@@ -102,3 +102,54 @@ async def test_union_schema_by_name():
     assert "a" in col_names
     assert "b" in col_names
     assert "c" in col_names
+
+
+class TestUnionCodeGeneration:
+    """Tests for Union tool Python code generation"""
+    
+    def test_code_gen_single_input(self):
+        tool = UnionTool()
+        input_vars = {0: "df_input"}
+        config = {"mode": "ByName"}
+        
+        lines, output_vars = tool.to_python_code("union_1", config, input_vars)
+        
+        assert output_vars[1] == "df_union_1"
+        assert len(lines) == 1
+        assert "df_union_1 = df_input" in lines[0]
+    
+    def test_code_gen_multiple_inputs_by_name(self):
+        tool = UnionTool()
+        input_vars = {0: ["df_filter_t", "df_filter_f"]}
+        config = {"mode": "ByName"}
+        
+        lines, output_vars = tool.to_python_code("union_abc", config, input_vars)
+        
+        assert output_vars[1] == "df_union_abc"
+        assert len(lines) == 1
+        assert 'pl.concat([df_filter_t, df_filter_f], how="diagonal")' in lines[0]
+    
+    def test_code_gen_multiple_inputs_by_position(self):
+        tool = UnionTool()
+        input_vars = {0: ["df_a", "df_b", "df_c"]}
+        config = {"mode": "ByPosition"}
+        
+        lines, output_vars = tool.to_python_code("union_xyz", config, input_vars)
+        
+        assert output_vars[1] == "df_union_xyz"
+        # Should generate multi-line code for position-based union
+        assert any("by position" in line.lower() for line in lines)
+        assert any("_union_frames" in line for line in lines)
+        assert any("collect_schema" in line for line in lines)
+        assert any("rename" in line for line in lines)
+    
+    def test_code_gen_no_input(self):
+        tool = UnionTool()
+        input_vars = {}  # No inputs connected
+        config = {"mode": "ByName"}
+        
+        lines, output_vars = tool.to_python_code("union_empty", config, input_vars)
+        
+        assert output_vars[1] == "df_union_empty"
+        assert len(lines) == 1
+        assert "LazyFrame([])" in lines[0]

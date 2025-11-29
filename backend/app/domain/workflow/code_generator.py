@@ -94,19 +94,33 @@ class PythonCodeGenerator:
             # Fallback for tools without code generation
             return [f"# TODO: {tool.type} does not implement code generation yet"]
 
-    def _get_input_vars(self, tool_id: str) -> dict[int, str]:
-        """Get input variable names for a tool"""
-        input_vars = {}
+    def _get_input_vars(self, tool_id: str) -> dict[int, str | list[str]]:
+        """Get input variable names for a tool.
+        
+        Returns dict of socket_id -> var_name (for single input) or [var_names] (for multiple inputs)
+        """
+        input_vars: dict[int, str | list[str]] = {}
         tool_inputs = self.graph.get_tool_inputs(tool_id)
         
         for socket_id, sources in tool_inputs.items():
             if sources:
-                # Use first source (TODO: handle multiple inputs/Union)
-                source_tool_id, source_socket_id = sources[0]
-                if source_tool_id in self.var_names:
-                    var_name = self.var_names[source_tool_id].get(source_socket_id)
-                    if var_name:
-                        input_vars[socket_id] = var_name
+                if len(sources) == 1:
+                    # Single input - return as string
+                    source_tool_id, source_socket_id = sources[0]
+                    if source_tool_id in self.var_names:
+                        var_name = self.var_names[source_tool_id].get(source_socket_id)
+                        if var_name:
+                            input_vars[socket_id] = var_name
+                else:
+                    # Multiple inputs - return as list
+                    var_names = []
+                    for source_tool_id, source_socket_id in sources:
+                        if source_tool_id in self.var_names:
+                            var_name = self.var_names[source_tool_id].get(source_socket_id)
+                            if var_name:
+                                var_names.append(var_name)
+                    if var_names:
+                        input_vars[socket_id] = var_names
         
         return input_vars
 

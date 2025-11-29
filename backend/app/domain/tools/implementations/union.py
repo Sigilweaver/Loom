@@ -4,6 +4,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
 from app.api.models.common import DataSchema
 
+
 @register_tool("Union")
 class UnionTool(BaseTool):
     async def execute(
@@ -103,3 +104,60 @@ class UnionTool(BaseTool):
             return {1: schemas[0]}
             
         return {1: schemas[0]}
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[int, str | list[str]],
+    ) -> tuple[list[str], dict[int, str]]:
+        """Generate Python code for Union tool"""
+        from app.domain.workflow.code_generator import PythonCodeGenerator
+
+        lines = []
+        mode = config.get("mode", "ByName")
+
+        # Get input variable(s) - can be a single var or list
+        input_data = input_vars.get(0)
+        
+        # Generate output variable name
+        var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
+
+        if input_data is None:
+            lines.append(f"{var_name} = pl.LazyFrame([])")
+            return (lines, {1: var_name})
+
+        # Normalize to list
+        if isinstance(input_data, str):
+            input_list = [input_data]
+        else:
+            input_list = input_data
+
+        if len(input_list) == 0:
+            lines.append(f"{var_name} = pl.LazyFrame([])")
+        elif len(input_list) == 1:
+            # Single input - just pass through
+            lines.append(f"{var_name} = {input_list[0]}")
+        else:
+            # Multiple inputs - use pl.concat
+            frames_str = ", ".join(input_list)
+            
+            if mode == "ByName":
+                lines.append(f"{var_name} = pl.concat([{frames_str}], how=\"diagonal\")")
+            elif mode == "ByPosition":
+                # For ByPosition, we need to rename columns to match first frame
+                # This is more complex - generate helper code
+                lines.append(f"# Union by position - align columns to first frame")
+                lines.append(f"_union_frames = [{frames_str}]")
+                lines.append(f"_first_cols = _union_frames[0].collect_schema().names()")
+                lines.append(f"_processed = [_union_frames[0]]")
+                lines.append(f"for _frame in _union_frames[1:]:")
+                lines.append(f"    _curr_cols = _frame.collect_schema().names()")
+                lines.append(f"    _rename_map = {{old: new for old, new in zip(_curr_cols, _first_cols)}}")
+                lines.append(f"    _processed.append(_frame.rename(_rename_map))")
+                lines.append(f"{var_name} = pl.concat(_processed, how=\"vertical\")")
+            else:
+                # Default vertical concat
+                lines.append(f"{var_name} = pl.concat([{frames_str}], how=\"vertical\")")
+
+        return (lines, {1: var_name})
