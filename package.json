@@ -5,7 +5,7 @@
   "scripts": {
     "generate-favicon": "node generate-favicon.js",
     "build": "echo 'Build complete'",
-    "dev": "echo 'Development server would start here'"
+    "dev": "npx serve -l 27530"
   },
   "devDependencies": {
     "png-to-ico": "^2.1.8",

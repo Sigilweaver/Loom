@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Sigilweaver</title>
+    <meta name="description" content="Privacy Policy for Sigilweaver, an open source ETL and data pipeline tool.">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://sigilweaver.app/privacy">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="assets/sigilweaver-logo.svg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mystic: {
+                            900: '#1a0b2e',
+                            800: '#2d1b42',
+                            700: '#4c2a6b',
+                            600: '#6b3fa0',
+                            500: '#8b5cf6',
+                            400: '#a78bfa',
+                            300: '#c4b5fd',
+                            200: '#ddd6fe',
+                            100: '#f3f0ff'
+                        },
+                        gold: {
+                            500: '#f59e0b',
+                            400: '#fbbf24',
+                            300: '#fcd34d',
+                            200: '#fef3c7'
+                        }
+                    },
+                    fontFamily: {
+                        'mystical': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical min-h-screen">
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
+        Skip to main content
+    </a>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center space-x-2 group">
+                    <div class="sigil-logo">
+                        <img src="assets/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
+                    </div>
+                    <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
+                </a>
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-mystic-300 hover:text-gold-400 transition-colors">Home</a>
+                    <a href="/downloads" class="text-mystic-300 hover:text-gold-400 transition-colors">Downloads</a>
+                    <a href="https://github.com/sigilweaver" class="text-mystic-300 hover:text-gold-400 transition-colors">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" class="pt-24 pb-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-4xl font-bold text-mystic-100 mb-8">Privacy Policy</h1>
+            <p class="text-mystic-400 mb-8">Last updated: November 28, 2025</p>
+
+            <div class="prose prose-invert max-w-none space-y-8">
+                
+                <!-- Introduction -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">1. Introduction</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        This Privacy Policy explains how Nathan Riley (DBA Sigilweaver) ("we", "us", or "our") collects, uses, and protects information when you use the Sigilweaver website (sigilweaver.app) and software (collectively, the "Service").
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        We are committed to respecting your privacy. As an open source project, we believe in transparency about what data we collect and how we use it.
+                    </p>
+                </section>
+
+                <!-- TL;DR Summary -->
+                <section class="bg-gradient-to-r from-mystic-700/50 to-mystic-600/30 rounded-lg p-6 border border-gold-500/30">
+                    <h2 class="text-2xl font-semibold text-gold-400 mb-4">📋 TL;DR Summary</h2>
+                    <ul class="list-disc list-inside text-mystic-200 space-y-2">
+                        <li><strong>No telemetry or analytics</strong> — the software doesn't phone home</li>
+                        <li><strong>Fully local processing</strong> — all data stays on your machine</li>
+                        <li><strong>No user accounts</strong> — no authentication or cloud sync</li>
+                        <li><strong>No crash reporting</strong> — errors are logged locally only</li>
+                        <li><strong>We don't sell your data</strong> — ever</li>
+                        <li><strong>Open source (AGPL-3.0)</strong> — verify our claims yourself</li>
+                    </ul>
+                </section>
+
+                <!-- Information We Collect -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">2. Information We Collect</h2>
+                    
+                    <h3 class="text-xl font-medium text-mystic-300 mt-6 mb-3">2.1 Sigilweaver Desktop Application</h3>
+                    <p class="text-mystic-300 leading-relaxed">
+                        The Sigilweaver software <strong>does not collect, transmit, or store personal data on any external servers</strong>. There is no telemetry, analytics, or crash reporting.
+                    </p>
+                    
+                    <p class="text-mystic-300 leading-relaxed mt-4"><strong>Data stored locally on your machine:</strong></p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-2 space-y-2">
+                        <li><strong>User Settings:</strong> Author name (defaults to system username), backend URL, theme preferences, and UI settings — stored via Electron in your system's standard app data location</li>
+                        <li><strong>Workflow Files (.swwf):</strong> Your pipeline configurations, tool settings, wire connections, and metadata — saved where you choose</li>
+                        <li><strong>Your Data Files:</strong> CSV, Parquet, and other files you work with remain in your specified locations</li>
+                    </ul>
+                    
+                    <p class="text-mystic-300 leading-relaxed mt-4"><strong>Architecture:</strong> The backend runs entirely on localhost (:8000). Once installed, no internet connection is required for the application to function.</p>
+
+                    <h3 class="text-xl font-medium text-mystic-300 mt-6 mb-3">2.2 Website (sigilweaver.app)</h3>
+                    <p class="text-mystic-300 leading-relaxed">
+                        When you visit our website, the following information may be collected:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li><strong>Server Logs:</strong> Standard web server logs including IP addresses, browser type, referring pages, and timestamps. These are used for security and troubleshooting purposes.</li>
+                        <li><strong>Contact Information:</strong> If you voluntarily contact us via email or GitHub, we receive the information you provide.</li>
+                    </ul>
+
+                    <h3 class="text-xl font-medium text-mystic-300 mt-6 mb-3">2.3 Information We Do NOT Collect</h3>
+                    <ul class="list-disc list-inside text-mystic-300 mt-2 space-y-2">
+                        <li>No analytics services (like Google Analytics, Mixpanel, or Amplitude)</li>
+                        <li>No advertising or marketing trackers</li>
+                        <li>No crash reporting services (like Sentry)</li>
+                        <li>No user accounts or authentication</li>
+                        <li>No cloud sync or remote storage of your data</li>
+                    </ul>
+                </section>
+
+                <!-- Third-Party Services -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">3. Third-Party Services</h2>
+                    
+                    <h3 class="text-xl font-medium text-mystic-300 mt-4 mb-3">3.1 Desktop Application</h3>
+                    <p class="text-mystic-300 leading-relaxed">
+                        The desktop app loads icons from external CDNs when you open the Data Source Selector. This is the only network activity beyond the local backend:
+                    </p>
+                    <div class="mt-4 space-y-4">
+                        <div class="bg-mystic-900/50 rounded p-4">
+                            <h4 class="font-semibold text-mystic-200">Icon CDNs (Desktop App)</h4>
+                            <ul class="list-disc list-inside text-mystic-400 mt-2 text-sm space-y-1">
+                                <li><strong>Simple Icons</strong> (cdn.simpleicons.org) — data source icons (CSV, PostgreSQL, etc.)</li>
+                                <li><strong>jsDelivr</strong> (cdn.jsdelivr.net) — Oracle database icon</li>
+                            </ul>
+                            <p class="text-mystic-400 mt-2 text-sm">
+                                These CDNs may log your IP address. See: <a href="https://simpleicons.org/privacy" class="text-gold-400 hover:text-gold-300 underline">Simple Icons Privacy</a>, <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" class="text-gold-400 hover:text-gold-300 underline">jsDelivr Privacy</a>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-xl font-medium text-mystic-300 mt-6 mb-3">3.2 Website (sigilweaver.app)</h3>
+                    <p class="text-mystic-300 leading-relaxed">
+                        Our website uses the following third-party services:
+                    </p>
+                    <div class="mt-4 space-y-4">
+                        <div class="bg-mystic-900/50 rounded p-4">
+                            <h4 class="font-semibold text-mystic-200">Website Hosting & CDNs</h4>
+                            <ul class="list-disc list-inside text-mystic-400 mt-2 text-sm space-y-1">
+                                <li><strong>Cloudflare Workers</strong> — website hosting and security (<a href="https://www.cloudflare.com/privacypolicy/" class="text-gold-400 hover:text-gold-300 underline">Privacy Policy</a>)</li>
+                                <li><strong>Backblaze B2 + CDN</strong> — application downloads (<a href="https://www.backblaze.com/company/privacy.html" class="text-gold-400 hover:text-gold-300 underline">Privacy Policy</a>)</li>
+                                <li><strong>Tailwind CSS CDN</strong> (cdn.tailwindcss.com) — styling</li>
+                                <li><strong>Cloudflare CDN</strong> (cdnjs.cloudflare.com) — GSAP animations and Prism.js</li>
+                                <li><strong>Google Fonts</strong> (fonts.googleapis.com) — typography (<a href="https://policies.google.com/privacy" class="text-gold-400 hover:text-gold-300 underline">Privacy Policy</a>)</li>
+                            </ul>
+                            <p class="text-mystic-400 mt-2 text-sm">
+                                These services may log your IP address as part of their standard operations.
+                            </p>
+                        </div>
+
+                        <div class="bg-mystic-900/50 rounded p-4">
+                            <h4 class="font-semibold text-mystic-200">GitHub</h4>
+                            <p class="text-mystic-400 mt-2 text-sm">
+                                Our source code is hosted on GitHub. If you interact with our repositories (issues, pull requests, discussions), <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" class="text-gold-400 hover:text-gold-300 underline">GitHub's privacy policy</a> applies.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cookies -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">4. Cookies</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        Our website does not set any first-party cookies for tracking or analytics purposes. 
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        Third-party services we use (such as CDNs) may set their own cookies. These are typically functional cookies necessary for content delivery and do not track you for advertising purposes.
+                    </p>
+                </section>
+
+                <!-- How We Use Information -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">5. How We Use Information</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        The limited information we collect is used for:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li>Operating and maintaining the website</li>
+                        <li>Responding to your inquiries and support requests</li>
+                        <li>Identifying and addressing security issues</li>
+                        <li>Improving the Service based on general usage patterns</li>
+                    </ul>
+                </section>
+
+                <!-- Data Sharing -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">6. Data Sharing</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        <strong>We do not sell, trade, or rent your personal information to third parties.</strong>
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        We may share information only in the following circumstances:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li><strong>Legal Requirements:</strong> If required by law, court order, or governmental authority</li>
+                        <li><strong>Protection of Rights:</strong> To protect our rights, privacy, safety, or property</li>
+                        <li><strong>With Your Consent:</strong> When you explicitly agree to share information</li>
+                    </ul>
+                </section>
+
+                <!-- Data Retention -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">7. Data Retention</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        Server logs are retained for a limited period (typically 30-90 days) for security and troubleshooting purposes, after which they are automatically deleted.
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        If you contact us via email, we may retain that correspondence to help us respond to any future inquiries and improve our support.
+                    </p>
+                </section>
+
+                <!-- Data Security -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">8. Data Security</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        We implement reasonable security measures to protect information. Our website is served over HTTPS to encrypt data in transit. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
+                    </p>
+                </section>
+
+                <!-- Your Rights -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">9. Your Rights</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        Depending on your location, you may have certain rights regarding your personal data, including:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li><strong>Access:</strong> Request information about what data we hold about you</li>
+                        <li><strong>Correction:</strong> Request correction of inaccurate data</li>
+                        <li><strong>Deletion:</strong> Request deletion of your data</li>
+                        <li><strong>Portability:</strong> Request a copy of your data in a portable format</li>
+                    </ul>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        To exercise these rights, please contact us using the information provided below.
+                    </p>
+                </section>
+
+                <!-- International Users -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">10. International Users</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        If you are accessing the Service from outside the United States, please be aware that information may be transferred to, stored, and processed in the United States or other jurisdictions where our servers or third-party service providers are located.
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        <strong>For EU/EEA Users:</strong> We strive to comply with GDPR requirements. Our legal basis for processing personal data is legitimate interest (operating the website and responding to inquiries).
+                    </p>
+                </section>
+
+                <!-- Children's Privacy -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">11. Children's Privacy</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        The Service is not directed to children under 13 years of age. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
+                    </p>
+                </section>
+
+                <!-- Open Source Transparency -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">12. Open Source Transparency</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        Sigilweaver is open source software licensed under <strong>AGPL-3.0</strong>. You can inspect our source code to verify our privacy practices — there is no hidden telemetry, analytics, or data collection.
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        We believe in privacy by design. The application architecture ensures all data processing happens locally on your machine, with the backend running on localhost.
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        <a href="https://github.com/sigilweaver" class="text-gold-400 hover:text-gold-300 underline">View our source code on GitHub →</a>
+                    </p>
+                </section>
+
+                <!-- Changes to Privacy Policy -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">13. Changes to This Privacy Policy</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date at the top of this page. We encourage you to review this Privacy Policy periodically.
+                    </p>
+                </section>
+
+                <!-- Contact -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">14. Contact Us</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        If you have any questions about this Privacy Policy or our privacy practices, please contact us through:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li>GitHub: <a href="https://github.com/sigilweaver" class="text-gold-400 hover:text-gold-300 underline">github.com/sigilweaver</a></li>
+                        <li>Email: See the contact information on our GitHub profile</li>
+                    </ul>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-mystic-900 border-t border-mystic-700 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <img src="assets/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="24" height="24">
+                    <span class="text-mystic-400">&copy; 2025 Nathan Riley (DBA Sigilweaver). Sigilweaver&trade; is a trademark of Nathan Riley.</span>
+                </div>
+                <div class="flex space-x-6 text-mystic-400">
+                    <a href="/terms" class="hover:text-gold-400 transition-colors">Terms of Use</a>
+                    <a href="/privacy" class="hover:text-gold-400 transition-colors">Privacy Policy</a>
+                    <a href="https://github.com/sigilweaver" class="hover:text-gold-400 transition-colors">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
