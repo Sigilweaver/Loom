@@ -612,7 +612,8 @@ html.animations-disabled .node-connections {
 .floating-orb {
     will-change: transform;
     backface-visibility: hidden;
-    perspective: 1000px;
+    transform: translateZ(0); /* Force GPU acceleration */
+    -webkit-transform: translateZ(0);
 }
 
 /* Contain layout and paint for better performance */
@@ -620,6 +621,14 @@ html.animations-disabled .node-connections {
 .particles,
 .workflow-canvas {
     contain: layout style paint;
+    pointer-events: none; /* They're decorative, no need for mouse events */
+}
+
+/* Only apply will-change when animating to save memory */
+@media (prefers-reduced-motion: no-preference) {
+    .floating-node {
+        will-change: transform;
+    }
 }
 
 /* Better image loading */

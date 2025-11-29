@@ -114,8 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeAnimations();
         initializeScrollEffects();
         initializeDemoCanvas();
-        initializeParticles();
-        initializeNodeConnections();
+        // Particles and node connections disabled for performance
+        // initializeParticles();
+        // initializeNodeConnections();
         
         // Set mobile menu position based on nav height
         const mobileMenu = document.getElementById('mobile-menu');
@@ -240,22 +241,29 @@ function initializeNavigation() {
         });
     });
 
-    // Navigation scroll effect
+    // Navigation scroll effect (throttled for performance)
     let lastScrollTop = 0;
     const nav = document.querySelector('nav');
+    let scrollTicking = false;
     
     window.addEventListener('scroll', function() {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // Add background blur when scrolled
-        if (scrollTop > 50) {
-            nav.classList.add('backdrop-blur-md', 'bg-mystic-900/95');
-        } else {
-            nav.classList.remove('backdrop-blur-md', 'bg-mystic-900/95');
+        if (!scrollTicking) {
+            window.requestAnimationFrame(function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // Add background blur when scrolled
+                if (scrollTop > 50) {
+                    nav.classList.add('backdrop-blur-md', 'bg-mystic-900/95');
+                } else {
+                    nav.classList.remove('backdrop-blur-md', 'bg-mystic-900/95');
+                }
+                
+                lastScrollTop = scrollTop;
+                scrollTicking = false;
+            });
+            scrollTicking = true;
         }
-        
-        lastScrollTop = scrollTop;
-    });
+    }, { passive: true });
 }
 
 function toggleMobileMenu() {
@@ -365,31 +373,45 @@ function initializeAnimations() {
     
     // GSAP animations for hero section
     if (typeof gsap !== 'undefined') {
-        // Hero text animation
+        // Hero text animation with will-change hint
         gsap.fromTo('.hero h1', 
             { opacity: 0, y: 50 },
-            { opacity: 1, y: 0, duration: 1, delay: 0.5, ease: 'power2.out' }
+            { 
+                opacity: 1, 
+                y: 0, 
+                duration: 1, 
+                delay: 0.5, 
+                ease: 'power2.out',
+                clearProps: 'transform,opacity' // Clean up after animation
+            }
         );
         
         gsap.fromTo('.hero p', 
             { opacity: 0, y: 30 },
-            { opacity: 1, y: 0, duration: 1, delay: 0.8, ease: 'power2.out' }
+            { 
+                opacity: 1, 
+                y: 0, 
+                duration: 1, 
+                delay: 0.8, 
+                ease: 'power2.out',
+                clearProps: 'transform,opacity'
+            }
         );
         
         gsap.fromTo('.hero .flex', 
             { opacity: 0, y: 30 },
-            { opacity: 1, y: 0, duration: 1, delay: 1.1, ease: 'power2.out' }
+            { 
+                opacity: 1, 
+                y: 0, 
+                duration: 1, 
+                delay: 1.1, 
+                ease: 'power2.out',
+                clearProps: 'transform,opacity'
+            }
         );
 
-        // Floating elements animation
-        gsap.to('.floating-node', {
-            y: -20,
-            duration: 3,
-            repeat: -1,
-            yoyo: true,
-            ease: 'power2.inOut',
-            stagger: 0.5
-        });
+        // Floating elements now use pure CSS animations for better performance
+        // CSS handles these more efficiently than JavaScript
     }
 }
 
@@ -899,22 +921,17 @@ function isElementInViewport(el) {
 }
 
 // Performance optimizations
-const optimizedScrollHandler = debounce(() => {
-    // Handle scroll-based animations and effects
-    updateParallaxElements();
-}, 16); // ~60fps
+// Parallax disabled for better performance
+// const optimizedScrollHandler = debounce(() => {
+//     updateParallaxElements();
+// }, 16);
 
 function updateParallaxElements() {
-    const scrolled = window.pageYOffset;
-    const parallaxElements = document.querySelectorAll('.workflow-canvas');
-    
-    parallaxElements.forEach(element => {
-        const speed = 0.5;
-        element.style.transform = `translateY(${scrolled * speed}px)`;
-    });
+    // Disabled for performance - parallax effects are CPU intensive
+    return;
 }
 
-window.addEventListener('scroll', optimizedScrollHandler);
+// window.addEventListener('scroll', optimizedScrollHandler);
 
 // Error handling with performance monitoring
 window.addEventListener('error', function(e) {
