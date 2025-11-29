@@ -20,11 +20,11 @@ async def test_union_by_name():
         "city": ["New York", "London"]
     })
     
-    inputs = {0: [df1, df2]}
+    inputs = {"input": [df1, df2]}
     config = {"mode": "ByName"}
     
     result = await tool.execute(config, inputs)
-    output = result[1].collect()
+    output = result["output"].collect()
     
     assert output.height == 4
     assert "id" in output.columns
@@ -51,11 +51,11 @@ async def test_union_by_position():
         "other2": ["C", "D"]
     })
     
-    inputs = {0: [df1, df2]}
+    inputs = {"input": [df1, df2]}
     config = {"mode": "ByPosition"}
     
     result = await tool.execute(config, inputs)
-    output = result[1].collect()
+    output = result["output"].collect()
     
     assert output.height == 4
     assert output.columns == ["col1", "col2"]
@@ -69,11 +69,11 @@ async def test_union_single_input():
     tool = UnionTool()
     df1 = pl.LazyFrame({"a": [1]})
     
-    inputs = {0: df1} # Single frame, not list (though executor should wrap it, tool handles both)
+    inputs = {"input": df1} # Single frame, not list (though executor should wrap it, tool handles both)
     config = {"mode": "ByName"}
     
     result = await tool.execute(config, inputs)
-    output = result[1].collect()
+    output = result["output"].collect()
     
     assert output.height == 1
     assert output.columns == ["a"]
@@ -92,11 +92,11 @@ async def test_union_schema_by_name():
         ColumnSchema(name="c", dtype=PolarsDataType.BOOLEAN, nullable=True)
     ])
     
-    inputs = {0: [s1, s2]}
+    inputs = {"input": [s1, s2]}
     config = {"mode": "ByName"}
     
     result = await tool.get_output_schema(config, inputs)
-    schema = result[1]
+    schema = result["output"]
     
     col_names = {c.name for c in schema.columns}
     assert "a" in col_names
@@ -109,34 +109,34 @@ class TestUnionCodeGeneration:
     
     def test_code_gen_single_input(self):
         tool = UnionTool()
-        input_vars = {0: "df_input"}
+        input_vars = {"input": "df_input"}
         config = {"mode": "ByName"}
         
         lines, output_vars = tool.to_python_code("union_1", config, input_vars)
         
-        assert output_vars[1] == "df_union_1"
+        assert output_vars["output"] == "df_union_1"
         assert len(lines) == 1
         assert "df_union_1 = df_input" in lines[0]
     
     def test_code_gen_multiple_inputs_by_name(self):
         tool = UnionTool()
-        input_vars = {0: ["df_filter_t", "df_filter_f"]}
+        input_vars = {"input": ["df_filter_t", "df_filter_f"]}
         config = {"mode": "ByName"}
         
         lines, output_vars = tool.to_python_code("union_abc", config, input_vars)
         
-        assert output_vars[1] == "df_union_abc"
+        assert output_vars["output"] == "df_union_abc"
         assert len(lines) == 1
         assert 'pl.concat([df_filter_t, df_filter_f], how="diagonal")' in lines[0]
     
     def test_code_gen_multiple_inputs_by_position(self):
         tool = UnionTool()
-        input_vars = {0: ["df_a", "df_b", "df_c"]}
+        input_vars = {"input": ["df_a", "df_b", "df_c"]}
         config = {"mode": "ByPosition"}
         
         lines, output_vars = tool.to_python_code("union_xyz", config, input_vars)
         
-        assert output_vars[1] == "df_union_xyz"
+        assert output_vars["output"] == "df_union_xyz"
         # Should generate multi-line code for position-based union
         assert any("by position" in line.lower() for line in lines)
         assert any("_union_frames" in line for line in lines)
@@ -150,6 +150,6 @@ class TestUnionCodeGeneration:
         
         lines, output_vars = tool.to_python_code("union_empty", config, input_vars)
         
-        assert output_vars[1] == "df_union_empty"
+        assert output_vars["output"] == "df_union_empty"
         assert len(lines) == 1
         assert "LazyFrame([])" in lines[0]

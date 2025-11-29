@@ -21,13 +21,13 @@ def test_workflow_model():
                 "x": 100.0,
                 "y": 100.0,
                 "config": {"source": "/path/to/file.csv"},
-                "sockets": [{"id": 0, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             }
         ],
         "wires": [
             {
-                "from": {"tool": "tool-1", "socket": 0},
-                "to": {"tool": "tool-2", "socket": 0},
+                "from": {"tool": "tool-1", "socket": "output"},
+                "to": {"tool": "tool-2", "socket": "input"},
             }
         ],
     }
@@ -42,18 +42,18 @@ def test_workflow_model():
 
 def test_socket_model():
     """Test socket model"""
-    socket = Socket(id=0, direction="input", type="L", multiple=False)
-    assert socket.id == 0
+    socket = Socket(id="input", direction="input", type="L", multiple=False)
+    assert socket.id == "input"
     assert socket.direction == "input"
     assert socket.type == "L"
 
 
 def test_wire_model():
     """Test wire model with alias"""
-    wire_data = {"from": {"tool": "tool-1", "socket": 0}, "to": {"tool": "tool-2", "socket": 1}}
+    wire_data = {"from": {"tool": "tool-1", "socket": "output"}, "to": {"tool": "tool-2", "socket": "input"}}
 
     wire = Wire(**wire_data)
     assert wire.from_.tool == "tool-1"
-    assert wire.from_.socket == 0
+    assert wire.from_.socket == "output"
     assert wire.to.tool == "tool-2"
-    assert wire.to.socket == 1
+    assert wire.to.socket == "input"

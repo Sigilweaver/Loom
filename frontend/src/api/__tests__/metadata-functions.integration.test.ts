@@ -46,9 +46,9 @@ describe('Metadata and Functions Integration', () => {
           y: 0,
           config: { expression: '' },
           sockets: [
-            { id: 0, direction: 'input' },
-            { id: 1, direction: 'output' },
-            { id: 2, direction: 'output' },
+            { id: 'input', direction: 'input' },
+            { id: 'output', direction: 'output' },
+            { id: 'output-false', direction: 'output' },
           ],
         },
       ]);
@@ -74,7 +74,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'filter1',
@@ -83,16 +83,16 @@ describe('Metadata and Functions Integration', () => {
             y: 0,
             config: { expression: '' },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -130,7 +130,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'formula1',
@@ -142,15 +142,15 @@ describe('Metadata and Functions Integration', () => {
               expression: '',
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'formula1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'formula1', socket: 'input' },
           },
         ]
       );
@@ -182,7 +182,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'select1',
@@ -194,8 +194,8 @@ describe('Metadata and Functions Integration', () => {
               exclude_mode: false,
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
           {
@@ -205,20 +205,20 @@ describe('Metadata and Functions Integration', () => {
             y: 0,
             config: { expression: '' },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'select1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'select1', socket: 'input' },
           },
           {
-            from: { tool: 'select1', socket: 1 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'select1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -248,7 +248,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'formula1',
@@ -260,8 +260,8 @@ describe('Metadata and Functions Integration', () => {
               expression: 'pl.col("age") * 2',
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
           {
@@ -271,20 +271,20 @@ describe('Metadata and Functions Integration', () => {
             y: 0,
             config: { expression: '' },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'formula1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'formula1', socket: 'input' },
           },
           {
-            from: { tool: 'formula1', socket: 1 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'formula1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -317,7 +317,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'filter1',
@@ -326,16 +326,16 @@ describe('Metadata and Functions Integration', () => {
             y: 0,
             config: { expression: '' },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -548,7 +548,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'filter1',
@@ -557,16 +557,16 @@ describe('Metadata and Functions Integration', () => {
             y: 0,
             config: { expression: '' },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -613,7 +613,7 @@ describe('Metadata and Functions Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'formula1',
@@ -625,15 +625,15 @@ describe('Metadata and Functions Integration', () => {
               expression: '',
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'formula1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'formula1', socket: 'input' },
           },
         ]
       );
@@ -679,8 +679,8 @@ describe('Metadata and Functions Integration', () => {
             expression: '',
           },
           sockets: [
-            { id: 0, direction: 'input' },
-            { id: 1, direction: 'output' },
+            { id: 'input', direction: 'input' },
+            { id: 'output', direction: 'output' },
           ],
         },
       ]);

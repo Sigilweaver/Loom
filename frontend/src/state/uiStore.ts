@@ -7,7 +7,7 @@ type BottomPaneTab = "preview" | "logs" | "network";
 
 export interface PreviewState {
   toolId: string;
-  socketId: number;
+  socketId: string;
   socketDirection: "input" | "output";
   data: Record<string, unknown>[];
   schema: Array<{ name: string; dtype: string; nullable: boolean }>;

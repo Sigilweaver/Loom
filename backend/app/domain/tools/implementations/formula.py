@@ -42,8 +42,8 @@ class FormulaTool(BaseTool):
             raise ToolError(f"Invalid expression '{expression}': {str(e)}")
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Add calculated column to DataFrame.
 
@@ -51,10 +51,10 @@ class FormulaTool(BaseTool):
         - column_name: str - name of new column
         - expression: str - Polars expression
         """
-        if 0 not in inputs:
-            raise ToolError("Formula tool requires input on socket 0")
+        if "input" not in inputs:
+            raise ToolError("Formula tool requires input on socket 'input'")
 
-        lf = inputs[0]
+        lf = inputs["input"]
         column_name = config.get("column_name")
         expression = config.get("expression")
 
@@ -67,21 +67,21 @@ class FormulaTool(BaseTool):
         expr = self._parse_expression(expression)
         lf = lf.with_columns(expr.alias(column_name))
 
-        return {1: lf}
+        return {"output": lf}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+    ) -> dict[str, DataSchema]:
         """
         Calculate output schema - input schema + new column.
         
         Note: We don't know the exact type without executing,
         so we return a generic type.
         """
-        if 0 not in input_schemas:
-            raise ToolError("Formula tool requires input schema on socket 0")
+        if "input" not in input_schemas:
+            raise ToolError("Formula tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas[0]
+        input_schema = input_schemas["input"]
         column_name = config.get("column_name")
 
         if not column_name:
@@ -98,7 +98,7 @@ class FormulaTool(BaseTool):
         output_columns = list(input_schema.columns) + [new_column]
 
         return {
-            1: DataSchema(
+            "output": DataSchema(
                 columns=output_columns,
                 row_count=input_schema.row_count,
                 file_size_bytes=None,

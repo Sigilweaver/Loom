@@ -163,8 +163,8 @@ describe("useCanvasClipboard", () => {
       ];
       mockWires = [
         {
-          from: { tool: "tool1", socket: 0 },
-          to: { tool: "tool2", socket: 0 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
       deps.tools = mockTools;
@@ -180,8 +180,8 @@ describe("useCanvasClipboard", () => {
         expect.objectContaining({
           wires: [
             {
-              from: { tool: "tool1", socket: 0 },
-              to: { tool: "tool2", socket: 0 },
+              from: { tool: "tool1", socket: 'output' },
+              to: { tool: "tool2", socket: 'input' },
             },
           ],
         })
@@ -199,8 +199,8 @@ describe("useCanvasClipboard", () => {
       ];
       mockWires = [
         {
-          from: { tool: "tool1", socket: 0 },
-          to: { tool: "tool2", socket: 0 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
       deps.tools = mockTools;

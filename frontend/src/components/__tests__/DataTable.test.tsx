@@ -26,7 +26,7 @@ describe("DataTable", () => {
     useUIStore.setState({
       previewState: {
         toolId: "tool1",
-        socketId: 0,
+        socketId: 'output',
         socketDirection: "output",
         data: [],
         schema: [],
@@ -48,7 +48,7 @@ describe("DataTable", () => {
     useUIStore.setState({
       previewState: {
         toolId: "tool1",
-        socketId: 0,
+        socketId: 'output',
         socketDirection: "output",
         data: [],
         schema: [],
@@ -70,7 +70,7 @@ describe("DataTable", () => {
     useUIStore.setState({
       previewState: {
         toolId: "tool1",
-        socketId: 0,
+        socketId: 'output',
         socketDirection: "output",
         schema: [
           { name: "id", dtype: "Int64", nullable: false },
@@ -112,7 +112,7 @@ describe("DataTable", () => {
     useUIStore.setState({
       previewState: {
         toolId: "tool1",
-        socketId: 0,
+        socketId: 'output',
         socketDirection: "output",
         schema: [{ name: "value", dtype: "Int64", nullable: true }],
         data: [{ value: null }, { value: 42 }],

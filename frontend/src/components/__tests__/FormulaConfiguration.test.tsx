@@ -319,8 +319,8 @@ describe('FormulaConfiguration', () => {
 
       const newWires: Wire[] = [
         {
-          from: { tool: 'tool-0', socket: 0 },
-          to: { tool: 'tool-1', socket: 0 },
+          from: { tool: 'tool-0', socket: 'output' },
+          to: { tool: 'tool-1', socket: 'input' },
         },
       ];
 
@@ -345,8 +345,8 @@ describe('FormulaConfiguration', () => {
     it('does not refetch metadata when unrelated wires change', async () => {
       const initialWires: Wire[] = [
         {
-          from: { tool: 'tool-0', socket: 0 },
-          to: { tool: 'tool-2', socket: 0 }, // Different tool
+          from: { tool: 'tool-0', socket: 'output' },
+          to: { tool: 'tool-2', socket: 'input' }, // Different tool
         },
       ];
 
@@ -370,8 +370,8 @@ describe('FormulaConfiguration', () => {
       const updatedWires: Wire[] = [
         ...initialWires,
         {
-          from: { tool: 'tool-3', socket: 0 },
-          to: { tool: 'tool-4', socket: 0 }, // Still not tool-1
+          from: { tool: 'tool-3', socket: 'output' },
+          to: { tool: 'tool-4', socket: 'input' }, // Still not tool-1
         },
       ];
 

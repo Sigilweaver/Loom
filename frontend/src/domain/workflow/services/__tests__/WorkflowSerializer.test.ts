@@ -17,15 +17,15 @@ const createTestTool = (
   x: 100,
   y: 200,
   config: { filePath: "/test/data.csv" } as ToolConfig,
-  sockets: [{ id: 0, direction: "output", multiple: true }],
+  sockets: [{ id: 'output', direction: 'output', multiple: true }],
 });
 
 // Helper function to create a test wire
 const createTestWire = (
   fromTool: string = "tool_001",
-  fromSocket: number = 0,
+  fromSocket: string = "output",
   toTool: string = "tool_002",
-  toSocket: number = 0
+  toSocket: string = "input"
 ): Wire => ({
   from: { tool: fromTool, socket: fromSocket },
   to: { tool: toTool, socket: toSocket },
@@ -67,7 +67,7 @@ describe("WorkflowSerializer", () => {
     it("should serialize workflow with wires to JSON", () => {
       const tool1 = createTestTool("tool_001");
       const tool2 = createTestTool("tool_002");
-      const wire = createTestWire("tool_001", 0, "tool_002", 0);
+      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
 
       const json = WorkflowSerializer.toJSON(
         [tool1, tool2],
@@ -78,9 +78,9 @@ describe("WorkflowSerializer", () => {
 
       expect(parsed.wires).toHaveLength(1);
       expect(parsed.wires[0].from.tool).toBe("tool_001");
-      expect(parsed.wires[0].from.socket).toBe(0);
+      expect(parsed.wires[0].from.socket).toBe("output");
       expect(parsed.wires[0].to.tool).toBe("tool_002");
-      expect(parsed.wires[0].to.socket).toBe(0);
+      expect(parsed.wires[0].to.socket).toBe("input");
     });
 
     it("should serialize complex workflow correctly", () => {
@@ -90,8 +90,8 @@ describe("WorkflowSerializer", () => {
         createTestTool("tool_003", "filter"),
       ];
       const wires = [
-        createTestWire("tool_001", 0, "tool_002", 0),
-        createTestWire("tool_002", 1, "tool_003", 0),
+        createTestWire('tool_001', 'output', 'tool_002', 'input'),
+        createTestWire("tool_002", 'output', 'tool_003', 'input'),
       ];
       const meta = createTestMeta("Complex Workflow");
 
@@ -140,7 +140,7 @@ describe("WorkflowSerializer", () => {
     it("should deserialize workflow with wires from JSON", () => {
       const tool1 = createTestTool("tool_001");
       const tool2 = createTestTool("tool_002");
-      const wire = createTestWire("tool_001", 0, "tool_002", 0);
+      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
 
       const json = WorkflowSerializer.toJSON(
         [tool1, tool2],
@@ -173,7 +173,7 @@ describe("WorkflowSerializer", () => {
         createTestTool("tool_001", "csv"),
         createTestTool("tool_002", "join"),
       ];
-      const wires = [createTestWire("tool_001", 0, "tool_002", 0)];
+      const wires = [createTestWire('tool_001', 'output', 'tool_002', 'input')];
       const meta = createTestMeta("Round Trip Test");
 
       // Serialize
@@ -207,9 +207,9 @@ describe("WorkflowSerializer", () => {
           },
         } as ToolConfig,
         sockets: [
-          { id: 0, direction: "input", multiple: false },
-          { id: 1, direction: "input", multiple: false },
-          { id: 2, direction: "output", multiple: true },
+          { id: 'input', direction: 'input', multiple: false },
+          { id: 'input', direction: 'input', multiple: false },
+          { id: 'output-false', direction: 'output', multiple: true },
         ],
       };
 
@@ -341,7 +341,7 @@ describe("WorkflowSerializer", () => {
         version: "2.0",
         meta: createTestMeta(),
         tools: [],
-        wires: [{ from: { tool: "tool_001", socket: 0 } }], // Missing 'to'
+        wires: [{ from: { tool: "tool_001", socket: 'output' } }], // Missing 'to'
       };
 
       const result = WorkflowSerializer.validate(data);
@@ -363,7 +363,7 @@ describe("WorkflowSerializer", () => {
             y: 200,
             config: {},
             sockets: [
-              { id: 0, direction: "invalid", multiple: true }, // Invalid direction
+              { id: 'output', direction: "invalid", multiple: true }, // Invalid direction
             ],
           },
         ],

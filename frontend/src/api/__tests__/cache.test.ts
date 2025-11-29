@@ -38,7 +38,7 @@ function createTestWorkflow(): WorkflowJSON {
         x: 100,
         y: 200,
         config: { source: '/path/to/file.csv', type: 'csv' },
-        sockets: [{ id: 0, direction: 'output' }],
+        sockets: [{ id: 'output', direction: 'output' }],
       },
       {
         id: 'filter1',
@@ -47,8 +47,8 @@ function createTestWorkflow(): WorkflowJSON {
         y: 200,
         config: { expression: 'age > 18' },
         sockets: [
-          { id: 0, direction: 'input' },
-          { id: 1, direction: 'output', type: 'T' },
+          { id: 'input', direction: 'input' },
+          { id: 'output-true', direction: 'output', type: 'T' },
         ],
       },
       {
@@ -57,12 +57,12 @@ function createTestWorkflow(): WorkflowJSON {
         x: 500,
         y: 200,
         config: { destination: '/path/to/output.csv' },
-        sockets: [{ id: 0, direction: 'input' }],
+        sockets: [{ id: 'input', direction: 'input' }],
       },
     ],
     wires: [
-      { from: { tool: 'input1', socket: 0 }, to: { tool: 'filter1', socket: 0 } },
-      { from: { tool: 'filter1', socket: 1 }, to: { tool: 'output1', socket: 0 } },
+      { from: { tool: 'input1', socket: 'output' }, to: { tool: 'filter1', socket: 'input' } },
+      { from: { tool: 'filter1', socket: 'output-true' }, to: { tool: 'output1', socket: 'input' } },
     ],
   };
 }
@@ -118,8 +118,8 @@ describe('cache', () => {
 
       expect(normalized.wires).toHaveLength(2);
       expect(normalized.wires[0]).toEqual({
-        from: { tool: 'input1', socket: 0 },
-        to: { tool: 'filter1', socket: 0 },
+        from: { tool: 'input1', socket: 'output' },
+        to: { tool: 'filter1', socket: 'input' },
       });
     });
   });

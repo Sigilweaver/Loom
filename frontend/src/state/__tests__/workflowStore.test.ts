@@ -68,7 +68,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -77,16 +77,16 @@ describe("WorkflowStore", () => {
           y: 200,
           config: { condition: "value > 10" },
           sockets: [
-            { id: 1, direction: "input", multiple: false },
-            { id: 2, direction: "output", multiple: false },
+            { id: 'input', direction: 'input', multiple: false },
+            { id: 'output-2', direction: 'output', multiple: false },
           ],
         },
       ];
 
       const wires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
 
@@ -305,7 +305,7 @@ describe("WorkflowStore", () => {
         x: 150,
         y: 250,
         config: { condition: "active" },
-        sockets: [{ id: 1, direction: "input", multiple: false }],
+        sockets: [{ id: 'input', direction: 'input', multiple: false }],
       };
 
       useWorkflowStore.getState().setSelectedTool(tool);
@@ -515,7 +515,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -523,7 +523,7 @@ describe("WorkflowStore", () => {
           x: 300,
           y: 400,
           config: { condition: "active" },
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         },
       ];
 
@@ -550,8 +550,8 @@ describe("WorkflowStore", () => {
         y: 200,
         config: { important: "data", preserved: true },
         sockets: [
-          { id: 1, direction: "input", multiple: false },
-          { id: 2, direction: "output", multiple: true, type: "string" },
+          { id: 'input', direction: 'input', multiple: false },
+          { id: 'output-2', direction: 'output', multiple: true, type: "string" },
         ],
       };
 
@@ -669,7 +669,7 @@ describe("WorkflowStore", () => {
       ];
 
       const wires: Wire[] = [
-        { from: { tool: "a", socket: 1 }, to: { tool: "b", socket: 1 } },
+        { from: { tool: "a", socket: 'output' }, to: { tool: "b", socket: 'input' } },
       ];
 
       useWorkflowStore.setState({
@@ -702,7 +702,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: { test: "value" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -766,7 +766,7 @@ describe("WorkflowStore", () => {
           x: 0,
           y: 0,
           config: { file: "input.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool-b",
@@ -775,16 +775,16 @@ describe("WorkflowStore", () => {
           y: 0,
           config: { operation: "filter" },
           sockets: [
-            { id: 1, direction: "input", multiple: false },
-            { id: 2, direction: "output", multiple: false },
+            { id: 'input', direction: 'input', multiple: false },
+            { id: 'output-2', direction: 'output', multiple: false },
           ],
         },
       ];
 
       const complexWires: Wire[] = [
         {
-          from: { tool: "tool-a", socket: 1 },
-          to: { tool: "tool-b", socket: 1 },
+          from: { tool: "tool-a", socket: 'output' },
+          to: { tool: "tool-b", socket: 'input' },
         },
       ];
 
@@ -840,7 +840,7 @@ describe("WorkflowStore", () => {
         x: 100,
         y: 200,
         config: { test: "original" },
-        sockets: [{ id: 1, direction: "output", multiple: false }],
+        sockets: [{ id: 'output', direction: 'output', multiple: false }],
       };
 
       useWorkflowStore.setState({ tools: [originalTool] });
@@ -894,7 +894,7 @@ describe("WorkflowStore", () => {
             x: 100,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "output", multiple: false }],
+            sockets: [{ id: 'output', direction: 'output', multiple: false }],
           },
           {
             id: "tool2",
@@ -902,14 +902,14 @@ describe("WorkflowStore", () => {
             x: 300,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "input", multiple: false }],
+            sockets: [{ id: 'input', direction: 'input', multiple: false }],
           },
         ];
 
         const wires: Wire[] = [
           {
-            from: { tool: "tool1", socket: 1 },
-            to: { tool: "tool2", socket: 1 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "tool2", socket: 'input' },
           },
         ];
 
@@ -998,7 +998,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         };
 
         useWorkflowStore.setState({ tools: [tool], wires: [] });
@@ -1021,7 +1021,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         };
 
         const tool2: Tool = {
@@ -1030,15 +1030,15 @@ describe("WorkflowStore", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         };
 
         useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
 
         // Try to connect with non-existent socket
         const wire: Wire = {
-          from: { tool: "tool1", socket: 999 }, // Invalid socket
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'invalid' }, // Invalid socket
+          to: { tool: "tool2", socket: 'input' },
         };
 
         const result = useWorkflowStore.getState().validateWire(wire);
@@ -1053,7 +1053,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         };
 
         const tool2: Tool = {
@@ -1062,15 +1062,15 @@ describe("WorkflowStore", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         };
 
         useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
 
         // Try to connect to non-existent socket
         const wire: Wire = {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 999 }, // Invalid socket
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'invalid' }, // Invalid socket
         };
 
         const result = useWorkflowStore.getState().validateWire(wire);
@@ -1085,7 +1085,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         };
 
         const tool2: Tool = {
@@ -1094,15 +1094,15 @@ describe("WorkflowStore", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: true }], // Multiple inputs allowed
+          sockets: [{ id: 'input', direction: 'input', multiple: true }], // Multiple inputs allowed
         };
 
         useWorkflowStore.setState({ tools: [tool1, tool2], wires: [] });
 
         // Connect first wire
         const wire1: Wire = {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "union", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "union", socket: 'input' },
         };
         useWorkflowStore.getState().addWire(wire1);
 
@@ -1113,7 +1113,7 @@ describe("WorkflowStore", () => {
           x: 100,
           y: 400,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         };
 
         useWorkflowStore.setState({
@@ -1122,8 +1122,8 @@ describe("WorkflowStore", () => {
         });
 
         const wire2: Wire = {
-          from: { tool: "tool3", socket: 1 },
-          to: { tool: "union", socket: 1 },
+          from: { tool: "tool3", socket: 'output' },
+          to: { tool: "union", socket: 'input' },
         };
 
         const result = useWorkflowStore.getState().validateWire(wire2);
@@ -1185,7 +1185,7 @@ describe("WorkflowStore", () => {
             x: 100,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "output", multiple: false }],
+            sockets: [{ id: 'output', direction: 'output', multiple: false }],
           },
           {
             id: "tool2",
@@ -1193,14 +1193,14 @@ describe("WorkflowStore", () => {
             x: 300,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "input", multiple: false }],
+            sockets: [{ id: 'input', direction: 'input', multiple: false }],
           },
         ];
 
         const wires: Wire[] = [
           {
-            from: { tool: "tool1", socket: 1 },
-            to: { tool: "tool2", socket: 1 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "tool2", socket: 'input' },
           },
         ];
 
@@ -1230,7 +1230,7 @@ describe("WorkflowStore", () => {
             x: 100,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "output", multiple: false }],
+            sockets: [{ id: 'output', direction: 'output', multiple: false }],
           },
           {
             id: "tool2",
@@ -1238,14 +1238,14 @@ describe("WorkflowStore", () => {
             x: 300,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "input", multiple: false }],
+            sockets: [{ id: 'input', direction: 'input', multiple: false }],
           },
         ];
 
         const wires: Wire[] = [
           {
-            from: { tool: "tool1", socket: 1 },
-            to: { tool: "tool2", socket: 1 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "tool2", socket: 'input' },
           },
         ];
 
@@ -1291,8 +1291,8 @@ describe("WorkflowStore", () => {
             y: 200,
             config: {},
             sockets: [
-              { id: 1, direction: "input", multiple: false },
-              { id: 2, direction: "output", multiple: false },
+              { id: 'input', direction: 'input', multiple: false },
+              { id: 'output-2', direction: 'output', multiple: false },
             ],
           },
           {
@@ -1301,14 +1301,14 @@ describe("WorkflowStore", () => {
             x: 300,
             y: 200,
             config: {},
-            sockets: [{ id: 1, direction: "input", multiple: false }],
+            sockets: [{ id: 'input', direction: 'input', multiple: false }],
           },
         ];
 
         const newWires: Wire[] = [
           {
-            from: { tool: "tool1", socket: 2 },
-            to: { tool: "tool2", socket: 1 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "tool2", socket: 'input' },
           },
         ];
 
@@ -1341,8 +1341,8 @@ describe("WorkflowStore", () => {
 
       test("should access wires via getState", () => {
         const wire: Wire = {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         };
 
         useWorkflowStore.setState({ wires: [wire] });

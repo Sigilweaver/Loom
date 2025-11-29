@@ -72,8 +72,8 @@ async def test_parquet_input_tool_scan_mode(sample_parquet: Path):
     
     outputs = await tool.execute(config, {})
     
-    assert 0 in outputs
-    lf = outputs[0]
+    assert "output" in outputs
+    lf = outputs["output"]
     assert isinstance(lf, pl.LazyFrame)
     
     # Collect to verify data
@@ -95,8 +95,8 @@ async def test_parquet_input_tool_read_mode(sample_parquet: Path):
     
     outputs = await tool.execute(config, {})
     
-    assert 0 in outputs
-    lf = outputs[0]
+    assert "output" in outputs
+    lf = outputs["output"]
     assert isinstance(lf, pl.LazyFrame)
     
     df = lf.collect()
@@ -116,7 +116,7 @@ async def test_parquet_input_with_column_selection(sample_parquet: Path):
     }
     
     outputs = await tool.execute(config, {})
-    df = outputs[0].collect()
+    df = outputs["output"].collect()
     
     assert df.columns == ["name", "age"]
     assert len(df) == 5
@@ -135,7 +135,7 @@ async def test_parquet_input_with_n_rows(sample_parquet: Path):
     }
     
     outputs = await tool.execute(config, {})
-    df = outputs[0].collect()
+    df = outputs["output"].collect()
     
     assert len(df) == 2
     assert df["name"][0] == "Alice"
@@ -155,7 +155,7 @@ async def test_parquet_output_tool_sink_mode(tmp_path: Path, sample_parquet: Pat
         "parquetMode": "scan"
     }
     
-    lf = (await input_tool.execute(input_config, {}))[0]
+    lf = (await input_tool.execute(input_config, {}))["output"]
     
     # Write to output
     output_path = tmp_path / "output.parquet"
@@ -165,7 +165,7 @@ async def test_parquet_output_tool_sink_mode(tmp_path: Path, sample_parquet: Pat
         "parquetMode": "sink"
     }
     
-    await output_tool.execute(output_config, {0: lf})
+    await output_tool.execute(output_config, {"input": lf})
     
     # Verify output file was created
     assert output_path.exists()
@@ -189,7 +189,7 @@ async def test_parquet_output_tool_write_mode(tmp_path: Path, sample_parquet: Pa
         "parquetMode": "scan"
     }
     
-    lf = (await input_tool.execute(input_config, {}))[0]
+    lf = (await input_tool.execute(input_config, {}))["output"]
     
     # Write to output
     output_path = tmp_path / "output_write.parquet"
@@ -199,7 +199,7 @@ async def test_parquet_output_tool_write_mode(tmp_path: Path, sample_parquet: Pa
         "parquetMode": "write"
     }
     
-    await output_tool.execute(output_config, {0: lf})
+    await output_tool.execute(output_config, {"input": lf})
     
     # Verify output file was created
     assert output_path.exists()
@@ -224,12 +224,12 @@ async def test_parquet_roundtrip_with_filter(tmp_path: Path, sample_parquet: Pat
         "source": str(sample_parquet),
         "parquetMode": "scan"
     }
-    lf = (await input_tool.execute(input_config, {}))[0]
+    lf = (await input_tool.execute(input_config, {}))["output"]
     
     # Filter (age > 30)
     filter_config = {"expression": "pl.col('age') > 30"}
-    filtered_outputs = await filter_tool.execute(filter_config, {0: lf})
-    filtered_lf = filtered_outputs[1]  # True branch
+    filtered_outputs = await filter_tool.execute(filter_config, {"input": lf})
+    filtered_lf = filtered_outputs["output-true"]  # True branch
     
     # Write
     output_path = tmp_path / "filtered.parquet"
@@ -238,7 +238,7 @@ async def test_parquet_roundtrip_with_filter(tmp_path: Path, sample_parquet: Pat
         "destination": str(output_path),
         "parquetMode": "sink"
     }
-    await output_tool.execute(output_config, {0: filtered_lf})
+    await output_tool.execute(output_config, {"input": filtered_lf})
     
     # Verify
     result_df = pl.read_parquet(output_path)
@@ -259,8 +259,8 @@ async def test_parquet_input_get_output_schema(sample_parquet: Path):
     
     schemas = await tool.get_output_schema(config, {})
     
-    assert 0 in schemas
-    schema = schemas[0]
+    assert "output" in schemas
+    schema = schemas["output"]
     assert len(schema.columns) == 5
     assert schema.columns[0].name == "id"
     assert schema.columns[1].name == "name"

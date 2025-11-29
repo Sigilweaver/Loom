@@ -21,8 +21,8 @@ class InputTool(BaseTool):
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Load data from file source.
 
@@ -55,8 +55,8 @@ class InputTool(BaseTool):
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
-        # Return on output socket 0
-        return {0: lf}
+        # Return on output socket
+        return {"output": lf}
 
     async def _load_csv(
         self, config: dict[str, Any], mode: str = "scan"
@@ -181,8 +181,8 @@ class InputTool(BaseTool):
         return kwargs
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+    ) -> dict[str, DataSchema]:
         """
         Get schema by inspecting the data source.
 
@@ -202,7 +202,7 @@ class InputTool(BaseTool):
         # Inspect to get schema
         schema = await datasource.inspect(source_path, config)
 
-        return {0: schema}
+        return {"output": schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate input tool configuration"""
@@ -225,8 +225,8 @@ class InputTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str],
-    ) -> tuple[list[str], dict[int, str]]:
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Input tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
@@ -238,7 +238,7 @@ class InputTool(BaseTool):
         
         if not source_path:
             lines.append(f'{var_name} = None  # ERROR: No source file specified')
-            return (lines, {0: var_name})
+            return (lines, {"output": var_name})
         
         if source_type == "csv":
             mode = config.get("csvMode", "scan")
@@ -308,4 +308,4 @@ class InputTool(BaseTool):
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')
         
-        return (lines, {0: var_name})
+        return (lines, {"output": var_name})

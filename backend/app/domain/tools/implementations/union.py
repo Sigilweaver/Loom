@@ -8,14 +8,14 @@ from app.api.models.common import DataSchema
 @register_tool("Union")
 class UnionTool(BaseTool):
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> dict[int, pl.LazyFrame]:
-        # Get inputs from socket 0
-        input_data = inputs.get(0)
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
+    ) -> dict[str, pl.LazyFrame]:
+        # Get inputs from socket 'input'
+        input_data = inputs.get("input")
         
         if input_data is None:
             # No input, return empty frame
-            return {1: pl.LazyFrame([])}
+            return {"output": pl.LazyFrame([])}
             
         # Ensure we have a list of frames
         frames: list[pl.LazyFrame] = []
@@ -25,7 +25,7 @@ class UnionTool(BaseTool):
             frames = [input_data]
             
         if not frames:
-             return {1: pl.LazyFrame([])}
+             return {"output": pl.LazyFrame([])}
 
         mode = config.get("mode", "ByName")
         
@@ -62,15 +62,15 @@ class UnionTool(BaseTool):
             # Default fallback
             result = pl.concat(frames, how="vertical")
 
-        return {1: result}
+        return {"output": result}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema | list[DataSchema]]
-    ) -> dict[int, DataSchema]:
-        input_schema_data = input_schemas.get(0)
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
+    ) -> dict[str, DataSchema]:
+        input_schema_data = input_schemas.get("input")
         
         if not input_schema_data:
-            return {1: DataSchema(columns=[])}
+            return {"output": DataSchema(columns=[])}
             
         schemas: list[DataSchema] = []
         if isinstance(input_schema_data, list):
@@ -79,7 +79,7 @@ class UnionTool(BaseTool):
             schemas = [input_schema_data]
             
         if not schemas:
-            return {1: DataSchema(columns=[])}
+            return {"output": DataSchema(columns=[])}
             
         mode = config.get("mode", "ByName")
         
@@ -97,20 +97,20 @@ class UnionTool(BaseTool):
                         merged_columns[col.name] = col
                     # TODO: Handle type merging if needed
             
-            return {1: DataSchema(columns=list(merged_columns.values()))}
+            return {"output": DataSchema(columns=list(merged_columns.values()))}
             
         elif mode == "ByPosition":
             # Output schema matches the first input
-            return {1: schemas[0]}
+            return {"output": schemas[0]}
             
-        return {1: schemas[0]}
+        return {"output": schemas[0]}
 
     def to_python_code(
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str | list[str]],
-    ) -> tuple[list[str], dict[int, str]]:
+        input_vars: dict[str, str | list[str]],
+    ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Union tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
@@ -118,14 +118,14 @@ class UnionTool(BaseTool):
         mode = config.get("mode", "ByName")
 
         # Get input variable(s) - can be a single var or list
-        input_data = input_vars.get(0)
+        input_data = input_vars.get("input")
         
         # Generate output variable name
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         if input_data is None:
             lines.append(f"{var_name} = pl.LazyFrame([])")
-            return (lines, {1: var_name})
+            return (lines, {"output": var_name})
 
         # Normalize to list
         if isinstance(input_data, str):
@@ -160,4 +160,4 @@ class UnionTool(BaseTool):
                 # Default vertical concat
                 lines.append(f"{var_name} = pl.concat([{frames_str}], how=\"vertical\")")
 
-        return (lines, {1: var_name})
+        return (lines, {"output": var_name})

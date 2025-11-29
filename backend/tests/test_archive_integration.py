@@ -64,7 +64,7 @@ def test_workflow_execution_creates_archive(client, temp_archive_for_integration
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-                "sockets": [{"id": 1, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             }
         ],
         "wires": [],
@@ -117,7 +117,7 @@ def test_failed_workflow_creates_archive_with_error(client, temp_archive_for_int
                     "source": "/nonexistent/path/to/file.csv",
                     "csvMode": "scan",
                 },
-                "sockets": [{"id": 1, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             }
         ],
         "wires": [],
@@ -167,7 +167,7 @@ def test_archive_api_endpoints(client, temp_archive_for_integration, sample_csv)
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-                "sockets": [{"id": 1, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             }
         ],
         "wires": [],

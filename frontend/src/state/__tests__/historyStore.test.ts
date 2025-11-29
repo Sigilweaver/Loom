@@ -16,7 +16,7 @@ const createTestTool = (id: string, x = 0, y = 0): Tool => ({
   type: "input",
   x,
   y,
-  sockets: [{ id: 0, direction: "output" }],
+  sockets: [{ id: 'output', direction: 'output' }],
   config: {},
 });
 
@@ -477,18 +477,18 @@ describe("historyStore", () => {
         const meta = createTestMeta();
         const wires: Wire[] = [
           {
-            from: { tool: "tool1", socket: 1 },
-            to: { tool: "tool2", socket: 2 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "tool2", socket: 'input' },
           },
         ];
 
         useHistoryStore.getState().pushState([], wires, meta);
 
         // Mutate original wire
-        wires[0]!.from.socket = 999;
+        wires[0]!.from.socket = 'mutated';
 
         const snapshot = useHistoryStore.getState().past[0];
-        expect(snapshot?.wires[0]?.from.socket).toBe(1);
+        expect(snapshot?.wires[0]?.from.socket).toBe('output');
       });
 
       it("should clone workflow metadata", () => {

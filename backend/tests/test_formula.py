@@ -21,8 +21,8 @@ async def test_formula_arithmetic():
         "expression": "pl.col('price') * pl.col('quantity')",
     }
     
-    result = await tool.execute(config, {0: df})
-    output = result[1].collect()
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
     
     assert "total" in output.columns
     assert output["total"].to_list() == [20, 60, 120]
@@ -42,8 +42,8 @@ async def test_formula_comparison():
         "expression": "pl.col('age') >= 40",
     }
     
-    result = await tool.execute(config, {0: df})
-    output = result[1].collect()
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
     
     assert "is_senior" in output.columns
     assert output["is_senior"].to_list() == [False, False, True]
@@ -63,8 +63,8 @@ async def test_formula_conditional():
         "expression": "pl.when(pl.col('age') < 30).then(pl.lit('Young')).when(pl.col('age') < 50).then(pl.lit('Middle')).otherwise(pl.lit('Senior'))",
     }
     
-    result = await tool.execute(config, {0: df})
-    output = result[1].collect()
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
     
     assert "age_group" in output.columns
     assert output["age_group"].to_list() == ["Young", "Middle", "Middle", "Senior"]
@@ -84,8 +84,8 @@ async def test_formula_string_operations():
         "expression": "pl.col('name').str.to_uppercase()",
     }
     
-    result = await tool.execute(config, {0: df})
-    output = result[1].collect()
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
     
     assert "name_upper" in output.columns
     assert output["name_upper"].to_list() == ["ALICE", "BOB", "CHARLIE"]
@@ -108,8 +108,8 @@ async def test_formula_schema_inference():
         "expression": "pl.col('price') * pl.col('quantity')",
     }
     
-    result = await tool.get_output_schema(config, {0: input_schema})
-    output_schema = result[1]
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    output_schema = result["output"]
     
     assert len(output_schema.columns) == 3
     column_names = [col.name for col in output_schema.columns]
@@ -151,5 +151,5 @@ async def test_formula_invalid_expression():
     }
     
     with pytest.raises(Exception):
-        result = await tool.execute(config, {0: df})
-        result[1].collect()
+        result = await tool.execute(config, {"input": df})
+        result["output"].collect()

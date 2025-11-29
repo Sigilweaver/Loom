@@ -8,8 +8,8 @@ describe('loopDetection', () => {
   it('detectCycles returns false for acyclic graph', () => {
     const tools: Tool[] = [tool('A'), tool('B'), tool('C')];
     const wires: Wire[] = [
-      { from: { tool: 'A', socket: 0 }, to: { tool: 'B', socket: 0 } },
-      { from: { tool: 'B', socket: 0 }, to: { tool: 'C', socket: 0 } },
+      { from: { tool: 'A', socket: 'output' }, to: { tool: 'B', socket: 'input' } },
+      { from: { tool: 'B', socket: 'output' }, to: { tool: 'C', socket: 'input' } },
     ];
     expect(detectCycles(tools, wires)).toBe(false);
   });
@@ -17,9 +17,9 @@ describe('loopDetection', () => {
   it('detectCycles returns true for cyclic graph', () => {
     const tools: Tool[] = [tool('A'), tool('B'), tool('C')];
     const wires: Wire[] = [
-      { from: { tool: 'A', socket: 0 }, to: { tool: 'B', socket: 0 } },
-      { from: { tool: 'B', socket: 0 }, to: { tool: 'C', socket: 0 } },
-      { from: { tool: 'C', socket: 0 }, to: { tool: 'A', socket: 0 } },
+      { from: { tool: 'A', socket: 'output' }, to: { tool: 'B', socket: 'input' } },
+      { from: { tool: 'B', socket: 'output' }, to: { tool: 'C', socket: 'input' } },
+      { from: { tool: 'C', socket: 'output' }, to: { tool: 'A', socket: 'input' } },
     ];
     expect(detectCycles(tools, wires)).toBe(true);
   });
@@ -27,8 +27,8 @@ describe('loopDetection', () => {
   it('wouldCreateCycle detects a potential new cycle', () => {
     const tools: Tool[] = [tool('A'), tool('B'), tool('C')];
     const wires: Wire[] = [
-      { from: { tool: 'A', socket: 0 }, to: { tool: 'B', socket: 0 } },
-      { from: { tool: 'B', socket: 0 }, to: { tool: 'C', socket: 0 } },
+      { from: { tool: 'A', socket: 'output' }, to: { tool: 'B', socket: 'input' } },
+      { from: { tool: 'B', socket: 'output' }, to: { tool: 'C', socket: 'input' } },
     ];
     expect(wouldCreateCycle(tools, wires, 'C', 'A')).toBe(true);
   });

@@ -26,7 +26,7 @@ class WorkflowExecutor:
     """
 
     def __init__(self):
-        self.results: dict[str, dict[int, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
+        self.results: dict[str, dict[str, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
         self.archive_dir: Path | None = None  # Set when archiving is enabled
 
     async def execute_workflow(
@@ -319,8 +319,8 @@ class WorkflowExecutor:
         }
 
     async def _execute_tool(
-        self, tool: Tool, inputs: dict[int, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> dict[int, pl.LazyFrame]:
+        self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
+    ) -> dict[str, pl.LazyFrame]:
         """Execute a single tool"""
         try:
             tool_impl = ToolRegistry.get(tool.type)
@@ -333,7 +333,7 @@ class WorkflowExecutor:
 
     def _gather_inputs(
         self, tool_id: str, graph: ExecutionGraph
-    ) -> dict[int, pl.LazyFrame | list[pl.LazyFrame]]:
+    ) -> dict[str, pl.LazyFrame | list[pl.LazyFrame]]:
         """
         Gather inputs for a tool from previous results.
 

@@ -21,8 +21,8 @@ class OutputTool(BaseTool):
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Save data to file.
 
@@ -33,10 +33,10 @@ class OutputTool(BaseTool):
         - ... other format-specific config
         """
         # Output tools require exactly one input
-        if len(inputs) != 1 or 0 not in inputs:
-            raise ToolError("Output tool requires exactly one input on socket 0")
+        if len(inputs) != 1 or "input" not in inputs:
+            raise ToolError("Output tool requires exactly one input on socket 'input'")
 
-        lf = inputs[0]
+        lf = inputs["input"]
 
         # Get output type
         output_type = config.get("type")
@@ -177,8 +177,8 @@ class OutputTool(BaseTool):
         return kwargs
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+    ) -> dict[str, DataSchema]:
         """
         Output tools have no output sockets.
         """
@@ -228,8 +228,8 @@ class OutputTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str],
-    ) -> tuple[list[str], dict[int, str]]:
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Output tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
@@ -237,11 +237,11 @@ class OutputTool(BaseTool):
         output_type = config.get("type", "csv")
         destination = config.get("destination", "")
         
-        if 0 not in input_vars:
+        if "input" not in input_vars:
             lines.append(f"# ERROR: Output {tool_id} has no input")
             return (lines, {})
         
-        input_var = input_vars[0]
+        input_var = input_vars["input"]
         
         if not destination:
             lines.append(f"# ERROR: Output {tool_id} has no destination specified")

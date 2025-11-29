@@ -58,7 +58,7 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
                     "source": sample_data_csv,
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="filter1",
@@ -69,16 +69,16 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
                     "expression": "pl.col('age') > 30",
                 },
                 sockets=[
-                    Socket(id=0, direction="input"),
-                    Socket(id=1, direction="output"),  # T output
-                    Socket(id=2, direction="output"),  # F output
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),  # T output
+                    Socket(id="output-false", direction="output"),  # F output
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             )
         ],
     )
@@ -87,11 +87,11 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
     result = await executor.execute_workflow(workflow)
 
     # Check T output (True - age > 30)
-    true_output_data = result["outputs"]["1"]["data"]
+    true_output_data = result["outputs"]["output-true"]["data"]
     assert len(true_output_data) == 5  # Charlie, David, Eve, Grace, Henry (35, 40, 45, 32, 50)
     
     # Check F output (False - age <= 30)
-    false_output_data = result["outputs"]["2"]["data"]
+    false_output_data = result["outputs"]["output-false"]["data"]
     assert len(false_output_data) == 3  # Alice, Bob, Frank (25, 30, 28)
 
     print(f"True output: {len(true_output_data)} rows")
@@ -122,7 +122,7 @@ async def test_filter_string_condition(sample_data_csv):
                     "source": sample_data_csv,
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="filter1",
@@ -133,16 +133,16 @@ async def test_filter_string_condition(sample_data_csv):
                     "expression": "pl.col('status') == 'active'",
                 },
                 sockets=[
-                    Socket(id=0, direction="input"),
-                    Socket(id=1, direction="output"),
-                    Socket(id=2, direction="output"),
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),
+                    Socket(id="output-false", direction="output"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             )
         ],
     )
@@ -151,11 +151,11 @@ async def test_filter_string_condition(sample_data_csv):
     result = await executor.execute_workflow(workflow)
 
     # Check active status
-    active_output_data = result["outputs"]["1"]["data"]
+    active_output_data = result["outputs"]["output-true"]["data"]
     assert len(active_output_data) == 5  # Alice, Charlie, David, Frank, Grace
 
     # Check inactive status
-    inactive_output_data = result["outputs"]["2"]["data"]
+    inactive_output_data = result["outputs"]["output-false"]["data"]
     assert len(inactive_output_data) == 3  # Bob, Eve, Henry
 
 
@@ -183,7 +183,7 @@ async def test_filter_compound_condition(sample_data_csv):
                     "source": sample_data_csv,
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="filter1",
@@ -194,16 +194,16 @@ async def test_filter_compound_condition(sample_data_csv):
                     "expression": "(pl.col('age') > 30) & (pl.col('amount') > 200)",
                 },
                 sockets=[
-                    Socket(id=0, direction="input"),
-                    Socket(id=1, direction="output"),
-                    Socket(id=2, direction="output"),
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),
+                    Socket(id="output-false", direction="output"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             )
         ],
     )
@@ -212,7 +212,7 @@ async def test_filter_compound_condition(sample_data_csv):
     result = await executor.execute_workflow(workflow)
 
     # Check matched rows (age > 30 AND amount > 200)
-    matched_output_data = result["outputs"]["1"]["data"]
+    matched_output_data = result["outputs"]["output-true"]["data"]
     # David (40, 500), Frank (300 but age 28 - no), Grace (32 but 50 - no), Henry (50, 400)
     # Actually: David, Henry only (age > 30 AND amount > 200)
     # Wait, Frank is 28 (not > 30), Grace amount is 50 (not > 200)
@@ -252,7 +252,7 @@ async def test_filter_empty_expression(sample_data_csv):
                     "source": sample_data_csv,
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="filter1",
@@ -263,16 +263,16 @@ async def test_filter_empty_expression(sample_data_csv):
                     "expression": "",
                 },
                 sockets=[
-                    Socket(id=0, direction="input"),
-                    Socket(id=1, direction="output"),
-                    Socket(id=2, direction="output"),
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),
+                    Socket(id="output-false", direction="output"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             )
         ],
     )
@@ -281,11 +281,11 @@ async def test_filter_empty_expression(sample_data_csv):
     result = await executor.execute_workflow(workflow)
 
     # All rows should go to T output
-    true_output_data = result["outputs"]["1"]["data"]
+    true_output_data = result["outputs"]["output-true"]["data"]
     assert len(true_output_data) == 8  # All rows
 
     # F output should be empty
-    false_output_data = result["outputs"]["2"]["data"]
+    false_output_data = result["outputs"]["output-false"]["data"]
     assert len(false_output_data) == 0
 
 
@@ -313,7 +313,7 @@ async def test_filter_schema_propagation(sample_data_csv):
                     "source": sample_data_csv,
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="filter1",
@@ -324,16 +324,16 @@ async def test_filter_schema_propagation(sample_data_csv):
                     "expression": "pl.col('age') > 30",
                 },
                 sockets=[
-                    Socket(id=0, direction="input"),
-                    Socket(id=1, direction="output"),
-                    Socket(id=2, direction="output"),
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),
+                    Socket(id="output-false", direction="output"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             )
         ],
     )
@@ -345,9 +345,9 @@ async def test_filter_schema_propagation(sample_data_csv):
     filter_result = await executor.execute_single_tool(workflow, "filter1")
 
     # Both outputs should have same schema as input
-    input_columns = input_result["outputs"]["0"]["data_schema"].columns
-    filter_t_columns = filter_result["outputs"]["1"]["data_schema"].columns
-    filter_f_columns = filter_result["outputs"]["2"]["data_schema"].columns
+    input_columns = input_result["outputs"]["output"]["data_schema"].columns
+    filter_t_columns = filter_result["outputs"]["output-true"]["data_schema"].columns
+    filter_f_columns = filter_result["outputs"]["output-false"]["data_schema"].columns
     
     assert filter_t_columns == input_columns
     assert filter_f_columns == input_columns
@@ -365,14 +365,14 @@ class TestFilterCodeGeneration:
 
         tool = FilterTool()
         config = {"expression": "pl.col('amount') > 100"}
-        input_vars = {0: "df_input"}
+        input_vars = {"input": "df_input"}
 
         lines, output_vars = tool.to_python_code("filter1", config, input_vars)
 
         assert len(lines) == 2
         assert "df_filter1_t = df_input.filter(pl.col('amount') > 100)" in lines[0]
         assert "df_filter1_f = df_input.filter(~(pl.col('amount') > 100))" in lines[1]
-        assert output_vars == {1: "df_filter1_t", 2: "df_filter1_f"}
+        assert output_vars == {"output-true": "df_filter1_t", "output-false": "df_filter1_f"}
 
     def test_code_gen_empty_expression(self):
         """Test code generation with empty expression (pass-through)"""
@@ -380,7 +380,7 @@ class TestFilterCodeGeneration:
 
         tool = FilterTool()
         config = {"expression": ""}
-        input_vars = {0: "df_source"}
+        input_vars = {"input": "df_source"}
 
         lines, output_vars = tool.to_python_code("myfilter", config, input_vars)
 
@@ -394,7 +394,7 @@ class TestFilterCodeGeneration:
 
         tool = FilterTool()
         config = {"expression": "(pl.col('a') > 10) & (pl.col('b') < 20)"}
-        input_vars = {0: "df_data"}
+        input_vars = {"input": "df_data"}
 
         lines, output_vars = tool.to_python_code("flt", config, input_vars)
 

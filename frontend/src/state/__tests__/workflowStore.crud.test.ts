@@ -12,7 +12,7 @@ const createTestTool = (
   x: 100,
   y: 200,
   config: { filePath: "/test/data.csv" } as ToolConfig,
-  sockets: [{ id: 0, direction: "output", multiple: true }],
+  sockets: [{ id: 'output', direction: 'output', multiple: true }],
 });
 
 // Helper function to create a test tool with both input and output sockets
@@ -26,18 +26,18 @@ const createTestToolWithSockets = (
   y: 200,
   config: {} as ToolConfig,
   sockets: [
-    { id: 0, direction: "input", multiple: false },
-    { id: 1, direction: "input", multiple: false },
-    { id: 2, direction: "output", multiple: true },
+    { id: 'input', direction: 'input', multiple: false },
+    { id: 'input-right', direction: 'input', multiple: false },
+    { id: 'output', direction: 'output', multiple: true },
   ],
 });
 
 // Helper function to create a test wire
 const createTestWire = (
   fromTool: string = "tool_001",
-  fromSocket: number = 0,
+  fromSocket: string = "output",
   toTool: string = "tool_002",
-  toSocket: number = 0
+  toSocket: string = "input"
 ): Wire => ({
   from: { tool: fromTool, socket: fromSocket },
   to: { tool: toTool, socket: toSocket },
@@ -102,7 +102,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         useWorkflowStore.getState().addWire(wire);
 
         expect(useWorkflowStore.getState().wires).toHaveLength(1);
@@ -231,7 +231,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         const result = useWorkflowStore.getState().addWire(wire);
 
         expect(result.success).toBe(true);
@@ -243,7 +243,7 @@ describe("workflowStore CRUD operations", () => {
         const tool1 = createTestTool("tool_001");
         useWorkflowStore.getState().addTool(tool1);
 
-        const wire = createTestWire("tool_001", 0, "tool_999", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_999', 'input');
         const result = useWorkflowStore.getState().addWire(wire);
 
         expect(result.success).toBe(false);
@@ -258,7 +258,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 999); // Socket 999 doesn't exist
+        const wire = createTestWire('tool_001', 'output', "tool_002", 'invalid-socket'); // Socket doesn't exist
         const result = useWorkflowStore.getState().addWire(wire);
 
         expect(result.success).toBe(false);
@@ -272,7 +272,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0); // Both are outputs
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'output'); // Both are outputs
         const result = useWorkflowStore.getState().addWire(wire);
 
         expect(result.success).toBe(false);
@@ -289,12 +289,12 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool3);
 
         // First wire should succeed
-        const wire1 = createTestWire("tool_001", 0, "tool_003", 0);
+        const wire1 = createTestWire('tool_001', 'output', 'tool_003', 'input');
         const result1 = useWorkflowStore.getState().addWire(wire1);
         expect(result1.success).toBe(true);
 
         // Second wire to same input should fail
-        const wire2 = createTestWire("tool_002", 0, "tool_003", 0);
+        const wire2 = createTestWire('tool_002', 'output', 'tool_003', 'input');
         const result2 = useWorkflowStore.getState().addWire(wire2);
         expect(result2.success).toBe(false);
         expect(result2.error).toBe("Input already connected");
@@ -307,7 +307,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         useWorkflowStore.getState().addWire(wire);
 
         const edges = useWorkflowStore.getState().edges;
@@ -325,7 +325,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         useWorkflowStore.getState().addWire(wire);
 
         expect(useWorkflowStore.getState().wires).toHaveLength(1);
@@ -342,7 +342,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         useWorkflowStore.getState().addWire(wire);
 
         expect(useWorkflowStore.getState().edges).toHaveLength(1);
@@ -363,9 +363,9 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool2);
         useWorkflowStore.getState().addTool(tool3);
 
-        const wire1 = createTestWire("tool_001", 0, "tool_002", 0);
-        const wire2 = createTestWire("tool_001", 0, "tool_003", 0);
-        const wire3 = createTestWire("tool_002", 2, "tool_003", 1);
+        const wire1 = createTestWire('tool_001', 'output', 'tool_002', 'input');
+        const wire2 = createTestWire('tool_001', 'output', 'tool_003', 'input');
+        const wire3 = createTestWire("tool_002", "output", "tool_003", "input-right");
 
         useWorkflowStore.getState().addWire(wire1);
         useWorkflowStore.getState().addWire(wire2);
@@ -389,7 +389,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         const result = useWorkflowStore.getState().validateWire(wire);
 
         expect(result.valid).toBe(true);
@@ -397,7 +397,7 @@ describe("workflowStore CRUD operations", () => {
       });
 
       it("should invalidate wire with missing tool", () => {
-        const wire = createTestWire("tool_999", 0, "tool_002", 0);
+        const wire = createTestWire("tool_999", 'output', 'tool_002', 'input');
         const result = useWorkflowStore.getState().validateWire(wire);
 
         expect(result.valid).toBe(false);
@@ -411,7 +411,7 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
 
-        const wire = createTestWire("tool_001", 999, "tool_002", 0);
+        const wire = createTestWire("tool_001", 'invalid-socket', 'tool_002', 'input');
         const result = useWorkflowStore.getState().validateWire(wire);
 
         expect(result.valid).toBe(false);
@@ -425,7 +425,7 @@ describe("workflowStore CRUD operations", () => {
       it("should add multiple tools and wires at once", () => {
         const tool1 = createTestTool("tool_001");
         const tool2 = createTestToolWithSockets("tool_002");
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
 
         useWorkflowStore
           .getState()
@@ -470,7 +470,7 @@ describe("workflowStore CRUD operations", () => {
       it("should load workflow data", () => {
         const tool1 = createTestTool("tool_001");
         const tool2 = createTestToolWithSockets("tool_002");
-        const wire = createTestWire("tool_001", 0, "tool_002", 0);
+        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
         const meta = {
           name: "Loaded Workflow",
           description: "Test",
@@ -516,7 +516,7 @@ describe("workflowStore CRUD operations", () => {
 
       expect(useWorkflowStore.getState().edges).toHaveLength(0);
 
-      const wire = createTestWire("tool_001", 0, "tool_002", 0);
+      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
       useWorkflowStore.getState().addWire(wire);
 
       expect(useWorkflowStore.getState().edges).toHaveLength(1);
@@ -529,15 +529,15 @@ describe("workflowStore CRUD operations", () => {
       useWorkflowStore.getState().addTool(tool1);
       useWorkflowStore.getState().addTool(tool2);
 
-      const wire = createTestWire("tool_001", 0, "tool_002", 0);
+      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
       useWorkflowStore.getState().addWire(wire);
 
       const edge = useWorkflowStore.getState().edges[0];
       expect(edge).toBeDefined();
       expect(edge!.source).toBe("tool_001");
       expect(edge!.target).toBe("tool_002");
-      expect(edge!.sourceHandle).toBe("output-0");
-      expect(edge!.targetHandle).toBe("input-0");
+      expect(edge!.sourceHandle).toBe("output-output");
+      expect(edge!.targetHandle).toBe("input-input");
       expect(edge!.deletable).toBe(true);
       expect(edge!.selectable).toBe(true);
     });

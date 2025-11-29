@@ -73,14 +73,14 @@ class ExecutionGraph:
 
         return result
 
-    def get_tool_inputs(self, tool_id: str) -> dict[int, list[tuple[str, int]]]:
+    def get_tool_inputs(self, tool_id: str) -> dict[str, list[tuple[str, str]]]:
         """
         Get input mappings for a tool.
         Returns dict of socket_id -> [(source_tool_id, source_socket_id), ...]
 
         For tools with multiple=True sockets, multiple sources map to same socket.
         """
-        inputs: dict[int, list[tuple[str, int]]] = defaultdict(list)
+        inputs: dict[str, list[tuple[str, str]]] = defaultdict(list)
 
         for wire in self.workflow.wires:
             if wire.to.tool == tool_id:

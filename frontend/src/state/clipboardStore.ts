@@ -24,8 +24,8 @@ import { useWorkflowStore } from "./workflowStore";
 export interface ClipboardData {
   tools: { id: string; type: string; x: number; y: number }[];
   wires: {
-    from: { tool: string; socket: number };
-    to: { tool: string; socket: number };
+    from: { tool: string; socket: string };
+    to: { tool: string; socket: string };
   }[];
   minX: number;
   minY: number;

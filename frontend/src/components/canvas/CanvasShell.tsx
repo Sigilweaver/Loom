@@ -128,8 +128,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   const handleAddWire = useCallback(
     (
-      from: { tool: string; socket: number },
-      to: { tool: string; socket: number }
+      from: { tool: string; socket: string },
+      to: { tool: string; socket: string }
     ) => {
       logger.debug("Adding wire:", from, "->", to);
       const wire: Wire = { from, to };
@@ -150,14 +150,14 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       // Parse wire ID to extract from/to info
       // Format: "encodeURIComponent(from.tool)_from.socket_encodeURIComponent(to.tool)_to.socket"
       const parts = id.split("_");
-      if (parts.length === 4 && parts[0] && parts[1] && parts[2] && parts[3]) {
+      if (parts.length >= 4 && parts[0] && parts[1] && parts[2] && parts[3]) {
         const from = {
           tool: decodeURIComponent(parts[0]),
-          socket: parseInt(parts[1], 10),
+          socket: parts[1],
         };
         const to = {
           tool: decodeURIComponent(parts[2]),
-          socket: parseInt(parts[3], 10),
+          socket: parts.slice(3).join('_'),  // Socket IDs may contain underscores
         };
         pushState(tools, wires, workflowMeta);
         removeWire(from, to);
@@ -177,8 +177,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     (
       toolAdds: { id: string; type: string; x: number; y: number }[],
       wiresToAdd: {
-        from: { tool: string; socket: number };
-        to: { tool: string; socket: number };
+        from: { tool: string; socket: string };
+        to: { tool: string; socket: string };
       }[]
     ) => {
       logger.debug(
@@ -290,8 +290,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const onConnect = useCallback(
     (c: Connection) => {
       if (c.source && c.target && c.sourceHandle && c.targetHandle) {
-        const fromSocket = parseInt(c.sourceHandle.replace("output-", ""), 10);
-        const toSocket = parseInt(c.targetHandle.replace("input-", ""), 10);
+        const fromSocket = c.sourceHandle.replace("output-", "");
+        const toSocket = c.targetHandle.replace("input-", "");
         handleAddWire(
           { tool: c.source, socket: fromSocket },
           { tool: c.target, socket: toSocket }

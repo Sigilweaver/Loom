@@ -13,7 +13,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
         y: 100,
         config: {},
         sockets: [
-          { id: 0, direction: "output" }, // No 'multiple' or 'type'
+          { id: 'output', direction: 'output' }, // No 'multiple' or 'type'
         ],
       },
       {
@@ -23,7 +23,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
         y: 100,
         config: {},
         sockets: [
-          { id: 0, direction: "input" }, // No 'multiple' or 'type'
+          { id: 'input', direction: 'input' }, // No 'multiple' or 'type'
         ],
       },
       {
@@ -33,8 +33,8 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
         y: 200,
         config: {},
         sockets: [
-          { id: 0, direction: "input", multiple: true }, // Has 'multiple'
-          { id: 1, direction: "output" },
+          { id: 'input', direction: 'input', multiple: true }, // Has 'multiple'
+          { id: 'output', direction: 'output' },
         ],
       },
       {
@@ -44,21 +44,21 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
         y: 200,
         config: {},
         sockets: [
-          { id: 0, direction: "input", type: "L" }, // Has 'type'
-          { id: 1, direction: "input", type: "R" },
-          { id: 2, direction: "output", type: "J" },
+          { id: 'input', direction: 'input', type: "L" }, // Has 'type'
+          { id: 'input', direction: 'input', type: "R" },
+          { id: 'output-false', direction: 'output', type: "J" },
         ],
       },
     ];
 
     const wires: Wire[] = [
       {
-        from: { tool: "input_001", socket: 0 },
-        to: { tool: "output_001", socket: 0 },
+        from: { tool: "input_001", socket: 'output' },
+        to: { tool: "output_001", socket: 'input' },
       },
       {
-        from: { tool: "input_001", socket: 0 },
-        to: { tool: "union_001", socket: 0 },
+        from: { tool: "input_001", socket: 'output' },
+        to: { tool: "union_001", socket: 'input' },
       },
     ];
 
@@ -86,7 +86,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
 
     // Verify socket structures preserved
     const inputTool = imported.tools.find((t) => t.id === "input_001");
-    expect(inputTool?.sockets[0]).toEqual({ id: 0, direction: "output" });
+    expect(inputTool?.sockets[0]).toEqual({ id: 'output', direction: 'output' });
 
     const unionTool = imported.tools.find((t) => t.id === "union_001");
     expect(unionTool?.sockets[0]).toEqual({
@@ -121,7 +121,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
           y: 0,
           config: {},
           sockets: [
-            { id: 0, direction: "output", multiple: "yes" }, // Wrong type - string instead of boolean
+            { id: 'output', direction: 'output', multiple: "yes" }, // Wrong type - string instead of boolean
           ],
         },
       ],
@@ -152,7 +152,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
           y: 0,
           config: {},
           sockets: [
-            { id: 0, direction: "input", type: 123 }, // Wrong type - number instead of string
+            { id: 'input', direction: 'input', type: 123 }, // Wrong type - number instead of string
           ],
         },
       ],
@@ -178,7 +178,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
           type: "csv",
           filePath: "/data/input.csv",
         },
-        sockets: [{ id: 0, direction: "output" }],
+        sockets: [{ id: 'output', direction: 'output' }],
       },
       {
         id: "tool_1729438200002",
@@ -189,8 +189,8 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
           condition: "value > 100",
         },
         sockets: [
-          { id: 0, direction: "input" },
-          { id: 1, direction: "output" },
+          { id: 'input', direction: 'input' },
+          { id: 'output', direction: 'output' },
         ],
       },
       {
@@ -201,18 +201,18 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
         config: {
           filePath: "/data/output.csv",
         },
-        sockets: [{ id: 0, direction: "input" }],
+        sockets: [{ id: 'input', direction: 'input' }],
       },
     ];
 
     const wires: Wire[] = [
       {
-        from: { tool: "tool_1729438200001", socket: 0 },
-        to: { tool: "tool_1729438200002", socket: 0 },
+        from: { tool: "tool_1729438200001", socket: 'output' },
+        to: { tool: "tool_1729438200002", socket: 'input' },
       },
       {
-        from: { tool: "tool_1729438200002", socket: 1 },
-        to: { tool: "tool_1729438200003", socket: 0 },
+        from: { tool: "tool_1729438200002", socket: 'output' },
+        to: { tool: "tool_1729438200003", socket: 'input' },
       },
     ];
 

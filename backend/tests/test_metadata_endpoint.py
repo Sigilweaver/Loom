@@ -34,7 +34,7 @@ async def test_metadata_endpoint_filter_tool(client, sample_csv):
                     "type": "csv",
                     "source": str(sample_csv),
                 },
-                "sockets": [{"id": 0, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             },
             {
                 "id": "filter1",
@@ -43,16 +43,16 @@ async def test_metadata_endpoint_filter_tool(client, sample_csv):
                 "y": 0,
                 "config": {"expression": "pl.col('age') > 30"},
                 "sockets": [
-                    {"id": 0, "direction": "input"},
-                    {"id": 1, "direction": "output", "type": "T"},
-                    {"id": 2, "direction": "output", "type": "F"},
+                    {"id": "input", "direction": "input"},
+                    {"id": "output-true", "direction": "output", "type": "T"},
+                    {"id": "output-false", "direction": "output", "type": "F"},
                 ],
             },
         ],
         "wires": [
             {
-                "from": {"tool": "input1", "socket": 0},
-                "to": {"tool": "filter1", "socket": 0},
+                "from": {"tool": "input1", "socket": "output"},
+                "to": {"tool": "filter1", "socket": "input"},
             }
         ],
     }
@@ -105,7 +105,7 @@ async def test_metadata_endpoint_formula_tool(client, sample_csv):
                     "type": "csv",
                     "source": str(sample_csv),
                 },
-                "sockets": [{"id": 0, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             },
             {
                 "id": "formula1",
@@ -117,15 +117,15 @@ async def test_metadata_endpoint_formula_tool(client, sample_csv):
                     "expression": "pl.col('age') * 2",
                 },
                 "sockets": [
-                    {"id": 0, "direction": "input"},
-                    {"id": 1, "direction": "output"},
+                    {"id": "input", "direction": "input"},
+                    {"id": "output-true", "direction": "output"},
                 ],
             },
         ],
         "wires": [
             {
-                "from": {"tool": "input1", "socket": 0},
-                "to": {"tool": "formula1", "socket": 0},
+                "from": {"tool": "input1", "socket": "output"},
+                "to": {"tool": "formula1", "socket": "input"},
             }
         ],
     }
@@ -169,7 +169,7 @@ async def test_metadata_endpoint_no_upstream(client, sample_csv):
                     "type": "csv",
                     "source": str(sample_csv),
                 },
-                "sockets": [{"id": 0, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             },
         ],
         "wires": [],

@@ -14,15 +14,15 @@ export interface ClipboardDeps {
     | ((
         toolAdds: { id: string; type: string; x: number; y: number }[],
         wiresToAdd: {
-          from: { tool: string; socket: number };
-          to: { tool: string; socket: number };
+          from: { tool: string; socket: string };
+          to: { tool: string; socket: string };
         }[]
       ) => void)
     | undefined;
   onAddTool: (type: string, x: number, y: number, idOverride?: string) => void;
   onAddWire: (
-    f: { tool: string; socket: number },
-    t: { tool: string; socket: number }
+    f: { tool: string; socket: string },
+    t: { tool: string; socket: string }
   ) => void;
   onRemoveTool: (id: string) => void;
   setNodes: (updater: (ns: Node[]) => Node[]) => void;
@@ -152,13 +152,13 @@ export function useCanvasClipboard({
     );
 
     const remappedWires: {
-      from: { tool: string; socket: number };
-      to: { tool: string; socket: number };
+      from: { tool: string; socket: string };
+      to: { tool: string; socket: string };
     }[] = [];
     cb.wires.forEach(
       (w: {
-        from: { tool: string; socket: number };
-        to: { tool: string; socket: number };
+        from: { tool: string; socket: string };
+        to: { tool: string; socket: string };
       }) => {
         const fromId = idMap.get(w.from.tool);
         const toId = idMap.get(w.to.tool);

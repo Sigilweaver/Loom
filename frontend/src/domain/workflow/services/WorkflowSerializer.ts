@@ -261,9 +261,9 @@ export class WorkflowSerializer {
               return;
             }
             const s = socket as unknown as Record<string, unknown>;
-            if (typeof s.id !== "number") {
+            if (typeof s.id !== "string") {
               errors.push(
-                `Tool ${index} socket ${socketIndex} field "id" must be a number`
+                `Tool ${index} socket ${socketIndex} field "id" must be a string`
               );
             }
             if (s.direction !== "input" && s.direction !== "output") {
@@ -307,8 +307,8 @@ export class WorkflowSerializer {
           if (typeof w.from.tool !== "string") {
             errors.push(`Wire ${index} field "from.tool" must be a string`);
           }
-          if (typeof w.from.socket !== "number") {
-            errors.push(`Wire ${index} field "from.socket" must be a number`);
+          if (typeof w.from.socket !== "string") {
+            errors.push(`Wire ${index} field "from.socket" must be a string`);
           }
         }
 
@@ -318,8 +318,8 @@ export class WorkflowSerializer {
           if (typeof w.to.tool !== "string") {
             errors.push(`Wire ${index} field "to.tool" must be a string`);
           }
-          if (typeof w.to.socket !== "number") {
-            errors.push(`Wire ${index} field "to.socket" must be a number`);
+          if (typeof w.to.socket !== "string") {
+            errors.push(`Wire ${index} field "to.socket" must be a string`);
           }
         }
       });

@@ -19,7 +19,7 @@ class PythonCodeGenerator:
         self.workflow = workflow
         self.graph = ExecutionGraph(workflow)
         self.tool_map = {tool.id: tool for tool in workflow.tools}
-        self.var_names: dict[str, dict[int, str]] = {}  # tool_id -> socket_id -> var_name
+        self.var_names: dict[str, dict[str, str]] = {}  # tool_id -> socket_id -> var_name
 
     def generate(self) -> str:
         """Generate complete Python script"""
@@ -94,12 +94,12 @@ class PythonCodeGenerator:
             # Fallback for tools without code generation
             return [f"# TODO: {tool.type} does not implement code generation yet"]
 
-    def _get_input_vars(self, tool_id: str) -> dict[int, str | list[str]]:
+    def _get_input_vars(self, tool_id: str) -> dict[str, str | list[str]]:
         """Get input variable names for a tool.
         
         Returns dict of socket_id -> var_name (for single input) or [var_names] (for multiple inputs)
         """
-        input_vars: dict[int, str | list[str]] = {}
+        input_vars: dict[str, str | list[str]] = {}
         tool_inputs = self.graph.get_tool_inputs(tool_id)
         
         for socket_id, sources in tool_inputs.items():

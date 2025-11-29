@@ -57,7 +57,7 @@ async def test_frontend_schema_workflow(sample_csv):
                     "csvMode": "scan",
                 },
                 sockets=[
-                    Socket(id=0, direction="output", type="polars-lazy")
+                    Socket(id="output", direction="output", type="polars-lazy")
                 ],
             ),
         ],
@@ -74,9 +74,9 @@ async def test_frontend_schema_workflow(sample_csv):
     
     # Frontend needs: list of columns with names and types
     assert "outputs" in result
-    assert "0" in result["outputs"]  # Socket 0 output
-    
-    schema = result["outputs"]["0"]["data_schema"]
+    assert "output" in result["outputs"]  # Socket output
+
+    schema = result["outputs"]["output"]["data_schema"]
     assert schema is not None
     
     columns = schema.columns
@@ -104,16 +104,16 @@ async def test_frontend_schema_workflow(sample_csv):
                 "expression": "pl.col('age') > 30",
             },
             sockets=[
-                Socket(id=0, direction="input", type="polars-lazy"),
-                Socket(id=1, direction="output", type="polars-lazy"),
-                Socket(id=2, direction="output", type="polars-lazy"),
+                Socket(id="input", direction="input", type="polars-lazy"),
+                Socket(id="output-true", direction="output", type="polars-lazy"),
+                Socket(id="output-false", direction="output", type="polars-lazy"),
             ],
         )
     )
     workflow.wires.append(
         Wire(
-            from_=WireEndpoint(tool="input1", socket=0),
-            to=WireEndpoint(tool="filter1", socket=0),
+            from_=WireEndpoint(tool="input1", socket="output"),
+            to=WireEndpoint(tool="filter1", socket="input"),
         )
     )
     
@@ -123,7 +123,7 @@ async def test_frontend_schema_workflow(sample_csv):
     print(f"Schema result: {result}")
     
     # Filter doesn't change schema - should have same columns
-    filter_schema = result["outputs"]["1"]["data_schema"]  # Socket 1 = True output
+    filter_schema = result["outputs"]["output-true"]["data_schema"]  # Socket output-true = True output
     filter_columns = [col.name for col in filter_schema.columns]
     
     assert set(filter_columns) == {"id", "name", "age", "salary", "department"}
@@ -146,15 +146,15 @@ async def test_frontend_schema_workflow(sample_csv):
                 ],
             },
             sockets=[
-                Socket(id=0, direction="input", type="polars-lazy"),
-                Socket(id=1, direction="output", type="polars-lazy"),
+                Socket(id="input", direction="input", type="polars-lazy"),
+                Socket(id="output", direction="output", type="polars-lazy"),
             ],
         )
     )
     workflow.wires.append(
         Wire(
-            from_=WireEndpoint(tool="filter1", socket=1),
-            to=WireEndpoint(tool="select1", socket=0),
+            from_=WireEndpoint(tool="filter1", socket="output-true"),
+            to=WireEndpoint(tool="select1", socket="input"),
         )
     )
     
@@ -164,7 +164,7 @@ async def test_frontend_schema_workflow(sample_csv):
     print(f"Schema result: {result}")
     
     # Select should show only the selected columns
-    select_schema = result["outputs"]["1"]["data_schema"]  # Socket 1 output
+    select_schema = result["outputs"]["output"]["data_schema"]  # Socket 1 output
     select_columns = [col.name for col in select_schema.columns]
     
     assert set(select_columns) == {"name", "age", "salary"}
@@ -204,7 +204,7 @@ async def test_frontend_preview_workflow(sample_csv):
                     "csvMode": "read",  # Use read mode for preview
                 },
                 sockets=[
-                    Socket(id=0, direction="output", type="polars-lazy")
+                    Socket(id="output", direction="output", type="polars-lazy")
                 ],
             ),
             Tool(
@@ -215,16 +215,16 @@ async def test_frontend_preview_workflow(sample_csv):
                     "expression": "pl.col('age') > 30",
                 },
                 sockets=[
-                    Socket(id=0, direction="input", type="polars-lazy"),
-                    Socket(id=1, direction="output", type="polars-lazy"),
-                    Socket(id=2, direction="output", type="polars-lazy"),
+                    Socket(id="input", direction="input", type="polars-lazy"),
+                    Socket(id="output-true", direction="output", type="polars-lazy"),
+                    Socket(id="output-false", direction="output", type="polars-lazy"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             ),
         ],
     )
@@ -239,9 +239,9 @@ async def test_frontend_preview_workflow(sample_csv):
     
     # Frontend needs the actual data rows
     assert "outputs" in result
-    assert "1" in result["outputs"]  # Socket 1 = True output
+    assert "output-true" in result["outputs"]  # Socket output-true = True output
     
-    preview_data = result["outputs"]["1"]
+    preview_data = result["outputs"]["output-true"]
     print(f"Preview data keys: {preview_data.keys()}")
     
     # Should have data with columns and rows
@@ -285,7 +285,7 @@ async def test_preview_all_tools(sample_csv):
                     "csvMode": "scan",
                 },
                 sockets=[
-                    Socket(id=0, direction="output", type="polars-lazy")
+                    Socket(id="output", direction="output", type="polars-lazy")
                 ],
             ),
             Tool(
@@ -296,9 +296,9 @@ async def test_preview_all_tools(sample_csv):
                     "expression": "pl.col('age') > 30",
                 },
                 sockets=[
-                    Socket(id=0, direction="input", type="polars-lazy"),
-                    Socket(id=1, direction="output", type="polars-lazy"),
-                    Socket(id=2, direction="output", type="polars-lazy"),
+                    Socket(id="input", direction="input", type="polars-lazy"),
+                    Socket(id="output-true", direction="output", type="polars-lazy"),
+                    Socket(id="output-false", direction="output", type="polars-lazy"),
                 ],
             ),
             Tool(
@@ -312,19 +312,19 @@ async def test_preview_all_tools(sample_csv):
                     ],
                 },
                 sockets=[
-                    Socket(id=0, direction="input", type="polars-lazy"),
-                    Socket(id=1, direction="output", type="polars-lazy"),
+                    Socket(id="input", direction="input", type="polars-lazy"),
+                    Socket(id="output", direction="output", type="polars-lazy"),
                 ],
             ),
         ],
         wires=[
             Wire(
-                from_=WireEndpoint(tool="input1", socket=0),
-                to=WireEndpoint(tool="filter1", socket=0),
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
             ),
             Wire(
-                from_=WireEndpoint(tool="filter1", socket=1),
-                to=WireEndpoint(tool="select1", socket=0),
+                from_=WireEndpoint(tool="filter1", socket="output-true"),
+                to=WireEndpoint(tool="select1", socket="input"),
             ),
         ],
     )
@@ -347,17 +347,17 @@ async def test_preview_all_tools(sample_csv):
     assert "select1" in tools
     
     # Check input1 output
-    input_output = tools["input1"]["outputs"]["0"]
+    input_output = tools["input1"]["outputs"]["output"]
     assert "data" in input_output
     assert "data_schema" in input_output
     assert len(input_output["data"]) == 5  # All 5 rows
     
-    # Check filter1 output (socket 1 = True output)
-    filter_output = tools["filter1"]["outputs"]["1"]
+    # Check filter1 output (socket output-true = True output)
+    filter_output = tools["filter1"]["outputs"]["output-true"]
     assert len(filter_output["data"]) == 3  # 3 rows with age > 30
     
     # Check select1 output
-    select_output = tools["select1"]["outputs"]["1"]
+    select_output = tools["select1"]["outputs"]["output"]
     assert len(select_output["data"]) == 3  # Same 3 rows
     # Only 2 columns selected
     assert len(select_output["data_schema"].columns) == 2

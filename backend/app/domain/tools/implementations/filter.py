@@ -16,13 +16,13 @@ class FilterTool(BaseTool):
     Filter rows based on a Polars expression.
 
     Returns two outputs:
-    - Socket 1 (T): Rows that match the filter
-    - Socket 2 (F): Rows that don't match the filter
+    - Socket output-true (T): Rows that match the filter
+    - Socket output-false (F): Rows that don't match the filter
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Filter data based on expression.
 
@@ -30,18 +30,18 @@ class FilterTool(BaseTool):
         - expression: Polars expression string (e.g., "pl.col('amount') > 100")
         """
         # Get input LazyFrame
-        if 0 not in inputs:
-            raise ToolError("Filter tool requires input on socket 0")
+        if "input" not in inputs:
+            raise ToolError("Filter tool requires input on socket 'input'")
 
-        lf = inputs[0]
+        lf = inputs["input"]
 
         # Get filter expression
         expression = config.get("expression", "")
         if not expression or expression.strip() == "":
             # No filter - all rows pass
             return {
-                1: lf,  # T output - all rows
-                2: lf.clear(),  # F output - empty
+                "output-true": lf,  # T output - all rows
+                "output-false": lf.clear(),  # F output - empty
             }
 
         # Parse and apply filter expression
@@ -52,8 +52,8 @@ class FilterTool(BaseTool):
         lf_false = lf.filter(~filter_expr)
 
         return {
-            1: lf_true,  # Socket 1 - T output (matches)
-            2: lf_false,  # Socket 2 - F output (doesn't match)
+            "output-true": lf_true,  # T output (matches)
+            "output-false": lf_false,  # F output (doesn't match)
         }
 
     def _parse_expression(self, expression: str) -> pl.Expr:
@@ -89,21 +89,21 @@ class FilterTool(BaseTool):
             raise ToolError(f"Failed to parse expression: {str(e)}") from e
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+    ) -> dict[str, DataSchema]:
         """
         Output schema is same as input schema for both outputs.
 
         Filter doesn't change schema, just removes rows.
         """
-        if 0 not in input_schemas:
-            raise ToolError("Filter tool requires input schema on socket 0")
+        if "input" not in input_schemas:
+            raise ToolError("Filter tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas[0]
+        input_schema = input_schemas["input"]
 
         return {
-            1: input_schema,  # T output - same schema
-            2: input_schema,  # F output - same schema
+            "output-true": input_schema,  # T output - same schema
+            "output-false": input_schema,  # F output - same schema
         }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
@@ -126,8 +126,8 @@ class FilterTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str],
-    ) -> tuple[list[str], dict[int, str]]:
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Filter tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
@@ -135,7 +135,7 @@ class FilterTool(BaseTool):
         expression = config.get("expression", "")
 
         # Get input variable name
-        input_var = input_vars.get(0, "df_input")
+        input_var = input_vars.get("input", "df_input")
 
         # Generate output variable names
         var_t = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_t"
@@ -150,4 +150,4 @@ class FilterTool(BaseTool):
             lines.append(f"{var_t} = {input_var}.filter({expression})")
             lines.append(f"{var_f} = {input_var}.filter(~({expression}))")
 
-        return (lines, {1: var_t, 2: var_f})
+        return (lines, {"output-true": var_t, "output-false": var_f})

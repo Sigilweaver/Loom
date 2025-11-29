@@ -19,7 +19,7 @@ class WorkflowMeta(BaseModel):
 class Socket(BaseModel):
     """Tool socket (connection point)"""
 
-    id: int
+    id: str
     direction: Literal["input", "output"]
     type: str | None = None
     multiple: bool | None = None
@@ -40,7 +40,7 @@ class WireEndpoint(BaseModel):
     """Wire connection endpoint"""
 
     tool: str
-    socket: int
+    socket: str
 
 
 class Wire(BaseModel):

@@ -63,7 +63,7 @@ describe("Store Integration Tests", () => {
         x: 100,
         y: 200,
         config: {},
-        sockets: [{ id: 1, direction: "output", multiple: false }],
+        sockets: [{ id: 'output', direction: 'output', multiple: false }],
       };
 
       addTool(tool);
@@ -89,7 +89,7 @@ describe("Store Integration Tests", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -120,14 +120,14 @@ describe("Store Integration Tests", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         },
       ];
 
       const newWires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
 
@@ -295,8 +295,8 @@ describe("Store Integration Tests", () => {
 
       // Create invalid wire (non-existent tools)
       const invalidWire: Wire = {
-        from: { tool: "nonexistent1", socket: 1 },
-        to: { tool: "nonexistent2", socket: 1 },
+        from: { tool: "nonexistent1", socket: 'output' },
+        to: { tool: "nonexistent2", socket: 'input' },
       };
 
       const result = validateWire(invalidWire);
@@ -446,7 +446,7 @@ describe("Store Integration Tests", () => {
         x: 100,
         y: 200,
         config: { filename: "data.csv" },
-        sockets: [{ id: 1, direction: "output", multiple: false }],
+        sockets: [{ id: 'output', direction: 'output', multiple: false }],
       };
 
       workflow.addTool(tool1);
@@ -462,8 +462,8 @@ describe("Store Integration Tests", () => {
         y: 200,
         config: { condition: "x > 0" },
         sockets: [
-          { id: 1, direction: "input", multiple: false },
-          { id: 2, direction: "output", multiple: false },
+          { id: 'input', direction: 'input', multiple: false },
+          { id: 'output-false', direction: 'output', multiple: false },
         ],
       };
 
@@ -474,8 +474,8 @@ describe("Store Integration Tests", () => {
       history.pushState(workflow.tools, workflow.wires, workflow.workflowMeta);
 
       const wire: Wire = {
-        from: { tool: "input", socket: 1 },
-        to: { tool: "filter", socket: 1 },
+        from: { tool: "input", socket: 'output' },
+        to: { tool: "filter", socket: 'input' },
       };
 
       workflow.addWire(wire);

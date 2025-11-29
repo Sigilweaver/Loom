@@ -19,8 +19,8 @@ class BaseTool(ABC):
 
     @abstractmethod
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Execute tool logic.
 
@@ -37,8 +37,8 @@ class BaseTool(ABC):
 
     @abstractmethod
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema | list[DataSchema]]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
+    ) -> dict[str, DataSchema]:
         """
         Get output schema without executing the tool.
 
@@ -72,8 +72,8 @@ class BaseTool(ABC):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str],
-    ) -> tuple[list[str], dict[int, str]]:
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
         """
         Generate Python code for this tool.
 
@@ -95,5 +95,5 @@ class BaseTool(ABC):
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
         return (
             [f"# TODO: {self.__class__.__name__} code generation not implemented"],
-            {1: var_name},
+            {"output": var_name},
         )

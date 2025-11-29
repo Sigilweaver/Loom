@@ -11,7 +11,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       description: 'Component playground for config primitives',
     },
     sockets: [
-      { id: 0, direction: 'output' }
+      { id: 'output', direction: 'output' }
     ]
   },
   
@@ -25,7 +25,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       placeholder: 'Configuration coming soon...',
     },
     sockets: [
-      { id: 0, direction: 'output' }
+      { id: 'output', direction: 'output' }
     ]
   },
   {
@@ -37,7 +37,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       placeholder: 'Configuration coming soon...',
     },
     sockets: [
-      { id: 0, direction: 'input' }
+      { id: 'input', direction: 'input' }
     ]
   },
   
@@ -52,9 +52,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       mode: 'Custom',
     },
     sockets: [
-      { id: 0, direction: 'input' },
-      { id: 1, direction: 'output', type: 'T' },
-      { id: 2, direction: 'output', type: 'F' }
+      { id: 'input', direction: 'input' },
+      { id: 'output-true', direction: 'output', type: 'T' },
+      { id: 'output-false', direction: 'output', type: 'F' }
     ]
   },
   {
@@ -66,8 +66,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       columnConfigs: [],
     },
     sockets: [
-      { id: 0, direction: 'input' },
-      { id: 1, direction: 'output' }
+      { id: 'input', direction: 'input' },
+      { id: 'output', direction: 'output' }
     ]
   },
   {
@@ -80,8 +80,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       order: 'asc',
     },
     sockets: [
-      { id: 0, direction: 'input' },
-      { id: 1, direction: 'output' }
+      { id: 'input', direction: 'input' },
+      { id: 'output', direction: 'output' }
     ]
   },
   {
@@ -94,8 +94,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       resultColumn: 'Result',
     },
     sockets: [
-      { id: 0, direction: 'input' },
-      { id: 1, direction: 'output' }
+      { id: 'input', direction: 'input' },
+      { id: 'output', direction: 'output' }
     ]
   },
   
@@ -109,8 +109,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       mode: 'ByName',
     },
     sockets: [
-      { id: 0, direction: 'input', multiple: true },
-      { id: 1, direction: 'output' }
+      { id: 'input', direction: 'input', multiple: true },
+      { id: 'output', direction: 'output' }
     ]
   },
   {
@@ -124,11 +124,11 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       rightKeys: [],
     },
     sockets: [
-      { id: 0, direction: 'input', type: 'L' }, // Left input
-      { id: 1, direction: 'input', type: 'R' }, // Right input  
-      { id: 2, direction: 'output', type: 'L' }, // Left output
-      { id: 3, direction: 'output', type: 'J' }, // Join output
-      { id: 4, direction: 'output', type: 'R' }  // Right output
+      { id: 'input-left', direction: 'input', type: 'L' },
+      { id: 'input-right', direction: 'input', type: 'R' },
+      { id: 'output-left', direction: 'output', type: 'L' },
+      { id: 'output-match', direction: 'output', type: 'J' },
+      { id: 'output-right', direction: 'output', type: 'R' }
     ]
   },
 
@@ -150,8 +150,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       includeNulls: false,
     },
     sockets: [
-      { id: 0, direction: 'input' },
-      { id: 1, direction: 'output' }
+      { id: 'input', direction: 'input' },
+      { id: 'output', direction: 'output' }
     ]
   },
 ];

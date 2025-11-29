@@ -30,7 +30,7 @@ describe('Backend API Client', () => {
           type: 'csv',
           source: '/test/data.csv',
         },
-        sockets: [{ id: 0, direction: 'output' }],
+        sockets: [{ id: 'output', direction: 'output' }],
       },
     ],
     wires: [],

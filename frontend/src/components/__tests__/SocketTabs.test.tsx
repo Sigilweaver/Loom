@@ -26,9 +26,9 @@ const createTool = (id: string, type: string): Tool => ({
 // Helper to create test wires
 const createWire = (
   fromTool: string,
-  fromSocket: number,
+  fromSocket: string,
   toTool: string,
-  toSocket: number
+  toSocket: string
 ): Wire => ({
   from: { tool: fromTool, socket: fromSocket },
   to: { tool: toTool, socket: toSocket },
@@ -84,7 +84,7 @@ describe("SocketTabs", () => {
     it("shows Input tab only when connected", () => {
       const inputTool = createTool("input1", "Input");
       const outputTool = createTool("output1", "Output");
-      const wire = createWire("input1", 0, "output1", 0);
+      const wire = createWire('input1', 'output', 'output1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, outputTool],
@@ -124,7 +124,7 @@ describe("SocketTabs", () => {
     it("shows Input and True/False outputs", () => {
       const inputTool = createTool("input1", "Input");
       const filterTool = createTool("filter1", "Filter");
-      const wire = createWire("input1", 0, "filter1", 0);
+      const wire = createWire('input1', 'output', 'filter1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, filterTool],
@@ -150,8 +150,8 @@ describe("SocketTabs", () => {
       const input1 = createTool("input1", "Input");
       const input2 = createTool("input2", "Input");
       const joinTool = createTool("join1", "Join");
-      const wireLeft = createWire("input1", 0, "join1", 0); // Left input
-      const wireRight = createWire("input2", 0, "join1", 1); // Right input
+      const wireLeft = createWire('input1', 'output', 'join1', 'input-left'); // Left input
+      const wireRight = createWire('input2', 'output', 'join1', 'input-right'); // Right input
 
       useWorkflowStore.setState({
         tools: [input1, input2, joinTool],
@@ -174,7 +174,7 @@ describe("SocketTabs", () => {
     it("only shows connected inputs for Join", () => {
       const input1 = createTool("input1", "Input");
       const joinTool = createTool("join1", "Join");
-      const wireLeft = createWire("input1", 0, "join1", 0); // Only left connected
+      const wireLeft = createWire('input1', 'output', 'join1', 'input-left'); // Only left connected
 
       useWorkflowStore.setState({
         tools: [input1, joinTool],
@@ -195,7 +195,7 @@ describe("SocketTabs", () => {
     it("highlights selected tab based on previewState", () => {
       const filterTool = createTool("filter1", "Filter");
       const inputTool = createTool("input1", "Input");
-      const wire = createWire("input1", 0, "filter1", 0);
+      const wire = createWire('input1', 'output', 'filter1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, filterTool],
@@ -203,11 +203,11 @@ describe("SocketTabs", () => {
         selectedTool: filterTool,
       });
 
-      // Set preview state to True output (socket 1)
+      // Set preview state to True output (socket output-true)
       useUIStore.setState({
         previewState: {
           toolId: "filter1",
-          socketId: 1,
+          socketId: 'output-true',
           socketDirection: "output",
           data: [],
           schema: [],
@@ -233,7 +233,7 @@ describe("SocketTabs", () => {
       const user = userEvent.setup();
       const filterTool = createTool("filter1", "Filter");
       const inputTool = createTool("input1", "Input");
-      const wire = createWire("input1", 0, "filter1", 0);
+      const wire = createWire('input1', 'output', 'filter1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, filterTool],
@@ -246,13 +246,13 @@ describe("SocketTabs", () => {
       const trueButton = screen.getByRole("button", { name: "True" });
       await user.click(trueButton);
 
-      expect(mockPreviewSocket).toHaveBeenCalledWith("filter1", 1, "output");
+      expect(mockPreviewSocket).toHaveBeenCalledWith("filter1", 'output-true', "output");
     });
 
     it("disables tabs while loading", () => {
       const filterTool = createTool("filter1", "Filter");
       const inputTool = createTool("input1", "Input");
-      const wire = createWire("input1", 0, "filter1", 0);
+      const wire = createWire('input1', 'output', 'filter1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, filterTool],
@@ -263,7 +263,7 @@ describe("SocketTabs", () => {
       useUIStore.setState({
         previewState: {
           toolId: "filter1",
-          socketId: 1,
+          socketId: 'output',
           socketDirection: "output",
           data: [],
           schema: [],
@@ -283,7 +283,7 @@ describe("SocketTabs", () => {
     it("prefers selectedTool over previewState.toolId", () => {
       const inputTool = createTool("input1", "Input");
       const filterTool = createTool("filter1", "Filter");
-      const wire = createWire("input1", 0, "filter1", 0);
+      const wire = createWire('input1', 'output', 'filter1', 'input');
 
       useWorkflowStore.setState({
         tools: [inputTool, filterTool],
@@ -295,7 +295,7 @@ describe("SocketTabs", () => {
       useUIStore.setState({
         previewState: {
           toolId: "input1",
-          socketId: 0,
+          socketId: 'input',
           socketDirection: "output",
           data: [],
           schema: [],

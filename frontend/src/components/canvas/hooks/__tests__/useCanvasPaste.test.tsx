@@ -151,8 +151,8 @@ describe("useCanvasPaste", () => {
           tools: [],
           wires: [
             {
-              from: { tool: "tool1", socket: 0 },
-              to: { tool: "tool2", socket: 0 },
+              from: { tool: "tool1", socket: 'output' },
+              to: { tool: "tool2", socket: 'input' },
             },
           ],
           minX: 0,

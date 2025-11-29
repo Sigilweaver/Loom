@@ -119,7 +119,7 @@ export class WorkflowToPython {
    */
   private static generateToolCode(
     tool: Tool,
-    inputsByTool: Map<string, Array<{fromTool: string; fromSocket: number; toSocket: number}>>,
+    inputsByTool: Map<string, Array<{fromTool: string; fromSocket: string; toSocket: string}>>,
     dataframeNames: Map<string, string>
   ): string[] {
     const lines: string[] = [];
@@ -174,7 +174,7 @@ export class WorkflowToPython {
    */
   private static generateFilterCode(
     tool: Tool,
-    inputs: Array<{fromTool: string; fromSocket: number; toSocket: number}>,
+    inputs: Array<{fromTool: string; fromSocket: string; toSocket: string}>,
     dataframeNames: Map<string, string>
   ): string[] {
     const lines: string[] = [];
@@ -218,7 +218,7 @@ export class WorkflowToPython {
    */
   private static generateFormulaCode(
     tool: Tool,
-    inputs: Array<{fromTool: string; fromSocket: number; toSocket: number}>,
+    inputs: Array<{fromTool: string; fromSocket: string; toSocket: string}>,
     dataframeNames: Map<string, string>
   ): string[] {
     const lines: string[] = [];
@@ -259,7 +259,7 @@ export class WorkflowToPython {
    */
   private static generateMultiplierCode(
     tool: Tool,
-    inputs: Array<{fromTool: string; fromSocket: number; toSocket: number}>,
+    inputs: Array<{fromTool: string; fromSocket: string; toSocket: string}>,
     dataframeNames: Map<string, string>
   ): string[] {
     const lines: string[] = [];
@@ -300,7 +300,7 @@ export class WorkflowToPython {
    */
   private static generateOutputCode(
     tool: Tool,
-    inputs: Array<{fromTool: string; fromSocket: number; toSocket: number}>,
+    inputs: Array<{fromTool: string; fromSocket: string; toSocket: string}>,
     dataframeNames: Map<string, string>
   ): string[] {
     const lines: string[] = [];
@@ -395,8 +395,8 @@ export class WorkflowToPython {
   /**
    * Build map of inputs for each tool
    */
-  private static buildInputMap(wires: Wire[]): Map<string, Array<{fromTool: string; fromSocket: number; toSocket: number}>> {
-    const map = new Map<string, Array<{fromTool: string; fromSocket: number; toSocket: number}>>();
+  private static buildInputMap(wires: Wire[]): Map<string, Array<{fromTool: string; fromSocket: string; toSocket: string}>> {
+    const map = new Map<string, Array<{fromTool: string; fromSocket: string; toSocket: string}>>();
     
     for (const wire of wires) {
       const toTool = wire.to.tool;
@@ -412,7 +412,7 @@ export class WorkflowToPython {
     
     // Sort inputs by socket ID for consistent ordering
     for (const inputs of map.values()) {
-      inputs.sort((a, b) => a.toSocket - b.toSocket);
+      inputs.sort((a, b) => a.toSocket.localeCompare(b.toSocket));
     }
     
     return map;

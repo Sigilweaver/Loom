@@ -24,7 +24,7 @@ export function useSocketPreview() {
   const getCachedPreviewFromStore = usePreviewCacheStore((s) => s.getCachedPreview);
 
   const previewSocket = useCallback(
-    async (toolId: string, socketId: number, socketDirection: "input" | "output") => {
+    async (toolId: string, socketId: string, socketDirection: "input" | "output") => {
       // Open bottom pane and switch to preview tab
       setBottomPaneOpen(true);
       setActiveBottomTab("preview");

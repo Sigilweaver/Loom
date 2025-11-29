@@ -27,8 +27,8 @@ interface NormalizedTool {
 interface NormalizedWorkflow {
   tools: NormalizedTool[];
   wires: Array<{
-    from: { tool: string; socket: number };
-    to: { tool: string; socket: number };
+    from: { tool: string; socket: string };
+    to: { tool: string; socket: string };
   }>;
 }
 

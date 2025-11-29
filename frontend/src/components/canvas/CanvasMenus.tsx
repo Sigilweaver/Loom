@@ -27,7 +27,7 @@ interface Props {
   edge: Edge | null;
   tools: Tool[];
   wires: Wire[];
-  onAddWire: (f: { tool: string; socket: number }, t: { tool: string; socket: number }) => void;
+  onAddWire: (f: { tool: string; socket: string }, t: { tool: string; socket: string }) => void;
   onRemoveWire: (id: string) => void;
   onBeginTransaction?: (() => void) | undefined;
   onCommitTransaction?: (() => void) | undefined;
@@ -84,15 +84,15 @@ export const CanvasMenus: React.FC<Props> = ({
     const items: ActionItem[] = [];
     const parsed = {
       sourceTool: edge.source,
-      sourceSocket: parseInt(String(edge.sourceHandle || '').replace('output-', '')),
+      sourceSocket: String(edge.sourceHandle || '').replace('output-', ''),
       targetTool: edge.target,
-      targetSocket: parseInt(String(edge.targetHandle || '').replace('input-', '')),
+      targetSocket: String(edge.targetHandle || '').replace('input-', ''),
     };
     items.push({ key: 'delete-edge', label: 'Delete', onClick: () => onRemoveWire(edge.id) });
 
   const toolById = (id: string) => tools.find(t => t.id === id);
-    const isTargetSocketOccupied = (toolId: string, socket: number) => wires.some(w => w.to.tool === toolId && w.to.socket === socket);
-    const isSourceSocketOccupied = (toolId: string, socket: number) => wires.some(w => w.from.tool === toolId && w.from.socket === socket);
+    const isTargetSocketOccupied = (toolId: string, socket: string) => wires.some(w => w.to.tool === toolId && w.to.socket === socket);
+    const isSourceSocketOccupied = (toolId: string, socket: string) => wires.some(w => w.from.tool === toolId && w.from.socket === socket);
 
     // Change input to ...
     const targetTool = toolById(parsed.targetTool);

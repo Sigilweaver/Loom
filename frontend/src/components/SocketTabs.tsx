@@ -5,7 +5,7 @@ import { TOOL_DEFINITIONS } from "@data/tools";
 import { useSocketPreview } from "../hooks/useSocketPreview";
 
 interface SocketTabInfo {
-  socketId: number;
+  socketId: string;
   direction: "input" | "output";
   label: string;
   type: string | undefined;
@@ -122,13 +122,13 @@ const SocketTabs = () => {
   }, [currentTool, toolDefinition, wires]);
 
   // Handle tab click
-  const handleTabClick = (socketId: number, direction: "input" | "output") => {
+  const handleTabClick = (socketId: string, direction: "input" | "output") => {
     if (!currentTool) return;
     previewSocket(currentTool.id, socketId, direction);
   };
 
   // Check if a tab is currently selected
-  const isSelected = (socketId: number, direction: "input" | "output") => {
+  const isSelected = (socketId: string, direction: "input" | "output") => {
     return (
       previewState?.socketId === socketId && previewState?.socketDirection === direction
     );

@@ -40,7 +40,7 @@ def sample_workflow():
                 "x": 0,
                 "y": 0,
                 "config": {"source": "/path/to/file.csv"},
-                "sockets": [{"id": 1, "direction": "output"}],
+                "sockets": [{"id": "output", "direction": "output"}],
             },
             {
                 "id": "tool2",
@@ -49,15 +49,16 @@ def sample_workflow():
                 "y": 0,
                 "config": {"expression": "column > 10"},
                 "sockets": [
-                    {"id": 0, "direction": "input"},
-                    {"id": 1, "direction": "output"},
+                    {"id": "input", "direction": "input"},
+                    {"id": "output-true", "direction": "output"},
+                    {"id": "output-false", "direction": "output"},
                 ],
             },
         ],
         wires=[
             {
-                "from": {"tool": "tool1", "socket": 1},
-                "to": {"tool": "tool2", "socket": 0},
+                "from": {"tool": "tool1", "socket": "output"},
+                "to": {"tool": "tool2", "socket": "input"},
             }
         ],
     )

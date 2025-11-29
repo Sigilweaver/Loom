@@ -49,8 +49,8 @@ class SelectTool(BaseTool):
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[int, pl.LazyFrame]
-    ) -> dict[int, pl.LazyFrame]:
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+    ) -> dict[str, pl.LazyFrame]:
         """
         Execute column selection, renaming, reordering, and type casting.
 
@@ -58,15 +58,15 @@ class SelectTool(BaseTool):
         - columnConfigs: list[dict] - column configurations
         """
         # Get input LazyFrame
-        if 0 not in inputs:
-            raise ToolError("Select tool requires input on socket 0")
+        if "input" not in inputs:
+            raise ToolError("Select tool requires input on socket 'input'")
 
-        lf = inputs[0]
+        lf = inputs["input"]
         column_configs = config.get("columnConfigs", [])
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            return {1: lf}
+            return {"output": lf}
 
         # Build list of expressions for selected columns (maintains order)
         expressions: list[pl.Expr] = []
@@ -116,23 +116,23 @@ class SelectTool(BaseTool):
         # Apply all transformations
         lf = lf.select(expressions)
 
-        return {1: lf}
+        return {"output": lf}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[int, DataSchema]
-    ) -> dict[int, DataSchema]:
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+    ) -> dict[str, DataSchema]:
         """
         Calculate output schema based on column configuration.
         """
-        if 0 not in input_schemas:
-            raise ToolError("Select tool requires input schema on socket 0")
+        if "input" not in input_schemas:
+            raise ToolError("Select tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas[0]
+        input_schema = input_schemas["input"]
         column_configs = config.get("columnConfigs", [])
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            return {1: input_schema}
+            return {"output": input_schema}
 
         # Build output columns based on config
         output_columns: list[ColumnSchema] = []
@@ -178,7 +178,7 @@ class SelectTool(BaseTool):
         if not output_columns:
             raise ToolError("At least one column must be selected")
 
-        return {1: DataSchema(
+        return {"output": DataSchema(
             columns=output_columns,
             row_count=input_schema.row_count,
             file_size_bytes=None,

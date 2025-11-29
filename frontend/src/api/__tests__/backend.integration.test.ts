@@ -54,7 +54,7 @@ describe('Backend E2E Integration', () => {
             type: 'csv',
             source: TEST_CSV,
           },
-          sockets: [{ id: 0, direction: 'output' }],
+          sockets: [{ id: 'output', direction: 'output' }],
         },
       ]);
 
@@ -89,7 +89,7 @@ describe('Backend E2E Integration', () => {
             type: 'csv',
             source: TEST_CSV,
           },
-          sockets: [{ id: 0, direction: 'output' }],
+          sockets: [{ id: 'output', direction: 'output' }],
         },
       ]);
 
@@ -128,7 +128,7 @@ describe('Backend E2E Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'filter1',
@@ -139,16 +139,16 @@ describe('Backend E2E Integration', () => {
               expression: 'pl.col("age") > 28',
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' }, // Matches
-              { id: 2, direction: 'output' }, // Doesn't match
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' }, // Matches
+              { id: 'output-false', direction: 'output' }, // Doesn't match
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
         ]
       );
@@ -191,7 +191,7 @@ describe('Backend E2E Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'select1',
@@ -203,15 +203,15 @@ describe('Backend E2E Integration', () => {
               exclude_mode: false,
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'select1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'select1', socket: 'input' },
           },
         ]
       );
@@ -249,7 +249,7 @@ describe('Backend E2E Integration', () => {
               type: 'csv',
               source: TEST_CSV,
             },
-            sockets: [{ id: 0, direction: 'output' }],
+            sockets: [{ id: 'output', direction: 'output' }],
           },
           {
             id: 'filter1',
@@ -260,9 +260,9 @@ describe('Backend E2E Integration', () => {
               expression: 'pl.col("age") >= 30',
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
-              { id: 2, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
             ],
           },
           {
@@ -275,19 +275,19 @@ describe('Backend E2E Integration', () => {
               exclude_mode: false,
             },
             sockets: [
-              { id: 0, direction: 'input' },
-              { id: 1, direction: 'output' },
+              { id: 'input', direction: 'input' },
+              { id: 'output', direction: 'output' },
             ],
           },
         ],
         [
           {
-            from: { tool: 'input1', socket: 0 },
-            to: { tool: 'filter1', socket: 0 },
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
           },
           {
-            from: { tool: 'filter1', socket: 1 },
-            to: { tool: 'select1', socket: 0 },
+            from: { tool: 'filter1', socket: 'output-true' },
+            to: { tool: 'select1', socket: 'input' },
           },
         ]
       );

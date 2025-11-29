@@ -108,7 +108,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -176,7 +176,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -185,16 +185,16 @@ describe("clipboardStore", () => {
           y: 200,
           config: {},
           sockets: [
-            { id: 1, direction: "input", multiple: false },
-            { id: 2, direction: "output", multiple: false },
+            { id: 'input', direction: 'input', multiple: false },
+            { id: 'output-false', direction: 'output', multiple: false },
           ],
         },
       ];
 
       const wires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
 
@@ -206,8 +206,8 @@ describe("clipboardStore", () => {
       expect(clipboard).not.toBeNull();
       expect(clipboard?.wires).toHaveLength(1);
       expect(clipboard?.wires[0]).toEqual({
-        from: { tool: "tool1", socket: 1 },
-        to: { tool: "tool2", socket: 1 },
+        from: { tool: "tool1", socket: 'output' },
+        to: { tool: "tool2", socket: 'input' },
       });
     });
 
@@ -219,7 +219,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -228,8 +228,8 @@ describe("clipboardStore", () => {
           y: 200,
           config: {},
           sockets: [
-            { id: 1, direction: "input", multiple: false },
-            { id: 2, direction: "output", multiple: false },
+            { id: 'input', direction: 'input', multiple: false },
+            { id: 'output-false', direction: 'output', multiple: false },
           ],
         },
         {
@@ -238,18 +238,18 @@ describe("clipboardStore", () => {
           x: 500,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         },
       ];
 
       const wires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
         {
-          from: { tool: "tool2", socket: 2 },
-          to: { tool: "tool3", socket: 1 }, // External wire (tool3 not selected)
+          from: { tool: "tool2", socket: 'output-false' },
+          to: { tool: "tool3", socket: 'input' }, // External wire (tool3 not selected)
         },
       ];
 
@@ -263,8 +263,8 @@ describe("clipboardStore", () => {
       expect(clipboard?.tools).toHaveLength(2);
       expect(clipboard?.wires).toHaveLength(1); // Only internal wire
       expect(clipboard?.wires[0]).toEqual({
-        from: { tool: "tool1", socket: 1 },
-        to: { tool: "tool2", socket: 1 },
+        from: { tool: "tool1", socket: 'output' },
+        to: { tool: "tool2", socket: 'input' },
       });
     });
 
@@ -374,7 +374,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -466,7 +466,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -474,14 +474,14 @@ describe("clipboardStore", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         },
       ];
 
       const wires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
 
@@ -504,8 +504,8 @@ describe("clipboardStore", () => {
       expect(pastedWires[0].to.tool).not.toBe("tool2");
       expect(pastedWires[0].from.tool).toBe(pastedTools[0].id);
       expect(pastedWires[0].to.tool).toBe(pastedTools[1].id);
-      expect(pastedWires[0].from.socket).toBe(1); // Socket unchanged
-      expect(pastedWires[0].to.socket).toBe(1); // Socket unchanged
+      expect(pastedWires[0].from.socket).toBe('output'); // Socket unchanged
+      expect(pastedWires[0].to.socket).toBe('input'); // Socket unchanged
     });
 
     test("should preserve tool configurations from original", () => {
@@ -516,7 +516,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: { filename: "data.csv", delimiter: ";", header: true },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -548,10 +548,10 @@ describe("clipboardStore", () => {
           y: 200,
           config: {},
           sockets: [
-            { id: 1, direction: "input", multiple: false },
-            { id: 2, direction: "input", multiple: false },
-            { id: 3, direction: "output", type: "L", multiple: false },
-            { id: 4, direction: "output", type: "R", multiple: false },
+            { id: 'input-left', direction: 'input', multiple: false },
+            { id: 'input-right', direction: "input", multiple: false },
+            { id: 'output-left', direction: "output", type: "L", multiple: false },
+            { id: 'output-right', direction: "output", type: "R", multiple: false },
           ],
         },
       ];
@@ -569,10 +569,10 @@ describe("clipboardStore", () => {
 
       const [pastedTools] = batchAddSpy.mock.calls[0];
       expect(pastedTools[0].sockets).toEqual([
-        { id: 1, direction: "input", multiple: false },
-        { id: 2, direction: "input", multiple: false },
-        { id: 3, direction: "output", type: "L", multiple: false },
-        { id: 4, direction: "output", type: "R", multiple: false },
+        { id: 'input-left', direction: 'input', multiple: false },
+        { id: 'input-right', direction: "input", multiple: false },
+        { id: 'output-left', direction: "output", type: "L", multiple: false },
+        { id: 'output-right', direction: "output", type: "R", multiple: false },
       ]);
     });
 
@@ -690,7 +690,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: { filename: "test.csv" },
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -733,7 +733,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
       ];
 
@@ -742,8 +742,8 @@ describe("clipboardStore", () => {
         tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
         wires: [
           {
-            from: { tool: "tool1", socket: 1 },
-            to: { tool: "nonexistent", socket: 1 },
+            from: { tool: "tool1", socket: 'output' },
+            to: { tool: "nonexistent", socket: 'input' },
           },
         ],
         minX: 100,
@@ -835,7 +835,7 @@ describe("clipboardStore", () => {
           x: 100,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "output", multiple: false }],
+          sockets: [{ id: 'output', direction: 'output', multiple: false }],
         },
         {
           id: "tool2",
@@ -843,14 +843,14 @@ describe("clipboardStore", () => {
           x: 300,
           y: 200,
           config: {},
-          sockets: [{ id: 1, direction: "input", multiple: false }],
+          sockets: [{ id: 'input', direction: 'input', multiple: false }],
         },
       ];
 
       const wires: Wire[] = [
         {
-          from: { tool: "tool1", socket: 1 },
-          to: { tool: "tool2", socket: 1 },
+          from: { tool: "tool1", socket: 'output' },
+          to: { tool: "tool2", socket: 'input' },
         },
       ];
 

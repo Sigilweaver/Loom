@@ -31,7 +31,7 @@ export type ToolConfig = {
 };
 
 export interface Socket {
-  id: number;
+  id: string;
   direction: "input" | "output";
   type?: string;
   multiple?: boolean;
@@ -47,8 +47,8 @@ export interface Tool {
 }
 
 export interface Wire {
-  from: { tool: string; socket: number };
-  to: { tool: string; socket: number };
+  from: { tool: string; socket: string };
+  to: { tool: string; socket: string };
 }
 
 export interface ToolDefinition {
@@ -71,7 +71,7 @@ export type ToolCategory =
 export interface ConnectionState {
   isConnecting: boolean;
   startTool?: string;
-  startSocket?: number;
+  startSocket?: string;
   startSocketType?: "input" | "output";
   currentX?: number;
   currentY?: number;

@@ -27,7 +27,7 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-                sockets=[Socket(id=0, direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
             Tool(
                 id="output1",
@@ -40,11 +40,11 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
                     "csvMode": "sink",  # Streaming mode
                     "include_header": True,
                 },
-                sockets=[Socket(id=0, direction="input")],
+                sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
+            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
         ],
         meta=WorkflowMeta(
             name="Test CSV Output Sink",
@@ -82,7 +82,7 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id=0, direction="output")],
+            sockets=[Socket(id="output", direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
@@ -91,11 +91,11 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
                     "include_header": True,
                     "separator": ",",
                 },
-            sockets=[Socket(id=0, direction="input")],
+            sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
+            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
         ],
         meta=WorkflowMeta(
             name="Test CSV Output Write",
@@ -130,18 +130,18 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id=0, direction="output")],
+            sockets=[Socket(id="output", direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "sink",
                 },
-            sockets=[Socket(id=0, direction="input")],
+            sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
+            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
         ],
         meta=WorkflowMeta(
             name="Test Directory Creation",
@@ -173,7 +173,7 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id=0, direction="output")],
+            sockets=[Socket(id="output", direction="output")],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
                     "type": "csv",
@@ -182,11 +182,11 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
                     "separator": "\t",  # Tab-separated
                     "include_header": True,
                 },
-            sockets=[Socket(id=0, direction="input")],
+            sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="output1", socket=0)),
+            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
         ],
         meta=WorkflowMeta(
             name="Test TSV Output",
@@ -257,15 +257,15 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id=0, direction="output")],
+            sockets=[Socket(id="output", direction="output")],
             ),
             Tool(id="filter1", type="Filter", x=0, y=0, config={
                     "expression": "pl.col('age') > 25",
                 },
             sockets=[
-                Socket(id=0, direction="input"),
-                Socket(id=1, direction="output"),  # T output
-                Socket(id=2, direction="output"),  # F output
+                Socket(id="input", direction="input"),
+                Socket(id="output-true", direction="output"),  # T output
+                Socket(id="output-false", direction="output"),  # F output
             ],
             ),
             Tool(id="output1", type="Output", x=0, y=0, config={
@@ -274,12 +274,12 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
                     "csvMode": "sink",
                     "include_header": True,
                 },
-            sockets=[Socket(id=0, direction="input")],
+            sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket=0), to=WireEndpoint(tool="filter1", socket=0)),
-            Wire(from_=WireEndpoint(tool="filter1", socket=1), to=WireEndpoint(tool="output1", socket=0)),
+            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="filter1", socket="input")),
+            Wire(from_=WireEndpoint(tool="filter1", socket="output-true"), to=WireEndpoint(tool="output1", socket="input")),
         ],
         meta=WorkflowMeta(
             name="Test Pipeline with Output",

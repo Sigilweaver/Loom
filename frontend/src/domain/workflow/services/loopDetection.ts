@@ -13,7 +13,7 @@ export function detectCycles(tools: Tool[], wires: Wire[]): boolean {
 
 export function wouldCreateCycle(tools: Tool[], wires: Wire[], newFromTool: string, newToTool: string): boolean {
   if (newFromTool === newToTool) return true;
-  const tempWires: Wire[] = [...wires, { from: { tool: newFromTool, socket: 0 }, to: { tool: newToTool, socket: 0 } }];
+  const tempWires: Wire[] = [...wires, { from: { tool: newFromTool, socket: 'output' }, to: { tool: newToTool, socket: 'input' } }];
   return detectCycles(tools, tempWires);
 }
 
