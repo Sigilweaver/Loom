@@ -28,6 +28,7 @@ export default function Header({ onShowSettings }: HeaderProps) {
   const markTabClean = useTabStore((s) => s.markTabClean);
 
   const showNotification = useUIStore((s) => s.showNotification);
+  const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
   const setWorkflowViewerVisible = useUIStore(
     (s) => s.setWorkflowViewerVisible
   );
@@ -79,10 +80,13 @@ export default function Header({ onShowSettings }: HeaderProps) {
           showNotification('Workflow validation not yet implemented', 'info');
           break;
         case 'show-workflow-viewer':
-          handleShowWorkflowViewer();
+          setWorkflowViewerVisible(true);
           break;
         case 'hide-workflow-viewer':
           setWorkflowViewerVisible(false);
+          break;
+        case 'toggle-workflow-viewer':
+          setWorkflowViewerVisible(!workflowViewerVisible);
           break;
       }
     });
@@ -385,8 +389,8 @@ export default function Header({ onShowSettings }: HeaderProps) {
     }
   };
 
-  const handleShowWorkflowViewer = () => {
-    setWorkflowViewerVisible(true);
+  const handleToggleWorkflowViewer = () => {
+    setWorkflowViewerVisible(!workflowViewerVisible);
   };
 
   const handlePreviewWorkflow = async () => {
@@ -581,15 +585,17 @@ export default function Header({ onShowSettings }: HeaderProps) {
             </button>
 
             <button
-              onClick={handleShowWorkflowViewer}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-viewcode-bg border border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text
+              onClick={handleToggleWorkflowViewer}
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors
+                ${workflowViewerVisible
+                  ? "bg-theme-header-btn-viewcode-bg-active border-theme-header-btn-viewcode-border-active text-theme-header-btn-viewcode-text-active"
+                  : "bg-theme-header-btn-viewcode-bg border border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text"
+                }
                 hover:bg-theme-header-btn-viewcode-bg-hover hover:border-theme-header-btn-viewcode-border-hover hover:text-theme-header-btn-viewcode-text-hover
-                active:bg-theme-header-btn-viewcode-bg-active active:border-theme-header-btn-viewcode-border-active active:text-theme-header-btn-viewcode-text-active
-                disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled"
-              title="Show Workflow Viewer (Ctrl+Alt+X)"
+                disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled`}
+              title={workflowViewerVisible ? "Hide Code Viewer (Ctrl+Alt+X)" : "Show Code Viewer (Ctrl+Alt+X)"}
             >
-              View Code
+              {workflowViewerVisible ? "Hide Code" : "View Code"}
             </button>
 
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
