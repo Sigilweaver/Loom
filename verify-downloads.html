@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Downloads - Sigilweaver</title>
+    <meta name="description" content="Learn how to verify SHA256 checksums for Sigilweaver downloads to ensure file integrity and security.">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://sigilweaver.app/verify-downloads">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="assets/sigilweaver-logo.svg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mystic: {
+                            900: '#1a0b2e',
+                            800: '#2d1b42',
+                            700: '#4c2a6b',
+                            600: '#6b3fa0',
+                            500: '#8b5cf6',
+                            400: '#a78bfa',
+                            300: '#c4b5fd',
+                            200: '#ddd6fe',
+                            100: '#f3f0ff'
+                        },
+                        gold: {
+                            500: '#f59e0b',
+                            400: '#fbbf24',
+                            300: '#fcd34d',
+                            200: '#fef3c7'
+                        }
+                    },
+                    fontFamily: {
+                        'mystical': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical min-h-screen">
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
+        Skip to main content
+    </a>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center space-x-2 group">
+                    <div class="sigil-logo">
+                        <img src="assets/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
+                    </div>
+                    <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
+                </a>
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-mystic-300 hover:text-gold-400 transition-colors">Home</a>
+                    <a href="/downloads" class="text-mystic-300 hover:text-gold-400 transition-colors">Downloads</a>
+                    <a href="https://github.com/sigilweaver" class="text-mystic-300 hover:text-gold-400 transition-colors">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" class="pt-24 pb-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-4xl font-bold text-mystic-100 mb-4">Verify Your Downloads</h1>
+            <p class="text-mystic-400 mb-8">Learn how to verify SHA256 checksums for Sigilweaver downloads — a best practice for ensuring file integrity.</p>
+
+            <div class="prose prose-invert max-w-none space-y-8">
+                
+                <!-- Build Process Info -->
+                <section class="bg-gradient-to-r from-mystic-700/50 to-mystic-600/30 rounded-lg p-6 border border-gold-500/30">
+                    <h2 class="text-2xl font-semibold text-gold-400 mb-4">Our Build & Release Process</h2>
+                    <p class="text-mystic-300 leading-relaxed mb-4">
+                        Sigilweaver releases are built using a <strong>fully automated GitHub Actions pipeline</strong> in a clean, isolated environment. After successful builds, artifacts are securely uploaded to Backblaze B2 storage using credentials that only the project maintainer has access to.
+                    </p>
+                    <p class="text-mystic-300 leading-relaxed mb-4">
+                        This means our release process is <strong>reproducible and tamper-resistant</strong>. While verifying checksums is always good security practice, you can trust that our builds come from a secure, automated pipeline rather than someone's local machine.
+                    </p>
+                    <div class="bg-mystic-900/50 rounded-lg p-4 border-l-4 border-gold-500">
+                        <p class="text-mystic-200 font-medium mb-2">Want to verify anyway?</p>
+                        <p class="text-mystic-400 text-sm">
+                            Checksum verification is recommended for peace of mind and to ensure your download wasn't corrupted, but it's not strictly mandatory given our secure build process. If you'd like to verify your download, the instructions below will show you how for your platform.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- What is SHA256 -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">How to Verify: Understanding SHA256 Checksums</h2>
+                    <p class="text-mystic-300 leading-relaxed">
+                        A SHA256 checksum is a cryptographic hash that uniquely identifies a file. By comparing the checksum of your downloaded file with the one we provide, you can verify that:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 mt-4 space-y-2">
+                        <li>The file downloaded completely without corruption</li>
+                        <li>The file hasn't been tampered with or modified</li>
+                        <li>You received the exact file we published</li>
+                    </ul>
+                </section>
+
+                <!-- Platform-specific instructions (will be reordered by JS) -->
+                <div id="platform-sections" class="space-y-8">
+                    <!-- Windows -->
+                    <section id="platform-windows" class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700 transition-all">
+                        <div class="flex items-center mb-4">
+                            <img src="https://api.iconify.design/mdi/microsoft-windows.svg?color=%23FDB022" alt="Windows" class="w-8 h-8 mr-3">
+                            <h2 class="text-2xl font-semibold text-mystic-200">Windows</h2>
+                        </div>
+                    
+                    <h3 class="text-lg font-medium text-mystic-300 mb-3">Using PowerShell (Built-in)</h3>
+                    <ol class="list-decimal list-inside text-mystic-300 space-y-3 mb-4">
+                        <li>Open PowerShell (Right-click Start → Windows PowerShell)</li>
+                        <li>Navigate to your Downloads folder:
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">cd ~/Downloads</pre>
+                        </li>
+                        <li>Run the checksum command:
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">Get-FileHash Sigilweaver-Setup.exe -Algorithm SHA256</pre>
+                        </li>
+                        <li>Compare the output with the SHA256 shown on the downloads page</li>
+                    </ol>
+
+                    <div class="bg-mystic-900/30 border border-mystic-700/50 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-mystic-400 mb-2"><strong>Example output:</strong></p>
+                        <pre class="text-xs font-mono text-mystic-300 overflow-x-auto">Algorithm       Hash
+---------       ----
+SHA256          56254CC60A4FEACFC9D44B69CD8956D9F328DBA684EC8E8194A5C502B340E557</pre>
+                    </div>
+                </section>
+
+                <!-- macOS -->
+                <section id="platform-macos" class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700 transition-all">
+                    <div class="flex items-center mb-4">
+                        <img src="https://api.iconify.design/mdi/apple.svg?color=%23FDB022" alt="macOS" class="w-8 h-8 mr-3">
+                        <h2 class="text-2xl font-semibold text-mystic-200">macOS</h2>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium text-mystic-300 mb-3">Using Terminal (Built-in)</h3>
+                    <ol class="list-decimal list-inside text-mystic-300 space-y-3 mb-4">
+                        <li>Open Terminal (Applications → Utilities → Terminal)</li>
+                        <li>Navigate to your Downloads folder:
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">cd ~/Downloads</pre>
+                        </li>
+                        <li>Run the checksum command (replace with your downloaded filename):
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">shasum -a 256 Sigilweaver.dmg</pre>
+                        </li>
+                        <li>Compare the output with the SHA256 shown on the downloads page</li>
+                    </ol>
+
+                    <div class="bg-mystic-900/30 border border-mystic-700/50 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-mystic-400 mb-2"><strong>Example output:</strong></p>
+                        <pre class="text-xs font-mono text-mystic-300 overflow-x-auto">56254cc60a4feacfc9d44b69cd8956d9f328dba684ec8e8194a5c502b340e557  Sigilweaver.dmg</pre>
+                    </div>
+                </section>
+
+                <!-- Linux -->
+                <section id="platform-linux" class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700 transition-all">
+                    <div class="flex items-center mb-4">
+                        <img src="https://api.iconify.design/mdi/linux.svg?color=%23FDB022" alt="Linux" class="w-8 h-8 mr-3">
+                        <h2 class="text-2xl font-semibold text-mystic-200">Linux</h2>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium text-mystic-300 mb-3">Using Terminal (Built-in)</h3>
+                    <ol class="list-decimal list-inside text-mystic-300 space-y-3 mb-4">
+                        <li>Open your terminal</li>
+                        <li>Navigate to your Downloads folder:
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">cd ~/Downloads</pre>
+                        </li>
+                        <li>Run the checksum command (replace with your downloaded filename):
+                            <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-sm font-mono text-mystic-200 overflow-x-auto">sha256sum Sigilweaver.AppImage</pre>
+                        </li>
+                        <li>Compare the output with the SHA256 shown on the downloads page</li>
+                    </ol>
+
+                    <div class="bg-mystic-900/30 border border-mystic-700/50 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-mystic-400 mb-2"><strong>Example output:</strong></p>
+                        <pre class="text-xs font-mono text-mystic-300 overflow-x-auto">98ed19ce23d7cef7993fa7f8e5bb5550b46b1b083b0a32498eac3b2274d7a351  Sigilweaver-x64.AppImage</pre>
+                    </div>
+
+                    <div class="bg-gold-500/10 border border-gold-500/30 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-gold-400 mb-2"><strong>💡 Pro Tip:</strong> Automated verification</p>
+                        <p class="text-mystic-300 text-sm">You can create a file with the expected checksum and verify automatically:</p>
+                        <pre class="bg-mystic-900/50 p-3 rounded mt-2 text-xs font-mono text-mystic-200 overflow-x-auto">echo "EXPECTED_SHA256  Sigilweaver-x64.AppImage" | sha256sum -c</pre>
+                        <p class="text-mystic-400 text-xs mt-2">This will output "OK" if the checksum matches.</p>
+                    </div>
+                </section>
+                </div>
+
+                <!-- What if checksums don't match -->
+                <section class="bg-red-500/10 border border-red-500/30 rounded-lg p-6">
+                    <h2 class="text-2xl font-semibold text-red-400 mb-4">⚠️ What if the checksums don't match?</h2>
+                    <p class="text-mystic-300 leading-relaxed mb-4">
+                        If the SHA256 checksum you calculated doesn't match the one on our downloads page, <strong>do not run the file</strong>. This could indicate:
+                    </p>
+                    <ul class="list-disc list-inside text-mystic-300 space-y-2">
+                        <li>The download was corrupted during transfer</li>
+                        <li>The file has been tampered with</li>
+                        <li>You downloaded a different version than expected</li>
+                    </ul>
+                    <p class="text-mystic-300 leading-relaxed mt-4">
+                        <strong>What to do:</strong>
+                    </p>
+                    <ol class="list-decimal list-inside text-mystic-300 space-y-2 mt-2">
+                        <li>Delete the downloaded file</li>
+                        <li>Clear your browser cache</li>
+                        <li>Download the file again from <a href="/downloads" class="text-gold-400 hover:underline">sigilweaver.app/downloads</a></li>
+                        <li>Verify the checksum again</li>
+                        <li>If it still doesn't match, report it on <a href="https://github.com/sigilweaver/sigilweaver-app/issues" class="text-gold-400 hover:underline">GitHub Issues</a></li>
+                    </ol>
+                </section>
+
+                <!-- Why verify -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">Why Verify Downloads? (Best Practice)</h2>
+                    <p class="text-mystic-300 leading-relaxed mb-4">
+                        While our automated build pipeline provides strong security guarantees, verifying checksums is a good security habit — especially if you're:
+                    </p>
+                    <div class="space-y-4 text-mystic-300">
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">🌐</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">On Untrusted Networks</h3>
+                                <p class="text-sm">Public WiFi or networks where man-in-the-middle attacks are possible (though our HTTPS helps here too).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">✓</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">Checking File Integrity</h3>
+                                <p class="text-sm">Confirm the file wasn't corrupted during download, which could cause installation errors or crashes.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">📋</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">Meeting Compliance Requirements</h3>
+                                <p class="text-sm">Some organizations require checksum verification as part of their software deployment policies.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">🛡️</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">Extra Peace of Mind</h3>
+                                <p class="text-sm">Trust, but verify — a cornerstone of good security practice.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Additional Resources -->
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">Additional Resources</h2>
+                    <ul class="space-y-2 text-mystic-300">
+                        <li><a href="/downloads" class="text-gold-400 hover:underline">← Back to Downloads</a></li>
+                        <li><a href="https://github.com/sigilweaver/sigilweaver-app/releases" class="text-gold-400 hover:underline">View releases on GitHub</a></li>
+                        <li><a href="https://en.wikipedia.org/wiki/SHA-2" class="text-gold-400 hover:underline" target="_blank" rel="noopener">Learn more about SHA256 (Wikipedia)</a></li>
+                    </ul>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-mystic-900 border-t border-mystic-700 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <img src="assets/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="24" height="24">
+                    <span class="text-mystic-400">&copy; 2025 Nathan Riley (DBA Sigilweaver). Sigilweaver&trade; is a trademark of Nathan Riley.</span>
+                </div>
+                <div class="flex space-x-6 text-mystic-400">
+                    <a href="/terms" class="hover:text-gold-400 transition-colors">Terms of Use</a>
+                    <a href="/privacy" class="hover:text-gold-400 transition-colors">Privacy Policy</a>
+                    <a href="https://github.com/sigilweaver" class="hover:text-gold-400 transition-colors">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/verify-downloads.js"></script>
+</body>
+</html>
