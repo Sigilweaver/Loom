@@ -63,7 +63,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: '✅',
     category: 'preparation',
     defaultConfig: {
-      columns: [],
+      columnConfigs: [],
     },
     sockets: [
       { id: 0, direction: 'input' },

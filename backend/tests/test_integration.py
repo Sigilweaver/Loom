@@ -137,8 +137,13 @@ async def test_frontend_schema_workflow(sample_csv):
             type="Select",
             x=200, y=0,
             config={
-                "columns": ["name", "age", "salary"],
-                "exclude_mode": False,  # Keep only these columns
+                "columnConfigs": [
+                    {"name": "name", "selected": True},
+                    {"name": "age", "selected": True},
+                    {"name": "salary", "selected": True},
+                    {"name": "id", "selected": False},
+                    {"name": "department", "selected": False},
+                ],
             },
             sockets=[
                 Socket(id=0, direction="input", type="polars-lazy"),

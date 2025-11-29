@@ -16,6 +16,7 @@ import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
+import { SelectConfiguration } from "./SelectConfiguration";
 import { UnionConfiguration } from "./UnionConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
@@ -291,6 +292,18 @@ export default function ConfigurationPanel() {
         /* Formula Tool Configuration */
         <div className="flex-1 overflow-hidden">
           <FormulaConfiguration
+            config={selectedTool.config}
+            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+            toolId={selectedTool.id}
+            tools={tools}
+            wires={wires}
+            workflowMeta={workflowMeta}
+          />
+        </div>
+      ) : selectedTool.type === "Select" ? (
+        /* Select Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          <SelectConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
             toolId={selectedTool.id}

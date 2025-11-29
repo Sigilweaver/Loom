@@ -354,3 +354,50 @@ async def test_filter_schema_propagation(sample_data_csv):
 
     print("Schema preserved correctly for both outputs")
 
+
+# Tests for code generation
+class TestFilterCodeGeneration:
+    """Test Filter tool Python code generation"""
+
+    def test_code_gen_basic_filter(self):
+        """Test code generation with basic filter expression"""
+        from app.domain.tools.implementations.filter import FilterTool
+
+        tool = FilterTool()
+        config = {"expression": "pl.col('amount') > 100"}
+        input_vars = {0: "df_input"}
+
+        lines, output_vars = tool.to_python_code("filter1", config, input_vars)
+
+        assert len(lines) == 2
+        assert "df_filter1_t = df_input.filter(pl.col('amount') > 100)" in lines[0]
+        assert "df_filter1_f = df_input.filter(~(pl.col('amount') > 100))" in lines[1]
+        assert output_vars == {1: "df_filter1_t", 2: "df_filter1_f"}
+
+    def test_code_gen_empty_expression(self):
+        """Test code generation with empty expression (pass-through)"""
+        from app.domain.tools.implementations.filter import FilterTool
+
+        tool = FilterTool()
+        config = {"expression": ""}
+        input_vars = {0: "df_source"}
+
+        lines, output_vars = tool.to_python_code("myfilter", config, input_vars)
+
+        assert len(lines) == 2
+        assert "df_myfilter_t = df_source" in lines[0]
+        assert "df_myfilter_f = df_source.clear()" in lines[1]
+
+    def test_code_gen_complex_expression(self):
+        """Test code generation with complex compound expression"""
+        from app.domain.tools.implementations.filter import FilterTool
+
+        tool = FilterTool()
+        config = {"expression": "(pl.col('a') > 10) & (pl.col('b') < 20)"}
+        input_vars = {0: "df_data"}
+
+        lines, output_vars = tool.to_python_code("flt", config, input_vars)
+
+        assert "(pl.col('a') > 10) & (pl.col('b') < 20)" in lines[0]
+        assert "~((pl.col('a') > 10) & (pl.col('b') < 20))" in lines[1]
+

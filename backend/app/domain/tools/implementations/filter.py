@@ -121,3 +121,33 @@ class FilterTool(BaseTool):
                 errors.append(str(e))
 
         return errors
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[int, str],
+    ) -> tuple[list[str], dict[int, str]]:
+        """Generate Python code for Filter tool"""
+        from app.domain.workflow.code_generator import PythonCodeGenerator
+
+        lines = []
+        expression = config.get("expression", "")
+
+        # Get input variable name
+        input_var = input_vars.get(0, "df_input")
+
+        # Generate output variable names
+        var_t = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_t"
+        var_f = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_f"
+
+        if not expression or expression.strip() == "":
+            # No filter - all rows pass through
+            lines.append(f"{var_t} = {input_var}")
+            lines.append(f"{var_f} = {input_var}.clear()")
+        else:
+            # Apply filter expression
+            lines.append(f"{var_t} = {input_var}.filter({expression})")
+            lines.append(f"{var_f} = {input_var}.filter(~({expression}))")
+
+        return (lines, {1: var_t, 2: var_f})
