@@ -381,6 +381,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
         cachedPreviews[toolId] = toolData.outputs;
       }
       setCachedPreviews(cachedPreviews);
+      setPreviewCacheLoading(false);
 
       showNotification("Previews loaded for all tools!", "success");
 
