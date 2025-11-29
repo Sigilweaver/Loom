@@ -190,8 +190,10 @@ describe('Metadata and Functions Integration', () => {
             x: 200,
             y: 0,
             config: {
-              columns: ['name', 'age'],
-              exclude_mode: false,
+              columnConfigs: [
+                { name: 'name', selected: true },
+                { name: 'age', selected: true },
+              ],
             },
             sockets: [
               { id: 'input', direction: 'input' },
@@ -206,7 +208,7 @@ describe('Metadata and Functions Integration', () => {
             config: { expression: '' },
             sockets: [
               { id: 'input', direction: 'input' },
-              { id: 'output', direction: 'output' },
+              { id: 'output-true', direction: 'output' },
               { id: 'output-false', direction: 'output' },
             ],
           },

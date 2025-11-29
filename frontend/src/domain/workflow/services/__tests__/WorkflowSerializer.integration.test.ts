@@ -90,14 +90,14 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
 
     const unionTool = imported.tools.find((t) => t.id === "union_001");
     expect(unionTool?.sockets[0]).toEqual({
-      id: 0,
+      id: 'input',
       direction: "input",
       multiple: true,
     });
 
     const joinTool = imported.tools.find((t) => t.id === "join_001");
     expect(joinTool?.sockets[0]).toEqual({
-      id: 0,
+      id: 'input',
       direction: "input",
       type: "L",
     });

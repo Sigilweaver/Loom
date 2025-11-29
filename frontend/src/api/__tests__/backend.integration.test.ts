@@ -61,9 +61,9 @@ describe('Backend E2E Integration', () => {
       const result = await getToolSchema('input1', workflow);
 
       expect(result.tool_id).toBe('input1');
-      expect(result.outputs['0']).toBeDefined();
+      expect(result.outputs['output']).toBeDefined();
       
-      const output = result.outputs['0'];
+      const output = result.outputs['output'];
       expect(output).toBeDefined();
       
       const schema = output?.data_schema;
@@ -96,9 +96,9 @@ describe('Backend E2E Integration', () => {
       const result = await previewTool('input1', workflow, 3);
 
       expect(result.tool_id).toBe('input1');
-      expect(result.outputs['0']).toBeDefined();
+      expect(result.outputs['output']).toBeDefined();
       
-      const output = result.outputs['0'];
+      const output = result.outputs['output'];
       expect(output).toBeDefined();
       expect(output?.data).toBeDefined();
       expect(output?.data).toHaveLength(3);
@@ -140,7 +140,7 @@ describe('Backend E2E Integration', () => {
             },
             sockets: [
               { id: 'input', direction: 'input' },
-              { id: 'output', direction: 'output' }, // Matches
+              { id: 'output-true', direction: 'output' }, // Matches
               { id: 'output-false', direction: 'output' }, // Doesn't match
             ],
           },
@@ -155,14 +155,14 @@ describe('Backend E2E Integration', () => {
 
       // Test schema propagation
       const schema = await getToolSchema('filter1', workflow);
-      const schemaOutput = schema.outputs['1'];
+      const schemaOutput = schema.outputs['output-true'];
       expect(schemaOutput).toBeDefined();
       expect(schemaOutput?.data_schema?.columns).toHaveLength(4);
 
       // Test preview with filtered data
       const result = await previewTool('filter1', workflow, 10);
       
-      const output = result.outputs['1'];
+      const output = result.outputs['output-true'];
       expect(output).toBeDefined();
       
       const matchedData = output?.data;
@@ -199,8 +199,10 @@ describe('Backend E2E Integration', () => {
             x: 200,
             y: 0,
             config: {
-              columns: ['name', 'city'],
-              exclude_mode: false,
+              columnConfigs: [
+                { name: 'name', selected: true },
+                { name: 'city', selected: true },
+              ],
             },
             sockets: [
               { id: 'input', direction: 'input' },
@@ -218,7 +220,7 @@ describe('Backend E2E Integration', () => {
 
       const result = await previewTool('select1', workflow, 5);
       
-      const output = result.outputs['1'];
+      const output = result.outputs['output'];
       expect(output).toBeDefined();
       
       const schema = output?.data_schema;
@@ -261,7 +263,7 @@ describe('Backend E2E Integration', () => {
             },
             sockets: [
               { id: 'input', direction: 'input' },
-              { id: 'output', direction: 'output' },
+              { id: 'output-true', direction: 'output' },
               { id: 'output-false', direction: 'output' },
             ],
           },
@@ -271,8 +273,10 @@ describe('Backend E2E Integration', () => {
             x: 400,
             y: 0,
             config: {
-              columns: ['name', 'age'],
-              exclude_mode: false,
+              columnConfigs: [
+                { name: 'name', selected: true },
+                { name: 'age', selected: true },
+              ],
             },
             sockets: [
               { id: 'input', direction: 'input' },
@@ -297,7 +301,7 @@ describe('Backend E2E Integration', () => {
       // Should return final tool output
       expect(result.tool_id).toBe('select1');
       
-      const output = result.outputs['1'];
+      const output = result.outputs['output'];
       expect(output).toBeDefined();
       
       const data = output?.data;
