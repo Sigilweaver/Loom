@@ -3,11 +3,11 @@ import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
-import { usePreviewCacheStore } from "@state/previewCacheStore";
 import { useWorkflowExecute } from "../api/hooks";
 import { previewAllTools } from "../api/backend";
+import { cacheAllPreviews } from "../api/cache";
 import SigilWeaverLogo from "./SigilWeaverLogo";
-import { useEffect, forwardRef, useImperativeHandle } from "react";
+import { useEffect, forwardRef, useImperativeHandle, useState } from "react";
 
 interface HeaderProps {
   onShowSettings: () => void;
@@ -55,11 +55,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   // Execution hook
   const { execute } = useWorkflowExecute();
 
-  // Preview cache store
-  const setCachedPreviews = usePreviewCacheStore((s) => s.setCachedPreviews);
-  const setPreviewCacheLoading = usePreviewCacheStore((s) => s.setLoading);
-  const setPreviewCacheError = usePreviewCacheStore((s) => s.setError);
-  const isPreviewLoading = usePreviewCacheStore((s) => s.isLoading);
+  // Local state for preview loading
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -365,7 +362,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       setActiveBottomTab("preview");
 
       // Set loading state
-      setPreviewCacheLoading(true);
+      setIsPreviewLoading(true);
 
       // Serialize workflow
       const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
@@ -374,20 +371,15 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       // Execute preview all
       const result = await previewAllTools(workflow, 100);
 
-      // Transform and store in cache
-      // Result format: { tools: { [toolId]: { outputs: { [socketId]: ToolOutput } } } }
-      const cachedPreviews: Record<string, Record<string, import("../api/backend").ToolOutput>> = {};
-      for (const [toolId, toolData] of Object.entries(result.tools)) {
-        cachedPreviews[toolId] = toolData.outputs;
-      }
-      setCachedPreviews(cachedPreviews);
-      setPreviewCacheLoading(false);
-
+      // Cache all previews in the unified cache
+      cacheAllPreviews(workflow, 100, result.tools);
+      
+      setIsPreviewLoading(false);
       showNotification("Previews loaded for all tools!", "success");
 
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      setPreviewCacheError(message);
+      setIsPreviewLoading(false);
       showNotification(`Preview failed: ${message}`, "error");
     }
   };

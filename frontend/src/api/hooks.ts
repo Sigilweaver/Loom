@@ -389,7 +389,8 @@ export function usePolarsFunctions(): UsePolarsFunctionsResult {
 export {
   invalidateTool,
   invalidateWireChange,
-  clearCache,
+  clearWorkflowCache,
+  clearAllCaches,
   getCacheStats,
 } from './cache';
 

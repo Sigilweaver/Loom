@@ -10,6 +10,9 @@
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { SchemaResponse, ExecuteResponse, MetadataResponse } from './backend';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
+import { createLogger } from '@utils/logger';
+
+const logger = createLogger('Cache');
 
 /**
  * Normalized tool representation for cache key computation
@@ -54,15 +57,12 @@ interface MetadataCacheEntry {
 type CacheEntry = SchemaCacheEntry | PreviewCacheEntry | MetadataCacheEntry;
 
 /**
- * Maximum cache entries before LRU eviction
- */
-const MAX_CACHE_SIZE = 100;
-
-/**
  * Global cache storage
+ * No size limit - entries are only removed via explicit invalidation or workflow closure
+ * Cache keys are computed from tool config + upstream dependencies, so configuration
+ * changes automatically invalidate affected entries.
  */
 const cache = new Map<string, CacheEntry>();
-const accessOrder: string[] = [];
 
 /**
  * Strip UI-only fields from a tool for normalization
@@ -153,6 +153,7 @@ export function computeCacheKey(
   
   // Build cache key components
   const keyData = {
+    workflowId: workflow.meta.workflowId, // Namespace by workflow
     type: cacheType,
     target: {
       id: targetTool.id,
@@ -174,29 +175,6 @@ export function computeCacheKey(
 }
 
 /**
- * Update access order for LRU eviction
- */
-function touchKey(key: string): void {
-  const index = accessOrder.indexOf(key);
-  if (index > -1) {
-    accessOrder.splice(index, 1);
-  }
-  accessOrder.push(key);
-}
-
-/**
- * Evict oldest entries if cache exceeds max size
- */
-function evictIfNeeded(): void {
-  while (cache.size > MAX_CACHE_SIZE && accessOrder.length > 0) {
-    const oldestKey = accessOrder.shift();
-    if (oldestKey) {
-      cache.delete(oldestKey);
-    }
-  }
-}
-
-/**
  * Get cached schema response
  */
 export function getCachedSchema(
@@ -210,7 +188,6 @@ export function getCachedSchema(
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'schema') {
-    touchKey(key);
     logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
@@ -229,8 +206,6 @@ export function cacheSchema(
 ): void {
   const key = computeCacheKey(toolId, workflow, 'schema');
   cache.set(key, { type: 'schema', data });
-  touchKey(key);
-  evictIfNeeded();
 }
 
 /**
@@ -248,7 +223,6 @@ export function getCachedPreview(
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'preview' && entry.limit === limit) {
-    touchKey(key);
     logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
@@ -268,8 +242,26 @@ export function cachePreview(
 ): void {
   const key = computeCacheKey(toolId, workflow, 'preview', limit);
   cache.set(key, { type: 'preview', data, limit });
-  touchKey(key);
-  evictIfNeeded();
+}
+
+/**
+ * Cache all previews from a "Preview All" response
+ * This populates the same cache used by individual preview requests.
+ */
+export function cacheAllPreviews(
+  workflow: WorkflowJSON,
+  limit: number,
+  allPreviews: Record<string, { outputs: Record<string, unknown> }>
+): void {
+  for (const [toolId, toolData] of Object.entries(allPreviews)) {
+    // Convert to ExecuteResponse format
+    const executeResponse: ExecuteResponse = {
+      tool_id: toolId,
+      outputs: toolData.outputs as ExecuteResponse['outputs'],
+    };
+    cachePreview(toolId, workflow, limit, executeResponse);
+  }
+  logger.debug(`Cached previews for ${Object.keys(allPreviews).length} tools`);
 }
 
 /**
@@ -286,7 +278,6 @@ export function getCachedMetadata(
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'metadata') {
-    touchKey(key);
     logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
@@ -305,30 +296,27 @@ export function cacheMetadata(
 ): void {
   const key = computeCacheKey(toolId, workflow, 'metadata');
   cache.set(key, { type: 'metadata', data });
-  touchKey(key);
-  evictIfNeeded();
 }
 
 /**
- * Invalidate all cache entries for a specific tool
+ * Invalidate all cache entries for a specific tool in a specific workflow
  * Call this when a tool's config changes
  */
-export function invalidateTool(toolId: string): void {
+export function invalidateTool(toolId: string, workflowId?: string): void {
   const keysToDelete: string[] = [];
   
   for (const key of cache.keys()) {
     // Check if this key involves the tool (as target or upstream)
-    if (key.includes(`"id":"${toolId}"`)) {
+    const matchesTool = key.includes(`"id":"${toolId}"`);
+    const matchesWorkflow = !workflowId || key.includes(`"workflowId":"${workflowId}"`);
+    
+    if (matchesTool && matchesWorkflow) {
       keysToDelete.push(key);
     }
   }
   
   for (const key of keysToDelete) {
     cache.delete(key);
-    const index = accessOrder.indexOf(key);
-    if (index > -1) {
-      accessOrder.splice(index, 1);
-    }
   }
 }
 
@@ -338,7 +326,8 @@ export function invalidateTool(toolId: string): void {
  */
 export function invalidateWireChange(
   affectedToolId: string,
-  workflow: WorkflowJSON
+  wires: WorkflowJSON['wires'],
+  workflowId?: string
 ): void {
   // Get all downstream tools that might be affected
   const affectedTools = new Set<string>([affectedToolId]);
@@ -347,7 +336,7 @@ export function invalidateWireChange(
   let changed = true;
   while (changed) {
     changed = false;
-    for (const wire of workflow.wires) {
+    for (const wire of wires) {
       if (affectedTools.has(wire.from.tool) && !affectedTools.has(wire.to.tool)) {
         affectedTools.add(wire.to.tool);
         changed = true;
@@ -357,24 +346,47 @@ export function invalidateWireChange(
   
   // Invalidate all affected tools
   for (const toolId of affectedTools) {
-    invalidateTool(toolId);
+    invalidateTool(toolId, workflowId);
   }
 }
 
 /**
- * Clear entire cache
+ * Clear cache entries for a specific workflow
+ * Call this when closing a workflow tab
  */
-export function clearCache(): void {
+export function clearWorkflowCache(workflowId: string): void {
+  const keysToDelete: string[] = [];
+  
+  logger.debug('Clearing cache for workflowId:', workflowId);
+  
+  for (const key of cache.keys()) {
+    if (key.includes(`"workflowId":"${workflowId}"`)) {
+      keysToDelete.push(key);
+    }
+  }
+  
+  logger.debug(`Found ${keysToDelete.length} cache entries to delete for workflow ${workflowId}`);
+  
+  for (const key of keysToDelete) {
+    cache.delete(key);
+  }
+  
+  logger.debug(`Cache size after clear: ${cache.size}`);
+}
+
+/**
+ * Clear entire cache (all workflows)
+ * Call this on app shutdown or for debugging
+ */
+export function clearAllCaches(): void {
   cache.clear();
-  accessOrder.length = 0;
 }
 
 /**
  * Get cache statistics (for debugging)
  */
-export function getCacheStats(): { size: number; maxSize: number } {
+export function getCacheStats(): { size: number } {
   return {
     size: cache.size,
-    maxSize: MAX_CACHE_SIZE,
   };
 }

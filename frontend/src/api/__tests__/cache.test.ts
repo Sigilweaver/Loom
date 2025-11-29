@@ -15,7 +15,8 @@ import {
   cacheMetadata,
   invalidateTool,
   invalidateWireChange,
-  clearCache,
+  clearWorkflowCache,
+  clearAllCaches,
   getCacheStats,
 } from '../cache';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
@@ -69,7 +70,7 @@ function createTestWorkflow(): WorkflowJSON {
 
 describe('cache', () => {
   beforeEach(() => {
-    clearCache();
+    clearAllCaches();
   });
 
   describe('normalizeWorkflow', () => {
@@ -344,7 +345,7 @@ describe('cache', () => {
       expect(getCachedSchema('filter1', workflow)).not.toBeNull();
       expect(getCachedPreview('filter1', workflow, 100)).not.toBeNull();
 
-      invalidateTool('filter1');
+      invalidateTool('filter1', workflow.meta.workflowId);
 
       expect(getCachedSchema('filter1', workflow)).toBeNull();
       expect(getCachedPreview('filter1', workflow, 100)).toBeNull();
@@ -358,7 +359,7 @@ describe('cache', () => {
       cacheSchema('input1', workflow, schemaData1);
       cacheSchema('filter1', workflow, schemaData2);
 
-      invalidateTool('filter1');
+      invalidateTool('filter1', workflow.meta.workflowId);
 
       expect(getCachedSchema('input1', workflow)).not.toBeNull();
       expect(getCachedSchema('filter1', workflow)).toBeNull();
@@ -372,7 +373,7 @@ describe('cache', () => {
 
       // Invalidating input1 should also invalidate filter1's cache
       // because the cache key includes upstream configs
-      invalidateTool('input1');
+      invalidateTool('input1', workflow.meta.workflowId);
 
       // The cache entry contains input1's ID in its key, so it should be gone
       expect(getCachedSchema('filter1', workflow)).toBeNull();
@@ -389,15 +390,15 @@ describe('cache', () => {
       cacheSchema('output1', workflow, schemaOutput);
 
       // Simulate wire change affecting filter1
-      invalidateWireChange('filter1', workflow);
+      invalidateWireChange('filter1', workflow.wires, workflow.meta.workflowId);
 
       expect(getCachedSchema('filter1', workflow)).toBeNull();
       expect(getCachedSchema('output1', workflow)).toBeNull();
     });
   });
 
-  describe('clearCache', () => {
-    it('removes all cache entries', () => {
+  describe('clearWorkflowCache', () => {
+    it('removes all cache entries for a specific workflow', () => {
       const workflow = createTestWorkflow();
       cacheSchema('input1', workflow, { tool_id: 'input1', outputs: {} });
       cacheSchema('filter1', workflow, { tool_id: 'filter1', outputs: {} });
@@ -405,7 +406,45 @@ describe('cache', () => {
 
       expect(getCacheStats().size).toBe(3);
 
-      clearCache();
+      clearWorkflowCache(workflow.meta.workflowId);
+
+      expect(getCacheStats().size).toBe(0);
+    });
+
+    it('does not affect other workflows', () => {
+      const workflow1 = createTestWorkflow();
+      const workflow2 = { 
+        ...createTestWorkflow(), 
+        meta: { ...createTestWorkflow().meta, workflowId: 'wf_other' } 
+      };
+
+      cacheSchema('filter1', workflow1, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('filter1', workflow2, { tool_id: 'filter1', outputs: {} });
+
+      expect(getCacheStats().size).toBe(2);
+
+      clearWorkflowCache(workflow1.meta.workflowId);
+
+      expect(getCacheStats().size).toBe(1);
+      expect(getCachedSchema('filter1', workflow1)).toBeNull();
+      expect(getCachedSchema('filter1', workflow2)).not.toBeNull();
+    });
+  });
+
+  describe('clearAllCaches', () => {
+    it('removes all cache entries from all workflows', () => {
+      const workflow1 = createTestWorkflow();
+      const workflow2 = { 
+        ...createTestWorkflow(), 
+        meta: { ...createTestWorkflow().meta, workflowId: 'wf_other' } 
+      };
+      
+      cacheSchema('filter1', workflow1, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('filter1', workflow2, { tool_id: 'filter1', outputs: {} });
+
+      expect(getCacheStats().size).toBe(2);
+
+      clearAllCaches();
 
       expect(getCacheStats().size).toBe(0);
     });
@@ -422,10 +461,6 @@ describe('cache', () => {
 
       cacheSchema('filter1', workflow, { tool_id: 'filter1', outputs: {} });
       expect(getCacheStats().size).toBe(2);
-    });
-
-    it('returns max size', () => {
-      expect(getCacheStats().maxSize).toBe(100);
     });
   });
 });

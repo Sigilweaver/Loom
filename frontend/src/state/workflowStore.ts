@@ -13,6 +13,7 @@ import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { createLogger } from "@utils/logger";
 import { useSettingsStore } from "./settingsStore";
+import { invalidateTool, invalidateWireChange } from "../api/cache";
 
 interface WorkflowState {
   // State
@@ -205,14 +206,17 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
         }),
 
-      updateToolConfiguration: (toolId, config) =>
+      updateToolConfiguration: (toolId, config) => {
+        const workflowId = get().workflowMeta.workflowId;
+        invalidateTool(toolId, workflowId); // Invalidate cache for this tool in this workflow
         set((state) => {
           const tool = state.tools.find((t) => t.id === toolId);
           if (tool) {
             tool.config = config;
           }
           get()._markDirty();
-        }),
+        });
+      },
 
       batchUpdateToolPositions: (updates) =>
         set((state) => {
@@ -236,12 +240,26 @@ export const useWorkflowStore = create<WorkflowState>()(
         set((state) => {
           state.wires.push(wire);
         });
+        
+        // Invalidate cache for affected tool and downstream in this workflow
+        const workflowId = get().workflowMeta.workflowId;
+        invalidateWireChange(wire.to.tool, get().wires, workflowId);
+        
         get().syncEdges();
         get()._markDirty();
         return { success: true };
       },
 
       removeWire: (from, to) => {
+        // Find the wire being removed to get the target tool
+        const wireToRemove = get().wires.find(
+          (w) =>
+            w.from.tool === from.tool &&
+            w.from.socket === from.socket &&
+            w.to.tool === to.tool &&
+            w.to.socket === to.socket
+        );
+        
         set((state) => {
           state.wires = state.wires.filter(
             (w) =>
@@ -253,6 +271,13 @@ export const useWorkflowStore = create<WorkflowState>()(
               )
           );
         });
+        
+        // Invalidate cache for affected tool and downstream in this workflow
+        if (wireToRemove) {
+          const workflowId = get().workflowMeta.workflowId;
+          invalidateWireChange(wireToRemove.to.tool, get().wires, workflowId);
+        }
+        
         get().syncEdges();
         get()._markDirty();
       },
@@ -285,14 +310,15 @@ export const useWorkflowStore = create<WorkflowState>()(
         }),
 
       // NEW: Lifecycle operations
-      newWorkflow: (meta) =>
+      newWorkflow: (meta) => {
         set((state) => {
           state.tools = [];
           state.wires = [];
           state.workflowMeta = { ...createDefaultMeta(), ...meta };
           state.selectedTool = null;
           state.edges = [];
-        }),
+        });
+      },
 
       loadWorkflow: (tools, wires, meta) => {
         logger.info("Loading workflow:", meta.name, `(${tools.length} tools, ${wires.length} wires)`);

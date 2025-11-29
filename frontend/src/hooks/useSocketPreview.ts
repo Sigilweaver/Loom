@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
-import { usePreviewCacheStore } from "@state/previewCacheStore";
 import { getRuntimeLogActions } from "@state/runtimeLogStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
@@ -19,9 +18,6 @@ export function useSocketPreview() {
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
   const showNotification = useUIStore((s) => s.showNotification);
-
-  // Check "Preview All" cache store first
-  const getCachedPreviewFromStore = usePreviewCacheStore((s) => s.getCachedPreview);
 
   const previewSocket = useCallback(
     async (toolId: string, socketId: string, socketDirection: "input" | "output") => {
@@ -63,31 +59,16 @@ export function useSocketPreview() {
 
       const socketKey = targetSocketId.toString();
 
-      // Check "Preview All" cache store first (from Preview All button)
-      const storeCache = getCachedPreviewFromStore(targetToolId, socketKey);
-      if (storeCache) {
-        // Log cache hit from Preview All store
-        const { logCacheHit } = getRuntimeLogActions();
-        logCacheHit("/workflow/preview_all (cached)", { toolId: targetToolId });
-        
-        setPreviewState({
-          toolId,
-          socketId,
-          socketDirection,
-          data: storeCache.data || [],
-          schema: storeCache.data_schema?.columns || [],
-          loading: false,
-          error: null,
-        });
-        return;
-      }
-
-      // Check per-request cache second
+      // Check unified cache (works for both individual and "Preview All" requests)
       const cached = getCachedPreview(targetToolId, workflow, 100);
       if (cached) {
         const output = cached.outputs[socketKey];
         
         if (output) {
+          // Log cache hit
+          const { logCacheHit } = getRuntimeLogActions();
+          logCacheHit("/workflow/tool/execute", { toolId: targetToolId });
+          
           setPreviewState({
             toolId,
             socketId,
@@ -161,7 +142,7 @@ export function useSocketPreview() {
         showNotification(`Preview failed: ${errorMessage}`, "error");
       }
     },
-    [tools, wires, workflowMeta, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification, getCachedPreviewFromStore]
+    [tools, wires, workflowMeta, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
   );
 
   return { previewSocket };

@@ -30,6 +30,7 @@ import { useHistoryStore, type WorkflowSnapshot as HistoryWorkflowSnapshot } fro
 import { useSettingsStore } from "./settingsStore";
 import { useUIStore } from "./uiStore";
 import { v4 as uuidv4 } from "uuid";
+import { clearWorkflowCache } from "../api/cache";
 
 /**
  * Tab metadata
@@ -227,7 +228,7 @@ export const useTabStore = create<TabState>()(
        * @returns true if closed, false if cancelled
        */
       closeTab: (tabId: string) => {
-        const { tabs, activeTabId } = get();
+        const { tabs, activeTabId, tabData } = get();
         const tab = get().getTabById(tabId);
 
         if (!tab) {
@@ -236,6 +237,9 @@ export const useTabStore = create<TabState>()(
         }
 
         logger.info("Closing tab:", tab.name);
+
+        // Get workflowId BEFORE any state changes
+        const workflowId = tabData[tabId]?.workflow?.workflowMeta?.workflowId;
 
         // Check for unsaved changes
         if (tab.isDirty) {
@@ -275,6 +279,12 @@ export const useTabStore = create<TabState>()(
             tabData: newTabData,
           };
         });
+
+        // Clear all caches for this workflow
+        if (workflowId) {
+          logger.debug("Clearing cache for workflow:", workflowId);
+          clearWorkflowCache(workflowId);
+        }
 
         return true;
       },
