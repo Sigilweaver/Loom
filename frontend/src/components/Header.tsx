@@ -7,13 +7,23 @@ import { usePreviewCacheStore } from "@state/previewCacheStore";
 import { useWorkflowExecute } from "../api/hooks";
 import { previewAllTools } from "../api/backend";
 import SigilWeaverLogo from "./SigilWeaverLogo";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
 
 interface HeaderProps {
   onShowSettings: () => void;
 }
 
-export default function Header({ onShowSettings }: HeaderProps) {
+export interface HeaderRef {
+  handleSaveWorkflow: () => void;
+  handleSaveAsWorkflow: () => void;
+  handleImportWorkflow: () => void;
+  handleExportWorkflow: () => void;
+  handleToggleWorkflowViewer: () => void;
+  handlePreviewWorkflow: () => void;
+  handleRunWorkflow: () => void;
+}
+
+const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   // Access stores directly
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
@@ -51,6 +61,17 @@ export default function Header({ onShowSettings }: HeaderProps) {
   const setPreviewCacheLoading = usePreviewCacheStore((s) => s.setLoading);
   const setPreviewCacheError = usePreviewCacheStore((s) => s.setError);
   const isPreviewLoading = usePreviewCacheStore((s) => s.isLoading);
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    handleSaveWorkflow,
+    handleSaveAsWorkflow,
+    handleImportWorkflow,
+    handleExportWorkflow,
+    handleToggleWorkflowViewer,
+    handlePreviewWorkflow,
+    handleRunWorkflow,
+  }));
 
   // Listen for menu actions from Electron
   useEffect(() => {
@@ -630,4 +651,8 @@ export default function Header({ onShowSettings }: HeaderProps) {
       </div>
     </header>
   );
-}
+});
+
+Header.displayName = "Header";
+
+export default Header;

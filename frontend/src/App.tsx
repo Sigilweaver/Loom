@@ -7,7 +7,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import ConfigurationPanel from "./components/ConfigurationPanel";
-import Header from "./components/Header";
+import Header, { HeaderRef } from "./components/Header";
 import Notification from "./components/Notification";
 import ToolPalette from "./components/ToolPalette";
 import WorkflowViewer from "./components/WorkflowViewer";
@@ -35,6 +35,8 @@ function App() {
 
   // Canvas ref for calling fitView
   const canvasRef = useRef<CanvasRef>(null);
+  // Header ref for calling save methods
+  const headerRef = useRef<HeaderRef>(null);
 
   // UI notifications and state via store
   const showNotification = useUIStore((s) => s.showNotification);
@@ -200,10 +202,71 @@ function App() {
     return () => window.removeEventListener("keydown", handleTabShortcuts);
   }, [createTab, showNotification]);
 
+  // Save and workflow keyboard shortcuts
+  useEffect(() => {
+    const handleWorkflowShortcuts = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (isTyping) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Ctrl+S: Save
+      if (mod && (e.key === "s" || e.key === "S") && !e.shiftKey) {
+        e.preventDefault();
+        headerRef.current?.handleSaveWorkflow();
+      }
+
+      // Ctrl+Shift+S: Save As
+      if (mod && (e.key === "s" || e.key === "S") && e.shiftKey) {
+        e.preventDefault();
+        headerRef.current?.handleSaveAsWorkflow();
+      }
+
+      // Ctrl+O: Open Workflow
+      if (mod && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        headerRef.current?.handleImportWorkflow();
+      }
+
+      // Ctrl+E: Export Workflow
+      if (mod && (e.key === "e" || e.key === "E")) {
+        e.preventDefault();
+        headerRef.current?.handleExportWorkflow();
+      }
+
+      // Ctrl+P: Preview All Tools
+      if (mod && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        headerRef.current?.handlePreviewWorkflow();
+      }
+
+      // Ctrl+Alt+X: Toggle Code Viewer
+      if (mod && e.altKey && (e.key === "x" || e.key === "X")) {
+        e.preventDefault();
+        headerRef.current?.handleToggleWorkflowViewer();
+      }
+
+      // F5: Run Workflow
+      if (e.key === "F5") {
+        e.preventDefault();
+        headerRef.current?.handleRunWorkflow();
+      }
+    };
+
+    window.addEventListener("keydown", handleWorkflowShortcuts);
+    return () => window.removeEventListener("keydown", handleWorkflowShortcuts);
+  }, []);
+
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen bg-theme-surface-page">
         <Header 
+          ref={headerRef}
           onShowSettings={() => setShowSettings(true)}
         />
 
