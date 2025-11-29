@@ -7,7 +7,6 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
-import { ConfigTestingPanel } from "./ConfigTestingPanel";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
@@ -205,16 +204,6 @@ export default function ConfigurationPanel() {
               </div>
             </div>
           )}
-        </div>
-      ) : selectedTool.type === "ConfigTesting" ? (
-        /* Config Testing Tool (Development Only) */
-        <div className="flex-1 overflow-hidden">
-          <ConfigTestingPanel
-            config={selectedTool.config}
-            onChange={(config) => {
-              handleToolConfigChange(selectedTool.id, config as ToolConfig);
-            }}
-          />
         </div>
       ) : selectedTool.type === "Output" ? (
         /* Output Tool Configuration */

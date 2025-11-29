@@ -55,7 +55,7 @@ export interface ToolDefinition {
   type: string;
   name: string;
   icon: string;
-  category: "inout" | "preparation" | "join" | "aggregate" | "testing";
+  category: "inout" | "preparation" | "join" | "aggregate";
   defaultConfig: ToolConfig;
   sockets: Socket[];
 }
@@ -65,8 +65,7 @@ export type ToolCategory =
   | "inout"
   | "preparation"
   | "join"
-  | "aggregate"
-  | "testing";
+  | "aggregate";
 
 export interface ConnectionState {
   isConnecting: boolean;

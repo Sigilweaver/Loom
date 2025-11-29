@@ -1,20 +1,6 @@
 import { ToolDefinition } from '../domain/workflow/entities/workflow';
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
-  // Development Tools (only visible in dev mode)
-  {
-    type: 'ConfigTesting',
-    name: 'Config Testing',
-    icon: '🧪',
-    category: 'testing',
-    defaultConfig: {
-      description: 'Component playground for config primitives',
-    },
-    sockets: [
-      { id: 'output', direction: 'output' }
-    ]
-  },
-  
   // In/Out Tools
   {
     type: 'Input',
