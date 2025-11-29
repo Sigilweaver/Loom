@@ -114,9 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeAnimations();
         initializeScrollEffects();
         initializeDemoCanvas();
-        // Particles and node connections disabled for performance
+        // Particles disabled for performance
         // initializeParticles();
-        // initializeNodeConnections();
+        initializeNodeConnections();
         
         // Set mobile menu position based on nav height
         const mobileMenu = document.getElementById('mobile-menu');
