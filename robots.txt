@@ -11,6 +11,6 @@ Disallow: /*.css$
 Disallow: /*.js$
 
 # Allow important assets
-Allow: /assets/
+Allow: /assets/icons/
 Allow: /favicon.ico
 Allow: /manifest.json

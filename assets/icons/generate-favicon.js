@@ -54,10 +54,10 @@ async function generateFavicons() {
         
         console.log('✨ All favicons generated successfully!');
         console.log('\n📋 Don\'t forget to add these to your HTML:');
-        console.log('   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">');
-        console.log('   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">');
-        console.log('   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">');
-        console.log('   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">');
+        console.log('   <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">');
+        console.log('   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">');
+        console.log('   <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">');
+        console.log('   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">');
         
     } catch (error) {
         if (error.code === 'MODULE_NOT_FOUND') {
@@ -125,13 +125,13 @@ async function fallbackGeneration() {
     console.log('\n💡 Manual generation options:');
     console.log('');
     console.log('Option 1 - Using ImageMagick (if installed):');
-    console.log('  convert assets/sigilweaver-logo.svg -resize 16x16 assets/favicon-16x16.png');
-    console.log('  convert assets/sigilweaver-logo.svg -resize 32x32 assets/favicon-32x32.png');
-    console.log('  convert assets/sigilweaver-logo.svg -resize 48x48 assets/favicon-48x48.png');
-    console.log('  convert assets/favicon-16x16.png assets/favicon-32x32.png assets/favicon-48x48.png assets/favicon.ico');
+    console.log('  convert assets/icons/sigilweaver-logo.svg -resize 16x16 assets/icons/favicon-16x16.png');
+    console.log('  convert assets/icons/sigilweaver-logo.svg -resize 32x32 assets/icons/favicon-32x32.png');
+    console.log('  convert assets/icons/sigilweaver-logo.svg -resize 48x48 assets/icons/favicon-48x48.png');
+    console.log('  convert assets/icons/favicon-16x16.png assets/icons/favicon-32x32.png assets/icons/favicon-48x48.png assets/icons/favicon.ico');
     console.log('');
     console.log('Option 2 - Online tools:');
-    console.log('  • Upload assets/sigilweaver-logo.svg to https://realfavicongenerator.net/');
+    console.log('  • Upload assets/icons/sigilweaver-logo.svg to https://realfavicongenerator.net/');
     console.log('  • Or use https://favicon.io/favicon-converter/');
     console.log('');
     console.log('Option 3 - Install dependencies manually:');
