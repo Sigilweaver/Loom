@@ -109,10 +109,10 @@ function renderSection(container, title, description, items) {
 
 function getOsMeta(os, fileName) {
     const icons = {
-        windows: `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>`,
-        linux: `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12.33 0c-2.83 0-5.33 1.67-6.5 4.17C5.33 5.5 5 7 5 8.5c0 2.67 1.5 5 3.83 6.17.33 1.17 1.17 2.17 2.17 2.83-.5 1.17-1.5 2-2.83 2.33-.17.33-.17.83 0 1.17.33.33.83.33 1.17 0 .83-.5 1.5-1.17 2-2 .67.33 1.5.5 2.33.5 2.83 0 5.33-1.67 6.5-4.17.5-1.33.83-2.83.83-4.33 0-2.67-1.5-5-3.83-6.17-.33-1.17-1.17-2.17-2.17-2.83z"/></svg>`,
-        mac: `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.98 1.07-3.11-1.04.05-2.29.69-3.02 1.55-.65.75-1.21 1.95-1.06 3.04 1.15.09 2.33-.64 3.01-1.48"/></svg>`,
-        web: `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>`
+        windows: `<img src="https://api.iconify.design/mdi/microsoft-windows.svg?color=%23FDB022" alt="Windows" class="w-8 h-8">`,
+        linux: `<img src="https://api.iconify.design/mdi/linux.svg?color=%23FDB022" alt="Linux" class="w-8 h-8">`,
+        mac: `<img src="https://api.iconify.design/mdi/apple.svg?color=%23FDB022" alt="macOS" class="w-8 h-8">`,
+        web: `<img src="https://api.iconify.design/mdi/web.svg?color=%23FDB022" alt="Web" class="w-8 h-8">`
     };
 
     let name = os.charAt(0).toUpperCase() + os.slice(1);

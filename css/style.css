@@ -51,6 +51,78 @@
     50% { transform: scale(1.05); }
 }
 
+/* Animation Toggle Button Styling */
+#animation-toggle,
+#animation-toggle-mobile {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Toggle Switch Component */
+.toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background-color: #4c2a6b;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+    border: 1px solid #6b3fa0;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background-color: #c4b5fd;
+    border-radius: 50%;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+/* Active state */
+button.active .toggle-switch,
+.toggle-switch.active {
+    background-color: #8b5cf6;
+    border-color: #a78bfa;
+}
+
+button.active .toggle-slider,
+.toggle-switch.active .toggle-slider {
+    transform: translateX(20px);
+    background-color: #f3f0ff;
+}
+
+/* Hover states */
+#animation-toggle:hover .toggle-switch,
+#animation-toggle-mobile:hover .toggle-switch {
+    background-color: #6b3fa0;
+}
+
+button.active:hover .toggle-switch {
+    background-color: #a78bfa;
+}
+
+/* Focus states for accessibility */
+#animation-toggle:focus .toggle-switch,
+#animation-toggle-mobile:focus .toggle-switch {
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
+}
+
+/* Animation label styling */
+.animation-label {
+    white-space: nowrap;
+}
+
+#animation-toggle .animation-label,
+#animation-toggle-mobile .animation-label {
+    font-size: 0.75rem;
+}
+
+/* Rest of existing styles */
+    50% { transform: scale(1.05); }
+}
+
 @keyframes drift1 {
     0% { transform: translate(0, 0); }
     25% { transform: translate(30px, -20px); }
@@ -429,6 +501,42 @@ section {
     .floating-orb {
         animation: none !important;
     }
+}
+
+/* User-controlled animation disable */
+html.animations-disabled *,
+html.animations-disabled *::before,
+html.animations-disabled *::after {
+    animation: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+/* Preserve toggle switch animations even when animations are disabled */
+html.animations-disabled #animation-toggle .toggle-slider,
+html.animations-disabled #animation-toggle-mobile .toggle-slider,
+html.animations-disabled #animation-toggle .toggle-switch,
+html.animations-disabled #animation-toggle-mobile .toggle-switch {
+    transition: transform 0.3s ease, background-color 0.3s ease !important;
+}
+
+html.animations-disabled .floating-elements {
+    display: none !important;
+}
+
+html.animations-disabled .floating-node,
+html.animations-disabled .workflow-canvas,
+html.animations-disabled .floating-orb,
+html.animations-disabled .particles,
+html.animations-disabled .node-connections {
+    display: none !important;
 }
 
 /* Print Styles */

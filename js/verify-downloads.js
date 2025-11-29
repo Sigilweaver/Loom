@@ -41,7 +41,7 @@ function detectAndReorderPlatforms() {
     primarySection.classList.add('ring-2', 'ring-gold-500/50');
     const badge = document.createElement('div');
     badge.className = 'absolute top-4 right-4 bg-gold-500 text-mystic-900 text-xs font-bold px-3 py-1 rounded-full';
-    badge.textContent = 'Your Platform';
+    badge.textContent = 'Detected Platform';
     primarySection.style.position = 'relative';
     primarySection.insertBefore(badge, primarySection.firstChild);
     

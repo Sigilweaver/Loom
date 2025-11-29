@@ -55,14 +55,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- GSAP (used by site animations) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical min-h-screen">
-    <!-- Skip Link for Accessibility -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
-        Skip to main content
-    </a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">Skip to main content</a>
+
+    <!-- Background floating elements -->
+    <div class="floating-elements">
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+        <div class="floating-node"></div>
+    </div>
 
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700">
@@ -78,6 +88,12 @@
                     <a href="/" class="text-mystic-300 hover:text-gold-400 transition-colors">Home</a>
                     <a href="/downloads" class="text-mystic-300 hover:text-gold-400 transition-colors">Downloads</a>
                     <a href="https://github.com/sigilweaver" class="text-mystic-300 hover:text-gold-400 transition-colors">GitHub</a>
+                    <button id="animation-toggle" onclick="toggleAnimations()" class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md" aria-pressed="true" title="Toggle animations">
+                        <span class="text-xs text-mystic-400 animation-label">Animations</span>
+                        <div class="toggle-switch" aria-hidden="true">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -300,6 +316,8 @@ SHA256          56254CC60A4FEACFC9D44B69CD8956D9F328DBA684EC8E8194A5C502B340E557
         </div>
     </footer>
     
+    <!-- Site Scripts -->
+    <script src="/js/script.js"></script>
     <script src="/js/verify-downloads.js"></script>
 </body>
 </html>

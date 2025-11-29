@@ -76,6 +76,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- GSAP (used by site animations) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -112,6 +115,12 @@
                     <a href="/#demo" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Demo</a>
                     <a href="/contributing" class="text-gold-400 font-semibold focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" aria-current="page">Contributing</a>
                     <a href="/#opensource" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Open Source</a>
+                    <button id="animation-toggle" onclick="toggleAnimations()" class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md" aria-pressed="true" title="Toggle animations">
+                        <span class="text-xs text-mystic-400 animation-label">Animations</span>
+                        <div class="toggle-switch" aria-hidden="true">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </button>
                     <a href="/#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">Download</a>
                 </div>
                 <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
@@ -131,6 +140,12 @@
                 <a href="/#demo" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Demo</a>
                 <a href="/contributing" class="block text-gold-400 font-semibold mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem" aria-current="page">Contributing</a>
                 <a href="/#opensource" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Open Source</a>
+                <button id="animation-toggle-mobile" onclick="toggleAnimations()" class="flex items-center justify-between w-full mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem" aria-pressed="true">
+                    <span class="text-mystic-300 animation-label">Animations</span>
+                    <div class="toggle-switch" aria-hidden="true">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </button>
                 <a href="/#download" class="block bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all text-center mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" role="menuitem">Download</a>
             </div>
         </div>

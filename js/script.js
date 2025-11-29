@@ -4,7 +4,107 @@
 let isInitialized = false;
 let loadingErrors = [];
 
+// Animation preference management
+const ANIMATION_PREF_KEY = 'sigilweaver-animations-enabled';
+
+function initializeAnimationPreference() {
+    // Check localStorage for user preference
+    const savedPref = localStorage.getItem(ANIMATION_PREF_KEY);
+    const systemPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    // Default to enabled unless system prefers reduced or user disabled
+    let animationsEnabled = savedPref !== null ? savedPref === 'true' : !systemPrefersReduced;
+    
+    // Apply preference
+    setAnimationsEnabled(animationsEnabled, false);
+    
+    // Update toggle button if it exists
+    updateAnimationToggleUI(animationsEnabled);
+    
+    // Listen for system preference changes
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    mediaQuery.addEventListener('change', (e) => {
+        // Only auto-update if user hasn't set a manual preference
+        if (localStorage.getItem(ANIMATION_PREF_KEY) === null) {
+            setAnimationsEnabled(!e.matches, false);
+        }
+    });
+}
+
+function setAnimationsEnabled(enabled, savePreference = true) {
+    if (enabled) {
+        document.documentElement.classList.remove('animations-disabled');
+    } else {
+        document.documentElement.classList.add('animations-disabled');
+    }
+    
+    if (savePreference) {
+        localStorage.setItem(ANIMATION_PREF_KEY, String(enabled));
+    }
+    
+    // Reinitialize animations if being enabled
+    if (enabled && isInitialized) {
+        initializeAnimations();
+    }
+}
+
+function toggleAnimations() {
+    const currentlyEnabled = !document.documentElement.classList.contains('animations-disabled');
+    const newState = !currentlyEnabled;
+    setAnimationsEnabled(newState, true);
+    updateAnimationToggleUI(newState);
+    
+    // Show feedback
+    showAnimationToggleFeedback(newState);
+}
+
+function updateAnimationToggleUI(enabled) {
+    const toggleButtons = [
+        document.getElementById('animation-toggle'),
+        document.getElementById('animation-toggle-mobile')
+    ];
+    
+    toggleButtons.forEach(toggleButton => {
+        if (toggleButton) {
+            toggleButton.setAttribute('aria-pressed', String(enabled));
+            toggleButton.title = enabled ? 'Disable animations' : 'Enable animations';
+            
+            // Update toggle switch state
+            if (enabled) {
+                toggleButton.classList.add('active');
+            } else {
+                toggleButton.classList.remove('active');
+            }
+        }
+    });
+}
+
+function showAnimationToggleFeedback(enabled) {
+    const feedback = document.createElement('div');
+    feedback.className = 'fixed bottom-4 right-4 bg-mystic-800 border border-gold-500/30 text-white px-4 py-3 rounded-lg shadow-lg z-50 transition-opacity';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    feedback.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <div class="toggle-switch ${enabled ? 'active' : ''}" style="pointer-events: none;">
+                <div class="toggle-slider"></div>
+            </div>
+            <span class="text-sm">Animations ${enabled ? 'enabled' : 'disabled'}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    setTimeout(() => {
+        feedback.style.opacity = '0';
+        setTimeout(() => feedback.remove(), 300);
+    }, 2000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize animation preferences first
+    initializeAnimationPreference();
+    
     // Show loading indicator
     showLoadingState();
     
@@ -258,6 +358,11 @@ function handleFocusTrap(e) {
 
 // Animation Functions
 function initializeAnimations() {
+    // Skip if animations are disabled
+    if (document.documentElement.classList.contains('animations-disabled')) {
+        return;
+    }
+    
     // GSAP animations for hero section
     if (typeof gsap !== 'undefined') {
         // Hero text animation
