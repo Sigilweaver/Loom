@@ -103,23 +103,23 @@
     <main id="main-content" class="pt-24 pb-16">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 class="text-4xl font-bold text-mystic-100 mb-4">Verify Your Downloads</h1>
-            <p class="text-mystic-400 mb-8">Learn how to verify SHA256 checksums for Sigilweaver downloads — a best practice for ensuring file integrity.</p>
+            <p class="text-mystic-400 mb-8">We encourage you to verify SHA256 checksums for all Sigilweaver downloads. It's a great security practice and helps ensure you're running exactly what we built.</p>
 
             <div class="prose prose-invert max-w-none space-y-8">
                 
                 <!-- Build Process Info -->
-                <section class="bg-gradient-to-r from-mystic-700/50 to-mystic-600/30 rounded-lg p-6 border border-gold-500/30">
-                    <h2 class="text-2xl font-semibold text-gold-400 mb-4">Our Build & Release Process</h2>
+                <section class="bg-mystic-800/50 rounded-lg p-6 border border-gold-500/30 backdrop-blur-sm">
+                    <h2 class="text-2xl font-semibold text-gold-400 mb-4">Our Transparent Build Process</h2>
                     <p class="text-mystic-300 leading-relaxed mb-4">
-                        Sigilweaver releases are built using a <strong>fully automated GitHub Actions pipeline</strong> in a clean, isolated environment. After successful builds, artifacts are securely uploaded to Backblaze B2 storage using credentials that only the project maintainer has access to.
+                        Sigilweaver releases are built using a <strong>fully automated GitHub Actions pipeline</strong> in a clean, isolated environment. The entire build process is visible in our public repositories, and artifacts are securely uploaded to Backblaze B2 storage.
                     </p>
                     <p class="text-mystic-300 leading-relaxed mb-4">
-                        This means our release process is <strong>reproducible and tamper-resistant</strong>. While verifying checksums is always good security practice, you can trust that our builds come from a secure, automated pipeline rather than someone's local machine.
+                        Our release process is <strong>reproducible and transparent</strong>. You're welcome to inspect our build scripts, review the source code, and verify that the checksums match what our automated pipeline generated.
                     </p>
                     <div class="bg-mystic-900/50 rounded-lg p-4 border-l-4 border-gold-500">
-                        <p class="text-mystic-200 font-medium mb-2">Want to verify anyway?</p>
+                        <p class="text-mystic-200 font-medium mb-2">📖 Open Source Means Verifiable</p>
                         <p class="text-mystic-400 text-sm">
-                            Checksum verification is recommended for peace of mind and to ensure your download wasn't corrupted, but it's not strictly mandatory given our secure build process. If you'd like to verify your download, the instructions below will show you how for your platform.
+                            We believe in transparency. Our source code is available on <a href="https://github.com/sigilweaver/sigilweaver-app" class="text-gold-400 hover:underline">GitHub</a>, our build process is automated and auditable, and we provide SHA256 checksums for every release. Verify everything — that's what open source is all about.
                         </p>
                     </div>
                 </section>
@@ -249,39 +249,45 @@ SHA256          56254CC60A4FEACFC9D44B69CD8956D9F328DBA684EC8E8194A5C502B340E557
 
                 <!-- Why verify -->
                 <section class="bg-mystic-800/50 rounded-lg p-6 border border-mystic-700">
-                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">Why Verify Downloads? (Best Practice)</h2>
+                    <h2 class="text-2xl font-semibold text-mystic-200 mb-4">Why Verify Downloads?</h2>
                     <p class="text-mystic-300 leading-relaxed mb-4">
-                        While our automated build pipeline provides strong security guarantees, verifying checksums is a good security habit — especially if you're:
+                        Verifying checksums is an important security practice that puts you in control. Here's what it helps you confirm:
                     </p>
                     <div class="space-y-4 text-mystic-300">
                         <div class="flex items-start">
-                            <div class="text-gold-400 mr-3 mt-1">🌐</div>
-                            <div>
-                                <h3 class="font-semibold text-mystic-200">On Untrusted Networks</h3>
-                                <p class="text-sm">Public WiFi or networks where man-in-the-middle attacks are possible (though our HTTPS helps here too).</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
                             <div class="text-gold-400 mr-3 mt-1">✓</div>
                             <div>
-                                <h3 class="font-semibold text-mystic-200">Checking File Integrity</h3>
-                                <p class="text-sm">Confirm the file wasn't corrupted during download, which could cause installation errors or crashes.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="text-gold-400 mr-3 mt-1">📋</div>
-                            <div>
-                                <h3 class="font-semibold text-mystic-200">Meeting Compliance Requirements</h3>
-                                <p class="text-sm">Some organizations require checksum verification as part of their software deployment policies.</p>
+                                <h3 class="font-semibold text-mystic-200">File Integrity</h3>
+                                <p class="text-sm">Confirm the download completed successfully without corruption, preventing installation errors or unexpected behavior.</p>
                             </div>
                         </div>
                         <div class="flex items-start">
                             <div class="text-gold-400 mr-3 mt-1">🛡️</div>
                             <div>
-                                <h3 class="font-semibold text-mystic-200">Extra Peace of Mind</h3>
-                                <p class="text-sm">Trust, but verify — a cornerstone of good security practice.</p>
+                                <h3 class="font-semibold text-mystic-200">Authenticity</h3>
+                                <p class="text-sm">Verify you received the exact file we built and published, not a modified version from a compromised mirror or network.</p>
                             </div>
                         </div>
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">🌐</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">Network Security</h3>
+                                <p class="text-sm">Protect against man-in-the-middle attacks, especially important on public WiFi or untrusted networks.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="text-gold-400 mr-3 mt-1">📋</div>
+                            <div>
+                                <h3 class="font-semibold text-mystic-200">Compliance & Audit Trails</h3>
+                                <p class="text-sm">Meet organizational security policies and create verifiable audit trails for software deployments.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gold-500/10 border border-gold-500/30 rounded-lg p-4 mt-6">
+                        <p class="text-mystic-200 font-medium mb-2">🔍 Don't Just Trust — Verify!</p>
+                        <p class="text-mystic-300 text-sm">
+                            Open source software is about transparency and verifiability. We provide the tools and information you need to verify everything. Use them!
+                        </p>
                     </div>
                 </section>
 
@@ -290,7 +296,9 @@ SHA256          56254CC60A4FEACFC9D44B69CD8956D9F328DBA684EC8E8194A5C502B340E557
                     <h2 class="text-2xl font-semibold text-mystic-200 mb-4">Additional Resources</h2>
                     <ul class="space-y-2 text-mystic-300">
                         <li><a href="/downloads" class="text-gold-400 hover:underline">← Back to Downloads</a></li>
-                        <li><a href="https://github.com/sigilweaver/sigilweaver-app/releases" class="text-gold-400 hover:underline">View releases on GitHub</a></li>
+                        <li><a href="https://github.com/sigilweaver/sigilweaver-app" class="text-gold-400 hover:underline">Browse the source code on GitHub</a></li>
+                        <li><a href="https://github.com/sigilweaver/sigilweaver-app/releases" class="text-gold-400 hover:underline">View releases and build logs on GitHub</a></li>
+                        <li><a href="https://github.com/sigilweaver/sigilweaver-app/blob/main/.github/workflows/" class="text-gold-400 hover:underline">Review our automated build pipeline</a></li>
                         <li><a href="https://en.wikipedia.org/wiki/SHA-2" class="text-gold-400 hover:underline" target="_blank" rel="noopener">Learn more about SHA256 (Wikipedia)</a></li>
                     </ul>
                 </section>
