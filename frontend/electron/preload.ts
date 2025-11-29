@@ -2,7 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onMenuAction: (callback: (action: string, data?: any) => void) => {
-    ipcRenderer.on('menu-action', (_event: any, action: any, data: any) => callback(action, data))
+    const handler = (_event: any, action: any, data: any) => callback(action, data);
+    ipcRenderer.on('menu-action', handler);
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('menu-action', handler);
+    };
   },
   saveFile: async (content: string, filename: string) => {
     return ipcRenderer.invoke('save-file', content, filename)

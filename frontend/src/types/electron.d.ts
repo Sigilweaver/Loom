@@ -25,7 +25,7 @@ interface ElectronSaveDialogOptions {
 declare global {
   interface Window {
     electronAPI?: {
-      onMenuAction: (callback: (action: string, data?: unknown) => void) => void
+      onMenuAction: (callback: (action: string, data?: unknown) => void) => (() => void) | void
       saveFile: (content: string, filename: string) => Promise<string | null>
       readFile: (filePath: string) => Promise<string>
       showSaveDialog: (options?: ElectronSaveDialogOptions) => Promise<string | null>

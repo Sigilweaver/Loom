@@ -72,7 +72,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   useEffect(() => {
     if (!window.electronAPI?.onMenuAction) return;
 
-    window.electronAPI.onMenuAction((action, data) => {
+    const cleanup = window.electronAPI.onMenuAction((action, data) => {
       switch (action) {
         case 'new-workflow':
           handleNewWorkflow();
@@ -106,6 +106,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
           break;
       }
     });
+
+    return cleanup;
   }, []);
 
   const handleOpenWorkflowFromPath = async (filePath: string) => {
