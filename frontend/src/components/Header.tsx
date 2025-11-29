@@ -3,7 +3,9 @@ import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
+import { usePreviewCacheStore } from "@state/previewCacheStore";
 import { useWorkflowExecute } from "../api/hooks";
+import { previewAllTools } from "../api/backend";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { useEffect } from "react";
 
@@ -42,6 +44,12 @@ export default function Header({ onShowSettings }: HeaderProps) {
 
   // Execution hook
   const { execute } = useWorkflowExecute();
+
+  // Preview cache store
+  const setCachedPreviews = usePreviewCacheStore((s) => s.setCachedPreviews);
+  const setPreviewCacheLoading = usePreviewCacheStore((s) => s.setLoading);
+  const setPreviewCacheError = usePreviewCacheStore((s) => s.setError);
+  const isPreviewLoading = usePreviewCacheStore((s) => s.isLoading);
 
   // Listen for menu actions from Electron
   useEffect(() => {
@@ -381,13 +389,43 @@ export default function Header({ onShowSettings }: HeaderProps) {
     setWorkflowViewerVisible(true);
   };
 
-  const handlePreviewWorkflow = () => {
-    // Open the bottom pane to show preview
-    setBottomPaneOpen(true);
-    showNotification(
-      "Bottom pane opened. Preview will show data when connected to backend.",
-      "info"
-    );
+  const handlePreviewWorkflow = async () => {
+    try {
+      // Validate workflow has tools
+      if (tools.length === 0) {
+        showNotification("Cannot preview empty workflow", "error");
+        return;
+      }
+
+      // Open bottom pane to preview tab
+      setBottomPaneOpen(true);
+      setActiveBottomTab("preview");
+
+      // Set loading state
+      setPreviewCacheLoading(true);
+
+      // Serialize workflow
+      const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+      const workflow = JSON.parse(workflowJSON);
+
+      // Execute preview all
+      const result = await previewAllTools(workflow, 100);
+
+      // Transform and store in cache
+      // Result format: { tools: { [toolId]: { outputs: { [socketId]: ToolOutput } } } }
+      const cachedPreviews: Record<string, Record<string, import("../api/backend").ToolOutput>> = {};
+      for (const [toolId, toolData] of Object.entries(result.tools)) {
+        cachedPreviews[toolId] = toolData.outputs;
+      }
+      setCachedPreviews(cachedPreviews);
+
+      showNotification("Previews loaded for all tools!", "success");
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setPreviewCacheError(message);
+      showNotification(`Preview failed: ${message}`, "error");
+    }
   };
 
   const handleRunWorkflow = async () => {
@@ -558,14 +596,15 @@ export default function Header({ onShowSettings }: HeaderProps) {
 
             <button
               onClick={handlePreviewWorkflow}
+              disabled={isPreviewLoading}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors
                 bg-theme-header-btn-preview-bg border border-theme-header-btn-preview-border text-theme-header-btn-preview-text
                 hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
                 active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
-                disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled"
-              title="Preview Workflow Results (Ctrl+P)"
+                disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
+              title="Preview All Tools (Ctrl+P)"
             >
-              Preview
+              {isPreviewLoading ? "Loading..." : "Preview All"}
             </button>
 
             <button

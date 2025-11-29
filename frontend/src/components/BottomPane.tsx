@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useUIStore } from "@state/uiStore";
 import DataTable from "./DataTable.tsx";
 import LogViewer from "./LogViewer.tsx";
+import RuntimeLogViewer from "./RuntimeLogViewer.tsx";
 import SocketTabs from "./SocketTabs.tsx";
 
 const BottomPane = () => {
@@ -84,6 +85,16 @@ const BottomPane = () => {
           >
             Logs
           </button>
+          <button
+            onClick={() => setActiveBottomTab("network")}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              activeBottomTab === "network"
+                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
+                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
+            }`}
+          >
+            Network
+          </button>
         </div>
 
         <button
@@ -108,6 +119,7 @@ const BottomPane = () => {
         <div className="flex-1 p-3 overflow-auto">
           {activeBottomTab === "preview" && <DataTable />}
           {activeBottomTab === "logs" && <LogViewer />}
+          {activeBottomTab === "network" && <RuntimeLogViewer />}
         </div>
       </div>
     </div>

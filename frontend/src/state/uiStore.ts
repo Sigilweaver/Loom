@@ -3,7 +3,7 @@ import type { ToolCategory } from "../domain/workflow/entities/workflow";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
-type BottomPaneTab = "preview" | "logs";
+type BottomPaneTab = "preview" | "logs" | "network";
 
 export interface PreviewState {
   toolId: string;

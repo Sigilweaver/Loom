@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { usePreviewCacheStore } from "@state/previewCacheStore";
+import { getRuntimeLogActions } from "@state/runtimeLogStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
 import { getCachedPreview, cachePreview } from "../api/cache";
@@ -17,6 +19,9 @@ export function useSocketPreview() {
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
   const showNotification = useUIStore((s) => s.showNotification);
+
+  // Check "Preview All" cache store first
+  const getCachedPreviewFromStore = usePreviewCacheStore((s) => s.getCachedPreview);
 
   const previewSocket = useCallback(
     async (toolId: string, socketId: number, socketDirection: "input" | "output") => {
@@ -56,10 +61,30 @@ export function useSocketPreview() {
         targetSocketId = wire.from.socket;
       }
 
-      // Check cache first
+      const socketKey = targetSocketId.toString();
+
+      // Check "Preview All" cache store first (from Preview All button)
+      const storeCache = getCachedPreviewFromStore(targetToolId, socketKey);
+      if (storeCache) {
+        // Log cache hit from Preview All store
+        const { logCacheHit } = getRuntimeLogActions();
+        logCacheHit("/workflow/preview_all (cached)", { toolId: targetToolId });
+        
+        setPreviewState({
+          toolId,
+          socketId,
+          socketDirection,
+          data: storeCache.data || [],
+          schema: storeCache.data_schema?.columns || [],
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Check per-request cache second
       const cached = getCachedPreview(targetToolId, workflow, 100);
       if (cached) {
-        const socketKey = targetSocketId.toString();
         const output = cached.outputs[socketKey];
         
         if (output) {
@@ -95,7 +120,6 @@ export function useSocketPreview() {
         cachePreview(targetToolId, workflow, 100, result);
 
         // Get data for the specific socket
-        const socketKey = targetSocketId.toString();
         const output = result.outputs[socketKey];
 
         if (!output) {
@@ -137,7 +161,7 @@ export function useSocketPreview() {
         showNotification(`Preview failed: ${errorMessage}`, "error");
       }
     },
-    [tools, wires, workflowMeta, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
+    [tools, wires, workflowMeta, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification, getCachedPreviewFromStore]
   );
 
   return { previewSocket };

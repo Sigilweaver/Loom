@@ -8,6 +8,7 @@ import {
   getToolMetadata,
   getPolarsFunctions,
   previewTool,
+  previewAllTools,
   executeWorkflow,
   previewCode,
   BackendError,
@@ -16,6 +17,7 @@ import {
   type PolarsFunctionsResponse,
   type ExecuteResponse,
   type WorkflowExecuteResponse,
+  type PreviewAllResponse,
   type ColumnSchema,
 } from './backend';
 import {
@@ -390,3 +392,78 @@ export {
   clearCache,
   getCacheStats,
 } from './cache';
+
+export interface UsePreviewAllResult {
+  previews: PreviewAllResponse | null;
+  loading: boolean;
+  error: string | null;
+  executePreviewAll: (workflow: WorkflowJSON, limit?: number) => Promise<void>;
+  getToolData: (toolId: string, socketId: string) => Record<string, unknown>[];
+  getToolColumns: (toolId: string, socketId: string) => ColumnSchema[];
+}
+
+/**
+ * Hook for previewing all tools in one request
+ * 
+ * This is more efficient than previewing tools individually because
+ * upstream tools are only executed once on the backend.
+ * 
+ * @example
+ * const { previews, loading, executePreviewAll, getToolData } = usePreviewAll();
+ * 
+ * // Preview all tools when user clicks "Preview All" button
+ * const handlePreviewAll = () => {
+ *   executePreviewAll(workflow, 100);
+ * };
+ * 
+ * // Get data for a specific tool
+ * const data = getToolData('tool-123', '0');
+ */
+export function usePreviewAll(): UsePreviewAllResult {
+  const [previews, setPreviews] = useState<PreviewAllResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const executePreviewAll = useCallback(
+    async (workflow: WorkflowJSON, limit = 100) => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const result = await previewAllTools(workflow, limit);
+        setPreviews(result);
+      } catch (err) {
+        const message = err instanceof BackendError 
+          ? err.message 
+          : 'Failed to execute preview all';
+        setError(message);
+        setPreviews(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const getToolData = useCallback(
+    (toolId: string, socketId: string): Record<string, unknown>[] => {
+      if (!previews?.tools[toolId]?.outputs[socketId]?.data) {
+        return [];
+      }
+      return previews.tools[toolId].outputs[socketId].data!;
+    },
+    [previews]
+  );
+
+  const getToolColumns = useCallback(
+    (toolId: string, socketId: string): ColumnSchema[] => {
+      if (!previews?.tools[toolId]?.outputs[socketId]?.data_schema) {
+        return [];
+      }
+      return previews.tools[toolId].outputs[socketId].data_schema!.columns;
+    },
+    [previews]
+  );
+
+  return { previews, loading, error, executePreviewAll, getToolData, getToolColumns };
+}

@@ -163,6 +163,44 @@ async def get_tool_metadata(request: ToolMetadataRequest):
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
+class PreviewAllRequest(BaseModel):
+    """Request to preview all tools in one request"""
+
+    workflow: Workflow = Field(description="Full workflow to execute")
+    preview_limit: int | None = Field(
+        None, description="Optional: Limit rows returned in preview per tool"
+    )
+
+
+@router.post("/preview_all")
+async def preview_all_tools(request: PreviewAllRequest):
+    """
+    Execute workflow and return preview data for ALL tools.
+
+    This is more efficient than calling /tool/execute multiple times
+    because upstream tools are only executed once. Useful for loading
+    all previews after opening a workflow or when data sources change.
+
+    Returns a dict mapping tool_id -> outputs for every tool in the workflow.
+    """
+    try:
+        executor = WorkflowExecutor()
+        result = await executor.preview_all_tools(
+            workflow=request.workflow,
+            preview_limit=request.preview_limit or 100,
+        )
+        return result
+
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ExecutionError as e:
+        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+    except ToolError as e:
+        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
 class PreviewCodeRequest(BaseModel):
     """Request to generate Python code preview"""
 

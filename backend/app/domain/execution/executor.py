@@ -160,6 +160,43 @@ class WorkflowExecutor:
         """
         return await self.execute_workflow(workflow, target_tool_id=tool_id, preview_limit=preview_limit)
 
+    async def preview_all_tools(
+        self,
+        workflow: Workflow,
+        preview_limit: int = 100,
+    ) -> dict[str, Any]:
+        """
+        Execute entire workflow and return preview data for ALL tools.
+
+        This is more efficient than calling execute_single_tool multiple times
+        because upstream tools are only executed once.
+
+        Args:
+            workflow: Workflow to execute
+            preview_limit: Row limit for preview per tool
+
+        Returns:
+            Dict with tool_id -> outputs for every executed tool
+        """
+        # Execute the full workflow (this populates self.results for all tools)
+        await self.execute_workflow(workflow, preview_limit=preview_limit)
+
+        # Format results for all tools
+        all_results = {}
+        for tool_id, tool_outputs in self.results.items():
+            outputs = {}
+            for socket_id, lf in tool_outputs.items():
+                # Collect data for preview
+                df = lf.head(preview_limit).collect()
+                outputs[str(socket_id)] = {
+                    "data_schema": schema_from_polars(df),
+                    "data": dataframe_to_dict_list(df),
+                    "row_count": len(df),
+                }
+            all_results[tool_id] = {"outputs": outputs}
+
+        return {"tools": all_results}
+
     async def get_tool_schema(
         self,
         workflow: Workflow,

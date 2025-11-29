@@ -9,6 +9,7 @@
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { SchemaResponse, ExecuteResponse, MetadataResponse } from './backend';
+import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 
 /**
  * Normalized tool representation for cache key computation
@@ -200,16 +201,21 @@ function evictIfNeeded(): void {
  */
 export function getCachedSchema(
   toolId: string,
-  workflow: WorkflowJSON
+  workflow: WorkflowJSON,
+  context?: RequestContext
 ): SchemaResponse | null {
   const key = computeCacheKey(toolId, workflow, 'schema');
   const entry = cache.get(key);
+  const endpoint = '/workflow/tool/schema';
+  const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'schema') {
     touchKey(key);
+    logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
   
+  logCacheMiss(endpoint, { ...context, toolId });
   return null;
 }
 
@@ -233,16 +239,21 @@ export function cacheSchema(
 export function getCachedPreview(
   toolId: string,
   workflow: WorkflowJSON,
-  limit: number
+  limit: number,
+  context?: RequestContext
 ): ExecuteResponse | null {
   const key = computeCacheKey(toolId, workflow, 'preview', limit);
   const entry = cache.get(key);
+  const endpoint = '/workflow/tool/execute';
+  const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'preview' && entry.limit === limit) {
     touchKey(key);
+    logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
   
+  logCacheMiss(endpoint, { ...context, toolId });
   return null;
 }
 
@@ -266,16 +277,21 @@ export function cachePreview(
  */
 export function getCachedMetadata(
   toolId: string,
-  workflow: WorkflowJSON
+  workflow: WorkflowJSON,
+  context?: RequestContext
 ): MetadataResponse | null {
   const key = computeCacheKey(toolId, workflow, 'metadata');
   const entry = cache.get(key);
+  const endpoint = '/workflow/tool/metadata';
+  const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
   
   if (entry?.type === 'metadata') {
     touchKey(key);
+    logCacheHit(endpoint, { ...context, toolId });
     return entry.data;
   }
   
+  logCacheMiss(endpoint, { ...context, toolId });
   return null;
 }
 

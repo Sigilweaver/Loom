@@ -254,3 +254,115 @@ async def test_frontend_preview_workflow(sample_csv):
     
     print("Frontend can get preview data with actual rows")
     print(f"Preview shows {len(rows)} rows")
+
+
+@pytest.mark.asyncio
+async def test_preview_all_tools(sample_csv):
+    """
+    Test preview_all_tools - returns preview data for ALL tools in one request.
+    
+    This is more efficient than calling execute_single_tool multiple times
+    because upstream tools are only executed once.
+    """
+    
+    workflow = Workflow(
+        meta=WorkflowMeta(
+            name="Preview All Test",
+            description="Test preview all tools",
+            author="Test",
+            workflowId="test-preview-all",
+            created="2024-01-01",
+        ),
+        tools=[
+            Tool(
+                id="input1",
+                type="Input",
+                x=0, y=0,
+                config={
+                    "category": "file",
+                    "type": "csv",
+                    "source": sample_csv,
+                    "csvMode": "scan",
+                },
+                sockets=[
+                    Socket(id=0, direction="output", type="polars-lazy")
+                ],
+            ),
+            Tool(
+                id="filter1",
+                type="Filter",
+                x=100, y=0,
+                config={
+                    "expression": "pl.col('age') > 30",
+                },
+                sockets=[
+                    Socket(id=0, direction="input", type="polars-lazy"),
+                    Socket(id=1, direction="output", type="polars-lazy"),
+                    Socket(id=2, direction="output", type="polars-lazy"),
+                ],
+            ),
+            Tool(
+                id="select1",
+                type="Select",
+                x=200, y=0,
+                config={
+                    "columnConfigs": [
+                        {"name": "name", "selected": True},
+                        {"name": "age", "selected": True},
+                    ],
+                },
+                sockets=[
+                    Socket(id=0, direction="input", type="polars-lazy"),
+                    Socket(id=1, direction="output", type="polars-lazy"),
+                ],
+            ),
+        ],
+        wires=[
+            Wire(
+                from_=WireEndpoint(tool="input1", socket=0),
+                to=WireEndpoint(tool="filter1", socket=0),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="filter1", socket=1),
+                to=WireEndpoint(tool="select1", socket=0),
+            ),
+        ],
+    )
+    
+    executor = WorkflowExecutor()
+    
+    # Get preview for ALL tools in one request
+    result = await executor.preview_all_tools(workflow, preview_limit=100)
+    
+    print("\n=== Preview All Result ===")
+    print(f"Result keys: {result.keys()}")
+    
+    # Should have 'tools' key with all tool results
+    assert "tools" in result
+    tools = result["tools"]
+    
+    # Should have results for all 3 tools
+    assert "input1" in tools
+    assert "filter1" in tools
+    assert "select1" in tools
+    
+    # Check input1 output
+    input_output = tools["input1"]["outputs"]["0"]
+    assert "data" in input_output
+    assert "data_schema" in input_output
+    assert len(input_output["data"]) == 5  # All 5 rows
+    
+    # Check filter1 output (socket 1 = True output)
+    filter_output = tools["filter1"]["outputs"]["1"]
+    assert len(filter_output["data"]) == 3  # 3 rows with age > 30
+    
+    # Check select1 output
+    select_output = tools["select1"]["outputs"]["1"]
+    assert len(select_output["data"]) == 3  # Same 3 rows
+    # Only 2 columns selected
+    assert len(select_output["data_schema"].columns) == 2
+    
+    print("Preview all returns data for all tools in single request")
+    print(f"Input: {len(input_output['data'])} rows")
+    print(f"Filter: {len(filter_output['data'])} rows")
+    print(f"Select: {len(select_output['data'])} rows")

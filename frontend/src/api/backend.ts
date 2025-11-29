@@ -6,6 +6,10 @@
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
+import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
+
+// Re-export RequestContext for consumers
+export type { RequestContext } from '../state/runtimeLogStore';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -86,9 +90,16 @@ export class BackendError extends Error {
  */
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  context?: RequestContext
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  const method = options.method || 'GET';
+  const { logRequest, logResponse, logError } = getRuntimeLogActions();
+  
+  // Log the outgoing request
+  const requestId = logRequest(endpoint, method, context);
+  const startTime = performance.now();
   
   try {
     const response = await fetch(url, {
@@ -113,20 +124,25 @@ async function apiRequest<T>(
         // If error response isn't JSON, use status text
       }
 
+      const duration = performance.now() - startTime;
+      logError(requestId, errorMessage, duration, response.status);
       throw new BackendError(errorMessage, response.status, errorType, toolId);
     }
 
-    return await response.json() as T;
+    const result = await response.json() as T;
+    const duration = performance.now() - startTime;
+    logResponse(requestId, response.status, duration);
+    return result;
   } catch (error) {
     if (error instanceof BackendError) {
       throw error;
     }
     
     // Network or other errors
-    throw new BackendError(
-      `Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}`,
-      0
-    );
+    const duration = performance.now() - startTime;
+    const errorMessage = `Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}`;
+    logError(requestId, errorMessage, duration);
+    throw new BackendError(errorMessage, 0);
   }
 }
 
@@ -138,11 +154,13 @@ async function apiRequest<T>(
  * 
  * @param toolId - The ID of the tool to get schema for
  * @param workflow - The complete workflow definition
+ * @param context - Optional request context for logging
  * @returns Schema information for each output socket
  */
 export async function getToolSchema(
   toolId: string,
-  workflow: WorkflowJSON
+  workflow: WorkflowJSON,
+  context?: RequestContext
 ): Promise<SchemaResponse> {
   return apiRequest<SchemaResponse>('/workflow/tool/schema', {
     method: 'POST',
@@ -150,7 +168,7 @@ export async function getToolSchema(
       tool_id: toolId,
       workflow,
     }),
-  });
+  }, { ...context, toolId });
 }
 
 /**
@@ -162,12 +180,14 @@ export async function getToolSchema(
  * @param toolId - The ID of the tool to preview
  * @param workflow - The complete workflow definition
  * @param previewLimit - Maximum number of rows to return (default: 100)
+ * @param context - Optional request context for logging
  * @returns Preview data and schema for each output socket
  */
 export async function previewTool(
   toolId: string,
   workflow: WorkflowJSON,
-  previewLimit = 100
+  previewLimit = 100,
+  context?: RequestContext
 ): Promise<ExecuteResponse> {
   return apiRequest<ExecuteResponse>('/workflow/tool/execute', {
     method: 'POST',
@@ -176,7 +196,7 @@ export async function previewTool(
       workflow,
       preview_limit: previewLimit,
     }),
-  });
+  }, { ...context, toolId });
 }
 
 /**
@@ -184,11 +204,13 @@ export async function previewTool(
  * 
  * @param workflow - The complete workflow definition
  * @param targetToolId - Optional tool ID to execute up to (default: all tools)
+ * @param context - Optional request context for logging
  * @returns Output data from the target tool (or final tool if not specified)
  */
 export async function executeWorkflow(
   workflow: WorkflowJSON,
-  targetToolId?: string
+  targetToolId?: string,
+  context?: RequestContext
 ): Promise<WorkflowExecuteResponse> {
   return apiRequest<WorkflowExecuteResponse>('/workflow/execute', {
     method: 'POST',
@@ -196,7 +218,7 @@ export async function executeWorkflow(
       workflow,
       target_tool_id: targetToolId,
     }),
-  });
+  }, context);
 }
 
 /**
@@ -206,17 +228,19 @@ export async function executeWorkflow(
  * replicates the workflow's data transformations.
  * 
  * @param workflow - The complete workflow definition
+ * @param context - Optional request context for logging
  * @returns Generated Python code as a string
  */
 export async function previewCode(
-  workflow: WorkflowJSON
+  workflow: WorkflowJSON,
+  context?: RequestContext
 ): Promise<{ code: string }> {
   return apiRequest<{ code: string }>('/workflow/preview_code', {
     method: 'POST',
     body: JSON.stringify({
       workflow,
     }),
-  });
+  }, context);
 }
 
 /**
@@ -272,11 +296,13 @@ export interface PolarsFunctionsResponse {
  * 
  * @param toolId - The ID of the tool to get metadata for
  * @param workflow - The complete workflow definition
+ * @param context - Optional request context for logging
  * @returns Metadata including columns from input sockets
  */
 export async function getToolMetadata(
   toolId: string,
-  workflow: WorkflowJSON
+  workflow: WorkflowJSON,
+  context?: RequestContext
 ): Promise<MetadataResponse> {
   return apiRequest<MetadataResponse>('/workflow/tool/metadata', {
     method: 'POST',
@@ -284,7 +310,7 @@ export async function getToolMetadata(
       tool_id: toolId,
       workflow,
     }),
-  });
+  }, { ...context, toolId });
 }
 
 /**
@@ -299,4 +325,39 @@ export async function getPolarsFunctions(): Promise<PolarsFunctionsResponse> {
   return apiRequest<PolarsFunctionsResponse>('/polars/functions', {
     method: 'GET',
   });
+}
+
+/**
+ * Response from /api/workflow/preview_all endpoint
+ */
+export interface PreviewAllResponse {
+  tools: Record<string, {
+    outputs: Record<string, ToolOutput>;
+  }>;
+}
+
+/**
+ * Preview all tools in workflow in a single request
+ * 
+ * This is more efficient than calling previewTool multiple times
+ * because upstream tools are only executed once. Useful for loading
+ * all previews after opening a workflow or when input data changes.
+ * 
+ * @param workflow - The complete workflow definition
+ * @param previewLimit - Maximum number of rows to return per tool (default: 100)
+ * @param context - Optional request context for logging
+ * @returns Preview data for all tools in the workflow
+ */
+export async function previewAllTools(
+  workflow: WorkflowJSON,
+  previewLimit = 100,
+  context?: RequestContext
+): Promise<PreviewAllResponse> {
+  return apiRequest<PreviewAllResponse>('/workflow/preview_all', {
+    method: 'POST',
+    body: JSON.stringify({
+      workflow,
+      preview_limit: previewLimit,
+    }),
+  }, context);
 }
