@@ -75,7 +75,7 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700" role="navigation" aria-label="Main navigation">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center space-x-2 group">
@@ -84,20 +84,42 @@
                     </div>
                     <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
                 </a>
-                <div class="flex items-center space-x-6">
-                    <a href="/" class="text-mystic-300 hover:text-gold-400 transition-colors">Home</a>
-                    <a href="/downloads" class="text-mystic-300 hover:text-gold-400 transition-colors">Downloads</a>
-                    <a href="https://github.com/sigilweaver" class="text-mystic-300 hover:text-gold-400 transition-colors">GitHub</a>
-                    <button id="animation-toggle" onclick="toggleAnimations()" class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md" aria-pressed="true" title="Toggle animations">
-                        <span class="text-xs text-mystic-400 animation-label">Animations</span>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="/" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Home</a>
+                    <a href="/downloads" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Downloads</a>
+                    <a href="https://github.com/sigilweaver" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">GitHub</a>
+                    <button id="animation-toggle" onclick="toggleAnimations()" class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md" aria-pressed="true" title="Toggle eye candy">
+                        <span class="text-xs text-mystic-400 animation-label">Eye Candy</span>
                         <div class="toggle-switch" aria-hidden="true">
                             <div class="toggle-slider"></div>
                         </div>
                     </button>
                 </div>
+                <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="fixed top-[72px] left-0 w-full z-40 md:hidden bg-mystic-800/90 border-b border-mystic-700" role="navigation" aria-label="Mobile navigation">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-3 space-y-3" role="menu">
+                <a href="/" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Home</a>
+                <a href="/downloads" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Downloads</a>
+                <a href="https://github.com/sigilweaver" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">GitHub</a>
+                <button id="animation-toggle-mobile" onclick="toggleAnimations()" class="flex items-center justify-between w-full mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem" aria-pressed="true">
+                    <span class="text-mystic-300 animation-label">Eye Candy</span>
+                    <div class="toggle-switch" aria-hidden="true">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main id="main-content" class="pt-24 pb-16">

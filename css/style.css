@@ -539,6 +539,96 @@ html.animations-disabled .node-connections {
     display: none !important;
 }
 
+/* Remove transparency and blur effects for accessibility */
+html.animations-disabled nav,
+html.animations-disabled .bg-mystic-900\/90,
+html.animations-disabled .backdrop-blur-sm,
+html.animations-disabled .backdrop-blur {
+    backdrop-filter: none !important;
+}
+
+html.animations-disabled nav {
+    background-color: #1a0b2e !important; /* solid mystic-900 */
+}
+
+html.animations-disabled .bg-mystic-900\/90 {
+    background-color: #1a0b2e !important;
+}
+
+html.animations-disabled .bg-mystic-900\/50 {
+    background-color: #1a0b2e !important;
+}
+
+html.animations-disabled .bg-mystic-900\/30 {
+    background-color: #2d1b42 !important; /* slightly lighter for contrast */
+}
+
+html.animations-disabled .bg-mystic-800\/50 {
+    background-color: #2d1b42 !important; /* solid mystic-800 */
+}
+
+html.animations-disabled .bg-mystic-800\/40 {
+    background-color: #2d1b42 !important;
+}
+
+html.animations-disabled .bg-mystic-700\/90 {
+    background-color: #4c2a6b !important; /* solid mystic-700 */
+}
+
+html.animations-disabled .bg-mystic-700\/50 {
+    background-color: #4c2a6b !important;
+}
+
+html.animations-disabled .bg-mystic-700\/30 {
+    background-color: #4c2a6b !important;
+}
+
+html.animations-disabled .bg-mystic-700\/20 {
+    background-color: #4c2a6b !important;
+}
+
+html.animations-disabled .bg-mystic-600\/80 {
+    background-color: #6b3fa0 !important; /* solid mystic-600 */
+}
+
+html.animations-disabled .bg-mystic-600\/50 {
+    background-color: #6b3fa0 !important;
+}
+
+html.animations-disabled .bg-mystic-600\/30 {
+    background-color: #6b3fa0 !important;
+}
+
+html.animations-disabled .bg-mystic-600\/20 {
+    background-color: #6b3fa0 !important;
+}
+
+html.animations-disabled .bg-gold-500\/10 {
+    background-color: rgba(245, 158, 11, 0.2) !important; /* Slightly more opaque for visibility */
+}
+
+html.animations-disabled .bg-red-500\/10 {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Mobile menu solid background for accessibility */
+html.animations-disabled #mobile-menu,
+html.animations-disabled .bg-mystic-800\/90 {
+    background-color: #2d1b42 !important;
+}
+
+/* Disable all transitions and transforms for accessibility */
+html.animations-disabled * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Exception: preserve toggle switch functionality */
+html.animations-disabled #animation-toggle .toggle-slider,
+html.animations-disabled #animation-toggle-mobile .toggle-slider {
+    transition: transform 0.2s ease !important;
+}
+
 /* Print Styles */
 @media print {
     .floating-elements,

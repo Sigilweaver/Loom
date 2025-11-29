@@ -5,9 +5,17 @@ let isInitialized = false;
 let loadingErrors = [];
 
 // Animation preference management
-const ANIMATION_PREF_KEY = 'sigilweaver-animations-enabled';
+const ANIMATION_PREF_KEY = 'sigilweaver-eye-candy-enabled';
+const OLD_ANIMATION_PREF_KEY = 'sigilweaver-animations-enabled';
 
 function initializeAnimationPreference() {
+    // Migrate old key to new key
+    const oldPref = localStorage.getItem(OLD_ANIMATION_PREF_KEY);
+    if (oldPref !== null && localStorage.getItem(ANIMATION_PREF_KEY) === null) {
+        localStorage.setItem(ANIMATION_PREF_KEY, oldPref);
+        localStorage.removeItem(OLD_ANIMATION_PREF_KEY);
+    }
+    
     // Check localStorage for user preference
     const savedPref = localStorage.getItem(ANIMATION_PREF_KEY);
     const systemPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -67,7 +75,7 @@ function updateAnimationToggleUI(enabled) {
     toggleButtons.forEach(toggleButton => {
         if (toggleButton) {
             toggleButton.setAttribute('aria-pressed', String(enabled));
-            toggleButton.title = enabled ? 'Disable animations' : 'Enable animations';
+            toggleButton.title = enabled ? 'Disable eye candy' : 'Enable eye candy';
             
             // Update toggle switch state
             if (enabled) {
@@ -89,7 +97,7 @@ function showAnimationToggleFeedback(enabled) {
             <div class="toggle-switch ${enabled ? 'active' : ''}" style="pointer-events: none;">
                 <div class="toggle-slider"></div>
             </div>
-            <span class="text-sm">Animations ${enabled ? 'enabled' : 'disabled'}</span>
+            <span class="text-sm">Eye candy ${enabled ? 'enabled' : 'disabled'}</span>
         </div>
     `;
     

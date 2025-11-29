@@ -216,8 +216,6 @@ async function loadReleases() {
         
         releasesData = await response.json();
         
-        console.log('Releases data:', releasesData); // Debug
-        
         // Hide button, show releases section
         button.classList.add('hidden');
         section.classList.remove('hidden');
@@ -259,8 +257,6 @@ function renderReleasesPage() {
     const startIdx = (currentPage - 1) * RELEASES_PER_PAGE;
     const endIdx = Math.min(startIdx + RELEASES_PER_PAGE, totalReleases);
     const pageReleases = releasesData.releases.slice(startIdx, endIdx);
-    
-    console.log(`Rendering ${pageReleases.length} releases (page ${currentPage}/${totalPages})`); // Debug
     
     // Render release items
     container.innerHTML = pageReleases.map(release => renderReleaseItem(release)).join('');
