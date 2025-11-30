@@ -19,7 +19,7 @@ interface MarkdownRendererProps {
 /**
  * Renders markdown content with syntax-highlighted code blocks
  */
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className = '',
   fallbackText = 'No content provided.',

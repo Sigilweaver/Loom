@@ -150,5 +150,3 @@ export const CanvasMenus: React.FC<Props> = ({
     </>
   );
 };
-
-export default CanvasMenus;

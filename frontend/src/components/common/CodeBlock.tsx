@@ -125,7 +125,7 @@ const customTheme = {
   },
 };
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({
+const CodeBlock: React.FC<CodeBlockProps> = ({
   code,
   language,
   showLineNumbers = false,
