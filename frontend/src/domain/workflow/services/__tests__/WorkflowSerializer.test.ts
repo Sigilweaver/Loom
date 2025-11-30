@@ -458,4 +458,133 @@ describe("WorkflowSerializer", () => {
       expect(version).toBeNull();
     });
   });
+
+  describe("extractUpstreamSubgraph", () => {
+    it("should return only the target tool when it has no upstream dependencies", () => {
+      const tool = createTestTool("tool_001");
+      
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool],
+        [],
+        "tool_001"
+      );
+
+      expect(tools).toHaveLength(1);
+      expect(tools[0].id).toBe("tool_001");
+      expect(wires).toHaveLength(0);
+    });
+
+    it("should return target tool and its upstream dependency", () => {
+      const tool1 = createTestTool("tool_001");
+      const tool2 = createTestTool("tool_002");
+      const wire = createTestWire("tool_001", "output", "tool_002", "input");
+
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool1, tool2],
+        [wire],
+        "tool_002"
+      );
+
+      expect(tools).toHaveLength(2);
+      expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002"]);
+      expect(wires).toHaveLength(1);
+    });
+
+    it("should not include downstream tools", () => {
+      // Linear chain: tool_001 -> tool_002 -> tool_003
+      const tool1 = createTestTool("tool_001");
+      const tool2 = createTestTool("tool_002");
+      const tool3 = createTestTool("tool_003");
+      const wire1 = createTestWire("tool_001", "output", "tool_002", "input");
+      const wire2 = createTestWire("tool_002", "output", "tool_003", "input");
+
+      // Get subgraph for tool_002 (should NOT include tool_003)
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool1, tool2, tool3],
+        [wire1, wire2],
+        "tool_002"
+      );
+
+      expect(tools).toHaveLength(2);
+      expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002"]);
+      expect(wires).toHaveLength(1);
+      expect(wires[0].from.tool).toBe("tool_001");
+      expect(wires[0].to.tool).toBe("tool_002");
+    });
+
+    it("should handle multi-level upstream dependencies", () => {
+      // Chain: tool_001 -> tool_002 -> tool_003 -> tool_004
+      const tool1 = createTestTool("tool_001");
+      const tool2 = createTestTool("tool_002");
+      const tool3 = createTestTool("tool_003");
+      const tool4 = createTestTool("tool_004");
+      const wire1 = createTestWire("tool_001", "output", "tool_002", "input");
+      const wire2 = createTestWire("tool_002", "output", "tool_003", "input");
+      const wire3 = createTestWire("tool_003", "output", "tool_004", "input");
+
+      // Get subgraph for tool_003 (should include tool_001, tool_002, tool_003)
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool1, tool2, tool3, tool4],
+        [wire1, wire2, wire3],
+        "tool_003"
+      );
+
+      expect(tools).toHaveLength(3);
+      expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002", "tool_003"]);
+      expect(wires).toHaveLength(2);
+    });
+
+    it("should handle tools with multiple inputs (Join/Union)", () => {
+      // Diamond pattern: tool_001 and tool_002 both feed into tool_003
+      const tool1 = createTestTool("tool_001");
+      const tool2 = createTestTool("tool_002");
+      const tool3 = createTestTool("tool_003");
+      const wire1 = createTestWire("tool_001", "output", "tool_003", "left");
+      const wire2 = createTestWire("tool_002", "output", "tool_003", "right");
+
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool1, tool2, tool3],
+        [wire1, wire2],
+        "tool_003"
+      );
+
+      expect(tools).toHaveLength(3);
+      expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002", "tool_003"]);
+      expect(wires).toHaveLength(2);
+    });
+
+    it("should handle branching workflows correctly", () => {
+      // Branching: tool_001 feeds into both tool_002 and tool_003
+      const tool1 = createTestTool("tool_001");
+      const tool2 = createTestTool("tool_002");
+      const tool3 = createTestTool("tool_003");
+      const wire1 = createTestWire("tool_001", "output", "tool_002", "input");
+      const wire2 = createTestWire("tool_001", "output", "tool_003", "input");
+
+      // Get subgraph for tool_002 (should NOT include tool_003)
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool1, tool2, tool3],
+        [wire1, wire2],
+        "tool_002"
+      );
+
+      expect(tools).toHaveLength(2);
+      expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002"]);
+      expect(wires).toHaveLength(1);
+      expect(wires[0].to.tool).toBe("tool_002");
+    });
+
+    it("should return empty result for non-existent tool", () => {
+      const tool = createTestTool("tool_001");
+
+      const { tools, wires } = WorkflowSerializer.extractUpstreamSubgraph(
+        [tool],
+        [],
+        "non_existent"
+      );
+
+      expect(tools).toHaveLength(0);
+      expect(wires).toHaveLength(0);
+    });
+  });
 });

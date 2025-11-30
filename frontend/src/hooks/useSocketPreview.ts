@@ -28,10 +28,6 @@ export function useSocketPreview() {
       setBottomPaneOpen(true);
       setActiveBottomTab("preview");
 
-      // Serialize workflow first (needed for cache check)
-      const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
-      const workflow = JSON.parse(workflowJSON);
-
       // For input sockets, we need to find the upstream tool's output
       let targetToolId = toolId;
       let targetSocketId = socketId;
@@ -59,6 +55,15 @@ export function useSocketPreview() {
         targetToolId = wire.from.tool;
         targetSocketId = wire.from.socket;
       }
+
+      // Extract only the upstream subgraph for the target tool
+      // This allows previewing upstream tools even if downstream tools have errors
+      const { tools: upstreamTools, wires: upstreamWires } = 
+        WorkflowSerializer.extractUpstreamSubgraph(tools, wires, targetToolId);
+
+      // Serialize the filtered subgraph (not the full workflow)
+      const workflowJSON = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
+      const workflow = JSON.parse(workflowJSON);
 
       const socketKey = targetSocketId.toString();
 
@@ -97,7 +102,7 @@ export function useSocketPreview() {
       });
 
       try {
-        // Execute preview
+        // Execute preview with the filtered upstream subgraph
         const result = await previewTool(targetToolId, workflow, previewRows);
         
         // Cache the result
@@ -145,7 +150,7 @@ export function useSocketPreview() {
         showNotification(`Preview failed: ${errorMessage}`, "error");
       }
     },
-    [tools, wires, workflowMeta, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
+    [tools, wires, workflowMeta, previewRows, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
   );
 
   return { previewSocket };

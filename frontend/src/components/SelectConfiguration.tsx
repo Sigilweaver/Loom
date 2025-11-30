@@ -266,8 +266,11 @@ export function SelectConfiguration({
   }, [wires, toolId]);
 
   // Fetch metadata when component mounts or connections change
+  // Use upstream subgraph only to avoid errors from downstream tools
   useEffect(() => {
-    const workflow = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
+    const { tools: upstreamTools, wires: upstreamWires } = 
+      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
+    const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
     fetchMetadata(toolId, JSON.parse(workflow));
   }, [toolId, wireConnections, fetchMetadata]);
 

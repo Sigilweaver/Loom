@@ -388,4 +388,62 @@ export class WorkflowSerializer {
       return null;
     }
   }
+
+  /**
+   * Extract the upstream subgraph for a given tool.
+   * 
+   * Returns only the tools and wires that are upstream dependencies
+   * of the target tool (including the target tool itself).
+   * This is useful for previewing a tool without downstream errors
+   * affecting the request.
+   *
+   * @param tools - All tools in the workflow
+   * @param wires - All wires in the workflow
+   * @param targetToolId - The tool to extract subgraph for
+   * @returns Filtered tools and wires containing only upstream dependencies
+   *
+   * @example
+   * const { tools: upstreamTools, wires: upstreamWires } = 
+   *   WorkflowSerializer.extractUpstreamSubgraph(tools, wires, 'filter1');
+   */
+  static extractUpstreamSubgraph(
+    tools: Tool[],
+    wires: Wire[],
+    targetToolId: string
+  ): { tools: Tool[]; wires: Wire[] } {
+    // Build set of required tool IDs by traversing upstream from target
+    const requiredToolIds = new Set<string>();
+    const queue: string[] = [targetToolId];
+
+    while (queue.length > 0) {
+      const currentToolId = queue.shift()!;
+      
+      if (requiredToolIds.has(currentToolId)) {
+        continue; // Already processed
+      }
+      
+      requiredToolIds.add(currentToolId);
+
+      // Find all wires that feed into this tool
+      for (const wire of wires) {
+        if (wire.to.tool === currentToolId) {
+          // Add the source tool to the queue
+          queue.push(wire.from.tool);
+        }
+      }
+    }
+
+    // Filter tools to only include required ones
+    const filteredTools = tools.filter(tool => requiredToolIds.has(tool.id));
+
+    // Filter wires to only include those between required tools
+    const filteredWires = wires.filter(
+      wire => requiredToolIds.has(wire.from.tool) && requiredToolIds.has(wire.to.tool)
+    );
+
+    return {
+      tools: filteredTools,
+      wires: filteredWires,
+    };
+  }
 }
