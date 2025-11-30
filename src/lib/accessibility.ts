@@ -72,6 +72,12 @@ export function toggleAccessibilityMode(): void {
   const newState = !enabled;
   setAccessibilityMode(newState, true);
   showFeedback(newState);
+  
+  // Reload page to properly teardown/initialize effects
+  // This is the cleanest way to ensure all JS animations are properly handled
+  setTimeout(() => {
+    window.location.reload();
+  }, 500);
 }
 
 /**

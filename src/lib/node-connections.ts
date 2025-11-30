@@ -18,9 +18,19 @@ const maxConnections = 5;
 const minConnections = 3;
 
 /**
+ * Check if accessibility mode is enabled
+ */
+function isA11yMode(): boolean {
+  return document.documentElement.classList.contains('a11y');
+}
+
+/**
  * Initialize the node connection system
  */
 export function initializeNodeConnections(): void {
+  // Don't run in accessibility mode
+  if (isA11yMode()) return;
+  
   const floatingNodes = document.querySelectorAll('.floating-node');
   if (floatingNodes.length < 2) return;
 

@@ -20,6 +20,13 @@ export * from '@components/index';
 export * from '@lib/config';
 
 /**
+ * Check if accessibility mode is enabled
+ */
+function isA11yMode(): boolean {
+  return document.documentElement.classList.contains('a11y');
+}
+
+/**
  * Initialize all site functionality
  * Called on DOMContentLoaded
  */
@@ -27,22 +34,26 @@ export function initializeSite(): void {
   // Initialize layout components
   initializeLayout();
   
-  // Initialize accessibility preferences
+  // Initialize accessibility preferences FIRST
+  // This sets the a11y class before other initializations check it
   initializeAccessibility();
   
   // Initialize navigation
   initializeNavigation();
   
-  // Initialize scroll effects
-  initializeScrollEffects();
-  
-  // Initialize hero animations if present
-  if (document.querySelector('.hero')) {
-    initializeHeroAnimations();
+  // Only initialize animations/effects if NOT in a11y mode
+  if (!isA11yMode()) {
+    // Initialize scroll effects
+    initializeScrollEffects();
+    
+    // Initialize hero animations if present
+    if (document.querySelector('.hero')) {
+      initializeHeroAnimations();
+    }
+    
+    // Initialize node connections
+    initializeNodeConnections();
   }
-  
-  // Initialize node connections
-  initializeNodeConnections();
 }
 
 // Auto-initialize when DOM is ready

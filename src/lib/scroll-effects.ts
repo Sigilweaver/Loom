@@ -4,10 +4,17 @@
  */
 
 /**
+ * Check if accessibility mode is enabled
+ */
+function isA11yMode(): boolean {
+  return document.documentElement.classList.contains('a11y');
+}
+
+/**
  * Initialize scroll-triggered animations
  */
 export function initializeScrollEffects(): void {
-  if (document.documentElement.classList.contains('animations-disabled')) {
+  if (isA11yMode() || document.documentElement.classList.contains('animations-disabled')) {
     return;
   }
 
@@ -65,7 +72,7 @@ function animateTechItem(item: HTMLElement): void {
  * Initialize hero animations (GSAP)
  */
 export function initializeHeroAnimations(): void {
-  if (document.documentElement.classList.contains('animations-disabled')) {
+  if (isA11yMode() || document.documentElement.classList.contains('animations-disabled')) {
     return;
   }
 

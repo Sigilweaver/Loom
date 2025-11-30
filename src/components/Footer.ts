@@ -73,26 +73,27 @@ export function createFooter(options: FooterOptions = {}): string {
   return `
     <footer class="bg-mystic-900 border-t border-mystic-700 py-12">
       <div class="container mx-auto px-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <!-- Brand -->
-          <div class="md:col-span-1">
-            <a href="/" class="flex items-center space-x-2 group mb-4">
-              <div class="sigil-logo" aria-hidden="true">
-                <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
-              </div>
-              <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
-            </a>
-            ${showDescription ? `
-              <p class="text-mystic-400 mb-4 max-w-md">
-                Crafted by a solo data wizard who believes in the magic of open source. Support responses are provided on a best effort basis with genuine care for the community.
-              </p>
-            ` : ''}
-          </div>
+        <!-- Brand Section -->
+        <div class="mb-8 text-center sm:text-left">
+          <a href="/" class="inline-flex items-center space-x-2 group mb-3">
+            <div class="sigil-logo" aria-hidden="true">
+              <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
+            </div>
+            <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
+          </a>
+          ${showDescription ? `
+            <p class="text-mystic-400 max-w-lg mx-auto sm:mx-0">
+              Crafted by a solo data wizard who believes in the magic of open source. Support responses are provided on a best effort basis with genuine care for the community.
+            </p>
+          ` : ''}
+        </div>
 
+        <!-- Links Row -->
+        <div class="grid grid-cols-3 gap-6 sm:gap-8">
           ${config.columns.map(column => `
             <div>
-              <h4 class="font-semibold text-mystic-200 mb-4">${column.title}</h4>
-              <ul class="space-y-2 text-mystic-400">
+              <h4 class="font-semibold text-mystic-200 mb-3">${column.title}</h4>
+              <ul class="space-y-1.5 text-mystic-400">
                 ${column.links.map(link => `
                   <li>
                     <a href="${link.href}" 

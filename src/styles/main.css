@@ -513,7 +513,11 @@ html.a11y *,
 html.a11y *::before, 
 html.a11y *::after {
   animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
   transition: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
   scroll-behavior: auto !important;
 }
 
@@ -524,8 +528,11 @@ html.a11y .workflow-canvas,
 html.a11y .floating-orb,
 html.a11y .particles,
 html.a11y .particle,
-html.a11y .node-connections {
+html.a11y .node-connections,
+html.a11y svg.node-connections {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 /* Remove all backdrop blur */
@@ -541,6 +548,11 @@ html.a11y *:hover {
   transform: none !important;
 }
 
+/* Disable Tailwind animate classes */
+html.a11y [class*="animate-"] {
+  animation: none !important;
+}
+
 /* ----------------------------------------
    ACCESSIBILITY MODE - HIGH CONTRAST
    ---------------------------------------- */
@@ -550,6 +562,7 @@ html.a11y {
   --a11y-bg: #0d0d12;
   --a11y-bg-elevated: #1a1a24;
   --a11y-bg-card: #1a1a24;
+  --a11y-bg-button: #2a2a3a;
   --a11y-border: #5a5a70;
   --a11y-border-hover: #8a8aa0;
   --a11y-text: #f0f0f0;
@@ -570,6 +583,24 @@ html.a11y [class*="bg-gradient"],
 html.a11y [class*="from-"],
 html.a11y [class*="to-"] {
   background: var(--a11y-bg) !important;
+}
+
+/* Gradient buttons/links should use button background */
+html.a11y a[class*="bg-gradient"],
+html.a11y a[class*="from-"],
+html.a11y button[class*="bg-gradient"],
+html.a11y button[class*="from-"] {
+  background: var(--a11y-bg-button) !important;
+  border: 2px solid var(--a11y-border) !important;
+  color: var(--a11y-text) !important;
+}
+
+html.a11y a[class*="bg-gradient"]:hover,
+html.a11y a[class*="from-"]:hover,
+html.a11y button[class*="bg-gradient"]:hover,
+html.a11y button[class*="from-"]:hover {
+  background: var(--a11y-bg-elevated) !important;
+  border-color: var(--a11y-accent) !important;
 }
 
 /* Navigation */
@@ -626,7 +657,7 @@ html.a11y a:not(.cta-button):not(.nav-link):hover {
 
 /* Buttons */
 html.a11y .cta-button {
-  background: var(--a11y-bg-card) !important;
+  background: var(--a11y-bg-button) !important;
   border: 2px solid var(--a11y-border) !important;
   color: var(--a11y-text) !important;
 }
@@ -636,12 +667,24 @@ html.a11y .cta-button:hover {
   border-color: var(--a11y-accent) !important;
 }
 
+/* General button elements */
+html.a11y button:not(.a11y-toggle) {
+  background: var(--a11y-bg-button) !important;
+  border: 2px solid var(--a11y-border) !important;
+  color: var(--a11y-text) !important;
+}
+
+html.a11y button:not(.a11y-toggle):hover {
+  background: var(--a11y-bg-elevated) !important;
+  border-color: var(--a11y-accent) !important;
+}
+
 /* All mystic background buttons/elements */
 html.a11y .bg-mystic-600,
 html.a11y .bg-mystic-500,
 html.a11y [class*="bg-mystic-5"],
 html.a11y [class*="bg-mystic-6"] {
-  background: var(--a11y-bg-card) !important;
+  background: var(--a11y-bg-button) !important;
   border: 2px solid var(--a11y-border) !important;
   color: var(--a11y-text) !important;
 }
