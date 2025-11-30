@@ -24,11 +24,9 @@ jobs:
           - os: windows-latest
             artifact-name: backend-win
             executable-name: backend.exe
-          # macOS builds disabled - too expensive!!! ($0.08/min vs $0.008/min for Linux)
-          # Will re-enable when we have a self-hosted macOS runner
-          # - os: macos-latest
-          #   artifact-name: backend-mac
-          #   executable-name: backend
+          - os: macos-latest
+            artifact-name: backend-mac
+            executable-name: backend
     
     runs-on: ${{ matrix.os }}
     outputs:

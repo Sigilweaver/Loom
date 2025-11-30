@@ -3,7 +3,12 @@
 import json
 import os
 import hashlib
+import sys
 from pathlib import Path
+
+# Add lib directory to path for strip_version_from_filename
+sys.path.insert(0, str(Path(__file__).parent))
+from lib.manifest_builder import strip_version_from_filename
 
 def main():
     version = os.environ['GITHUB_REF_NAME']
@@ -18,8 +23,8 @@ def main():
     
     for f in assets_dir.glob('*'):
         if f.is_file() and f.name not in ['SHA256SUMS.txt'] and not f.name.startswith('.'):
-            # Strip version from filename to get generic name
-            generic = f.name.replace(f'{version}-', '').replace(f'{version}', '').replace('--', '-')
+            # Strip version from filename to get generic name (use shared library)
+            generic = strip_version_from_filename(f.name)
             
             size = f.stat().st_size
             sha256 = hashlib.sha256(f.read_bytes()).hexdigest()
@@ -54,8 +59,8 @@ def main():
                     add_file('portable', 'Windows Portable', 'Sigilweaver-Portable.exe'),
                 ])),
                 'linux': list(filter(None, [
-                    add_file('appimage', 'AppImage', 'Sigilweaver.AppImage'),
-                    add_file('snap', 'Snap Package', 'Sigilweaver.snap'),
+                    add_file('appimage', 'AppImage', 'Sigilweaver-x64.AppImage'),
+                    add_file('snap', 'Snap Package', 'Sigilweaver-x64.snap'),
                 ])),
                 'macos': list(filter(None, [
                     add_file('dmg', 'macOS Disk Image', 'Sigilweaver.dmg'),
@@ -69,8 +74,8 @@ def main():
                     add_file('portable', 'Windows Portable', 'Sigilweaver-Client-Portable.exe'),
                 ])),
                 'linux': list(filter(None, [
-                    add_file('appimage', 'AppImage', 'Sigilweaver-Client.AppImage'),
-                    add_file('snap', 'Snap Package', 'Sigilweaver-Client.snap'),
+                    add_file('appimage', 'AppImage', 'Sigilweaver-Client-x64.AppImage'),
+                    add_file('snap', 'Snap Package', 'Sigilweaver-Client-x64.snap'),
                 ])),
                 'macos': list(filter(None, [
                     add_file('dmg', 'macOS Disk Image', 'Sigilweaver-Client.dmg'),
