@@ -35,6 +35,7 @@ export const navConfig: NavConfig = {
   links: [
     { label: 'Features', href: '/#features' },
     { label: 'Demo', href: '/#demo' },
+    { label: 'Docs', href: 'https://docs.sigilweaver.app', isExternal: true },
     { label: 'Contributing', href: '/contributing.html' },
     { label: 'Open Source', href: '/#opensource' },
   ],
