@@ -8,6 +8,7 @@ from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
+from app.utils.expression import parse_polars_expression, normalize_expression
 
 
 @register_tool("Filter")
@@ -44,8 +45,8 @@ class FilterTool(BaseTool):
                 "output-false": lf.clear(),  # F output - empty
             }
 
-        # Parse and apply filter expression
-        filter_expr = self._parse_expression(expression)
+        # Parse and apply filter expression using shared utility
+        filter_expr = parse_polars_expression(expression)
 
         # Split into T and F outputs
         lf_true = lf.filter(filter_expr)
@@ -55,42 +56,6 @@ class FilterTool(BaseTool):
             "output-true": lf_true,  # T output (matches)
             "output-false": lf_false,  # F output (doesn't match)
         }
-
-    def _parse_expression(self, expression: str) -> pl.Expr:
-        """
-        Parse filter expression string into Polars expression.
-
-        For MVP, we'll use eval with restricted namespace.
-        Future: proper expression parser/DSL.
-
-        Examples:
-        - "pl.col('amount') > 100"
-        - "pl.col('name').str.contains('test')"
-        - "(pl.col('a') > 10) & (pl.col('b') < 20)"
-        """
-        # Normalize expression: replace newlines with spaces for multi-line input
-        # This allows users to write expressions across multiple lines for readability
-        expression = " ".join(expression.split())
-
-        # Create restricted namespace for eval
-        namespace = {
-            "pl": pl,
-            # Add safe built-ins if needed
-        }
-
-        try:
-            # Evaluate expression
-            expr = eval(expression, {"__builtins__": {}}, namespace)
-
-            if not isinstance(expr, pl.Expr):
-                raise ToolError(
-                    f"Expression must evaluate to pl.Expr, got {type(expr).__name__}"
-                )
-
-            return expr
-
-        except Exception as e:
-            raise ToolError(f"Failed to parse expression: {str(e)}") from e
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
@@ -118,9 +83,9 @@ class FilterTool(BaseTool):
         if not expression or expression.strip() == "":
             errors.append("Filter expression is empty")
         else:
-            # Try to parse expression
+            # Try to parse expression using shared utility
             try:
-                self._parse_expression(expression)
+                parse_polars_expression(expression)
             except ToolError as e:
                 errors.append(str(e))
 
@@ -138,10 +103,9 @@ class FilterTool(BaseTool):
         lines = []
         expression = config.get("expression", "")
 
-        # Normalize expression: replace newlines/extra whitespace with single spaces
-        # This matches the normalization done in _parse_expression
+        # Normalize expression using shared utility
         if expression:
-            expression = " ".join(expression.split())
+            expression = normalize_expression(expression)
 
         # Get input variable name
         input_var = input_vars.get("input", "df_input")

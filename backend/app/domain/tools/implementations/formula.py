@@ -8,6 +8,7 @@ from app.api.models.common import DataSchema, ColumnSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
+from app.utils.expression import parse_polars_expression
 
 
 @register_tool("Formula")
@@ -26,25 +27,6 @@ class FormulaTool(BaseTool):
     - column_name: Name of new column to create
     - expression: Polars expression string
     """
-
-    def _parse_expression(self, expression: str) -> pl.Expr:
-        """
-        Parse Polars expression string.
-        
-        Evaluates the expression with only the pl module available.
-        Normalizes whitespace to allow multi-line expressions for readability.
-        """
-        # Normalize expression: replace newlines/extra whitespace with single spaces
-        # This allows users to write expressions across multiple lines
-        expression = " ".join(expression.split())
-
-        try:
-            expr = eval(expression, {"pl": pl, "__builtins__": {}})
-            if not isinstance(expr, pl.Expr):
-                raise ToolError(f"Expression must return a Polars expression, got {type(expr)}")
-            return expr
-        except Exception as e:
-            raise ToolError(f"Invalid expression '{expression}': {str(e)}")
 
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
@@ -68,8 +50,8 @@ class FormulaTool(BaseTool):
         if not expression:
             raise ToolError("Formula tool requires 'expression' in config")
 
-        # Parse and execute expression
-        expr = self._parse_expression(expression)
+        # Parse and execute expression using shared utility
+        expr = parse_polars_expression(expression)
         lf = lf.with_columns(expr.alias(column_name))
 
         return {"output": lf}
