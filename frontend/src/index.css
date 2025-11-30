@@ -190,3 +190,42 @@ code {
   font-style: italic;
   opacity: 0.5;
 }
+
+/* Ensure Monaco suggest widget (autocomplete dropdown) is visible above all app elements */
+.monaco-editor .suggest-widget {
+  z-index: 9999 !important;
+}
+
+/* Style the suggest widget to match theme */
+.monaco-editor .suggest-widget {
+  border: 1px solid var(--color-border-primary, #3f3f46) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Suggestion item styling */
+.monaco-editor .suggest-widget .monaco-list .monaco-list-row.focused {
+  background-color: var(--color-surface-elevated, #27272a) !important;
+}
+
+/* Make completion documentation panel visible */
+.monaco-editor .suggest-details {
+  z-index: 9999 !important;
+  border: 1px solid var(--color-border-primary, #3f3f46) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Parameter hints widget styling */
+.monaco-editor .parameter-hints-widget {
+  z-index: 9999 !important;
+  border: 1px solid var(--color-border-primary, #3f3f46) !important;
+  border-radius: 6px !important;
+}
+
+/* Hover widget styling */
+.monaco-editor .monaco-hover {
+  z-index: 9999 !important;
+  border: 1px solid var(--color-border-primary, #3f3f46) !important;
+  border-radius: 6px !important;
+}
