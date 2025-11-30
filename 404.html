@@ -8,86 +8,18 @@
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/svg+xml" href="assets/icons/sigilweaver-logo.svg">
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="/icons/sigilweaver-logo.svg">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        mystic: {
-                            900: '#1a0b2e',
-                            800: '#2d1b42',
-                            700: '#4c2a6b',
-                            600: '#6b3fa0',
-                            500: '#8b5cf6',
-                            400: '#a78bfa',
-                            300: '#c4b5fd',
-                            200: '#ddd6fe',
-                            100: '#f3f0ff'
-                        },
-                        gold: {
-                            500: '#f59e0b',
-                            400: '#fbbf24',
-                            300: '#fcd34d',
-                            200: '#fef3c7'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-        
-        .floating-orb {
-            animation: float 6s ease-in-out infinite;
-        }
-        
-        .floating-orb:nth-child(2) {
-            animation-delay: -2s;
-        }
-        
-        .floating-orb:nth-child(3) {
-            animation-delay: -4s;
-        }
-        
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        
-        .sr-only:focus,
-        .focus\:not-sr-only:focus {
-            position: static;
-            width: auto;
-            height: auto;
-            padding: inherit;
-            margin: inherit;
-            overflow: visible;
-            clip: auto;
-            white-space: normal;
-        }
-    </style>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white min-h-screen flex items-center justify-center relative overflow-hidden">
+<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white min-h-screen flex items-center justify-center relative overflow-hidden font-mystical">
     <!-- Skip Link -->
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
         Skip to main content
@@ -104,7 +36,7 @@
     <main id="main-content" class="text-center z-10 px-6 max-w-2xl mx-auto">
         <div class="mb-8">
             <a href="/" class="inline-flex items-center space-x-3 mb-6 group hover:opacity-80 transition-opacity">
-                <img src="assets/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="48" height="48" class="opacity-90 group-hover:opacity-100 transition-opacity">
+                <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="48" height="48" class="opacity-90 group-hover:opacity-100 transition-opacity">
                 <span class="text-2xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
             </a>
         </div>
@@ -126,7 +58,10 @@
             <a href="/" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">
                 Return Home
             </a>
-
+        </div>
     </main>
+
+    <!-- Scripts -->
+    <script type="module" src="/src/pages/error.ts"></script>
 </body>
 </html>

@@ -17,70 +17,29 @@
     <meta property="og:description" content="Join our circle of data wizards and sourcerers. Contribute to Sigilweaver's mission to democratize data pipeline creation.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sigilweaver.app/contributing">
-    <meta property="og:image" content="https://sigilweaver.app/assets/icons/sigilweaver-og-image.png">
+    <meta property="og:image" content="https://sigilweaver.app/icons/sigilweaver-og-image.png">
     <meta property="og:site_name" content="Sigilweaver">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Join the Magic - Contributing to Sigilweaver">
     <meta name="twitter:description" content="Join our circle of data wizards and sourcerers. Contribute to Sigilweaver's mission to democratize data pipeline creation.">
-    <meta name="twitter:image" content="https://sigilweaver.app/assets/icons/sigilweaver-og-image.png">
+    <meta name="twitter:image" content="https://sigilweaver.app/icons/sigilweaver-og-image.png">
     
     <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/svg+xml" href="assets/icons/sigilweaver-logo.svg">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        mystic: {
-                            900: '#1a0b2e',
-                            800: '#2d1b42',
-                            700: '#4c2a6b',
-                            600: '#6b3fa0',
-                            500: '#8b5cf6',
-                            400: '#a78bfa',
-                            300: '#c4b5fd',
-                            200: '#ddd6fe',
-                            100: '#f3f0ff'
-                        },
-                        gold: {
-                            500: '#f59e0b',
-                            400: '#fbbf24',
-                            300: '#fcd34d',
-                            200: '#fef3c7'
-                        }
-                    },
-                    fontFamily: {
-                        'mystical': ['Inter', 'system-ui', 'sans-serif']
-                    },
-                    animation: {
-                        'float': 'float 6s ease-in-out infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate',
-                        'data-flow': 'dataFlow 8s linear infinite'
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="/icons/sigilweaver-logo.svg">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- GSAP (used by site animations) -->
+    <!-- GSAP for advanced animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical">
     <!-- Skip Link for Accessibility -->
@@ -98,58 +57,8 @@
         <div class="floating-node"></div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 bg-mystic-900/90 backdrop-blur-sm border-b border-mystic-700" role="navigation" aria-label="Main navigation">
-        <div class="container mx-auto px-6 py-3">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <a href="/" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                        <div class="sigil-logo" aria-hidden="true">
-                            <img src="assets/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
-                        </div>
-                        <span class="text-xl font-bold text-mystic-200">Sigilweaver</span>
-                    </a>
-                </div>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="/#features" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Features</a>
-                    <a href="/#demo" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Demo</a>
-                    <a href="/contributing" class="text-gold-400 font-semibold focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" aria-current="page">Contributing</a>
-                    <a href="/#opensource" class="text-mystic-300 hover:text-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1">Open Source</a>
-                    <button id="animation-toggle" onclick="toggleAnimations()" class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md" aria-pressed="true" title="Toggle eye candy">
-                        <span class="text-xs text-mystic-400 animation-label">Eye Candy</span>
-                        <div class="toggle-switch" aria-hidden="true">
-                            <div class="toggle-slider"></div>
-                        </div>
-                    </button>
-                    <a href="/#download" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">Download</a>
-                </div>
-                <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="fixed top-[72px] left-0 w-full z-40 md:hidden bg-mystic-800/90 border-b border-mystic-700" role="navigation" aria-label="Mobile navigation">
-        <div class="container mx-auto px-6 py-3">
-            <div class="space-y-3" role="menu">
-                <a href="/#features" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Features</a>
-                <a href="/#demo" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Demo</a>
-                <a href="/contributing" class="block text-gold-400 font-semibold mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem" aria-current="page">Contributing</a>
-                <a href="/#opensource" class="block text-mystic-300 hover:text-gold-400 transition-colors mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem">Open Source</a>
-                <button id="animation-toggle-mobile" onclick="toggleAnimations()" class="flex items-center justify-between w-full mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md px-2 py-1" role="menuitem" aria-pressed="true">
-                    <span class="text-mystic-300 animation-label">Eye Candy</span>
-                    <div class="toggle-switch" aria-hidden="true">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </button>
-                <a href="/#download" class="block bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-4 py-2 rounded-lg transition-all text-center mobile-link focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" role="menuitem">Download</a>
-            </div>
-        </div>
-    </div>
+    <!-- Navigation (injected by JS component) -->
+    <div id="header-root"></div>
 
     <!-- Hero Section -->
     <main>
@@ -539,57 +448,10 @@
         </section>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-mystic-900/90 border-t border-mystic-700 py-12">
-        <div class="container mx-auto px-6">
-            <div class="grid md:grid-cols-4 gap-8">
-                <!-- Logo and Description -->
-                <div class="md:col-span-2">
-                    <div class="flex items-center space-x-2 mb-4">
-                        <a href="/" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                            <div class="sigil-logo">
-                                <img src="assets/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
-                            </div>
-                            <span class="text-xl font-bold text-mystic-200">Sigilweaver</span>
-                        </a>
-                    </div>
-                    <p class="text-mystic-400 mb-4 max-w-md">
-                        Join our circle of data magicians and help shape the future of visual data pipeline creation. 
-                        Every contribution matters in our open source journey.
-                    </p>
-                </div>
-
-                <!-- Quick Links -->
-                <div>
-                    <h4 class="font-semibold text-mystic-200 mb-4">Quick Links</h4>
-                    <ul class="space-y-2 text-mystic-400">
-                        <li><a href="/" class="hover:text-gold-400 transition-colors">Home</a></li>
-                        <li><a href="/#demo" class="hover:text-gold-400 transition-colors">Demo</a></li>
-                        <li><a href="/#download" class="hover:text-gold-400 transition-colors">Download</a></li>
-                        <li><a href="https://github.com/sigilweaver" class="hover:text-gold-400 transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-                    </ul>
-                </div>
-
-                <!-- Contributing -->
-                <div>
-                    <h4 class="font-semibold text-mystic-200 mb-4">Get Involved</h4>
-                    <ul class="space-y-2 text-mystic-400">
-                        <li><a href="/contributing" class="hover:text-gold-400 transition-colors">Contributing Guide</a></li>
-                        <li><a href="https://github.com/orgs/sigilweaver/discussions" class="hover:text-gold-400 transition-colors" target="_blank" rel="noopener noreferrer">Discussions</a></li>
-                        <li><a href="https://github.com/issues?q=is%3Aopen+is%3Aissue+org%3Asigilweaver" class="hover:text-gold-400 transition-colors" target="_blank" rel="noopener noreferrer">Issues</a></li>
-                        <li><a href="https://github.com/sponsors/sigilweaver" class="hover:text-gold-400 transition-colors" target="_blank" rel="noopener noreferrer">Sponsor</a></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="border-t border-mystic-700 mt-8 pt-8 text-center text-mystic-400">
-                <p>Open source software with 💜 for the data community.</p>
-                <p>&copy; 2025 Nathan Riley (DBA Sigilweaver). Sigilweaver&trade; is a trademark of Nathan Riley.</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Footer (injected by JS component) -->
+    <div id="footer-root"></div>
 
     <!-- Scripts -->
-    <script src="js/script.js"></script>
+    <script type="module" src="/src/pages/contributing.ts"></script>
 </body>
 </html>

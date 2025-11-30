@@ -7,52 +7,16 @@
     <meta name="description" content="Error 503: Our wizards are taking a well-deserved break or performing maintenance magic. We'll be back soon!">
     
     <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/svg+xml" href="assets/icons/sigilweaver-logo.svg">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        mystic: {
-                            900: '#1a0b2e',
-                            800: '#2d1b42',
-                            700: '#4c2a6b',
-                            600: '#6b3fa0',
-                            500: '#8b5cf6',
-                            400: '#a78bfa',
-                            300: '#c4b5fd',
-                            200: '#ddd6fe',
-                            100: '#f3f0ff'
-                        },
-                        gold: {
-                            500: '#f59e0b',
-                            400: '#fbbf24',
-                            300: '#fcd34d',
-                            200: '#fef3c7'
-                        }
-                    },
-                    fontFamily: {
-                        'mystical': ['Inter', 'system-ui', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="/icons/sigilweaver-logo.svg">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical min-h-screen flex items-center justify-center">
     <!-- Global Floating Elements -->
@@ -160,6 +124,6 @@
     </main>
 
     <!-- Scripts -->
-    <script src="js/script.js"></script>
+    <script type="module" src="/src/pages/error.ts"></script>
 </body>
 </html>

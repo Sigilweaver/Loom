@@ -1,0 +1,128 @@
+/**
+ * Footer Component
+ * Renders the site footer with links and copyright
+ */
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  isExternal?: boolean;
+}
+
+export interface FooterColumn {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterConfig {
+  columns: FooterColumn[];
+  copyright: {
+    text: string;
+    tagline?: string;
+  };
+}
+
+/**
+ * Default footer configuration
+ */
+export const defaultFooterConfig: FooterConfig = {
+  columns: [
+    {
+      title: 'Quick Links',
+      links: [
+        { label: 'Downloads', href: '/downloads.html' },
+        { label: 'Contributing', href: '/contributing.html' },
+        { label: 'GitHub', href: 'https://github.com/sigilweaver', isExternal: true },
+      ],
+    },
+    {
+      title: 'Support',
+      links: [
+        { label: 'Support Email', href: 'mailto:' },
+        { label: 'GitHub Issues', href: 'https://github.com/sigilweaver/sigilweaver/issues', isExternal: true },
+      ],
+    },
+    {
+      title: 'Legal',
+      links: [
+        { label: 'Terms of Use', href: '/terms.html' },
+        { label: 'Privacy Policy', href: '/privacy.html' },
+      ],
+    },
+  ],
+  copyright: {
+    tagline: 'Open source software with 💜 for the data community.',
+    text: '© 2025 Nathan Riley (DBA Sigilweaver). Sigilweaver™ is a trademark of Nathan Riley.',
+  },
+};
+
+export interface FooterOptions {
+  config?: FooterConfig;
+  showDescription?: boolean;
+}
+
+/**
+ * Creates the footer HTML structure
+ */
+export function createFooter(options: FooterOptions = {}): string {
+  const {
+    config = defaultFooterConfig,
+    showDescription = true,
+  } = options;
+
+  return `
+    <footer class="bg-mystic-900 border-t border-mystic-700 py-12">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <!-- Brand -->
+          <div class="md:col-span-1">
+            <a href="/" class="flex items-center space-x-2 group mb-4">
+              <div class="sigil-logo" aria-hidden="true">
+                <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
+              </div>
+              <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
+            </a>
+            ${showDescription ? `
+              <p class="text-mystic-400 mb-4 max-w-md">
+                Crafted by a solo data wizard who believes in the magic of open source. Support responses are provided on a best effort basis with genuine care for the community.
+              </p>
+            ` : ''}
+          </div>
+
+          ${config.columns.map(column => `
+            <div>
+              <h4 class="font-semibold text-mystic-200 mb-4">${column.title}</h4>
+              <ul class="space-y-2 text-mystic-400">
+                ${column.links.map(link => `
+                  <li>
+                    <a href="${link.href}" 
+                       class="hover:text-gold-400 transition-colors"
+                       ${link.isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''}>
+                      ${link.label}
+                    </a>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="border-t border-mystic-700 mt-8 pt-8 text-center text-mystic-400">
+          ${config.copyright.tagline ? `<p>${config.copyright.tagline}</p>` : ''}
+          <p>${config.copyright.text}</p>
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
+/**
+ * Injects the footer into the DOM
+ */
+export function renderFooter(container: Element | null, options?: FooterOptions): void {
+  if (!container) {
+    console.error('Footer container not found');
+    return;
+  }
+  container.innerHTML = createFooter(options);
+}
