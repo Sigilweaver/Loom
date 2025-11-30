@@ -43,9 +43,9 @@ class TestSummarizeToolExecute:
         """Test basic sum aggregation"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total_amount"}
+                {"column": "amount", "operation": "Sum", "outputName": "total_amount"}
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -66,11 +66,11 @@ class TestSummarizeToolExecute:
         """Test multiple aggregations on same group by"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"},
-                {"field": "amount", "operation": "Mean", "outputName": "average"},
-                {"field": "count", "operation": "Count", "outputName": "num_rows"},
+                {"column": "amount", "operation": "Sum", "outputName": "total"},
+                {"column": "amount", "operation": "Mean", "outputName": "average"},
+                {"column": "count", "operation": "Count", "outputName": "num_rows"},
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -86,9 +86,9 @@ class TestSummarizeToolExecute:
         """Test aggregation without group by (global)"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"}
+                {"column": "amount", "operation": "Sum", "outputName": "total"}
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -98,13 +98,13 @@ class TestSummarizeToolExecute:
         assert df["total"][0] == 1000  # 100 + 200 + 150 + 250 + 300
 
     @pytest.mark.asyncio
-    async def test_multiple_group_by_fields(self, sample_df: pl.LazyFrame):
-        """Test grouping by multiple fields"""
+    async def test_multiple_group_by_columns(self, sample_df: pl.LazyFrame):
+        """Test grouping by multiple columns"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category", "subcategory"],
+            "groupByColumns": ["category", "subcategory"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"}
+                {"column": "amount", "operation": "Sum", "outputName": "total"}
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -119,9 +119,9 @@ class TestSummarizeToolExecute:
         """Test count distinct aggregation"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "subcategory", "operation": "CountDistinct", "outputName": "unique_sub"}
+                {"column": "subcategory", "operation": "CountDistinct", "outputName": "unique_sub"}
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -135,10 +135,10 @@ class TestSummarizeToolExecute:
         """Test first and last aggregations"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "name", "operation": "First", "outputName": "first_name"},
-                {"field": "name", "operation": "Last", "outputName": "last_name"},
+                {"column": "name", "operation": "First", "outputName": "first_name"},
+                {"column": "name", "operation": "Last", "outputName": "last_name"},
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -148,19 +148,35 @@ class TestSummarizeToolExecute:
         assert "last_name" in df.columns
 
     @pytest.mark.asyncio
+    async def test_group_by_only_distinct(self, sample_df: pl.LazyFrame):
+        """Test group by without aggregations returns distinct values"""
+        tool = SummarizeTool()
+        config = {
+            "groupByColumns": ["category"],
+            "aggregations": [],
+        }
+        result = await tool.execute(config, {"input": sample_df})
+        df = result["output"].collect()
+        
+        # Should only have the group by column
+        assert df.columns == ["category"]
+        # Should have unique values
+        assert df.height == df.select("category").n_unique()
+
+    @pytest.mark.asyncio
     async def test_default_output_name(self, sample_df: pl.LazyFrame):
         """Test default output name when not specified"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": ""}
+                {"column": "amount", "operation": "Sum", "outputName": ""}
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
         
-        # Default name should be field_operation
+        # Default name should be column_operation
         assert "amount_Sum" in df.columns
 
 
@@ -172,9 +188,9 @@ class TestSummarizeToolSchema:
         """Test output schema includes group by and aggregation columns"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"}
+                {"column": "amount", "operation": "Sum", "outputName": "total"}
             ],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
@@ -191,9 +207,9 @@ class TestSummarizeToolSchema:
         """Test mean aggregation returns Float64"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "amount", "operation": "Mean", "outputName": "avg"}
+                {"column": "amount", "operation": "Mean", "outputName": "avg"}
             ],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
@@ -206,9 +222,9 @@ class TestSummarizeToolSchema:
         """Test count aggregation returns UInt32"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "name", "operation": "Count", "outputName": "cnt"}
+                {"column": "name", "operation": "Count", "outputName": "cnt"}
             ],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
@@ -225,48 +241,59 @@ class TestSummarizeToolValidation:
         """Test valid configuration passes validation"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"}
+                {"column": "amount", "operation": "Sum", "outputName": "total"}
             ],
         }
         errors = await tool.validate_config(config)
         assert len(errors) == 0
 
     @pytest.mark.asyncio
-    async def test_empty_aggregations_invalid(self):
-        """Test empty aggregations list is invalid"""
+    async def test_empty_aggregations_with_group_by_valid(self):
+        """Test empty aggregations with group by columns is valid (distinct values)"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
+            "aggregations": [],
+        }
+        errors = await tool.validate_config(config)
+        assert len(errors) == 0
+
+    @pytest.mark.asyncio
+    async def test_empty_aggregations_no_group_by_invalid(self):
+        """Test empty aggregations without group by columns is invalid"""
+        tool = SummarizeTool()
+        config = {
+            "groupByColumns": [],
             "aggregations": [],
         }
         errors = await tool.validate_config(config)
         assert len(errors) > 0
-        assert "aggregation is required" in errors[0].lower()
+        assert "required" in errors[0].lower()
 
     @pytest.mark.asyncio
-    async def test_missing_field_invalid(self):
-        """Test aggregation without field is invalid"""
+    async def test_missing_column_invalid(self):
+        """Test aggregation without column is invalid"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "", "operation": "Sum", "outputName": "total"}
+                {"column": "", "operation": "Sum", "outputName": "total"}
             ],
         }
         errors = await tool.validate_config(config)
         assert len(errors) > 0
-        assert "field" in errors[0].lower()
+        assert "column" in errors[0].lower()
 
     @pytest.mark.asyncio
     async def test_invalid_operation(self):
         """Test invalid operation is rejected"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "amount", "operation": "InvalidOp", "outputName": "total"}
+                {"column": "amount", "operation": "InvalidOp", "outputName": "total"}
             ],
         }
         errors = await tool.validate_config(config)
@@ -278,10 +305,10 @@ class TestSummarizeToolValidation:
         """Test duplicate output column names are invalid"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"},
-                {"field": "count", "operation": "Sum", "outputName": "total"},
+                {"column": "amount", "operation": "Sum", "outputName": "total"},
+                {"column": "count", "operation": "Sum", "outputName": "total"},
             ],
         }
         errors = await tool.validate_config(config)
@@ -296,9 +323,9 @@ class TestSummarizeCodeGeneration:
         """Test code generation with group by"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"}
+                {"column": "amount", "operation": "Sum", "outputName": "total"}
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
@@ -314,9 +341,9 @@ class TestSummarizeCodeGeneration:
         """Test code generation without group by"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": [],
+            "groupByColumns": [],
             "aggregations": [
-                {"field": "amount", "operation": "Mean", "outputName": "avg_amount"}
+                {"column": "amount", "operation": "Mean", "outputName": "avg_amount"}
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
@@ -330,11 +357,11 @@ class TestSummarizeCodeGeneration:
         """Test code generation with multiple aggregations"""
         tool = SummarizeTool()
         config = {
-            "groupByFields": ["category"],
+            "groupByColumns": ["category"],
             "aggregations": [
-                {"field": "amount", "operation": "Sum", "outputName": "total"},
-                {"field": "amount", "operation": "Mean", "outputName": "average"},
-                {"field": "count", "operation": "Count", "outputName": "num_rows"},
+                {"column": "amount", "operation": "Sum", "outputName": "total"},
+                {"column": "amount", "operation": "Mean", "outputName": "average"},
+                {"column": "count", "operation": "Count", "outputName": "num_rows"},
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})

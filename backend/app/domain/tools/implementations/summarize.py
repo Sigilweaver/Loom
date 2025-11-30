@@ -69,10 +69,10 @@ class SummarizeTool(BaseTool):
     Summarize data with group by and aggregations.
 
     Config:
-    - groupByFields: list[str] - columns to group by (can be empty for global aggregation)
+    - groupByColumns: list[str] - columns to group by (can be empty for global aggregation)
     - aggregations: list[dict] - aggregation definitions
       Each dict contains:
-        - field: str - column to aggregate
+        - column: str - column to aggregate
         - operation: str - aggregation operation (Sum, Mean, Count, etc.)
         - outputName: str - name for the output column (optional)
     - includeNulls: bool - whether to include null values in grouping (default: False)
@@ -83,6 +83,9 @@ class SummarizeTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute summarize operation with group by and aggregations.
+        
+        If aggregations is empty but groupByColumns is provided, returns distinct
+        values for those columns (like SQL SELECT DISTINCT).
         """
         # Get input LazyFrame
         if "input" not in inputs:
@@ -90,28 +93,33 @@ class SummarizeTool(BaseTool):
 
         lf = inputs["input"]
         
-        group_by_fields = config.get("groupByFields", [])
+        group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
         
+        # Handle group-by-only case (no aggregations) - return distinct values
         if not aggregations:
-            raise ToolError("At least one aggregation is required")
+            if not group_by_columns:
+                raise ToolError("Either group by columns or aggregations are required")
+            # Return distinct values for group by columns
+            result = lf.select(group_by_columns).unique()
+            return {"output": result}
 
         # Build aggregation expressions
         agg_exprs: list[pl.Expr] = []
         
         for agg in aggregations:
-            field = agg.get("field")
+            column = agg.get("column")
             operation = agg.get("operation", "Sum")
             output_name = agg.get("outputName", "")
             
-            if not field:
-                raise ToolError("Aggregation field is required")
+            if not column:
+                raise ToolError("Aggregation column is required")
             
             if operation not in AGGREGATION_OPERATIONS:
                 raise ToolError(f"Unknown aggregation operation: {operation}")
 
             # Build the expression
-            expr = pl.col(field)
+            expr = pl.col(column)
             
             # Apply the aggregation method
             if operation == "Sum":
@@ -143,14 +151,14 @@ class SummarizeTool(BaseTool):
             if output_name and output_name.strip():
                 expr = expr.alias(output_name.strip())
             else:
-                # Default name: field_operation
-                expr = expr.alias(f"{field}_{operation}")
+                # Default name: column_operation
+                expr = expr.alias(f"{column}_{operation}")
 
             agg_exprs.append(expr)
 
         # Apply group by or global aggregation
-        if group_by_fields:
-            result = lf.group_by(group_by_fields).agg(agg_exprs)
+        if group_by_columns:
+            result = lf.group_by(group_by_columns).agg(agg_exprs)
         else:
             # Global aggregation (no group by)
             result = lf.select(agg_exprs)
@@ -167,7 +175,7 @@ class SummarizeTool(BaseTool):
             raise ToolError("Summarize tool requires input schema on socket 'input'")
 
         input_schema = input_schemas["input"]
-        group_by_fields = config.get("groupByFields", [])
+        group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
 
         # Create lookup for input column schemas
@@ -176,24 +184,24 @@ class SummarizeTool(BaseTool):
         output_columns: list[ColumnSchema] = []
 
         # Add group by columns first (preserve their types)
-        for field in group_by_fields:
-            if field in input_column_map:
-                output_columns.append(input_column_map[field])
+        for col_name in group_by_columns:
+            if col_name in input_column_map:
+                output_columns.append(input_column_map[col_name])
 
         # Add aggregation columns
         for agg in aggregations:
-            field = agg.get("field")
+            column = agg.get("column")
             operation = agg.get("operation", "Sum")
             output_name = agg.get("outputName", "")
 
-            if not field or field not in input_column_map:
+            if not column or column not in input_column_map:
                 continue
 
-            input_col = input_column_map[field]
+            input_col = input_column_map[column]
             input_dtype = input_col.dtype
             
             # Determine output name
-            col_name = output_name.strip() if output_name and output_name.strip() else f"{field}_{operation}"
+            col_name = output_name.strip() if output_name and output_name.strip() else f"{column}_{operation}"
             
             # Determine output dtype
             output_dtype = get_result_dtype(operation, input_dtype)
@@ -215,25 +223,28 @@ class SummarizeTool(BaseTool):
         errors = []
 
         aggregations = config.get("aggregations", [])
+        group_by_columns = config.get("groupByColumns", [])
         
+        # Allow empty aggregations if group by columns are provided (distinct values case)
         if not aggregations:
-            errors.append("At least one aggregation is required")
+            if not group_by_columns:
+                errors.append("Either group by columns or aggregations are required")
             return errors
 
         seen_output_names: set[str] = set()
-        group_by_fields = set(config.get("groupByFields", []))
+        group_by_columns_set = set(group_by_columns)
 
         for i, agg in enumerate(aggregations):
             if not isinstance(agg, dict):
                 errors.append(f"Aggregation at index {i} must be an object")
                 continue
 
-            field = agg.get("field")
+            column = agg.get("column")
             operation = agg.get("operation")
             output_name = agg.get("outputName", "")
 
-            if not field:
-                errors.append(f"Aggregation at index {i} is missing 'field'")
+            if not column:
+                errors.append(f"Aggregation at index {i} is missing 'column'")
                 continue
 
             if not operation:
@@ -244,11 +255,11 @@ class SummarizeTool(BaseTool):
                 errors.append(f"Unknown aggregation operation: '{operation}'")
 
             # Check for duplicate output names
-            final_name = output_name.strip() if output_name and output_name.strip() else f"{field}_{operation}"
+            final_name = output_name.strip() if output_name and output_name.strip() else f"{column}_{operation}"
             if final_name in seen_output_names:
                 errors.append(f"Duplicate output column name: '{final_name}'")
-            if final_name in group_by_fields:
-                errors.append(f"Output column '{final_name}' conflicts with group by field")
+            if final_name in group_by_columns_set:
+                errors.append(f"Output column '{final_name}' conflicts with group by column")
             seen_output_names.add(final_name)
 
         return errors
@@ -264,7 +275,7 @@ class SummarizeTool(BaseTool):
 
         lines = []
         
-        group_by_fields = config.get("groupByFields", [])
+        group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
 
         # Get input variable name
@@ -273,23 +284,28 @@ class SummarizeTool(BaseTool):
         # Generate output variable name
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
+        # Handle group-by-only case (no aggregations) - return distinct values
         if not aggregations:
-            lines.append(f"{var_name} = {input_var}")
+            if group_by_columns:
+                cols_str = ", ".join(f'"{c}"' for c in group_by_columns)
+                lines.append(f"{var_name} = {input_var}.select([{cols_str}]).unique()")
+            else:
+                lines.append(f"{var_name} = {input_var}")
             return (lines, {"output": var_name})
 
         # Build aggregation expressions as strings
         agg_expr_strs: list[str] = []
         
         for agg in aggregations:
-            field = agg.get("field")
+            column = agg.get("column")
             operation = agg.get("operation", "Sum")
             output_name = agg.get("outputName", "")
             
-            if not field:
+            if not column:
                 continue
 
             # Build the expression string
-            expr_str = f"pl.col(\"{field}\")"
+            expr_str = f"pl.col(\"{column}\")"
             
             # Apply the aggregation method
             method_map = {
@@ -313,13 +329,13 @@ class SummarizeTool(BaseTool):
             if output_name and output_name.strip():
                 expr_str += f".alias(\"{output_name.strip()}\")"
             else:
-                expr_str += f".alias(\"{field}_{operation}\")"
+                expr_str += f".alias(\"{column}_{operation}\")"
 
             agg_expr_strs.append(expr_str)
 
         # Generate the code
-        if group_by_fields:
-            group_by_str = ", ".join(f'"{f}"' for f in group_by_fields)
+        if group_by_columns:
+            group_by_str = ", ".join(f'"{c}"' for c in group_by_columns)
             lines.append(f"{var_name} = {input_var}.group_by([{group_by_str}]).agg([")
         else:
             lines.append(f"{var_name} = {input_var}.select([")

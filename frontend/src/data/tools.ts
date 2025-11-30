@@ -125,10 +125,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: '📊',
     category: 'aggregate',
     defaultConfig: {
-      groupByFields: [],
+      groupByColumns: [],
       aggregations: [
         {
-          field: '',
+          column: '',
           operation: 'Sum',
           outputName: ''
         }

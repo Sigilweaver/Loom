@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ToolConfig,
   Tool,
@@ -37,10 +37,10 @@ const ALL_ACTIONS: ActionInfo[] = [
 ];
 
 /**
- * Field action configuration (for the bottom panel)
+ * Column action configuration (for the bottom panel)
  */
-interface FieldAction {
-  field: string;
+interface ColumnAction {
+  column: string;
   action: string;
   outputName: string;
 }
@@ -86,24 +86,24 @@ function getValidActions(columns: ColumnSchema[]): ActionInfo[] {
 }
 
 /**
- * Generate default output name for a field + action
+ * Generate default output name for a column + action
  */
-function getDefaultOutputName(field: string, action: string): string {
-  if (action === "GroupBy") return field;
-  return `${action}_${field}`;
+function getDefaultOutputName(column: string, action: string): string {
+  if (action === "GroupBy") return column;
+  return `${action}_${column}`;
 }
 
 /**
- * Parse field actions from config
+ * Parse column actions from config
  */
-function parseFieldActions(config: ToolConfig): FieldAction[] {
-  const actions: FieldAction[] = [];
+function parseColumnActions(config: ToolConfig): ColumnAction[] {
+  const actions: ColumnAction[] = [];
 
-  // Parse groupByFields
-  const groupByFields = Array.isArray(config.groupByFields) ? config.groupByFields : [];
-  for (const field of groupByFields) {
-    if (typeof field === "string") {
-      actions.push({ field, action: "GroupBy", outputName: field });
+  // Parse groupByColumns
+  const groupByColumns = Array.isArray(config.groupByColumns) ? config.groupByColumns : [];
+  for (const col of groupByColumns) {
+    if (typeof col === "string") {
+      actions.push({ column: col, action: "GroupBy", outputName: col });
     }
   }
 
@@ -111,13 +111,13 @@ function parseFieldActions(config: ToolConfig): FieldAction[] {
   const aggregations = Array.isArray(config.aggregations) ? config.aggregations : [];
   for (const agg of aggregations) {
     if (typeof agg === "object" && agg !== null) {
-      const field = typeof agg.field === "string" ? agg.field : "";
+      const column = typeof agg.column === "string" ? agg.column : "";
       const operation = typeof agg.operation === "string" ? agg.operation : "Sum";
       const outputName = typeof agg.outputName === "string" && agg.outputName
         ? agg.outputName
-        : getDefaultOutputName(field, operation);
-      if (field) {
-        actions.push({ field, action: operation, outputName });
+        : getDefaultOutputName(column, operation);
+      if (column) {
+        actions.push({ column, action: operation, outputName });
       }
     }
   }
@@ -126,25 +126,25 @@ function parseFieldActions(config: ToolConfig): FieldAction[] {
 }
 
 /**
- * Convert field actions back to config format
+ * Convert column actions back to config format
  */
-function fieldActionsToConfig(actions: FieldAction[]): { groupByFields: string[]; aggregations: Array<{ field: string; operation: string; outputName: string }> } {
-  const groupByFields: string[] = [];
-  const aggregations: Array<{ field: string; operation: string; outputName: string }> = [];
+function columnActionsToConfig(actions: ColumnAction[]): { groupByColumns: string[]; aggregations: Array<{ column: string; operation: string; outputName: string }> } {
+  const groupByColumns: string[] = [];
+  const aggregations: Array<{ column: string; operation: string; outputName: string }> = [];
 
   for (const action of actions) {
     if (action.action === "GroupBy") {
-      groupByFields.push(action.field);
+      groupByColumns.push(action.column);
     } else {
       aggregations.push({
-        field: action.field,
+        column: action.column,
         operation: action.action,
         outputName: action.outputName,
       });
     }
   }
 
-  return { groupByFields, aggregations };
+  return { groupByColumns, aggregations };
 }
 
 interface SummarizeConfigurationProps {
@@ -165,7 +165,7 @@ export function SummarizeConfiguration({
   workflowMeta,
 }: SummarizeConfigurationProps) {
   const { metadata, fetchMetadata, loading } = useMetadata();
-  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
 
   // Track wire connections to this tool
   const wireConnections = useMemo(() => {
@@ -200,138 +200,139 @@ export function SummarizeConfiguration({
     return map;
   }, [inputColumns]);
 
-  // Get current field actions from config
-  const fieldActions = useMemo(() => parseFieldActions(config), [config]);
+  // Get current column actions from config
+  const columnActions = useMemo(() => parseColumnActions(config), [config]);
 
-  // Get fields already in the actions table
-  const usedFields = useMemo(() => {
-    return new Set(fieldActions.map((a) => a.field));
-  }, [fieldActions]);
+  // Count aggregations per column (for badge display)
+  const columnAggCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of columnActions) {
+      counts.set(a.column, (counts.get(a.column) || 0) + 1);
+    }
+    return counts;
+  }, [columnActions]);
 
-  // Get valid actions for currently selected fields
+  // Get valid actions for currently selected columns
   const validActions = useMemo(() => {
-    const selectedCols = Array.from(selectedFields)
+    const selectedCols = Array.from(selectedColumns)
       .map((name) => columnMap.get(name))
       .filter((col): col is ColumnSchema => col !== undefined);
     return getValidActions(selectedCols);
-  }, [selectedFields, columnMap]);
+  }, [selectedColumns, columnMap]);
 
-  // Toggle field selection in top panel
-  const toggleFieldSelection = useCallback((fieldName: string) => {
-    setSelectedFields((prev) => {
+  // Toggle column selection in top panel
+  const toggleColumnSelection = useCallback((columnName: string) => {
+    setSelectedColumns((prev) => {
       const next = new Set(prev);
-      if (next.has(fieldName)) {
-        next.delete(fieldName);
+      if (next.has(columnName)) {
+        next.delete(columnName);
       } else {
-        next.add(fieldName);
+        next.add(columnName);
       }
       return next;
     });
   }, []);
 
-  // Select all fields
-  const selectAllFields = useCallback(() => {
-    setSelectedFields(new Set(inputColumns.map((c) => c.name)));
+  // Select all columns
+  const selectAllColumns = useCallback(() => {
+    setSelectedColumns(new Set(inputColumns.map((c) => c.name)));
   }, [inputColumns]);
 
-  // Deselect all fields
-  const deselectAllFields = useCallback(() => {
-    setSelectedFields(new Set());
+  // Deselect all columns
+  const deselectAllColumns = useCallback(() => {
+    setSelectedColumns(new Set());
   }, []);
 
-  // Add selected fields with an action
-  const addFieldsWithAction = useCallback(
+  // Add selected columns with an action
+  const addColumnsWithAction = useCallback(
     (action: string) => {
-      const newActions = [...fieldActions];
+      const newActions = [...columnActions];
 
-      for (const fieldName of selectedFields) {
-        // Skip if already in actions
-        if (usedFields.has(fieldName)) continue;
-
+      for (const columnName of selectedColumns) {
         newActions.push({
-          field: fieldName,
+          column: columnName,
           action,
-          outputName: getDefaultOutputName(fieldName, action),
+          outputName: getDefaultOutputName(columnName, action),
         });
       }
 
-      const { groupByFields, aggregations } = fieldActionsToConfig(newActions);
+      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
 
       const newConfig: ToolConfig = {
         ...config,
-        groupByFields,
+        groupByColumns,
         aggregations,
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
-          groupByFields: true,
+          groupByColumns: true,
           aggregations: true,
         },
       };
       onChange(newConfig);
-      setSelectedFields(new Set());
+      setSelectedColumns(new Set());
     },
-    [fieldActions, selectedFields, usedFields, config, onChange]
+    [columnActions, selectedColumns, config, onChange]
   );
 
   // Update an action in the bottom panel
   const updateAction = useCallback(
-    (index: number, updates: Partial<FieldAction>) => {
-      const newActions = [...fieldActions];
+    (index: number, updates: Partial<ColumnAction>) => {
+      const newActions = [...columnActions];
       const current = newActions[index];
       if (!current) return;
 
       // If action changed, update output name if it was the default
       if (updates.action && updates.action !== current.action) {
-        const wasDefault = current.outputName === getDefaultOutputName(current.field, current.action);
+        const wasDefault = current.outputName === getDefaultOutputName(current.column, current.action);
         if (wasDefault) {
-          updates.outputName = getDefaultOutputName(current.field, updates.action);
+          updates.outputName = getDefaultOutputName(current.column, updates.action);
         }
       }
 
       newActions[index] = { ...current, ...updates };
 
-      const { groupByFields, aggregations } = fieldActionsToConfig(newActions);
+      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
 
       const newConfig: ToolConfig = {
         ...config,
-        groupByFields,
+        groupByColumns,
         aggregations,
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
-          groupByFields: true,
+          groupByColumns: true,
           aggregations: true,
         },
       };
       onChange(newConfig);
     },
-    [fieldActions, config, onChange]
+    [columnActions, config, onChange]
   );
 
   // Remove an action from the bottom panel
   const removeAction = useCallback(
     (index: number) => {
-      const newActions = fieldActions.filter((_, i) => i !== index);
-      const { groupByFields, aggregations } = fieldActionsToConfig(newActions);
+      const newActions = columnActions.filter((_: ColumnAction, i: number) => i !== index);
+      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
 
       const newConfig: ToolConfig = {
         ...config,
-        groupByFields,
+        groupByColumns,
         aggregations,
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
-          groupByFields: true,
+          groupByColumns: true,
           aggregations: true,
         },
       };
       onChange(newConfig);
     },
-    [fieldActions, config, onChange]
+    [columnActions, config, onChange]
   );
 
-  // Get valid actions for a specific field (for the dropdown in actions table)
-  const getActionsForField = useCallback(
-    (fieldName: string): ActionInfo[] => {
-      const col = columnMap.get(fieldName);
+  // Get valid actions for a specific column (for the dropdown in actions table)
+  const getActionsForColumn = useCallback(
+    (columnName: string): ActionInfo[] => {
+      const col = columnMap.get(columnName);
       if (!col) return ALL_ACTIONS;
       return getValidActions([col]);
     },
@@ -341,10 +342,20 @@ export function SummarizeConfiguration({
   // Check if we have any input
   const hasInput = wireConnections.length > 0;
 
-  // Count selected fields that are not yet in actions
-  const addableCount = Array.from(selectedFields).filter(
-    (f) => !usedFields.has(f)
-  ).length;
+  // State for dropdown
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!hasInput) {
     return (
@@ -376,22 +387,22 @@ export function SummarizeConfiguration({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top Panel: Fields */}
+      {/* Top Panel: Columns */}
       <div className="flex flex-col border-b border-theme-border-primary" style={{ height: "45%" }}>
-        {/* Fields Header */}
+        {/* Columns Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <span className="text-sm font-semibold text-theme-text-primary">Fields:</span>
+          <span className="text-sm font-semibold text-theme-text-primary">Columns:</span>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={selectAllFields}
+              onClick={selectAllColumns}
               className="px-2 py-0.5 text-xs border rounded border-theme-border-primary hover:bg-theme-surface-hover text-theme-text-secondary"
             >
               Select All
             </button>
             <button
               type="button"
-              onClick={deselectAllFields}
+              onClick={deselectAllColumns}
               className="px-2 py-0.5 text-xs border rounded border-theme-border-primary hover:bg-theme-surface-hover text-theme-text-secondary"
             >
               Clear
@@ -399,15 +410,15 @@ export function SummarizeConfiguration({
           </div>
         </div>
 
-        {/* Fields Table Header */}
+        {/* Columns Table Header */}
         <div className="px-4 py-1 border-b border-theme-border-primary bg-theme-surface-panel">
           <div className="grid grid-cols-[1fr_100px] gap-2 text-xs font-medium text-theme-text-secondary">
-            <div>Field</div>
+            <div>Column</div>
             <div>Type</div>
           </div>
         </div>
 
-        {/* Fields List */}
+        {/* Columns List */}
         <div className="flex-1 overflow-y-auto">
           {inputColumns.length === 0 ? (
             <div className="p-4 text-sm text-center text-theme-text-tertiary">
@@ -416,18 +427,17 @@ export function SummarizeConfiguration({
           ) : (
             <div className="divide-y divide-theme-border-primary">
               {inputColumns.map((col) => {
-                const isSelected = selectedFields.has(col.name);
-                const isUsed = usedFields.has(col.name);
+                const isSelected = selectedColumns.has(col.name);
+                const aggCount = columnAggCounts.get(col.name) || 0;
 
                 return (
                   <div
                     key={col.name}
-                    onClick={() => toggleFieldSelection(col.name)}
+                    onClick={() => toggleColumnSelection(col.name)}
                     className={clsx(
                       "px-4 py-1.5 grid grid-cols-[1fr_100px] gap-2 items-center cursor-pointer",
                       isSelected && "bg-theme-interactive-accent/20",
-                      isUsed && "opacity-50",
-                      !isSelected && !isUsed && "hover:bg-theme-surface-hover"
+                      !isSelected && "hover:bg-theme-surface-hover"
                     )}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -439,8 +449,10 @@ export function SummarizeConfiguration({
                       >
                         {col.name}
                       </span>
-                      {isUsed && (
-                        <span className="text-xs text-theme-text-disabled">(added)</span>
+                      {aggCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-theme-interactive-accent/30 text-theme-interactive-accent">
+                          {aggCount}
+                        </span>
                       )}
                     </div>
                     <div className="text-xs text-theme-text-tertiary">
@@ -457,28 +469,54 @@ export function SummarizeConfiguration({
       {/* Middle: Add Actions Bar */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
         <span className="text-xs text-theme-text-tertiary">
-          {addableCount > 0
-            ? `Add ${addableCount} field${addableCount > 1 ? "s" : ""} as:`
-            : "Select fields above to add"}
+          {selectedColumns.size > 0
+            ? `${selectedColumns.size} column${selectedColumns.size > 1 ? "s" : ""} selected`
+            : "Select columns above to add"}
         </span>
-        <div className="flex flex-wrap gap-1">
-          {validActions.length > 0 && addableCount > 0 ? (
-            validActions.map((action) => (
-              <button
-                key={action.value}
-                type="button"
-                onClick={() => addFieldsWithAction(action.value)}
-                className="px-2 py-0.5 text-xs border rounded border-theme-border-primary hover:bg-theme-surface-hover text-theme-text-secondary hover:text-theme-text-primary"
+        
+        {/* Add Dropdown */}
+        {validActions.length > 0 && selectedColumns.size > 0 && (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={clsx(
+                "px-3 py-1 text-xs font-medium rounded border flex items-center gap-1",
+                "bg-theme-surface-panel text-theme-text-primary border-theme-border-primary",
+                "hover:bg-theme-surface-hover hover:border-theme-text-secondary",
+                "focus:outline-none focus:ring-1 focus:ring-theme-text-secondary"
+              )}
+            >
+              Add
+              <svg 
+                className={clsx("w-3 h-3 transition-transform", isDropdownOpen && "rotate-180")} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
               >
-                {action.label}
-              </button>
-            ))
-          ) : addableCount === 0 && selectedFields.size > 0 ? (
-            <span className="text-xs text-theme-text-disabled">
-              Selected fields already added
-            </span>
-          ) : null}
-        </div>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {isDropdownOpen && (
+              <div className="absolute left-0 z-50 w-40 py-1 mt-1 border rounded shadow-lg bg-theme-surface-panel border-theme-border-primary">
+                {validActions.map((action) => (
+                  <button
+                    key={action.value}
+                    type="button"
+                    onClick={() => {
+                      addColumnsWithAction(action.value);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-xs text-theme-text-primary hover:bg-theme-surface-hover cursor-pointer"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bottom Panel: Actions */}
@@ -491,32 +529,32 @@ export function SummarizeConfiguration({
         {/* Actions Table Header */}
         <div className="px-4 py-1 border-b border-theme-border-primary bg-theme-surface-panel">
           <div className="grid grid-cols-[1fr_120px_1fr_24px] gap-2 text-xs font-medium text-theme-text-secondary">
-            <div>Field</div>
+            <div>Column</div>
             <div>Action</div>
-            <div>Output Field Name</div>
+            <div>Output Name</div>
             <div></div>
           </div>
         </div>
 
         {/* Actions List */}
         <div className="flex-1 overflow-y-auto">
-          {fieldActions.length === 0 ? (
+          {columnActions.length === 0 ? (
             <div className="p-4 text-sm text-center text-theme-text-tertiary">
-              No actions configured. Select fields above and add them.
+              No actions configured. Select columns above and add them.
             </div>
           ) : (
             <div className="divide-y divide-theme-border-primary">
-              {fieldActions.map((action, index) => {
-                const availableActions = getActionsForField(action.field);
+              {columnActions.map((action: ColumnAction, index: number) => {
+                const availableActions = getActionsForColumn(action.column);
 
                   return (
                   <div
-                    key={`${action.field}-${index}`}
+                    key={`${action.column}-${index}`}
                     className="px-4 py-1.5 grid grid-cols-[1fr_120px_1fr_24px] gap-2 items-center hover:bg-theme-surface-hover"
                   >
-                    {/* Field Name */}
+                    {/* Column Name */}
                     <div className="text-sm truncate text-theme-text-primary">
-                      {action.field}
+                      {action.column}
                     </div>
 
                     {/* Action Dropdown */}
@@ -532,7 +570,7 @@ export function SummarizeConfiguration({
                         "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
                       )}
                     >
-                      {availableActions.map((a) => (
+                      {availableActions.map((a: ActionInfo) => (
                         <option key={a.value} value={a.value}>
                           {a.label}
                         </option>
