@@ -464,7 +464,13 @@ describe('Metadata and Functions Integration', () => {
       const colFunc = result.table_level.find(f => f.name === 'pl.col');
       expect(colFunc).toBeDefined();
       expect(colFunc?.snippet).toBeDefined();
-      expect(colFunc?.snippet).toContain('$'); // Should have placeholder
+      // pl.col has no required params, so snippet is pl.col()
+      expect(colFunc?.snippet).toContain('pl.col');
+
+      // Some functions should have placeholders (like pl.lit)
+      const litFunc = result.table_level.find(f => f.name === 'pl.lit');
+      expect(litFunc).toBeDefined();
+      expect(litFunc?.snippet).toContain('$'); // pl.lit has a required value param
 
       // Check column method snippets
       if (result.column_methods.all.length > 0) {
