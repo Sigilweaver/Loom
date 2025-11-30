@@ -50,7 +50,6 @@
         ]
       }
     ],
-    "publisherName": "SigilWeaver Development Team",
     "verifyUpdateCodeSignature": false
   },
   "nsis": {

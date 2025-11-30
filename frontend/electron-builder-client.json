@@ -38,7 +38,6 @@
         "arch": ["x64"]
       }
     ],
-    "publisherName": "SigilWeaver Development Team",
     "verifyUpdateCodeSignature": false
   },
   "mac": {
