@@ -143,7 +143,7 @@ describe("SettingsStore", () => {
       // First set some non-default values
       useSettingsStore.setState({
         theme: { id: "dark" },
-        backend: { url: "http://custom:9000", autoStart: false },
+        backend: { url: "http://custom:9000", autoStart: false, previewRows: 200 },
       });
 
       await useSettingsStore.getState().updateAuthor("New Author");
@@ -189,6 +189,27 @@ describe("SettingsStore", () => {
       const state = useSettingsStore.getState();
       expect(state.backend.url).toBe("http://custom:8000");
       expect(state.backend.autoStart).toBe(false);
+    });
+  });
+
+  describe("updateBackendPreviewRows", () => {
+    it("updates previewRows setting", async () => {
+      expect(useSettingsStore.getState().backend.previewRows).toBe(100);
+
+      await useSettingsStore.getState().updateBackendPreviewRows(500);
+
+      expect(useSettingsStore.getState().backend.previewRows).toBe(500);
+    });
+
+    it("preserves other backend settings when updating previewRows", async () => {
+      await useSettingsStore.getState().updateBackendUrl("http://custom:8000");
+      await useSettingsStore.getState().updateBackendAutoStart(false);
+      await useSettingsStore.getState().updateBackendPreviewRows(200);
+
+      const state = useSettingsStore.getState();
+      expect(state.backend.url).toBe("http://custom:8000");
+      expect(state.backend.autoStart).toBe(false);
+      expect(state.backend.previewRows).toBe(200);
     });
   });
 

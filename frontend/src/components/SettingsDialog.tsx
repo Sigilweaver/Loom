@@ -27,6 +27,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
     updateAuthor,
     updateBackendUrl,
     updateBackendAutoStart,
+    updateBackendPreviewRows,
     updateTheme,
     updateSnapToGrid,
     updateMinimapVisible,
@@ -169,6 +170,33 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                 </label>
                 <p className="mt-1 ml-6 text-xs opacity-60">
                   Automatically start the bundled backend server on app launch (full mode only)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-modal-content-text)' }}>
+                  Preview Rows
+                </label>
+                <input
+                  type="number"
+                  value={backend.previewRows}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (!isNaN(value) && value > 0) {
+                      updateBackendPreviewRows(value);
+                    }
+                  }}
+                  min={1}
+                  className="w-full px-3 py-2 rounded focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--color-modal-container-bg)',
+                    border: '1px solid var(--color-modal-container-border)',
+                    color: 'var(--color-modal-content-text)',
+                  }}
+                  placeholder="100"
+                />
+                <p className="mt-1 text-xs opacity-60">
+                  Number of rows to show in data previews. Server may limit this value. Large previews may slow down the application.
                 </p>
               </div>
 

@@ -5,11 +5,24 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api.models.workflow import Workflow
+from app.config import settings
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.workflow.code_generator import PythonCodeGenerator
 from app.utils.errors import ExecutionError, ValidationError, ToolError
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
+
+
+def _clamp_preview_limit(requested: int | None) -> int:
+    """
+    Clamp preview_limit to be within valid bounds.
+    
+    Uses DEFAULT_PREVIEW_ROWS (100) if not specified.
+    Enforces max_preview_rows from settings as upper bound.
+    """
+    DEFAULT_PREVIEW_ROWS = 100
+    limit = requested if requested is not None else DEFAULT_PREVIEW_ROWS
+    return min(max(1, limit), settings.max_preview_rows)
 
 
 class ExecuteWorkflowRequest(BaseModel):
@@ -58,13 +71,14 @@ async def execute_workflow(request: ExecuteWorkflowRequest):
 
     Use target_tool_id to execute only part of the workflow (useful for debugging).
     Use preview_limit to limit rows returned (useful for large datasets).
+    The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
         executor = WorkflowExecutor()
         result = await executor.execute_workflow(
             workflow=request.workflow,
             target_tool_id=request.target_tool_id,
-            preview_limit=request.preview_limit or 100,  # Default to 100 rows
+            preview_limit=_clamp_preview_limit(request.preview_limit),
         )
         return result
 
@@ -87,13 +101,14 @@ async def execute_tool(request: ExecuteToolRequest):
     running the entire workflow.
 
     The tool and all upstream dependencies will be executed.
+    The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
         executor = WorkflowExecutor()
         result = await executor.execute_single_tool(
             workflow=request.workflow,
             tool_id=request.tool_id,
-            preview_limit=request.preview_limit or 100,
+            preview_limit=_clamp_preview_limit(request.preview_limit),
         )
         return result
 
@@ -182,12 +197,13 @@ async def preview_all_tools(request: PreviewAllRequest):
     all previews after opening a workflow or when data sources change.
 
     Returns a dict mapping tool_id -> outputs for every tool in the workflow.
+    The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
         executor = WorkflowExecutor()
         result = await executor.preview_all_tools(
             workflow=request.workflow,
-            preview_limit=request.preview_limit or 100,
+            preview_limit=_clamp_preview_limit(request.preview_limit),
         )
         return result
 

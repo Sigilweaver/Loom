@@ -3,6 +3,7 @@ import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
+import { useSettingsStore } from "@state/settingsStore";
 import { useWorkflowExecute } from "../api/hooks";
 import { previewAllTools } from "../api/backend";
 import { cacheAllPreviews } from "../api/cache";
@@ -43,6 +44,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   );
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
+
+  // Settings
+  const previewRows = useSettingsStore((s) => s.backend.previewRows);
 
   // Execution state
   const isExecuting = useExecutionStore((s) => s.isExecuting);
@@ -370,11 +374,11 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
       const workflow = JSON.parse(workflowJSON);
 
-      // Execute preview all
-      const result = await previewAllTools(workflow, 100);
+      // Execute preview all using configured preview rows
+      const result = await previewAllTools(workflow, previewRows);
 
       // Cache all previews in the unified cache
-      cacheAllPreviews(workflow, 100, result.tools);
+      cacheAllPreviews(workflow, previewRows, result.tools);
       
       setIsPreviewLoading(false);
       showNotification("Previews loaded for all tools!", "success");

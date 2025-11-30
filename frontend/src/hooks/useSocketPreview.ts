@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
+import { useSettingsStore } from "@state/settingsStore";
 import { getRuntimeLogActions } from "@state/runtimeLogStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
@@ -13,6 +14,8 @@ export function useSocketPreview() {
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
+  
+  const previewRows = useSettingsStore((s) => s.backend.previewRows);
   
   const setPreviewState = useUIStore((s) => s.setPreviewState);
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
@@ -60,7 +63,7 @@ export function useSocketPreview() {
       const socketKey = targetSocketId.toString();
 
       // Check unified cache (works for both individual and "Preview All" requests)
-      const cached = getCachedPreview(targetToolId, workflow, 100);
+      const cached = getCachedPreview(targetToolId, workflow, previewRows);
       if (cached) {
         const output = cached.outputs[socketKey];
         
@@ -95,10 +98,10 @@ export function useSocketPreview() {
 
       try {
         // Execute preview
-        const result = await previewTool(targetToolId, workflow, 100);
+        const result = await previewTool(targetToolId, workflow, previewRows);
         
         // Cache the result
-        cachePreview(targetToolId, workflow, 100, result);
+        cachePreview(targetToolId, workflow, previewRows, result);
 
         // Get data for the specific socket
         const output = result.outputs[socketKey];

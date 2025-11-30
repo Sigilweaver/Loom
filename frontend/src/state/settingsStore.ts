@@ -15,6 +15,7 @@ interface SettingsState extends AppSettings {
   updateAuthor: (author: string) => Promise<void>;
   updateBackendUrl: (url: string) => Promise<void>;
   updateBackendAutoStart: (autoStart: boolean) => Promise<void>;
+  updateBackendPreviewRows: (previewRows: number) => Promise<void>;
   updateTheme: (themeId: string) => Promise<void>;
   updateSnapToGrid: (enabled: boolean) => Promise<void>;
   updateMinimapVisible: (visible: boolean) => Promise<void>;
@@ -93,6 +94,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   updateBackendAutoStart: async (autoStart) => {
     const state = get();
     const newBackend = { ...state.backend, autoStart };
+    set({ backend: newBackend });
+    const settings: AppSettings = {
+      author: state.author,
+      backend: newBackend,
+      theme: state.theme,
+      ui: state.ui,
+    };
+    await saveToStorage(settings);
+  },
+
+  updateBackendPreviewRows: async (previewRows) => {
+    const state = get();
+    const newBackend = { ...state.backend, previewRows };
     set({ backend: newBackend });
     const settings: AppSettings = {
       author: state.author,

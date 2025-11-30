@@ -14,6 +14,8 @@ export interface AppSettings {
     url: string;
     /** Whether to auto-start bundled backend (full mode only) */
     autoStart: boolean;
+    /** Number of rows to show in data previews (default: 100) */
+    previewRows: number;
   };
   
   /** Theme configuration */
@@ -38,6 +40,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   backend: {
     url: 'http://localhost:8000',
     autoStart: true,
+    previewRows: 100,
   },
   theme: {
     id: 'sigilweaver',

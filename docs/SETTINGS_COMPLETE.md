@@ -77,6 +77,7 @@ Browser mode falls back to localStorage with key `sigilweaver-settings`.
 ### Backend Settings
 - `backendUrl` (string): FastAPI backend URL (default: "http://localhost:8000")
 - `autoStartBackend` (boolean): Auto-start backend on app launch (default: true)
+- `previewRows` (number): Number of rows to show in data previews (default: 100, server may limit via MAX_PREVIEW_ROWS env var)
 
 ### Theme Settings
 - `id` (string): Active theme ID (default: "zinc-dark")
