@@ -6,6 +6,7 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     outDir: 'dist',
+    cssCodeSplit: false,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
@@ -20,6 +21,16 @@ export default defineConfig({
         '500': resolve(__dirname, '500.html'),
         '502': resolve(__dirname, '502.html'),
         '503': resolve(__dirname, '503.html'),
+      },
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/styles-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
       },
     },
   },
