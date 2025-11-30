@@ -9,10 +9,12 @@ Utility scripts for building, testing, and running Sigilweaver.
 ./scripts/dev.sh                    # Start dev servers
 
 # Testing
-./scripts/test.sh                   # Run all tests (backend + frontend)
-./scripts/test_backend.sh           # Backend tests only
-./scripts/test_frontend.sh          # Frontend tests only
-./scripts/test_integration.sh       # Integration tests (requires backend)
+./scripts/test-full.py              # Run all tests (backend + frontend + integration)
+./scripts/test-full.py --backend    # Backend tests only
+./scripts/test-full.py --frontend   # Frontend tests only
+./scripts/test-full.py --integration # Integration tests (requires backend)
+./scripts/test-full.py --no-integration # Skip integration tests
+./scripts/test-full.py --coverage   # Include coverage reports
 
 # Building
 ./scripts/build.sh [platform]       # Build complete application
@@ -49,72 +51,45 @@ Press `Ctrl+C` to stop all services.
 
 ## Testing Scripts
 
-### `test.sh`
-**Purpose**: Run all tests (backend + frontend unit tests)
+### `test-full.py`
+**Purpose**: Unified test runner for all test suites
 
 **Usage**:
 ```bash
-./scripts/test.sh
+# Run all tests
+./scripts/test-full.py
+
+# Run specific test suites
+./scripts/test-full.py --backend      # Backend tests only
+./scripts/test-full.py --frontend     # Frontend tests only
+./scripts/test-full.py --integration  # Integration tests only
+
+# Common combinations
+./scripts/test-full.py --no-integration  # Backend + frontend (fast)
+./scripts/test-full.py --backend --coverage  # Backend with coverage report
+
+# Multiple flags
+./scripts/test-full.py --backend --frontend  # Backend + frontend only
 ```
 
+**Flags**:
+| Flag | Description |
+|------|-------------|
+| `--backend` | Run backend tests (pytest) |
+| `--frontend` | Run frontend tests (vitest) |
+| `--integration` | Run integration tests (requires backend) |
+| `--no-integration` | Skip integration tests |
+| `--coverage` | Generate HTML coverage report for backend |
+
 **What it does**:
-1. Runs backend tests with pytest + coverage
-2. Runs frontend unit tests with vitest
-3. Reports summary of both test suites
+- Runs pytest for backend tests
+- Runs vitest for frontend unit tests
+- Runs integration tests against live backend API
+- Auto-starts backend for integration tests if not running
+- Reports summary with pass/fail status and duration
+- Generates coverage report at `backend/htmlcov/index.html` (with `--coverage`)
 
 **Exit code**: 0 if all pass, 1 if any fail
-
----
-
-### `test_backend.sh`
-**Purpose**: Run backend tests only
-
-**Usage**:
-```bash
-./scripts/test_backend.sh
-```
-
-**What it does**:
-- Runs pytest with coverage
-- Generates HTML coverage report at `backend/htmlcov/index.html`
-- Tests API routes, domain logic, tool implementations
-
-**Requirements**: Backend venv with dev dependencies installed
-
----
-
-### `test_frontend.sh`
-**Purpose**: Run frontend unit tests only
-
-**Usage**:
-```bash
-./scripts/test_frontend.sh
-```
-
-**What it does**:
-- Runs vitest unit tests (domain logic + components)
-- Tests stores, state management, utilities
-- Fast - no backend required
-
-**Requirements**: `npm install` completed
-
----
-
-### `test_integration.sh`
-**Purpose**: Run integration tests that require backend API
-
-**Usage**:
-```bash
-./scripts/test_integration.sh
-```
-
-**What it does**:
-- Checks if backend is running, starts it if not
-- Runs frontend integration tests against live API
-- Auto-starts/stops backend as needed
-- Tests end-to-end workflows
-
-**Requirements**: Backend venv installed
 
 ---
 
@@ -227,16 +202,16 @@ Tests the built standalone package without rebuilding.
 ./scripts/dev.sh
 
 # 2. Make changes, then test
-./scripts/test.sh
+./scripts/test-full.py --no-integration
 
 # 3. Test integration if touching API
-./scripts/test_integration.sh
+./scripts/test-full.py --integration
 ```
 
 ### Pre-Commit Validation
 ```bash
 # Run all tests before committing
-./scripts/test.sh && ./scripts/test_integration.sh
+./scripts/test-full.py
 ```
 
 ### Production Build
