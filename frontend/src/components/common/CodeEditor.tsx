@@ -175,13 +175,22 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           if (polarsFunctions?.table_level) {
             polarsFunctions.table_level.forEach(fn => {
               const cleanName = fn.name.replace('pl.', '');
+              
+              // Special case: pl.when should include full .then().otherwise() pattern
+              let insertText = fn.snippet.replace('pl.', '');
+              if (cleanName === 'when') {
+                insertText = `when(\${1:condition}).then(\${2:value}).otherwise(\${3:default})`;
+              }
+              
               suggestions.push({
                 label: cleanName,
                 kind: monaco.languages.CompletionItemKind.Function,
-                insertText: fn.snippet.replace('pl.', ''),
+                insertText,
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
                 documentation: fn.description,
-                detail: fn.signature,
+                detail: cleanName === 'when' 
+                  ? 'pl.when(condition).then(value).otherwise(default)' 
+                  : fn.signature,
                 range: defaultRange,
               });
             });
@@ -395,13 +404,21 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           // Add Polars functions
           if (polarsFunctions?.table_level) {
             polarsFunctions.table_level.forEach(fn => {
+              // Special case: pl.when should include full .then().otherwise() pattern
+              let insertText = fn.snippet;
+              let detail = fn.signature;
+              if (fn.name === 'pl.when') {
+                insertText = `pl.when(\${1:condition}).then(\${2:value}).otherwise(\${3:default})`;
+                detail = 'pl.when(condition).then(value).otherwise(default)';
+              }
+              
               suggestions.push({
                 label: fn.name,
                 kind: monaco.languages.CompletionItemKind.Function,
-                insertText: fn.snippet,
+                insertText,
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
                 documentation: fn.description,
-                detail: fn.signature,
+                detail,
                 range: defaultRange,
                 sortText: `1_${fn.name}`,
               });
