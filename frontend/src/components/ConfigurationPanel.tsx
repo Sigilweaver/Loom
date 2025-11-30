@@ -16,6 +16,7 @@ import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
 import { SelectConfiguration } from "./SelectConfiguration";
+import { SortConfiguration } from "./SortConfiguration";
 import { SummarizeConfiguration } from "./SummarizeConfiguration";
 import { UnionConfiguration } from "./UnionConfiguration";
 import ResizablePanel from "./ResizablePanel";
@@ -308,6 +309,18 @@ export default function ConfigurationPanel() {
           <UnionConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+          />
+        </div>
+      ) : selectedTool.type === "Sort" ? (
+        /* Sort Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          <SortConfiguration
+            config={selectedTool.config}
+            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+            toolId={selectedTool.id}
+            tools={tools}
+            wires={wires}
+            workflowMeta={workflowMeta}
           />
         </div>
       ) : selectedTool.type === "Summarize" ? (
