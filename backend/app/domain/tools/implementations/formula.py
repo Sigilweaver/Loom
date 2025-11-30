@@ -1,4 +1,4 @@
-"""Formula tool implementation - Add calculated columns"""
+"""Formula tool implementation - Add or replace calculated columns"""
 
 from typing import Any
 
@@ -14,7 +14,7 @@ from app.utils.expression import parse_polars_expression
 @register_tool("Formula")
 class FormulaTool(BaseTool):
     """
-    Add calculated columns using Polars expressions.
+    Add or replace calculated columns using Polars expressions.
     
     Users write Polars expressions directly:
     - pl.col('age') > 30
@@ -22,9 +22,12 @@ class FormulaTool(BaseTool):
     - pl.when(pl.col('x') > 0).then(pl.lit('Positive')).otherwise(pl.lit('Negative'))
     
     Frontend provides helper buttons to build common patterns.
+    
+    Note: If column_name matches an existing column, Polars automatically
+    replaces it in place (maintaining column order).
 
     Config:
-    - column_name: Name of new column to create
+    - column_name: Name of the column to create or replace
     - expression: Polars expression string
     """
 
@@ -32,17 +35,19 @@ class FormulaTool(BaseTool):
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
     ) -> dict[str, pl.LazyFrame]:
         """
-        Add calculated column to DataFrame.
+        Add or replace calculated column in DataFrame.
+        
+        If column_name matches an existing column, it is replaced in place.
 
         Config should contain:
-        - column_name: str - name of new column
+        - column_name: str - name of the column
         - expression: str - Polars expression
         """
         if "input" not in inputs:
             raise ToolError("Formula tool requires input on socket 'input'")
 
         lf = inputs["input"]
-        column_name = config.get("column_name")
+        column_name = config.get("column_name", "")
         expression = config.get("expression")
 
         if not column_name:
@@ -60,7 +65,7 @@ class FormulaTool(BaseTool):
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
     ) -> dict[str, DataSchema]:
         """
-        Calculate output schema - input schema + new column.
+        Calculate output schema - input schema with new/replaced column.
         
         Note: We don't know the exact type without executing,
         so we return a generic type.
@@ -69,12 +74,12 @@ class FormulaTool(BaseTool):
             raise ToolError("Formula tool requires input schema on socket 'input'")
 
         input_schema = input_schemas["input"]
-        column_name = config.get("column_name")
+        column_name = config.get("column_name", "")
 
         if not column_name:
             raise ToolError("Formula tool requires 'column_name' in config")
 
-        # Add new column with unknown type
+        # Create the new/updated column schema
         new_column = ColumnSchema(
             name=column_name,
             dtype=PolarsDataType.STRING,  # Default assumption
@@ -82,7 +87,22 @@ class FormulaTool(BaseTool):
             description=f"Calculated: {config.get('expression', '')}",
         )
 
-        output_columns = list(input_schema.columns) + [new_column]
+        # Check if column exists - if so, Polars replaces it in place
+        existing_column_names = [col.name for col in input_schema.columns]
+        column_exists = column_name in existing_column_names
+
+        if column_exists:
+            # Replace existing column - maintain column order
+            output_columns = []
+            for col in input_schema.columns:
+                if col.name == column_name:
+                    output_columns.append(new_column)
+                else:
+                    output_columns.append(col)
+        else:
+            # Add new column at the end
+            output_columns = list(input_schema.columns)
+            output_columns.append(new_column)
 
         return {
             "output": DataSchema(
@@ -96,7 +116,7 @@ class FormulaTool(BaseTool):
         """Validate formula configuration"""
         errors = []
 
-        if "column_name" not in config:
+        if "column_name" not in config or not config.get("column_name"):
             errors.append("Missing required field: column_name")
         elif not isinstance(config["column_name"], str):
             errors.append("column_name must be a string")

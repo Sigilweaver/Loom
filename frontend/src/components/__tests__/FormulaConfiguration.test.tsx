@@ -87,12 +87,29 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('New Column Name')).toBeInTheDocument();
+      expect(screen.getByText('Target Column')).toBeInTheDocument();
       expect(screen.getByText('Formula Expression')).toBeInTheDocument();
       expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
     });
 
-    it('renders column name input', () => {
+    it('renders target column dropdown', () => {
+      renderWithTheme(
+        <FormulaConfiguration
+          config={defaultConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      expect(screen.getByText('Target Column')).toBeInTheDocument();
+      // Default should show "(New Column)" option selected
+      expect(screen.getByText('(New Column)')).toBeInTheDocument();
+    });
+
+    it('shows column name input when new column is selected', () => {
       renderWithTheme(
         <FormulaConfiguration
           config={defaultConfig}
@@ -107,6 +124,44 @@ describe('FormulaConfiguration', () => {
       expect(screen.getByText('New Column Name')).toBeInTheDocument();
       const input = screen.getByPlaceholderText('result');
       expect(input).toBeInTheDocument();
+    });
+
+    it('hides column name input when replacing existing column', () => {
+      const configWithReplace: ToolConfig = {
+        ...defaultConfig,
+        column_name: 'existing_col',
+      };
+
+      // Need to mock metadata with that column for UI to show it as "replace"
+      const mockMetadata = {
+        tool_id: 'tool-1',
+        columns: [
+          { name: 'existing_col', dtype: 'Float64', nullable: false },
+        ],
+      };
+
+      vi.mocked(hooks.useMetadata).mockReturnValue({
+        metadata: mockMetadata,
+        loading: false,
+        error: null,
+        fetchMetadata: mockFetchMetadata,
+        getColumns: vi.fn(() => mockMetadata.columns),
+      });
+
+      renderWithTheme(
+        <FormulaConfiguration
+          config={configWithReplace}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      // Column name input should not be visible when replacing
+      expect(screen.queryByText('New Column Name')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('result')).not.toBeInTheDocument();
     });
   });
 
@@ -151,6 +206,38 @@ describe('FormulaConfiguration', () => {
 
       const editor = screen.getByTestId('monaco-editor');
       expect(editor).toHaveValue("pl.col('price') * 1.1");
+    });
+
+    it('shows available columns in dropdown when metadata is available', () => {
+      const mockMetadata = {
+        tool_id: 'tool-1',
+        columns: [
+          { name: 'price', dtype: 'Float64', nullable: false },
+          { name: 'quantity', dtype: 'Int64', nullable: true },
+        ],
+      };
+
+      vi.mocked(hooks.useMetadata).mockReturnValue({
+        metadata: mockMetadata,
+        loading: false,
+        error: null,
+        fetchMetadata: mockFetchMetadata,
+        getColumns: vi.fn(() => mockMetadata.columns),
+      });
+
+      renderWithTheme(
+        <FormulaConfiguration
+          config={defaultConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      // The dropdown should exist with target column options
+      expect(screen.getByText('Target Column')).toBeInTheDocument();
     });
   });
 

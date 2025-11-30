@@ -1,9 +1,13 @@
 import { useEffect, useMemo } from "react";
 import { ToolConfig, EmissionMap, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
 import { ConfigText } from "./primitives/ConfigText";
+import { ConfigSelect } from "./primitives/ConfigSelect";
 import { CodeEditor } from "./common/CodeEditor";
 import { useMetadata, usePolarsFunctions } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+
+// Special value indicating creation of a new column
+const NEW_COLUMN_VALUE = "__new_column__";
 
 interface FormulaConfigurationProps {
   config: ToolConfig;
@@ -47,6 +51,65 @@ export function FormulaConfiguration({
     const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
     fetchMetadata(toolId, JSON.parse(workflow));
   }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
+
+  // Build dropdown options from available columns
+  const targetColumnOptions = useMemo(() => {
+    const options = [
+      {
+        value: NEW_COLUMN_VALUE,
+        label: "(New Column)",
+        description: "Create a new calculated column",
+      },
+    ];
+
+    // Add existing columns as replacement options
+    for (const col of columns) {
+      options.push({
+        value: col.name,
+        label: col.name,
+        description: `Replace existing ${col.dtype || "column"}`,
+      });
+    }
+
+    return options;
+  }, [columns]);
+
+  // Determine current dropdown selection - if column_name matches an existing column, show it selected
+  const currentTargetColumn = useMemo(() => {
+    const columnName = config.column_name as string | undefined;
+    
+    // If column_name matches an existing column, show it as selected
+    if (columnName) {
+      const existingColumn = columns.find(col => col.name === columnName);
+      if (existingColumn) {
+        return columnName;
+      }
+    }
+    return NEW_COLUMN_VALUE;
+  }, [config.column_name, columns]);
+
+  // Check if we're creating a new column
+  const isNewColumn = currentTargetColumn === NEW_COLUMN_VALUE;
+
+  const handleTargetColumnChange = (
+    value: string | undefined,
+    _emitPatch: EmissionMap,
+    _shouldEmit: boolean
+  ) => {
+    const isNew = value === NEW_COLUMN_VALUE || !value;
+    const newConfig = {
+      ...config,
+      // When selecting an existing column, set column_name to that column
+      // When selecting new column, clear column_name for user to type
+      column_name: isNew ? "" : value,
+      _emit: {
+        ...config._emit,
+        column_name: !isNew,
+      },
+    };
+    onChange(newConfig);
+  };
+
   const handleColumnNameChange = (
     value: string | undefined,
     emitPatch: EmissionMap,
@@ -84,23 +147,40 @@ export function FormulaConfiguration({
             Formula Tool
           </h3>
           <p className="text-theme-text-secondary mb-2">
-            Create a new calculated column using Polars expressions. The new
-            column will be added to your dataframe.
+            Create or update a column using Polars expressions. You can either
+            add a new calculated column or replace an existing one.
           </p>
         </div>
 
-        {/* Column Name Input */}
+        {/* Target Column Selection */}
         <div className="space-y-2">
-          <ConfigText
+          <ConfigSelect
             configKey="column_name"
-            label="New Column Name"
-            value={(config.column_name as string) || ""}
-            onChange={handleColumnNameChange}
-            placeholder="result"
-            description="Name for the new calculated column"
-            required
+            value={currentTargetColumn}
+            onChange={handleTargetColumnChange}
+            label="Target Column"
+            description="Select an existing column to replace, or create a new column"
+            options={targetColumnOptions}
+            placeholder="Select target column"
+            searchable={columns.length > 5}
+            searchPlaceholder="Search columns..."
           />
         </div>
+
+        {/* Column Name Input - only shown when creating new column */}
+        {isNewColumn && (
+          <div className="space-y-2">
+            <ConfigText
+              configKey="column_name"
+              label="New Column Name"
+              value={(config.column_name as string) || ""}
+              onChange={handleColumnNameChange}
+              placeholder="result"
+              description="Name for the new calculated column"
+              required
+            />
+          </div>
+        )}
 
         {/* Expression Input */}
         <div className="space-y-2">
@@ -120,7 +200,7 @@ export function FormulaConfiguration({
             />
           </div>
           <p className="text-xs text-theme-text-tertiary">
-            Write a Polars expression that calculates the new column value
+            Write a Polars expression that calculates the column value
           </p>
         </div>
 
@@ -194,7 +274,8 @@ export function FormulaConfiguration({
             <li>Use pl.col('column_name') to reference existing columns</li>
             <li>Use pl.lit(value) for literal values in expressions</li>
             <li>Chain methods with dots: pl.col('x').abs().sqrt()</li>
-            <li>The new column will be appended to the end of your dataframe</li>
+            <li>Select an existing column to replace it with a calculated value</li>
+            <li>Choose "(New Column)" to add a new column to your dataframe</li>
           </ul>
         </div>
       </div>

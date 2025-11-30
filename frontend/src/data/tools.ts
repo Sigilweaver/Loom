@@ -77,7 +77,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     category: 'preparation',
     defaultConfig: {
       expression: '',
-      resultColumn: 'Result',
+      column_name: '',
     },
     sockets: [
       { id: 'input', direction: 'input' },

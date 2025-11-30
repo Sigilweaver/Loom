@@ -29,6 +29,86 @@ async def test_formula_arithmetic():
 
 
 @pytest.mark.asyncio
+async def test_formula_replace_column():
+    """Test replacing an existing column with a calculated value"""
+    tool = FormulaTool()
+    
+    df = pl.LazyFrame({
+        "price": [10.0, 20.0, 30.0],
+        "quantity": [2, 3, 4],
+    })
+    
+    config = {
+        "column_name": "price",
+        "expression": "pl.col('price') * 1.1",
+    }
+    
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
+    
+    # Column should still exist
+    assert "price" in output.columns
+    assert "quantity" in output.columns
+    # Column count should be unchanged
+    assert len(output.columns) == 2
+    # Values should be updated
+    assert output["price"].to_list() == [11.0, 22.0, 33.0]
+
+
+@pytest.mark.asyncio
+async def test_formula_replace_column_maintains_order():
+    """Test that replacing a column maintains the original column order"""
+    tool = FormulaTool()
+    
+    df = pl.LazyFrame({
+        "a": [1, 2, 3],
+        "b": [4, 5, 6],
+        "c": [7, 8, 9],
+    })
+    
+    config = {
+        "column_name": "b",
+        "expression": "pl.col('b') * 10",
+    }
+    
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
+    
+    # Column order should be preserved
+    assert output.columns == ["a", "b", "c"]
+    # Values should be updated
+    assert output["b"].to_list() == [40, 50, 60]
+
+
+@pytest.mark.asyncio
+async def test_formula_replace_column_schema():
+    """Test that schema correctly reflects replaced column"""
+    tool = FormulaTool()
+    
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="price", dtype=PolarsDataType.FLOAT64, nullable=True),
+            ColumnSchema(name="quantity", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
+        ]
+    )
+    
+    config = {
+        "column_name": "quantity",
+        "expression": "pl.col('quantity') * 2",
+    }
+    
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    output_schema = result["output"]
+    
+    # Column count should be unchanged
+    assert len(output_schema.columns) == 3
+    # Column order should be preserved
+    column_names = [col.name for col in output_schema.columns]
+    assert column_names == ["price", "quantity", "name"]
+
+
+@pytest.mark.asyncio
 async def test_formula_comparison():
     """Test comparison expressions"""
     tool = FormulaTool()
@@ -130,9 +210,17 @@ def test_formula_validation():
     assert len(errors) > 0
     assert any("expression" in e for e in errors)
     
-    # Valid config
+    # Valid config for new column
     errors = tool.validate_config({
         "column_name": "test",
+        "expression": "pl.col('a') + pl.col('b')",
+    })
+    assert len(errors) == 0
+    
+    # Valid config with replace flag
+    errors = tool.validate_config({
+        "column_name": "existing_col",
+        "replace": True,
         "expression": "pl.col('a') + pl.col('b')",
     })
     assert len(errors) == 0
