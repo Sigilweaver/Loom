@@ -15,9 +15,9 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://sigilweaver.app',
-  // Serve docs under /docs/ path
-  baseUrl: '/docs/',
+  url: 'https://docs.sigilweaver.app',
+  // Serve at root of subdomain
+  baseUrl: '/',
 
   // GitHub pages deployment config.
   organizationName: 'sigilweaver',
