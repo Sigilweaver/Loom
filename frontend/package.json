@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0-dev",
   "description": "Sigilweaver - Advanced Workflow Designer and Automation Tool",
-  "author": "Sigilweaver Development Team",
+  "author": "Sigilweaver Team",
   "repository": {
     "type": "git",
     "url": "https://github.com/sigilweaver/sigilweaver-app.git"

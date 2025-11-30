@@ -68,6 +68,10 @@ class FilterTool(BaseTool):
         - "pl.col('name').str.contains('test')"
         - "(pl.col('a') > 10) & (pl.col('b') < 20)"
         """
+        # Normalize expression: replace newlines with spaces for multi-line input
+        # This allows users to write expressions across multiple lines for readability
+        expression = " ".join(expression.split())
+
         # Create restricted namespace for eval
         namespace = {
             "pl": pl,
@@ -133,6 +137,11 @@ class FilterTool(BaseTool):
 
         lines = []
         expression = config.get("expression", "")
+
+        # Normalize expression: replace newlines/extra whitespace with single spaces
+        # This matches the normalization done in _parse_expression
+        if expression:
+            expression = " ".join(expression.split())
 
         # Get input variable name
         input_var = input_vars.get("input", "df_input")

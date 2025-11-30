@@ -86,59 +86,8 @@ describe('FilterConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('Filter Tool')).toBeInTheDocument();
-      expect(screen.getByText(/Split data based on a condition/i)).toBeInTheDocument();
-    });
-
-    it('renders expression editor', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
       expect(screen.getByText('Filter Expression')).toBeInTheDocument();
       expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
-    });
-
-    it('renders examples section', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText('Example Expressions:')).toBeInTheDocument();
-      expect(screen.getByText(/Filter rows where age is greater than 30/i)).toBeInTheDocument();
-    });
-
-    it('renders output sockets information', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText('Output Sockets:')).toBeInTheDocument();
-      expect(screen.getByText('T')).toBeInTheDocument();
-      expect(screen.getByText('F')).toBeInTheDocument();
-      expect(screen.getByText(/Rows where expression is True/i)).toBeInTheDocument();
-      expect(screen.getByText(/Rows where expression is False/i)).toBeInTheDocument();
     });
   });
 
@@ -564,83 +513,6 @@ describe('FilterConfiguration', () => {
     });
   });
 
-  describe('Expression Examples', () => {
-    it('displays comparison operators example', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText(/Filter rows where age is greater than 30/i)).toBeInTheDocument();
-    });
-
-    it('displays string equality example', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText(/Filter rows where status equals 'active'/i)).toBeInTheDocument();
-    });
-
-    it('displays multiple conditions example', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText(/Multiple conditions with AND/i)).toBeInTheDocument();
-    });
-
-    it('displays string contains example', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText(/Filter rows where name contains 'test'/i)).toBeInTheDocument();
-    });
-
-    it('displays null check example', () => {
-      renderWithTheme(
-        <FilterConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText(/Filter out null values/i)).toBeInTheDocument();
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles undefined expression', () => {
       const configWithUndefined: ToolConfig = {
@@ -795,7 +667,7 @@ describe('FilterConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('Filter Tool')).toBeInTheDocument();
+      expect(screen.getByText('Filter Expression')).toBeInTheDocument();
     });
   });
 

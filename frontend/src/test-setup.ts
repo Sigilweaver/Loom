@@ -104,6 +104,8 @@ vi.mock('@monaco-editor/react', () => ({
           return { dispose: vi.fn() };
         }),
         dispose: vi.fn(),
+        addCommand: vi.fn(),
+        trigger: vi.fn(),
       };
 
       const mockMonaco = {
@@ -133,6 +135,9 @@ vi.mock('@monaco-editor/react', () => ({
             public endLineNumber: number,
             public endColumn: number
           ) {}
+        },
+        KeyCode: {
+          Space: 10,
         },
       };
 

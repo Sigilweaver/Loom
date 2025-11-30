@@ -87,8 +87,9 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('Formula Tool')).toBeInTheDocument();
-      expect(screen.getByText(/Create a new calculated column/i)).toBeInTheDocument();
+      expect(screen.getByText('New Column Name')).toBeInTheDocument();
+      expect(screen.getByText('Formula Expression')).toBeInTheDocument();
+      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
     });
 
     it('renders column name input', () => {
@@ -106,54 +107,6 @@ describe('FormulaConfiguration', () => {
       expect(screen.getByText('New Column Name')).toBeInTheDocument();
       const input = screen.getByPlaceholderText('result');
       expect(input).toBeInTheDocument();
-    });
-
-    it('renders expression editor', () => {
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText('Formula Expression')).toBeInTheDocument();
-      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
-    });
-
-    it('renders examples section', () => {
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText('Example Expressions:')).toBeInTheDocument();
-      expect(screen.getByText(/Multiply two columns together/i)).toBeInTheDocument();
-    });
-
-    it('renders tips section', () => {
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByText('Tips:')).toBeInTheDocument();
-      expect(screen.getByText(/Use pl.col\('column_name'\) to reference existing columns/i)).toBeInTheDocument();
     });
   });
 

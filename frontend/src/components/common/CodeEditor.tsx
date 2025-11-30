@@ -81,26 +81,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       monaco.editor.setTheme('sigilweaver-dark');
     }
 
-    // Configure editor options
-    editor.updateOptions({
-      minimap: { enabled: false },
-      fontSize: 13,
-      lineNumbers: 'on',
-      roundedSelection: true,
-      scrollBeyondLastLine: false,
-      readOnly,
-      automaticLayout: true,
-      padding: { top: 8, bottom: 8 },
-      scrollbar: {
-        vertical: 'auto',
-        horizontal: 'auto',
-        useShadows: false,
-      },
-      wordWrap: 'on',
-      lineDecorationsWidth: 10,
-      lineNumbersMinChars: 3,
-      glyphMargin: false,
-      folding: false,
+    // CRITICAL FIX: Override the acceptSelectedSuggestion command to NOT trigger on space
+    // This prevents the autocomplete from swallowing space key presses
+    editor.addCommand(monaco.KeyCode.Space, () => {
+      // Just insert a space - don't accept any suggestion
+      editor.trigger('keyboard', 'type', { text: ' ' });
     });
 
     // Show placeholder if empty
@@ -234,7 +219,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           }
         }
         // Context 2: Inside pl.col('...') - suggest column names
-        else if (/pl\.col\(['"]/.test(textBeforeCursor) && !/pl\.col\(['"]\w+['"]\)/.test(textBeforeCursor)) {
+        else if (/pl\.col\(['"]/.test(textBeforeCursor) && !/pl\.col\(['"][^'"]+['"]\)/.test(textBeforeCursor)) {
           columns.forEach(col => {
             suggestions.push({
               label: col.name,
@@ -246,83 +231,124 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             });
           });
         }
-        // Context 3: After pl.col('name'). - suggest column methods
-        else if (/pl\.col\(['"]\w+['"]\)\.$/.test(textBeforeCursor) && polarsFunctions) {
+        // Context 3: After pl.col('name'). or method chain - suggest column methods
+        // Note: [^'"]+ matches any characters except quotes, supporting column names with spaces/special chars
+        // Pattern matches:
+        //   - pl.col('name').             (direct accessor)
+        //   - pl.col('name').method().    (chained method)
+        //   - pl.col('name').str.         (namespace accessor)
+        //   - pl.col('name').list.        (namespace accessor)
+        //   - pl.col('name').dt.          (namespace accessor)
+        else if (
+          /pl\.col\(['"][^'"]+['"]\)/.test(textBeforeCursor) && (
+            /\)\.$/.test(textBeforeCursor) ||           // Ends with ).  (method chain)
+            /\.str\.$/.test(textBeforeCursor) ||        // Ends with .str.
+            /\.dt\.$/.test(textBeforeCursor) ||         // Ends with .dt.
+            /\.list\.$/.test(textBeforeCursor) ||       // Ends with .list.
+            /pl\.col\(['"][^'"]+['"]\)\.$/.test(textBeforeCursor)  // Direct: pl.col('name').
+          )
+        ) {
+          // Check if this is a string method chain (contains .str.)
+          const isStringChain = /\.str\./.test(textBeforeCursor);
+          // Check if this is a datetime method chain (contains .dt.)
+          const isDatetimeChain = /\.dt\./.test(textBeforeCursor);
+          // Check if this is a list method chain (contains .list.)
+          const isListChain = /\.list\./.test(textBeforeCursor);
+          
           // Extract column name to determine type
-          const colMatch = textBeforeCursor.match(/pl\.col\(['"](\w+)['"]\)/);
+          const colMatch = textBeforeCursor.match(/pl\.col\(['"]([^'"]+)['"]\)/);
           const colName = colMatch ? colMatch[1] : null;
           const colType = colName ? getColumnType(colName) : null;
 
-          // Add methods for all columns
-          if (polarsFunctions.column_methods?.all) {
-            polarsFunctions.column_methods.all.forEach(method => {
-              const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
-              suggestions.push({
-                label: cleanName,
-                kind: monaco.languages.CompletionItemKind.Method,
-                insertText: method.snippet.substring(1), // Remove leading dot
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                documentation: method.description,
-                detail: method.signature,
-                range: defaultRange,
-                sortText: `0_${cleanName}`,
+          if (polarsFunctions) {
+            // Add methods for all columns
+            if (polarsFunctions.column_methods?.all) {
+              polarsFunctions.column_methods.all.forEach(method => {
+                const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
+                suggestions.push({
+                  label: cleanName,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: method.snippet.substring(1), // Remove leading dot
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: method.description,
+                  detail: method.signature,
+                  range: defaultRange,
+                  sortText: `0_${cleanName}`,
+                });
               });
-            });
-          }
+            }
 
-          // Add string methods if column is string type
-          if (isStringType(colType) && polarsFunctions.column_methods?.string) {
-            polarsFunctions.column_methods.string.forEach(method => {
-              const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
-              suggestions.push({
-                label: cleanName,
-                kind: monaco.languages.CompletionItemKind.Method,
-                insertText: method.snippet.substring(1),
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                documentation: method.description,
-                detail: method.signature,
-                range: defaultRange,
-                sortText: `1_${cleanName}`,
+            // Add string methods if column is string type OR we're in a .str. chain
+            if ((isStringType(colType) || isStringChain) && polarsFunctions.column_methods?.string) {
+              polarsFunctions.column_methods.string.forEach(method => {
+                const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
+                suggestions.push({
+                  label: cleanName,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: method.snippet.substring(1),
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: method.description,
+                  detail: method.signature,
+                  range: defaultRange,
+                  sortText: `1_${cleanName}`,
+                });
               });
-            });
-          }
+            }
 
-          // Add numeric methods if column is numeric type
-          if (isNumericType(colType) && polarsFunctions.column_methods?.numeric) {
-            polarsFunctions.column_methods.numeric.forEach(method => {
-              const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
-              suggestions.push({
-                label: cleanName,
-                kind: monaco.languages.CompletionItemKind.Method,
-                insertText: method.snippet.substring(1),
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                documentation: method.description,
-                detail: method.signature,
-                range: defaultRange,
-                sortText: `1_${cleanName}`,
+            // Add numeric methods if column is numeric type
+            if (isNumericType(colType) && polarsFunctions.column_methods?.numeric) {
+              polarsFunctions.column_methods.numeric.forEach(method => {
+                const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
+                suggestions.push({
+                  label: cleanName,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: method.snippet.substring(1),
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: method.description,
+                  detail: method.signature,
+                  range: defaultRange,
+                  sortText: `1_${cleanName}`,
+                });
               });
-            });
-          }
+            }
 
-          // Add datetime methods if column is datetime type
-          if (isDatetimeType(colType) && polarsFunctions.column_methods?.datetime) {
-            polarsFunctions.column_methods.datetime.forEach(method => {
-              const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
-              suggestions.push({
-                label: cleanName,
-                kind: monaco.languages.CompletionItemKind.Method,
-                insertText: method.snippet.substring(1),
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                documentation: method.description,
-                detail: method.signature,
-                range: defaultRange,
-                sortText: `1_${cleanName}`,
+            // Add datetime methods if column is datetime type OR we're in a .dt. chain
+            if ((isDatetimeType(colType) || isDatetimeChain) && polarsFunctions.column_methods?.datetime) {
+              polarsFunctions.column_methods.datetime.forEach(method => {
+                const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
+                suggestions.push({
+                  label: cleanName,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: method.snippet.substring(1),
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: method.description,
+                  detail: method.signature,
+                  range: defaultRange,
+                  sortText: `1_${cleanName}`,
+                });
               });
-            });
+            }
+
+            // Add list methods if we're in a .list. chain
+            if (isListChain && polarsFunctions.column_methods?.list) {
+              polarsFunctions.column_methods.list.forEach(method => {
+                const cleanName = method.name.startsWith('.') ? method.name.substring(1) : method.name;
+                suggestions.push({
+                  label: cleanName,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: method.snippet.substring(1),
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: method.description,
+                  detail: method.signature,
+                  range: defaultRange,
+                  sortText: `1_${cleanName}`,
+                });
+              });
+            }
           }
         }
-        // Context 4: Operators - suggest comparison/logical operators
-        else if (/\)\s*$/.test(textBeforeCursor) || /['"]\s*$/.test(textBeforeCursor)) {
+        // Context 4: Operators - suggest comparison/logical operators (but NOT if we just ended a method chain with .)
+        else if ((/\)\s*$/.test(textBeforeCursor) || /['"]\s*$/.test(textBeforeCursor)) && !/\)\.$/.test(textBeforeCursor)) {
           // After closing paren or quote, suggest operators
           const operators = [
             { label: '==', insertText: ' == ', detail: 'Equal to' },
@@ -443,8 +469,32 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         theme={monacoTheme}
         options={{
           readOnly,
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineNumbers: 'on',
+          roundedSelection: true,
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          padding: { top: 8, bottom: 8 },
+          scrollbar: {
+            vertical: 'auto',
+            horizontal: 'auto',
+            useShadows: false,
+          },
+          wordWrap: 'on',
+          lineDecorationsWidth: 10,
+          lineNumbersMinChars: 3,
+          glyphMargin: false,
+          folding: false,
+          // CRITICAL: Prevent word-based suggestions from accepting on space
+          wordBasedSuggestions: 'off',
+          // Enable quick suggestions so users can autocomplete columns by typing
+          quickSuggestions: true,
+          acceptSuggestionOnCommitCharacter: false,
+          suggestOnTriggerCharacters: true,
         }}
       />
     </div>
   );
 };
+

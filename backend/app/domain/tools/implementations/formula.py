@@ -32,7 +32,12 @@ class FormulaTool(BaseTool):
         Parse Polars expression string.
         
         Evaluates the expression with only the pl module available.
+        Normalizes whitespace to allow multi-line expressions for readability.
         """
+        # Normalize expression: replace newlines/extra whitespace with single spaces
+        # This allows users to write expressions across multiple lines
+        expression = " ".join(expression.split())
+
         try:
             expr = eval(expression, {"pl": pl, "__builtins__": {}})
             if not isinstance(expr, pl.Expr):

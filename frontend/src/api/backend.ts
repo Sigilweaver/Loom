@@ -257,6 +257,17 @@ export async function healthCheck(): Promise<{
 }
 
 /**
+ * Polars function parameter metadata
+ */
+export interface PolarsFunctionParameter {
+  name: string;
+  required: boolean;
+  type?: string;
+  default?: string;
+  description?: string;
+}
+
+/**
  * Polars function metadata for autocomplete
  */
 export interface PolarsFunction {
@@ -265,6 +276,7 @@ export interface PolarsFunction {
   description: string;
   snippet: string;
   category: string;
+  parameters?: PolarsFunctionParameter[];
 }
 
 /**
@@ -277,6 +289,9 @@ export interface MetadataResponse {
 
 /**
  * Polars functions response from /api/polars/functions endpoint
+ * 
+ * Functions are dynamically introspected from the installed Polars library,
+ * so they automatically support new Polars versions.
  */
 export interface PolarsFunctionsResponse {
   table_level: PolarsFunction[];
@@ -285,7 +300,10 @@ export interface PolarsFunctionsResponse {
     string: PolarsFunction[];
     numeric: PolarsFunction[];
     datetime: PolarsFunction[];
+    list: PolarsFunction[];
   };
+  /** The installed Polars version on the backend */
+  polars_version?: string;
 }
 
 /**
