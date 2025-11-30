@@ -440,7 +440,7 @@ describe('FilterConfiguration', () => {
             category: 'table',
           },
         ],
-        column_methods: { all: [], string: [], numeric: [], datetime: [] },
+        column_methods: { all: [], string: [], numeric: [], datetime: [], list: [] },
       };
 
       vi.mocked(hooks.usePolarsFunctions).mockReturnValue({
@@ -488,6 +488,7 @@ describe('FilterConfiguration', () => {
           string: [],
           numeric: [],
           datetime: [],
+          list: [],
         },
       };
 

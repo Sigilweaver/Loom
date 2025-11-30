@@ -516,8 +516,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             showIcons: true,
             showStatusBar: true,
             preview: true,
-            // Make the suggestion list taller to show more options
-            maxVisibleSuggestions: 12,
           },
           // Ensure widgets are rendered above other elements
           fixedOverflowWidgets: true,

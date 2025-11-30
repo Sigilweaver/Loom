@@ -406,7 +406,7 @@ describe('FormulaConfiguration', () => {
             category: 'table',
           },
         ],
-        column_methods: { all: [], string: [], numeric: [], datetime: [] },
+        column_methods: { all: [], string: [], numeric: [], datetime: [], list: [] },
       };
 
       vi.mocked(hooks.usePolarsFunctions).mockReturnValue({
@@ -441,7 +441,7 @@ describe('FormulaConfiguration', () => {
             category: 'table',
           },
         ],
-        column_methods: { all: [], string: [], numeric: [], datetime: [] },
+        column_methods: { all: [], string: [], numeric: [], datetime: [], list: [] },
       };
 
       vi.mocked(hooks.usePolarsFunctions).mockReturnValue({

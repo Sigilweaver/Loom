@@ -470,7 +470,7 @@ describe("WorkflowSerializer", () => {
       );
 
       expect(tools).toHaveLength(1);
-      expect(tools[0].id).toBe("tool_001");
+      expect(tools[0]!.id).toBe("tool_001");
       expect(wires).toHaveLength(0);
     });
 
@@ -508,8 +508,8 @@ describe("WorkflowSerializer", () => {
       expect(tools).toHaveLength(2);
       expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002"]);
       expect(wires).toHaveLength(1);
-      expect(wires[0].from.tool).toBe("tool_001");
-      expect(wires[0].to.tool).toBe("tool_002");
+      expect(wires[0]!.from.tool).toBe("tool_001");
+      expect(wires[0]!.to.tool).toBe("tool_002");
     });
 
     it("should handle multi-level upstream dependencies", () => {
@@ -571,7 +571,7 @@ describe("WorkflowSerializer", () => {
       expect(tools).toHaveLength(2);
       expect(tools.map(t => t.id).sort()).toEqual(["tool_001", "tool_002"]);
       expect(wires).toHaveLength(1);
-      expect(wires[0].to.tool).toBe("tool_002");
+      expect(wires[0]!.to.tool).toBe("tool_002");
     });
 
     it("should return empty result for non-existent tool", () => {

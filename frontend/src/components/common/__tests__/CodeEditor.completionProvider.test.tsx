@@ -251,7 +251,7 @@ describe('CodeEditor Completion Provider', () => {
   } as unknown as CancellationToken;
 
   // Helper to create mock model with specific line content
-  const createMockModel = (lineContent: string, positionColumn: number): editor.ITextModel => {
+  const createMockModel = (lineContent: string, _positionColumn: number): editor.ITextModel => {
     return {
       getLineContent: () => lineContent,
       getWordUntilPosition: (position: Position) => {
