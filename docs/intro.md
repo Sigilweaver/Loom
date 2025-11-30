@@ -1,47 +1,59 @@
 ---
 sidebar_position: 1
+slug: /
 ---
 
-# Tutorial Intro
+# Welcome to Sigilweaver
 
-Let's discover **Docusaurus in less than 5 minutes**.
+**The visual data pipeline tool you always wished existed.**
 
-## Getting Started
+Sigilweaver is a visual workflow designer for building and executing data processing pipelines through an intuitive drag-and-drop interface. Built as a cross-platform desktop application, it empowers you to create complex data transformations with minimal code.
 
-Get started by **creating a new site**.
+## Why Sigilweaver?
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+As data professionals, we write transformation code all day—complex joins, filters, aggregations, multi-way merges. The code works, but it's hard to **see** what's happening. Debugging a 2000-line pipeline means mentally reconstructing the flow. Onboarding teammates means walking through nested function calls.
 
-### What you'll need
+Sigilweaver gives you the best of both worlds:
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+- **Visual clarity**: See your entire pipeline at a glance—branches, joins, transformations laid out spatially
+- **Full power**: Backed by [Polars](https://pola.rs)—lazy evaluation, blazing speed, production-ready performance  
+- **Minimal code**: Write formulas when you need flexibility, drag-and-drop for structure
+- **Instant debugging**: Inspect data at any stage, trace errors visually, understand transformations intuitively
 
-## Generate a new site
+## Core Features
 
-Generate a new Docusaurus site using the **classic template**.
+### Visual Workflow Designer
+Drag and drop tools onto an infinite canvas to build data pipelines. Connect tools to define data flow, and see your entire process at a glance.
 
-The classic template will automatically be added to your project after you run the command:
+### Smart Connection Validation
+Real-time cycle detection prevents invalid workflow structures. The system guides you toward correct pipeline construction.
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+### Polars-Powered Execution
+Lazy dataframe evaluation for speed and memory efficiency. Your workflows leverage the full power of the Polars engine.
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+### Workflow Persistence
+Save and share workflows as portable `.swwf` JSON files. Version control your pipelines, share with teammates, or archive for later.
 
-The command also installs all necessary dependencies you need to run Docusaurus.
+### Undo/Redo System
+Full history tracking for confident workflow editing. Experiment freely knowing you can always step back.
 
-## Start your site
+### Organized Tool Library
+Browse tools by category—In/Out, Preparation, Transform, Join, and more. Find what you need quickly.
 
-Run the development server:
+## Quick Start
 
-```bash
-cd my-website
-npm run start
-```
+Ready to dive in? Head to the [Getting Started](/getting-started/installation) guide to download and install Sigilweaver.
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+Or jump straight to:
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+- [Your First Workflow](/getting-started/first-workflow) – Build a complete pipeline in 5 minutes
+- [Tool Reference](/tools/overview) – Explore all available tools
+- [Formula Guide](/concepts/formulas) – Write powerful expressions
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+## Open Source
+
+Sigilweaver is **AGPL-3.0 licensed**—always free, always open. No SaaS, no cloud lock-in. You control your data and infrastructure.
+
+- **GitHub**: [github.com/sigilweaver/sigilweaver-app](https://github.com/sigilweaver/sigilweaver-app)
+- **Website**: [sigilweaver.app](https://sigilweaver.app)
+- **Downloads**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)

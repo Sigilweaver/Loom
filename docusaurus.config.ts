@@ -5,8 +5,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
+  title: 'Sigilweaver Docs',
+  tagline: 'The visual data pipeline tool you always wished existed',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -15,22 +15,19 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/',
+  url: 'https://sigilweaver.app',
+  // Serve docs under /docs/ path
+  baseUrl: '/docs/',
 
   // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'sigilweaver',
+  projectName: 'sigilweaver-docs',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
+  // useful metadata like html lang.
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -41,27 +38,12 @@ const config: Config = {
       'classic',
       {
         docs: {
+          routeBasePath: '/', // Serve docs at root
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/sigilweaver/sigilweaver-docs/tree/main/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false, // Disable blog for now
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -71,23 +53,38 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/sigilweaver-social-card.jpg',
+    // Color mode configuration
+    colorMode: {
+      defaultMode: 'dark',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
     navbar: {
-      title: 'My Site',
+      title: 'Sigilweaver',
       logo: {
-        alt: 'My Site Logo',
+        alt: 'Sigilweaver Logo',
         src: 'img/logo.svg',
       },
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docsSidebar',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Documentation',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://sigilweaver.app',
+          label: 'Website',
+          position: 'right',
+        },
+        {
+          href: 'https://sigilweaver.app/downloads.html',
+          label: 'Download',
+          position: 'right',
+        },
+        {
+          href: 'https://github.com/sigilweaver/sigilweaver-app',
           label: 'GitHub',
           position: 'right',
         },
@@ -97,11 +94,19 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Documentation',
           items: [
             {
-              label: 'Tutorial',
-              to: '/docs/intro',
+              label: 'Getting Started',
+              to: '/getting-started/installation',
+            },
+            {
+              label: 'Tools Reference',
+              to: '/tools/overview',
+            },
+            {
+              label: 'Concepts',
+              to: '/concepts/workflows',
             },
           ],
         },
@@ -109,16 +114,12 @@ const config: Config = {
           title: 'Community',
           items: [
             {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              label: 'GitHub Discussions',
+              href: 'https://github.com/sigilweaver/sigilweaver-app/discussions',
             },
             {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/docusaurus',
+              label: 'GitHub Issues',
+              href: 'https://github.com/sigilweaver/sigilweaver-app/issues',
             },
           ],
         },
@@ -126,21 +127,39 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'Blog',
-              to: '/blog',
+              label: 'Website',
+              href: 'https://sigilweaver.app',
+            },
+            {
+              label: 'Downloads',
+              href: 'https://sigilweaver.app/downloads.html',
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/sigilweaver/sigilweaver-app',
+            },
+          ],
+        },
+        {
+          title: 'Legal',
+          items: [
+            {
+              label: 'Terms of Use',
+              href: 'https://sigilweaver.app/terms.html',
+            },
+            {
+              label: 'Privacy Policy',
+              href: 'https://sigilweaver.app/privacy.html',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `© ${new Date().getFullYear()} Nathan Riley (DBA Sigilweaver). Sigilweaver™ is a trademark of Nathan Riley. AGPL-3.0 Licensed.`,
     },
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['python', 'bash', 'json'],
     },
   } satisfies Preset.ThemeConfig,
 };

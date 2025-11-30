@@ -1,30 +1,275 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Sigilweaver Documentation Theme
+ * Custom styling based on the Sigilweaver brand colors
+ * 
+ * Brand Colors:
+ * - Mystic Purple: #8b5cf6 (primary)
+ * - Gold Accent: #f59e0b (accent/links)
+ * - Deep Purple: #1a0b2e (dark bg)
  */
 
-/* You can override the default Infima variables here. */
+/* Import Inter font to match main site */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================================
+   LIGHT MODE
+   ============================================ */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  /* Primary colors - Mystic Purple */
+  --ifm-color-primary: #6b3fa0;
+  --ifm-color-primary-dark: #5c3589;
+  --ifm-color-primary-darker: #573281;
+  --ifm-color-primary-darkest: #47296a;
+  --ifm-color-primary-light: #7a4ab7;
+  --ifm-color-primary-lighter: #8050bf;
+  --ifm-color-primary-lightest: #9668cc;
+
+  /* Gold accent for links and highlights */
+  --ifm-link-color: #b45309;
+  --ifm-link-hover-color: #d97706;
+  
+  /* Typography */
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --ifm-heading-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --ifm-font-weight-semibold: 600;
+  
+  /* Code */
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(107, 63, 160, 0.1);
+  
+  /* Backgrounds */
+  --ifm-background-color: #faf9fc;
+  --ifm-background-surface-color: #ffffff;
+  
+  /* Navbar */
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(26, 11, 46, 0.1);
+  
+  /* Footer */
+  --ifm-footer-background-color: #2d1b42;
+  --ifm-footer-color: #ddd6fe;
+  --ifm-footer-link-color: #fbbf24;
+  --ifm-footer-link-hover-color: #fcd34d;
+  --ifm-footer-title-color: #f3f0ff;
+  
+  /* Sidebar */
+  --ifm-menu-color: #4c2a6b;
+  --ifm-menu-color-active: #6b3fa0;
+  --ifm-menu-color-background-active: rgba(107, 63, 160, 0.1);
+  
+  /* Table of contents */
+  --ifm-toc-link-color: #4c2a6b;
+  
+  /* Cards and borders */
+  --ifm-card-background-color: #ffffff;
+  --ifm-card-border-radius: 0.75rem;
+  --ifm-global-border-color: #e9e4f0;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* ============================================
+   DARK MODE - The "Mystic" Experience
+   ============================================ */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  /* Primary colors - Lighter purple for dark mode */
+  --ifm-color-primary: #a78bfa;
+  --ifm-color-primary-dark: #9775f8;
+  --ifm-color-primary-darker: #8f68f7;
+  --ifm-color-primary-darkest: #7644f5;
+  --ifm-color-primary-light: #b7a1fc;
+  --ifm-color-primary-lighter: #bfabfc;
+  --ifm-color-primary-lightest: #d4c8fd;
+
+  /* Gold accent for links */
+  --ifm-link-color: #b7a1fc;
+  --ifm-link-hover-color: #fcd34d;
+  
+  /* Code highlighting */
+  --docusaurus-highlighted-code-line-bg: rgba(167, 139, 250, 0.2);
+  
+  /* Lighter purple background - matches main site top gradient */
+  --ifm-background-color: #2b1241;
+  --ifm-background-surface-color: #3d2256;
+  
+  /* Navbar - dark like main site */
+  --ifm-navbar-background-color: #1a0b2e;
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  
+  /* Footer - darker to ground the page */
+  --ifm-footer-background-color: #1a0b2e;
+  --ifm-footer-color: #c4b5fd;
+  --ifm-footer-link-color: #fbbf24;
+  --ifm-footer-link-hover-color: #fcd34d;
+  --ifm-footer-title-color: #f3f0ff;
+  
+  /* Sidebar */
+  --ifm-menu-color: #ddd6fe;
+  --ifm-menu-color-active: #a78bfa;
+  --ifm-menu-color-background-active: rgba(167, 139, 250, 0.15);
+  
+  /* Table of contents */
+  --ifm-toc-link-color: #c4b5fd;
+  
+  /* Cards and borders */
+  --ifm-card-background-color: #3d2256;
+  --ifm-global-border-color: #6b3fa0;
+  
+  /* Text colors */
+  --ifm-font-color-base: #f3f0ff;
+  --ifm-font-color-secondary: #ddd6fe;
+  --ifm-heading-color: #ffffff;
+}
+
+/* ============================================
+   COMPONENT OVERRIDES
+   ============================================ */
+
+/* Navbar styling */
+.navbar {
+  backdrop-filter: blur(8px);
+}
+
+[data-theme='dark'] .navbar {
+  background-color: #1a0b2e !important;
+}
+
+.navbar__title {
+  font-weight: 700;
+}
+
+.navbar__link:hover,
+.navbar__link--active {
+  color: var(--ifm-color-primary);
+}
+
+/* Sidebar enhancements */
+.menu__link {
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.menu__link:hover {
+  background-color: var(--ifm-menu-color-background-active);
+}
+
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* Footer styling */
+.footer {
+  background-color: #2d1b42 !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.footer--dark {
+  background-color: #1a0b2e !important;
+}
+
+[data-theme='dark'] .footer {
+  background-color: #1a0b2e !important;
+}
+
+.footer__title {
+  color: #f3f0ff !important;
+  font-weight: 600;
+}
+
+.footer__link-item {
+  color: #fbbf24 !important;
+  transition: color 0.2s ease;
+}
+
+.footer__link-item:hover {
+  color: #fcd34d !important;
+  text-decoration: none;
+}
+
+.footer__copyright {
+  color: #c4b5fd;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Code blocks */
+.prism-code {
+  border-radius: 0.5rem;
+}
+
+[data-theme='dark'] .prism-code {
+  background-color: #2d1b42 !important;
+}
+
+/* Admonitions/callouts */
+.alert {
+  border-radius: 0.5rem;
+  border-left-width: 4px;
+}
+
+.alert--info {
+  --ifm-alert-background-color: rgba(139, 92, 246, 0.1);
+  --ifm-alert-border-color: #8b5cf6;
+}
+
+.alert--warning {
+  --ifm-alert-background-color: rgba(251, 191, 36, 0.1);
+  --ifm-alert-border-color: #fbbf24;
+}
+
+/* Table styling */
+table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+th {
+  background-color: var(--ifm-background-surface-color);
+}
+
+[data-theme='dark'] th {
+  background-color: #4c2a6b;
+}
+
+/* Search */
+.DocSearch-Button {
+  border-radius: 0.5rem !important;
+}
+
+/* Pagination */
+.pagination-nav__link {
+  border-radius: 0.75rem;
+  border-color: var(--ifm-global-border-color);
+  transition: all 0.2s ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1);
+}
+
+/* TOC */
+.table-of-contents__link--active {
+  font-weight: 600;
+}
+
+/* Breadcrumbs */
+.breadcrumbs__link {
+  border-radius: 0.375rem;
+}
+
+/* Hero/landing adjustments if using docusaurus hero */
+.hero {
+  background: linear-gradient(135deg, #1a0b2e 0%, #4c2a6b 100%);
+}
+
+.hero__title {
+  background: linear-gradient(180deg, #c4b5fd 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
