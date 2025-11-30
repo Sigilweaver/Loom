@@ -32,5 +32,10 @@ class Settings(BaseSettings):
     archive_path: str = "./workflow_archives"
     archive_retention_days: int = 30  # 0 = keep forever
 
+    # Audit Logging
+    audit_enabled: bool = True
+    audit_path: str = "./audit/logs"
+    audit_retention_days: int = 30  # 0 = keep forever
+
 
 settings = Settings()

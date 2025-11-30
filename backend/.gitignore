@@ -1,5 +1,5 @@
 # Sigilweaver Specific
-workflow_archives/
+audit/
 
 # Python
 __pycache__/

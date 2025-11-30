@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.router import api_router
 from app.config import settings
+from app.middleware.audit import AuditMiddleware
 
 # Import to register all tool implementations
 import app.domain.tools.register  # noqa: F401
@@ -34,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add audit logging middleware
+app.add_middleware(AuditMiddleware)
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
