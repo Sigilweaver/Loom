@@ -97,7 +97,7 @@
   /* Footer - darker to ground the page */
   --ifm-footer-background-color: #1a0b2e;
   --ifm-footer-color: #c4b5fd;
-  --ifm-footer-link-color: #fbbf24;
+  --ifm-footer-link-color: #b7a1fc;
   --ifm-footer-link-hover-color: #fcd34d;
   --ifm-footer-title-color: #f3f0ff;
   
@@ -175,7 +175,7 @@
 }
 
 .footer__link-item {
-  color: #fbbf24 !important;
+  color: #b7a1fc !important;
   transition: color 0.2s ease;
 }
 
