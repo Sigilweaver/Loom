@@ -6,5 +6,6 @@ from app.domain.tools.implementations.filter import FilterTool
 from app.domain.tools.implementations.select import SelectTool
 from app.domain.tools.implementations.formula import FormulaTool
 from app.domain.tools.implementations.union import UnionTool
+from app.domain.tools.implementations.summarize import SummarizeTool
 
-__all__ = ["InputTool", "OutputTool", "FilterTool", "SelectTool", "FormulaTool", "UnionTool"]
+__all__ = ["InputTool", "OutputTool", "FilterTool", "SelectTool", "FormulaTool", "UnionTool", "SummarizeTool"]
