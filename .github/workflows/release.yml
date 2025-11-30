@@ -116,13 +116,11 @@ jobs:
           find artifacts/windows-client-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Client-Setup-${VERSION}.exe \; || true
           find artifacts/windows-client-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Client-Portable-${VERSION}.exe \; || true
           
-          # macOS builds currently disabled (cost optimization)
-          # Uncomment when macOS builds are re-enabled: (also in build workflows)
           # macOS Full
-          # find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-${VERSION}.dmg \; || true
+          find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-${VERSION}.dmg \; || true
           
           # macOS Client
-          # find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}.dmg \; || true
+          find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}.dmg \; || true
           
           # Web
           cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Web-${VERSION}.zip || true
@@ -160,13 +158,12 @@ jobs:
             "Sigilweaver-${VERSION}-x64.snap"
             "Sigilweaver-Setup-${VERSION}.exe"
             "Sigilweaver-Portable-${VERSION}.exe"
-            # macOS builds disabled for cost optimization
-            # "Sigilweaver-${VERSION}.dmg"
+            "Sigilweaver-${VERSION}.dmg"
             "Sigilweaver-Client-${VERSION}-x64.AppImage"
             "Sigilweaver-Client-${VERSION}-x64.snap"
             "Sigilweaver-Client-Setup-${VERSION}.exe"
             "Sigilweaver-Client-Portable-${VERSION}.exe"
-            # "Sigilweaver-Client-${VERSION}.dmg"
+            "Sigilweaver-Client-${VERSION}.dmg"
             "Sigilweaver-Web-${VERSION}.zip"
             "SHA256SUMS.txt"
           )
