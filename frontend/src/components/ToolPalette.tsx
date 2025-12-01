@@ -71,36 +71,51 @@ export default function ToolPalette() {
 
       {/* Tools */}
       <div className="p-2 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {tools.map((tool) => (
-            <div
-              key={tool.type}
-              draggable
-              onDragStart={(e) => handleDragStart(e, tool.type)}
-              className="border-2 rounded-lg p-4 bg-theme-surface-elevated shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center text-center"
-              style={{
-                width: "100px", // Same as canvas tools
-                height: "100px",
-                borderColor:
-                  tool.category === "inout"
-                    ? "var(--color-tool-inout)"
-                    : tool.category === "preparation"
-                      ? "var(--color-tool-preparation)"
-                      : tool.category === "join"
-                        ? "var(--color-tool-join)"
-                        : tool.category === "aggregate"
-                          ? "var(--color-tool-aggregate)"
-                          : "var(--color-tool-default)",
-              }}
-            >
-              <div>
-                <div className="text-xl mb-1">{tool.icon}</div>
-                <div className="text-xs font-medium text-theme-text-primary leading-tight">
+        <div className="flex gap-3 min-w-max">
+          {tools.map((tool) => {
+            const categoryColor =
+              tool.category === "inout"
+                ? "var(--color-tool-inout)"
+                : tool.category === "preparation"
+                  ? "var(--color-tool-preparation)"
+                  : tool.category === "join"
+                    ? "var(--color-tool-join)"
+                    : tool.category === "aggregate"
+                      ? "var(--color-tool-aggregate)"
+                      : "var(--color-tool-default)";
+
+            return (
+              <div
+                key={tool.type}
+                className="flex flex-col items-center"
+              >
+                {/* Tool node - matches canvas styling */}
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, tool.type)}
+                  className="border-2 rounded-lg p-3 bg-theme-node-default-bg shadow-lg hover:shadow-xl transition-shadow select-none cursor-move flex items-center justify-center"
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    borderColor: categoryColor,
+                  }}
+                >
+                  <div className="text-2xl">{tool.icon}</div>
+                </div>
+                {/* Tool label - below node, matches canvas styling */}
+                <div
+                  className="text-[10px] font-medium text-theme-text-primary text-center mt-1 px-1.5 py-0.5 rounded border max-w-[80px] truncate"
+                  style={{
+                    backgroundColor: "var(--color-surface-elevated)",
+                    borderColor: categoryColor,
+                  }}
+                  title={tool.name}
+                >
                   {tool.name}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
