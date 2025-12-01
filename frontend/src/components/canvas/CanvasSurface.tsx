@@ -1,5 +1,6 @@
 import React from 'react';
 import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, MarkerType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes } from '@xyflow/react';
+import { useSettingsStore } from '../../state/settingsStore';
 
 interface Props {
   nodes: Node[];
@@ -27,41 +28,59 @@ interface Props {
   children?: React.ReactNode;
 }
 
-export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapGrid, nodeTypes, children, onSelectionChange, ...handlers }) => (
-  <ReactFlow
-    nodes={nodes}
-    edges={edges}
-    nodeTypes={nodeTypes}
-  onEdgeContextMenu={handlers.onEdgeContextMenu ?? (() => {})}
-    connectionLineType={ConnectionLineType.Bezier}
-    defaultEdgeOptions={{
-      type: 'default',
-      markerEnd: { type: MarkerType.ArrowClosed, color: 'currentColor' },
-    }}
-  deleteKeyCode={['Delete', 'Backspace']}
-  multiSelectionKeyCode={['Meta', 'Control']}
-    panOnScroll
-    panOnScrollMode={PanOnScrollMode.Free}
-    panOnScrollSpeed={0.8}
-    zoomOnScroll
-    zoomOnPinch
-    zoomActivationKeyCode="ControlLeft"
-  panOnDrag={[2]}
-  selectNodesOnDrag
-  selectionOnDrag
-    snapToGrid={snapToGrid}
-    snapGrid={snapGrid}
-    fitView
-  className="bg-theme-surface-canvas"
-  {...(onSelectionChange ? { onSelectionChange } : {})}
-    {...handlers}
-  >
-    {children}
-    <Background
-      variant={BackgroundVariant.Dots}
-      gap={snapGrid[0]}
-      size={snapToGrid ? 2 : 1}
-      color={snapToGrid ? 'var(--color-canvas-grid-primary)' : 'var(--color-canvas-grid-secondary)'}
-    />
-  </ReactFlow>
-);
+// Map settings edge style to xyflow ConnectionLineType enum
+const getConnectionLineType = (style: string): ConnectionLineType => {
+  switch (style) {
+    case 'straight': return ConnectionLineType.Straight;
+    case 'step': return ConnectionLineType.Step;
+    case 'smoothstep': return ConnectionLineType.SmoothStep;
+    case 'bezier':
+    default: return ConnectionLineType.Bezier;
+  }
+};
+
+export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapGrid, nodeTypes, children, onSelectionChange, ...handlers }) => {
+  const edgeStyle = useSettingsStore((s) => s.ui.edgeStyle);
+  const connectionLineType = getConnectionLineType(edgeStyle);
+  // Map settings value to xyflow edge type: bezier -> 'default', others map 1:1
+  const edgeType = edgeStyle === 'bezier' ? 'default' : edgeStyle;
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+    onEdgeContextMenu={handlers.onEdgeContextMenu ?? (() => {})}
+      connectionLineType={connectionLineType}
+      defaultEdgeOptions={{
+        type: edgeType,
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'currentColor' },
+      }}
+    deleteKeyCode={['Delete', 'Backspace']}
+    multiSelectionKeyCode={['Meta', 'Control']}
+      panOnScroll
+      panOnScrollMode={PanOnScrollMode.Free}
+      panOnScrollSpeed={0.8}
+      zoomOnScroll
+      zoomOnPinch
+      zoomActivationKeyCode="ControlLeft"
+    panOnDrag={[2]}
+    selectNodesOnDrag
+    selectionOnDrag
+      snapToGrid={snapToGrid}
+      snapGrid={snapGrid}
+      fitView
+    className="bg-theme-surface-canvas"
+    {...(onSelectionChange ? { onSelectionChange } : {})}
+      {...handlers}
+    >
+      {children}
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={snapGrid[0]}
+        size={snapToGrid ? 2 : 1}
+        color={snapToGrid ? 'var(--color-canvas-grid-primary)' : 'var(--color-canvas-grid-secondary)'}
+      />
+    </ReactFlow>
+  );
+};

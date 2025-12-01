@@ -32,6 +32,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
     updateSnapToGrid,
     updateMinimapVisible,
     updateMinimapPosition,
+    updateEdgeStyle,
     resetToDefaults,
   } = useSettingsStore();
 
@@ -281,6 +282,30 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                   <option value="bottom-left">Bottom Left</option>
                   <option value="bottom-right">Bottom Right</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-modal-content-text)' }}>
+                  Edge Style
+                </label>
+                <select
+                  value={ui.edgeStyle}
+                  onChange={(e) => updateEdgeStyle(e.target.value as typeof ui.edgeStyle)}
+                  className="w-full px-3 py-2 rounded focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--color-modal-container-bg)',
+                    border: '1px solid var(--color-modal-container-border)',
+                    color: 'var(--color-modal-content-text)',
+                  }}
+                >
+                  <option value="bezier">Bezier (curved)</option>
+                  <option value="straight">Straight (direct lines)</option>
+                  <option value="step">Step (right-angle, sharp)</option>
+                  <option value="smoothstep">Smooth Step (right-angle, rounded)</option>
+                </select>
+                <p className="mt-1 text-xs opacity-60">
+                  Style of connection wires between tools
+                </p>
               </div>
             </div>
           )}

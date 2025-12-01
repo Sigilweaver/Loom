@@ -32,6 +32,13 @@ export interface AppSettings {
     minimapVisible: boolean;
     /** Minimap position */
     minimapPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    /** Edge style for wire connections
+     * - 'bezier': Default curved bezier lines
+     * - 'straight': Direct straight lines
+     * - 'step': Right-angle lines with sharp corners
+     * - 'smoothstep': Right-angle lines with rounded corners
+     */
+    edgeStyle: 'bezier' | 'straight' | 'step' | 'smoothstep';
   };
 }
 
@@ -49,5 +56,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     snapToGrid: true,
     minimapVisible: true,
     minimapPosition: 'bottom-right',
+    edgeStyle: 'bezier',
   },
 };

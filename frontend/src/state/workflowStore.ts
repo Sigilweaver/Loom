@@ -87,6 +87,14 @@ const createDefaultMeta = (): WorkflowMeta => {
 
 // Helper to create edge from wire
 const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {
+  // Get edge style from settings
+  // Map settings value to xyflow edge type: bezier -> 'default', others map 1:1
+  const edgeStyle = useSettingsStore.getState().ui.edgeStyle;
+  const edgeType = edgeStyle === 'bezier' ? 'default' : edgeStyle;
+  
+  // For smoothstep, use increased border radius for smoother corners
+  const pathOptions = edgeStyle === 'smoothstep' ? { borderRadius: 20 } : undefined;
+
   const existingWires = wires.filter(
     (w) =>
       !(
@@ -113,7 +121,8 @@ const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {
     target: wire.to.tool,
     sourceHandle: `output-${wire.from.socket}`,
     targetHandle: `input-${wire.to.socket}`,
-    type: "default",
+    type: edgeType,
+    ...(pathOptions && { pathOptions }),
     style: {
       stroke: strokeColor,
       strokeWidth: 2,

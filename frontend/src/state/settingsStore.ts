@@ -20,6 +20,7 @@ interface SettingsState extends AppSettings {
   updateSnapToGrid: (enabled: boolean) => Promise<void>;
   updateMinimapVisible: (visible: boolean) => Promise<void>;
   updateMinimapPosition: (position: AppSettings['ui']['minimapPosition']) => Promise<void>;
+  updateEdgeStyle: (edgeStyle: AppSettings['ui']['edgeStyle']) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
@@ -185,6 +186,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     // Sync with uiStore
     const { useUIStore } = await import('./uiStore');
     useUIStore.getState().setMinimapPosition(minimapPosition);
+  },
+
+  updateEdgeStyle: async (edgeStyle) => {
+    const state = get();
+    const newUI = { ...state.ui, edgeStyle };
+    set({ ui: newUI });
+    const settings: AppSettings = {
+      author: state.author,
+      backend: state.backend,
+      theme: state.theme,
+      ui: newUI,
+    };
+    await saveToStorage(settings);
+    
+    // Trigger edge resync to apply new style
+    const { useWorkflowStore } = await import('./workflowStore');
+    useWorkflowStore.getState().syncEdges();
   },
 
   resetToDefaults: async () => {

@@ -17,60 +17,69 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
   const inputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'input');
   const outputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'output');
 
-  // Calculate socket positions - 20px spacing from center for uniformity with grid
+  // Node dimensions - single source of truth
+  const nodeSize = 60; // Tool width/height in pixels
+  const center = nodeSize / 2; // 30px
+  const socketSize = 14; // Socket diameter in pixels
+  const socketOffset = -(socketSize / 2 + 3); // Position socket center outside node edge
+
+  // Calculate socket positions - spacing from center for uniformity with grid
   const getSocketPosition = (index: number, total: number): string => {
-    const nodeHeight = 100; // Tool height in pixels
-    const center = nodeHeight / 2; // 50px
-    const spacing = 20; // 20px spacing to match grid
+    const spacing = 18; // Spacing between sockets
     
     if (total === 1) {
-      return `${center}px`; // Center: 50px
+      return `${center}px`; // Center: 40px
     }
     
     if (total === 2) {
-      // Two sockets: ±20px from center (30px, 70px)
+      // Two sockets: ±16px from center (24px, 56px)
       return index === 0 ? `${center - spacing}px` : `${center + spacing}px`;
     }
     
     if (total === 3) {
-      // Three sockets: one center, two ±20px from center (30px, 50px, 70px)
-      if (index === 0) return `${center - spacing}px`; // 30px
-      if (index === 1) return `${center}px`; // 50px (center)
-      return `${center + spacing}px`; // 70px
+      // Three sockets: one center, two ±16px from center (24px, 40px, 56px)
+      if (index === 0) return `${center - spacing}px`; // 24px
+      if (index === 1) return `${center}px`; // 40px (center)
+      return `${center + spacing}px`; // 56px
     }
     
     if (total === 4) {
-      // Four sockets: ±10px and ±30px from center (20px, 40px, 60px, 80px)
-      const positions = [center - 30, center - 10, center + 10, center + 30];
+      // Four sockets: ±7px and ±21px from center
+      const positions = [center - 21, center - 7, center + 7, center + 21];
       return `${positions[index]}px`;
     }
     
     if (total === 5) {
-      // Five sockets: center and ±10px, ±30px (20px, 40px, 50px, 60px, 80px)
-      const positions = [center - 30, center - 10, center, center + 10, center + 30];
+      // Five sockets: center and ±7px, ±21px
+      const positions = [center - 21, center - 7, center, center + 7, center + 21];
       return `${positions[index]}px`;
     }
     
     // Fallback for more sockets - distribute evenly in available space
-    const availableSpace = 70; // Leave 15px margin on top and bottom
-    const startPosition = 15;
+    const margin = 8;
+    const availableSpace = nodeSize - (margin * 2);
     const step = availableSpace / (total - 1);
-    return `${startPosition + (index * step)}px`;
+    return `${margin + (index * step)}px`;
   };
 
+  // Category border color
+  const categoryColor = 
+    definition.category === 'inout' ? 'var(--color-tool-inout)' :
+    definition.category === 'preparation' ? 'var(--color-tool-preparation)' :
+    definition.category === 'join' ? 'var(--color-tool-join)' :
+    definition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)';
+
   return (
-    <div
-      className="sig-node border-2 rounded-lg p-4 bg-theme-node-default-bg shadow-lg hover:shadow-xl transition-shadow select-none"
-      style={{
-        width: '100px',  // Square dimensions
-        height: '100px',
-        borderColor: 
-          definition.category === 'inout' ? 'var(--color-tool-inout)' :
-          definition.category === 'preparation' ? 'var(--color-tool-preparation)' :
-          definition.category === 'join' ? 'var(--color-tool-join)' :
-          definition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)',
-      }}
-    >
+    <div className="flex flex-col items-center">
+      {/* Node container */}
+      <div
+        className="p-3 transition-shadow border-2 rounded-lg shadow-lg select-none sig-node bg-theme-node-default-bg hover:shadow-xl"
+        style={{
+          width: `${nodeSize}px`,
+          height: `${nodeSize}px`,
+          borderColor: categoryColor,
+        }}
+      >
       {/* Input handles */}
       {inputSockets.map((socket: Socket, index: number) => (
         <Handle
@@ -84,10 +93,10 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           }}
           style={{
             top: getSocketPosition(index, inputSockets.length),
-            left: '-9px',
+            left: `${socketOffset}px`,
             background: 'var(--color-socket-input)',
-            width: '18px',
-            height: '18px',
+            width: `${socketSize}px`,
+            height: `${socketSize}px`,
             border: '2px solid var(--color-socket-input-border)',
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -102,7 +111,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              fontSize: '8px',
+              fontSize: '7px',
               fontWeight: 'bold',
               color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
@@ -118,7 +127,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              fontSize: '8px',
+              fontSize: '7px',
               fontWeight: 'bold',
               color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
@@ -133,13 +142,13 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               position: 'absolute',
               top: '-2px',
               right: '-2px',
-              fontSize: '6px',
+              fontSize: '5px',
               fontWeight: 'bold',
               color: 'var(--color-error-accent)',
               background: 'var(--color-socket-input-border)',
               borderRadius: '50%',
-              width: '8px',
-              height: '8px',
+              width: '7px',
+              height: '7px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -151,14 +160,9 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
         </Handle>
       ))}
 
-      {/* Tool content */}
-      <div className="flex items-center justify-center h-full text-center">
-        <div>
-          <div className="text-xl mb-1">{definition.icon}</div>
-          <div className="text-xs font-medium text-theme-text-primary leading-tight">
-            {definition.name}
-          </div>
-        </div>
+      {/* Tool icon - centered */}
+      <div className="flex items-center justify-center h-full">
+        <div className="text-2xl">{definition.icon}</div>
       </div>
 
       {/* Output handles */}
@@ -174,10 +178,10 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           }}
           style={{
             top: getSocketPosition(index, outputSockets.length),
-            right: '-9px',
+            right: `${socketOffset}px`,
             background: 'var(--color-socket-output)',
-            width: '18px',
-            height: '18px',
+            width: `${socketSize}px`,
+            height: `${socketSize}px`,
             border: '2px solid var(--color-socket-output-border)',
             borderRadius: '50%',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -191,7 +195,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              fontSize: '8px',
+              fontSize: '7px',
               fontWeight: 'bold',
               color: 'var(--color-text-inverse)',
               pointerEvents: 'none'
@@ -201,6 +205,16 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           )}
         </Handle>
       ))}
+      </div>
+      
+      {/* Tool label - below node with background */}
+      <div 
+        className="text-[10px] font-medium text-theme-text-primary text-center mt-1 px-1.5 py-0.5 rounded border max-w-[80px] truncate"
+        style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: categoryColor }}
+        title={definition.name}
+      >
+        {definition.name}
+      </div>
     </div>
   );
 }
