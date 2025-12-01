@@ -6,15 +6,18 @@ Utility scripts for building, testing, and running Sigilweaver.
 
 ```bash
 # Development
-./scripts/dev.sh                    # Start dev servers
+./scripts/dev.py                    # Start dev servers (cross-platform)
+./scripts/dev.py --backend          # Backend only
+./scripts/dev.py --frontend         # Frontend only
+./scripts/dev.py --electron         # Start all including Electron
 
 # Testing
-./scripts/test-full.py              # Run all tests (backend + frontend + integration)
-./scripts/test-full.py --backend    # Backend tests only
-./scripts/test-full.py --frontend   # Frontend tests only
-./scripts/test-full.py --integration # Integration tests (requires backend)
-./scripts/test-full.py --no-integration # Skip integration tests
-./scripts/test-full.py --coverage   # Include coverage reports
+./scripts/test.py                   # Run all tests (backend + frontend + integration)
+./scripts/test.py --backend         # Backend tests only
+./scripts/test.py --frontend        # Frontend tests only
+./scripts/test.py --integration     # Integration tests (requires backend)
+./scripts/test.py --no-integration  # Skip integration tests
+./scripts/test.py --coverage        # Include coverage reports
 
 # Building
 ./scripts/build.sh [platform]       # Build complete application
@@ -26,19 +29,31 @@ Utility scripts for building, testing, and running Sigilweaver.
 
 ## Development Scripts
 
-### `dev.sh`
-**Purpose**: Start both backend and frontend in development mode
+### `dev.py`
+**Purpose**: Start backend and/or frontend in development mode (cross-platform)
 
 **Usage**:
 ```bash
-./scripts/dev.sh
+./scripts/dev.py                    # Start backend + frontend
+./scripts/dev.py --backend          # Backend only
+./scripts/dev.py --frontend         # Frontend only
+./scripts/dev.py --electron         # Start all including Electron
 ```
+
+**Flags**:
+| Flag | Description |
+|------|-------------|
+| `--backend` | Start backend only |
+| `--frontend` | Start frontend only |
+| `--electron` | Also launch Electron (implies frontend) |
 
 **What it does**:
 - Starts Python backend with uvicorn (hot reload enabled)
 - Starts Vite dev server for frontend
-- Runs both services in parallel
-- Logs are prefixed with [BACKEND] and [FRONTEND]
+- Optionally launches Electron app
+- Runs services in parallel with prefixed output
+- Logs are prefixed with [BACKEND], [FRONTEND], and [ELECTRON]
+- Cross-platform: works on Linux, macOS, and Windows
 
 **Ports**:
 - Backend: http://localhost:8000
@@ -46,6 +61,9 @@ Utility scripts for building, testing, and running Sigilweaver.
 - Frontend: http://localhost:5173
 
 Press `Ctrl+C` to stop all services.
+
+### `dev.sh` (deprecated)
+**Note**: Use `dev.py` instead for cross-platform compatibility. This bash script is kept for backwards compatibility but may be removed in a future release.
 
 ---
 
