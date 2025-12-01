@@ -7,6 +7,7 @@ import {
 } from "../domain/workflow/entities/workflow";
 import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { filterCompatibleColumns } from "@domain/workflow/services/typeCompatibility";
 import clsx from "clsx";
 
 interface JoinConfigurationProps {
@@ -221,67 +222,100 @@ export function JoinConfiguration({
           )}
 
           {/* Key Pair Rows */}
-          {Array.from({ length: keyPairCount }).map((_, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center"
-            >
-              {/* Left Key Dropdown */}
-              <select
-                value={leftKeys[index] || ""}
-                onChange={(e) => updateKeys("left", index, e.target.value)}
-                disabled={!hasLeftInput}
-                className={clsx(
-                  "w-full px-2 py-1.5 text-sm rounded border",
-                  "bg-theme-surface-elevated border-theme-border-primary",
-                  "text-theme-text-primary",
-                  "focus:outline-none focus:ring-1 focus:ring-theme-accent",
-                  !hasLeftInput && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <option value="">Select column...</option>
-                {leftColumns.map((col) => (
-                  <option key={col.name} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
-                ))}
-              </select>
+          {Array.from({ length: keyPairCount }).map((_, index) => {
+            // Get the dtype of the selected left column for this row
+            const selectedLeftKey = leftKeys[index];
+            const selectedLeftColumn = leftColumns.find(
+              (col) => col.name === selectedLeftKey
+            );
+            const leftDtype = selectedLeftColumn?.dtype;
 
-              {/* Right Key Dropdown */}
-              <select
-                value={rightKeys[index] || ""}
-                onChange={(e) => updateKeys("right", index, e.target.value)}
-                disabled={!hasRightInput}
-                className={clsx(
-                  "w-full px-2 py-1.5 text-sm rounded border",
-                  "bg-theme-surface-elevated border-theme-border-primary",
-                  "text-theme-text-primary",
-                  "focus:outline-none focus:ring-1 focus:ring-theme-accent",
-                  !hasRightInput && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <option value="">Select column...</option>
-                {rightColumns.map((col) => (
-                  <option key={col.name} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
-                ))}
-              </select>
+            // Filter right columns to only show compatible types
+            const compatibleRightColumns = filterCompatibleColumns(
+              rightColumns,
+              leftDtype
+            );
 
-              {/* Remove Button - only show for populated rows */}
-              {(leftKeys[index] || rightKeys[index]) ? (
-                <button
-                  onClick={() => removeKeyPair(index)}
-                  className="flex items-center justify-center w-6 h-6 text-sm text-red-500 rounded hover:bg-red-500/10"
-                  title="Remove key pair"
+            // Check if current right selection is now incompatible
+            const currentRightKey = rightKeys[index];
+            const isRightSelectionIncompatible =
+              currentRightKey &&
+              leftDtype &&
+              !compatibleRightColumns.some((col) => col.name === currentRightKey);
+
+            return (
+              <div
+                key={index}
+                className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center"
+              >
+                {/* Left Key Dropdown */}
+                <select
+                  value={leftKeys[index] || ""}
+                  onChange={(e) => updateKeys("left", index, e.target.value)}
+                  disabled={!hasLeftInput}
+                  className={clsx(
+                    "w-full px-2 py-1.5 text-sm rounded border",
+                    "bg-theme-surface-elevated border-theme-border-primary",
+                    "text-theme-text-primary",
+                    "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                    !hasLeftInput && "opacity-50 cursor-not-allowed"
+                  )}
                 >
-                  x
-                </button>
-              ) : (
-                <div className="w-6 h-6" /> // Empty spacer for blank row
-              )}
-            </div>
-          ))}
+                  <option value="">Select column...</option>
+                  {leftColumns.map((col) => (
+                    <option key={col.name} value={col.name}>
+                      {col.name} ({col.dtype})
+                    </option>
+                  ))}
+                </select>
+
+                {/* Right Key Dropdown - filtered by left column type */}
+                <select
+                  value={isRightSelectionIncompatible ? "" : (rightKeys[index] || "")}
+                  onChange={(e) => updateKeys("right", index, e.target.value)}
+                  disabled={!hasRightInput}
+                  className={clsx(
+                    "w-full px-2 py-1.5 text-sm rounded border",
+                    "bg-theme-surface-elevated border-theme-border-primary",
+                    "text-theme-text-primary",
+                    "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                    !hasRightInput && "opacity-50 cursor-not-allowed",
+                    isRightSelectionIncompatible && "border-red-500"
+                  )}
+                >
+                  <option value="">
+                    {leftDtype
+                      ? `Select compatible column...`
+                      : "Select column..."}
+                  </option>
+                  {compatibleRightColumns.map((col) => (
+                    <option key={col.name} value={col.name}>
+                      {col.name} ({col.dtype})
+                    </option>
+                  ))}
+                  {/* Show incompatible selection with warning if exists */}
+                  {isRightSelectionIncompatible && (
+                    <option value={currentRightKey} disabled>
+                      {currentRightKey} (incompatible type)
+                    </option>
+                  )}
+                </select>
+
+                {/* Remove Button - only show for populated rows */}
+                {leftKeys[index] || rightKeys[index] ? (
+                  <button
+                    onClick={() => removeKeyPair(index)}
+                    className="flex items-center justify-center w-6 h-6 text-sm text-red-500 rounded hover:bg-red-500/10"
+                    title="Remove key pair"
+                  >
+                    x
+                  </button>
+                ) : (
+                  <div className="w-6 h-6" /> // Empty spacer for blank row
+                )}
+              </div>
+            );
+          })}
 
           {/* Loading indicator */}
           {(leftLoading || rightLoading) && (
