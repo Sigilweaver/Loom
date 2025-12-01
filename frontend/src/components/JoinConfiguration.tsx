@@ -1,0 +1,355 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ToolConfig,
+  Tool,
+  Wire,
+  WorkflowMeta,
+} from "../domain/workflow/entities/workflow";
+import { useMetadata } from "../api/hooks";
+import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { ColumnSchema } from "../api/backend";
+import clsx from "clsx";
+
+interface JoinConfigurationProps {
+  config: ToolConfig;
+  onChange: (config: ToolConfig) => void;
+  toolId: string;
+  tools: Tool[];
+  wires: Wire[];
+  workflowMeta: WorkflowMeta;
+}
+
+/**
+ * Parse key arrays from config
+ */
+function parseKeys(config: ToolConfig, key: "leftKeys" | "rightKeys"): string[] {
+  const keys = config[key];
+  if (!Array.isArray(keys)) return [];
+  return keys.filter((k): k is string => typeof k === "string");
+}
+
+export function JoinConfiguration({
+  config,
+  onChange,
+  toolId,
+  tools,
+  wires,
+  workflowMeta,
+}: JoinConfigurationProps) {
+  // Separate metadata hooks for left and right inputs
+  const {
+    metadata: leftMetadata,
+    fetchMetadata: fetchLeftMetadata,
+    loading: leftLoading,
+  } = useMetadata();
+  const {
+    metadata: rightMetadata,
+    fetchMetadata: fetchRightMetadata,
+    loading: rightLoading,
+  } = useMetadata();
+
+  // Local state for suffix editing
+  const [localRightSuffix, setLocalRightSuffix] = useState<string>(
+    (config.rightSuffix as string) || "_right"
+  );
+
+  // Track wire connections to this tool's specific sockets
+  const leftWireConnection = useMemo(() => {
+    const wire = wires.find(
+      (w) => w.to.tool === toolId && w.to.socket === "input-left"
+    );
+    return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
+  }, [wires, toolId]);
+
+  const rightWireConnection = useMemo(() => {
+    const wire = wires.find(
+      (w) => w.to.tool === toolId && w.to.socket === "input-right"
+    );
+    return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
+  }, [wires, toolId]);
+
+  // Fetch metadata for left input when connection changes
+  useEffect(() => {
+    if (!leftWireConnection) return;
+    const { tools: upstreamTools, wires: upstreamWires } =
+      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
+    const workflow = WorkflowSerializer.toJSON(
+      upstreamTools,
+      upstreamWires,
+      workflowMeta
+    );
+    fetchLeftMetadata(toolId, JSON.parse(workflow), "input-left");
+  }, [toolId, leftWireConnection, fetchLeftMetadata, tools, wires, workflowMeta]);
+
+  // Fetch metadata for right input when connection changes
+  useEffect(() => {
+    if (!rightWireConnection) return;
+    const { tools: upstreamTools, wires: upstreamWires } =
+      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
+    const workflow = WorkflowSerializer.toJSON(
+      upstreamTools,
+      upstreamWires,
+      workflowMeta
+    );
+    fetchRightMetadata(toolId, JSON.parse(workflow), "input-right");
+  }, [toolId, rightWireConnection, fetchRightMetadata, tools, wires, workflowMeta]);
+
+  // Extract columns from metadata
+  const leftColumns: ColumnSchema[] = useMemo(() => {
+    if (!leftMetadata) return [];
+    if (leftMetadata.socket_id === "input-left" && leftMetadata.columns) {
+      return leftMetadata.columns;
+    }
+    return leftMetadata.inputs?.["input-left"] || [];
+  }, [leftMetadata]);
+
+  const rightColumns: ColumnSchema[] = useMemo(() => {
+    if (!rightMetadata) return [];
+    if (rightMetadata.socket_id === "input-right" && rightMetadata.columns) {
+      return rightMetadata.columns;
+    }
+    return rightMetadata.inputs?.["input-right"] || [];
+  }, [rightMetadata]);
+
+  // Get current keys from config
+  const leftKeys = parseKeys(config, "leftKeys");
+  const rightKeys = parseKeys(config, "rightKeys");
+
+  // Update keys
+  const updateKeys = useCallback(
+    (side: "left" | "right", index: number, value: string) => {
+      const keyName = side === "left" ? "leftKeys" : "rightKeys";
+      const currentKeys = parseKeys(config, keyName);
+
+      let newKeys: string[];
+      if (value === "") {
+        // Remove this key pair
+        newKeys = currentKeys.filter((_, i) => i !== index);
+      } else {
+        newKeys = [...currentKeys];
+        newKeys[index] = value;
+      }
+
+      const newConfig = {
+        ...config,
+        [keyName]: newKeys,
+        _emit: {
+          ...(config._emit as Record<string, boolean> | undefined),
+          [keyName]: true,
+        },
+      } as ToolConfig;
+      onChange(newConfig);
+    },
+    [config, onChange]
+  );
+
+  // Remove a key pair
+  const removeKeyPair = useCallback(
+    (index: number) => {
+      const newLeftKeys = leftKeys.filter((_, i) => i !== index);
+      const newRightKeys = rightKeys.filter((_, i) => i !== index);
+
+      const newConfig = {
+        ...config,
+        leftKeys: newLeftKeys,
+        rightKeys: newRightKeys,
+        _emit: {
+          ...(config._emit as Record<string, boolean> | undefined),
+          leftKeys: true,
+          rightKeys: true,
+        },
+      } as ToolConfig;
+      onChange(newConfig);
+    },
+    [config, onChange, leftKeys, rightKeys]
+  );
+
+  // Update suffix
+  const updateSuffix = useCallback(
+    (value: string) => {
+      const newConfig = {
+        ...config,
+        rightSuffix: value,
+        _emit: {
+          ...(config._emit as Record<string, boolean> | undefined),
+          rightSuffix: value !== "_right",
+        },
+      } as ToolConfig;
+      onChange(newConfig);
+    },
+    [config, onChange]
+  );
+
+  // Sync local suffix with config
+  useEffect(() => {
+    setLocalRightSuffix((config.rightSuffix as string) || "_right");
+  }, [config.rightSuffix]);
+
+  // Determine rows to show: all populated pairs + one blank row for new entries
+  // A row is "complete" when both left and right are populated
+  const populatedPairCount = Math.max(leftKeys.length, rightKeys.length);
+  const keyPairCount = populatedPairCount + 1; // Always show one blank row at the end
+
+  // Check if inputs are connected
+  const hasLeftInput = !!leftWireConnection;
+  const hasRightInput = !!rightWireConnection;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {/* Info Section */}
+        <div className="p-3 text-sm rounded bg-theme-surface-elevated">
+          <h3 className="mb-2 font-semibold text-theme-text-primary">
+            Join Tool
+          </h3>
+          <p className="mb-2 text-theme-text-secondary">
+            Combines two datasets on matching key columns.
+          </p>
+          <p className="text-xs text-theme-text-tertiary">
+            Outputs: Unmatched Left (L), Matched (J), Unmatched Right (R)
+          </p>
+        </div>
+
+        {/* Connection Status */}
+        {(!hasLeftInput || !hasRightInput) && (
+          <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
+            <p className="text-amber-500">
+              {!hasLeftInput && !hasRightInput
+                ? "Connect both inputs to configure join keys."
+                : !hasLeftInput
+                ? "Connect the Left (L) input to configure join keys."
+                : "Connect the Right (R) input to configure join keys."}
+            </p>
+          </div>
+        )}
+
+        {/* Key Pairs Section */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-theme-text-primary">
+            Join Keys
+          </h4>
+
+          {/* Column Headers */}
+          {(hasLeftInput || hasRightInput) && (
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs text-theme-text-tertiary">
+              <div>Left Column</div>
+              <div>Right Column</div>
+              <div className="w-6"></div>
+            </div>
+          )}
+
+          {/* Key Pair Rows */}
+          {Array.from({ length: keyPairCount }).map((_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center"
+            >
+              {/* Left Key Dropdown */}
+              <select
+                value={leftKeys[index] || ""}
+                onChange={(e) => updateKeys("left", index, e.target.value)}
+                disabled={!hasLeftInput}
+                className={clsx(
+                  "w-full px-2 py-1.5 text-sm rounded border",
+                  "bg-theme-surface-elevated border-theme-border-primary",
+                  "text-theme-text-primary",
+                  "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                  !hasLeftInput && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <option value="">Select column...</option>
+                {leftColumns.map((col) => (
+                  <option key={col.name} value={col.name}>
+                    {col.name} ({col.dtype})
+                  </option>
+                ))}
+              </select>
+
+              {/* Right Key Dropdown */}
+              <select
+                value={rightKeys[index] || ""}
+                onChange={(e) => updateKeys("right", index, e.target.value)}
+                disabled={!hasRightInput}
+                className={clsx(
+                  "w-full px-2 py-1.5 text-sm rounded border",
+                  "bg-theme-surface-elevated border-theme-border-primary",
+                  "text-theme-text-primary",
+                  "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                  !hasRightInput && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <option value="">Select column...</option>
+                {rightColumns.map((col) => (
+                  <option key={col.name} value={col.name}>
+                    {col.name} ({col.dtype})
+                  </option>
+                ))}
+              </select>
+
+              {/* Remove Button - only show for populated rows */}
+              {(leftKeys[index] || rightKeys[index]) ? (
+                <button
+                  onClick={() => removeKeyPair(index)}
+                  className="flex items-center justify-center w-6 h-6 text-sm text-red-500 rounded hover:bg-red-500/10"
+                  title="Remove key pair"
+                >
+                  x
+                </button>
+              ) : (
+                <div className="w-6 h-6" /> // Empty spacer for blank row
+              )}
+            </div>
+          ))}
+
+          {/* Loading indicator */}
+          {(leftLoading || rightLoading) && (
+            <div className="text-xs text-theme-text-tertiary">
+              Loading column metadata...
+            </div>
+          )}
+        </div>
+
+        {/* Suffix Configuration */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-theme-text-primary">
+            Right Column Suffix
+          </label>
+          <p className="text-xs text-theme-text-tertiary">
+            Added to right-side columns when names conflict with left.
+          </p>
+          <input
+            type="text"
+            value={localRightSuffix}
+            onChange={(e) => setLocalRightSuffix(e.target.value)}
+            onBlur={() => updateSuffix(localRightSuffix)}
+            placeholder="_right"
+            className={clsx(
+              "w-full px-3 py-2 text-sm rounded border",
+              "bg-theme-surface-elevated border-theme-border-primary",
+              "text-theme-text-primary placeholder-theme-text-disabled",
+              "focus:outline-none focus:ring-1 focus:ring-theme-accent"
+            )}
+          />
+        </div>
+
+        {/* Key Validation Warning */}
+        {leftKeys.length !== rightKeys.length && leftKeys.length > 0 && (
+          <div className="p-3 text-sm border rounded bg-red-500/10 border-red-500/30">
+            <p className="text-red-500">
+              Left and right key columns must have the same count.
+            </p>
+          </div>
+        )}
+
+        {/* Empty Keys Warning */}
+        {leftKeys.some((k) => !k) || rightKeys.some((k) => !k) ? (
+          <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
+            <p className="text-amber-500">
+              Select columns for all key pairs.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}

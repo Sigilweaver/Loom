@@ -12,11 +12,25 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { getToolMetadata, getPolarsFunctions, healthCheck } from '../backend';
+import { getToolMetadata, getPolarsFunctions, healthCheck, type MetadataResponse, type ColumnSchema } from '../backend';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
 const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
+
+/**
+ * Helper to get all columns from metadata response (flattened from all input sockets)
+ */
+const getAllColumns = (result: MetadataResponse): ColumnSchema[] => {
+  return Object.values(result.inputs).flat();
+};
+
+/**
+ * Helper to get columns from a specific input socket
+ */
+const getSocketColumns = (result: MetadataResponse, socketId: string): ColumnSchema[] => {
+  return result.inputs[socketId] || [];
+};
 
 // Helper to create workflow JSON
 const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
@@ -78,18 +92,19 @@ describe('Monaco Editor Autocomplete Integration', () => {
       const metadata = await getToolMetadata('filter1', workflow);
 
       // Verify dtype information is available
-      expect(metadata.columns).toBeDefined();
-      expect(metadata.columns.length).toBeGreaterThan(0);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns).toBeDefined();
+      expect(columns.length).toBeGreaterThan(0);
 
       // Each column should have dtype for type-specific methods
-      metadata.columns.forEach(col => {
+      columns.forEach(col => {
         expect(col.dtype).toBeDefined();
         expect(typeof col.dtype).toBe('string');
         expect(col.dtype.length).toBeGreaterThan(0);
       });
 
       // Verify we have both String and Int64 columns for testing
-      const dtypes = metadata.columns.map(c => c.dtype);
+      const dtypes = columns.map(c => c.dtype);
       expect(dtypes).toContain('String');
       expect(dtypes).toContain('Int64');
     });
@@ -132,7 +147,8 @@ describe('Monaco Editor Autocomplete Integration', () => {
       const metadata = await getToolMetadata('formula1', workflow);
 
       // Each column should have nullable info
-      metadata.columns.forEach(col => {
+      const columns = getSocketColumns(metadata, 'input');
+      columns.forEach(col => {
         expect(col).toHaveProperty('nullable');
         expect(typeof col.nullable).toBe('boolean');
       });
@@ -156,10 +172,11 @@ describe('Monaco Editor Autocomplete Integration', () => {
 
       const metadata = await getToolMetadata('filter1', workflow);
 
-      // Should have empty columns array, not null/undefined
-      expect(metadata.columns).toBeDefined();
-      expect(Array.isArray(metadata.columns)).toBe(true);
-      expect(metadata.columns.length).toBe(0);
+      // Should have empty columns, not null/undefined
+      expect(metadata.inputs).toBeDefined();
+      const columns = getAllColumns(metadata);
+      expect(Array.isArray(columns)).toBe(true);
+      expect(columns.length).toBe(0);
     });
 
     it('propagates schema through multi-step workflow', async () => {
@@ -221,8 +238,9 @@ describe('Monaco Editor Autocomplete Integration', () => {
       const metadata = await getToolMetadata('filter1', workflow);
 
       // Should only have the selected columns
-      expect(metadata.columns.length).toBe(2);
-      const columnNames = metadata.columns.map(c => c.name);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns.length).toBe(2);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('name');
       expect(columnNames).toContain('age');
       expect(columnNames).not.toContain('id');
@@ -360,8 +378,10 @@ describe('Monaco Editor Autocomplete Integration', () => {
         getPolarsFunctions(),
       ]);
 
+      const columns = getSocketColumns(metadata, 'input');
+
       // Context 1 data: columns wrapped in pl.col()
-      const columnSuggestions = metadata.columns.map(col => ({
+      const columnSuggestions = columns.map(col => ({
         label: col.name,
         insertText: `pl.col('${col.name}')`,
         detail: col.dtype,
@@ -377,16 +397,16 @@ describe('Monaco Editor Autocomplete Integration', () => {
       expect(plFunctions.length).toBeGreaterThanOrEqual(3);
 
       // Context 3 data: column names
-      const columnNames = metadata.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('name');
       expect(columnNames).toContain('age');
 
       // Context 4 data: methods based on dtype
-      const stringColumn = metadata.columns.find(c => c.dtype === 'String');
+      const stringColumn = columns.find(c => c.dtype === 'String');
       expect(stringColumn).toBeDefined();
       expect(functions.column_methods.string.length).toBeGreaterThan(0);
 
-      const numericColumn = metadata.columns.find(c => c.dtype === 'Int64');
+      const numericColumn = columns.find(c => c.dtype === 'Int64');
       expect(numericColumn).toBeDefined();
       expect(functions.column_methods.numeric.length).toBeGreaterThan(0);
     });
@@ -432,7 +452,8 @@ describe('Monaco Editor Autocomplete Integration', () => {
       ]);
 
       // Formula needs columns for expressions
-      expect(metadata.columns.length).toBe(4);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns.length).toBe(4);
 
       // Formula needs numeric methods for calculations
       expect(functions.column_methods.numeric).toBeDefined();
@@ -495,9 +516,10 @@ describe('Monaco Editor Autocomplete Integration', () => {
 
       // Formula should still see all columns (schema is preserved through filter)
       const metadata = await getToolMetadata('formula1', workflow);
-      expect(metadata.columns.length).toBe(4);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns.length).toBe(4);
 
-      const columnNames = metadata.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('age');
     });
   });
@@ -545,7 +567,8 @@ describe('Monaco Editor Autocomplete Integration', () => {
       ]);
 
       // Find string columns
-      const stringColumns = metadata.columns.filter(c => c.dtype === 'String');
+      const columns = getSocketColumns(metadata, 'input');
+      const stringColumns = columns.filter(c => c.dtype === 'String');
       expect(stringColumns.length).toBeGreaterThan(0);
 
       // String columns should use string methods
@@ -594,7 +617,8 @@ describe('Monaco Editor Autocomplete Integration', () => {
       ]);
 
       // Find numeric columns (Int64 in sample.csv)
-      const numericColumns = metadata.columns.filter(c => 
+      const columns = getSocketColumns(metadata, 'input');
+      const numericColumns = columns.filter(c => 
         c.dtype === 'Int64' || c.dtype === 'Float64'
       );
       expect(numericColumns.length).toBeGreaterThan(0);

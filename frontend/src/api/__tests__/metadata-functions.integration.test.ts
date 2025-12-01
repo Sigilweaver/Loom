@@ -10,11 +10,25 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { getToolMetadata, getPolarsFunctions, healthCheck } from '../backend';
+import { getToolMetadata, getPolarsFunctions, healthCheck, type MetadataResponse, type ColumnSchema } from '../backend';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
 const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
+
+/**
+ * Helper to get all columns from metadata response (flattened from all input sockets)
+ */
+const getAllColumns = (result: MetadataResponse): ColumnSchema[] => {
+  return Object.values(result.inputs).flat();
+};
+
+/**
+ * Helper to get columns from a specific input socket
+ */
+const getSocketColumns = (result: MetadataResponse, socketId: string): ColumnSchema[] => {
+  return result.inputs[socketId] || [];
+};
 
 const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
   version: '2.0',
@@ -57,8 +71,8 @@ describe('Metadata and Functions Integration', () => {
 
       expect(result).toBeDefined();
       expect(result.tool_id).toBe('filter1');
-      expect(result.columns).toBeDefined();
-      expect(result.columns).toEqual([]);
+      expect(result.inputs).toBeDefined();
+      expect(getAllColumns(result)).toEqual([]);
     });
 
     it('should return column metadata from connected input tool', async () => {
@@ -100,20 +114,21 @@ describe('Metadata and Functions Integration', () => {
       const result = await getToolMetadata('filter1', workflow);
 
       expect(result.tool_id).toBe('filter1');
-      expect(result.columns).toBeDefined();
-      expect(result.columns.length).toBeGreaterThan(0);
+      expect(result.inputs).toBeDefined();
+      const columns = getSocketColumns(result, 'input');
+      expect(columns.length).toBeGreaterThan(0);
 
       // Verify column structure
-      const firstColumn = result.columns[0];
+      const firstColumn = columns[0];
       expect(firstColumn).toHaveProperty('name');
       expect(firstColumn).toHaveProperty('dtype');
       expect(firstColumn).toHaveProperty('nullable');
 
       // Check expected columns from sample.csv
-      const columnNames = result.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toEqual(['id', 'name', 'age', 'city']);
 
-      const columnTypes = result.columns.map(c => c.dtype);
+      const columnTypes = columns.map(c => c.dtype);
       expect(columnTypes).toEqual(['Int64', 'String', 'Int64', 'String']);
     });
 
@@ -158,11 +173,12 @@ describe('Metadata and Functions Integration', () => {
       const result = await getToolMetadata('formula1', workflow);
 
       expect(result.tool_id).toBe('formula1');
-      expect(result.columns).toBeDefined();
-      expect(result.columns.length).toBe(4);
+      expect(result.inputs).toBeDefined();
+      const columns = getSocketColumns(result, 'input');
+      expect(columns.length).toBe(4);
 
       // Should have all columns available for formula
-      const columnNames = result.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('id');
       expect(columnNames).toContain('name');
       expect(columnNames).toContain('age');
@@ -228,10 +244,11 @@ describe('Metadata and Functions Integration', () => {
       const result = await getToolMetadata('filter1', workflow);
 
       expect(result.tool_id).toBe('filter1');
-      expect(result.columns.length).toBe(2);
+      const columns = getSocketColumns(result, 'input');
+      expect(columns.length).toBe(2);
 
       // Should only have selected columns
-      const columnNames = result.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toEqual(['name', 'age']);
       expect(columnNames).not.toContain('id');
       expect(columnNames).not.toContain('city');
@@ -294,14 +311,15 @@ describe('Metadata and Functions Integration', () => {
       const result = await getToolMetadata('filter1', workflow);
 
       expect(result.tool_id).toBe('filter1');
-      expect(result.columns.length).toBe(5); // 4 original + 1 new
+      const columns = getSocketColumns(result, 'input');
+      expect(columns.length).toBe(5); // 4 original + 1 new
 
       // Check for new calculated column
-      const columnNames = result.columns.map(c => c.name);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('age_doubled');
 
       // Verify the new column has correct type
-      const newColumn = result.columns.find(c => c.name === 'age_doubled');
+      const newColumn = columns.find(c => c.name === 'age_doubled');
       expect(newColumn).toBeDefined();
       expect(newColumn?.dtype).toBe('Int64'); // age * 2 should still be Int64
     });
@@ -345,7 +363,8 @@ describe('Metadata and Functions Integration', () => {
       const result = await getToolMetadata('filter1', workflow);
 
       // All columns should have nullable property
-      result.columns.forEach(column => {
+      const columns = getSocketColumns(result, 'input');
+      columns.forEach(column => {
         expect(column).toHaveProperty('nullable');
         expect(typeof column.nullable).toBe('boolean');
       });
@@ -586,12 +605,13 @@ describe('Metadata and Functions Integration', () => {
       ]);
 
       // Verify we have everything needed for autocomplete
-      expect(metadata.columns.length).toBeGreaterThan(0);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns.length).toBeGreaterThan(0);
       expect(functions.table_level.length).toBeGreaterThan(0);
       expect(functions.column_methods.all.length).toBeGreaterThan(0);
 
       // Should be able to build pl.col('column_name') suggestions
-      const columnSuggestions = metadata.columns.map(col => ({
+      const columnSuggestions = columns.map(col => ({
         label: col.name,
         type: col.dtype,
         insertText: `pl.col('${col.name}')`,
@@ -652,8 +672,9 @@ describe('Metadata and Functions Integration', () => {
       ]);
 
       // Should have columns available
-      expect(metadata.columns.length).toBe(4);
-      const columnNames = metadata.columns.map(c => c.name);
+      const columns = getSocketColumns(metadata, 'input');
+      expect(columns.length).toBe(4);
+      const columnNames = columns.map(c => c.name);
       expect(columnNames).toContain('age');
       expect(columnNames).toContain('name');
 
@@ -665,12 +686,12 @@ describe('Metadata and Functions Integration', () => {
 
       // Should have type-specific methods based on column types
       // For string columns, should suggest string methods
-      const stringColumn = metadata.columns.find(c => c.dtype === 'String');
+      const stringColumn = columns.find(c => c.dtype === 'String');
       expect(stringColumn).toBeDefined();
       expect(functions.column_methods.string.length).toBeGreaterThan(0);
 
       // For numeric columns, should suggest numeric methods
-      const numericColumn = metadata.columns.find(c => c.dtype === 'Int64');
+      const numericColumn = columns.find(c => c.dtype === 'Int64');
       expect(numericColumn).toBeDefined();
       expect(functions.column_methods.numeric.length).toBeGreaterThan(0);
     });
@@ -699,12 +720,435 @@ describe('Metadata and Functions Integration', () => {
       ]);
 
       // Should have no columns but still have functions
-      expect(metadata.columns.length).toBe(0);
+      expect(getAllColumns(metadata).length).toBe(0);
       expect(functions.table_level.length).toBeGreaterThan(0);
 
       // Can still suggest pl.lit() even without columns
       const litFunc = functions.table_level.find(f => f.name === 'pl.lit');
       expect(litFunc).toBeDefined();
+    });
+  });
+
+  describe('Per-Socket Metadata for Multi-Input Tools', () => {
+    /**
+     * These tests verify the core functionality that metadata returns columns
+     * grouped by input socket ID, which is essential for tools like Join
+     * that have multiple distinct inputs requiring separate column lists.
+     */
+
+    // Second CSV with different schema for testing Join
+    const EMPLOYEES_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
+    // Note: Using same CSV but the principle is tested - in reality these would be different files
+
+    it('should return columns keyed by socket ID for Join tool', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input-people',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'input-employees',
+            type: 'Input',
+            x: 0,
+            y: 200,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: EMPLOYEES_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'join1',
+            type: 'Join',
+            x: 300,
+            y: 100,
+            config: {
+              joinType: 'inner',
+              leftKeys: [],
+              rightKeys: [],
+            },
+            sockets: [
+              { id: 'input-left', direction: 'input', type: 'L' },
+              { id: 'input-right', direction: 'input', type: 'R' },
+              { id: 'output-left', direction: 'output', type: 'L' },
+              { id: 'output-match', direction: 'output', type: 'J' },
+              { id: 'output-right', direction: 'output', type: 'R' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input-people', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-left' },
+          },
+          {
+            from: { tool: 'input-employees', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-right' },
+          },
+        ]
+      );
+
+      const result = await getToolMetadata('join1', workflow);
+
+      // Verify response structure has inputs object
+      expect(result.tool_id).toBe('join1');
+      expect(result.inputs).toBeDefined();
+      expect(typeof result.inputs).toBe('object');
+
+      // Verify both input sockets are present
+      expect(result.inputs).toHaveProperty('input-left');
+      expect(result.inputs).toHaveProperty('input-right');
+
+      // Verify left socket has columns
+      const leftColumns = getSocketColumns(result, 'input-left');
+      expect(leftColumns.length).toBeGreaterThan(0);
+      const leftColumnNames = leftColumns.map(c => c.name);
+      expect(leftColumnNames).toContain('id');
+      expect(leftColumnNames).toContain('name');
+
+      // Verify right socket has columns
+      const rightColumns = getSocketColumns(result, 'input-right');
+      expect(rightColumns.length).toBeGreaterThan(0);
+      const rightColumnNames = rightColumns.map(c => c.name);
+      expect(rightColumnNames).toContain('id');
+    });
+
+    it('should return empty socket when input is not connected', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'join1',
+            type: 'Join',
+            x: 300,
+            y: 100,
+            config: {
+              joinType: 'inner',
+              leftKeys: [],
+              rightKeys: [],
+            },
+            sockets: [
+              { id: 'input-left', direction: 'input', type: 'L' },
+              { id: 'input-right', direction: 'input', type: 'R' },
+              { id: 'output-left', direction: 'output', type: 'L' },
+              { id: 'output-match', direction: 'output', type: 'J' },
+              { id: 'output-right', direction: 'output', type: 'R' },
+            ],
+          },
+        ],
+        [
+          // Only left is connected
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-left' },
+          },
+        ]
+      );
+
+      const result = await getToolMetadata('join1', workflow);
+
+      // Left socket should have columns
+      expect(result.inputs).toHaveProperty('input-left');
+      const leftColumns = getSocketColumns(result, 'input-left');
+      expect(leftColumns.length).toBeGreaterThan(0);
+
+      // Right socket should be missing or empty (not connected)
+      const rightColumns = getSocketColumns(result, 'input-right');
+      expect(rightColumns.length).toBe(0);
+    });
+
+    it('should allow getSocketColumns helper to retrieve columns by socket ID', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'filter1',
+            type: 'Filter',
+            x: 200,
+            y: 0,
+            config: { expression: '' },
+            sockets: [
+              { id: 'input', direction: 'input' },
+              { id: 'output-true', direction: 'output' },
+              { id: 'output-false', direction: 'output' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
+          },
+        ]
+      );
+
+      const result = await getToolMetadata('filter1', workflow);
+
+      // Should be able to get columns by socket ID
+      const inputColumns = getSocketColumns(result, 'input');
+      expect(inputColumns.length).toBe(4);
+      expect(inputColumns.map(c => c.name)).toEqual(['id', 'name', 'age', 'city']);
+
+      // Non-existent socket should return empty array
+      const nonExistent = getSocketColumns(result, 'non-existent-socket');
+      expect(nonExistent).toEqual([]);
+    });
+
+    it('should allow getAllColumns helper to flatten all socket columns', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'input2',
+            type: 'Input',
+            x: 0,
+            y: 200,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV, // Same file, so same columns
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'join1',
+            type: 'Join',
+            x: 300,
+            y: 100,
+            config: { joinType: 'inner', leftKeys: [], rightKeys: [] },
+            sockets: [
+              { id: 'input-left', direction: 'input' },
+              { id: 'input-right', direction: 'input' },
+              { id: 'output-match', direction: 'output' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-left' },
+          },
+          {
+            from: { tool: 'input2', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-right' },
+          },
+        ]
+      );
+
+      const result = await getToolMetadata('join1', workflow);
+
+      // getAllColumns should flatten all columns from all sockets
+      const allColumns = getAllColumns(result);
+      // Should have 4 columns from left + 4 columns from right = 8 total
+      expect(allColumns.length).toBe(8);
+
+      // Should contain columns from both inputs
+      const allNames = allColumns.map(c => c.name);
+      expect(allNames.filter(n => n === 'id').length).toBe(2); // 'id' appears twice
+      expect(allNames.filter(n => n === 'name').length).toBe(2);
+    });
+
+    it('should return columns directly when socket_id is specified in request', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'input2',
+            type: 'Input',
+            x: 0,
+            y: 200,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'join1',
+            type: 'Join',
+            x: 300,
+            y: 100,
+            config: { joinType: 'inner', leftKeys: [], rightKeys: [] },
+            sockets: [
+              { id: 'input-left', direction: 'input' },
+              { id: 'input-right', direction: 'input' },
+              { id: 'output-match', direction: 'output' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-left' },
+          },
+          {
+            from: { tool: 'input2', socket: 'output' },
+            to: { tool: 'join1', socket: 'input-right' },
+          },
+        ]
+      );
+
+      // Request metadata for specific socket
+      const result = await getToolMetadata('join1', workflow, 'input-left');
+
+      // Should have socket_id set
+      expect(result.socket_id).toBe('input-left');
+      
+      // Should have columns array with just the left socket's columns
+      expect(result.columns).toBeDefined();
+      expect(result.columns).not.toBeNull();
+      expect(result.columns!.length).toBe(4);
+      expect(result.columns!.map(c => c.name)).toEqual(['id', 'name', 'age', 'city']);
+
+      // inputs should still only have the requested socket
+      expect(Object.keys(result.inputs)).toEqual(['input-left']);
+    });
+
+    it('should return null columns when socket_id is not specified', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'filter1',
+            type: 'Filter',
+            x: 200,
+            y: 0,
+            config: { expression: '' },
+            sockets: [
+              { id: 'input', direction: 'input' },
+              { id: 'output-true', direction: 'output' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
+          },
+        ]
+      );
+
+      // Request metadata without socket_id (gets all sockets)
+      const result = await getToolMetadata('filter1', workflow);
+
+      // socket_id should be null when not specified
+      expect(result.socket_id).toBeNull();
+      
+      // columns should be null (use inputs instead)
+      expect(result.columns).toBeNull();
+      
+      // inputs should have all sockets
+      expect(result.inputs).toHaveProperty('input');
+      expect(result.inputs['input'].length).toBe(4);
+    });
+
+    it('should return empty columns for non-existent socket_id', async () => {
+      const workflow = createWorkflow(
+        [
+          {
+            id: 'input1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: TEST_CSV,
+            },
+            sockets: [{ id: 'output', direction: 'output' }],
+          },
+          {
+            id: 'filter1',
+            type: 'Filter',
+            x: 200,
+            y: 0,
+            config: { expression: '' },
+            sockets: [
+              { id: 'input', direction: 'input' },
+              { id: 'output-true', direction: 'output' },
+            ],
+          },
+        ],
+        [
+          {
+            from: { tool: 'input1', socket: 'output' },
+            to: { tool: 'filter1', socket: 'input' },
+          },
+        ]
+      );
+
+      // Request metadata for non-existent socket
+      const result = await getToolMetadata('filter1', workflow, 'non-existent');
+
+      expect(result.socket_id).toBe('non-existent');
+      expect(result.columns).toEqual([]);
+      expect(result.inputs).toEqual({ 'non-existent': [] });
     });
   });
 });

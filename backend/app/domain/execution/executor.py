@@ -267,18 +267,20 @@ class WorkflowExecutor:
         self,
         workflow: Workflow,
         tool_id: str,
+        socket_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Get metadata for a tool for autocomplete suggestions.
 
-        Returns available columns from input sockets plus common Polars functions.
+        Returns available columns per input socket, or for a specific socket.
 
         Args:
             workflow: Workflow containing the tool
             tool_id: Tool ID to get metadata for
+            socket_id: Optional socket ID to filter columns for
 
         Returns:
-            Dict with columns and Polars function suggestions
+            Dict with columns for the requested socket(s)
         """
         # Build execution graph to find dependencies
         graph = ExecutionGraph(workflow)
@@ -292,30 +294,41 @@ class WorkflowExecutor:
             outputs = await self._execute_tool(upstream_tool, inputs)
             self.results[upstream_tool_id] = outputs
 
-        # Get input schemas for target tool
-        columns = []
+        # Get input schemas for target tool, grouped by socket
         tool_inputs = graph.get_tool_inputs(tool_id)
-        for socket_id, source_list in tool_inputs.items():
-            # For now, just use schema from first source (handles Union later)
-            if source_list:
-                source_tool_id, source_socket_id = source_list[0]
+        
+        # If socket_id is specified, only process that socket
+        sockets_to_process = (
+            {socket_id: tool_inputs.get(socket_id, [])}
+            if socket_id
+            else tool_inputs
+        )
+        
+        inputs_metadata: dict[str, list[dict[str, Any]]] = {}
+        for sid, source_list in sockets_to_process.items():
+            socket_columns = []
+            # For Union-style multi-input, merge all sources
+            for source_tool_id, source_socket_id in source_list:
                 if source_tool_id in self.results:
-                    # Get schema from LazyFrame
                     lf = self.results[source_tool_id][source_socket_id]
                     schema = schema_from_polars(lf)
-                    columns.extend([
-                        {
+                    for col in schema.columns:
+                        col_info = {
                             "name": col.name,
                             "dtype": col.dtype.value,
                             "nullable": col.nullable,
                         }
-                        for col in schema.columns
-                    ])
+                        # Avoid duplicates for Union
+                        if col_info not in socket_columns:
+                            socket_columns.append(col_info)
+            inputs_metadata[sid] = socket_columns
 
         # Return metadata
         return {
             "tool_id": tool_id,
-            "columns": columns,
+            "socket_id": socket_id,
+            "columns": inputs_metadata.get(socket_id, []) if socket_id else None,
+            "inputs": inputs_metadata,
         }
 
     async def _execute_tool(

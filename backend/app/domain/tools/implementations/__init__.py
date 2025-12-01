@@ -8,5 +8,6 @@ from app.domain.tools.implementations.formula import FormulaTool
 from app.domain.tools.implementations.union import UnionTool
 from app.domain.tools.implementations.summarize import SummarizeTool
 from app.domain.tools.implementations.sort import SortTool
+from app.domain.tools.implementations.join import JoinTool
 
-__all__ = ["InputTool", "OutputTool", "FilterTool", "SelectTool", "FormulaTool", "UnionTool", "SummarizeTool", "SortTool"]
+__all__ = ["InputTool", "OutputTool", "FilterTool", "SelectTool", "FormulaTool", "UnionTool", "SummarizeTool", "SortTool", "JoinTool"]

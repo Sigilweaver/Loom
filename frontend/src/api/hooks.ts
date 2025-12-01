@@ -273,8 +273,8 @@ export interface UseMetadataResult {
   metadata: MetadataResponse | null;
   loading: boolean;
   error: string | null;
-  fetchMetadata: (toolId: string, workflow: WorkflowJSON) => Promise<void>;
-  getColumns: () => ColumnSchema[];
+  fetchMetadata: (toolId: string, workflow: WorkflowJSON, socketId?: string) => Promise<void>;
+  getColumns: (socketId?: string) => ColumnSchema[];
 }
 
 /**
@@ -285,12 +285,15 @@ export interface UseMetadataResult {
  * @example
  * const { metadata, loading, error, fetchMetadata, getColumns } = useMetadata();
  * 
- * // Fetch metadata when tool is connected
+ * // Fetch metadata for a specific socket (more efficient for Join tool)
  * useEffect(() => {
  *   if (tool.hasUpstreamConnection) {
- *     fetchMetadata(tool.id, workflow);
+ *     fetchMetadata(tool.id, workflow, 'input-left');
  *   }
  * }, [tool.connections]);
+ * 
+ * // Or fetch all sockets at once
+ * fetchMetadata(tool.id, workflow);
  * 
  * // Use columns for autocomplete
  * const columns = getColumns();
@@ -300,9 +303,9 @@ export function useMetadata(): UseMetadataResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMetadata = useCallback(async (toolId: string, workflow: WorkflowJSON) => {
-    // Check cache first
-    const cached = getCachedMetadata(toolId, workflow);
+  const fetchMetadata = useCallback(async (toolId: string, workflow: WorkflowJSON, socketId?: string) => {
+    // Check cache first (include socketId in cache key)
+    const cached = getCachedMetadata(toolId, workflow, socketId);
     if (cached) {
       setMetadata(cached);
       setError(null);
@@ -313,10 +316,10 @@ export function useMetadata(): UseMetadataResult {
     setError(null);
     
     try {
-      const result = await getToolMetadata(toolId, workflow);
+      const result = await getToolMetadata(toolId, workflow, socketId);
       setMetadata(result);
       // Cache the result
-      cacheMetadata(toolId, workflow, result);
+      cacheMetadata(toolId, workflow, result, socketId);
     } catch (err) {
       const message = err instanceof BackendError 
         ? err.message 
@@ -328,8 +331,25 @@ export function useMetadata(): UseMetadataResult {
     }
   }, []);
 
-  const getColumns = useCallback((): ColumnSchema[] => {
-    return metadata?.columns || [];
+  const getColumns = useCallback((socketId?: string): ColumnSchema[] => {
+    if (!metadata) return [];
+    
+    // If we requested a specific socket and have columns, return those
+    if (metadata.socket_id && metadata.columns) {
+      // If caller wants a specific socket, check it matches
+      if (socketId && socketId !== metadata.socket_id) {
+        // Requested socket doesn't match what we fetched, check inputs
+        return metadata.inputs[socketId] || [];
+      }
+      return metadata.columns;
+    }
+    
+    // Fall back to inputs (all sockets case)
+    if (socketId) {
+      return metadata.inputs[socketId] || [];
+    }
+    // If no socketId, return all columns from all sockets (flattened)
+    return Object.values(metadata.inputs).flat();
   }, [metadata]);
 
   return { metadata, loading, error, fetchMetadata, getColumns };

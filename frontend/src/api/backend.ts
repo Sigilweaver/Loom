@@ -281,10 +281,15 @@ export interface PolarsFunction {
 
 /**
  * Metadata response from /api/workflow/tool/metadata endpoint
+ * 
+ * When socket_id is provided in request, columns contains that socket's columns.
+ * The inputs field always contains all sockets for backward compatibility.
  */
 export interface MetadataResponse {
   tool_id: string;
-  columns: ColumnSchema[];
+  socket_id: string | null;
+  columns: ColumnSchema[] | null;
+  inputs: Record<string, ColumnSchema[]>;
 }
 
 /**
@@ -314,12 +319,14 @@ export interface PolarsFunctionsResponse {
  * 
  * @param toolId - The ID of the tool to get metadata for
  * @param workflow - The complete workflow definition
+ * @param socketId - Optional socket ID to get columns for (if not provided, returns all sockets)
  * @param context - Optional request context for logging
  * @returns Metadata including columns from input sockets
  */
 export async function getToolMetadata(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId?: string,
   context?: RequestContext
 ): Promise<MetadataResponse> {
   return apiRequest<MetadataResponse>('/workflow/tool/metadata', {
@@ -327,6 +334,7 @@ export async function getToolMetadata(
     body: JSON.stringify({
       tool_id: toolId,
       workflow,
+      socket_id: socketId,
     }),
   }, { ...context, toolId });
 }

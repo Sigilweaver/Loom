@@ -15,6 +15,7 @@ import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import { FilterConfiguration } from "./FilterConfiguration";
 import { FormulaConfiguration } from "./FormulaConfiguration";
+import { JoinConfiguration } from "./JoinConfiguration";
 import { SelectConfiguration } from "./SelectConfiguration";
 import { SortConfiguration } from "./SortConfiguration";
 import { SummarizeConfiguration } from "./SummarizeConfiguration";
@@ -309,6 +310,18 @@ export default function ConfigurationPanel() {
           <UnionConfiguration
             config={selectedTool.config}
             onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+          />
+        </div>
+      ) : selectedTool.type === "Join" ? (
+        /* Join Tool Configuration */
+        <div className="flex-1 overflow-hidden">
+          <JoinConfiguration
+            config={selectedTool.config}
+            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
+            toolId={selectedTool.id}
+            tools={tools}
+            wires={wires}
+            workflowMeta={workflowMeta}
           />
         </div>
       ) : selectedTool.type === "Sort" ? (

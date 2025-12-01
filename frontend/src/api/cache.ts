@@ -123,7 +123,8 @@ export function computeCacheKey(
   toolId: string,
   workflow: WorkflowJSON,
   cacheType: 'schema' | 'preview' | 'metadata',
-  previewLimit?: number
+  previewLimit?: number,
+  socketId?: string
 ): string {
   const normalized = normalizeWorkflow(workflow);
   
@@ -167,6 +168,7 @@ export function computeCacheKey(
     })),
     wires: relevantWires,
     ...(previewLimit !== undefined && { limit: previewLimit }),
+    ...(socketId !== undefined && { socketId }),
   };
   
   // Use JSON stringification for simple hashing
@@ -270,9 +272,10 @@ export function cacheAllPreviews(
 export function getCachedMetadata(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId?: string,
   context?: RequestContext
 ): MetadataResponse | null {
-  const key = computeCacheKey(toolId, workflow, 'metadata');
+  const key = computeCacheKey(toolId, workflow, 'metadata', undefined, socketId);
   const entry = cache.get(key);
   const endpoint = '/workflow/tool/metadata';
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
@@ -292,9 +295,10 @@ export function getCachedMetadata(
 export function cacheMetadata(
   toolId: string,
   workflow: WorkflowJSON,
-  data: MetadataResponse
+  data: MetadataResponse,
+  socketId?: string
 ): void {
-  const key = computeCacheKey(toolId, workflow, 'metadata');
+  const key = computeCacheKey(toolId, workflow, 'metadata', undefined, socketId);
   cache.set(key, { type: 'metadata', data });
 }
 

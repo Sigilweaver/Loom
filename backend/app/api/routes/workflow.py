@@ -59,6 +59,9 @@ class ToolMetadataRequest(BaseModel):
 
     tool_id: str = Field(description="Tool ID to get metadata for")
     workflow: Workflow = Field(description="Full workflow for context")
+    socket_id: str | None = Field(
+        None, description="Optional: Specific input socket ID to get columns for"
+    )
 
 
 @router.post("/execute")
@@ -165,6 +168,7 @@ async def get_tool_metadata(request: ToolMetadataRequest):
         result = await executor.get_tool_metadata(
             workflow=request.workflow,
             tool_id=request.tool_id,
+            socket_id=request.socket_id,
         )
         return result
 
