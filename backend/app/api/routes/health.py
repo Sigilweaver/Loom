@@ -33,7 +33,7 @@ async def health_check() -> HealthResponse:
     """
     return HealthResponse(
         status="healthy",
-        version="0.1.0",
+        version="0.0.0-dev",
         message="SigilWeaver Backend is running",
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         platform=f"{platform.system()} {platform.release()}",
