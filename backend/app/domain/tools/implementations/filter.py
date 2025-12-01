@@ -6,9 +6,10 @@ import polars as pl
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import FilterOperation
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
-from app.utils.expression import parse_polars_expression, normalize_expression
+from app.utils.expression import parse_polars_expression
 
 
 @register_tool("Filter")
@@ -21,6 +22,10 @@ class FilterTool(BaseTool):
     - Socket output-false (F): Rows that don't match the filter
     """
 
+    def _build_operation(self, config: dict[str, Any]) -> FilterOperation:
+        """Build the filter operation from config."""
+        return FilterOperation(expr_str=config.get("expression", ""))
+
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
     ) -> dict[str, pl.LazyFrame]:
@@ -30,31 +35,16 @@ class FilterTool(BaseTool):
         Config should contain:
         - expression: Polars expression string (e.g., "pl.col('amount') > 100")
         """
-        # Get input LazyFrame
         if "input" not in inputs:
             raise ToolError("Filter tool requires input on socket 'input'")
 
         lf = inputs["input"]
-
-        # Get filter expression
-        expression = config.get("expression", "")
-        if not expression or expression.strip() == "":
-            # No filter - all rows pass
-            return {
-                "output-true": lf,  # T output - all rows
-                "output-false": lf.clear(),  # F output - empty
-            }
-
-        # Parse and apply filter expression using shared utility
-        filter_expr = parse_polars_expression(expression)
-
-        # Split into T and F outputs
-        lf_true = lf.filter(filter_expr)
-        lf_false = lf.filter(~filter_expr)
+        op = self._build_operation(config)
+        lf_true, lf_false = op.execute(lf)
 
         return {
-            "output-true": lf_true,  # T output (matches)
-            "output-false": lf_false,  # F output (doesn't match)
+            "output-true": lf_true,
+            "output-false": lf_false,
         }
 
     async def get_output_schema(
@@ -97,30 +87,15 @@ class FilterTool(BaseTool):
         config: dict[str, Any],
         input_vars: dict[str, str],
     ) -> tuple[list[str], dict[str, str]]:
-        """Generate Python code for Filter tool"""
+        """Generate Python code for Filter tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        lines = []
-        expression = config.get("expression", "")
-
-        # Normalize expression using shared utility
-        if expression:
-            expression = normalize_expression(expression)
-
-        # Get input variable name
         input_var = input_vars.get("input", "df_input")
-
-        # Generate output variable names
         var_t = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_t"
         var_f = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_f"
 
-        if not expression or expression.strip() == "":
-            # No filter - all rows pass through
-            lines.append(f"{var_t} = {input_var}")
-            lines.append(f"{var_f} = {input_var}.clear()")
-        else:
-            # Apply filter expression
-            lines.append(f"{var_t} = {input_var}.filter({expression})")
-            lines.append(f"{var_f} = {input_var}.filter(~({expression}))")
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
+        lines = op.to_code(input_var, var_t, var_f)
 
         return (lines, {"output-true": var_t, "output-false": var_f})

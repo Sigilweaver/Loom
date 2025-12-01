@@ -241,3 +241,75 @@ async def test_formula_invalid_expression():
     with pytest.raises(Exception):
         result = await tool.execute(config, {"input": df})
         result["output"].collect()
+
+
+class TestFormulaCodeGeneration:
+    """Tests for FormulaTool.to_python_code()"""
+
+    def test_code_gen_basic_formula(self):
+        """Test basic formula code generation"""
+        tool = FormulaTool()
+        config = {
+            "column_name": "total",
+            "expression": "pl.col('price') * pl.col('quantity')",
+        }
+        input_vars = {"input": "df_input"}
+
+        lines, output_vars = tool.to_python_code("formula1", config, input_vars)
+
+        assert len(lines) == 1
+        assert "df_formula1" in lines[0]
+        assert "with_columns" in lines[0]
+        assert "pl.col('price') * pl.col('quantity')" in lines[0]
+        assert '.alias("total")' in lines[0]
+        assert output_vars == {"output": "df_formula1"}
+
+    def test_code_gen_empty_config(self):
+        """Test code generation with empty/missing config"""
+        tool = FormulaTool()
+        config = {}
+        input_vars = {"input": "df_source"}
+
+        lines, output_vars = tool.to_python_code("fml", config, input_vars)
+
+        # Should pass through when config is incomplete
+        assert len(lines) == 1
+        assert "df_fml = df_source" in lines[0]
+        assert output_vars == {"output": "df_fml"}
+
+    def test_code_gen_multiline_expression(self):
+        """Test code generation normalizes multiline expressions"""
+        tool = FormulaTool()
+        config = {
+            "column_name": "status",
+            "expression": """pl.when(pl.col('x') > 0)
+                .then(pl.lit('Positive'))
+                .otherwise(pl.lit('Negative'))""",
+        }
+        input_vars = {"input": "df_data"}
+
+        lines, output_vars = tool.to_python_code("fmla", config, input_vars)
+
+        assert len(lines) == 1
+        # Expression should be normalized to single line
+        assert "\n" not in lines[0]
+        assert "with_columns" in lines[0]
+        assert '.alias("status")' in lines[0]
+        assert output_vars == {"output": "df_fmla"}
+
+    def test_code_gen_replace_column(self):
+        """Test code generation for replacing existing column"""
+        tool = FormulaTool()
+        config = {
+            "column_name": "price",
+            "expression": "pl.col('price') * 1.1",
+        }
+        input_vars = {"input": "df_in"}
+
+        lines, output_vars = tool.to_python_code("adj", config, input_vars)
+
+        assert len(lines) == 1
+        assert "with_columns" in lines[0]
+        assert "pl.col('price') * 1.1" in lines[0]
+        assert '.alias("price")' in lines[0]
+        assert output_vars == {"output": "df_adj"}

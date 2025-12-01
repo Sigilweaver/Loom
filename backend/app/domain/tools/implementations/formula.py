@@ -6,9 +6,9 @@ import polars as pl
 
 from app.api.models.common import DataSchema, ColumnSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import FormulaOperation
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
-from app.utils.expression import parse_polars_expression
 
 
 @register_tool("Formula")
@@ -30,6 +30,13 @@ class FormulaTool(BaseTool):
     - column_name: Name of the column to create or replace
     - expression: Polars expression string
     """
+
+    def _build_operation(self, config: dict[str, Any]) -> FormulaOperation:
+        """Build the formula operation from config."""
+        return FormulaOperation(
+            column_name=config.get("column_name", ""),
+            expr_str=config.get("expression", ""),
+        )
 
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
@@ -55,9 +62,8 @@ class FormulaTool(BaseTool):
         if not expression:
             raise ToolError("Formula tool requires 'expression' in config")
 
-        # Parse and execute expression using shared utility
-        expr = parse_polars_expression(expression)
-        lf = lf.with_columns(expr.alias(column_name))
+        op = self._build_operation(config)
+        lf = op.execute(lf)
 
         return {"output": lf}
 
@@ -127,3 +133,22 @@ class FormulaTool(BaseTool):
             errors.append("expression must be a string")
 
         return errors
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
+        """Generate Python code for Formula tool - uses same operation as execute()"""
+        from app.domain.workflow.code_generator import PythonCodeGenerator
+
+        input_var = input_vars.get("input", "df_input")
+        var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
+
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
+        lines = op.to_code(input_var, var_name)
+
+        return (lines, {"output": var_name})
+

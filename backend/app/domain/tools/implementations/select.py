@@ -6,6 +6,7 @@ import polars as pl
 
 from app.api.models.common import DataSchema, ColumnSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import SelectOperation, build_select_expr
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
 
@@ -48,6 +49,16 @@ class SelectTool(BaseTool):
         - size: int | None - max string length (optional, for String type)
     """
 
+    def _build_operation(self, config: dict[str, Any]) -> SelectOperation:
+        """Build the select operation from config."""
+        column_configs = config.get("columnConfigs", [])
+        expressions = []
+        for col_config in column_configs:
+            expr = build_select_expr(col_config)
+            if expr is not None:
+                expressions.append(expr)
+        return SelectOperation(expressions=expressions)
+
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
     ) -> dict[str, pl.LazyFrame]:
@@ -57,7 +68,6 @@ class SelectTool(BaseTool):
         Config should contain:
         - columnConfigs: list[dict] - column configurations
         """
-        # Get input LazyFrame
         if "input" not in inputs:
             raise ToolError("Select tool requires input on socket 'input'")
 
@@ -68,54 +78,12 @@ class SelectTool(BaseTool):
         if not column_configs:
             return {"output": lf}
 
-        # Build list of expressions for selected columns (maintains order)
-        expressions: list[pl.Expr] = []
-
-        for col_config in column_configs:
-            name = col_config.get("name")
-            selected = col_config.get("selected", True)
-            rename = col_config.get("rename")
-            target_type = col_config.get("targetType")
-            size = col_config.get("size")
-
-            if not name:
-                continue
-
-            if not selected:
-                # Skip deselected columns
-                continue
-
-            # Start with column reference
-            expr = pl.col(name)
-
-            # Apply type cast if specified
-            if target_type and target_type in DTYPE_STRING_TO_POLARS:
-                expr = expr.cast(DTYPE_STRING_TO_POLARS[target_type])
-
-            # Apply string truncation if specified (only for string types)
-            if size is not None and size > 0:
-                # Check if we're dealing with a string type
-                # Apply truncation using str.head
-                if target_type in ("String", "Utf8") or target_type is None:
-                    expr = expr.str.head(size)
-
-            # Apply rename if specified
-            if rename and rename.strip():
-                expr = expr.alias(rename.strip())
-            else:
-                # Keep original name
-                expr = expr.alias(name)
-
-            expressions.append(expr)
-
-        if not expressions:
-            # All columns deselected - return empty frame with no columns
-            # This is an edge case, return a frame with just the row structure
+        op = self._build_operation(config)
+        
+        if not op.expressions:
             raise ToolError("At least one column must be selected")
 
-        # Apply all transformations
-        lf = lf.select(expressions)
-
+        lf = op.execute(lf)
         return {"output": lf}
 
     async def get_output_schema(
@@ -248,70 +216,27 @@ class SelectTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[int, str],
-    ) -> tuple[list[str], dict[int, str]]:
-        """Generate Python code for Select tool"""
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
+        """Generate Python code for Select tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        lines = []
         column_configs = config.get("columnConfigs", [])
-
-        # Get input variable name
-        input_var = input_vars.get(0, "df_input")
-
-        # Generate output variable name
+        input_var = input_vars.get("input", "df_input")
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            lines.append(f"{var_name} = {input_var}")
-            return (lines, {1: var_name})
+            return ([f"{var_name} = {input_var}"], {"output": var_name})
 
-        # Build list of expression strings for selected columns
-        expr_parts: list[str] = []
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
 
-        for col_config in column_configs:
-            name = col_config.get("name")
-            selected = col_config.get("selected", True)
-            rename = col_config.get("rename")
-            target_type = col_config.get("targetType")
-            size = col_config.get("size")
+        if not op.expressions:
+            return (
+                [f"# ERROR: No columns selected", f"{var_name} = {input_var}"],
+                {"output": var_name},
+            )
 
-            if not name or not selected:
-                continue
-
-            # Build expression string
-            escaped_name = PythonCodeGenerator.escape_string(name)
-            expr = f'pl.col("{escaped_name}")'
-
-            # Apply type cast if specified
-            if target_type and target_type in DTYPE_STRING_TO_POLARS:
-                expr = f"{expr}.cast(pl.{target_type})"
-
-            # Apply string truncation if specified
-            if size is not None and size > 0:
-                if target_type in ("String", "Utf8") or target_type is None:
-                    expr = f"{expr}.str.head({size})"
-
-            # Apply rename/alias
-            output_name = rename.strip() if rename and rename.strip() else name
-            escaped_output = PythonCodeGenerator.escape_string(output_name)
-            expr = f'{expr}.alias("{escaped_output}")'
-
-            expr_parts.append(expr)
-
-        if not expr_parts:
-            lines.append(f"# ERROR: No columns selected")
-            lines.append(f"{var_name} = {input_var}")
-            return (lines, {1: var_name})
-
-        # Generate select statement
-        if len(expr_parts) == 1:
-            lines.append(f"{var_name} = {input_var}.select({expr_parts[0]})")
-        else:
-            lines.append(f"{var_name} = {input_var}.select([")
-            for expr in expr_parts:
-                lines.append(f"    {expr},")
-            lines.append("])")
-
-        return (lines, {1: var_name})
+        lines = op.to_code(input_var, var_name)
+        return (lines, {"output": var_name})

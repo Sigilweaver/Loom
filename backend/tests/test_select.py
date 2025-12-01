@@ -321,13 +321,13 @@ class TestSelectToolCodeGeneration:
 
         tool = SelectTool()
         config = {}
-        input_vars = {0: "df_input"}
+        input_vars = {"input": "df_input"}
 
         lines, output_vars = tool.to_python_code("sel1", config, input_vars)
 
         assert len(lines) == 1
         assert lines[0] == "df_sel1 = df_input"
-        assert output_vars == {1: "df_sel1"}
+        assert output_vars == {"output": "df_sel1"}
 
     def test_code_gen_select_columns(self):
         """Should generate select code for specific columns"""
@@ -341,7 +341,7 @@ class TestSelectToolCodeGeneration:
                 {"name": "age", "selected": False},
             ]
         }
-        input_vars = {0: "df_source"}
+        input_vars = {"input": "df_source"}
 
         lines, output_vars = tool.to_python_code("select1", config, input_vars)
 
@@ -350,7 +350,7 @@ class TestSelectToolCodeGeneration:
         assert 'pl.col("id")' in code
         assert 'pl.col("name")' in code
         assert 'pl.col("age")' not in code
-        assert output_vars == {1: "df_select1"}
+        assert output_vars == {"output": "df_select1"}
 
     def test_code_gen_rename_column(self):
         """Should generate code with alias for renamed columns"""
@@ -362,7 +362,7 @@ class TestSelectToolCodeGeneration:
                 {"name": "old_name", "selected": True, "rename": "new_name"},
             ]
         }
-        input_vars = {0: "df_data"}
+        input_vars = {"input": "df_data"}
 
         lines, output_vars = tool.to_python_code("ren", config, input_vars)
 
@@ -380,7 +380,7 @@ class TestSelectToolCodeGeneration:
                 {"name": "value", "selected": True, "targetType": "Float64"},
             ]
         }
-        input_vars = {0: "df"}
+        input_vars = {"input": "df"}
 
         lines, output_vars = tool.to_python_code("cast", config, input_vars)
 
@@ -397,7 +397,7 @@ class TestSelectToolCodeGeneration:
                 {"name": "text", "selected": True, "targetType": "String", "size": 50},
             ]
         }
-        input_vars = {0: "df"}
+        input_vars = {"input": "df"}
 
         lines, output_vars = tool.to_python_code("trunc", config, input_vars)
 
@@ -416,7 +416,7 @@ class TestSelectToolCodeGeneration:
                 {"name": "unused", "selected": False},
             ]
         }
-        input_vars = {0: "df_in"}
+        input_vars = {"input": "df_in"}
 
         lines, output_vars = tool.to_python_code("combined", config, input_vars)
 

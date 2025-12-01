@@ -6,6 +6,7 @@ import polars as pl
 
 from app.api.models.common import DataSchema, ColumnSchema
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import SummarizeOperation, AggregationExpr
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
 
@@ -78,6 +79,28 @@ class SummarizeTool(BaseTool):
     - includeNulls: bool - whether to include null values in grouping (default: False)
     """
 
+    def _build_operation(self, config: dict[str, Any]) -> SummarizeOperation:
+        """Build the summarize operation from config."""
+        group_by_columns = config.get("groupByColumns", [])
+        aggregations_config = config.get("aggregations", [])
+        
+        aggregations = []
+        for agg in aggregations_config:
+            column = agg.get("column")
+            operation = agg.get("operation", "Sum")
+            output_name = agg.get("outputName", "")
+            if column:
+                aggregations.append(AggregationExpr(
+                    column=column,
+                    operation=operation,
+                    output_name=output_name,
+                ))
+        
+        return SummarizeOperation(
+            group_by_columns=group_by_columns,
+            aggregations=aggregations,
+        )
+
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
     ) -> dict[str, pl.LazyFrame]:
@@ -87,7 +110,6 @@ class SummarizeTool(BaseTool):
         If aggregations is empty but groupByColumns is provided, returns distinct
         values for those columns (like SQL SELECT DISTINCT).
         """
-        # Get input LazyFrame
         if "input" not in inputs:
             raise ToolError("Summarize tool requires input on socket 'input'")
 
@@ -96,72 +118,12 @@ class SummarizeTool(BaseTool):
         group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
         
-        # Handle group-by-only case (no aggregations) - return distinct values
-        if not aggregations:
-            if not group_by_columns:
-                raise ToolError("Either group by columns or aggregations are required")
-            # Return distinct values for group by columns
-            result = lf.select(group_by_columns).unique()
-            return {"output": result}
+        # Handle no aggregations and no group by
+        if not aggregations and not group_by_columns:
+            raise ToolError("Either group by columns or aggregations are required")
 
-        # Build aggregation expressions
-        agg_exprs: list[pl.Expr] = []
-        
-        for agg in aggregations:
-            column = agg.get("column")
-            operation = agg.get("operation", "Sum")
-            output_name = agg.get("outputName", "")
-            
-            if not column:
-                raise ToolError("Aggregation column is required")
-            
-            if operation not in AGGREGATION_OPERATIONS:
-                raise ToolError(f"Unknown aggregation operation: {operation}")
-
-            # Build the expression
-            expr = pl.col(column)
-            
-            # Apply the aggregation method
-            if operation == "Sum":
-                expr = expr.sum()
-            elif operation == "Mean":
-                expr = expr.mean()
-            elif operation == "Median":
-                expr = expr.median()
-            elif operation == "Min":
-                expr = expr.min()
-            elif operation == "Max":
-                expr = expr.max()
-            elif operation == "Std":
-                expr = expr.std()
-            elif operation == "Var":
-                expr = expr.var()
-            elif operation == "Count":
-                expr = expr.count()
-            elif operation == "CountDistinct":
-                expr = expr.n_unique()
-            elif operation == "First":
-                expr = expr.first()
-            elif operation == "Last":
-                expr = expr.last()
-            elif operation == "Concat":
-                expr = expr.str.concat(delimiter=", ")
-
-            # Apply output name alias
-            if output_name and output_name.strip():
-                expr = expr.alias(output_name.strip())
-            else:
-                # Default name: column_operation
-                expr = expr.alias(f"{column}_{operation}")
-
-            agg_exprs.append(expr)
-
-        # Apply group by or global aggregation
-        if group_by_columns:
-            result = lf.group_by(group_by_columns).agg(agg_exprs)
-        else:
-            # Global aggregation (no group by)
-            result = lf.select(agg_exprs)
+        op = self._build_operation(config)
+        result = op.execute(lf)
 
         return {"output": result}
 
@@ -270,80 +232,14 @@ class SummarizeTool(BaseTool):
         config: dict[str, Any],
         input_vars: dict[str, str],
     ) -> tuple[list[str], dict[str, str]]:
-        """Generate Python code for Summarize tool"""
+        """Generate Python code for Summarize tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        lines = []
-        
-        group_by_columns = config.get("groupByColumns", [])
-        aggregations = config.get("aggregations", [])
-
-        # Get input variable name
         input_var = input_vars.get("input", "df_input")
-
-        # Generate output variable name
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
-        # Handle group-by-only case (no aggregations) - return distinct values
-        if not aggregations:
-            if group_by_columns:
-                cols_str = ", ".join(f'"{c}"' for c in group_by_columns)
-                lines.append(f"{var_name} = {input_var}.select([{cols_str}]).unique()")
-            else:
-                lines.append(f"{var_name} = {input_var}")
-            return (lines, {"output": var_name})
-
-        # Build aggregation expressions as strings
-        agg_expr_strs: list[str] = []
-        
-        for agg in aggregations:
-            column = agg.get("column")
-            operation = agg.get("operation", "Sum")
-            output_name = agg.get("outputName", "")
-            
-            if not column:
-                continue
-
-            # Build the expression string
-            expr_str = f"pl.col(\"{column}\")"
-            
-            # Apply the aggregation method
-            method_map = {
-                "Sum": ".sum()",
-                "Mean": ".mean()",
-                "Median": ".median()",
-                "Min": ".min()",
-                "Max": ".max()",
-                "Std": ".std()",
-                "Var": ".var()",
-                "Count": ".count()",
-                "CountDistinct": ".n_unique()",
-                "First": ".first()",
-                "Last": ".last()",
-                "Concat": ".str.concat(\", \")",
-            }
-            
-            expr_str += method_map.get(operation, ".sum()")
-
-            # Apply output name alias
-            if output_name and output_name.strip():
-                expr_str += f".alias(\"{output_name.strip()}\")"
-            else:
-                expr_str += f".alias(\"{column}_{operation}\")"
-
-            agg_expr_strs.append(expr_str)
-
-        # Generate the code
-        if group_by_columns:
-            group_by_str = ", ".join(f'"{c}"' for c in group_by_columns)
-            lines.append(f"{var_name} = {input_var}.group_by([{group_by_str}]).agg([")
-        else:
-            lines.append(f"{var_name} = {input_var}.select([")
-        
-        for i, expr_str in enumerate(agg_expr_strs):
-            comma = "," if i < len(agg_expr_strs) - 1 else ""
-            lines.append(f"    {expr_str}{comma}")
-        
-        lines.append("])")
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
+        lines = op.to_code(input_var, var_name)
 
         return (lines, {"output": var_name})

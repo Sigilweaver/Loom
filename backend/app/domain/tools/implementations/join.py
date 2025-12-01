@@ -6,6 +6,7 @@ import polars as pl
 
 from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
 
 
@@ -31,6 +32,14 @@ class JoinTool(BaseTool):
         rightSuffix: suffix for right columns on conflict (default: '_right')
     """
 
+    def _build_operation(self, config: dict[str, Any]) -> JoinOperation:
+        """Build the join operation from config."""
+        return JoinOperation(
+            left_keys=config.get("leftKeys", []),
+            right_keys=config.get("rightKeys", []),
+            right_suffix=config.get("rightSuffix", "_right"),
+        )
+
     async def execute(
         self,
         config: dict[str, Any],
@@ -39,72 +48,12 @@ class JoinTool(BaseTool):
         left_input = inputs.get("input-left")
         right_input = inputs.get("input-right")
 
-        # Handle missing inputs
-        if left_input is None and right_input is None:
-            empty = pl.LazyFrame([])
-            return {
-                "output-left": empty,
-                "output-match": empty,
-                "output-right": empty,
-            }
-        
         # Normalize inputs (might be list from multi-input socket, take first)
         left_lf = self._normalize_input(left_input)
         right_lf = self._normalize_input(right_input)
 
-        # If only one side provided, return it as unmatched
-        if left_lf is None:
-            return {
-                "output-left": pl.LazyFrame([]),
-                "output-match": pl.LazyFrame([]),
-                "output-right": right_lf,
-            }
-        if right_lf is None:
-            return {
-                "output-left": left_lf,
-                "output-match": pl.LazyFrame([]),
-                "output-right": pl.LazyFrame([]),
-            }
-
-        # Get config
-        left_keys = config.get("leftKeys", [])
-        right_keys = config.get("rightKeys", [])
-        left_suffix = config.get("leftSuffix", "_left")
-        right_suffix = config.get("rightSuffix", "_right")
-
-        # If no keys specified, return empty join result
-        if not left_keys or not right_keys:
-            return {
-                "output-left": left_lf,
-                "output-match": pl.LazyFrame([]),
-                "output-right": right_lf,
-            }
-
-        # Perform join operations
-        # Inner join for matched rows
-        matched = left_lf.join(
-            right_lf,
-            left_on=left_keys,
-            right_on=right_keys,
-            how="inner",
-            suffix=right_suffix,
-        )
-
-        # Anti-join for unmatched left rows
-        unmatched_left = left_lf.join(
-            right_lf,
-            left_on=left_keys,
-            right_on=right_keys,
-            how="anti",
-        )
-
-        # Anti-join for unmatched right rows
-        unmatched_right = right_lf.join(
-            left_lf,
-            left_on=right_keys,
-            right_on=left_keys,
-            how="anti",
-        )
+        op = self._build_operation(config)
+        unmatched_left, matched, unmatched_right = op.execute(left_lf, right_lf)
 
         return {
             "output-left": unmatched_left,
@@ -252,11 +201,9 @@ class JoinTool(BaseTool):
         config: dict[str, Any],
         input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
-        """Generate Python code for Join tool."""
+        """Generate Python code for Join tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        lines = []
-        
         # Get input variables
         left_var = self._get_input_var(input_vars.get("input-left"))
         right_var = self._get_input_var(input_vars.get("input-right"))
@@ -267,63 +214,9 @@ class JoinTool(BaseTool):
         match_out_var = f"df_{base_name}_matched"
         right_out_var = f"df_{base_name}_unmatched_right"
 
-        # Get config
-        left_keys = config.get("leftKeys", [])
-        right_keys = config.get("rightKeys", [])
-        right_suffix = config.get("rightSuffix", "_right")
-
-        # Handle missing inputs
-        if not left_var and not right_var:
-            lines.append(f"{left_out_var} = pl.LazyFrame([])")
-            lines.append(f"{match_out_var} = pl.LazyFrame([])")
-            lines.append(f"{right_out_var} = pl.LazyFrame([])")
-        elif not left_var:
-            lines.append(f"{left_out_var} = pl.LazyFrame([])")
-            lines.append(f"{match_out_var} = pl.LazyFrame([])")
-            lines.append(f"{right_out_var} = {right_var}")
-        elif not right_var:
-            lines.append(f"{left_out_var} = {left_var}")
-            lines.append(f"{match_out_var} = pl.LazyFrame([])")
-            lines.append(f"{right_out_var} = pl.LazyFrame([])")
-        elif not left_keys or not right_keys:
-            lines.append(f"# No join keys specified - passing through unmatched")
-            lines.append(f"{left_out_var} = {left_var}")
-            lines.append(f"{match_out_var} = pl.LazyFrame([])")
-            lines.append(f"{right_out_var} = {right_var}")
-        else:
-            # Generate join code
-            left_keys_str = repr(left_keys)
-            right_keys_str = repr(right_keys)
-
-            lines.append(f"# Join: inner join for matches")
-            lines.append(
-                f"{match_out_var} = {left_var}.join("
-                f"{right_var}, "
-                f"left_on={left_keys_str}, "
-                f"right_on={right_keys_str}, "
-                f'how="inner", '
-                f'suffix="{right_suffix}")'
-            )
-
-            lines.append(f"")
-            lines.append(f"# Join: unmatched left rows (anti-join)")
-            lines.append(
-                f"{left_out_var} = {left_var}.join("
-                f"{right_var}, "
-                f"left_on={left_keys_str}, "
-                f"right_on={right_keys_str}, "
-                f'how="anti")'
-            )
-
-            lines.append(f"")
-            lines.append(f"# Join: unmatched right rows (anti-join)")
-            lines.append(
-                f"{right_out_var} = {right_var}.join("
-                f"{left_var}, "
-                f"left_on={right_keys_str}, "
-                f"right_on={left_keys_str}, "
-                f'how="anti")'
-            )
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
+        lines = op.to_code(left_var, right_var, left_out_var, match_out_var, right_out_var)
 
         return (
             lines,

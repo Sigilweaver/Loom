@@ -6,6 +6,7 @@ import polars as pl
 
 from app.api.models.common import DataSchema, ColumnSchema
 from app.domain.tools.base import BaseTool
+from app.domain.tools.expr_builder import SortOperation, SortColumn
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
 
@@ -27,50 +28,35 @@ class SortTool(BaseTool):
         - nullsFirst: bool - whether nulls should come first (default: False)
     """
 
+    def _build_operation(self, config: dict[str, Any]) -> SortOperation:
+        """Build the sort operation from config."""
+        sort_columns = config.get("sortColumns", [])
+        columns = []
+        for sort_col in sort_columns:
+            column = sort_col.get("column")
+            if not column:
+                continue
+            direction = sort_col.get("direction", "asc")
+            nulls_first = sort_col.get("nullsFirst", False)
+            columns.append(SortColumn(
+                column=column,
+                descending=(direction == "desc"),
+                nulls_last=(not nulls_first),
+            ))
+        return SortOperation(columns=columns)
+
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute sort operation.
         """
-        # Get input LazyFrame
         if "input" not in inputs:
             raise ToolError("Sort tool requires input on socket 'input'")
 
         lf = inputs["input"]
-        
-        sort_columns = config.get("sortColumns", [])
-        
-        # If no sort columns, pass through unchanged
-        if not sort_columns:
-            return {"output": lf}
-
-        # Build sort expressions
-        by_columns: list[str] = []
-        descending: list[bool] = []
-        nulls_last: list[bool] = []
-        
-        for sort_col in sort_columns:
-            column = sort_col.get("column")
-            direction = sort_col.get("direction", "asc")
-            nulls_first = sort_col.get("nullsFirst", False)
-            
-            if not column:
-                raise ToolError("Sort column name is required")
-            
-            if direction not in SORT_DIRECTIONS:
-                raise ToolError(f"Invalid sort direction: {direction}. Must be 'asc' or 'desc'")
-
-            by_columns.append(column)
-            descending.append(direction == "desc")
-            nulls_last.append(not nulls_first)
-
-        # Apply sort
-        result = lf.sort(
-            by=by_columns,
-            descending=descending,
-            nulls_last=nulls_last,
-        )
+        op = self._build_operation(config)
+        result = op.execute(lf)
 
         return {"output": result}
 
@@ -126,50 +112,14 @@ class SortTool(BaseTool):
         config: dict[str, Any],
         input_vars: dict[str, str],
     ) -> tuple[list[str], dict[str, str]]:
-        """Generate Python code for Sort tool"""
+        """Generate Python code for Sort tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        lines = []
-        
-        sort_columns = config.get("sortColumns", [])
-
-        # Get input variable name
         input_var = input_vars.get("input", "df_input")
-
-        # Generate output variable name
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
-        # Handle empty sort columns (pass-through)
-        if not sort_columns:
-            lines.append(f"{var_name} = {input_var}")
-            return (lines, {"output": var_name})
-
-        # Build sort arguments
-        by_columns: list[str] = []
-        descending: list[str] = []
-        nulls_last: list[str] = []
-        
-        for sort_col in sort_columns:
-            column = sort_col.get("column")
-            direction = sort_col.get("direction", "asc")
-            nulls_first = sort_col.get("nullsFirst", False)
-            
-            if not column:
-                continue
-
-            by_columns.append(f'"{column}"')
-            descending.append("True" if direction == "desc" else "False")
-            nulls_last.append("False" if nulls_first else "True")
-
-        # Generate the code
-        by_str = ", ".join(by_columns)
-        desc_str = ", ".join(descending)
-        nulls_str = ", ".join(nulls_last)
-
-        lines.append(f"{var_name} = {input_var}.sort(")
-        lines.append(f"    by=[{by_str}],")
-        lines.append(f"    descending=[{desc_str}],")
-        lines.append(f"    nulls_last=[{nulls_str}],")
-        lines.append(")")
+        # Use the same operation builder as execute()
+        op = self._build_operation(config)
+        lines = op.to_code(input_var, var_name)
 
         return (lines, {"output": var_name})
