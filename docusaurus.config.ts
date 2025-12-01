@@ -94,23 +94,6 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Documentation',
-          items: [
-            {
-              label: 'Getting Started',
-              to: '/getting-started/installation',
-            },
-            {
-              label: 'Tools Reference',
-              to: '/tools/overview',
-            },
-            {
-              label: 'Concepts',
-              to: '/concepts/workflows',
-            },
-          ],
-        },
-        {
           title: 'Community',
           items: [
             {
