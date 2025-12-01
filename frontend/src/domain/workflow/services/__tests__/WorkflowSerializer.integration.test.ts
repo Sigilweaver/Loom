@@ -105,7 +105,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
 
   it("should validate and reject sockets with wrong types for optional fields", () => {
     const invalidWorkflow = {
-      version: "2.0",
+      version: "1.0",
       meta: {
         name: "Invalid",
         workflowId: "test",
@@ -136,7 +136,7 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
 
   it("should validate and reject sockets with wrong type for 'type' field", () => {
     const invalidWorkflow = {
-      version: "2.0",
+      version: "1.0",
       meta: {
         name: "Invalid",
         workflowId: "test",

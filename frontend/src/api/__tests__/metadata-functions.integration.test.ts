@@ -31,7 +31,7 @@ const getSocketColumns = (result: MetadataResponse, socketId: string): ColumnSch
 };
 
 const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
-  version: '2.0',
+  version: '1.0',
   meta: {
     name: 'Metadata Test Workflow',
     description: 'Testing metadata and functions',

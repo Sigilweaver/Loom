@@ -34,7 +34,7 @@ const getSocketColumns = (result: MetadataResponse, socketId: string): ColumnSch
 
 // Helper to create workflow JSON
 const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
-  version: '2.0',
+  version: '1.0',
   meta: {
     name: 'Monaco Autocomplete Test',
     description: 'Testing Monaco completions with real backend data',

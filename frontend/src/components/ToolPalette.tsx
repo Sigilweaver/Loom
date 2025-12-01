@@ -39,7 +39,7 @@ export default function ToolPalette() {
   };
 
   return (
-    <div className="bg-theme-surface-elevated border-b-2 border-theme-border-secondary">
+    <div className="bg-theme-surface-elevated border-b border-theme-border-primary">
       {/* Tabs */}
       <div
         className="flex border-b-2 border-theme-border-primary px-2 pt-2 relative"

@@ -46,7 +46,7 @@ describe("WorkflowSerializer", () => {
       const json = WorkflowSerializer.toJSON([], [], createTestMeta());
       const parsed = JSON.parse(json);
 
-      expect(parsed.version).toBe("2.0");
+      expect(parsed.version).toBe("1.0");
       expect(parsed.tools).toEqual([]);
       expect(parsed.wires).toEqual([]);
       expect(parsed.meta.name).toBe("Test Workflow");
@@ -98,7 +98,7 @@ describe("WorkflowSerializer", () => {
       const json = WorkflowSerializer.toJSON(tools, wires, meta);
       const parsed = JSON.parse(json);
 
-      expect(parsed.version).toBe("2.0");
+      expect(parsed.version).toBe("1.0");
       expect(parsed.tools).toHaveLength(3);
       expect(parsed.wires).toHaveLength(2);
       expect(parsed.meta.name).toBe("Complex Workflow");
@@ -223,7 +223,7 @@ describe("WorkflowSerializer", () => {
   describe("validate", () => {
     it("should validate correct workflow structure", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: createTestMeta(),
         tools: [createTestTool()],
         wires: [],
@@ -254,7 +254,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject missing meta field", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         tools: [],
         wires: [],
       };
@@ -266,7 +266,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject meta without name", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: {
           description: "Test",
           author: "Test",
@@ -284,7 +284,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject meta without workflowId", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: {
           name: "Test",
           description: "Test",
@@ -304,7 +304,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject tools that are not an array", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: createTestMeta(),
         tools: "not an array",
         wires: [],
@@ -317,7 +317,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject tool missing required fields", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: createTestMeta(),
         tools: [{ id: "tool_001" }], // Missing type, x, y, config, sockets
         wires: [],
@@ -338,7 +338,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject wire missing required fields", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: createTestMeta(),
         tools: [],
         wires: [{ from: { tool: "tool_001", socket: 'output' } }], // Missing 'to'
@@ -353,7 +353,7 @@ describe("WorkflowSerializer", () => {
 
     it("should reject socket with invalid direction", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         meta: createTestMeta(),
         tools: [
           {
@@ -377,7 +377,7 @@ describe("WorkflowSerializer", () => {
 
     it("should collect multiple validation errors", () => {
       const data = {
-        version: "2.0",
+        version: "1.0",
         // Missing meta
         tools: "not an array", // Invalid type
         wires: {}, // Invalid type
@@ -395,7 +395,7 @@ describe("WorkflowSerializer", () => {
       const json = WorkflowSerializer.createEmpty();
       const parsed = JSON.parse(json);
 
-      expect(parsed.version).toBe("2.0");
+      expect(parsed.version).toBe("1.0");
       expect(parsed.meta.name).toBe("New Workflow");
       expect(parsed.tools).toEqual([]);
       expect(parsed.wires).toEqual([]);
@@ -420,7 +420,7 @@ describe("WorkflowSerializer", () => {
 
   describe("isJSON", () => {
     it("should detect JSON content starting with {", () => {
-      expect(WorkflowSerializer.isJSON('{"version": "2.0"}')).toBe(true);
+      expect(WorkflowSerializer.isJSON('{"version": "1.0"}')).toBe(true);
     });
 
     it("should detect JSON content starting with [ ", () => {
@@ -428,7 +428,7 @@ describe("WorkflowSerializer", () => {
     });
 
     it("should detect JSON with leading whitespace", () => {
-      expect(WorkflowSerializer.isJSON('  \n  {"version": "2.0"}')).toBe(true);
+      expect(WorkflowSerializer.isJSON('  \n  {"version": "1.0"}')).toBe(true);
     });
 
     it("should reject non-JSON content", () => {
@@ -445,7 +445,7 @@ describe("WorkflowSerializer", () => {
       const json = WorkflowSerializer.toJSON([], [], createTestMeta());
       const version = WorkflowSerializer.getVersion(json);
 
-      expect(version).toBe("2.0");
+      expect(version).toBe("1.0");
     });
 
     it("should return null for invalid JSON", () => {

@@ -11,7 +11,7 @@ describe('Backend API Client', () => {
   });
 
   const mockWorkflow: WorkflowJSON = {
-    version: '2.0',
+    version: '1.0',
     meta: {
       name: 'Test Workflow',
       description: '',

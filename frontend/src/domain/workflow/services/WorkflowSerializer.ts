@@ -31,7 +31,7 @@ export interface ValidationResult {
  * WorkflowSerializer - Pure service for JSON serialization
  */
 export class WorkflowSerializer {
-  private static readonly VERSION = "2.0";
+  private static readonly VERSION = "1.0";
 
   /**
    * Filter config fields based on emission map

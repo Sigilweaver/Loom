@@ -29,7 +29,7 @@ describe('Backend E2E Integration', () => {
   });
 
   const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
-    version: '2.0',
+    version: '1.0',
     meta: {
       name: 'E2E Test Workflow',
       description: 'Testing frontend-backend integration',

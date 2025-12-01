@@ -24,7 +24,7 @@ import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerial
 // Helper to create a basic workflow
 function createTestWorkflow(): WorkflowJSON {
   return {
-    version: '2.0',
+    version: '1.0',
     meta: {
       name: 'Test Workflow',
       description: '',

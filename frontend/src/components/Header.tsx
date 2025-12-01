@@ -532,10 +532,10 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
             <button
               onClick={handleToggleWorkflowViewer}
-              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors border
                 ${workflowViewerVisible
                   ? "bg-theme-header-btn-viewcode-bg-active border-theme-header-btn-viewcode-border-active text-theme-header-btn-viewcode-text-active"
-                  : "bg-theme-header-btn-viewcode-bg border border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text"
+                  : "bg-theme-header-btn-viewcode-bg border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text"
                 }
                 hover:bg-theme-header-btn-viewcode-bg-hover hover:border-theme-header-btn-viewcode-border-hover hover:text-theme-header-btn-viewcode-text-hover
                 disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled`}
