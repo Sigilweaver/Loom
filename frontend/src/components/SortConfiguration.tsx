@@ -94,7 +94,7 @@ export function SortConfiguration({
   wires,
   workflowMeta,
 }: SortConfigurationProps) {
-  const { metadata, fetchMetadata, loading } = useMetadata();
+  const { columns, fetchMetadata, loading } = useMetadata();
 
   // Track wire connections to this tool
   const wireConnections = useMemo(() => {
@@ -114,11 +114,11 @@ export function SortConfiguration({
       upstreamWires,
       workflowMeta
     );
-    fetchMetadata(toolId, JSON.parse(workflow));
+    fetchMetadata(toolId, JSON.parse(workflow), 'input');
   }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata
-  const inputColumns: ColumnSchema[] = metadata?.columns || [];
+  const inputColumns: ColumnSchema[] = columns;
 
   // Get current sort columns from config as a map for quick lookup
   const sortColumnsMap = useMemo(() => {

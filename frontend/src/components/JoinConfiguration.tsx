@@ -7,7 +7,6 @@ import {
 } from "../domain/workflow/entities/workflow";
 import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
-import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
 
 interface JoinConfigurationProps {
@@ -38,12 +37,12 @@ export function JoinConfiguration({
 }: JoinConfigurationProps) {
   // Separate metadata hooks for left and right inputs
   const {
-    metadata: leftMetadata,
+    columns: leftColumns,
     fetchMetadata: fetchLeftMetadata,
     loading: leftLoading,
   } = useMetadata();
   const {
-    metadata: rightMetadata,
+    columns: rightColumns,
     fetchMetadata: fetchRightMetadata,
     loading: rightLoading,
   } = useMetadata();
@@ -93,23 +92,6 @@ export function JoinConfiguration({
     );
     fetchRightMetadata(toolId, JSON.parse(workflow), "input-right");
   }, [toolId, rightWireConnection, fetchRightMetadata, tools, wires, workflowMeta]);
-
-  // Extract columns from metadata
-  const leftColumns: ColumnSchema[] = useMemo(() => {
-    if (!leftMetadata) return [];
-    if (leftMetadata.socket_id === "input-left" && leftMetadata.columns) {
-      return leftMetadata.columns;
-    }
-    return leftMetadata.inputs?.["input-left"] || [];
-  }, [leftMetadata]);
-
-  const rightColumns: ColumnSchema[] = useMemo(() => {
-    if (!rightMetadata) return [];
-    if (rightMetadata.socket_id === "input-right" && rightMetadata.columns) {
-      return rightMetadata.columns;
-    }
-    return rightMetadata.inputs?.["input-right"] || [];
-  }, [rightMetadata]);
 
   // Get current keys from config
   const leftKeys = parseKeys(config, "leftKeys");

@@ -253,7 +253,7 @@ export function SelectConfiguration({
   wires,
   workflowMeta,
 }: SelectConfigurationProps) {
-  const { metadata, fetchMetadata, loading } = useMetadata();
+  const { columns, fetchMetadata, loading } = useMetadata();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Track wire connections to this tool
@@ -271,11 +271,11 @@ export function SelectConfiguration({
     const { tools: upstreamTools, wires: upstreamWires } = 
       WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
     const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow));
+    fetchMetadata(toolId, JSON.parse(workflow), 'input');
   }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata
-  const inputColumns: ColumnSchema[] = metadata?.columns || [];
+  const inputColumns: ColumnSchema[] = columns;
 
   // Get current column configs from tool config
   const columnConfigs: ColumnConfig[] = useMemo(() => {

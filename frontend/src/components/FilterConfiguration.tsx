@@ -21,10 +21,8 @@ export function FilterConfiguration({
   wires,
   workflowMeta,
 }: FilterConfigurationProps) {
-  const { metadata, fetchMetadata } = useMetadata();
+  const { columns, fetchMetadata } = useMetadata();
   const { functions, fetchFunctions } = usePolarsFunctions();
-
-  const columns = metadata?.columns || [];
 
   // Fetch Polars functions on mount
   useEffect(() => {
@@ -44,7 +42,7 @@ export function FilterConfiguration({
     const { tools: upstreamTools, wires: upstreamWires } = 
       WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
     const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow));
+    fetchMetadata(toolId, JSON.parse(workflow), 'input');
   }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
   const handleExpressionChange = (value: string) => {
     const newConfig = {
