@@ -20,9 +20,13 @@ Utility scripts for building, testing, and running Sigilweaver.
 ./scripts/test.py --coverage        # Include coverage reports
 
 # Building
-./scripts/build.sh [platform]       # Build complete application
-./scripts/build_backend.sh          # Build backend executable only
-./test-standalone.sh                # Test built package
+./scripts/build.py                  # Build for current platform (cross-platform)
+./scripts/build.py --platform linux # Build for Linux
+./scripts/build.py --platform win   # Build for Windows
+./scripts/build.py --platform mac   # Build for macOS
+./scripts/build.py --backend-only   # Build backend only
+./scripts/build.py --frontend-only  # Build frontend only
+./scripts/build.py --clean          # Clean before building
 ```
 
 ---
@@ -113,60 +117,63 @@ Press `Ctrl+C` to stop all services.
 
 ## Build Scripts
 
-### `build.sh`
-**Purpose**: Build complete standalone application for distribution
+### `build.py`
+**Purpose**: Build complete standalone application for distribution (cross-platform)
 
 **Usage**:
 ```bash
-./scripts/build.sh [platform]
+./scripts/build.py                      # Build for current platform
+./scripts/build.py --platform linux     # Build for Linux
+./scripts/build.py --platform win       # Build for Windows
+./scripts/build.py --platform mac       # Build for macOS
+./scripts/build.py --backend-only       # Build backend only
+./scripts/build.py --frontend-only      # Build frontend only (assumes backend exists)
+./scripts/build.py --clean              # Clean artifacts before building
 ```
 
-**Parameters**:
-- `platform` (optional): `linux`, `win`, or `mac`
-  - If omitted, builds for current platform
+**Flags**:
+| Flag | Description |
+|------|-------------|
+| `--platform` | Target platform: `linux`, `win`, or `mac` (auto-detects if omitted) |
+| `--backend-only` | Build backend executable only |
+| `--frontend-only` | Build frontend only (assumes backend already built) |
+| `--clean` | Clean build artifacts before building |
 
 **What it does**:
 1. Builds backend executable with PyInstaller
-2. Builds frontend web assets
-3. Packages everything with Electron Builder
-4. Creates distribution-ready installers
+2. Copies backend to frontend resources
+3. Builds frontend web assets
+4. Packages everything with Electron Builder
+5. Creates distribution-ready installers
 
 **Output locations**:
-- Backend executable: `backend/dist/sigilweaver-backend`
-- Frontend build: `frontend/dist/`
+- Backend executable: `backend/dist/backend`
+- Frontend resources: `frontend/resources/backend/backend`
 - Final packages: `frontend/dist/` (AppImage, DMG, exe, etc.)
 
 **Examples**:
 ```bash
 # Build for current platform
-./scripts/build.sh
+./scripts/build.py
 
 # Build for Linux specifically
-./scripts/build.sh linux
+./scripts/build.py --platform linux
 
 # Build for Windows (cross-compile)
-./scripts/build.sh win
+./scripts/build.py --platform win
 
 # Build for macOS (on Mac only)
-./scripts/build.sh mac
+./scripts/build.py --platform mac
+
+# Quick backend iteration
+./scripts/build.py --backend-only
+
+# Rebuild frontend after backend change
+./scripts/build.py --frontend-only
+
+# Clean build
+./scripts/build.py --clean
 ```
-
----
-
-### `build_backend.sh`
-**Purpose**: Build backend executable only (faster iteration)
-
-**Usage**:
-```bash
-./scripts/build_backend.sh
-```
-
-**What it does**:
-- Runs PyInstaller with `sigilweaver.spec`
-- Creates standalone `sigilweaver-backend` executable
-- Useful for testing backend changes without full Electron rebuild
-
-**Output**: `backend/dist/sigilweaver-backend`
 
 ---
 
@@ -200,16 +207,6 @@ Manage B2 bucket: list contents and download files via CDN.
 
 **Requires**: `.env` file with B2 credentials, `boto3` Python package.
 
-### `../test-standalone.sh`
-Tests the built standalone package without rebuilding.
-
-**Usage**:
-```bash
-./test-standalone.sh
-```
-
-**Requires**: Run `./scripts/build.sh` first.
-
 ---
 
 ## Typical Workflows
@@ -235,17 +232,16 @@ Tests the built standalone package without rebuilding.
 ### Production Build
 ```bash
 # Full build for release
-./scripts/build.sh
+./scripts/build.py
 
-# Test the build
-./test-standalone.sh
-```
+# Clean build
+./scripts/build.py --clean
 
 ### Fast Backend Testing
 ```bash
 # Only rebuild backend
-./scripts/build_backend.sh
+./scripts/build.py --backend-only
 
 # Test it quickly
-cd backend && source .venv/bin/activate && ./dist/sigilweaver-backend
+cd backend && source .venv/bin/activate && ./dist/backend
 ```

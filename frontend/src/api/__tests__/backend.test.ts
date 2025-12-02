@@ -40,7 +40,7 @@ describe('Backend API Client', () => {
     it('should return health status', async () => {
       const mockResponse = {
         status: 'healthy',
-        version: '0.1.0',
+        version: '0.0.0-dev',
         message: 'SigilWeaver Backend is running',
       };
 

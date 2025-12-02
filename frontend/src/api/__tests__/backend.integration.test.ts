@@ -22,7 +22,7 @@ describe('Backend E2E Integration', () => {
       
       expect(result).toEqual(expect.objectContaining({
         status: 'healthy',
-        version: '0.1.0',
+        version: '0.0.0-dev',
         message: 'SigilWeaver Backend is running',
       }));
     }, { timeout: 5000 });
