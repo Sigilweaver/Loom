@@ -17,7 +17,7 @@ class ParquetDataSource(DataSource):
     async def inspect(self, source: str, config: dict[str, Any]) -> DataSchema:
         """
         Inspect Parquet file and return schema.
-        
+
         Uses Polars scan_parquet (lazy) to avoid reading entire file.
         """
         # Validate file path
@@ -114,7 +114,7 @@ class ParquetDataSource(DataSource):
     def _build_scan_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars scan_parquet kwargs.
-        
+
         Maps frontend configuration keys to Polars parameter names.
         Note: Column selection should be done via .select() after scan,
         not as a scan parameter.

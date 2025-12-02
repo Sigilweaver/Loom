@@ -10,18 +10,18 @@ from app.config import settings
 def validate_file_path(file_path: str) -> Path:
     """
     Validate file path for security.
-    
+
     Checks:
     - File exists
     - Is a file (not directory)
     - Is within allowed paths (if restrictions enabled)
-    
+
     Args:
         file_path: Path to validate
-        
+
     Returns:
         Resolved Path object
-        
+
     Raises:
         HTTPException: If validation fails
     """

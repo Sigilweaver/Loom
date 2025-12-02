@@ -14,16 +14,16 @@ from app.domain.tools.registry import register_tool
 class JoinTool(BaseTool):
     """
     Joins two input datasets on specified key columns.
-    
+
     Inputs:
         input-left: Left dataset
         input-right: Right dataset
-    
+
     Outputs:
         output-left: Unmatched rows from left (anti-join)
         output-match: Matched/joined rows (inner join)
         output-right: Unmatched rows from right (anti-join)
-    
+
     Config:
         joinType: 'inner' | 'left' | 'right' | 'outer'
         leftKeys: list of column names from left input

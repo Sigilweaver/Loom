@@ -28,7 +28,7 @@ class HealthResponse(BaseModel):
 async def health_check() -> HealthResponse:
     """
     Health check endpoint
-    
+
     Returns service status, version, and runtime environment information.
     Useful for debugging and verifying backend compatibility.
     """

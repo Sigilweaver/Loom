@@ -30,16 +30,16 @@ def _get_archive() -> WorkflowArchive:
 
 @router.get("/list", response_model=ArchiveListResponse)
 async def list_archives(
-    limit: Optional[int] = Query(None, description="Maximum number of archives to return"),
-    start_date: Optional[str] = Query(None, description="Filter archives from this date (YYYY-MM-DD)"),
-    end_date: Optional[str] = Query(None, description="Filter archives until this date (YYYY-MM-DD)"),
+    limit: Optional[int] = Query(None, description="Max archives to return"),
+    start_date: Optional[str] = Query(None, description="Filter from date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Filter until date (YYYY-MM-DD)"),
 ):
     """
     List archived workflow executions.
-    
+
     Returns a list of archived workflows with summary information including
     execution status, timing, and workflow metadata.
-    
+
     Use date filters to narrow results to a specific time range.
     """
     try:
@@ -94,14 +94,14 @@ async def list_archives(
 async def get_archive_detail(archive_path: str):
     """
     Get complete details for a specific archived workflow.
-    
+
     Returns the full workflow definition and execution log including:
     - Original workflow JSON
     - Execution timing and status
     - Tool execution sequence
     - Error details (if execution failed)
     - Result summaries
-    
+
     Use the path from the list endpoint (e.g., "2025-11-26/14-30-00_MyWorkflow")
     """
     try:
@@ -123,10 +123,10 @@ async def get_archive_detail(archive_path: str):
 async def cleanup_archives(request: CleanupArchivesRequest):
     """
     Delete archived workflows older than specified retention period.
-    
+
     This permanently removes archive directories and all contained files
     for archives older than the specified number of days.
-    
+
     Use with caution - deleted archives cannot be recovered.
     """
     try:
@@ -149,7 +149,7 @@ async def cleanup_archives(request: CleanupArchivesRequest):
 async def get_archive_status():
     """
     Get archive system status and configuration.
-    
+
     Returns information about archiving settings and storage location.
     """
     return {

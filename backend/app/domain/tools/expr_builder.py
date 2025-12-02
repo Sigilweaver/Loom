@@ -331,7 +331,9 @@ class AggregationExpr:
             expr = expr.sum()  # fallback
 
         # Apply alias
-        alias = self.output_name.strip() if self.output_name and self.output_name.strip() else f"{self.column}_{self.operation}"
+        default_alias = f"{self.column}_{self.operation}"
+        out_name = self.output_name.strip() if self.output_name else ""
+        alias = out_name if out_name else default_alias
         return expr.alias(alias)
 
     def to_code(self) -> str:
@@ -342,7 +344,9 @@ class AggregationExpr:
         method_code = AGGREGATION_METHODS.get(self.operation, ("sum", ".sum()"))[1]
         expr_str += method_code
 
-        alias = self.output_name.strip() if self.output_name and self.output_name.strip() else f"{self.column}_{self.operation}"
+        default_alias = f"{self.column}_{self.operation}"
+        out_name = self.output_name.strip() if self.output_name else ""
+        alias = out_name if out_name else default_alias
         escaped_alias = alias.replace("\\", "\\\\").replace('"', '\\"')
         expr_str += f'.alias("{escaped_alias}")'
 

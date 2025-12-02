@@ -133,7 +133,9 @@ def _generate_snippet(name: str, sig: inspect.Signature, prefix: str = ".") -> s
             continue
 
         # Skip keyword-only params that have defaults (optional)
-        if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default is not inspect.Parameter.empty:
+        is_keyword_only = param.kind == inspect.Parameter.KEYWORD_ONLY
+        has_default = param.default is not inspect.Parameter.empty
+        if is_keyword_only and has_default:
             continue
 
         # Determine placeholder value
@@ -177,12 +179,24 @@ def _generate_snippet(name: str, sig: inspect.Signature, prefix: str = ".") -> s
 
 def _categorize_string_method(name: str) -> str:
     """Categorize string methods for grouping in UI."""
-    search_methods = {'contains', 'contains_any', 'count_matches', 'ends_with', 'starts_with', 'find', 'find_many'}
-    manipulation_methods = {'to_uppercase', 'to_lowercase', 'to_titlecase', 'reverse', 'slice', 'head', 'tail', 'pad_start', 'pad_end', 'zfill', 'normalize'}
-    replace_methods = {'replace', 'replace_all', 'replace_many', 'strip_chars', 'strip_chars_start', 'strip_chars_end', 'strip_prefix', 'strip_suffix'}
+    search_methods = {
+        'contains', 'contains_any', 'count_matches', 'ends_with',
+        'starts_with', 'find', 'find_many',
+    }
+    manipulation_methods = {
+        'to_uppercase', 'to_lowercase', 'to_titlecase', 'reverse',
+        'slice', 'head', 'tail', 'pad_start', 'pad_end', 'zfill', 'normalize',
+    }
+    replace_methods = {
+        'replace', 'replace_all', 'replace_many', 'strip_chars',
+        'strip_chars_start', 'strip_chars_end', 'strip_prefix', 'strip_suffix',
+    }
     split_methods = {'split', 'split_exact', 'splitn', 'explode'}
     extract_methods = {'extract', 'extract_all', 'extract_groups', 'extract_many'}
-    conversion_methods = {'to_date', 'to_datetime', 'to_time', 'to_decimal', 'to_integer', 'strptime', 'json_decode', 'json_path_match'}
+    conversion_methods = {
+        'to_date', 'to_datetime', 'to_time', 'to_decimal', 'to_integer',
+        'strptime', 'json_decode', 'json_path_match',
+    }
     encoding_methods = {'encode', 'decode', 'escape_regex'}
     length_methods = {'len_bytes', 'len_chars'}
     join_methods = {'concat', 'join'}
@@ -211,10 +225,18 @@ def _categorize_string_method(name: str) -> str:
 
 def _categorize_datetime_method(name: str) -> str:
     """Categorize datetime methods for grouping in UI."""
-    component_methods = {'year', 'month', 'day', 'hour', 'minute', 'second', 'millisecond', 'microsecond', 'nanosecond'}
+    component_methods = {
+        'year', 'month', 'day', 'hour', 'minute', 'second',
+        'millisecond', 'microsecond', 'nanosecond',
+    }
     week_methods = {'week', 'weekday', 'iso_year', 'ordinal_day'}
-    offset_methods = {'offset_by', 'truncate', 'round', 'month_start', 'month_end', 'base_utc_offset', 'dst_offset'}
-    conversion_methods = {'timestamp', 'epoch', 'to_string', 'strftime', 'date', 'time', 'datetime'}
+    offset_methods = {
+        'offset_by', 'truncate', 'round', 'month_start',
+        'month_end', 'base_utc_offset', 'dst_offset',
+    }
+    conversion_methods = {
+        'timestamp', 'epoch', 'to_string', 'strftime', 'date', 'time', 'datetime',
+    }
     timezone_methods = {'convert_time_zone', 'replace_time_zone', 'timezone'}
 
     if name in component_methods:
@@ -233,10 +255,19 @@ def _categorize_datetime_method(name: str) -> str:
 
 def _categorize_list_method(name: str) -> str:
     """Categorize list methods for grouping in UI."""
-    aggregation_methods = {'sum', 'mean', 'min', 'max', 'first', 'last', 'std', 'var', 'median', 'len', 'n_unique', 'count_matches'}
-    element_methods = {'get', 'first', 'last', 'head', 'tail', 'take', 'gather', 'gather_every', 'slice'}
+    aggregation_methods = {
+        'sum', 'mean', 'min', 'max', 'first', 'last',
+        'std', 'var', 'median', 'len', 'n_unique', 'count_matches',
+    }
+    element_methods = {
+        'get', 'first', 'last', 'head', 'tail', 'take',
+        'gather', 'gather_every', 'slice',
+    }
     search_methods = {'contains', 'arg_min', 'arg_max'}
-    transform_methods = {'reverse', 'sort', 'unique', 'shift', 'set_union', 'set_intersection', 'set_difference', 'set_symmetric_difference'}
+    transform_methods = {
+        'reverse', 'sort', 'unique', 'shift', 'set_union',
+        'set_intersection', 'set_difference', 'set_symmetric_difference',
+    }
     combine_methods = {'concat', 'join', 'explode', 'flatten'}
     filter_methods = {'filter', 'drop_nulls', 'sample', 'diff'}
     boolean_methods = {'all', 'any'}
@@ -269,12 +300,20 @@ def _categorize_expr_method(name: str) -> str:
     """Categorize expression methods for grouping in UI."""
     null_methods = {'is_null', 'is_not_null', 'fill_null', 'drop_nulls', 'null_count'}
     type_methods = {'cast', 'dtype', 'strict_cast'}
-    math_methods = {'abs', 'round', 'floor', 'ceil', 'sqrt', 'pow', 'log', 'log10', 'exp', 'sign'}
+    math_methods = {
+        'abs', 'round', 'floor', 'ceil', 'sqrt', 'pow', 'log', 'log10', 'exp', 'sign',
+    }
     comparison_methods = {'eq', 'ne', 'gt', 'lt', 'ge', 'le', 'eq_missing', 'ne_missing'}
-    aggregation_methods = {'sum', 'mean', 'min', 'max', 'count', 'first', 'last', 'std', 'var', 'median', 'quantile', 'mode'}
+    aggregation_methods = {
+        'sum', 'mean', 'min', 'max', 'count', 'first', 'last',
+        'std', 'var', 'median', 'quantile', 'mode',
+    }
     list_methods = {'implode', 'flatten', 'explode'}
     naming_methods = {'alias', 'name', 'prefix', 'suffix', 'keep_name'}
-    window_methods = {'over', 'rolling', 'shift', 'diff', 'pct_change', 'cum_sum', 'cum_prod', 'cum_min', 'cum_max', 'cum_count'}
+    window_methods = {
+        'over', 'rolling', 'shift', 'diff', 'pct_change',
+        'cum_sum', 'cum_prod', 'cum_min', 'cum_max', 'cum_count',
+    }
     conditional_methods = {'when', 'then', 'otherwise', 'if_else'}
 
     if name in null_methods:
@@ -491,9 +530,9 @@ def _introspect_table_level() -> list[MethodInfo]:
 def get_polars_functions() -> dict[str, Any]:
     """
     Get all Polars functions for autocomplete, dynamically introspected.
-    
+
     This function is cached - call it once on startup.
-    
+
     Returns:
         Dictionary with 'table_level' and 'column_methods' (by type).
     """

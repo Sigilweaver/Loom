@@ -14,7 +14,8 @@ class InspectRequest(BaseModel):
     source_type: str | None = Field(
         None,
         alias="sourceType",
-        description="Data source type (csv, parquet, etc.). If not provided, will be inferred from file extension.",
+        description="Data source type (csv, parquet, etc.). "
+        "If not provided, will be inferred from file extension.",
     )
     source: str = Field(description="Path to the data source file")
     config: dict[str, Any] = Field(
@@ -45,7 +46,8 @@ class PreviewRequest(BaseModel):
     source_type: str | None = Field(
         None,
         alias="sourceType",
-        description="Data source type (csv, parquet, etc.). If not provided, will be inferred from file extension.",
+        description="Data source type (csv, parquet, etc.). "
+        "If not provided, will be inferred from file extension.",
     )
     source: str = Field(description="Path to the data source file")
     config: dict[str, Any] = Field(

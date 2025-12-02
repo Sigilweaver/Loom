@@ -8,7 +8,7 @@ from pathlib import Path
 def setup_logging(log_level: str = "INFO", log_file: Path | None = None) -> None:
     """
     Configure logging for the application.
-    
+
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Optional file to write logs to
@@ -43,14 +43,14 @@ def setup_logging(log_level: str = "INFO", log_file: Path | None = None) -> None
 class ExecutionLogger:
     """
     Context manager for tracking execution metrics and logging.
-    
+
     Captures timing, errors, and execution metadata.
     """
 
     def __init__(self, logger: logging.Logger, operation: str):
         """
         Initialize execution logger.
-        
+
         Args:
             logger: Logger instance to use
             operation: Description of operation being tracked

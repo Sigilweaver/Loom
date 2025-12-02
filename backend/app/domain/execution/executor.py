@@ -59,7 +59,8 @@ class WorkflowExecutor:
                 from app.domain.workflow.archive import WorkflowArchive
                 archive = WorkflowArchive(settings.archive_path)
                 self.archive_dir = archive.create_archive(workflow)
-                execution_log["archive_path"] = str(self.archive_dir.relative_to(archive.archive_root))
+                archive_rel = str(self.archive_dir.relative_to(archive.archive_root))
+                execution_log["archive_path"] = archive_rel
                 logger.info(f"Workflow archived to: {self.archive_dir}")
             except Exception as e:
                 logger.error(f"Failed to create workflow archive: {e}")
@@ -159,7 +160,9 @@ class WorkflowExecutor:
         Returns:
             Dict with single-socket output (tool_id, socket_id, data_schema, data, row_count)
         """
-        result = await self.execute_workflow(workflow, target_tool_id=tool_id, preview_limit=preview_limit)
+        result = await self.execute_workflow(
+            workflow, target_tool_id=tool_id, preview_limit=preview_limit
+        )
 
         socket_key = str(socket_id)
         if socket_key not in result.get("outputs", {}):
@@ -388,7 +391,8 @@ class WorkflowExecutor:
                 for source_tool_id, source_socket_id in source_list:
                     if source_tool_id not in self.results:
                         raise ExecutionError(
-                            f"Tool {tool_id} depends on {source_tool_id} but it hasn't been executed"
+                            f"Tool {tool_id} depends on {source_tool_id} "
+                            "but it hasn't been executed"
                         )
                     frames.append(self.results[source_tool_id][source_socket_id])
 

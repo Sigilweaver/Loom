@@ -17,7 +17,7 @@ class CSVDataSource(DataSource):
     async def inspect(self, source: str, config: dict[str, Any]) -> DataSchema:
         """
         Inspect CSV file and return schema.
-        
+
         Uses Polars scan_csv (lazy) to avoid reading entire file.
         """
         # Validate file path
@@ -115,7 +115,7 @@ class CSVDataSource(DataSource):
     def _build_scan_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars scan_csv kwargs.
-        
+
         Maps frontend configuration keys to Polars parameter names.
         """
         kwargs: dict[str, Any] = {}

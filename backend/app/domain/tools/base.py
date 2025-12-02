@@ -83,7 +83,7 @@ class BaseTool(ABC):
             input_vars: Dict of socket_id -> variable name for inputs
 
         Returns:
-            (code_lines, output_vars): 
+            (code_lines, output_vars):
                 - code_lines: List of Python code lines
                 - output_vars: Dict of socket_id -> variable name for outputs
 

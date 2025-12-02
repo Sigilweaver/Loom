@@ -15,14 +15,14 @@ from app.utils.errors import ToolError
 class FormulaTool(BaseTool):
     """
     Add or replace calculated columns using Polars expressions.
-    
+
     Users write Polars expressions directly:
     - pl.col('age') > 30
     - pl.col('price') * pl.col('quantity')
     - pl.when(pl.col('x') > 0).then(pl.lit('Positive')).otherwise(pl.lit('Negative'))
-    
+
     Frontend provides helper buttons to build common patterns.
-    
+
     Note: If column_name matches an existing column, Polars automatically
     replaces it in place (maintaining column order).
 
@@ -43,7 +43,7 @@ class FormulaTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """
         Add or replace calculated column in DataFrame.
-        
+
         If column_name matches an existing column, it is replaced in place.
 
         Config should contain:
@@ -72,7 +72,7 @@ class FormulaTool(BaseTool):
     ) -> dict[str, DataSchema]:
         """
         Calculate output schema - input schema with new/replaced column.
-        
+
         Note: We don't know the exact type without executing,
         so we return a generic type.
         """

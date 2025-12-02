@@ -34,10 +34,10 @@ POLARS_TO_MODEL: dict[type, PolarsDataType] = {
 def polars_dtype_to_model(dtype: pl.DataType) -> PolarsDataType:
     """
     Convert a Polars data type to our API model enum.
-    
+
     Args:
         dtype: Polars data type
-        
+
     Returns:
         PolarsDataType enum value
     """
@@ -51,10 +51,10 @@ def polars_dtype_to_model(dtype: pl.DataType) -> PolarsDataType:
 def schema_from_polars(df: pl.DataFrame | pl.LazyFrame) -> DataSchema:
     """
     Extract schema information from a Polars DataFrame or LazyFrame.
-    
+
     Args:
         df: Polars DataFrame or LazyFrame
-        
+
     Returns:
         DataSchema with column information
     """

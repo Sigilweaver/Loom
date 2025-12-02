@@ -14,16 +14,16 @@ from app.utils.errors import ToolError
 def normalize_expression(expression: str) -> str:
     """
     Normalize expression whitespace for consistent parsing.
-    
+
     Replaces newlines and multiple spaces with single spaces,
     allowing users to write multi-line expressions for readability.
-    
+
     Args:
         expression: Raw expression string (may contain newlines)
-        
+
     Returns:
         Normalized expression with single spaces
-        
+
     Example:
         >>> normalize_expression('''pl.col("a") > 10
         ... &
@@ -36,20 +36,20 @@ def normalize_expression(expression: str) -> str:
 def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:
     """
     Parse a Polars expression string into a pl.Expr object.
-    
+
     Uses eval with a restricted namespace containing only the Polars module.
     Optionally normalizes whitespace to support multi-line expressions.
-    
+
     Args:
         expression: Polars expression string (e.g., "pl.col('age') > 18")
         normalize: Whether to normalize whitespace (default: True)
-        
+
     Returns:
         Parsed Polars expression object
-        
+
     Raises:
         ToolError: If expression is invalid or doesn't evaluate to pl.Expr
-        
+
     Examples:
         >>> expr = parse_polars_expression("pl.col('age') > 18")
         >>> expr = parse_polars_expression("pl.col('name').str.contains('test')")

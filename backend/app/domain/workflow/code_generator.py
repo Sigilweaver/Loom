@@ -10,7 +10,7 @@ from app.domain.tools.registry import ToolRegistry
 class PythonCodeGenerator:
     """
     Generate executable Python code from a workflow.
-    
+
     Each tool implementation provides its own code generation logic via to_python_code().
     """
 
@@ -95,8 +95,8 @@ class PythonCodeGenerator:
 
     def _get_input_vars(self, tool_id: str) -> dict[str, str | list[str]]:
         """Get input variable names for a tool.
-        
-        Returns dict of socket_id -> var_name (for single input) or [var_names] (for multiple inputs)
+
+        Returns dict of socket_id -> var_name (single) or [var_names] (multiple).
         """
         input_vars: dict[str, str | list[str]] = {}
         tool_inputs = self.graph.get_tool_inputs(tool_id)

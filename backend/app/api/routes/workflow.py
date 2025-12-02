@@ -15,12 +15,12 @@ router = APIRouter(prefix="/workflow", tags=["workflow"])
 def _clamp_preview_limit(requested: int | None) -> int:
     """
     Clamp preview_limit to be within valid bounds.
-    
-    Uses DEFAULT_PREVIEW_ROWS (100) if not specified.
+
+    Uses default of 100 if not specified.
     Enforces max_preview_rows from settings as upper bound.
     """
-    DEFAULT_PREVIEW_ROWS = 100
-    limit = requested if requested is not None else DEFAULT_PREVIEW_ROWS
+    default_preview_rows = 100
+    limit = requested if requested is not None else default_preview_rows
     return min(max(1, limit), settings.max_preview_rows)
 
 

@@ -13,7 +13,9 @@ class ArchiveListItem(BaseModel):
     workflow_name: str | None = Field(None, description="Name of the workflow")
     workflow_description: str | None = Field(None, description="Workflow description")
     tool_count: int | None = Field(None, description="Number of tools in workflow")
-    execution_status: str | None = Field(None, description="Execution status (started, completed, failed)")
+    execution_status: str | None = Field(
+        None, description="Execution status (started, completed, failed)"
+    )
     execution_time: float | None = Field(None, description="Execution time in milliseconds")
     execution_timestamp: str | None = Field(None, description="When execution occurred")
     target_tool_id: str | None = Field(None, description="Target tool ID if partial execution")
@@ -32,7 +34,9 @@ class ArchiveDetailResponse(BaseModel):
 
     path: str = Field(description="Relative path to archive directory")
     workflow: dict[str, Any] | None = Field(None, description="Complete workflow definition")
-    execution_log: dict[str, Any] | None = Field(None, description="Execution log with timing and results")
+    execution_log: dict[str, Any] | None = Field(
+        None, description="Execution log with timing and results"
+    )
 
 
 class CleanupArchivesRequest(BaseModel):

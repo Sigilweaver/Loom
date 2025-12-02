@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 class WorkflowArchive:
     """
     Manages archival of executed workflows and their execution logs.
-    
+
     Archives are stored as JSON files with the following structure:
     - workflow.json: Original workflow definition
     - execution_log.json: Execution metadata, timing, errors, results
-    
+
     Directory structure:
     archive_root/
         YYYY-MM-DD/
@@ -30,7 +30,7 @@ class WorkflowArchive:
     def __init__(self, archive_path: str | Path):
         """
         Initialize the archive manager.
-        
+
         Args:
             archive_path: Root directory for workflow archives
         """
@@ -45,11 +45,11 @@ class WorkflowArchive:
     ) -> Path:
         """
         Create a new archive directory for a workflow execution.
-        
+
         Args:
             workflow: Workflow being executed
             execution_id: Optional custom execution ID (defaults to timestamp)
-        
+
         Returns:
             Path to the created archive directory
         """
@@ -62,7 +62,9 @@ class WorkflowArchive:
             time_stamp = now.strftime("%H-%M-%S")
             if workflow.meta and workflow.meta.name:
                 # Sanitize workflow name for filesystem
-                safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in workflow.meta.name)
+                safe_name = "".join(
+                    c if c.isalnum() or c in "-_" else "_" for c in workflow.meta.name
+                )
                 time_stamp = f"{time_stamp}_{safe_name[:50]}"  # Limit length
 
         # Ensure unique directory name by adding counter if needed
@@ -90,7 +92,7 @@ class WorkflowArchive:
     ) -> None:
         """
         Save execution log to archive.
-        
+
         Args:
             archive_dir: Archive directory path
             log_data: Execution log data including timing, results, errors
@@ -113,7 +115,7 @@ class WorkflowArchive:
     ) -> None:
         """
         Update existing execution log with additional data.
-        
+
         Args:
             archive_dir: Archive directory path
             updates: Dictionary of fields to update/add
@@ -145,12 +147,12 @@ class WorkflowArchive:
     ) -> list[dict[str, Any]]:
         """
         List archived workflows with optional date filtering.
-        
+
         Args:
             start_date: Optional start date filter
             end_date: Optional end date filter
             limit: Optional maximum number of results
-        
+
         Returns:
             List of archive metadata dictionaries
         """
@@ -194,10 +196,10 @@ class WorkflowArchive:
     def get_archive(self, archive_path: str) -> dict[str, Any]:
         """
         Get complete archive data including workflow and execution log.
-        
+
         Args:
             archive_path: Relative path to archive (e.g., "2025-11-26/14-30-00_MyWorkflow")
-        
+
         Returns:
             Dictionary with workflow and execution_log
         """
@@ -256,10 +258,10 @@ class WorkflowArchive:
     def cleanup_old_archives(self, retention_days: int) -> int:
         """
         Remove archives older than specified retention period.
-        
+
         Args:
             retention_days: Number of days to retain archives
-        
+
         Returns:
             Number of archives deleted
         """

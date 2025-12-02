@@ -46,7 +46,7 @@ def setup_audit_logger() -> logging.Logger:
 def cleanup_old_audit_logs() -> int:
     """
     Remove audit logs older than retention period.
-    
+
     Returns:
         Number of files deleted
     """
@@ -78,7 +78,7 @@ def cleanup_old_audit_logs() -> int:
 class AuditMiddleware(BaseHTTPMiddleware):
     """
     Middleware for structured audit logging of HTTP requests.
-    
+
     Logs:
     - Request ID, timestamp, method, path
     - Client IP, user agent
@@ -198,7 +198,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 # For workflows, just log tool count and wire count
                 if isinstance(data, dict):
                     if "tools" in data and "wires" in data:
-                        return f"workflow: {len(data.get('tools', []))} tools, {len(data.get('wires', []))} wires"
+                        tools_count = len(data.get('tools', []))
+                        wires_count = len(data.get('wires', []))
+                        return f"workflow: {tools_count} tools, {wires_count} wires"
                     # For other objects, list top-level keys
                     keys = list(data.keys())[:5]
                     if len(data.keys()) > 5:

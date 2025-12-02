@@ -15,4 +15,13 @@ from app.domain.tools.implementations import (
 # Tools are automatically registered via @register_tool decorator
 # This file just needs to be imported somewhere to trigger registration
 
-__all__ = ["InputTool", "OutputTool", "FilterTool", "SelectTool", "FormulaTool", "UnionTool", "SummarizeTool", "JoinTool"]
+__all__ = [
+    "InputTool",
+    "OutputTool",
+    "FilterTool",
+    "SelectTool",
+    "FormulaTool",
+    "UnionTool",
+    "SummarizeTool",
+    "JoinTool",
+]

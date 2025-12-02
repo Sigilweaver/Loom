@@ -96,7 +96,10 @@ class SortTool(BaseTool):
                 continue
 
             if direction not in SORT_DIRECTIONS:
-                errors.append(f"Invalid sort direction at index {i}: '{direction}'. Must be 'asc' or 'desc'")
+                errors.append(
+                    f"Invalid sort direction at index {i}: '{direction}'. "
+                    "Must be 'asc' or 'desc'"
+                )
 
             # Check for duplicate columns
             if column in seen_columns:

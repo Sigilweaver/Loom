@@ -105,7 +105,7 @@ class SummarizeTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute summarize operation with group by and aggregations.
-        
+
         If aggregations is empty but groupByColumns is provided, returns distinct
         values for those columns (like SQL SELECT DISTINCT).
         """
@@ -162,7 +162,8 @@ class SummarizeTool(BaseTool):
             input_dtype = input_col.dtype
 
             # Determine output name
-            col_name = output_name.strip() if output_name and output_name.strip() else f"{column}_{operation}"
+            default_name = f"{column}_{operation}"
+            col_name = output_name.strip() if output_name and output_name.strip() else default_name
 
             # Determine output dtype
             output_dtype = get_result_dtype(operation, input_dtype)
@@ -216,7 +217,9 @@ class SummarizeTool(BaseTool):
                 errors.append(f"Unknown aggregation operation: '{operation}'")
 
             # Check for duplicate output names
-            final_name = output_name.strip() if output_name and output_name.strip() else f"{column}_{operation}"
+            default_name = f"{column}_{operation}"
+            out_name = output_name.strip() if output_name else ""
+            final_name = out_name if out_name else default_name
             if final_name in seen_output_names:
                 errors.append(f"Duplicate output column name: '{final_name}'")
             if final_name in group_by_columns_set:

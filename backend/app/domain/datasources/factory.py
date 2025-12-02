@@ -39,13 +39,13 @@ class DataSourceFactory:
     def create(cls, source_type: str) -> DataSource:
         """
         Create a data source instance by type.
-        
+
         Args:
             source_type: Type identifier (e.g., "csv", "parquet")
-            
+
         Returns:
             DataSource instance
-            
+
         Raises:
             DataSourceError: If source type is unknown
         """
@@ -61,13 +61,13 @@ class DataSourceFactory:
     def detect_source_type(cls, file_path: str) -> str:
         """
         Detect data source type from file extension.
-        
+
         Args:
             file_path: Path to the file
-            
+
         Returns:
             Source type identifier
-            
+
         Raises:
             DataSourceError: If extension is not supported
         """

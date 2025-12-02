@@ -19,7 +19,7 @@ router = APIRouter(prefix="/datasource", tags=["datasource"])
 async def inspect_datasource(request: InspectRequest) -> InspectResponse:
     """
     Inspect a data source and return schema information.
-    
+
     Automatically detects source type from file extension if not provided.
     Supports: CSV, TSV, and more in the future.
     """
@@ -53,7 +53,7 @@ async def inspect_datasource(request: InspectRequest) -> InspectResponse:
 async def preview_datasource(request: PreviewRequest) -> DataPreview:
     """
     Preview data from a source.
-    
+
     Returns sample rows with schema information.
     Automatically detects source type from file extension if not provided.
     """

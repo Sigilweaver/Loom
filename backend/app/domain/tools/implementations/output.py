@@ -119,7 +119,7 @@ class OutputTool(BaseTool):
     def _build_csv_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars CSV write kwargs.
-        
+
         Maps only common parameters between sink_csv and write_csv.
         """
         kwargs = {}
@@ -153,7 +153,7 @@ class OutputTool(BaseTool):
     def _build_parquet_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars Parquet write kwargs.
-        
+
         Maps parameters for sink_parquet and write_parquet.
         """
         kwargs = {}
@@ -294,7 +294,9 @@ class OutputTool(BaseTool):
                 lines.append(f'{input_var}.collect().write_parquet("{escaped_path}"{opts_str})')
 
         else:
-            lines.append(f"# ERROR: Output type '{output_type}' not yet supported in code generation")
+            lines.append(
+                f"# ERROR: Output type '{output_type}' not yet supported in code generation"
+            )
 
         # Output tools have no outputs
         return (lines, {})
