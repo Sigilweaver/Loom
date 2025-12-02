@@ -1,35 +1,58 @@
 #!/usr/bin/env python3
 """
-Full test suite runner for Sigilweaver.
+Full verification suite for Sigilweaver.
 
-Runs all tests in sequence:
-1. Backend tests (pytest)
-2. Frontend tests (vitest)
+Runs all checks to ensure CI will pass:
+1. Backend: Lint (ruff) + Type check (mypy) + Tests (pytest)
+2. Frontend: Type check (tsc) + Lint (eslint) + Tests (vitest)
 3. Integration tests (requires backend running)
 
 Usage:
-    ./scripts/test-full.py              # Run all tests
-    ./scripts/test-full.py --backend    # Backend tests only
-    ./scripts/test-full.py --frontend   # Frontend tests only
-    ./scripts/test-full.py --integration # Integration tests only
-    ./scripts/test-full.py --no-integration # Skip integration tests
+    ./scripts/test.py              # Run all checks (recommended before PR)
+    ./scripts/test.py --backend    # Backend checks only
+    ./scripts/test.py --frontend   # Frontend checks only
+    ./scripts/test.py --integration # Integration tests only
+    ./scripts/test.py --no-integration # Skip integration tests
+    ./scripts/test.py --coverage   # Include coverage reports
+    ./scripts/test.py --strict     # Fail on lint warnings (stricter than CI)
 """
 
 import argparse
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
 @dataclass
-class TestResult:
-    """Result of a test suite run."""
+class CheckResult:
+    """Result of a single check (lint, typecheck, test, etc.)."""
     name: str
     passed: bool
     duration: float
     error: str | None = None
+    warnings: int = 0
+
+
+@dataclass
+class SuiteResult:
+    """Result of a test suite (backend, frontend, integration)."""
+    name: str
+    checks: list[CheckResult] = field(default_factory=list)
+    
+    @property
+    def passed(self) -> bool:
+        return all(c.passed for c in self.checks)
+    
+    @property
+    def duration(self) -> float:
+        return sum(c.duration for c in self.checks)
+    
+    @property
+    def error(self) -> str | None:
+        errors = [c.error for c in self.checks if c.error]
+        return "; ".join(errors) if errors else None
 
 
 def get_repo_root() -> Path:
@@ -41,107 +64,235 @@ def get_repo_root() -> Path:
 def print_header(title: str) -> None:
     """Print a section header."""
     print()
-    print("=" * 50)
-    print(title)
-    print("=" * 50)
+    print("=" * 60)
+    print(f"  {title}")
+    print("=" * 60)
+
+
+def print_subheader(title: str) -> None:
+    """Print a subsection header."""
+    print()
+    print(f"--- {title} ---")
 
 
 def print_separator() -> None:
     """Print a separator line."""
-    print("-" * 50)
+    print("-" * 60)
 
 
-def run_backend_tests(repo_root: Path, coverage: bool = False) -> TestResult:
-    """Run backend pytest tests."""
-    print_header("Backend Tests (pytest)")
+def get_python_path(backend_dir: Path) -> Path | None:
+    """Get the Python executable path from the backend venv."""
+    venv_path = backend_dir / ".venv"
+    if not venv_path.exists():
+        return None
+    
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "python.exe"
+    return venv_path / "bin" / "python"
+
+
+def run_command(
+    cmd: list[str],
+    cwd: Path,
+    name: str,
+    fail_on_error: bool = True
+) -> CheckResult:
+    """Run a command and return a CheckResult."""
+    start_time = time.time()
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            capture_output=False,
+        )
+        duration = time.time() - start_time
+        
+        passed = result.returncode == 0 if fail_on_error else True
+        
+        return CheckResult(
+            name=name,
+            passed=passed,
+            duration=duration,
+            warnings=0 if result.returncode == 0 else 1,
+        )
+    except Exception as e:
+        return CheckResult(
+            name=name,
+            passed=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
+
+
+def run_backend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ruff linter on backend code."""
+    print_subheader("Backend Lint (ruff)")
     
     backend_dir = repo_root / "backend"
-    venv_path = backend_dir / ".venv"
+    python_path = get_python_path(backend_dir)
     
-    if not venv_path.exists():
-        return TestResult(
-            name="Backend",
+    if python_path is None:
+        return CheckResult(
+            name="Backend Lint",
+            passed=False,
+            duration=0,
+            error="Virtual environment not found"
+        )
+    
+    # Match CI behavior: ruff check with exit-zero unless strict mode
+    cmd = [str(python_path), "-m", "ruff", "check", "app/", "tests/"]
+    if not strict:
+        cmd.append("--exit-zero")
+    
+    return run_command(cmd, backend_dir, "Backend Lint", fail_on_error=strict)
+
+
+def run_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run mypy type checker on backend code."""
+    print_subheader("Backend Type Check (mypy)")
+    
+    backend_dir = repo_root / "backend"
+    python_path = get_python_path(backend_dir)
+    
+    if python_path is None:
+        return CheckResult(
+            name="Backend Types",
+            passed=False,
+            duration=0,
+            error="Virtual environment not found"
+        )
+    
+    cmd = [str(python_path), "-m", "mypy", "app/"]
+    
+    # Match CI behavior: mypy issues are reported but don't fail unless strict
+    return run_command(cmd, backend_dir, "Backend Types", fail_on_error=strict)
+
+
+def run_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+    """Run backend pytest tests."""
+    print_subheader("Backend Tests (pytest)")
+    
+    backend_dir = repo_root / "backend"
+    python_path = get_python_path(backend_dir)
+    
+    if python_path is None:
+        return CheckResult(
+            name="Backend Tests",
             passed=False,
             duration=0,
             error="Virtual environment not found. Run: cd backend && python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'"
         )
     
-    # Determine the Python executable path
-    if sys.platform == "win32":
-        python_path = venv_path / "Scripts" / "python.exe"
-    else:
-        python_path = venv_path / "bin" / "python"
-    
-    start_time = time.time()
-    
-    # Build pytest command
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
     
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=backend_dir,
-            capture_output=False,
-        )
-        duration = time.time() - start_time
-        
-        if coverage and result.returncode == 0:
-            print()
-            print(f"Coverage report: {backend_dir}/htmlcov/index.html")
-        
-        return TestResult(
-            name="Backend",
-            passed=result.returncode == 0,
-            duration=duration,
-        )
-    except Exception as e:
-        return TestResult(
-            name="Backend",
+    result = run_command(cmd, backend_dir, "Backend Tests", fail_on_error=True)
+    
+    if coverage and result.passed:
+        print()
+        print(f"Coverage report: {backend_dir}/htmlcov/index.html")
+    
+    return result
+
+
+def run_backend_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+    """Run all backend checks."""
+    print_header("Backend Verification")
+    
+    backend_dir = repo_root / "backend"
+    venv_path = backend_dir / ".venv"
+    
+    suite = SuiteResult(name="Backend")
+    
+    if not venv_path.exists():
+        suite.checks.append(CheckResult(
+            name="Backend Setup",
             passed=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+            duration=0,
+            error="Virtual environment not found. Run: cd backend && python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'"
+        ))
+        return suite
+    
+    # Run lint, typecheck, and tests
+    suite.checks.append(run_backend_lint(repo_root, strict=strict))
+    suite.checks.append(run_backend_typecheck(repo_root, strict=strict))
+    suite.checks.append(run_backend_tests(repo_root, coverage=coverage))
+    
+    return suite
 
 
-def run_frontend_tests(repo_root: Path) -> TestResult:
+def run_frontend_typecheck(repo_root: Path) -> CheckResult:
+    """Run TypeScript type checker."""
+    print_subheader("Frontend Type Check (tsc)")
+    
+    frontend_dir = repo_root / "frontend"
+    
+    return run_command(
+        ["npm", "run", "type-check"],
+        frontend_dir,
+        "Frontend Types",
+        fail_on_error=True
+    )
+
+
+def run_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ESLint on frontend code."""
+    print_subheader("Frontend Lint (eslint)")
+    
+    frontend_dir = repo_root / "frontend"
+    
+    # Match CI behavior: lint issues are reported but don't fail unless strict
+    return run_command(
+        ["npm", "run", "lint"],
+        frontend_dir,
+        "Frontend Lint",
+        fail_on_error=strict
+    )
+
+
+def run_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     """Run frontend vitest tests."""
-    print_header("Frontend Tests (vitest)")
+    print_subheader("Frontend Tests (vitest)")
+    
+    frontend_dir = repo_root / "frontend"
+    
+    cmd = ["npm", "run", "test:coverage" if coverage else "test:unit"]
+    
+    result = run_command(cmd, frontend_dir, "Frontend Tests", fail_on_error=True)
+    
+    if coverage and result.passed:
+        print()
+        print(f"Coverage report: {frontend_dir}/coverage/index.html")
+    
+    return result
+
+
+def run_frontend_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+    """Run all frontend checks."""
+    print_header("Frontend Verification")
     
     frontend_dir = repo_root / "frontend"
     node_modules = frontend_dir / "node_modules"
     
+    suite = SuiteResult(name="Frontend")
+    
     if not node_modules.exists():
-        return TestResult(
-            name="Frontend",
+        suite.checks.append(CheckResult(
+            name="Frontend Setup",
             passed=False,
             duration=0,
             error="node_modules not found. Run: cd frontend && npm install"
-        )
+        ))
+        return suite
     
-    start_time = time.time()
+    # Run typecheck, lint, and tests
+    suite.checks.append(run_frontend_typecheck(repo_root))
+    suite.checks.append(run_frontend_lint(repo_root, strict=strict))
+    suite.checks.append(run_frontend_tests(repo_root, coverage=coverage))
     
-    try:
-        result = subprocess.run(
-            ["npm", "run", "test:unit"],
-            cwd=frontend_dir,
-            capture_output=False,
-        )
-        duration = time.time() - start_time
-        
-        return TestResult(
-            name="Frontend",
-            passed=result.returncode == 0,
-            duration=duration,
-        )
-    except Exception as e:
-        return TestResult(
-            name="Frontend",
-            passed=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+    return suite
 
 
 def check_backend_running() -> bool:
@@ -157,15 +308,10 @@ def check_backend_running() -> bool:
 def start_backend(repo_root: Path) -> subprocess.Popen | None:
     """Start the backend server."""
     backend_dir = repo_root / "backend"
-    venv_path = backend_dir / ".venv"
+    python_path = get_python_path(backend_dir)
     
-    if not venv_path.exists():
+    if python_path is None:
         return None
-    
-    if sys.platform == "win32":
-        python_path = venv_path / "Scripts" / "python.exe"
-    else:
-        python_path = venv_path / "bin" / "python"
     
     print("Starting backend server...")
     
@@ -177,7 +323,7 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
     )
     
     # Wait for backend to be ready
-    for i in range(30):
+    for _ in range(30):
         if check_backend_running():
             print("Backend ready!")
             return process
@@ -188,20 +334,23 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
     return None
 
 
-def run_integration_tests(repo_root: Path) -> TestResult:
+def run_integration_tests(repo_root: Path) -> SuiteResult:
     """Run integration tests."""
     print_header("Integration Tests")
     
     frontend_dir = repo_root / "frontend"
     node_modules = frontend_dir / "node_modules"
     
+    suite = SuiteResult(name="Integration")
+    
     if not node_modules.exists():
-        return TestResult(
-            name="Integration",
+        suite.checks.append(CheckResult(
+            name="Integration Setup",
             passed=False,
             duration=0,
             error="node_modules not found. Run: cd frontend && npm install"
-        )
+        ))
+        return suite
     
     # Check if backend is running, start if needed
     backend_process = None
@@ -209,82 +358,88 @@ def run_integration_tests(repo_root: Path) -> TestResult:
         print("Backend not detected, starting...")
         backend_process = start_backend(repo_root)
         if backend_process is None:
-            return TestResult(
-                name="Integration",
+            suite.checks.append(CheckResult(
+                name="Integration Setup",
                 passed=False,
                 duration=0,
                 error="Failed to start backend server"
-            )
+            ))
+            return suite
     else:
         print("Backend already running")
     
-    start_time = time.time()
-    
     try:
-        result = subprocess.run(
+        result = run_command(
             ["npm", "run", "test:integration"],
-            cwd=frontend_dir,
-            capture_output=False,
+            frontend_dir,
+            "Integration Tests",
+            fail_on_error=True
         )
-        duration = time.time() - start_time
-        
-        return TestResult(
-            name="Integration",
-            passed=result.returncode == 0,
-            duration=duration,
-        )
-    except Exception as e:
-        return TestResult(
-            name="Integration",
-            passed=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+        suite.checks.append(result)
     finally:
         if backend_process:
             print("Stopping backend server...")
             backend_process.terminate()
             backend_process.wait()
+    
+    return suite
 
 
-def print_summary(results: list[TestResult]) -> None:
-    """Print test summary."""
-    print_header("Test Summary")
+def print_summary(results: list[SuiteResult], strict: bool = False) -> None:
+    """Print verification summary."""
+    print_header("Verification Summary")
     
     total_duration = sum(r.duration for r in results)
     all_passed = all(r.passed for r in results)
     
-    for result in results:
-        status = "PASS" if result.passed else "FAIL"
-        print(f"  {result.name}: {status} ({result.duration:.1f}s)")
-        if result.error:
-            print(f"    Error: {result.error}")
+    for suite in results:
+        suite_status = "PASS" if suite.passed else "FAIL"
+        print(f"\n  {suite.name}: {suite_status} ({suite.duration:.1f}s)")
+        
+        for check in suite.checks:
+            check_status = "PASS" if check.passed else "FAIL"
+            warning_note = f" ({check.warnings} warnings)" if check.warnings > 0 and check.passed else ""
+            print(f"    - {check.name}: {check_status}{warning_note} ({check.duration:.1f}s)")
+            if check.error:
+                print(f"      Error: {check.error}")
     
     print_separator()
     print(f"Total time: {total_duration:.1f}s")
+    print(f"Mode: {'strict' if strict else 'CI-compatible'}")
     print()
     
     if all_passed:
-        print("All tests passed!")
+        print("All checks passed! Ready for PR.")
     else:
-        failed = [r.name for r in results if not r.passed]
-        print(f"FAILED: {', '.join(failed)}")
+        failed_suites = [r.name for r in results if not r.passed]
+        print(f"FAILED: {', '.join(failed_suites)}")
+        print()
+        print("Fix the issues above before submitting a PR.")
 
 
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Run full test suite for Sigilweaver"
+        description="Run full verification suite for Sigilweaver (lint, typecheck, tests)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  ./scripts/test.py              # Full verification (recommended before PR)
+  ./scripts/test.py --backend    # Backend only (ruff + mypy + pytest)
+  ./scripts/test.py --frontend   # Frontend only (tsc + eslint + vitest)
+  ./scripts/test.py --strict     # Fail on lint/type warnings
+  ./scripts/test.py --coverage   # Include coverage reports
+"""
     )
     parser.add_argument(
         "--backend",
         action="store_true",
-        help="Run backend tests only"
+        help="Run backend checks only (ruff + mypy + pytest)"
     )
     parser.add_argument(
         "--frontend",
         action="store_true",
-        help="Run frontend tests only"
+        help="Run frontend checks only (tsc + eslint + vitest)"
     )
     parser.add_argument(
         "--integration",
@@ -299,7 +454,12 @@ def main() -> int:
     parser.add_argument(
         "--coverage",
         action="store_true",
-        help="Generate coverage reports for backend tests"
+        help="Generate coverage reports"
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail on lint/type warnings (stricter than CI)"
     )
     
     args = parser.parse_args()
@@ -320,23 +480,26 @@ def main() -> int:
         run_integration = False
     
     repo_root = get_repo_root()
-    results: list[TestResult] = []
+    results: list[SuiteResult] = []
     
-    print_header("Sigilweaver Full Test Suite")
+    print_header("Sigilweaver Verification Suite")
     print(f"Repository: {repo_root}")
+    print(f"Mode: {'strict' if args.strict else 'CI-compatible'}")
+    if args.coverage:
+        print("Coverage: enabled")
     
-    # Run tests
+    # Run checks
     if run_backend:
-        results.append(run_backend_tests(repo_root, coverage=args.coverage))
+        results.append(run_backend_suite(repo_root, coverage=args.coverage, strict=args.strict))
     
     if run_frontend:
-        results.append(run_frontend_tests(repo_root))
+        results.append(run_frontend_suite(repo_root, coverage=args.coverage, strict=args.strict))
     
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Print summary
-    print_summary(results)
+    print_summary(results, strict=args.strict)
     
     # Return appropriate exit code
     return 0 if all(r.passed for r in results) else 1
