@@ -132,14 +132,14 @@ This makes adding new tools straightforward—implement the interface, register 
 Here's what happens when a user connects an Input tool to a Filter tool:
 
 1. **Input tool configured** with `data.csv`
-2. Frontend calls `POST /api/schema/` with workflow JSON
+2. Frontend calls `POST /api/workflow/tool/schema` with workflow JSON
 3. Backend loads CSV, infers schema, returns `{columns: [{name: "age", type: "Int64"}, ...]}`
 4. Frontend stores schema, shows columns in Filter config dropdown
 5. **User configures Filter**: `pl.col('age') > 30`
-6. Frontend calls `POST /api/schema/` again with updated workflow
+6. Frontend calls `POST /api/workflow/tool/schema` again with updated workflow
 7. Backend computes Filter's output schema (same columns, different row count unknown until execution)
 8. **User clicks Preview**
-9. Frontend calls `POST /api/preview/` with workflow + Filter tool ID
+9. Frontend calls `POST /api/workflow/tool/execute` with workflow + Filter tool ID
 10. Backend executes Input → Filter lazily, collects 100 rows, returns preview data
 11. Frontend displays preview in data grid
 

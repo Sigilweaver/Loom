@@ -69,13 +69,13 @@ class MyTool(BaseTool):
 
 ### Register the Tool
 
-Add an import to `backend/app/domain/tools/register.py`:
+Add an import to `backend/app/domain/tools/implementations/__init__.py`:
 
 ```python
-from app.domain.tools.implementations.my_tool import MyTool  # noqa: F401
+from app.domain.tools.implementations.my_tool import MyTool
 ```
 
-The import triggers the `@register_tool` decorator, adding it to the registry.
+And add it to the `__all__` list in the same file. The import triggers the `@register_tool` decorator, adding it to the registry.
 
 ### Key Backend Rules
 
@@ -115,7 +115,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 If your tool needs custom configuration UI, create a config panel:
 
 ```typescript
-// frontend/src/components/panels/config/MyToolConfig.tsx
+// frontend/src/components/MyToolConfiguration.tsx
 
 import { Tool } from '@/domain/workflow/entities/workflow';
 

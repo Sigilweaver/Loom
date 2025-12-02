@@ -12,7 +12,7 @@ The recommended approach:
 
 ```bash
 # From repo root
-./scripts/dev.sh
+python ./scripts/dev.py
 ```
 
 This starts both backend and frontend in development mode with hot reload.
@@ -88,10 +88,10 @@ No manual restart needed for most changes.
 ### Adding a Tool
 
 1. Create `backend/app/domain/tools/implementations/my_tool.py`
-2. Add import to `backend/app/domain/tools/register.py`
+2. Add import to `backend/app/domain/tools/implementations/__init__.py`
 3. Add definition to `frontend/src/data/tools.ts`
-4. Create config panel in `frontend/src/components/panels/config/`
-5. Test with `./scripts/test.sh`
+4. Create config panel `frontend/src/components/MyToolConfiguration.tsx`
+5. Test with `python ./scripts/test.py`
 
 See [Adding Tools](../contributing/adding-tools) for details.
 
@@ -127,7 +127,7 @@ console.log(useWorkflowStore.getState());
 
 ```bash
 # All tests
-./scripts/test.sh
+python ./scripts/test.py
 
 # Backend only
 cd backend && pytest

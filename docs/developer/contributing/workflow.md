@@ -45,7 +45,7 @@ Branch naming convention:
 
 ```bash
 # Run all tests
-./scripts/test.sh
+python ./scripts/test.py
 
 # Or test individually
 cd backend && pytest

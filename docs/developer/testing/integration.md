@@ -22,7 +22,7 @@ Unit tests verify individual pieces work. Integration tests verify the pieces wo
 npm run test:integration
 
 # Or from repo root
-./scripts/test_integration.sh
+python ./scripts/test.py --integration
 ```
 
 This script:
@@ -58,7 +58,7 @@ describe('Backend Integration', () => {
     it('returns schema for connected tool', async () => {
       const workflow = createTestWorkflow();
       
-      const response = await fetch('http://localhost:8000/api/schema/', {
+      const response = await fetch('http://localhost:8000/api/workflow/tool/schema', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,13 +79,13 @@ describe('Backend Integration', () => {
     it('executes and returns preview data', async () => {
       const workflow = createWorkflowWithData();
       
-      const response = await fetch('http://localhost:8000/api/preview/', {
+      const response = await fetch('http://localhost:8000/api/workflow/tool/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tool_id: 'filter-1',
           workflow,
-          limit: 10,
+          preview_limit: 10,
         }),
       });
       
@@ -99,7 +99,7 @@ describe('Backend Integration', () => {
   
   describe('Error Handling', () => {
     it('returns error for invalid workflow', async () => {
-      const response = await fetch('http://localhost:8000/api/execute/', {
+      const response = await fetch('http://localhost:8000/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

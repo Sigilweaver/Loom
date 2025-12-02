@@ -26,7 +26,9 @@ frontend/src/
 │   ├── Canvas.tsx      # Main workflow canvas (Xyflow wrapper)
 │   ├── ToolPalette.tsx # Drag-and-drop tool library
 │   ├── ConfigurationPanel.tsx  # Selected tool config
-│   ├── panels/         # Config panels for each tool type
+│   ├── FilterConfiguration.tsx # Tool config components
+│   ├── SelectConfiguration.tsx # (named *Configuration.tsx)
+│   ├── primitives/     # Reusable config UI primitives
 │   └── ui/             # Shared UI components
 │
 ├── state/              # Zustand stores

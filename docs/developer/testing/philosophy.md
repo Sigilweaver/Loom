@@ -148,7 +148,7 @@ def test_filter_works():
 
 ```bash
 # All tests
-./scripts/test.sh
+python ./scripts/test.py
 
 # Backend only
 cd backend && pytest

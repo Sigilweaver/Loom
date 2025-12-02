@@ -12,15 +12,17 @@ Conventions and patterns for frontend development. These aren't arbitrary rules�
 
 ```
 components/
-├── Canvas.tsx            # Top-level canvas wrapper
-├── ToolPalette.tsx       # Tool library sidebar
-├── ConfigurationPanel.tsx # Selected tool config
-├── panels/
-│   ├── config/           # Per-tool config components
-│   │   ├── FilterConfig.tsx
-│   │   └── SelectConfig.tsx
-│   └── preview/          # Data preview components
-└── ui/                   # Shared UI primitives
+├── Canvas.tsx                  # Top-level canvas wrapper
+├── ToolPalette.tsx             # Tool library sidebar
+├── ConfigurationPanel.tsx      # Selected tool config
+├── FilterConfiguration.tsx     # Per-tool config components
+├── SelectConfiguration.tsx     # (named *Configuration.tsx)
+├── FormulaConfiguration.tsx
+├── primitives/                 # Reusable config UI primitives
+│   ├── ConfigText.tsx
+│   ├── ConfigSelect.tsx
+│   └── ConfigNumber.tsx
+└── ui/                         # Shared UI primitives
     ├── Button.tsx
     └── Input.tsx
 ```

@@ -47,7 +47,7 @@ cd frontend && npm run build:mac
 cd backend
 source .venv/bin/activate
 pip install -e ".[build]"  # Includes PyInstaller
-./build_executable.sh
+../scripts/build_backend.sh
 ```
 
 PyInstaller analyzes `app/main.py` and bundles:

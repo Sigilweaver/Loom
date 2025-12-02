@@ -226,7 +226,7 @@ Returns service status. Used by frontend to verify backend is running.
 ### Schema
 
 ```
-POST /api/schema/
+POST /api/workflow/tool/schema
 {
   "tool_id": "abc123",
   "workflow": { ... }
@@ -235,23 +235,23 @@ POST /api/schema/
 
 Returns output schema for a tool without executing. Used to populate column dropdowns in tool configuration.
 
-### Preview
+### Preview / Execute Tool
 
 ```
-POST /api/preview/
+POST /api/workflow/tool/execute
 {
   "tool_id": "abc123", 
   "workflow": { ... },
-  "limit": 100
+  "preview_limit": 100
 }
 ```
 
 Executes workflow up to target tool, returns sample rows. This is where `.collect()` happens.
 
-### Execute
+### Execute Workflow
 
 ```
-POST /api/execute/
+POST /api/workflow/execute
 {
   "workflow": { ... }
 }
