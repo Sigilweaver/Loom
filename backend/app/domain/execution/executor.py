@@ -2,18 +2,17 @@
 
 import logging
 import time
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 
-from app.api.models.workflow import Workflow, Tool
-from app.api.models.common import DataSchema, DataPreview
+from app.api.models.workflow import Tool, Workflow
+from app.config import settings
 from app.domain.execution.graph import ExecutionGraph
 from app.domain.tools.registry import ToolRegistry
-from app.utils.errors import ExecutionError, ToolError
-from app.utils.type_mapping import schema_from_polars, dataframe_to_dict_list
-from app.config import settings
+from app.utils.errors import ExecutionError
+from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class WorkflowExecutor:
             "preview_limit": preview_limit,
             "status": "started",
         }
-        
+
         # Initialize archive if enabled
         if settings.archive_enabled:
             try:
@@ -65,7 +64,7 @@ class WorkflowExecutor:
             except Exception as e:
                 logger.error(f"Failed to create workflow archive: {e}")
                 self.archive_dir = None
-        
+
         try:
             # Build execution graph
             graph = ExecutionGraph(workflow)
@@ -99,7 +98,7 @@ class WorkflowExecutor:
 
                 # Store results
                 self.results[tool_id] = outputs
-                
+
                 # Log tool execution
                 tool_execution_logs.append({
                     "tool_id": tool_id,
@@ -111,16 +110,16 @@ class WorkflowExecutor:
                 # Stop if target reached
                 if target_tool_id and tool_id == target_tool_id:
                     break
-            
+
             execution_log["tool_executions"] = tool_execution_logs
 
             # Format results
             result = await self._format_results(
-                workflow, 
+                workflow,
                 target_tool_id or execution_order[-1],
                 preview_limit
             )
-            
+
             # Update execution log with success
             execution_log["status"] = "completed"
             execution_log["result_summary"] = {
@@ -128,7 +127,7 @@ class WorkflowExecutor:
                 "output_count": len(result["outputs"]),
             }
             self._save_execution_log(execution_log, start_time)
-            
+
             return result
 
         except Exception as e:
@@ -161,11 +160,11 @@ class WorkflowExecutor:
             Dict with single-socket output (tool_id, socket_id, data_schema, data, row_count)
         """
         result = await self.execute_workflow(workflow, target_tool_id=tool_id, preview_limit=preview_limit)
-        
+
         socket_key = str(socket_id)
         if socket_key not in result.get("outputs", {}):
             raise ExecutionError(f"Socket {socket_id} not found in tool {tool_id} outputs")
-        
+
         socket_output = result["outputs"][socket_key]
         return {
             "tool_id": tool_id,
@@ -252,7 +251,7 @@ class WorkflowExecutor:
         for sid, source_list in tool_inputs.items():
             if not source_list:
                 continue
-                
+
             if len(source_list) > 1:
                 # Multiple inputs (Union tool)
                 schemas = []
@@ -275,7 +274,7 @@ class WorkflowExecutor:
         socket_key = str(socket_id)
         if socket_key not in output_schemas:
             raise ExecutionError(f"Socket {socket_id} not found in tool {tool_id} output schemas")
-        
+
         return {
             "tool_id": tool_id,
             "socket_id": socket_id,
@@ -315,14 +314,14 @@ class WorkflowExecutor:
 
         # Get input schemas for target tool, grouped by socket
         tool_inputs = graph.get_tool_inputs(tool_id)
-        
+
         # If socket_id is specified, only process that socket
         sockets_to_process = (
             {socket_id: tool_inputs.get(socket_id, [])}
             if socket_id
             else tool_inputs
         )
-        
+
         inputs_metadata: dict[str, list[dict[str, Any]]] = {}
         for sid, source_list in sockets_to_process.items():
             socket_columns = []
@@ -392,7 +391,7 @@ class WorkflowExecutor:
                             f"Tool {tool_id} depends on {source_tool_id} but it hasn't been executed"
                         )
                     frames.append(self.results[source_tool_id][source_socket_id])
-                
+
                 inputs[socket_id] = frames
 
         return inputs
@@ -434,16 +433,16 @@ class WorkflowExecutor:
             if tool.id == tool_id:
                 return tool
         raise ExecutionError(f"Tool {tool_id} not found in workflow")
-    
+
     def _save_execution_log(self, log_data: dict[str, Any], start_time: float) -> None:
         """Save execution log to archive"""
         if not self.archive_dir or not settings.archive_enabled:
             return
-        
+
         try:
             # Add execution time
             log_data["execution_time_ms"] = (time.time() - start_time) * 1000
-            
+
             from app.domain.workflow.archive import WorkflowArchive
             archive = WorkflowArchive(settings.archive_path)
             archive.save_execution_log(self.archive_dir, log_data)

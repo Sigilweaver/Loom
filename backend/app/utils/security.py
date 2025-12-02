@@ -1,6 +1,7 @@
 """Security utilities for file path validation"""
 
 from pathlib import Path
+
 from fastapi import HTTPException
 
 from app.config import settings

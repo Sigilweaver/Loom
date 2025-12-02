@@ -1,6 +1,7 @@
 """Tests for the Sort tool."""
-import pytest
 import polars as pl
+import pytest
+
 from app.domain.tools.implementations.sort import SortTool
 
 
@@ -25,7 +26,9 @@ class TestSortToolExecution:
     """Tests for SortTool.execute()."""
 
     @pytest.mark.asyncio
-    async def test_sort_single_column_ascending(self, sort_tool: SortTool, sample_data: pl.LazyFrame):
+    async def test_sort_single_column_ascending(
+        self, sort_tool: SortTool, sample_data: pl.LazyFrame
+    ):
         """Test sorting by a single column in ascending order."""
         config = {
             "sortColumns": [
@@ -33,16 +36,18 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         assert "output" in result
         df = result["output"].collect()
-        
+
         # Age should be sorted ascending: 25, 25, 30, 35, 40
         ages = df["age"].to_list()
         assert ages == [25, 25, 30, 35, 40]
 
     @pytest.mark.asyncio
-    async def test_sort_single_column_descending(self, sort_tool: SortTool, sample_data: pl.LazyFrame):
+    async def test_sort_single_column_descending(
+        self, sort_tool: SortTool, sample_data: pl.LazyFrame
+    ):
         """Test sorting by a single column in descending order."""
         config = {
             "sortColumns": [
@@ -50,9 +55,9 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
-        
+
         # Age should be sorted descending: 40, 35, 30, 25, 25
         ages = df["age"].to_list()
         assert ages == [40, 35, 30, 25, 25]
@@ -67,9 +72,9 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
-        
+
         # First sort by age ascending, then by name descending
         # Age 25: David (D > B), Bob
         # Age 30: Alice
@@ -77,7 +82,7 @@ class TestSortToolExecution:
         # Age 40: None (nulls last in name)
         ages = df["age"].to_list()
         names = df["name"].to_list()
-        
+
         # First check age order
         assert ages == [25, 25, 30, 35, 40]
         # Within age=25, David should come before Bob (descending)
@@ -92,10 +97,10 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
         names = df["name"].to_list()
-        
+
         # Null should be first
         assert names[0] is None
         # Remaining should be sorted alphabetically
@@ -110,10 +115,10 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
         names = df["name"].to_list()
-        
+
         # Remaining should be sorted alphabetically
         assert names[:-1] == ["Alice", "Bob", "Charlie", "David"]
         # Null should be last
@@ -124,10 +129,10 @@ class TestSortToolExecution:
         """Test that empty sort columns passes through data unchanged."""
         config = {"sortColumns": []}
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
         original_df = sample_data.collect()
-        
+
         # Data should be unchanged
         assert df.shape == original_df.shape
 
@@ -140,9 +145,9 @@ class TestSortToolExecution:
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
-        
+
         df = result["output"].collect()
-        
+
         # All original columns should be preserved
         assert set(df.columns) == {"name", "age", "city", "salary"}
 
@@ -166,9 +171,9 @@ class TestSortToolOutputSchema:
                 {"column": "age", "direction": "asc", "nullsFirst": False}
             ]
         }
-        
+
         result = await sort_tool.get_output_schema(config, input_schema)
-        
+
         assert "output" in result
         assert result["output"] == input_schema["input"]
 
@@ -176,9 +181,9 @@ class TestSortToolOutputSchema:
     async def test_output_schema_no_input(self, sort_tool: SortTool):
         """Test that output schema raises error when missing input schema."""
         from app.utils.errors import ToolError
-        
+
         config = {"sortColumns": []}
-        
+
         with pytest.raises(ToolError, match="requires input schema"):
             await sort_tool.get_output_schema(config, {})
 
@@ -245,7 +250,7 @@ class TestSortToolToPythonCode:
             config=config,
             input_vars={"input": "df_input"},
         )
-        
+
         code = "\n".join(code_lines)
         assert "df_sort_1 = df_input.sort" in code
         assert '"age"' in code
@@ -267,7 +272,7 @@ class TestSortToolToPythonCode:
             config=config,
             input_vars={"input": "df_input"},
         )
-        
+
         code = "\n".join(code_lines)
         assert "df_sort_2 = df_input.sort" in code
         assert '"age"' in code
@@ -283,7 +288,7 @@ class TestSortToolToPythonCode:
             config=config,
             input_vars={"input": "df_input"},
         )
-        
+
         code = "\n".join(code_lines)
         # Should just pass through
         assert "df_sort_3 = df_input" in code

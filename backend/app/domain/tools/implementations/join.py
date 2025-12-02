@@ -123,7 +123,7 @@ class JoinTool(BaseTool):
             # Skip right key columns if they match left key columns
             if col.name in right_keys:
                 continue
-            
+
             # Add suffix if name conflicts with left column
             if col.name in left_col_names:
                 new_col = ColumnSchema(
@@ -157,7 +157,7 @@ class JoinTool(BaseTool):
         input_schemas: dict[str, DataSchema | list[DataSchema]] | None = None,
     ) -> list[str]:
         errors = []
-        
+
         left_keys = config.get("leftKeys", [])
         right_keys = config.get("rightKeys", [])
 

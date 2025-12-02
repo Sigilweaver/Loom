@@ -1,10 +1,10 @@
 """Tests for expression parsing utilities."""
 
-import pytest
 import polars as pl
+import pytest
 
-from app.utils.expression import normalize_expression, parse_polars_expression
 from app.utils.errors import ToolError
+from app.utils.expression import normalize_expression, parse_polars_expression
 
 
 class TestNormalizeExpression:

@@ -26,7 +26,7 @@ def test_polars_functions_endpoint(client):
     # Check table-level functions
     table_funcs = data["table_level"]
     assert len(table_funcs) > 0
-    
+
     # Check for key table-level functions
     table_names = [fn["name"] for fn in table_funcs]
     assert "pl.col" in table_names

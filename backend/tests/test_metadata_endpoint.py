@@ -194,7 +194,7 @@ async def test_metadata_endpoint_no_upstream(client, sample_csv):
 @pytest.mark.asyncio
 async def test_metadata_endpoint_multiple_input_sockets(client, sample_csv, tmp_path):
     """Test metadata endpoint returns columns grouped by socket ID for tools with multiple inputs.
-    
+
     This is critical for the Join tool which has separate input-left and input-right sockets,
     each needing their own column list for key selection dropdowns.
     """
@@ -277,24 +277,26 @@ async def test_metadata_endpoint_multiple_input_sockets(client, sample_csv, tmp_
     # Verify response structure
     assert data["tool_id"] == "join1"
     assert "inputs" in data
-    
+
     # Verify both input sockets are present
     assert "input-left" in data["inputs"], "Missing input-left socket in metadata"
     assert "input-right" in data["inputs"], "Missing input-right socket in metadata"
-    
+
     # Verify left input has columns from sample_csv (people data)
     left_columns = data["inputs"]["input-left"]
     left_col_names = [col["name"] for col in left_columns]
     assert "name" in left_col_names, "Left input should have 'name' column from sample.csv"
     assert "age" in left_col_names, "Left input should have 'age' column from sample.csv"
-    
+
     # Verify right input has columns from second_csv (employee data)
     right_columns = data["inputs"]["input-right"]
     right_col_names = [col["name"] for col in right_columns]
     assert "id" in right_col_names, "Right input should have 'id' column from employees.csv"
     assert "salary" in right_col_names, "Right input should have 'salary' column from employees.csv"
-    assert "department" in right_col_names, "Right input should have 'department' column from employees.csv"
-    
+    assert "department" in right_col_names, (
+        "Right input should have 'department' column from employees.csv"
+    )
+
     # Verify columns are NOT mixed between sockets
     assert "salary" not in left_col_names, "Left input should NOT have columns from right input"
     assert "name" not in right_col_names, "Right input should NOT have columns from left input"
@@ -303,7 +305,7 @@ async def test_metadata_endpoint_multiple_input_sockets(client, sample_csv, tmp_
 @pytest.mark.asyncio
 async def test_metadata_endpoint_partial_connections(client, sample_csv):
     """Test metadata for tool with only some input sockets connected.
-    
+
     For Join tool, if only left is connected, we should get columns for left
     but not for the unconnected right socket.
     """
@@ -368,7 +370,7 @@ async def test_metadata_endpoint_partial_connections(client, sample_csv):
     assert "input-left" in data["inputs"]
     left_columns = data["inputs"]["input-left"]
     assert len(left_columns) > 0
-    
+
     # Right socket should NOT be in inputs (or be empty) since it's not connected
     # The API omits sockets with no upstream data
     assert "input-right" not in data["inputs"] or len(data["inputs"].get("input-right", [])) == 0
@@ -377,7 +379,7 @@ async def test_metadata_endpoint_partial_connections(client, sample_csv):
 @pytest.mark.asyncio
 async def test_metadata_endpoint_socket_specific_request(client, sample_csv, tmp_path):
     """Test metadata endpoint with socket_id parameter for targeted queries.
-    
+
     When socket_id is provided, only that socket's columns should be returned
     in the 'columns' field, and 'inputs' should only contain that socket.
     """
@@ -460,7 +462,7 @@ async def test_metadata_endpoint_socket_specific_request(client, sample_csv, tmp
 
     # Verify socket_id is echoed back
     assert data["socket_id"] == "input-left"
-    
+
     # Verify 'columns' contains just the left socket's columns
     assert data["columns"] is not None
     column_names = [col["name"] for col in data["columns"]]
@@ -469,7 +471,7 @@ async def test_metadata_endpoint_socket_specific_request(client, sample_csv, tmp
     # Should NOT contain right socket columns
     assert "salary" not in column_names
     assert "department" not in column_names
-    
+
     # Verify 'inputs' only contains the requested socket
     assert list(data["inputs"].keys()) == ["input-left"]
 
@@ -530,10 +532,10 @@ async def test_metadata_endpoint_socket_null_when_not_specified(client, sample_c
 
     # socket_id should be null
     assert data["socket_id"] is None
-    
+
     # columns should be null (use inputs for all sockets)
     assert data["columns"] is None
-    
+
     # inputs should have all sockets
     assert "input" in data["inputs"]
     assert len(data["inputs"]["input"]) > 0

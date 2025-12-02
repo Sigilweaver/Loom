@@ -1,6 +1,5 @@
 """Pydantic models for workflow archive API"""
 
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -8,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class ArchiveListItem(BaseModel):
     """Summary information for an archived workflow"""
-    
+
     path: str = Field(description="Relative path to archive directory")
     created: str = Field(description="Archive creation timestamp (ISO format)")
     workflow_name: str | None = Field(None, description="Name of the workflow")
@@ -23,14 +22,14 @@ class ArchiveListItem(BaseModel):
 
 class ArchiveListResponse(BaseModel):
     """Response for list archives endpoint"""
-    
+
     archives: list[ArchiveListItem] = Field(description="List of archived workflows")
     total: int = Field(description="Total number of archives returned")
 
 
 class ArchiveDetailResponse(BaseModel):
     """Response for get archive detail endpoint"""
-    
+
     path: str = Field(description="Relative path to archive directory")
     workflow: dict[str, Any] | None = Field(None, description="Complete workflow definition")
     execution_log: dict[str, Any] | None = Field(None, description="Execution log with timing and results")
@@ -38,7 +37,7 @@ class ArchiveDetailResponse(BaseModel):
 
 class CleanupArchivesRequest(BaseModel):
     """Request to cleanup old archives"""
-    
+
     retention_days: int = Field(
         description="Delete archives older than this many days",
         gt=0
@@ -47,6 +46,6 @@ class CleanupArchivesRequest(BaseModel):
 
 class CleanupArchivesResponse(BaseModel):
     """Response for cleanup archives endpoint"""
-    
+
     deleted_count: int = Field(description="Number of archives deleted")
     message: str = Field(description="Status message")

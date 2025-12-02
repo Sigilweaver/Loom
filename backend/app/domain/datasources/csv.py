@@ -1,14 +1,14 @@
 """CSV data source implementation"""
 
-from pathlib import Path
 from typing import Any
+
 import polars as pl
 
+from app.api.models.common import DataPreview, DataSchema
 from app.domain.datasources.base import DataSource
-from app.api.models.common import DataSchema, DataPreview
-from app.utils.type_mapping import schema_from_polars, dataframe_to_dict_list
-from app.utils.security import validate_file_path
 from app.utils.errors import DataSourceError
+from app.utils.security import validate_file_path
+from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 
 class CSVDataSource(DataSource):

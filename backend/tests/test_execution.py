@@ -1,8 +1,9 @@
 """Tests for execution graph builder and topological sort"""
 
 import pytest
+
+from app.api.models.workflow import Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.graph import ExecutionGraph
-from app.api.models.workflow import Workflow, Tool, Wire, WireEndpoint, Socket, WorkflowMeta
 from app.utils.errors import ValidationError
 
 
@@ -22,8 +23,14 @@ def test_simple_linear_workflow():
             Tool(id="C", type="Select", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="B", socket="input")),
-            Wire(from_=WireEndpoint(tool="B", socket="output"), to=WireEndpoint(tool="C", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="B", socket="output"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
         ],
     )
 
@@ -49,8 +56,14 @@ def test_parallel_branches():
             Tool(id="C", type="Select", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="B", socket="input")),
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="C", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
         ],
     )
 
@@ -79,10 +92,22 @@ def test_diamond_pattern():
             Tool(id="D", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="B", socket="input")),
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="C", socket="input")),
-            Wire(from_=WireEndpoint(tool="B", socket="output"), to=WireEndpoint(tool="D", socket="input")),
-            Wire(from_=WireEndpoint(tool="C", socket="input"), to=WireEndpoint(tool="D", socket="output")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="B", socket="output"),
+                to=WireEndpoint(tool="D", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="C", socket="input"),
+                to=WireEndpoint(tool="D", socket="output"),
+            ),
         ],
     )
 
@@ -113,9 +138,18 @@ def test_cycle_detection():
             Tool(id="C", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="output"), to=WireEndpoint(tool="B", socket="input")),
-            Wire(from_=WireEndpoint(tool="B", socket="output"), to=WireEndpoint(tool="C", socket="input")),
-            Wire(from_=WireEndpoint(tool="C", socket="output"), to=WireEndpoint(tool="A", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="output"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="B", socket="output"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="C", socket="output"),
+                to=WireEndpoint(tool="A", socket="input"),
+            ),
         ],
     )
 
@@ -140,8 +174,14 @@ def test_get_tool_inputs():
             Tool(id="C", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="C", socket="input")),
-            Wire(from_=WireEndpoint(tool="B", socket="input"), to=WireEndpoint(tool="C", socket="output")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="B", socket="input"),
+                to=WireEndpoint(tool="C", socket="output"),
+            ),
         ],
     )
 
@@ -170,8 +210,15 @@ def test_multi_input_socket():
             Tool(id="C", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="C", socket="input")),
-            Wire(from_=WireEndpoint(tool="B", socket="input"), to=WireEndpoint(tool="C", socket="input")),  # Same socket!
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
+            # Same socket!
+            Wire(
+                from_=WireEndpoint(tool="B", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
         ],
     )
 
@@ -199,13 +246,17 @@ def test_validate_missing_tool_reference():
             Tool(id="B", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="MISSING", socket="input"), to=WireEndpoint(tool="B", socket="input")),  # Invalid!
+            # Invalid!
+            Wire(
+                from_=WireEndpoint(tool="MISSING", socket="input"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
         ],
     )
 
     graph = ExecutionGraph(workflow)
     errors = graph.validate()
-    
+
     # Should have error about unknown source tool
     assert len(errors) > 0
     assert any("MISSING" in error for error in errors)
@@ -227,7 +278,10 @@ def test_isolated_tool():
             Tool(id="C", type="Filter", x=0, y=0, config={}, sockets=[]),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="A", socket="input"), to=WireEndpoint(tool="C", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
             # B is isolated - no connections
         ],
     )

@@ -1,10 +1,10 @@
 """Tests for the Select tool implementation"""
 
-import pytest
 import polars as pl
+import pytest
 
+from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.implementations.select import SelectTool
-from app.api.models.common import DataSchema, ColumnSchema, PolarsDataType
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ class TestSelectToolExecute:
     async def test_pass_through_empty_config(self, select_tool, sample_lazyframe):
         """Empty config should pass through all columns unchanged"""
         result = await select_tool.execute({}, {"input": sample_lazyframe})
-        
+
         assert "output" in result
         df = result["output"].collect()
         assert df.columns == ["name", "age", "city", "salary"]
@@ -57,7 +57,7 @@ class TestSelectToolExecute:
         result = await select_tool.execute(
             {"columnConfigs": []}, {"input": sample_lazyframe}
         )
-        
+
         assert "output" in result
         df = result["output"].collect()
         assert df.columns == ["name", "age", "city", "salary"]
@@ -74,7 +74,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.columns == ["name", "age"]
         assert len(df) == 3
@@ -89,7 +89,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.columns == ["full_name", "years"]
         assert df["full_name"].to_list() == ["Alice", "Bob", "Charlie"]
@@ -105,7 +105,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.columns == ["salary", "name", "age"]
 
@@ -118,7 +118,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.schema["age"] == pl.Float64
         assert df["age"].to_list() == [30.0, 25.0, 35.0]
@@ -132,7 +132,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.schema["salary"] == pl.Int32
         assert df["salary"].to_list() == [50000, 60000, 55000]
@@ -147,7 +147,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df["name"].to_list() == ["Ali", "Bob", "Cha"]
         assert df["city"].to_list() == ["New Y", "Los A", "Chica"]
@@ -164,7 +164,7 @@ class TestSelectToolExecute:
             ]
         }
         result = await select_tool.execute(config, {"input": sample_lazyframe})
-        
+
         df = result["output"].collect()
         assert df.columns == ["pay", "person"]
         assert df.schema["pay"] == pl.Int64
@@ -178,7 +178,7 @@ class TestSelectToolSchema:
     async def test_pass_through_schema(self, select_tool, sample_schema):
         """Empty config should return unchanged schema"""
         result = await select_tool.get_output_schema({}, {"input": sample_schema})
-        
+
         assert "output" in result
         assert result["output"].columns == sample_schema.columns
 
@@ -194,7 +194,7 @@ class TestSelectToolSchema:
             ]
         }
         result = await select_tool.get_output_schema(config, {"input": sample_schema})
-        
+
         assert len(result["output"].columns) == 2
         assert result["output"].columns[0].name == "name"
         assert result["output"].columns[1].name == "city"
@@ -208,7 +208,7 @@ class TestSelectToolSchema:
             ]
         }
         result = await select_tool.get_output_schema(config, {"input": sample_schema})
-        
+
         assert result["output"].columns[0].name == "full_name"
         assert result["output"].columns[0].dtype == PolarsDataType.STRING
 
@@ -221,7 +221,7 @@ class TestSelectToolSchema:
             ]
         }
         result = await select_tool.get_output_schema(config, {"input": sample_schema})
-        
+
         assert result["output"].columns[0].dtype == PolarsDataType.FLOAT32
 
     @pytest.mark.asyncio
@@ -234,7 +234,7 @@ class TestSelectToolSchema:
             ]
         }
         result = await select_tool.get_output_schema(config, {"input": sample_schema})
-        
+
         assert result["output"].columns[0].name == "salary"
         assert result["output"].columns[1].name == "name"
 
@@ -412,7 +412,13 @@ class TestSelectToolCodeGeneration:
         config = {
             "columnConfigs": [
                 {"name": "id", "selected": True, "targetType": "UInt16"},
-                {"name": "description", "selected": True, "rename": "desc", "targetType": "String", "size": 100},
+                {
+                    "name": "description",
+                    "selected": True,
+                    "rename": "desc",
+                    "targetType": "String",
+                    "size": 100,
+                },
                 {"name": "unused", "selected": False},
             ]
         }

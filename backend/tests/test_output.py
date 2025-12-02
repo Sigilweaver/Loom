@@ -1,10 +1,11 @@
 """Tests for Output tool"""
 
-import polars as pl
-import pytest
 from pathlib import Path
 
-from app.api.models.workflow import Workflow, Tool, Wire, WireEndpoint, Socket, WorkflowMeta
+import polars as pl
+import pytest
+
+from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.tools.registry import ToolRegistry
 
@@ -44,7 +45,10 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="output1", socket="input"),
+            ),
         ],
         meta=WorkflowMeta(
             name="Test CSV Output Sink",
@@ -57,7 +61,7 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
 
     # Execute workflow
     executor = WorkflowExecutor()
-    result = await executor.execute_workflow(workflow)
+    await executor.execute_workflow(workflow)
 
     # Verify output file was created
     assert output_file.exists()
@@ -95,7 +99,10 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="output1", socket="input"),
+            ),
         ],
         meta=WorkflowMeta(
             name="Test CSV Output Write",
@@ -108,7 +115,7 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
 
     # Execute workflow
     executor = WorkflowExecutor()
-    result = await executor.execute_workflow(workflow)
+    await executor.execute_workflow(workflow)
 
     # Verify output file was created
     assert output_file.exists()
@@ -141,7 +148,10 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="output1", socket="input"),
+            ),
         ],
         meta=WorkflowMeta(
             name="Test Directory Creation",
@@ -154,7 +164,7 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
 
     # Execute workflow
     executor = WorkflowExecutor()
-    result = await executor.execute_workflow(workflow)
+    await executor.execute_workflow(workflow)
 
     # Verify output file was created
     assert output_file.exists()
@@ -186,7 +196,10 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="output1", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="output1", socket="input"),
+            ),
         ],
         meta=WorkflowMeta(
             name="Test TSV Output",
@@ -278,8 +291,14 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
             ),
         ],
         wires=[
-            Wire(from_=WireEndpoint(tool="input1", socket="output"), to=WireEndpoint(tool="filter1", socket="input")),
-            Wire(from_=WireEndpoint(tool="filter1", socket="output-true"), to=WireEndpoint(tool="output1", socket="input")),
+            Wire(
+                from_=WireEndpoint(tool="input1", socket="output"),
+                to=WireEndpoint(tool="filter1", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="filter1", socket="output-true"),
+                to=WireEndpoint(tool="output1", socket="input"),
+            ),
         ],
         meta=WorkflowMeta(
             name="Test Pipeline with Output",
@@ -297,6 +316,6 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
     # Verify output file was created and contains filtered data
     assert output_file.exists()
     output_df = pl.read_csv(output_file)
-    
+
     # All ages should be > 25
     assert (output_df["age"] > 25).all()

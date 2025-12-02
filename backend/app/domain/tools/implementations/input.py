@@ -197,7 +197,7 @@ class InputTool(BaseTool):
         source_path = config.get("source")
 
         if not source_path:
-            raise ToolError(f"Input tool config missing 'source' field")
+            raise ToolError("Input tool config missing 'source' field")
 
         # Inspect to get schema
         schema = await datasource.inspect(source_path, config)
@@ -233,21 +233,21 @@ class InputTool(BaseTool):
         lines = []
         source_type = config.get("type", "csv")
         source_path = config.get("source", "")
-        
+
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
-        
+
         if not source_path:
             lines.append(f'{var_name} = None  # ERROR: No source file specified')
             return (lines, {"output": var_name})
-        
+
         if source_type == "csv":
             mode = config.get("csvMode", "scan")
             func_name = "read_csv" if mode == "read" else "scan_csv"
-            
+
             # Build CSV options
             options = []
             csv_kwargs = self._build_csv_kwargs(config)
-            
+
             for key, value in csv_kwargs.items():
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
@@ -260,25 +260,25 @@ class InputTool(BaseTool):
                     if all(isinstance(v, str) for v in value):
                         escaped = [f'"{PythonCodeGenerator.escape_string(v)}"' for v in value]
                         options.append(f'{key}=[{", ".join(escaped)}]')
-            
+
             escaped_path = PythonCodeGenerator.escape_path(source_path)
             if options:
                 lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
             else:
                 lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
-            
+
             # If read mode, convert to lazy
             if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
-        
+
         elif source_type == "parquet":
             mode = config.get("parquetMode", "scan")
             func_name = "read_parquet" if mode == "read" else "scan_parquet"
-            
+
             # Build Parquet options
             options = []
             parquet_kwargs = self._build_parquet_kwargs(config)
-            
+
             for key, value in parquet_kwargs.items():
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
@@ -294,18 +294,18 @@ class InputTool(BaseTool):
                 elif isinstance(value, dict):
                     # For hive_schema
                     options.append(f'{key}={value}')
-            
+
             escaped_path = PythonCodeGenerator.escape_path(source_path)
             if options:
                 lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
             else:
                 lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
-            
+
             # If read mode, convert to lazy
             if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
-        
+
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')
-        
+
         return (lines, {"output": var_name})

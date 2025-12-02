@@ -1,9 +1,10 @@
 """Data source request/response models"""
 
 from typing import Any
+
 from pydantic import BaseModel, Field
 
-from app.api.models.common import DataSchema, DataPreview
+from app.api.models.common import DataSchema
 from app.api.models.execution import ValidationResult
 
 

@@ -1,10 +1,11 @@
 """Health check endpoints"""
 
-import sys
 import platform
+import sys
+
+import polars as pl
 from fastapi import APIRouter
 from pydantic import BaseModel
-import polars as pl
 
 from app.config import settings
 

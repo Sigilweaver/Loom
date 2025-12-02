@@ -1,13 +1,14 @@
 """Archive API routes for accessing workflow execution history"""
 
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 
+from fastapi import APIRouter, HTTPException, Query
+
 from app.api.models.archive import (
-    ArchiveListResponse,
-    ArchiveListItem,
     ArchiveDetailResponse,
+    ArchiveListItem,
+    ArchiveListResponse,
     CleanupArchivesRequest,
     CleanupArchivesResponse,
 )
@@ -43,7 +44,7 @@ async def list_archives(
     """
     try:
         archive = _get_archive()
-        
+
         # Parse date filters
         start_dt = None
         end_dt = None
@@ -53,33 +54,33 @@ async def list_archives(
             except ValueError:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid start_date format. Use YYYY-MM-DD"
+                    detail="Invalid start_date format. Use YYYY-MM-DD"
                 )
-        
+
         if end_date:
             try:
                 end_dt = datetime.strptime(end_date, "%Y-%m-%d")
             except ValueError:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid end_date format. Use YYYY-MM-DD"
+                    detail="Invalid end_date format. Use YYYY-MM-DD"
                 )
-        
+
         # Get archives
         archives_data = archive.list_archives(
             start_date=start_dt,
             end_date=end_dt,
             limit=limit,
         )
-        
+
         # Convert to response model
         archive_items = [ArchiveListItem(**item) for item in archives_data]
-        
+
         return ArchiveListResponse(
             archives=archive_items,
             total=len(archive_items),
         )
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -106,9 +107,9 @@ async def get_archive_detail(archive_path: str):
     try:
         archive = _get_archive()
         archive_data = archive.get_archive(archive_path)
-        
+
         return ArchiveDetailResponse(**archive_data)
-    
+
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -131,12 +132,12 @@ async def cleanup_archives(request: CleanupArchivesRequest):
     try:
         archive = _get_archive()
         deleted_count = archive.cleanup_old_archives(request.retention_days)
-        
+
         return CleanupArchivesResponse(
             deleted_count=deleted_count,
             message=f"Deleted {deleted_count} archives older than {request.retention_days} days"
         )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=500,

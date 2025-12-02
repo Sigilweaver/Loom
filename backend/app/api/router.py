@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import health, datasource, workflow, archive, polars
+from app.api.routes import archive, datasource, health, polars, workflow
 
 api_router = APIRouter()
 

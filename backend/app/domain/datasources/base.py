@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from app.api.models.common import DataSchema, DataPreview
+from app.api.models.common import DataPreview, DataSchema
 
 
 class DataSource(ABC):

@@ -1,9 +1,8 @@
 """Generate Python code from workflow"""
 
 from datetime import datetime
-from typing import Any
 
-from app.api.models.workflow import Workflow, Tool
+from app.api.models.workflow import Tool, Workflow
 from app.domain.execution.graph import ExecutionGraph
 from app.domain.tools.registry import ToolRegistry
 
@@ -53,13 +52,13 @@ class PythonCodeGenerator:
         for tool_id in execution_order:
             tool = self.tool_map[tool_id]
             lines.append(f"# {tool.type}: {tool_id}")
-            
+
             try:
                 tool_lines = self._generate_tool_code(tool)
                 lines.extend(tool_lines)
             except Exception as e:
                 lines.append(f"# ERROR generating code for {tool.type}: {str(e)}")
-            
+
             lines.append("")
 
         # Footer - example output
@@ -76,19 +75,19 @@ class PythonCodeGenerator:
         """Generate code for a single tool"""
         # Get tool implementation
         tool_impl = ToolRegistry.get(tool.type)
-        
+
         # Gather input variable names
         input_vars = self._get_input_vars(tool.id)
-        
+
         # Generate code via tool implementation
         if hasattr(tool_impl, "to_python_code"):
             code_lines, output_vars = tool_impl.to_python_code(
                 tool.id, tool.config, input_vars
             )
-            
+
             # Store output variable names for downstream tools
             self.var_names[tool.id] = output_vars
-            
+
             return code_lines
         else:
             # Fallback for tools without code generation
@@ -101,7 +100,7 @@ class PythonCodeGenerator:
         """
         input_vars: dict[str, str | list[str]] = {}
         tool_inputs = self.graph.get_tool_inputs(tool_id)
-        
+
         for socket_id, sources in tool_inputs.items():
             if sources:
                 if len(sources) == 1:
@@ -121,7 +120,7 @@ class PythonCodeGenerator:
                                 var_names.append(var_name)
                     if var_names:
                         input_vars[socket_id] = var_names
-        
+
         return input_vars
 
     @staticmethod

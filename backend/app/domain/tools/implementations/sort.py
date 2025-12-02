@@ -4,12 +4,11 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import DataSchema, ColumnSchema
+from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
-from app.domain.tools.expr_builder import SortOperation, SortColumn
+from app.domain.tools.expr_builder import SortColumn, SortOperation
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
-
 
 # Valid sort directions
 SORT_DIRECTIONS = {"asc", "desc"}
@@ -77,7 +76,7 @@ class SortTool(BaseTool):
         errors = []
 
         sort_columns = config.get("sortColumns", [])
-        
+
         # Empty sort columns is valid (pass-through)
         if not sort_columns:
             return errors

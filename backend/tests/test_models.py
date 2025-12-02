@@ -1,7 +1,6 @@
 """Basic test for API models"""
 
-import pytest
-from app.api.models.workflow import Workflow, Tool, Wire, Socket, WireEndpoint, WorkflowMeta
+from app.api.models.workflow import Socket, Wire, Workflow
 
 
 def test_workflow_model():
@@ -50,7 +49,10 @@ def test_socket_model():
 
 def test_wire_model():
     """Test wire model with alias"""
-    wire_data = {"from": {"tool": "tool-1", "socket": "output"}, "to": {"tool": "tool-2", "socket": "input"}}
+    wire_data = {
+        "from": {"tool": "tool-1", "socket": "output"},
+        "to": {"tool": "tool-2", "socket": "input"},
+    }
 
     wire = Wire(**wire_data)
     assert wire.from_.tool == "tool-1"

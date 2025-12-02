@@ -1,9 +1,8 @@
 """Execution-related data models"""
 
 from typing import Any, Literal
-from pydantic import BaseModel
 
-from app.api.models.common import DataPreview
+from pydantic import BaseModel
 
 
 class ValidationError(BaseModel):

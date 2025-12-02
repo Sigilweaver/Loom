@@ -26,7 +26,7 @@ class WorkflowArchive:
                 workflow.json
                 execution_log.json
     """
-    
+
     def __init__(self, archive_path: str | Path):
         """
         Initialize the archive manager.
@@ -37,7 +37,7 @@ class WorkflowArchive:
         self.archive_root = Path(archive_path)
         self.archive_root.mkdir(parents=True, exist_ok=True)
         logger.info(f"WorkflowArchive initialized at: {self.archive_root}")
-    
+
     def create_archive(
         self,
         workflow: Workflow,
@@ -55,7 +55,7 @@ class WorkflowArchive:
         """
         now = datetime.now()
         date_dir = now.strftime("%Y-%m-%d")
-        
+
         if execution_id:
             time_stamp = execution_id
         else:
@@ -64,7 +64,7 @@ class WorkflowArchive:
                 # Sanitize workflow name for filesystem
                 safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in workflow.meta.name)
                 time_stamp = f"{time_stamp}_{safe_name[:50]}"  # Limit length
-        
+
         # Ensure unique directory name by adding counter if needed
         base_archive_dir = self.archive_root / date_dir / time_stamp
         archive_dir = base_archive_dir
@@ -72,17 +72,17 @@ class WorkflowArchive:
         while archive_dir.exists():
             archive_dir = self.archive_root / date_dir / f"{time_stamp}_{counter}"
             counter += 1
-        
+
         archive_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Save workflow definition
         workflow_file = archive_dir / "workflow.json"
         with open(workflow_file, "w") as f:
             json.dump(workflow.model_dump(), f, indent=2, default=str)
-        
+
         logger.info(f"Created workflow archive: {archive_dir}")
         return archive_dir
-    
+
     def save_execution_log(
         self,
         archive_dir: Path,
@@ -96,16 +96,16 @@ class WorkflowArchive:
             log_data: Execution log data including timing, results, errors
         """
         log_file = archive_dir / "execution_log.json"
-        
+
         # Add timestamp if not present
         if "timestamp" not in log_data:
             log_data["timestamp"] = datetime.now().isoformat()
-        
+
         with open(log_file, "w") as f:
             json.dump(log_data, f, indent=2, default=str)
-        
+
         logger.info(f"Saved execution log to: {log_file}")
-    
+
     def update_execution_log(
         self,
         archive_dir: Path,
@@ -119,24 +119,24 @@ class WorkflowArchive:
             updates: Dictionary of fields to update/add
         """
         log_file = archive_dir / "execution_log.json"
-        
+
         # Read existing log
         if log_file.exists():
             with open(log_file, "r") as f:
                 log_data = json.load(f)
         else:
             log_data = {}
-        
+
         # Merge updates
         log_data.update(updates)
         log_data["last_updated"] = datetime.now().isoformat()
-        
+
         # Write back
         with open(log_file, "w") as f:
             json.dump(log_data, f, indent=2, default=str)
-        
+
         logger.debug(f"Updated execution log: {log_file}")
-    
+
     def list_archives(
         self,
         start_date: datetime | None = None,
@@ -155,42 +155,42 @@ class WorkflowArchive:
             List of archive metadata dictionaries
         """
         archives = []
-        
+
         # Iterate through date directories
         for date_dir in sorted(self.archive_root.iterdir(), reverse=True):
             if not date_dir.is_dir():
                 continue
-            
+
             # Parse date from directory name
             try:
                 dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d")
             except ValueError:
                 logger.warning(f"Skipping invalid date directory: {date_dir.name}")
                 continue
-            
+
             # Apply date filters
             if start_date and dir_date < start_date.replace(hour=0, minute=0, second=0):
                 continue
             if end_date and dir_date > end_date.replace(hour=23, minute=59, second=59):
                 continue
-            
+
             # Iterate through execution directories
             for exec_dir in sorted(date_dir.iterdir(), reverse=True):
                 if not exec_dir.is_dir():
                     continue
-                
+
                 try:
                     archive_info = self._get_archive_info(exec_dir)
                     archives.append(archive_info)
-                    
+
                     if limit and len(archives) >= limit:
                         return archives
                 except Exception as e:
                     logger.error(f"Error reading archive {exec_dir}: {e}")
                     continue
-        
+
         return archives
-    
+
     def get_archive(self, archive_path: str) -> dict[str, Any]:
         """
         Get complete archive data including workflow and execution log.
@@ -202,33 +202,33 @@ class WorkflowArchive:
             Dictionary with workflow and execution_log
         """
         full_path = self.archive_root / archive_path
-        
+
         if not full_path.exists() or not full_path.is_dir():
             raise ValueError(f"Archive not found: {archive_path}")
-        
+
         result = {"path": archive_path}
-        
+
         # Load workflow
         workflow_file = full_path / "workflow.json"
         if workflow_file.exists():
             with open(workflow_file, "r") as f:
                 result["workflow"] = json.load(f)
-        
+
         # Load execution log
         log_file = full_path / "execution_log.json"
         if log_file.exists():
             with open(log_file, "r") as f:
                 result["execution_log"] = json.load(f)
-        
+
         return result
-    
+
     def _get_archive_info(self, archive_dir: Path) -> dict[str, Any]:
         """Extract summary information from an archive directory"""
         info = {
             "path": str(archive_dir.relative_to(self.archive_root)),
             "created": datetime.fromtimestamp(archive_dir.stat().st_ctime).isoformat(),
         }
-        
+
         # Extract workflow metadata
         workflow_file = archive_dir / "workflow.json"
         if workflow_file.exists():
@@ -238,7 +238,7 @@ class WorkflowArchive:
                     info["workflow_name"] = workflow_data["meta"].get("name", "Unnamed")
                     info["workflow_description"] = workflow_data["meta"].get("description", "")
                 info["tool_count"] = len(workflow_data.get("tools", []))
-        
+
         # Extract execution summary
         log_file = archive_dir / "execution_log.json"
         if log_file.exists():
@@ -250,9 +250,9 @@ class WorkflowArchive:
                 info["error"] = log_data.get("error")
                 if "timestamp" in log_data:
                     info["execution_timestamp"] = log_data["timestamp"]
-        
+
         return info
-    
+
     def cleanup_old_archives(self, retention_days: int) -> int:
         """
         Remove archives older than specified retention period.
@@ -266,16 +266,16 @@ class WorkflowArchive:
         if retention_days <= 0:
             logger.warning("Invalid retention_days, skipping cleanup")
             return 0
-        
+
         cutoff_date = datetime.now() - timedelta(days=retention_days)
         cutoff_date = cutoff_date.replace(hour=0, minute=0, second=0)
-        
+
         deleted_count = 0
-        
+
         for date_dir in self.archive_root.iterdir():
             if not date_dir.is_dir():
                 continue
-            
+
             try:
                 dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d")
                 if dir_date < cutoff_date:
@@ -290,6 +290,6 @@ class WorkflowArchive:
             except Exception as e:
                 logger.error(f"Error deleting archive {date_dir}: {e}")
                 continue
-        
+
         logger.info(f"Cleanup completed: {deleted_count} archives deleted")
         return deleted_count

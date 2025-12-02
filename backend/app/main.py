@@ -3,13 +3,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import to register all tool implementations
+import app.domain.tools.register  # noqa: F401
 from app import __version__
 from app.api.router import api_router
 from app.config import settings
 from app.middleware.audit import AuditMiddleware
-
-# Import to register all tool implementations
-import app.domain.tools.register  # noqa: F401
 
 # Create FastAPI application
 app = FastAPI(
@@ -56,14 +55,15 @@ async def root():
 if __name__ == "__main__":
     """Entry point for PyInstaller executable"""
     import sys
+
     import uvicorn
-    
+
     # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None)
     if sys.stdout is None:
         sys.stdout = open('NUL', 'w')
     if sys.stderr is None:
         sys.stderr = open('NUL', 'w')
-    
+
     # Run uvicorn server
     uvicorn.run(
         app,

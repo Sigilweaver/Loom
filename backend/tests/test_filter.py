@@ -1,15 +1,15 @@
 """Test Filter tool implementation"""
 
-import pytest
+
 import polars as pl
-from pathlib import Path
+import pytest
 
 from app.api.models.workflow import (
-    Workflow,
+    Socket,
     Tool,
     Wire,
     WireEndpoint,
-    Socket,
+    Workflow,
     WorkflowMeta,
 )
 from app.domain.execution.executor import WorkflowExecutor
@@ -26,7 +26,10 @@ def sample_data_csv(tmp_path):
             "name": ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry"],
             "age": [25, 30, 35, 40, 45, 28, 32, 50],
             "amount": [100.0, 250.0, 75.0, 500.0, 150.0, 300.0, 50.0, 400.0],
-            "status": ["active", "inactive", "active", "active", "inactive", "active", "active", "inactive"],
+            "status": [
+                "active", "inactive", "active", "active",
+                "inactive", "active", "active", "inactive",
+            ],
         }
     )
 
@@ -37,7 +40,7 @@ def sample_data_csv(tmp_path):
 @pytest.mark.asyncio
 async def test_filter_basic_numeric_condition(sample_data_csv):
     """Test Filter tool with basic numeric condition"""
-    
+
     workflow = Workflow(
         meta=WorkflowMeta(
             name="Filter Test - Numeric",
@@ -89,7 +92,7 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
     # Check T output (True - age > 30)
     true_output_data = result["outputs"]["output-true"]["data"]
     assert len(true_output_data) == 5  # Charlie, David, Eve, Grace, Henry (35, 40, 45, 32, 50)
-    
+
     # Check F output (False - age <= 30)
     false_output_data = result["outputs"]["output-false"]["data"]
     assert len(false_output_data) == 3  # Alice, Bob, Frank (25, 30, 28)
@@ -101,7 +104,7 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
 @pytest.mark.asyncio
 async def test_filter_string_condition(sample_data_csv):
     """Test Filter tool with string condition"""
-    
+
     workflow = Workflow(
         meta=WorkflowMeta(
             name="Filter Test - String",
@@ -162,7 +165,7 @@ async def test_filter_string_condition(sample_data_csv):
 @pytest.mark.asyncio
 async def test_filter_compound_condition(sample_data_csv):
     """Test Filter tool with compound AND condition"""
-    
+
     workflow = Workflow(
         meta=WorkflowMeta(
             name="Filter Test - Compound",
@@ -216,8 +219,7 @@ async def test_filter_compound_condition(sample_data_csv):
     # David (40, 500), Frank (300 but age 28 - no), Grace (32 but 50 - no), Henry (50, 400)
     # Actually: David, Henry only (age > 30 AND amount > 200)
     # Wait, Frank is 28 (not > 30), Grace amount is 50 (not > 200)
-    # So: David (40, 500), Henry (50, 400), possibly Eve (45, 150 - no amount not > 200)
-    # Let me recount: Charlie (35, 75), David (40, 500), Eve (45, 150), Grace (32, 50), Henry (50, 400)
+    # David (40, 500), Henry (50, 400) - Eve (45, 150) amount not > 200
     # age > 30: Charlie, David, Eve, Grace, Henry
     # amount > 200: David (500), Frank (300), Henry (400)
     # BOTH: David, Henry (but Frank age 28)
@@ -231,7 +233,7 @@ async def test_filter_compound_condition(sample_data_csv):
 @pytest.mark.asyncio
 async def test_filter_empty_expression(sample_data_csv):
     """Test Filter tool with empty expression (should pass all rows to T)"""
-    
+
     workflow = Workflow(
         meta=WorkflowMeta(
             name="Filter Test - Empty",
@@ -292,7 +294,7 @@ async def test_filter_empty_expression(sample_data_csv):
 @pytest.mark.asyncio
 async def test_filter_schema_propagation(sample_data_csv):
     """Test that Filter tool preserves schema"""
-    
+
     workflow = Workflow(
         meta=WorkflowMeta(
             name="Filter Schema Test",
@@ -339,21 +341,25 @@ async def test_filter_schema_propagation(sample_data_csv):
     )
 
     executor = WorkflowExecutor()
-    
+
     # Get data for both tools
     input_result = await executor.execute_single_tool(workflow, "input1", socket_id="output")
-    
+
     executor2 = WorkflowExecutor()
-    filter_result_t = await executor2.execute_single_tool(workflow, "filter1", socket_id="output-true")
-    
+    filter_result_t = await executor2.execute_single_tool(
+        workflow, "filter1", socket_id="output-true"
+    )
+
     executor3 = WorkflowExecutor()
-    filter_result_f = await executor3.execute_single_tool(workflow, "filter1", socket_id="output-false")
+    filter_result_f = await executor3.execute_single_tool(
+        workflow, "filter1", socket_id="output-false"
+    )
 
     # Both outputs should have same schema as input
     input_columns = input_result["data_schema"].columns
     filter_t_columns = filter_result_t["data_schema"].columns
     filter_f_columns = filter_result_f["data_schema"].columns
-    
+
     assert filter_t_columns == input_columns
     assert filter_f_columns == input_columns
 

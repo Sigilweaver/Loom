@@ -1,6 +1,5 @@
 """Workflow execution API routes"""
 
-from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -8,7 +7,7 @@ from app.api.models.workflow import Workflow
 from app.config import settings
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.workflow.code_generator import PythonCodeGenerator
-from app.utils.errors import ExecutionError, ValidationError, ToolError
+from app.utils.errors import ExecutionError, ToolError, ValidationError
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
 

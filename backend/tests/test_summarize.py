@@ -1,9 +1,9 @@
 """Tests for Summarize tool"""
 
-import pytest
 import polars as pl
+import pytest
 
-from app.api.models.common import DataSchema, ColumnSchema
+from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.tools.implementations.summarize import SummarizeTool
 
 
@@ -50,11 +50,11 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         assert "category" in df.columns
         assert "total_amount" in df.columns
         assert len(df) == 2  # Two categories: A and B
-        
+
         # Check values
         a_row = df.filter(pl.col("category") == "A")
         b_row = df.filter(pl.col("category") == "B")
@@ -75,7 +75,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         assert len(df.columns) == 4  # category + 3 aggregations
         assert "total" in df.columns
         assert "average" in df.columns
@@ -93,7 +93,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         assert len(df) == 1  # Single row for global aggregation
         assert df["total"][0] == 1000  # 100 + 200 + 150 + 250 + 300
 
@@ -109,7 +109,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         assert len(df) == 4  # A-x, A-y, B-x, B-y
         assert "category" in df.columns
         assert "subcategory" in df.columns
@@ -126,7 +126,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         # Both categories have 2 unique subcategories
         assert all(df["unique_sub"] == 2)
 
@@ -143,7 +143,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         assert "first_name" in df.columns
         assert "last_name" in df.columns
 
@@ -157,7 +157,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         # Should only have the group by column
         assert df.columns == ["category"]
         # Should have unique values
@@ -175,7 +175,7 @@ class TestSummarizeToolExecute:
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
-        
+
         # Default name should be column_operation
         assert "amount_Sum" in df.columns
 
@@ -195,7 +195,7 @@ class TestSummarizeToolSchema:
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
-        
+
         assert len(output_schema.columns) == 2
         assert output_schema.columns[0].name == "category"
         assert output_schema.columns[1].name == "total"
@@ -214,7 +214,7 @@ class TestSummarizeToolSchema:
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
-        
+
         assert output_schema.columns[0].dtype == "Float64"
 
     @pytest.mark.asyncio
@@ -229,7 +229,7 @@ class TestSummarizeToolSchema:
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
-        
+
         assert output_schema.columns[0].dtype == "UInt32"
 
 
@@ -329,7 +329,7 @@ class TestSummarizeCodeGeneration:
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
-        
+
         code = "\n".join(lines)
         assert "group_by" in code
         assert '"category"' in code
@@ -347,7 +347,7 @@ class TestSummarizeCodeGeneration:
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
-        
+
         code = "\n".join(lines)
         assert ".select([" in code  # Not group_by for global
         assert ".mean()" in code
@@ -365,7 +365,7 @@ class TestSummarizeCodeGeneration:
             ],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
-        
+
         code = "\n".join(lines)
         assert ".sum()" in code
         assert ".mean()" in code

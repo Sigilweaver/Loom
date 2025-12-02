@@ -61,22 +61,22 @@ def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:
     """
     if normalize:
         expression = normalize_expression(expression)
-    
+
     # Restricted namespace - only Polars available
     namespace: dict[str, Any] = {
         "pl": pl,
     }
-    
+
     try:
         result = eval(expression, {"__builtins__": {}}, namespace)
-        
+
         if not isinstance(result, pl.Expr):
             raise ToolError(
                 f"Expression must evaluate to pl.Expr, got {type(result).__name__}"
             )
-        
+
         return result
-        
+
     except ToolError:
         raise
     except Exception as e:

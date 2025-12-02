@@ -4,12 +4,11 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import DataSchema, ColumnSchema
+from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.tools.base import BaseTool
-from app.domain.tools.expr_builder import SummarizeOperation, AggregationExpr
+from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
-
 
 # Valid aggregation operations with their Polars methods
 AGGREGATION_OPERATIONS = {
@@ -83,7 +82,7 @@ class SummarizeTool(BaseTool):
         """Build the summarize operation from config."""
         group_by_columns = config.get("groupByColumns", [])
         aggregations_config = config.get("aggregations", [])
-        
+
         aggregations = []
         for agg in aggregations_config:
             column = agg.get("column")
@@ -95,7 +94,7 @@ class SummarizeTool(BaseTool):
                     operation=operation,
                     output_name=output_name,
                 ))
-        
+
         return SummarizeOperation(
             group_by_columns=group_by_columns,
             aggregations=aggregations,
@@ -114,10 +113,10 @@ class SummarizeTool(BaseTool):
             raise ToolError("Summarize tool requires input on socket 'input'")
 
         lf = inputs["input"]
-        
+
         group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
-        
+
         # Handle no aggregations and no group by
         if not aggregations and not group_by_columns:
             raise ToolError("Either group by columns or aggregations are required")
@@ -142,7 +141,7 @@ class SummarizeTool(BaseTool):
 
         # Create lookup for input column schemas
         input_column_map = {col.name: col for col in input_schema.columns}
-        
+
         output_columns: list[ColumnSchema] = []
 
         # Add group by columns first (preserve their types)
@@ -161,10 +160,10 @@ class SummarizeTool(BaseTool):
 
             input_col = input_column_map[column]
             input_dtype = input_col.dtype
-            
+
             # Determine output name
             col_name = output_name.strip() if output_name and output_name.strip() else f"{column}_{operation}"
-            
+
             # Determine output dtype
             output_dtype = get_result_dtype(operation, input_dtype)
 
@@ -186,7 +185,7 @@ class SummarizeTool(BaseTool):
 
         aggregations = config.get("aggregations", [])
         group_by_columns = config.get("groupByColumns", [])
-        
+
         # Allow empty aggregations if group by columns are provided (distinct values case)
         if not aggregations:
             if not group_by_columns:

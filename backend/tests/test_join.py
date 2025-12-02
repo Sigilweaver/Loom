@@ -1,7 +1,7 @@
 """Tests for Join tool."""
 
-import pytest
 import polars as pl
+import pytest
 
 from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.tools.implementations.join import JoinTool
@@ -95,7 +95,7 @@ class TestJoinToolExecute:
         tool = JoinTool()
         left = pl.LazyFrame({"id": [1, 2], "val": ["a", "b"]})
         right = pl.LazyFrame({"id": [1, 2], "score": [10, 20]})
-        
+
         config = {"leftKeys": ["id"], "rightKeys": ["id"]}
         result = await tool.execute(config, {"input-left": left, "input-right": right})
 
@@ -114,7 +114,7 @@ class TestJoinToolExecute:
         tool = JoinTool()
         left = pl.LazyFrame({"id": [1, 2], "val": ["a", "b"]})
         right = pl.LazyFrame({"id": [3, 4], "score": [10, 20]})
-        
+
         config = {"leftKeys": ["id"], "rightKeys": ["id"]}
         result = await tool.execute(config, {"input-left": left, "input-right": right})
 
@@ -141,7 +141,7 @@ class TestJoinToolExecute:
             "fiscal_year": [2023, 2022, 2023],
             "headcount": [10, 20, 5],
         })
-        
+
         config = {
             "leftKeys": ["dept", "year"],
             "rightKeys": ["department", "fiscal_year"],
@@ -157,7 +157,7 @@ class TestJoinToolExecute:
         tool = JoinTool()
         left = pl.LazyFrame({"id": [1, 2], "value": [100, 200]})
         right = pl.LazyFrame({"id": [1, 2], "value": [10, 20]})
-        
+
         config = {
             "leftKeys": ["id"],
             "rightKeys": ["id"],
@@ -238,7 +238,7 @@ class TestJoinToolOutputSchema:
         """Test output schema for basic join."""
         tool = JoinTool()
         config = {"leftKeys": ["id"], "rightKeys": ["id"]}
-        
+
         result = await tool.get_output_schema(
             config,
             {"input-left": left_schema, "input-right": right_schema},
@@ -270,7 +270,7 @@ class TestJoinToolOutputSchema:
             ColumnSchema(name="id", dtype="Int64", nullable=False),
             ColumnSchema(name="value", dtype="Int64", nullable=False),
         ])
-        
+
         config = {
             "leftKeys": ["id"],
             "rightKeys": ["id"],
@@ -290,7 +290,7 @@ class TestJoinToolOutputSchema:
         """Test schema with no keys specified."""
         tool = JoinTool()
         config = {"leftKeys": [], "rightKeys": []}
-        
+
         result = await tool.get_output_schema(
             config,
             {"input-left": left_schema, "input-right": right_schema},
@@ -374,15 +374,15 @@ class TestJoinCodeGeneration:
         )
 
         code = "\n".join(lines)
-        
+
         # Check we generate inner join
         assert 'how="inner"' in code
         assert 'left_on=' in code
         assert 'right_on=' in code
-        
+
         # Check anti-joins
         assert 'how="anti"' in code
-        
+
         # Check output variables
         assert "output-left" in output_vars
         assert "output-match" in output_vars

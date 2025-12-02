@@ -1,9 +1,8 @@
 """Execution graph builder and topological sort"""
 
 from collections import defaultdict, deque
-from typing import Any
 
-from app.api.models.workflow import Workflow, Wire
+from app.api.models.workflow import Workflow
 from app.utils.errors import ValidationError
 
 

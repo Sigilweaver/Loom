@@ -2,10 +2,10 @@ from typing import Any
 
 import polars as pl
 
+from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UnionOperation
 from app.domain.tools.registry import register_tool
-from app.api.models.common import DataSchema
 
 
 @register_tool("Union")
@@ -20,7 +20,7 @@ class UnionTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         # Get inputs from socket 'input'
         input_data = inputs.get("input")
-        
+
         # Ensure we have a list of frames
         frames: list[pl.LazyFrame] = []
         if input_data is None:
@@ -39,41 +39,41 @@ class UnionTool(BaseTool):
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         input_schema_data = input_schemas.get("input")
-        
+
         if not input_schema_data:
             return {"output": DataSchema(columns=[])}
-            
+
         schemas: list[DataSchema] = []
         if isinstance(input_schema_data, list):
             schemas = input_schema_data
         else:
             schemas = [input_schema_data]
-            
+
         if not schemas:
             return {"output": DataSchema(columns=[])}
-            
+
         mode = config.get("mode", "ByName")
-        
+
         if mode == "ByName":
             # Union of all columns
             # Use a dict to track unique columns by name
             # If type conflict, what happens? Polars diagonal concat usually upcasts.
             # For schema prediction, we might just take the first one or try to merge.
             # Let's merge all unique columns.
-            
+
             merged_columns = {}
             for schema in schemas:
                 for col in schema.columns:
                     if col.name not in merged_columns:
                         merged_columns[col.name] = col
                     # TODO: Handle type merging if needed
-            
+
             return {"output": DataSchema(columns=list(merged_columns.values()))}
-            
+
         elif mode == "ByPosition":
             # Output schema matches the first input
             return {"output": schemas[0]}
-            
+
         return {"output": schemas[0]}
 
     def to_python_code(

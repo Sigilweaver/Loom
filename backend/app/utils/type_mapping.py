@@ -1,10 +1,10 @@
 """Type mapping utilities between Polars and API models"""
 
-import polars as pl
 from typing import Any
 
-from app.api.models.common import PolarsDataType, ColumnSchema, DataSchema
+import polars as pl
 
+from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 
 # Mapping from Polars types to our API enum
 POLARS_TO_MODEL: dict[type, PolarsDataType] = {
@@ -43,7 +43,7 @@ def polars_dtype_to_model(dtype: pl.DataType) -> PolarsDataType:
     """
     # Get the type class (not instance)
     dtype_class = type(dtype)
-    
+
     # Look up in mapping, default to UTF8 if not found
     return POLARS_TO_MODEL.get(dtype_class, PolarsDataType.UTF8)
 
@@ -59,7 +59,7 @@ def schema_from_polars(df: pl.DataFrame | pl.LazyFrame) -> DataSchema:
         DataSchema with column information
     """
     columns = []
-    
+
     for name, dtype in df.schema.items():
         columns.append(
             ColumnSchema(
@@ -68,17 +68,17 @@ def schema_from_polars(df: pl.DataFrame | pl.LazyFrame) -> DataSchema:
                 nullable=True,  # Polars doesn't track nullability in schema
             )
         )
-    
+
     return DataSchema(columns=columns)
 
 
 def dataframe_to_dict_list(df: pl.DataFrame) -> list[dict[str, Any]]:
     """
     Convert a Polars DataFrame to a list of dictionaries.
-    
+
     Args:
         df: Polars DataFrame
-        
+
     Returns:
         List of row dictionaries
     """

@@ -2,13 +2,13 @@
 
 from fastapi import APIRouter, HTTPException
 
+from app.api.models.common import DataPreview
 from app.api.models.datasource import (
     InspectRequest,
     InspectResponse,
-    PreviewRequest,
     PreviewOptions,
+    PreviewRequest,
 )
-from app.api.models.common import DataPreview
 from app.domain.datasources.factory import DataSourceFactory
 from app.utils.errors import DataSourceError
 

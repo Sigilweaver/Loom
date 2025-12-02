@@ -475,7 +475,7 @@ class JoinOperation:
             lines.append(f"{match_out_var} = pl.LazyFrame([])")
             lines.append(f"{right_out_var} = pl.LazyFrame([])")
         elif not self.left_keys or not self.right_keys:
-            lines.append(f"# No join keys specified - passing through unmatched")
+            lines.append("# No join keys specified - passing through unmatched")
             lines.append(f"{left_out_var} = {left_var}")
             lines.append(f"{match_out_var} = pl.LazyFrame([])")
             lines.append(f"{right_out_var} = {right_var}")
@@ -483,7 +483,7 @@ class JoinOperation:
             left_keys_str = repr(self.left_keys)
             right_keys_str = repr(self.right_keys)
 
-            lines.append(f"# Join: inner join for matches")
+            lines.append("# Join: inner join for matches")
             lines.append(
                 f"{match_out_var} = {left_var}.join("
                 f"{right_var}, "
@@ -493,8 +493,8 @@ class JoinOperation:
                 f'suffix="{self.right_suffix}")'
             )
 
-            lines.append(f"")
-            lines.append(f"# Join: unmatched left rows (anti-join)")
+            lines.append("")
+            lines.append("# Join: unmatched left rows (anti-join)")
             lines.append(
                 f"{left_out_var} = {left_var}.join("
                 f"{right_var}, "
@@ -503,8 +503,8 @@ class JoinOperation:
                 f'how="anti")'
             )
 
-            lines.append(f"")
-            lines.append(f"# Join: unmatched right rows (anti-join)")
+            lines.append("")
+            lines.append("# Join: unmatched right rows (anti-join)")
             lines.append(
                 f"{right_out_var} = {right_var}.join("
                 f"{left_var}, "
@@ -561,14 +561,14 @@ class UnionOperation:
             return [f'{output_var} = pl.concat([{frames_str}], how="diagonal")']
         elif self.mode == "ByPosition":
             return [
-                f"# Union by position - align columns to first frame",
+                "# Union by position - align columns to first frame",
                 f"_union_frames = [{frames_str}]",
-                f"_first_cols = _union_frames[0].collect_schema().names()",
-                f"_processed = [_union_frames[0]]",
-                f"for _frame in _union_frames[1:]:",
-                f"    _curr_cols = _frame.collect_schema().names()",
-                f"    _rename_map = {{old: new for old, new in zip(_curr_cols, _first_cols)}}",
-                f"    _processed.append(_frame.rename(_rename_map))",
+                "_first_cols = _union_frames[0].collect_schema().names()",
+                "_processed = [_union_frames[0]]",
+                "for _frame in _union_frames[1:]:",
+                "    _curr_cols = _frame.collect_schema().names()",
+                "    _rename_map = {old: new for old, new in zip(_curr_cols, _first_cols)}",
+                "    _processed.append(_frame.rename(_rename_map))",
                 f'{output_var} = pl.concat(_processed, how="vertical")',
             ]
         else:

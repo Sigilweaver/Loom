@@ -37,11 +37,11 @@ def _extract_description(docstring: str | None) -> str:
     """Extract the first paragraph (description) from a docstring."""
     if not docstring:
         return ""
-    
+
     # Split by double newline to get paragraphs
     lines = docstring.strip().split('\n')
     description_lines = []
-    
+
     for line in lines:
         stripped = line.strip()
         # Stop at Parameters, Returns, Examples, etc.
@@ -54,36 +54,36 @@ def _extract_description(docstring: str | None) -> str:
         elif description_lines:
             # Empty line after content = end of first paragraph
             break
-    
+
     return ' '.join(description_lines)
 
 
 def _extract_parameters(docstring: str | None, sig: inspect.Signature) -> list[dict[str, Any]]:
     """Extract parameter info from docstring and signature."""
     params = []
-    
+
     for param_name, param in sig.parameters.items():
         if param_name == 'self':
             continue
-            
+
         param_info: dict[str, Any] = {
             'name': param_name,
             'required': param.default is inspect.Parameter.empty,
         }
-        
+
         # Get type hint if available
         if param.annotation is not inspect.Parameter.empty:
             annotation = str(param.annotation)
             # Clean up the annotation string
             annotation = annotation.replace("'", "")
             param_info['type'] = annotation
-        
+
         # Get default value if available
         if param.default is not inspect.Parameter.empty:
             param_info['default'] = repr(param.default)
-        
+
         params.append(param_info)
-    
+
     # Try to extract descriptions from docstring
     if docstring:
         param_section = re.search(
@@ -96,7 +96,7 @@ def _extract_parameters(docstring: str | None, sig: inspect.Signature) -> list[d
             # Parse parameter descriptions
             current_param = None
             current_desc_lines = []
-            
+
             for line in param_text.split('\n'):
                 # Check if this is a new parameter (non-indented, non-empty)
                 stripped = line.strip()
@@ -111,14 +111,14 @@ def _extract_parameters(docstring: str | None, sig: inspect.Signature) -> list[d
                     current_desc_lines = []
                 elif current_param and stripped:
                     current_desc_lines.append(stripped)
-            
+
             # Save last param
             if current_param:
                 for p in params:
                     if p['name'] == current_param:
                         p['description'] = ' '.join(current_desc_lines).strip()
                         break
-    
+
     return params
 
 
@@ -127,26 +127,26 @@ def _generate_snippet(name: str, sig: inspect.Signature, prefix: str = ".") -> s
     snippet_parts = [f"{prefix}{name}("]
     tab_index = 1
     param_snippets = []
-    
+
     for param_name, param in sig.parameters.items():
         if param_name == 'self':
             continue
-        
+
         # Skip keyword-only params that have defaults (optional)
         if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default is not inspect.Parameter.empty:
             continue
-        
+
         # Determine placeholder value
         if param.default is not inspect.Parameter.empty:
             # Has default - skip for snippet (user can add if needed)
             continue
-        
+
         # Get type hint for smarter placeholder
         placeholder = param_name
         if param.annotation is not inspect.Parameter.empty:
             annotation = str(param.annotation).replace("'", "")
             annotation_lower = annotation.lower()
-            
+
             # IntoExpr typically means a string (column name) or expression
             # For user convenience, default to string input with quotes
             if 'intoexpr' in annotation_lower or 'intoexprcolumn' in annotation_lower:
@@ -165,13 +165,13 @@ def _generate_snippet(name: str, sig: inspect.Signature, prefix: str = ".") -> s
                 placeholder = f"${{{tab_index}:{param_name}}}"
         else:
             placeholder = f"${{{tab_index}:{param_name}}}"
-        
+
         param_snippets.append(placeholder)
         tab_index += 1
-    
+
     snippet_parts.append(', '.join(param_snippets))
     snippet_parts.append(')')
-    
+
     return ''.join(snippet_parts)
 
 
@@ -186,7 +186,7 @@ def _categorize_string_method(name: str) -> str:
     encoding_methods = {'encode', 'decode', 'escape_regex'}
     length_methods = {'len_bytes', 'len_chars'}
     join_methods = {'concat', 'join'}
-    
+
     if name in search_methods:
         return 'string_search'
     elif name in manipulation_methods:
@@ -216,7 +216,7 @@ def _categorize_datetime_method(name: str) -> str:
     offset_methods = {'offset_by', 'truncate', 'round', 'month_start', 'month_end', 'base_utc_offset', 'dst_offset'}
     conversion_methods = {'timestamp', 'epoch', 'to_string', 'strftime', 'date', 'time', 'datetime'}
     timezone_methods = {'convert_time_zone', 'replace_time_zone', 'timezone'}
-    
+
     if name in component_methods:
         return 'datetime_components'
     elif name in week_methods:
@@ -242,7 +242,7 @@ def _categorize_list_method(name: str) -> str:
     boolean_methods = {'all', 'any'}
     eval_methods = {'eval'}
     conversion_methods = {'to_array', 'to_struct'}
-    
+
     if name in aggregation_methods:
         return 'list_aggregation'
     elif name in element_methods:
@@ -276,7 +276,7 @@ def _categorize_expr_method(name: str) -> str:
     naming_methods = {'alias', 'name', 'prefix', 'suffix', 'keep_name'}
     window_methods = {'over', 'rolling', 'shift', 'diff', 'pct_change', 'cum_sum', 'cum_prod', 'cum_min', 'cum_max', 'cum_count'}
     conditional_methods = {'when', 'then', 'otherwise', 'if_else'}
-    
+
     if name in null_methods:
         return 'null_handling'
     elif name in type_methods:
@@ -302,16 +302,16 @@ def _categorize_expr_method(name: str) -> str:
 def _introspect_namespace(namespace: Any, prefix: str, categorize_fn) -> list[MethodInfo]:
     """Introspect all methods in a Polars namespace (str, dt, etc.)."""
     methods = []
-    
+
     for method_name in dir(namespace):
         if method_name.startswith('_'):
             continue
-        
+
         try:
             method = getattr(namespace, method_name)
             if not callable(method):
                 continue
-            
+
             # Get signature
             try:
                 sig = inspect.signature(method)
@@ -319,11 +319,11 @@ def _introspect_namespace(namespace: Any, prefix: str, categorize_fn) -> list[Me
             except (ValueError, TypeError):
                 sig_str = f"{prefix}.{method_name}(...)"
                 sig = None
-            
+
             # Get docstring
             docstring = method.__doc__
             description = _extract_description(docstring)
-            
+
             # Generate snippet
             if sig:
                 snippet = _generate_snippet(method_name, sig, prefix=f"{prefix}.")
@@ -331,10 +331,10 @@ def _introspect_namespace(namespace: Any, prefix: str, categorize_fn) -> list[Me
             else:
                 snippet = f"{prefix}.{method_name}()"
                 parameters = []
-            
+
             # Categorize
             category = categorize_fn(method_name)
-            
+
             methods.append(MethodInfo(
                 name=f"{prefix}.{method_name}",
                 signature=sig_str,
@@ -343,11 +343,11 @@ def _introspect_namespace(namespace: Any, prefix: str, categorize_fn) -> list[Me
                 category=category,
                 parameters=parameters,
             ))
-            
+
         except Exception:
             # Skip methods that can't be introspected
             continue
-    
+
     return methods
 
 
@@ -355,7 +355,7 @@ def _introspect_expr_methods() -> list[MethodInfo]:
     """Introspect methods available on pl.Expr (column methods)."""
     methods = []
     expr = pl.col('test')
-    
+
     # Methods to skip (internal, deprecated, or not useful for autocomplete)
     skip_methods = {
         'map', 'map_batches', 'map_elements',  # Advanced, require Python functions
@@ -363,18 +363,18 @@ def _introspect_expr_methods() -> list[MethodInfo]:
         'str', 'dt',  # Namespace accessors
         'meta', 'name',  # Namespace accessors
     }
-    
+
     for method_name in dir(expr):
         if method_name.startswith('_'):
             continue
         if method_name in skip_methods:
             continue
-        
+
         try:
             method = getattr(expr, method_name)
             if not callable(method):
                 continue
-            
+
             # Get signature
             try:
                 sig = inspect.signature(method)
@@ -382,11 +382,11 @@ def _introspect_expr_methods() -> list[MethodInfo]:
             except (ValueError, TypeError):
                 sig_str = f".{method_name}(...)"
                 sig = None
-            
+
             # Get docstring
             docstring = method.__doc__
             description = _extract_description(docstring)
-            
+
             # Generate snippet
             if sig:
                 snippet = _generate_snippet(method_name, sig)
@@ -394,9 +394,9 @@ def _introspect_expr_methods() -> list[MethodInfo]:
             else:
                 snippet = f".{method_name}()"
                 parameters = []
-            
+
             category = _categorize_expr_method(method_name)
-            
+
             methods.append(MethodInfo(
                 name=f".{method_name}",
                 signature=sig_str,
@@ -405,17 +405,17 @@ def _introspect_expr_methods() -> list[MethodInfo]:
                 category=category,
                 parameters=parameters,
             ))
-            
+
         except Exception:
             continue
-    
+
     return methods
 
 
 def _introspect_table_level() -> list[MethodInfo]:
     """Introspect table-level Polars functions (pl.col, pl.lit, etc.)."""
     methods = []
-    
+
     # Key table-level functions for expressions
     functions = {
         'col': ('selection', 'Reference a column by name'),
@@ -445,13 +445,13 @@ def _introspect_table_level() -> list[MethodInfo]:
         'int_ranges': ('generation', 'Generate multiple integer ranges'),
         'arange': ('generation', 'Alias for int_range'),
     }
-    
+
     for func_name, (category, fallback_desc) in functions.items():
         try:
             func = getattr(pl, func_name, None)
             if func is None:
                 continue
-            
+
             # Get signature
             try:
                 sig = inspect.signature(func)
@@ -459,11 +459,11 @@ def _introspect_table_level() -> list[MethodInfo]:
             except (ValueError, TypeError):
                 sig_str = f"pl.{func_name}(...)"
                 sig = None
-            
+
             # Get docstring
             docstring = func.__doc__
             description = _extract_description(docstring) or fallback_desc
-            
+
             # Generate snippet
             if sig:
                 snippet = _generate_snippet(func_name, sig, prefix="pl.")
@@ -471,7 +471,7 @@ def _introspect_table_level() -> list[MethodInfo]:
             else:
                 snippet = f"pl.{func_name}()"
                 parameters = []
-            
+
             methods.append(MethodInfo(
                 name=f"pl.{func_name}",
                 signature=sig_str,
@@ -480,10 +480,10 @@ def _introspect_table_level() -> list[MethodInfo]:
                 category=category,
                 parameters=parameters,
             ))
-            
+
         except Exception:
             continue
-    
+
     return methods
 
 
@@ -498,34 +498,34 @@ def get_polars_functions() -> dict[str, Any]:
         Dictionary with 'table_level' and 'column_methods' (by type).
     """
     expr = pl.col('test')
-    
+
     # Introspect string namespace
     string_methods = _introspect_namespace(
         expr.str,
         ".str",
         _categorize_string_method
     )
-    
+
     # Introspect datetime namespace
     datetime_methods = _introspect_namespace(
         expr.dt,
         ".dt",
         _categorize_datetime_method
     )
-    
+
     # Introspect list namespace
     list_methods = _introspect_namespace(
         expr.list,
         ".list",
         _categorize_list_method
     )
-    
+
     # Introspect expression methods (all columns)
     expr_methods = _introspect_expr_methods()
-    
+
     # Introspect table-level functions
     table_level = _introspect_table_level()
-    
+
     # Convert to dict format expected by frontend
     def to_dict(method: MethodInfo) -> dict[str, Any]:
         return {
@@ -536,7 +536,7 @@ def get_polars_functions() -> dict[str, Any]:
             "category": method.category,
             "parameters": method.parameters,
         }
-    
+
     return {
         "table_level": [to_dict(m) for m in table_level],
         "column_methods": {

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.utils.polars_introspection import get_polars_functions, clear_cache
+from app.utils.polars_introspection import clear_cache, get_polars_functions
 
 router = APIRouter(prefix="/polars", tags=["polars"])
 

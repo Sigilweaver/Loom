@@ -236,24 +236,24 @@ class OutputTool(BaseTool):
         lines = []
         output_type = config.get("type", "csv")
         destination = config.get("destination", "")
-        
+
         if "input" not in input_vars:
             lines.append(f"# ERROR: Output {tool_id} has no input")
             return (lines, {})
-        
+
         input_var = input_vars["input"]
-        
+
         if not destination:
             lines.append(f"# ERROR: Output {tool_id} has no destination specified")
             return (lines, {})
-        
+
         if output_type == "csv":
             mode = config.get("csvMode", "sink")
-            
+
             # Build CSV options
             options = []
             csv_kwargs = self._build_csv_kwargs(config)
-            
+
             for key, value in csv_kwargs.items():
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
@@ -261,22 +261,22 @@ class OutputTool(BaseTool):
                     options.append(f'{key}={str(value)}')
                 elif isinstance(value, (int, float)) and value is not None:
                     options.append(f'{key}={value}')
-            
+
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
-            
+
             if mode == "sink":
                 lines.append(f'{input_var}.sink_csv("{escaped_path}"{opts_str})')
             else:  # write mode
                 lines.append(f'{input_var}.collect().write_csv("{escaped_path}"{opts_str})')
-        
+
         elif output_type == "parquet":
             mode = config.get("parquetMode", "sink")
-            
+
             # Build Parquet options
             options = []
             parquet_kwargs = self._build_parquet_kwargs(config)
-            
+
             for key, value in parquet_kwargs.items():
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
@@ -284,17 +284,17 @@ class OutputTool(BaseTool):
                     options.append(f'{key}={str(value)}')
                 elif isinstance(value, (int, float)) and value is not None:
                     options.append(f'{key}={value}')
-            
+
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
-            
+
             if mode == "sink":
                 lines.append(f'{input_var}.sink_parquet("{escaped_path}"{opts_str})')
             else:  # write mode
                 lines.append(f'{input_var}.collect().write_parquet("{escaped_path}"{opts_str})')
-        
+
         else:
             lines.append(f"# ERROR: Output type '{output_type}' not yet supported in code generation")
-        
+
         # Output tools have no outputs
         return (lines, {})

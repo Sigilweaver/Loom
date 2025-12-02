@@ -4,12 +4,11 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import DataSchema, ColumnSchema, PolarsDataType
+from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SelectOperation, build_select_expr
 from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
-
 
 # Mapping from PolarsDataType string to actual Polars type for casting
 DTYPE_STRING_TO_POLARS: dict[str, pl.DataType] = {
@@ -79,7 +78,7 @@ class SelectTool(BaseTool):
             return {"output": lf}
 
         op = self._build_operation(config)
-        
+
         if not op.expressions:
             raise ToolError("At least one column must be selected")
 
@@ -234,7 +233,7 @@ class SelectTool(BaseTool):
 
         if not op.expressions:
             return (
-                [f"# ERROR: No columns selected", f"{var_name} = {input_var}"],
+                ["# ERROR: No columns selected", f"{var_name} = {input_var}"],
                 {"output": var_name},
             )
 
