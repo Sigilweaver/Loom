@@ -1,5 +1,5 @@
 import { getToolDefinition } from "@data/tools";
-import { Tool, Wire } from "@domain/workflow/entities/workflow";
+import { Socket, Tool, ToolConfig, Wire } from "@domain/workflow/entities/workflow";
 import { useClipboardStore } from "@state/clipboardStore";
 import { useHistoryStore } from "@state/historyStore";
 import { useUIStore } from "@state/uiStore";
@@ -79,17 +79,24 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   // Handler functions (replace props with direct store calls)
   const handleAddTool = useCallback(
-    (type: string, x: number, y: number, idOverride?: string) => {
+    (
+      type: string,
+      x: number,
+      y: number,
+      idOverride?: string,
+      configOverride?: ToolConfig,
+      socketsOverride?: Socket[]
+    ) => {
       logger.debug("Adding tool:", type, "at", x, y);
 
-      // Build tool object
+      // Build tool object - use overrides if provided (e.g., from paste)
       const newTool: Tool = {
         id: idOverride || generateUniqueId(new Set(tools.map((t) => t.id))),
         type,
         x,
         y,
-        config: {},
-        sockets: getToolDefinition(type)?.sockets || [],
+        config: configOverride ?? {},
+        sockets: socketsOverride ?? getToolDefinition(type)?.sockets ?? [],
       };
 
       pushState(tools, wires, workflowMeta);
@@ -175,7 +182,14 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   const handleBatchAdd = useCallback(
     (
-      toolAdds: { id: string; type: string; x: number; y: number }[],
+      toolAdds: {
+        id: string;
+        type: string;
+        x: number;
+        y: number;
+        config: ToolConfig;
+        sockets: Socket[];
+      }[],
       wiresToAdd: {
         from: { tool: string; socket: string };
         to: { tool: string; socket: string };
@@ -189,14 +203,14 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         "wires"
       );
 
-      // Convert simplified tool format to full Tool objects
+      // Use provided tool data (includes config/sockets from clipboard)
       const fullTools: Tool[] = toolAdds.map((t) => ({
         id: t.id,
         type: t.type,
         x: t.x,
         y: t.y,
-        config: {},
-        sockets: getToolDefinition(t.type)?.sockets || [],
+        config: t.config,
+        sockets: t.sockets,
       }));
 
       const fullWires: Wire[] = wiresToAdd.map((w) => ({

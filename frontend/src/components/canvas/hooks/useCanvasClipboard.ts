@@ -5,6 +5,18 @@ import { createLogger } from "@utils/logger";
 import type { Node } from "@xyflow/react";
 import { useCallback, useRef } from "react";
 
+import type { Socket, ToolConfig } from "@domain/workflow/entities/workflow";
+
+/** Tool data passed during paste operations */
+export interface PastedToolData {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  config: ToolConfig;
+  sockets: Socket[];
+}
+
 export interface ClipboardDeps {
   tools: Tool[];
   wires: Wire[];
@@ -12,14 +24,21 @@ export interface ClipboardDeps {
   snap: (x: number, y: number) => { x: number; y: number };
   onBatchAdd?:
     | ((
-        toolAdds: { id: string; type: string; x: number; y: number }[],
+        toolAdds: PastedToolData[],
         wiresToAdd: {
           from: { tool: string; socket: string };
           to: { tool: string; socket: string };
         }[]
       ) => void)
     | undefined;
-  onAddTool: (type: string, x: number, y: number, idOverride?: string) => void;
+  onAddTool: (
+    type: string,
+    x: number,
+    y: number,
+    idOverride?: string,
+    config?: ToolConfig,
+    sockets?: Socket[]
+  ) => void;
   onAddWire: (
     f: { tool: string; socket: string },
     t: { tool: string; socket: string }
@@ -70,18 +89,19 @@ export function useCanvasClipboard({
       return;
     }
 
-    // Build clipboard data
-    type ToolSnapshot = { id: string; type: string; x: number; y: number };
+    // Build clipboard data with full tool information
     const selectedTools = tools.filter((t) => selectedIds.has(t.id));
     if (selectedTools.length === 0) return;
 
     const minX = Math.min(...selectedTools.map((t) => t.x));
     const minY = Math.min(...selectedTools.map((t) => t.y));
-    const toolSnaps: ToolSnapshot[] = selectedTools.map((t) => ({
+    const toolSnaps = selectedTools.map((t) => ({
       id: t.id,
       type: t.type,
       x: t.x,
       y: t.y,
+      config: structuredClone(t.config),  // Include full config
+      sockets: structuredClone(t.sockets), // Include sockets
     }));
 
     const selSet = new Set(selectedTools.map((t) => t.id));
@@ -131,25 +151,25 @@ export function useCanvasClipboard({
     const baseX = lastPos ? lastPos.x : cb.minX + 20;
     const baseY = lastPos ? lastPos.y : cb.minY + 20;
     const newIds: string[] = [];
-    const toolAdds: { id: string; type: string; x: number; y: number }[] = [];
+    const toolAdds: PastedToolData[] = [];
 
-    cb.tools.forEach(
-      (ts: { id: string; type: string; x: number; y: number }) => {
-        const newId = generateUniqueId(existingIds, 8);
-        existingIds.add(newId);
-        idMap.set(ts.id, newId);
-        newIds.push(newId);
-        const nx = ts.x - cb.minX + baseX;
-        const ny = ts.y - cb.minY + baseY;
-        const snapped = snap(nx, ny);
-        toolAdds.push({
-          id: newId,
-          type: ts.type,
-          x: snapped.x,
-          y: snapped.y,
-        });
-      }
-    );
+    cb.tools.forEach((ts) => {
+      const newId = generateUniqueId(existingIds, 8);
+      existingIds.add(newId);
+      idMap.set(ts.id, newId);
+      newIds.push(newId);
+      const nx = ts.x - cb.minX + baseX;
+      const ny = ts.y - cb.minY + baseY;
+      const snapped = snap(nx, ny);
+      toolAdds.push({
+        id: newId,
+        type: ts.type,
+        x: snapped.x,
+        y: snapped.y,
+        config: structuredClone(ts.config),
+        sockets: structuredClone(ts.sockets),
+      });
+    });
 
     const remappedWires: {
       from: { tool: string; socket: string };
@@ -182,7 +202,7 @@ export function useCanvasClipboard({
       onBatchAdd(toolAdds, remappedWires);
     } else {
       logger.debug("Using individual onAddTool");
-      toolAdds.forEach((t) => onAddTool(t.type, t.x, t.y, t.id));
+      toolAdds.forEach((t) => onAddTool(t.type, t.x, t.y, t.id, t.config, t.sockets));
 
       const addWiresWhenReady = (retries = 0) => {
         const presentInRF = newIds.every(

@@ -12,17 +12,29 @@
  * - Integration with workflowStore
  */
 
-import { Tool, Wire } from "@domain/workflow/entities/workflow";
+import { Socket, Tool, ToolConfig, Wire } from "@domain/workflow/entities/workflow";
 import { generateUniqueId } from "@utils/id";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { useWorkflowStore } from "./workflowStore";
 
 /**
+ * Tool data stored in clipboard (full tool info for self-contained paste)
+ */
+export interface ClipboardTool {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  config: ToolConfig;
+  sockets: Socket[];
+}
+
+/**
  * Clipboard data structure
  */
 export interface ClipboardData {
-  tools: { id: string; type: string; x: number; y: number }[];
+  tools: ClipboardTool[];
   wires: {
     from: { tool: string; socket: string };
     to: { tool: string; socket: string };
@@ -110,13 +122,15 @@ export const useClipboardStore = create<ClipboardState>()(
         const minX = Math.min(...xs);
         const minY = Math.min(...ys);
 
-        // Create clipboard data (simplified tool format)
+        // Create clipboard data (full tool data for self-contained paste)
         const clipboardData: ClipboardData = {
           tools: selectedTools.map((t) => ({
             id: t.id,
             type: t.type,
             x: t.x,
             y: t.y,
+            config: structuredClone(t.config),  // Deep copy config
+            sockets: structuredClone(t.sockets), // Deep copy sockets
           })),
           wires: internalWires.map((w) => ({
             from: { tool: w.from.tool, socket: w.from.socket },
@@ -163,28 +177,17 @@ export const useClipboardStore = create<ClipboardState>()(
         const offsetY = anchor.y - clipboard.minY;
 
         // Create new tools with new IDs and positions
+        // Use clipboard data directly (it contains full tool info)
         const newTools: Tool[] = clipboard.tools.map((clipTool) => {
           const newId = oldToNewId.get(clipTool.id)!;
 
-          // Find original tool to get full config and sockets
-          const originalTool = tools.find((t) => t.id === clipTool.id);
-          if (!originalTool) {
-            // Fallback if original tool not found (shouldn't happen in normal flow)
-            return {
-              id: newId,
-              type: clipTool.type,
-              x: clipTool.x + offsetX,
-              y: clipTool.y + offsetY,
-              config: {},
-              sockets: [],
-            } as Tool;
-          }
-
           return {
-            ...originalTool,
             id: newId,
+            type: clipTool.type,
             x: clipTool.x + offsetX,
             y: clipTool.y + offsetY,
+            config: structuredClone(clipTool.config),  // Deep copy config
+            sockets: structuredClone(clipTool.sockets), // Deep copy sockets
           };
         });
 

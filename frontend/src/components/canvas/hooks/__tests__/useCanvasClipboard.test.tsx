@@ -99,7 +99,7 @@ describe("useCanvasClipboard", () => {
 
       expect(setClipboard).toHaveBeenCalledWith(
         expect.objectContaining({
-          tools: [{ id: "tool1", type: "input", x: 100, y: 200 }],
+          tools: [{ id: "tool1", type: "input", x: 100, y: 200, config: {}, sockets: [] }],
           wires: [],
           minX: 100,
           minY: 200,
@@ -143,8 +143,8 @@ describe("useCanvasClipboard", () => {
       expect(setClipboard).toHaveBeenCalledWith(
         expect.objectContaining({
           tools: [
-            { id: "tool1", type: "input", x: 50, y: 100 },
-            { id: "tool2", type: "output", x: 200, y: 150 },
+            { id: "tool1", type: "input", x: 50, y: 100, config: {}, sockets: [] },
+            { id: "tool2", type: "output", x: 200, y: 150, config: {}, sockets: [] },
           ],
           minX: 50,
           minY: 100,
@@ -298,7 +298,7 @@ describe("useCanvasClipboard", () => {
     beforeEach(() => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "original1", type: "input", x: 100, y: 200 }],
+          tools: [{ id: "original1", type: "input", x: 100, y: 200, config: {}, sockets: [] }],
           wires: [],
           minX: 100,
           minY: 200,
@@ -329,8 +329,8 @@ describe("useCanvasClipboard", () => {
         result.current.doPaste();
       });
 
-      // Should generate new ID and add tool with +20 offset
-      expect(onAddTool).toHaveBeenCalledWith("input", 120, 220, "tool_1");
+      // Should generate new ID and add tool with +20 offset, preserving config/sockets
+      expect(onAddTool).toHaveBeenCalledWith("input", 120, 220, "tool_1", {}, []);
     });
 
     it("should paste tools at anchor position", () => {
@@ -348,7 +348,53 @@ describe("useCanvasClipboard", () => {
       });
 
       // Should paste at anchor (500, 600) since tool was at minX=100, minY=200
-      expect(onAddTool).toHaveBeenCalledWith("input", 500, 600, "tool_1");
+      expect(onAddTool).toHaveBeenCalledWith("input", 500, 600, "tool_1", {}, []);
+    });
+
+    it("should preserve config and sockets when pasting", () => {
+      const originalConfig = { filename: "test.csv", delimiter: "," };
+      const originalSockets = [
+        { id: "output", direction: "output" as const, multiple: false },
+      ];
+
+      vi.mocked(useClipboardStore.getState).mockReturnValue({
+        clipboard: {
+          tools: [{
+            id: "original1",
+            type: "input",
+            x: 100,
+            y: 200,
+            config: originalConfig,
+            sockets: originalSockets,
+          }],
+          wires: [],
+          minX: 100,
+          minY: 200,
+        },
+        setClipboard,
+        clearClipboard: vi.fn(),
+        copyTools: vi.fn(),
+        pasteToolsAt: vi.fn(),
+      });
+
+      mockTools = [];
+      deps.tools = mockTools;
+
+      const { result } = renderHook(() => useCanvasClipboard(deps));
+
+      act(() => {
+        result.current.doPaste();
+      });
+
+      // Should preserve config and sockets from clipboard
+      expect(onAddTool).toHaveBeenCalledWith(
+        "input",
+        120,
+        220,
+        "tool_1",
+        originalConfig,
+        originalSockets
+      );
     });
 
     it("should do nothing if clipboard is empty", () => {
@@ -374,7 +420,7 @@ describe("useCanvasClipboard", () => {
     it("should set paste anchor position", () => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "tool1", type: "input", x: 0, y: 0 }],
+          tools: [{ id: "tool1", type: "input", x: 0, y: 0, config: {}, sockets: [] }],
           wires: [],
           minX: 0,
           minY: 0,
@@ -395,7 +441,7 @@ describe("useCanvasClipboard", () => {
         result.current.doPaste();
       });
 
-      expect(onAddTool).toHaveBeenCalledWith("input", 250, 350, "tool_1");
+      expect(onAddTool).toHaveBeenCalledWith("input", 250, 350, "tool_1", {}, []);
     });
   });
 

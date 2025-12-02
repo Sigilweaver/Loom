@@ -64,7 +64,7 @@ describe("useCanvasPaste", () => {
     it("should prevent default and paste when clipboard has data", () => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "tool1", type: "input", x: 100, y: 200 }],
+          tools: [{ id: "tool1", type: "input", x: 100, y: 200, config: {}, sockets: [] }],
           wires: [],
           minX: 100,
           minY: 200,
@@ -120,7 +120,7 @@ describe("useCanvasPaste", () => {
     beforeEach(() => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "tool1", type: "input", x: 50, y: 100 }],
+          tools: [{ id: "tool1", type: "input", x: 50, y: 100, config: {}, sockets: [] }],
           wires: [],
           minX: 50,
           minY: 100,
@@ -228,7 +228,7 @@ describe("useCanvasPaste", () => {
     it("should handle multiple consecutive paste events", () => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "tool1", type: "input", x: 10, y: 20 }],
+          tools: [{ id: "tool1", type: "input", x: 10, y: 20, config: {}, sockets: [] }],
           wires: [],
           minX: 10,
           minY: 20,
@@ -284,7 +284,7 @@ describe("useCanvasPaste", () => {
     it("should block native paste when internal clipboard has data", () => {
       vi.mocked(useClipboardStore.getState).mockReturnValue({
         clipboard: {
-          tools: [{ id: "tool1", type: "input", x: 0, y: 0 }],
+          tools: [{ id: "tool1", type: "input", x: 0, y: 0, config: {}, sockets: [] }],
           wires: [],
           minX: 0,
           minY: 0,

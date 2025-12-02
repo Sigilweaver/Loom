@@ -51,7 +51,7 @@ describe("clipboardStore", () => {
   describe("setClipboard", () => {
     test("should set clipboard data", () => {
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [] }],
         wires: [],
         minX: 100,
         minY: 200,
@@ -65,7 +65,7 @@ describe("clipboardStore", () => {
 
     test("should allow setting clipboard to null", () => {
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [] }],
         wires: [],
         minX: 100,
         minY: 200,
@@ -82,7 +82,7 @@ describe("clipboardStore", () => {
   describe("clearClipboard", () => {
     test("should clear clipboard", () => {
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [] }],
         wires: [],
         minX: 100,
         minY: 200,
@@ -124,6 +124,8 @@ describe("clipboardStore", () => {
         type: "Input",
         x: 100,
         y: 200,
+        config: { filename: "test.csv" },
+        sockets: [{ id: 'output', direction: 'output', multiple: false }],
       });
       expect(clipboard?.minX).toBe(100);
       expect(clipboard?.minY).toBe(200);
@@ -682,7 +684,7 @@ describe("clipboardStore", () => {
       expect(ids1[0]).not.toBe(ids2[0]); // Different IDs
     });
 
-    test("should handle paste when original tools have been deleted", () => {
+    test("should preserve config and sockets when original tools have been deleted", () => {
       const tools: Tool[] = [
         {
           id: "tool1",
@@ -706,7 +708,7 @@ describe("clipboardStore", () => {
         batchAddToolsAndWires: batchAddSpy,
       });
 
-      // Paste should still work (fallback to basic tool structure)
+      // Paste should still work with full config preserved
       const newToolIds = useClipboardStore
         .getState()
         .pasteToolsAt({ x: 300, y: 400 });
@@ -715,13 +717,13 @@ describe("clipboardStore", () => {
       expect(batchAddSpy).toHaveBeenCalled();
 
       const [pastedTools] = batchAddSpy.mock.calls[0];
-      // Should use fallback structure (basic tool data)
+      // Should preserve original config and sockets from clipboard
       expect(pastedTools[0]).toMatchObject({
         type: "Input",
         x: 300,
         y: 400,
-        config: {},
-        sockets: [],
+        config: { filename: "test.csv" },
+        sockets: [{ id: 'output', direction: 'output', multiple: false }],
       });
     });
 
@@ -739,7 +741,7 @@ describe("clipboardStore", () => {
 
       // Create clipboard with wire referencing non-existent tool
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [{ id: 'output', direction: 'output', multiple: false }] }],
         wires: [
           {
             from: { tool: "tool1", socket: 'output' },
@@ -770,7 +772,7 @@ describe("clipboardStore", () => {
   describe("Selector Hooks", () => {
     test("useClipboard should return clipboard data", () => {
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [] }],
         wires: [],
         minX: 100,
         minY: 200,
@@ -799,7 +801,7 @@ describe("clipboardStore", () => {
 
     test("useHasClipboard should return true when clipboard has data", () => {
       const clipboardData: ClipboardData = {
-        tools: [{ id: "tool1", type: "Input", x: 100, y: 200 }],
+        tools: [{ id: "tool1", type: "Input", x: 100, y: 200, config: {}, sockets: [] }],
         wires: [],
         minX: 100,
         minY: 200,
