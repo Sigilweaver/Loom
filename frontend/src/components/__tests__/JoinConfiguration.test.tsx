@@ -7,8 +7,10 @@ import { Tool, Wire, WorkflowMeta, ToolConfig } from '../../domain/workflow/enti
 vi.mock('../../api/hooks', () => ({
   useMetadata: vi.fn(() => ({
     metadata: null,
+    columns: [],
     fetchMetadata: vi.fn(),
     loading: false,
+    error: null,
   })),
 }));
 

@@ -3,17 +3,18 @@
 Full verification suite for Sigilweaver.
 
 Runs all checks to ensure CI will pass:
-1. Backend: Lint (ruff) + Type check (mypy) + Tests (pytest)
-2. Frontend: Type check (tsc) + Lint (eslint) + Tests (vitest)
+1. Backend: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
+2. Frontend: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
 3. Integration tests (requires backend running)
 
 Usage:
-    ./scripts/test.py              # Run all checks (recommended before PR)
+    ./scripts/test.py              # Run all checks, only show errors (recommended before PR)
+    ./scripts/test.py -v           # Verbose mode - show all output
     ./scripts/test.py --backend    # Backend checks only
     ./scripts/test.py --frontend   # Frontend checks only
     ./scripts/test.py --integration # Integration tests only
     ./scripts/test.py --no-integration # Skip integration tests
-    ./scripts/test.py --coverage   # Include coverage reports
+    ./scripts/test.py --no-coverage # Skip coverage reports (faster)
     ./scripts/test.py --strict     # Fail on lint warnings (stricter than CI)
 """
 
@@ -23,6 +24,32 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+# ANSI color codes
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    RESET = '\033[0m'
+    
+    @classmethod
+    def disable(cls) -> None:
+        """Disable colors (for non-TTY output)."""
+        cls.RED = cls.GREEN = cls.YELLOW = cls.BLUE = ''
+        cls.BOLD = cls.DIM = cls.RESET = ''
+
+
+# Disable colors if not a TTY
+if not sys.stdout.isatty():
+    Colors.disable()
+
+
+# Global quiet mode flag
+_quiet_mode = False
 
 
 @dataclass
@@ -61,8 +88,10 @@ def get_repo_root() -> Path:
     return script_dir.parent
 
 
-def print_header(title: str) -> None:
+def print_header(title: str, force: bool = False) -> None:
     """Print a section header."""
+    if _quiet_mode and not force:
+        return
     print()
     print("=" * 60)
     print(f"  {title}")
@@ -71,6 +100,8 @@ def print_header(title: str) -> None:
 
 def print_subheader(title: str) -> None:
     """Print a subsection header."""
+    if _quiet_mode:
+        return
     print()
     print(f"--- {title} ---")
 
@@ -101,14 +132,33 @@ def run_command(
     start_time = time.time()
     
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=False,
-        )
-        duration = time.time() - start_time
-        
-        passed = result.returncode == 0 if fail_on_error else True
+        if _quiet_mode:
+            # Capture output and only show on failure
+            result = subprocess.run(
+                cmd,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+            )
+            duration = time.time() - start_time
+            passed = result.returncode == 0 if fail_on_error else True
+            
+            # Show output only on failure
+            if not passed:
+                print(f"\n{Colors.RED}{Colors.BOLD}=== {name} FAILED ==={Colors.RESET}")
+                if result.stdout:
+                    print(result.stdout)
+                if result.stderr:
+                    print(result.stderr, file=sys.stderr)
+        else:
+            # Normal mode: stream output
+            result = subprocess.run(
+                cmd,
+                cwd=cwd,
+                capture_output=False,
+            )
+            duration = time.time() - start_time
+            passed = result.returncode == 0 if fail_on_error else True
         
         return CheckResult(
             name=name,
@@ -190,7 +240,7 @@ def run_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     
     result = run_command(cmd, backend_dir, "Backend Tests", fail_on_error=True)
     
-    if coverage and result.passed:
+    if coverage and result.passed and not _quiet_mode:
         print()
         print(f"Coverage report: {backend_dir}/htmlcov/index.html")
     
@@ -262,7 +312,7 @@ def run_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     
     result = run_command(cmd, frontend_dir, "Frontend Tests", fail_on_error=True)
     
-    if coverage and result.passed:
+    if coverage and result.passed and not _quiet_mode:
         print()
         print(f"Coverage report: {frontend_dir}/coverage/index.html")
     
@@ -385,36 +435,43 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
     return suite
 
 
-def print_summary(results: list[SuiteResult], strict: bool = False) -> None:
-    """Print verification summary."""
-    print_header("Verification Summary")
+def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bool = True) -> None:
+    """Print verification summary with colors."""
+    print_header("Verification Summary", force=True)
     
     total_duration = sum(r.duration for r in results)
     all_passed = all(r.passed for r in results)
     
     for suite in results:
-        suite_status = "PASS" if suite.passed else "FAIL"
-        print(f"\n  {suite.name}: {suite_status} ({suite.duration:.1f}s)")
+        if suite.passed:
+            status = f"{Colors.GREEN}{Colors.BOLD}PASS{Colors.RESET}"
+        else:
+            status = f"{Colors.RED}{Colors.BOLD}FAIL{Colors.RESET}"
+        print(f"\n  {Colors.BOLD}{suite.name}{Colors.RESET}: {status} {Colors.DIM}({suite.duration:.1f}s){Colors.RESET}")
         
         for check in suite.checks:
-            check_status = "PASS" if check.passed else "FAIL"
-            warning_note = f" ({check.warnings} warnings)" if check.warnings > 0 and check.passed else ""
-            print(f"    - {check.name}: {check_status}{warning_note} ({check.duration:.1f}s)")
+            if check.passed:
+                check_status = f"{Colors.GREEN}PASS{Colors.RESET}"
+            else:
+                check_status = f"{Colors.RED}FAIL{Colors.RESET}"
+            warning_note = f" {Colors.YELLOW}({check.warnings} warnings){Colors.RESET}" if check.warnings > 0 and check.passed else ""
+            print(f"    - {check.name}: {check_status}{warning_note} {Colors.DIM}({check.duration:.1f}s){Colors.RESET}")
             if check.error:
-                print(f"      Error: {check.error}")
+                print(f"      {Colors.RED}Error: {check.error}{Colors.RESET}")
     
     print_separator()
-    print(f"Total time: {total_duration:.1f}s")
-    print(f"Mode: {'strict' if strict else 'CI-compatible'}")
+    print(f"{Colors.DIM}Total time: {total_duration:.1f}s{Colors.RESET}")
+    print(f"{Colors.DIM}Mode: {'strict' if strict else 'CI-compatible'}{Colors.RESET}")
+    print(f"{Colors.DIM}Coverage: {'enabled' if coverage else 'disabled'}{Colors.RESET}")
     print()
     
     if all_passed:
-        print("All checks passed! Ready for PR.")
+        print(f"{Colors.GREEN}{Colors.BOLD}All checks passed! Ready for PR.{Colors.RESET}")
     else:
         failed_suites = [r.name for r in results if not r.passed]
-        print(f"FAILED: {', '.join(failed_suites)}")
+        print(f"{Colors.RED}{Colors.BOLD}FAILED: {', '.join(failed_suites)}{Colors.RESET}")
         print()
-        print("Fix the issues above before submitting a PR.")
+        print(f"{Colors.YELLOW}Fix the issues above before submitting a PR.{Colors.RESET}")
 
 
 def main() -> int:
@@ -424,11 +481,12 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./scripts/test.py              # Full verification (recommended before PR)
-  ./scripts/test.py --backend    # Backend only (ruff + mypy + pytest)
-  ./scripts/test.py --frontend   # Frontend only (tsc + eslint + vitest)
+  ./scripts/test.py              # Full verification, only show errors (recommended before PR)
+  ./scripts/test.py -v           # Verbose mode - show all output
+  ./scripts/test.py --backend    # Backend only (ruff + mypy + pytest + coverage)
+  ./scripts/test.py --frontend   # Frontend only (tsc + eslint + vitest + coverage)
+  ./scripts/test.py --no-coverage # Skip coverage reports (faster)
   ./scripts/test.py --strict     # Fail on lint/type warnings
-  ./scripts/test.py --coverage   # Include coverage reports
 """
     )
     parser.add_argument(
@@ -452,14 +510,19 @@ Examples:
         help="Skip integration tests"
     )
     parser.add_argument(
-        "--coverage",
+        "--no-coverage",
         action="store_true",
-        help="Generate coverage reports"
+        help="Skip coverage reports (faster)"
     )
     parser.add_argument(
         "--strict",
         action="store_true",
         help="Fail on lint/type warnings (stricter than CI)"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose mode: show all output (default: only show errors)"
     )
     
     args = parser.parse_args()
@@ -479,27 +542,34 @@ Examples:
     if args.no_integration:
         run_integration = False
     
+    # Coverage is enabled by default, disable with --no-coverage
+    run_coverage = not args.no_coverage
+    
+    # Quiet mode is default, use --verbose to show all output
+    global _quiet_mode
+    _quiet_mode = not args.verbose
+    
     repo_root = get_repo_root()
     results: list[SuiteResult] = []
     
     print_header("Sigilweaver Verification Suite")
-    print(f"Repository: {repo_root}")
-    print(f"Mode: {'strict' if args.strict else 'CI-compatible'}")
-    if args.coverage:
-        print("Coverage: enabled")
+    if not _quiet_mode:
+        print(f"Repository: {repo_root}")
+        print(f"Mode: {'strict' if args.strict else 'CI-compatible'}")
+        print(f"Coverage: {'enabled' if run_coverage else 'disabled'}")
     
     # Run checks
     if run_backend:
-        results.append(run_backend_suite(repo_root, coverage=args.coverage, strict=args.strict))
+        results.append(run_backend_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
     if run_frontend:
-        results.append(run_frontend_suite(repo_root, coverage=args.coverage, strict=args.strict))
+        results.append(run_frontend_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Print summary
-    print_summary(results, strict=args.strict)
+    print_summary(results, strict=args.strict, coverage=run_coverage)
     
     # Return appropriate exit code
     return 0 if all(r.passed for r in results) else 1

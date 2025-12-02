@@ -359,7 +359,8 @@ describe('FilterConfiguration', () => {
       await waitFor(() => {
         expect(mockFetchMetadata).toHaveBeenCalledWith(
           'tool-1',
-          expect.any(Object)
+          expect.any(Object),
+          'input'
         );
       });
     });
