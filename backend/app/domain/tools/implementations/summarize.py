@@ -4,7 +4,7 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import ColumnSchema, DataSchema
+from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
@@ -50,14 +50,14 @@ def is_numeric_dtype(dtype: str) -> bool:
     return dtype in numeric_types
 
 
-def get_result_dtype(operation: str, input_dtype: str) -> str:
+def get_result_dtype(operation: str, input_dtype: PolarsDataType) -> PolarsDataType:
     """Determine the output dtype for an aggregation operation"""
     if operation in {"Count", "CountDistinct"}:
-        return "UInt32"
+        return PolarsDataType.UINT32
     elif operation in {"Mean", "Std", "Var", "Median"}:
-        return "Float64"
+        return PolarsDataType.FLOAT64
     elif operation == "Concat":
-        return "String"
+        return PolarsDataType.STRING
     else:
         # Sum, Min, Max, First, Last preserve type
         return input_dtype
@@ -101,7 +101,7 @@ class SummarizeTool(BaseTool):
         )
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute summarize operation with group by and aggregations.
@@ -112,7 +112,10 @@ class SummarizeTool(BaseTool):
         if "input" not in inputs:
             raise ToolError("Summarize tool requires input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Summarize tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
 
         group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
@@ -127,7 +130,7 @@ class SummarizeTool(BaseTool):
         return {"output": result}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Calculate output schema based on group by and aggregation configuration.
@@ -135,7 +138,10 @@ class SummarizeTool(BaseTool):
         if "input" not in input_schemas:
             raise ToolError("Summarize tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas["input"]
+        input_data = input_schemas["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Summarize tool does not support multiple input schemas")
+        input_schema: DataSchema = input_data
         group_by_columns = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
 
@@ -232,12 +238,12 @@ class SummarizeTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Summarize tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = input_vars.get("input", "df_input")
+        input_var = self._get_input_var(input_vars.get("input"))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()

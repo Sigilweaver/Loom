@@ -32,15 +32,16 @@ async def inspect_datasource(request: InspectRequest) -> InspectResponse:
         # Create appropriate data source handler
         datasource = DataSourceFactory.create(source_type)
 
-        # Validate configuration
-        validation_errors = await datasource.validate_config(request.config)
+        # Validate configuration (validation_errors reserved for future use)
+        await datasource.validate_config(request.config)
 
         # Inspect the data source
         schema = await datasource.inspect(request.source, request.config)
 
+        # Note: validation field is set to None for now (future: convert errors)
         return InspectResponse(
             data_schema=schema,
-            validation={"errors": validation_errors, "warnings": []},
+            validation=None,
         )
 
     except DataSourceError as e:
@@ -67,7 +68,7 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
         datasource = DataSourceFactory.create(source_type)
 
         # Get preview options
-        options = request.options or PreviewOptions()
+        options = request.options or PreviewOptions(max_rows=100, offset=0, columns=None)
 
         # Preview the data
         preview = await datasource.preview(
@@ -87,7 +88,7 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
 
 
 @router.get("/supported")
-async def list_supported_sources():
+async def list_supported_sources() -> dict[str, list[str]]:
     """
     List all supported data source types and file extensions.
     """

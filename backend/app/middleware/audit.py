@@ -6,11 +6,12 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable
+from typing import Any, Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from app.config import settings
 
@@ -92,7 +93,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     # Max body size to log (avoid logging huge payloads)
     MAX_BODY_LOG_SIZE = 10000
 
-    def __init__(self, app, logger: logging.Logger | None = None):
+    def __init__(self, app: ASGIApp, logger: logging.Logger | None = None) -> None:
         super().__init__(app)
         self.logger = logger or setup_audit_logger()
         # Run cleanup on startup
@@ -105,7 +106,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     "retention_days": settings.audit_retention_days
                 }))
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         # Skip logging for certain paths
         if request.url.path in self.SKIP_PATHS:
             return await call_next(request)
@@ -128,10 +131,11 @@ class AuditMiddleware(BaseHTTPMiddleware):
             body_summary = await self._get_body_summary(request)
 
         # Process request
+        response: Response | None = None
+        error: str | None = None
         try:
             response = await call_next(request)
             status_code = response.status_code
-            error = None
         except Exception as e:
             status_code = 500
             error = str(e)[:200]
@@ -140,7 +144,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             duration_ms = (time.perf_counter() - start_time) * 1000
 
             # Build audit record
-            audit_record = {
+            audit_record: dict[str, Any] = {
                 "timestamp": timestamp,
                 "request_id": request_id,
                 "method": request.method,
@@ -161,6 +165,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             # Log as JSON
             self.logger.info(json.dumps(audit_record))
 
+        # response will always be set here because exception was re-raised
+        assert response is not None
         return response
 
     def _get_client_ip(self, request: Request) -> str:

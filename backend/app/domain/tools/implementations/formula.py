@@ -39,7 +39,7 @@ class FormulaTool(BaseTool):
         )
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Add or replace calculated column in DataFrame.
@@ -53,7 +53,11 @@ class FormulaTool(BaseTool):
         if "input" not in inputs:
             raise ToolError("Formula tool requires input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Formula tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
+
         column_name = config.get("column_name", "")
         expression = config.get("expression")
 
@@ -63,12 +67,12 @@ class FormulaTool(BaseTool):
             raise ToolError("Formula tool requires 'expression' in config")
 
         op = self._build_operation(config)
-        lf = op.execute(lf)
+        result = op.execute(lf)
 
-        return {"output": lf}
+        return {"output": result}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Calculate output schema - input schema with new/replaced column.
@@ -79,7 +83,11 @@ class FormulaTool(BaseTool):
         if "input" not in input_schemas:
             raise ToolError("Formula tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas["input"]
+        input_data = input_schemas["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Formula tool does not support multiple input schemas")
+        input_schema: DataSchema = input_data
+
         column_name = config.get("column_name", "")
 
         if not column_name:
@@ -118,9 +126,9 @@ class FormulaTool(BaseTool):
             )
         }
 
-    def validate_config(self, config: dict[str, Any]) -> list[str]:
+    async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate formula configuration"""
-        errors = []
+        errors: list[str] = []
 
         if "column_name" not in config or not config.get("column_name"):
             errors.append("Missing required field: column_name")
@@ -138,12 +146,12 @@ class FormulaTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Formula tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = input_vars.get("input", "df_input")
+        input_var = self._get_input_var(input_vars.get("input"))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()

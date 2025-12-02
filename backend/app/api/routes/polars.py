@@ -1,5 +1,7 @@
 """Polars functions API for autocomplete"""
 
+from typing import Any
+
 from fastapi import APIRouter
 
 from app.utils.polars_introspection import clear_cache, get_polars_functions
@@ -8,7 +10,7 @@ router = APIRouter(prefix="/polars", tags=["polars"])
 
 
 @router.get("/functions")
-async def get_functions():
+async def get_functions() -> dict[str, Any]:
     """
     Get available Polars functions for autocomplete.
 
@@ -33,7 +35,7 @@ async def get_functions():
 
 
 @router.post("/functions/refresh")
-async def refresh_functions():
+async def refresh_functions() -> dict[str, str]:
     """
     Clear the cached functions and re-introspect Polars.
 

@@ -226,7 +226,7 @@ class WorkflowArchive:
 
     def _get_archive_info(self, archive_dir: Path) -> dict[str, Any]:
         """Extract summary information from an archive directory"""
-        info = {
+        info: dict[str, Any] = {
             "path": str(archive_dir.relative_to(self.archive_root)),
             "created": datetime.fromtimestamp(archive_dir.stat().st_ctime).isoformat(),
         }

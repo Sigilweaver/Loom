@@ -420,6 +420,8 @@ class JoinOperation:
             return empty, empty, empty
 
         if left_lf is None:
+            # right_lf cannot be None here (checked above)
+            assert right_lf is not None
             return empty, empty, right_lf
 
         if right_lf is None:

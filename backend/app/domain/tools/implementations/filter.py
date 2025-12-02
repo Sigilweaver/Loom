@@ -27,7 +27,7 @@ class FilterTool(BaseTool):
         return FilterOperation(expr_str=config.get("expression", ""))
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Filter data based on expression.
@@ -38,7 +38,11 @@ class FilterTool(BaseTool):
         if "input" not in inputs:
             raise ToolError("Filter tool requires input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Filter tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
+
         op = self._build_operation(config)
         lf_true, lf_false = op.execute(lf)
 
@@ -48,7 +52,7 @@ class FilterTool(BaseTool):
         }
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Output schema is same as input schema for both outputs.
@@ -58,7 +62,10 @@ class FilterTool(BaseTool):
         if "input" not in input_schemas:
             raise ToolError("Filter tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas["input"]
+        input_data = input_schemas["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Filter tool does not support multiple input schemas")
+        input_schema: DataSchema = input_data
 
         return {
             "output-true": input_schema,  # T output - same schema
@@ -85,12 +92,12 @@ class FilterTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Filter tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = input_vars.get("input", "df_input")
+        input_var = self._get_input_var(input_vars.get("input"))
         var_t = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_t"
         var_f = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_f"
 

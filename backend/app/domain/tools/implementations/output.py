@@ -21,7 +21,7 @@ class OutputTool(BaseTool):
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Save data to file.
@@ -36,7 +36,11 @@ class OutputTool(BaseTool):
         if len(inputs) != 1 or "input" not in inputs:
             raise ToolError("Output tool requires exactly one input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        # Extract single LazyFrame (Output tool doesn't support list inputs)
+        if isinstance(input_data, list):
+            raise ToolError("Output tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
 
         # Get output type
         output_type = config.get("type")
@@ -177,7 +181,7 @@ class OutputTool(BaseTool):
         return kwargs
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Output tools have no output sockets.
@@ -228,7 +232,7 @@ class OutputTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Output tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator

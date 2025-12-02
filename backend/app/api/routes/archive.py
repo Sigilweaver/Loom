@@ -1,7 +1,7 @@
 """Archive API routes for accessing workflow execution history"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -33,7 +33,7 @@ async def list_archives(
     limit: Optional[int] = Query(None, description="Max archives to return"),
     start_date: Optional[str] = Query(None, description="Filter from date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Filter until date (YYYY-MM-DD)"),
-):
+) -> ArchiveListResponse:
     """
     List archived workflow executions.
 
@@ -91,7 +91,7 @@ async def list_archives(
 
 
 @router.get("/detail/{archive_path:path}", response_model=ArchiveDetailResponse)
-async def get_archive_detail(archive_path: str):
+async def get_archive_detail(archive_path: str) -> ArchiveDetailResponse:
     """
     Get complete details for a specific archived workflow.
 
@@ -120,7 +120,7 @@ async def get_archive_detail(archive_path: str):
 
 
 @router.post("/cleanup", response_model=CleanupArchivesResponse)
-async def cleanup_archives(request: CleanupArchivesRequest):
+async def cleanup_archives(request: CleanupArchivesRequest) -> CleanupArchivesResponse:
     """
     Delete archived workflows older than specified retention period.
 
@@ -146,7 +146,7 @@ async def cleanup_archives(request: CleanupArchivesRequest):
 
 
 @router.get("/status")
-async def get_archive_status():
+async def get_archive_status() -> dict[str, Any]:
     """
     Get archive system status and configuration.
 

@@ -15,7 +15,7 @@ import inspect
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any
+from typing import Any, Callable
 
 import polars as pl
 
@@ -95,7 +95,7 @@ def _extract_parameters(docstring: str | None, sig: inspect.Signature) -> list[d
             param_text = param_section.group(1)
             # Parse parameter descriptions
             current_param = None
-            current_desc_lines = []
+            current_desc_lines: list[str] = []
 
             for line in param_text.split('\n'):
                 # Check if this is a new parameter (non-indented, non-empty)
@@ -338,7 +338,9 @@ def _categorize_expr_method(name: str) -> str:
         return 'other'
 
 
-def _introspect_namespace(namespace: Any, prefix: str, categorize_fn) -> list[MethodInfo]:
+def _introspect_namespace(
+    namespace: Any, prefix: str, categorize_fn: Callable[[str], str]
+) -> list[MethodInfo]:
     """Introspect all methods in a Polars namespace (str, dt, etc.)."""
     methods = []
 

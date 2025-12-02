@@ -201,29 +201,30 @@ async def test_formula_schema_inference():
     assert column_names == ["price", "quantity", "total"]
 
 
-def test_formula_validation():
+@pytest.mark.asyncio
+async def test_formula_validation():
     """Test configuration validation"""
     tool = FormulaTool()
 
     # Missing column_name
-    errors = tool.validate_config({"expression": "test"})
+    errors = await tool.validate_config({"expression": "test"})
     assert len(errors) > 0
     assert any("column_name" in e for e in errors)
 
     # Missing expression
-    errors = tool.validate_config({"column_name": "test"})
+    errors = await tool.validate_config({"column_name": "test"})
     assert len(errors) > 0
     assert any("expression" in e for e in errors)
 
     # Valid config for new column
-    errors = tool.validate_config({
+    errors = await tool.validate_config({
         "column_name": "test",
         "expression": "pl.col('a') + pl.col('b')",
     })
     assert len(errors) == 0
 
     # Valid config with replace flag
-    errors = tool.validate_config({
+    errors = await tool.validate_config({
         "column_name": "existing_col",
         "replace": True,
         "expression": "pl.col('a') + pl.col('b')",

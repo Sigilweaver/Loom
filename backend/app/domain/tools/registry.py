@@ -1,6 +1,6 @@
 """Tool registry for mapping tool types to implementations"""
 
-from typing import Type
+from typing import Callable, Type
 
 from app.domain.tools.base import BaseTool
 from app.utils.errors import ToolError
@@ -56,7 +56,7 @@ class ToolRegistry:
         return list(cls._tools.keys())
 
 
-def register_tool(tool_type: str):
+def register_tool(tool_type: str) -> Callable[[Type[BaseTool]], Type[BaseTool]]:
     """
     Decorator for registering tool implementations.
 
@@ -66,7 +66,7 @@ def register_tool(tool_type: str):
             ...
     """
 
-    def decorator(tool_class: Type[BaseTool]):
+    def decorator(tool_class: Type[BaseTool]) -> Type[BaseTool]:
         ToolRegistry.register(tool_type, tool_class)
         return tool_class
 

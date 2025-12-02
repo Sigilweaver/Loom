@@ -45,7 +45,7 @@ class SortTool(BaseTool):
         return SortOperation(columns=columns)
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute sort operation.
@@ -53,14 +53,18 @@ class SortTool(BaseTool):
         if "input" not in inputs:
             raise ToolError("Sort tool requires input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Sort tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
+
         op = self._build_operation(config)
         result = op.execute(lf)
 
         return {"output": result}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Sort preserves the input schema exactly.
@@ -68,12 +72,17 @@ class SortTool(BaseTool):
         if "input" not in input_schemas:
             raise ToolError("Sort tool requires input schema on socket 'input'")
 
+        input_data = input_schemas["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Sort tool does not support multiple input schemas")
+        input_schema: DataSchema = input_data
+
         # Sort doesn't change the schema, just the row order
-        return {"output": input_schemas["input"]}
+        return {"output": input_schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate sort configuration"""
-        errors = []
+        errors: list[str] = []
 
         sort_columns = config.get("sortColumns", [])
 
@@ -112,12 +121,12 @@ class SortTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Sort tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = input_vars.get("input", "df_input")
+        input_var = self._get_input_var(input_vars.get("input"))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()

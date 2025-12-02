@@ -72,7 +72,7 @@ class BaseTool(ABC):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """
         Generate Python code for this tool.
@@ -80,7 +80,7 @@ class BaseTool(ABC):
         Args:
             tool_id: Unique identifier for this tool instance
             config: Tool-specific configuration
-            input_vars: Dict of socket_id -> variable name for inputs
+            input_vars: Dict of socket_id -> variable name (or list of names) for inputs
 
         Returns:
             (code_lines, output_vars):
@@ -97,3 +97,20 @@ class BaseTool(ABC):
             [f"# TODO: {self.__class__.__name__} code generation not implemented"],
             {"output": var_name},
         )
+
+    def _get_input_var(self, var: str | list[str] | None, default: str = "df_input") -> str:
+        """
+        Extract single variable name from input_vars value.
+
+        Args:
+            var: Value from input_vars (str, list[str], or None)
+            default: Default variable name if None
+
+        Returns:
+            Single variable name string
+        """
+        if var is None:
+            return default
+        if isinstance(var, list):
+            return var[0] if var else default
+        return var

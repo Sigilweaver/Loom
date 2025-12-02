@@ -11,7 +11,8 @@ from app.domain.tools.registry import register_tool
 from app.utils.errors import ToolError
 
 # Mapping from PolarsDataType string to actual Polars type for casting
-DTYPE_STRING_TO_POLARS: dict[str, pl.DataType] = {
+# Note: These are type classes (like pl.Int8), not instances
+DTYPE_STRING_TO_POLARS: dict[str, type[pl.DataType]] = {
     "Int8": pl.Int8,
     "Int16": pl.Int16,
     "Int32": pl.Int32,
@@ -59,7 +60,7 @@ class SelectTool(BaseTool):
         return SelectOperation(expressions=expressions)
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Execute column selection, renaming, reordering, and type casting.
@@ -70,7 +71,11 @@ class SelectTool(BaseTool):
         if "input" not in inputs:
             raise ToolError("Select tool requires input on socket 'input'")
 
-        lf = inputs["input"]
+        input_data = inputs["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Select tool does not support multiple inputs")
+        lf: pl.LazyFrame = input_data
+
         column_configs = config.get("columnConfigs", [])
 
         # If no column configs, pass through unchanged
@@ -82,11 +87,11 @@ class SelectTool(BaseTool):
         if not op.expressions:
             raise ToolError("At least one column must be selected")
 
-        lf = op.execute(lf)
-        return {"output": lf}
+        result = op.execute(lf)
+        return {"output": result}
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Calculate output schema based on column configuration.
@@ -94,7 +99,11 @@ class SelectTool(BaseTool):
         if "input" not in input_schemas:
             raise ToolError("Select tool requires input schema on socket 'input'")
 
-        input_schema = input_schemas["input"]
+        input_data = input_schemas["input"]
+        if isinstance(input_data, list):
+            raise ToolError("Select tool does not support multiple input schemas")
+        input_schema: DataSchema = input_data
+
         column_configs = config.get("columnConfigs", [])
 
         # If no column configs, pass through unchanged
@@ -153,7 +162,7 @@ class SelectTool(BaseTool):
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate select configuration"""
-        errors = []
+        errors: list[str] = []
 
         column_configs = config.get("columnConfigs")
 
@@ -215,13 +224,13 @@ class SelectTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Select tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
         column_configs = config.get("columnConfigs", [])
-        input_var = input_vars.get("input", "df_input")
+        input_var = self._get_input_var(input_vars.get("input"))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # If no column configs, pass through unchanged

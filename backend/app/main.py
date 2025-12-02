@@ -11,7 +11,8 @@ from app.config import settings
 from app.middleware.audit import AuditMiddleware
 
 # Create FastAPI application
-app = FastAPI(
+# Note: Named 'application' to avoid shadowing the 'app' module import
+application = FastAPI(
     title="SigilWeaver Backend",
     description="Data transformation workflow execution engine",
     version=__version__,
@@ -27,7 +28,7 @@ if settings.cors_mode == "development":
 else:
     cors_origins = settings.cors_origins  # Strict for server deployment
 
-app.add_middleware(
+application.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
@@ -36,20 +37,24 @@ app.add_middleware(
 )
 
 # Add audit logging middleware
-app.add_middleware(AuditMiddleware)
+application.add_middleware(AuditMiddleware)
 
 # Include API routes
-app.include_router(api_router, prefix="/api")
+application.include_router(api_router, prefix="/api")
 
 
-@app.get("/")
-async def root():
+@application.get("/")
+async def root() -> dict[str, str]:
     """Root endpoint - basic service information"""
     return {
         "message": "SigilWeaver Backend API",
         "version": __version__,
         "docs": "/docs",
     }
+
+
+# Export as 'app' for ASGI servers (uvicorn expects 'app:app')
+app = application  # type: ignore[assignment]
 
 
 if __name__ == "__main__":
@@ -66,7 +71,7 @@ if __name__ == "__main__":
 
     # Run uvicorn server
     uvicorn.run(
-        app,
+        application,
         host="127.0.0.1",
         port=8000,
         log_level="info",

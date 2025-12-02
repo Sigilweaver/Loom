@@ -92,7 +92,7 @@ class JoinTool(BaseTool):
             return {
                 "output-left": empty_schema,
                 "output-match": empty_schema,
-                "output-right": right_schema,
+                "output-right": right_schema or empty_schema,
             }
 
         if right_schema is None:
@@ -204,9 +204,9 @@ class JoinTool(BaseTool):
         """Generate Python code for Join tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        # Get input variables
-        left_var = self._get_input_var(input_vars.get("input-left"))
-        right_var = self._get_input_var(input_vars.get("input-right"))
+        # Get input variables - join can have optional inputs
+        left_var = self._get_optional_input_var(input_vars.get("input-left"))
+        right_var = self._get_optional_input_var(input_vars.get("input-right"))
 
         # Generate output variable names
         base_name = PythonCodeGenerator.sanitize_var_name(tool_id)
@@ -227,8 +227,8 @@ class JoinTool(BaseTool):
             },
         )
 
-    def _get_input_var(self, var: str | list[str] | None) -> str | None:
-        """Get single variable from input."""
+    def _get_optional_input_var(self, var: str | list[str] | None) -> str | None:
+        """Get single variable from input, returning None if not provided."""
         if var is None:
             return None
         if isinstance(var, list):

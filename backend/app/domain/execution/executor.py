@@ -7,6 +7,7 @@ from typing import Any
 
 import polars as pl
 
+from app.api.models.common import DataSchema
 from app.api.models.workflow import Tool, Workflow
 from app.config import settings
 from app.domain.execution.graph import ExecutionGraph
@@ -24,7 +25,7 @@ class WorkflowExecutor:
     Stores intermediate LazyFrames in memory and passes them between tools.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.results: dict[str, dict[str, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
         self.archive_dir: Path | None = None  # Set when archiving is enabled
 
@@ -46,7 +47,7 @@ class WorkflowExecutor:
             Dict with execution results, schemas, and metrics
         """
         start_time = time.time()
-        execution_log = {
+        execution_log: dict[str, Any] = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "target_tool_id": target_tool_id,
             "preview_limit": preview_limit,
@@ -249,7 +250,7 @@ class WorkflowExecutor:
             self.results[upstream_tool_id] = outputs
 
         # Get input schemas for target tool
-        input_schemas = {}
+        input_schemas: dict[str, DataSchema | list[DataSchema]] = {}
         tool_inputs = graph.get_tool_inputs(tool_id)
         for sid, source_list in tool_inputs.items():
             if not source_list:
@@ -373,7 +374,7 @@ class WorkflowExecutor:
 
         For tools with multiple inputs on same socket (Union), returns list of LazyFrames.
         """
-        inputs = {}
+        inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]] = {}
         tool_inputs = graph.get_tool_inputs(tool_id)
 
         for socket_id, source_list in tool_inputs.items():

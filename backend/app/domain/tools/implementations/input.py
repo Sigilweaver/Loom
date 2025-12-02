@@ -21,7 +21,7 @@ class InputTool(BaseTool):
     """
 
     async def execute(
-        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame]
+        self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         """
         Load data from file source.
@@ -43,14 +43,12 @@ class InputTool(BaseTool):
         if not source_type:
             raise ToolError("Input tool config missing 'type' field")
 
-        # Get mode for each type
-        csv_mode = config.get("csvMode", "scan") if source_type == "csv" else None
-        parquet_mode = config.get("parquetMode", "scan") if source_type == "parquet" else None
-
         # Load data based on type
         if source_type == "csv":
+            csv_mode: str = config.get("csvMode", "scan") or "scan"
             lf = await self._load_csv(config, csv_mode)
         elif source_type == "parquet":
+            parquet_mode: str = config.get("parquetMode", "scan") or "scan"
             lf = await self._load_parquet(config, parquet_mode)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
@@ -181,7 +179,7 @@ class InputTool(BaseTool):
         return kwargs
 
     async def get_output_schema(
-        self, config: dict[str, Any], input_schemas: dict[str, DataSchema]
+        self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
         """
         Get schema by inspecting the data source.
@@ -225,7 +223,7 @@ class InputTool(BaseTool):
         self,
         tool_id: str,
         config: dict[str, Any],
-        input_vars: dict[str, str],
+        input_vars: dict[str, str | list[str]],
     ) -> tuple[list[str], dict[str, str]]:
         """Generate Python code for Input tool"""
         from app.domain.workflow.code_generator import PythonCodeGenerator

@@ -1,5 +1,7 @@
 """Workflow execution API routes"""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -66,7 +68,7 @@ class ToolMetadataRequest(BaseModel):
 
 
 @router.post("/execute")
-async def execute_workflow(request: ExecuteWorkflowRequest):
+async def execute_workflow(request: ExecuteWorkflowRequest) -> dict[str, Any]:
     """
     Execute entire workflow or up to a specific tool.
 
@@ -97,7 +99,7 @@ async def execute_workflow(request: ExecuteWorkflowRequest):
 
 
 @router.post("/tool/execute")
-async def execute_tool(request: ExecuteToolRequest):
+async def execute_tool(request: ExecuteToolRequest) -> dict[str, Any]:
     """
     Execute a single tool and its dependencies.
 
@@ -129,7 +131,7 @@ async def execute_tool(request: ExecuteToolRequest):
 
 
 @router.post("/tool/schema")
-async def get_tool_schema(request: ToolSchemaRequest):
+async def get_tool_schema(request: ToolSchemaRequest) -> dict[str, Any]:
     """
     Get output schema for a tool without executing it fully.
 
@@ -159,7 +161,7 @@ async def get_tool_schema(request: ToolSchemaRequest):
 
 
 @router.post("/tool/metadata")
-async def get_tool_metadata(request: ToolMetadataRequest):
+async def get_tool_metadata(request: ToolMetadataRequest) -> dict[str, Any]:
     """
     Get metadata for a tool for autocomplete suggestions.
 
@@ -197,7 +199,7 @@ class PreviewAllRequest(BaseModel):
 
 
 @router.post("/preview_all")
-async def preview_all_tools(request: PreviewAllRequest):
+async def preview_all_tools(request: PreviewAllRequest) -> dict[str, Any]:
     """
     Execute workflow and return preview data for ALL tools.
 
@@ -239,7 +241,7 @@ class PreviewCodeResponse(BaseModel):
 
 
 @router.post("/preview_code", response_model=PreviewCodeResponse)
-async def preview_code(request: PreviewCodeRequest):
+async def preview_code(request: PreviewCodeRequest) -> PreviewCodeResponse:
     """
     Generate Python code preview for a workflow.
 

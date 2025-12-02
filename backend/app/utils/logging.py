@@ -2,7 +2,9 @@
 
 import logging
 import sys
+import time
 from pathlib import Path
+from typing import Any, Literal
 
 
 def setup_logging(log_level: str = "INFO", log_file: Path | None = None) -> None:
@@ -57,22 +59,27 @@ class ExecutionLogger:
         """
         self.logger = logger
         self.operation = operation
-        self.start_time = None
-        self.end_time = None
-        self.error = None
-        self.metadata = {}
+        self.start_time: float | None = None
+        self.end_time: float | None = None
+        self.error: str | None = None
+        self.metadata: dict[str, Any] = {}
 
-    def __enter__(self):
+    def __enter__(self) -> "ExecutionLogger":
         """Start timing"""
-        import time
         self.start_time = time.time()
         self.logger.info(f"Starting: {self.operation}")
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> Literal[False]:
         """End timing and log results"""
-        import time
         self.end_time = time.time()
+        if self.start_time is None:
+            self.start_time = self.end_time
         duration_ms = (self.end_time - self.start_time) * 1000
 
         if exc_type is not None:
@@ -83,13 +90,14 @@ class ExecutionLogger:
         else:
             self.logger.info(f"Completed: {self.operation} ({duration_ms:.2f}ms)")
 
-        return False  # Don't suppress exceptions
+        # Don't suppress exceptions
+        return False
 
-    def add_metadata(self, key: str, value: any) -> None:
+    def add_metadata(self, key: str, value: Any) -> None:
         """Add metadata to execution log"""
         self.metadata[key] = value
 
-    def get_log_data(self) -> dict:
+    def get_log_data(self) -> dict[str, Any]:
         """Get structured log data"""
         duration_ms = None
         if self.start_time and self.end_time:
