@@ -344,12 +344,15 @@ describe('cache', () => {
   describe('metadata caching', () => {
     it('returns cached metadata after caching', () => {
       const workflow = createTestWorkflow();
+      const metadataColumns = [
+        { name: 'age', dtype: 'Int64', nullable: true },
+        { name: 'name', dtype: 'Utf8', nullable: true },
+      ];
       const metadataData = {
         tool_id: 'filter1',
-        columns: [
-          { name: 'age', dtype: 'Int64', nullable: true },
-          { name: 'name', dtype: 'Utf8', nullable: true },
-        ],
+        socket_id: 'input',
+        columns: metadataColumns,
+        inputs: { input: metadataColumns },
       };
 
       cacheMetadata('filter1', workflow, metadataData);

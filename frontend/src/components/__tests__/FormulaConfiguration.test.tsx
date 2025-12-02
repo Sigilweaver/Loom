@@ -56,10 +56,10 @@ describe('FormulaConfiguration', () => {
     // Setup default mock implementations
     vi.mocked(hooks.useMetadata).mockReturnValue({
       metadata: null,
+      columns: [],
       loading: false,
       error: null,
       fetchMetadata: mockFetchMetadata,
-      getColumns: vi.fn(() => []),
     });
 
     vi.mocked(hooks.usePolarsFunctions).mockReturnValue({
@@ -133,19 +133,22 @@ describe('FormulaConfiguration', () => {
       };
 
       // Need to mock metadata with that column for UI to show it as "replace"
+      const mockColumns = [
+        { name: 'existing_col', dtype: 'Float64', nullable: false },
+      ];
       const mockMetadata = {
         tool_id: 'tool-1',
-        columns: [
-          { name: 'existing_col', dtype: 'Float64', nullable: false },
-        ],
+        socket_id: 'input',
+        columns: mockColumns,
+        inputs: { input: mockColumns },
       };
 
       vi.mocked(hooks.useMetadata).mockReturnValue({
         metadata: mockMetadata,
+        columns: mockColumns,
         loading: false,
         error: null,
         fetchMetadata: mockFetchMetadata,
-        getColumns: vi.fn(() => mockMetadata.columns),
       });
 
       renderWithTheme(
@@ -209,20 +212,23 @@ describe('FormulaConfiguration', () => {
     });
 
     it('shows available columns in dropdown when metadata is available', () => {
+      const mockColumns = [
+        { name: 'price', dtype: 'Float64', nullable: false },
+        { name: 'quantity', dtype: 'Int64', nullable: true },
+      ];
       const mockMetadata = {
         tool_id: 'tool-1',
-        columns: [
-          { name: 'price', dtype: 'Float64', nullable: false },
-          { name: 'quantity', dtype: 'Int64', nullable: true },
-        ],
+        socket_id: 'input',
+        columns: mockColumns,
+        inputs: { input: mockColumns },
       };
 
       vi.mocked(hooks.useMetadata).mockReturnValue({
         metadata: mockMetadata,
+        columns: mockColumns,
         loading: false,
         error: null,
         fetchMetadata: mockFetchMetadata,
-        getColumns: vi.fn(() => mockMetadata.columns),
       });
 
       renderWithTheme(
@@ -433,20 +439,23 @@ describe('FormulaConfiguration', () => {
     });
 
     it('passes columns to CodeEditor when metadata is available', () => {
+      const mockColumns = [
+        { name: 'age', dtype: 'Int64', nullable: false },
+        { name: 'name', dtype: 'String', nullable: true },
+      ];
       const mockMetadata = {
         tool_id: 'tool-1',
-        columns: [
-          { name: 'age', dtype: 'Int64', nullable: false },
-          { name: 'name', dtype: 'String', nullable: true },
-        ],
+        socket_id: 'input',
+        columns: mockColumns,
+        inputs: { input: mockColumns },
       };
 
       vi.mocked(hooks.useMetadata).mockReturnValue({
         metadata: mockMetadata,
+        columns: mockColumns,
         loading: false,
         error: null,
         fetchMetadata: mockFetchMetadata,
-        getColumns: vi.fn(() => mockMetadata.columns),
       });
 
       renderWithTheme(

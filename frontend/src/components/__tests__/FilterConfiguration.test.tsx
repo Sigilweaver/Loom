@@ -55,10 +55,10 @@ describe('FilterConfiguration', () => {
     // Setup default mock implementations
     vi.mocked(hooks.useMetadata).mockReturnValue({
       metadata: null,
+      columns: [],
       loading: false,
       error: null,
       fetchMetadata: mockFetchMetadata,
-      getColumns: vi.fn(() => []),
     });
 
     vi.mocked(hooks.usePolarsFunctions).mockReturnValue({
@@ -365,20 +365,23 @@ describe('FilterConfiguration', () => {
     });
 
     it('passes columns to CodeEditor when metadata is available', () => {
+      const mockColumns = [
+        { name: 'age', dtype: 'Int64', nullable: false },
+        { name: 'status', dtype: 'String', nullable: true },
+      ];
       const mockMetadata = {
         tool_id: 'tool-1',
-        columns: [
-          { name: 'age', dtype: 'Int64', nullable: false },
-          { name: 'status', dtype: 'String', nullable: true },
-        ],
+        socket_id: 'input',
+        columns: mockColumns,
+        inputs: { input: mockColumns },
       };
 
       vi.mocked(hooks.useMetadata).mockReturnValue({
         metadata: mockMetadata,
+        columns: mockColumns,
         loading: false,
         error: null,
         fetchMetadata: mockFetchMetadata,
-        getColumns: vi.fn(() => mockMetadata.columns),
       });
 
       renderWithTheme(

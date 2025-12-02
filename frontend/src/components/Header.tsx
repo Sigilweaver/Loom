@@ -378,7 +378,23 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       const result = await previewAllTools(workflow, previewRows);
 
       // Cache all previews in the unified cache
-      cacheAllPreviews(workflow, previewRows, result.tools);
+      // Transform ToolOutput to expected format (filter out undefined data)
+      const previewsForCache: Record<string, { outputs: Record<string, { data: unknown[]; data_schema: unknown }> }> = {};
+      for (const [toolId, toolData] of Object.entries(result.tools)) {
+        const outputs: Record<string, { data: unknown[]; data_schema: unknown }> = {};
+        for (const [socketId, socketData] of Object.entries(toolData.outputs)) {
+          if (socketData.data !== undefined) {
+            outputs[socketId] = {
+              data: socketData.data,
+              data_schema: socketData.data_schema,
+            };
+          }
+        }
+        if (Object.keys(outputs).length > 0) {
+          previewsForCache[toolId] = { outputs };
+        }
+      }
+      cacheAllPreviews(workflow, previewRows, previewsForCache);
       
       setIsPreviewLoading(false);
       showNotification("Previews loaded for all tools!", "success");

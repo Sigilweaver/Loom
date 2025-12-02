@@ -1105,7 +1105,7 @@ describe('Metadata and Functions Integration', () => {
       
       // inputs should have all sockets
       expect(result.inputs).toHaveProperty('input');
-      expect(result.inputs['input'].length).toBe(4);
+      expect(result.inputs['input']?.length).toBe(4);
     });
 
     it('should return empty columns for non-existent socket_id', async () => {

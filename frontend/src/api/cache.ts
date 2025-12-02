@@ -8,7 +8,7 @@
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
-import type { SchemaResponse, ExecuteResponse, MetadataResponse } from './backend';
+import type { SchemaResponse, ExecuteResponse, MetadataResponse, DataSchema } from './backend';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 import { createLogger } from '@utils/logger';
 
@@ -266,12 +266,12 @@ export function cacheAllPreviews(
     // Cache each socket's data separately
     for (const [socketId, socketData] of Object.entries(toolData.outputs)) {
       // Convert to single-socket ExecuteResponse format
-      const executeResponse: ExecuteResponse = {
+      const executeResponse = {
         tool_id: toolId,
         socket_id: socketId,
         data: socketData.data as Record<string, unknown>[],
-        data_schema: socketData.data_schema as ExecuteResponse['data_schema'],
-      };
+        data_schema: socketData.data_schema as DataSchema,
+      } satisfies ExecuteResponse;
       cachePreview(toolId, workflow, limit, socketId, executeResponse);
       cachedCount++;
     }
