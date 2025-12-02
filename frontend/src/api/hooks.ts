@@ -34,12 +34,12 @@ export interface UseSchemaResult {
   schema: SchemaResponse | null;
   loading: boolean;
   error: string | null;
-  fetchSchema: (toolId: string, workflow: WorkflowJSON) => Promise<void>;
-  getColumns: (socketId: string) => ColumnSchema[];
+  fetchSchema: (toolId: string, workflow: WorkflowJSON, socketId: string) => Promise<void>;
+  getColumns: () => ColumnSchema[];
 }
 
 /**
- * Hook for fetching tool schema
+ * Hook for fetching tool schema for a specific socket
  * 
  * @example
  * const { schema, loading, error, fetchSchema, getColumns } = useSchema();
@@ -47,21 +47,21 @@ export interface UseSchemaResult {
  * // Fetch schema when tool is connected
  * useEffect(() => {
  *   if (tool.hasUpstreamConnection) {
- *     fetchSchema(tool.id, workflow);
+ *     fetchSchema(tool.id, workflow, '1');  // Socket ID is required
  *   }
  * }, [tool.connections]);
  * 
  * // Use columns to populate dropdown
- * const columns = getColumns('0');
+ * const columns = getColumns();
  */
 export function useSchema(): UseSchemaResult {
   const [schema, setSchema] = useState<SchemaResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSchema = useCallback(async (toolId: string, workflow: WorkflowJSON) => {
-    // Check cache first
-    const cached = getCachedSchema(toolId, workflow);
+  const fetchSchema = useCallback(async (toolId: string, workflow: WorkflowJSON, socketId: string) => {
+    // Check cache first (includes socketId to prevent cross-socket collisions)
+    const cached = getCachedSchema(toolId, workflow, socketId);
     if (cached) {
       setSchema(cached);
       setError(null);
@@ -72,10 +72,10 @@ export function useSchema(): UseSchemaResult {
     setError(null);
     
     try {
-      const result = await getToolSchema(toolId, workflow);
+      const result = await getToolSchema(toolId, workflow, socketId);
       setSchema(result);
-      // Cache the result
-      cacheSchema(toolId, workflow, result);
+      // Cache the result (includes socketId in cache key)
+      cacheSchema(toolId, workflow, socketId, result);
     } catch (err) {
       const message = err instanceof BackendError 
         ? err.message 
@@ -87,11 +87,9 @@ export function useSchema(): UseSchemaResult {
     }
   }, []);
 
-  const getColumns = useCallback((socketId: string): ColumnSchema[] => {
-    if (!schema?.outputs[socketId]?.data_schema) {
-      return [];
-    }
-    return schema.outputs[socketId].data_schema!.columns;
+  const getColumns = useCallback((): ColumnSchema[] => {
+    if (!schema?.data_schema) return [];
+    return schema.data_schema.columns;
   }, [schema]);
 
   return { schema, loading, error, fetchSchema, getColumns };
@@ -101,24 +99,24 @@ export interface UsePreviewResult {
   preview: ExecuteResponse | null;
   loading: boolean;
   error: string | null;
-  executePreview: (toolId: string, workflow: WorkflowJSON, limit?: number) => Promise<void>;
-  getData: (socketId: string) => Record<string, unknown>[];
-  getColumns: (socketId: string) => ColumnSchema[];
+  executePreview: (toolId: string, workflow: WorkflowJSON, socketId: string, limit?: number) => Promise<void>;
+  getData: () => Record<string, unknown>[];
+  getColumns: () => ColumnSchema[];
 }
 
 /**
- * Hook for previewing tool output
+ * Hook for previewing tool output for a specific socket
  * 
  * @example
  * const { preview, loading, error, executePreview, getData } = usePreview();
  * 
  * // Preview data when user clicks preview button
  * const handlePreview = () => {
- *   executePreview(tool.id, workflow, 100);
+ *   executePreview(tool.id, workflow, '1', 100);  // Socket ID is required
  * };
  * 
  * // Display preview data
- * const rows = getData('0');
+ * const rows = getData();
  */
 export function usePreview(): UsePreviewResult {
   const [preview, setPreview] = useState<ExecuteResponse | null>(null);
@@ -126,9 +124,9 @@ export function usePreview(): UsePreviewResult {
   const [error, setError] = useState<string | null>(null);
 
   const executePreview = useCallback(
-    async (toolId: string, workflow: WorkflowJSON, limit = 100) => {
-      // Check cache first
-      const cached = getCachedPreview(toolId, workflow, limit);
+    async (toolId: string, workflow: WorkflowJSON, socketId: string, limit = 100) => {
+      // Check cache first (includes socketId in cache key)
+      const cached = getCachedPreview(toolId, workflow, limit, socketId);
       if (cached) {
         setPreview(cached);
         setError(null);
@@ -139,10 +137,10 @@ export function usePreview(): UsePreviewResult {
       setError(null);
       
       try {
-        const result = await previewTool(toolId, workflow, limit);
+        const result = await previewTool(toolId, workflow, socketId, limit);
         setPreview(result);
-        // Cache the result
-        cachePreview(toolId, workflow, limit, result);
+        // Cache the result (includes socketId in cache key)
+        cachePreview(toolId, workflow, limit, socketId, result);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
@@ -156,18 +154,14 @@ export function usePreview(): UsePreviewResult {
     []
   );
 
-  const getData = useCallback((socketId: string): Record<string, unknown>[] => {
-    if (!preview?.outputs[socketId]?.data) {
-      return [];
-    }
-    return preview.outputs[socketId].data!;
+  const getData = useCallback((): Record<string, unknown>[] => {
+    if (!preview?.data) return [];
+    return preview.data;
   }, [preview]);
 
-  const getColumns = useCallback((socketId: string): ColumnSchema[] => {
-    if (!preview?.outputs[socketId]?.data_schema) {
-      return [];
-    }
-    return preview.outputs[socketId].data_schema!.columns;
+  const getColumns = useCallback((): ColumnSchema[] => {
+    if (!preview?.data_schema) return [];
+    return preview.data_schema.columns;
   }, [preview]);
 
   return { preview, loading, error, executePreview, getData, getColumns };

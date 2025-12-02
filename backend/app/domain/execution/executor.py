@@ -143,6 +143,7 @@ class WorkflowExecutor:
         self,
         workflow: Workflow,
         tool_id: str,
+        socket_id: str,
         preview_limit: int | None = None,
     ) -> dict[str, Any]:
         """
@@ -153,12 +154,26 @@ class WorkflowExecutor:
         Args:
             workflow: Workflow containing the tool
             tool_id: Tool ID to execute
+            socket_id: Socket ID to return data for
             preview_limit: Optional row limit for preview
 
         Returns:
-            Dict with tool outputs, schemas, and metrics
+            Dict with single-socket output (tool_id, socket_id, data_schema, data, row_count)
         """
-        return await self.execute_workflow(workflow, target_tool_id=tool_id, preview_limit=preview_limit)
+        result = await self.execute_workflow(workflow, target_tool_id=tool_id, preview_limit=preview_limit)
+        
+        socket_key = str(socket_id)
+        if socket_key not in result.get("outputs", {}):
+            raise ExecutionError(f"Socket {socket_id} not found in tool {tool_id} outputs")
+        
+        socket_output = result["outputs"][socket_key]
+        return {
+            "tool_id": tool_id,
+            "socket_id": socket_id,
+            "data_schema": socket_output.get("data_schema"),
+            "data": socket_output.get("data"),
+            "row_count": socket_output.get("row_count"),
+        }
 
     async def preview_all_tools(
         self,
@@ -201,6 +216,7 @@ class WorkflowExecutor:
         self,
         workflow: Workflow,
         tool_id: str,
+        socket_id: str,
     ) -> dict[str, Any]:
         """
         Get output schema for a tool without executing it.
@@ -210,9 +226,10 @@ class WorkflowExecutor:
         Args:
             workflow: Workflow containing the tool
             tool_id: Tool ID to get schema for
+            socket_id: Socket ID to return schema for
 
         Returns:
-            Dict with output schemas for each socket
+            Dict with single-socket schema (tool_id, socket_id, data_schema)
         """
         tool = self._get_tool(workflow, tool_id)
         tool_impl = ToolRegistry.get(tool.type)
@@ -232,7 +249,7 @@ class WorkflowExecutor:
         # Get input schemas for target tool
         input_schemas = {}
         tool_inputs = graph.get_tool_inputs(tool_id)
-        for socket_id, source_list in tool_inputs.items():
+        for sid, source_list in tool_inputs.items():
             if not source_list:
                 continue
                 
@@ -243,24 +260,26 @@ class WorkflowExecutor:
                     if source_tool_id in self.results:
                         lf = self.results[source_tool_id][source_socket_id]
                         schemas.append(schema_from_polars(lf))
-                input_schemas[socket_id] = schemas
+                input_schemas[sid] = schemas
             else:
                 # Single input
                 source_tool_id, source_socket_id = source_list[0]
                 if source_tool_id in self.results:
                     # Get schema from LazyFrame
                     lf = self.results[source_tool_id][source_socket_id]
-                    input_schemas[socket_id] = schema_from_polars(lf)
+                    input_schemas[sid] = schema_from_polars(lf)
 
         # Get output schemas from tool
         output_schemas = await tool_impl.get_output_schema(tool.config, input_schemas)
 
+        socket_key = str(socket_id)
+        if socket_key not in output_schemas:
+            raise ExecutionError(f"Socket {socket_id} not found in tool {tool_id} output schemas")
+        
         return {
             "tool_id": tool_id,
-            "outputs": {
-                str(socket_id): {"data_schema": schema}
-                for socket_id, schema in output_schemas.items()
-            },
+            "socket_id": socket_id,
+            "data_schema": output_schemas[socket_key],
         }
 
     async def get_tool_metadata(

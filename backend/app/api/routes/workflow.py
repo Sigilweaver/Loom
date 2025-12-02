@@ -42,6 +42,7 @@ class ExecuteToolRequest(BaseModel):
 
     tool_id: str = Field(description="Tool ID to execute")
     workflow: Workflow = Field(description="Full workflow for context")
+    socket_id: str = Field(description="Output socket ID to return data for")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview"
     )
@@ -52,6 +53,7 @@ class ToolSchemaRequest(BaseModel):
 
     tool_id: str = Field(description="Tool ID to get schema for")
     workflow: Workflow = Field(description="Full workflow for context")
+    socket_id: str = Field(description="Output socket ID to get schema for")
 
 
 class ToolMetadataRequest(BaseModel):
@@ -104,6 +106,7 @@ async def execute_tool(request: ExecuteToolRequest):
     running the entire workflow.
 
     The tool and all upstream dependencies will be executed.
+    Returns data for the specified socket only.
     The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
@@ -111,6 +114,7 @@ async def execute_tool(request: ExecuteToolRequest):
         result = await executor.execute_single_tool(
             workflow=request.workflow,
             tool_id=request.tool_id,
+            socket_id=request.socket_id,
             preview_limit=_clamp_preview_limit(request.preview_limit),
         )
         return result
@@ -134,12 +138,14 @@ async def get_tool_schema(request: ToolSchemaRequest):
     the tool for its output schema based on those inputs.
 
     Useful for populating dropdowns with available columns from upstream tools.
+    Returns schema for the specified socket only.
     """
     try:
         executor = WorkflowExecutor()
         result = await executor.get_tool_schema(
             workflow=request.workflow,
             tool_id=request.tool_id,
+            socket_id=request.socket_id,
         )
         return result
 

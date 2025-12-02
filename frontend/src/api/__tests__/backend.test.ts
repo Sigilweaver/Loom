@@ -67,15 +67,12 @@ describe('Backend API Client', () => {
     it('should fetch schema for a tool', async () => {
       const mockResponse = {
         tool_id: 'input1',
-        outputs: {
-          '0': {
-            data_schema: {
-              columns: [
-                { name: 'id', dtype: 'Int64', nullable: true },
-                { name: 'name', dtype: 'String', nullable: true },
-              ],
-            },
-          },
+        socket_id: 'output',
+        data_schema: {
+          columns: [
+            { name: 'id', dtype: 'Int64', nullable: true },
+            { name: 'name', dtype: 'String', nullable: true },
+          ],
         },
       };
 
@@ -84,7 +81,7 @@ describe('Backend API Client', () => {
         json: async () => mockResponse,
       });
 
-      const result = await getToolSchema('input1', mockWorkflow);
+      const result = await getToolSchema('input1', mockWorkflow, 'output');
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -94,6 +91,7 @@ describe('Backend API Client', () => {
           body: JSON.stringify({
             tool_id: 'input1',
             workflow: mockWorkflow,
+            socket_id: 'output',
           }),
         })
       );
@@ -114,7 +112,7 @@ describe('Backend API Client', () => {
       } as unknown as Response);
 
       try {
-        await getToolSchema('invalid1', mockWorkflow);
+        await getToolSchema('invalid1', mockWorkflow, 'output');
         expect.fail('Should have thrown BackendError');
       } catch (error) {
         expect(error).toBeInstanceOf(BackendError);
@@ -132,12 +130,12 @@ describe('Backend API Client', () => {
         new Error('Network error')
       );
 
-      await expect(getToolSchema('input1', mockWorkflow)).rejects.toThrow(
+      await expect(getToolSchema('input1', mockWorkflow, 'output')).rejects.toThrow(
         BackendError
       );
 
       try {
-        await getToolSchema('input1', mockWorkflow);
+        await getToolSchema('input1', mockWorkflow, 'output');
       } catch (error) {
         expect(error).toBeInstanceOf(BackendError);
         if (error instanceof BackendError) {
@@ -152,20 +150,17 @@ describe('Backend API Client', () => {
     it('should fetch preview data for a tool', async () => {
       const mockResponse = {
         tool_id: 'input1',
-        outputs: {
-          '0': {
-            data_schema: {
-              columns: [
-                { name: 'id', dtype: 'Int64', nullable: true },
-                { name: 'name', dtype: 'String', nullable: true },
-              ],
-            },
-            data: [
-              { id: 1, name: 'Alice' },
-              { id: 2, name: 'Bob' },
-            ],
-          },
+        socket_id: 'output',
+        data_schema: {
+          columns: [
+            { name: 'id', dtype: 'Int64', nullable: true },
+            { name: 'name', dtype: 'String', nullable: true },
+          ],
         },
+        data: [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+        ],
       };
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -173,7 +168,7 @@ describe('Backend API Client', () => {
         json: async () => mockResponse,
       });
 
-      const result = await previewTool('input1', mockWorkflow, 100);
+      const result = await previewTool('input1', mockWorkflow, 'output', 100);
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -183,6 +178,7 @@ describe('Backend API Client', () => {
           body: JSON.stringify({
             tool_id: 'input1',
             workflow: mockWorkflow,
+            socket_id: 'output',
             preview_limit: 100,
           }),
         })

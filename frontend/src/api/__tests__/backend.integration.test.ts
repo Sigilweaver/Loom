@@ -58,15 +58,12 @@ describe('Backend E2E Integration', () => {
         },
       ]);
 
-      const result = await getToolSchema('input1', workflow);
+      const result = await getToolSchema('input1', workflow, 'output');
 
       expect(result.tool_id).toBe('input1');
-      expect(result.outputs['output']).toBeDefined();
+      expect(result.socket_id).toBe('output');
       
-      const output = result.outputs['output'];
-      expect(output).toBeDefined();
-      
-      const schema = output?.data_schema;
+      const schema = result.data_schema;
       expect(schema).toBeDefined();
       expect(schema?.columns).toHaveLength(4);
       
@@ -93,18 +90,15 @@ describe('Backend E2E Integration', () => {
         },
       ]);
 
-      const result = await previewTool('input1', workflow, 3);
+      const result = await previewTool('input1', workflow, 'output', 3);
 
       expect(result.tool_id).toBe('input1');
-      expect(result.outputs['output']).toBeDefined();
-      
-      const output = result.outputs['output'];
-      expect(output).toBeDefined();
-      expect(output?.data).toBeDefined();
-      expect(output?.data).toHaveLength(3);
+      expect(result.socket_id).toBe('output');
+      expect(result.data).toBeDefined();
+      expect(result.data).toHaveLength(3);
       
       // Check first row
-      const firstRow = output?.data?.[0];
+      const firstRow = result.data?.[0];
       expect(firstRow).toEqual({
         id: 1,
         name: 'Alice',
@@ -154,18 +148,16 @@ describe('Backend E2E Integration', () => {
       );
 
       // Test schema propagation
-      const schema = await getToolSchema('filter1', workflow);
-      const schemaOutput = schema.outputs['output-true'];
-      expect(schemaOutput).toBeDefined();
-      expect(schemaOutput?.data_schema?.columns).toHaveLength(4);
+      const schema = await getToolSchema('filter1', workflow, 'output-true');
+      expect(schema.socket_id).toBe('output-true');
+      expect(schema.data_schema?.columns).toHaveLength(4);
 
       // Test preview with filtered data
-      const result = await previewTool('filter1', workflow, 10);
+      const result = await previewTool('filter1', workflow, 'output-true', 10);
       
-      const output = result.outputs['output-true'];
-      expect(output).toBeDefined();
+      expect(result.socket_id).toBe('output-true');
       
-      const matchedData = output?.data;
+      const matchedData = result.data;
       expect(matchedData).toBeDefined();
       
       // Should have 3 rows with age > 28: Alice (30), Charlie (35), Eve (32)
@@ -218,17 +210,16 @@ describe('Backend E2E Integration', () => {
         ]
       );
 
-      const result = await previewTool('select1', workflow, 5);
+      const result = await previewTool('select1', workflow, 'output', 5);
       
-      const output = result.outputs['output'];
-      expect(output).toBeDefined();
+      expect(result.socket_id).toBe('output');
       
-      const schema = output?.data_schema;
+      const schema = result.data_schema;
       expect(schema).toBeDefined();
       expect(schema?.columns).toHaveLength(2);
       expect(schema?.columns.map(c => c.name)).toEqual(['name', 'city']);
       
-      const data = output?.data;
+      const data = result.data;
       expect(data).toBeDefined();
       expect(data?.[0]).toHaveProperty('name');
       expect(data?.[0]).toHaveProperty('city');

@@ -35,22 +35,29 @@ export interface DataSchema {
 export interface ToolOutput {
   data_schema?: DataSchema;
   data?: Record<string, unknown>[];
+  row_count?: number;
 }
 
 /**
  * Schema response from /api/tool/schema endpoint
+ * Returns schema for the specified socket
  */
 export interface SchemaResponse {
   tool_id: string;
-  outputs: Record<string, ToolOutput>;
+  socket_id: string;
+  data_schema?: DataSchema;
 }
 
 /**
  * Execute response from /api/tool/execute endpoint
+ * Returns data for the specified socket
  */
 export interface ExecuteResponse {
   tool_id: string;
-  outputs: Record<string, ToolOutput>;
+  socket_id: string;
+  data_schema?: DataSchema;
+  data?: Record<string, unknown>[];
+  row_count?: number;
 }
 
 /**
@@ -147,19 +154,21 @@ async function apiRequest<T>(
 }
 
 /**
- * Get schema information for a tool's outputs
+ * Get schema information for a tool's output socket
  * 
  * This endpoint returns column names and types without executing the workflow.
  * Use this to populate dropdowns and validate configurations.
  * 
  * @param toolId - The ID of the tool to get schema for
  * @param workflow - The complete workflow definition
+ * @param socketId - The socket ID to get schema for
  * @param context - Optional request context for logging
- * @returns Schema information for each output socket
+ * @returns Schema information for the specified socket
  */
 export async function getToolSchema(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId: string,
   context?: RequestContext
 ): Promise<SchemaResponse> {
   return apiRequest<SchemaResponse>('/workflow/tool/schema', {
@@ -167,6 +176,7 @@ export async function getToolSchema(
     body: JSON.stringify({
       tool_id: toolId,
       workflow,
+      socket_id: socketId,
     }),
   }, { ...context, toolId });
 }
@@ -179,13 +189,15 @@ export async function getToolSchema(
  * 
  * @param toolId - The ID of the tool to preview
  * @param workflow - The complete workflow definition
+ * @param socketId - The socket ID to get data for
  * @param previewLimit - Maximum number of rows to return (default: 100)
  * @param context - Optional request context for logging
- * @returns Preview data and schema for each output socket
+ * @returns Preview data and schema for the specified socket
  */
 export async function previewTool(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId: string,
   previewLimit = 100,
   context?: RequestContext
 ): Promise<ExecuteResponse> {
@@ -194,6 +206,7 @@ export async function previewTool(
     body: JSON.stringify({
       tool_id: toolId,
       workflow,
+      socket_id: socketId,
       preview_limit: previewLimit,
     }),
   }, { ...context, toolId });

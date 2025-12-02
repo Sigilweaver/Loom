@@ -340,14 +340,19 @@ async def test_filter_schema_propagation(sample_data_csv):
 
     executor = WorkflowExecutor()
     
-    # Get schemas for both tools
-    input_result = await executor.execute_single_tool(workflow, "input1")
-    filter_result = await executor.execute_single_tool(workflow, "filter1")
+    # Get data for both tools
+    input_result = await executor.execute_single_tool(workflow, "input1", socket_id="output")
+    
+    executor2 = WorkflowExecutor()
+    filter_result_t = await executor2.execute_single_tool(workflow, "filter1", socket_id="output-true")
+    
+    executor3 = WorkflowExecutor()
+    filter_result_f = await executor3.execute_single_tool(workflow, "filter1", socket_id="output-false")
 
     # Both outputs should have same schema as input
-    input_columns = input_result["outputs"]["output"]["data_schema"].columns
-    filter_t_columns = filter_result["outputs"]["output-true"]["data_schema"].columns
-    filter_f_columns = filter_result["outputs"]["output-false"]["data_schema"].columns
+    input_columns = input_result["data_schema"].columns
+    filter_t_columns = filter_result_t["data_schema"].columns
+    filter_f_columns = filter_result_f["data_schema"].columns
     
     assert filter_t_columns == input_columns
     assert filter_f_columns == input_columns

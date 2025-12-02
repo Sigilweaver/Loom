@@ -227,7 +227,7 @@ describe('cache', () => {
   describe('schema caching', () => {
     it('returns null when cache is empty', () => {
       const workflow = createTestWorkflow();
-      const result = getCachedSchema('filter1', workflow);
+      const result = getCachedSchema('filter1', workflow, '1');
 
       expect(result).toBeNull();
     });
@@ -236,17 +236,14 @@ describe('cache', () => {
       const workflow = createTestWorkflow();
       const schemaData = {
         tool_id: 'filter1',
-        outputs: {
-          '1': {
-            data_schema: {
-              columns: [{ name: 'age', dtype: 'Int64', nullable: true }],
-            },
-          },
+        socket_id: '1',
+        data_schema: {
+          columns: [{ name: 'age', dtype: 'Int64', nullable: true }],
         },
       };
 
-      cacheSchema('filter1', workflow, schemaData);
-      const result = getCachedSchema('filter1', workflow);
+      cacheSchema('filter1', workflow, '1', schemaData);
+      const result = getCachedSchema('filter1', workflow, '1');
 
       expect(result).toEqual(schemaData);
     });
@@ -255,16 +252,31 @@ describe('cache', () => {
       const workflow = createTestWorkflow();
       const schemaData = {
         tool_id: 'filter1',
-        outputs: {},
+        socket_id: '1',
+        data_schema: { columns: [] },
       };
 
-      cacheSchema('filter1', workflow, schemaData);
+      cacheSchema('filter1', workflow, '1', schemaData);
       
       // Change config
       const filterTool = workflow.tools[1];
       expect(filterTool).toBeDefined();
       filterTool!.config.expression = 'age > 30';
-      const result = getCachedSchema('filter1', workflow);
+      const result = getCachedSchema('filter1', workflow, '1');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for different socketId', () => {
+      const workflow = createTestWorkflow();
+      const schemaData = {
+        tool_id: 'filter1',
+        socket_id: '1',
+        data_schema: { columns: [] },
+      };
+
+      cacheSchema('filter1', workflow, '1', schemaData);
+      const result = getCachedSchema('filter1', workflow, '2');
 
       expect(result).toBeNull();
     });
@@ -273,7 +285,7 @@ describe('cache', () => {
   describe('preview caching', () => {
     it('returns null when cache is empty', () => {
       const workflow = createTestWorkflow();
-      const result = getCachedPreview('filter1', workflow, 100);
+      const result = getCachedPreview('filter1', workflow, 100, '1');
 
       expect(result).toBeNull();
     });
@@ -282,21 +294,18 @@ describe('cache', () => {
       const workflow = createTestWorkflow();
       const previewData = {
         tool_id: 'filter1',
-        outputs: {
-          '1': {
-            data: [{ age: 25, name: 'John' }],
-            data_schema: {
-              columns: [
-                { name: 'age', dtype: 'Int64', nullable: true },
-                { name: 'name', dtype: 'Utf8', nullable: true },
-              ],
-            },
-          },
+        socket_id: '1',
+        data: [{ age: 25, name: 'John' }],
+        data_schema: {
+          columns: [
+            { name: 'age', dtype: 'Int64', nullable: true },
+            { name: 'name', dtype: 'Utf8', nullable: true },
+          ],
         },
       };
 
-      cachePreview('filter1', workflow, 100, previewData);
-      const result = getCachedPreview('filter1', workflow, 100);
+      cachePreview('filter1', workflow, 100, '1', previewData);
+      const result = getCachedPreview('filter1', workflow, 100, '1');
 
       expect(result).toEqual(previewData);
     });
@@ -305,11 +314,28 @@ describe('cache', () => {
       const workflow = createTestWorkflow();
       const previewData = {
         tool_id: 'filter1',
-        outputs: {},
+        socket_id: '1',
+        data: [],
+        data_schema: { columns: [] },
       };
 
-      cachePreview('filter1', workflow, 100, previewData);
-      const result = getCachedPreview('filter1', workflow, 200);
+      cachePreview('filter1', workflow, 100, '1', previewData);
+      const result = getCachedPreview('filter1', workflow, 200, '1');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for different socketId', () => {
+      const workflow = createTestWorkflow();
+      const previewData = {
+        tool_id: 'filter1',
+        socket_id: '1',
+        data: [],
+        data_schema: { columns: [] },
+      };
+
+      cachePreview('filter1', workflow, 100, '1', previewData);
+      const result = getCachedPreview('filter1', workflow, 100, '2');
 
       expect(result).toBeNull();
     });
@@ -336,73 +362,73 @@ describe('cache', () => {
   describe('invalidateTool', () => {
     it('removes cache entries for a specific tool', () => {
       const workflow = createTestWorkflow();
-      const schemaData = { tool_id: 'filter1', outputs: {} };
-      const previewData = { tool_id: 'filter1', outputs: {} };
+      const schemaData = { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } };
+      const previewData = { tool_id: 'filter1', socket_id: '1', data: [], data_schema: { columns: [] } };
 
-      cacheSchema('filter1', workflow, schemaData);
-      cachePreview('filter1', workflow, 100, previewData);
+      cacheSchema('filter1', workflow, '1', schemaData);
+      cachePreview('filter1', workflow, 100, '1', previewData);
 
-      expect(getCachedSchema('filter1', workflow)).not.toBeNull();
-      expect(getCachedPreview('filter1', workflow, 100)).not.toBeNull();
+      expect(getCachedSchema('filter1', workflow, '1')).not.toBeNull();
+      expect(getCachedPreview('filter1', workflow, 100, '1')).not.toBeNull();
 
       invalidateTool('filter1', workflow.meta.workflowId);
 
-      expect(getCachedSchema('filter1', workflow)).toBeNull();
-      expect(getCachedPreview('filter1', workflow, 100)).toBeNull();
+      expect(getCachedSchema('filter1', workflow, '1')).toBeNull();
+      expect(getCachedPreview('filter1', workflow, 100, '1')).toBeNull();
     });
 
     it('does not affect cache entries for other tools', () => {
       const workflow = createTestWorkflow();
-      const schemaData1 = { tool_id: 'input1', outputs: {} };
-      const schemaData2 = { tool_id: 'filter1', outputs: {} };
+      const schemaData1 = { tool_id: 'input1', socket_id: 'output', data_schema: { columns: [] } };
+      const schemaData2 = { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } };
 
-      cacheSchema('input1', workflow, schemaData1);
-      cacheSchema('filter1', workflow, schemaData2);
+      cacheSchema('input1', workflow, 'output', schemaData1);
+      cacheSchema('filter1', workflow, '1', schemaData2);
 
       invalidateTool('filter1', workflow.meta.workflowId);
 
-      expect(getCachedSchema('input1', workflow)).not.toBeNull();
-      expect(getCachedSchema('filter1', workflow)).toBeNull();
+      expect(getCachedSchema('input1', workflow, 'output')).not.toBeNull();
+      expect(getCachedSchema('filter1', workflow, '1')).toBeNull();
     });
 
     it('invalidates downstream tools that depend on the invalidated tool', () => {
       const workflow = createTestWorkflow();
       // Cache schema for filter1 (depends on input1)
-      const schemaData = { tool_id: 'filter1', outputs: {} };
-      cacheSchema('filter1', workflow, schemaData);
+      const schemaData = { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } };
+      cacheSchema('filter1', workflow, '1', schemaData);
 
       // Invalidating input1 should also invalidate filter1's cache
       // because the cache key includes upstream configs
       invalidateTool('input1', workflow.meta.workflowId);
 
       // The cache entry contains input1's ID in its key, so it should be gone
-      expect(getCachedSchema('filter1', workflow)).toBeNull();
+      expect(getCachedSchema('filter1', workflow, '1')).toBeNull();
     });
   });
 
   describe('invalidateWireChange', () => {
     it('invalidates affected tool and its downstream', () => {
       const workflow = createTestWorkflow();
-      const schemaFilter = { tool_id: 'filter1', outputs: {} };
-      const schemaOutput = { tool_id: 'output1', outputs: {} };
+      const schemaFilter = { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } };
+      const schemaOutput = { tool_id: 'output1', socket_id: 'input', data_schema: { columns: [] } };
 
-      cacheSchema('filter1', workflow, schemaFilter);
-      cacheSchema('output1', workflow, schemaOutput);
+      cacheSchema('filter1', workflow, '1', schemaFilter);
+      cacheSchema('output1', workflow, 'input', schemaOutput);
 
       // Simulate wire change affecting filter1
       invalidateWireChange('filter1', workflow.wires, workflow.meta.workflowId);
 
-      expect(getCachedSchema('filter1', workflow)).toBeNull();
-      expect(getCachedSchema('output1', workflow)).toBeNull();
+      expect(getCachedSchema('filter1', workflow, '1')).toBeNull();
+      expect(getCachedSchema('output1', workflow, 'input')).toBeNull();
     });
   });
 
   describe('clearWorkflowCache', () => {
     it('removes all cache entries for a specific workflow', () => {
       const workflow = createTestWorkflow();
-      cacheSchema('input1', workflow, { tool_id: 'input1', outputs: {} });
-      cacheSchema('filter1', workflow, { tool_id: 'filter1', outputs: {} });
-      cachePreview('filter1', workflow, 100, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('input1', workflow, 'output', { tool_id: 'input1', socket_id: 'output', data_schema: { columns: [] } });
+      cacheSchema('filter1', workflow, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+      cachePreview('filter1', workflow, 100, '1', { tool_id: 'filter1', socket_id: '1', data: [], data_schema: { columns: [] } });
 
       expect(getCacheStats().size).toBe(3);
 
@@ -418,16 +444,16 @@ describe('cache', () => {
         meta: { ...createTestWorkflow().meta, workflowId: 'wf_other' } 
       };
 
-      cacheSchema('filter1', workflow1, { tool_id: 'filter1', outputs: {} });
-      cacheSchema('filter1', workflow2, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('filter1', workflow1, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+      cacheSchema('filter1', workflow2, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
 
       expect(getCacheStats().size).toBe(2);
 
       clearWorkflowCache(workflow1.meta.workflowId);
 
       expect(getCacheStats().size).toBe(1);
-      expect(getCachedSchema('filter1', workflow1)).toBeNull();
-      expect(getCachedSchema('filter1', workflow2)).not.toBeNull();
+      expect(getCachedSchema('filter1', workflow1, '1')).toBeNull();
+      expect(getCachedSchema('filter1', workflow2, '1')).not.toBeNull();
     });
   });
 
@@ -439,8 +465,8 @@ describe('cache', () => {
         meta: { ...createTestWorkflow().meta, workflowId: 'wf_other' } 
       };
       
-      cacheSchema('filter1', workflow1, { tool_id: 'filter1', outputs: {} });
-      cacheSchema('filter1', workflow2, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('filter1', workflow1, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+      cacheSchema('filter1', workflow2, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
 
       expect(getCacheStats().size).toBe(2);
 
@@ -456,10 +482,10 @@ describe('cache', () => {
 
       expect(getCacheStats().size).toBe(0);
 
-      cacheSchema('input1', workflow, { tool_id: 'input1', outputs: {} });
+      cacheSchema('input1', workflow, 'output', { tool_id: 'input1', socket_id: 'output', data_schema: { columns: [] } });
       expect(getCacheStats().size).toBe(1);
 
-      cacheSchema('filter1', workflow, { tool_id: 'filter1', outputs: {} });
+      cacheSchema('filter1', workflow, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
       expect(getCacheStats().size).toBe(2);
     });
   });

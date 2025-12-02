@@ -182,9 +182,10 @@ export function computeCacheKey(
 export function getCachedSchema(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId: string,
   context?: RequestContext
 ): SchemaResponse | null {
-  const key = computeCacheKey(toolId, workflow, 'schema');
+  const key = computeCacheKey(toolId, workflow, 'schema', undefined, socketId);
   const entry = cache.get(key);
   const endpoint = '/workflow/tool/schema';
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
@@ -204,9 +205,10 @@ export function getCachedSchema(
 export function cacheSchema(
   toolId: string,
   workflow: WorkflowJSON,
+  socketId: string,
   data: SchemaResponse
 ): void {
-  const key = computeCacheKey(toolId, workflow, 'schema');
+  const key = computeCacheKey(toolId, workflow, 'schema', undefined, socketId);
   cache.set(key, { type: 'schema', data });
 }
 
@@ -217,9 +219,10 @@ export function getCachedPreview(
   toolId: string,
   workflow: WorkflowJSON,
   limit: number,
+  socketId: string,
   context?: RequestContext
 ): ExecuteResponse | null {
-  const key = computeCacheKey(toolId, workflow, 'preview', limit);
+  const key = computeCacheKey(toolId, workflow, 'preview', limit, socketId);
   const entry = cache.get(key);
   const endpoint = '/workflow/tool/execute';
   const { logCacheHit, logCacheMiss } = getRuntimeLogActions();
@@ -240,30 +243,40 @@ export function cachePreview(
   toolId: string,
   workflow: WorkflowJSON,
   limit: number,
+  socketId: string,
   data: ExecuteResponse
 ): void {
-  const key = computeCacheKey(toolId, workflow, 'preview', limit);
+  const key = computeCacheKey(toolId, workflow, 'preview', limit, socketId);
   cache.set(key, { type: 'preview', data, limit });
 }
 
 /**
  * Cache all previews from a "Preview All" response
  * This populates the same cache used by individual preview requests.
+ * 
+ * preview_all returns multi-socket format, so we cache each socket separately.
  */
 export function cacheAllPreviews(
   workflow: WorkflowJSON,
   limit: number,
-  allPreviews: Record<string, { outputs: Record<string, unknown> }>
+  allPreviews: Record<string, { outputs: Record<string, { data: unknown[]; data_schema: unknown }> }>
 ): void {
+  let cachedCount = 0;
   for (const [toolId, toolData] of Object.entries(allPreviews)) {
-    // Convert to ExecuteResponse format
-    const executeResponse: ExecuteResponse = {
-      tool_id: toolId,
-      outputs: toolData.outputs as ExecuteResponse['outputs'],
-    };
-    cachePreview(toolId, workflow, limit, executeResponse);
+    // Cache each socket's data separately
+    for (const [socketId, socketData] of Object.entries(toolData.outputs)) {
+      // Convert to single-socket ExecuteResponse format
+      const executeResponse: ExecuteResponse = {
+        tool_id: toolId,
+        socket_id: socketId,
+        data: socketData.data as Record<string, unknown>[],
+        data_schema: socketData.data_schema as ExecuteResponse['data_schema'],
+      };
+      cachePreview(toolId, workflow, limit, socketId, executeResponse);
+      cachedCount++;
+    }
   }
-  logger.debug(`Cached previews for ${Object.keys(allPreviews).length} tools`);
+  logger.debug(`Cached ${cachedCount} socket previews across ${Object.keys(allPreviews).length} tools`);
 }
 
 /**

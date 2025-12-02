@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useSettingsStore } from "@state/settingsStore";
-import { getRuntimeLogActions } from "@state/runtimeLogStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
 import { getCachedPreview, cachePreview } from "../api/cache";
@@ -67,27 +66,20 @@ export function useSocketPreview() {
 
       const socketKey = targetSocketId.toString();
 
-      // Check unified cache (works for both individual and "Preview All" requests)
-      const cached = getCachedPreview(targetToolId, workflow, previewRows);
+      // Check unified cache (includes socketId in key for proper cache separation)
+      const cached = getCachedPreview(targetToolId, workflow, previewRows, socketKey);
       if (cached) {
-        const output = cached.outputs[socketKey];
-        
-        if (output) {
-          // Log cache hit
-          const { logCacheHit } = getRuntimeLogActions();
-          logCacheHit("/workflow/tool/execute", { toolId: targetToolId });
-          
-          setPreviewState({
-            toolId,
-            socketId,
-            socketDirection,
-            data: output.data || [],
-            schema: output.data_schema?.columns || [],
-            loading: false,
-            error: null,
-          });
-          return;
-        }
+        // Cache key includes socketId, so we know this is the right socket's data
+        setPreviewState({
+          toolId,
+          socketId,
+          socketDirection,
+          data: cached.data || [],
+          schema: cached.data_schema?.columns || [],
+          loading: false,
+          error: null,
+        });
+        return;
       }
 
       // Set loading state (only if not cached)
@@ -103,33 +95,19 @@ export function useSocketPreview() {
 
       try {
         // Execute preview with the filtered upstream subgraph
-        const result = await previewTool(targetToolId, workflow, previewRows);
+        // socketId is now mandatory (3rd parameter)
+        const result = await previewTool(targetToolId, workflow, socketKey, previewRows);
         
-        // Cache the result
-        cachePreview(targetToolId, workflow, previewRows, result);
+        // Cache the result (includes socketId in cache key)
+        cachePreview(targetToolId, workflow, previewRows, socketKey, result);
 
-        // Get data for the specific socket
-        const output = result.outputs[socketKey];
-
-        if (!output) {
-          setPreviewState({
-            toolId,
-            socketId,
-            socketDirection,
-            data: [],
-            schema: [],
-            loading: false,
-            error: `No output data for socket ${socketKey}`,
-          });
-          return;
-        }
-
+        // Response is now single-socket format with data directly on result
         setPreviewState({
           toolId,
           socketId,
           socketDirection,
-          data: output.data || [],
-          schema: output.data_schema?.columns || [],
+          data: result.data || [],
+          schema: result.data_schema?.columns || [],
           loading: false,
           error: null,
         });
