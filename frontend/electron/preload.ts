@@ -26,5 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   setSettings: async (settings: any) => {
     return ipcRenderer.invoke('set-settings', settings)
+  },
+  getSessionToken: async () => {
+    return ipcRenderer.invoke('get-session-token')
   }
 })

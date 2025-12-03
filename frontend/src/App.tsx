@@ -15,6 +15,7 @@ import BottomPane from "./components/BottomPane";
 import TabBar from "./components/TabBar";
 import SettingsDialog from "./components/SettingsDialog";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { initializeAuth } from "./api/backend";
 
 function App() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
@@ -45,6 +46,9 @@ function App() {
   // Load settings on mount and sync with uiStore, then create initial tab
   useEffect(() => {
     const initSettings = async () => {
+      // Initialize auth token before any API calls
+      await initializeAuth();
+      
       await loadSettings();
       
       // Sync settings with uiStore on load

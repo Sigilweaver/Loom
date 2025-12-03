@@ -14,6 +14,55 @@ export type { RequestContext } from '../state/runtimeLogStore';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 /**
+ * Session token for backend authentication.
+ * In desktop mode, retrieved from Electron via IPC.
+ * In browser mode, can be set manually via localStorage.
+ */
+let sessionToken: string | null = null;
+
+/**
+ * Initialize authentication token.
+ * Called once on app startup to retrieve the session token from Electron
+ * or localStorage (for browser mode).
+ */
+export async function initializeAuth(): Promise<void> {
+  // Try Electron IPC first (desktop mode)
+  if (window.electronAPI?.getSessionToken) {
+    sessionToken = await window.electronAPI.getSessionToken();
+    if (sessionToken) {
+      console.log('[API] Session token retrieved from Electron');
+      return;
+    }
+  }
+  
+  // Fallback to localStorage (browser mode / external server)
+  const storedToken = localStorage.getItem('sigilweaver-api-token');
+  if (storedToken) {
+    sessionToken = storedToken;
+    console.log('[API] Session token retrieved from localStorage');
+  }
+}
+
+/**
+ * Set the session token manually (for browser mode configuration).
+ */
+export function setSessionToken(token: string | null): void {
+  sessionToken = token;
+  if (token) {
+    localStorage.setItem('sigilweaver-api-token', token);
+  } else {
+    localStorage.removeItem('sigilweaver-api-token');
+  }
+}
+
+/**
+ * Get the current session token (for debugging/display).
+ */
+export function getSessionToken(): string | null {
+  return sessionToken;
+}
+
+/**
  * Column schema information returned by the backend
  */
 export interface ColumnSchema {
@@ -108,11 +157,19 @@ async function apiRequest<T>(
   const requestId = logRequest(endpoint, method, context);
   const startTime = performance.now();
   
+  // Build headers with optional auth token
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (sessionToken) {
+    headers['Authorization'] = `Bearer ${sessionToken}`;
+  }
+  
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...headers,
         ...options.headers,
       },
     });

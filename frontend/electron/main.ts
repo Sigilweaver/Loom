@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -34,6 +35,10 @@ const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'sigil
 // Backend process management
 let backendProcess: ChildProcess | null = null;
 const BACKEND_PORT = 8000;
+
+// Ephemeral session token for backend authentication
+// Generated fresh on each app launch, passed to backend via env var
+let sessionToken: string | null = null;
 
 // Read version from package.json
 const packagePath = join(__dirname, "../package.json");
@@ -88,12 +93,22 @@ async function startBackend(): Promise<void> {
   return new Promise((resolve, reject) => {
     const { command, args, cwd } = getBackendPath();
     
+    // Generate ephemeral session token for this launch
+    sessionToken = randomUUID();
+    console.log("[Backend] Generated ephemeral session token");
+    
     console.log(`[Backend] Starting: ${command} ${args.join(" ")}`);
     if (cwd) console.log(`[Backend] Working directory: ${cwd}`);
 
     backendProcess = spawn(command, args, {
       cwd,
-      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      env: {
+        ...process.env,
+        PYTHONUNBUFFERED: "1",
+        // Enable ephemeral auth mode with generated token
+        AUTH_MODE: "ephemeral",
+        SESSION_TOKEN: sessionToken,
+      },
     });
 
     backendProcess.stdout?.on("data", (data: Buffer) => {
@@ -129,7 +144,11 @@ async function startBackend(): Promise<void> {
     const checkInterval = setInterval(async () => {
       attempts++;
       try {
-        const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`);
+        const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`, {
+          headers: {
+            'Authorization': `Bearer ${sessionToken}`,
+          },
+        });
         if (response.ok) {
           clearInterval(checkInterval);
           console.log("[Backend] Ready!");
@@ -390,6 +409,11 @@ ipcMain.handle('get-settings', async () => {
 
 ipcMain.handle('set-settings', async (_event, settings) => {
   store.set('settings', settings);
+});
+
+// Session token IPC handler - provides ephemeral auth token to renderer
+ipcMain.handle('get-session-token', async () => {
+  return sessionToken;
 });
 
 // IPC handlers

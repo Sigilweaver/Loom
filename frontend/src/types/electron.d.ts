@@ -32,6 +32,8 @@ declare global {
       showOpenDialog: (options?: ElectronOpenDialogOptions) => Promise<string | null>
       getSettings: () => Promise<AppSettings>
       setSettings: (settings: AppSettings) => Promise<void>
+      /** Get ephemeral session token for backend authentication (desktop mode only) */
+      getSessionToken: () => Promise<string | null>
     }
   }
 }

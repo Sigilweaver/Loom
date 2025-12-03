@@ -9,6 +9,7 @@ from app import __version__
 from app.api.router import api_router
 from app.config import settings
 from app.middleware.audit import AuditMiddleware
+from app.middleware.auth import AuthMiddleware
 
 # Create FastAPI application
 # Note: Named 'application' to avoid shadowing the 'app' module import
@@ -19,6 +20,12 @@ application = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add authentication middleware
+# Note: Added before CORS so it executes AFTER CORS in request flow
+# (Starlette middleware executes in reverse order of registration)
+# This allows CORS preflight OPTIONS requests to be handled properly
+application.add_middleware(AuthMiddleware)
 
 # Configure CORS middleware
 # In development mode (bundled desktop app), allow all origins

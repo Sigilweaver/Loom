@@ -23,9 +23,19 @@ class Settings(BaseSettings):
     max_memory_mb: int = 4096
     max_preview_rows: int = 10000
 
-    # Security
+    # Security - File Access
     allowed_file_paths: list[str] = []
     restrict_file_access: bool = True
+
+    # Security - Authentication
+    # Auth mode: "disabled" (no auth), "ephemeral" (Electron-generated token), "static" (env token)
+    auth_mode: str = "disabled"
+    # Session token for ephemeral/static modes (set by Electron or .env)
+    session_token: str = ""
+    # Protect /docs and /redoc endpoints (default: protected)
+    auth_protect_docs: bool = True
+    # Protect /api/health endpoint (default: protected)
+    auth_protect_health: bool = True
 
     # Workflow Archive
     archive_enabled: bool = True
