@@ -45,11 +45,16 @@ const version = packageJson.version;
  */
 function getBackendPath(): { command: string; args: string[]; cwd?: string } {
   if (isDev) {
-    // Development: run Python directly with uvicorn
+    // Development: run Python from virtual environment
+    const backendDir = join(__dirname, "../../backend");
+    const venvPython = process.platform === "win32"
+      ? join(backendDir, ".venv", "Scripts", "python.exe")
+      : join(backendDir, ".venv", "bin", "python");
+    
     return {
-      command: "python",
+      command: venvPython,
       args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
-      cwd: join(__dirname, "../../backend"),
+      cwd: backendDir,
     };
   }
 
@@ -64,9 +69,22 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
 }
 
 /**
- * Start the backend server
+ * Start the backend server (or verify it's already running in dev mode)
  */
 async function startBackend(): Promise<void> {
+  // In dev mode, check if backend is already running (started by dev.py)
+  if (isDev) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`);
+      if (response.ok) {
+        console.log("[Backend] Already running (started by dev.py)");
+        return;
+      }
+    } catch {
+      // Backend not running, continue to start it
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const { command, args, cwd } = getBackendPath();
     
@@ -85,7 +103,14 @@ async function startBackend(): Promise<void> {
 
     backendProcess.stderr?.on("data", (data: Buffer) => {
       const message = data.toString().trim();
-      if (message) console.error(`[Backend Error] ${message}`);
+      // Uvicorn logs INFO/DEBUG to stderr, only treat ERROR/CRITICAL as actual errors
+      if (message) {
+        if (message.includes("ERROR") || message.includes("CRITICAL") || message.includes("Traceback")) {
+          console.error(`[Backend Error] ${message}`);
+        } else {
+          console.log(`[Backend] ${message}`);
+        }
+      }
     });
 
     backendProcess.on("error", (error: Error) => {

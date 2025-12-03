@@ -6,10 +6,10 @@ Utility scripts for building, testing, and running Sigilweaver.
 
 ```bash
 # Development
-./scripts/dev.py                    # Start dev servers (cross-platform)
-./scripts/dev.py --backend          # Backend only
-./scripts/dev.py --frontend         # Frontend only
-./scripts/dev.py --electron         # Start all including Electron
+./scripts/dev.py                    # Start Vite (Electron manages backend)
+./scripts/dev.py --backend          # Backend only (for browser dev)
+./scripts/dev.py --frontend         # Frontend only (same as default)
+./scripts/dev.py --electron         # Also launch Electron explicitly
 
 # Testing
 ./scripts/test.py                   # Run all tests (backend + frontend + integration)
@@ -34,35 +34,34 @@ Utility scripts for building, testing, and running Sigilweaver.
 ## Development Scripts
 
 ### `dev.py`
-**Purpose**: Start backend and/or frontend in development mode (cross-platform)
+**Purpose**: Start Vite dev server; Electron manages backend (cross-platform)
 
 **Usage**:
 ```bash
-./scripts/dev.py                    # Start backend + frontend
-./scripts/dev.py --backend          # Backend only
-./scripts/dev.py --frontend         # Frontend only
-./scripts/dev.py --electron         # Start all including Electron
+./scripts/dev.py                    # Start Vite (Electron manages backend)
+./scripts/dev.py --backend          # Backend only (for browser dev)
+./scripts/dev.py --frontend         # Frontend only (same as default)
+./scripts/dev.py --electron         # Also launch Electron explicitly
 ```
 
 **Flags**:
 | Flag | Description |
 |------|-------------|
-| `--backend` | Start backend only |
-| `--frontend` | Start frontend only |
+| `--backend` | Start backend only (for browser dev without Electron) |
+| `--frontend` | Start frontend only (same as default) |
 | `--electron` | Also launch Electron (implies frontend) |
 
 **What it does**:
-- Starts Python backend with uvicorn (hot reload enabled)
-- Starts Vite dev server for frontend
-- Optionally launches Electron app
-- Runs services in parallel with prefixed output
+- By default: Starts Vite dev server only
+- Electron (when launched) manages the backend automatically
+- Use `--backend` for browser-based development without Electron
 - Logs are prefixed with [BACKEND], [FRONTEND], and [ELECTRON]
 - Cross-platform: works on Linux, macOS, and Windows
 
 **Ports**:
-- Backend: http://localhost:8000
-- Backend API Docs: http://localhost:8000/docs
 - Frontend: http://localhost:5173
+- Backend (managed by Electron): http://localhost:8000
+- Backend API Docs: http://localhost:8000/docs
 
 Press `Ctrl+C` to stop all services.
 

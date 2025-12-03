@@ -2,14 +2,14 @@
 """
 Sigilweaver Development Script
 
-Runs both the Python backend and Electron frontend concurrently.
-Cross-platform replacement for dev.sh.
+Starts the Vite dev server for frontend development.
+Electron manages the backend automatically (required for token auth).
 
 Usage:
-    ./scripts/dev.py              # Start backend and frontend
-    ./scripts/dev.py --backend    # Backend only
-    ./scripts/dev.py --frontend   # Frontend only
-    ./scripts/dev.py --electron   # Also launch Electron after frontend starts
+    ./scripts/dev.py              # Start Vite (Electron manages backend)
+    ./scripts/dev.py --backend    # Backend only (for browser dev without Electron)
+    ./scripts/dev.py --frontend   # Frontend only (same as default)
+    ./scripts/dev.py --electron   # Also launch Electron after Vite starts
 """
 
 import argparse
@@ -304,10 +304,10 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    ./scripts/dev.py              # Start backend and frontend
-    ./scripts/dev.py --backend    # Backend only
-    ./scripts/dev.py --frontend   # Frontend only
-    ./scripts/dev.py --electron   # Start all including Electron
+    ./scripts/dev.py              # Start Vite (Electron manages backend)
+    ./scripts/dev.py --backend    # Backend only (for browser dev)
+    ./scripts/dev.py --frontend   # Frontend only (same as default)
+    ./scripts/dev.py --electron   # Also launch Electron explicitly
         """
     )
     parser.add_argument(
@@ -329,9 +329,10 @@ Examples:
     args = parser.parse_args()
     
     # Determine what to run
-    # If nothing specified, run backend + frontend (but not electron)
+    # By default, just run frontend (Vite auto-launches Electron which manages backend)
+    # Use --backend for browser-only development without Electron
     if not args.backend and not args.frontend:
-        run_backend = True
+        run_backend = False
         run_frontend = True
     else:
         run_backend = args.backend

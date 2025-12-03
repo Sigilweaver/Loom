@@ -88,7 +88,7 @@ def cleanup_staging(dry_run=False):
         if dry_run:
             print(f"Would delete {len(files)} files (run without --dry-run to delete)")
         else:
-            print(f"✓ Deleted {len(files)} staging files")
+            print(f"Deleted {len(files)} staging files")
         
         return 0
         
