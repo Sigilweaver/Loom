@@ -28,7 +28,14 @@ export default defineConfig({
         entry: "electron/main.ts",
         onstart(options) {
           if (options.startup) {
-            options.startup();
+            // Pass Ozone platform flags for proper Wayland support
+            // This enables DevTools and other Chromium features on Wayland
+            options.startup([
+              '.',
+              '--',
+              '--enable-features=UseOzonePlatform,WaylandWindowDecorations',
+              '--ozone-platform-hint=auto',
+            ]);
           }
         },
         vite: {

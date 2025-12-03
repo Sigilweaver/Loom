@@ -196,30 +196,31 @@ function createWindow(): void {
     },
   });
 
-  console.log(
-    "isDev:",
-    isDev,
-    "NODE_ENV:",
-    process.env.NODE_ENV,
-    "IS_DEV:",
-    process.env.IS_DEV
-  );
-
   if (isDev) {
-    console.log("Loading development URL: http://localhost:5173");
     mainWindow.loadURL("http://localhost:5173");
-    mainWindow.webContents.openDevTools();
   } else {
-    console.log(
-      "Loading production file:",
-      join(__dirname, "../dist/index.html")
-    );
     mainWindow.loadFile(join(__dirname, "../dist/index.html"));
   }
 
-  // Force DevTools open in all modes for debugging
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.openDevTools();
+  // Handle keyboard shortcuts for DevTools at the webContents level
+  // This avoids globalShortcut which triggers KDE/Wayland portal dialogs
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      const toggleDevTools = () => {
+        if (mainWindow.webContents.isDevToolsOpened()) {
+          mainWindow.webContents.closeDevTools();
+        } else {
+          mainWindow.webContents.openDevTools({ mode: 'bottom' });
+        }
+        event.preventDefault();
+      };
+
+      if (input.key === 'F12') {
+        toggleDevTools();
+      } else if (input.key === 'I' && input.control && input.shift) {
+        toggleDevTools();
+      }
+    }
   });
 
   // Ensure title is set after page loads
@@ -307,7 +308,17 @@ function createWindow(): void {
       submenu: [
         { role: "reload" },
         { role: "forceReload" },
-        { role: "toggleDevTools" },
+        { 
+          label: "Toggle Developer Tools",
+          accelerator: "F12",
+          click: () => {
+            if (mainWindow.webContents.isDevToolsOpened()) {
+              mainWindow.webContents.closeDevTools();
+            } else {
+              mainWindow.webContents.openDevTools({ mode: 'bottom' });
+            }
+          },
+        },
         { type: "separator" },
         { role: "resetZoom" },
         { role: "zoomIn" },
@@ -342,7 +353,6 @@ function createWindow(): void {
           label: "Show Workflow Viewer",
           accelerator: "CmdOrCtrl+Alt+X",
           click: () => {
-            console.log("Show Workflow Viewer menu clicked");
             mainWindow.webContents.send("menu-action", "show-workflow-viewer");
           },
         },
@@ -359,7 +369,6 @@ function createWindow(): void {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
-  console.log("Menu created with Developer submenu");
 }
 
 app.whenReady().then(async () => {
@@ -469,8 +478,6 @@ ipcMain.handle("show-save-dialog", async (event, options?: { defaultPath?: strin
 });
 
 ipcMain.handle("show-open-dialog", async (event, options?: any) => {
-  console.log("show-open-dialog called with options:", options);
-
   // Get the window that sent this IPC message
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
 
@@ -498,10 +505,6 @@ ipcMain.handle("show-open-dialog", async (event, options?: any) => {
   };
 
   const result = await dialog.showOpenDialog(parentWindow, dialogOptions);
-
-  console.log("Dialog result:", result);
-  console.log("FilePaths:", result.filePaths);
-  console.log("Returning:", result.canceled ? null : result.filePaths[0]);
 
   return result.canceled ? null : result.filePaths[0];
 });

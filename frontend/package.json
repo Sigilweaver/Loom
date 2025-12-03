@@ -27,7 +27,7 @@
     "build:mac:full": "npm run build:web && electron-builder --mac --config electron-builder-full.json --publish=never",
     "build:web:zip": "npm run build:web && cd dist && zip -r ../dist-web.zip .",
     "preview": "vite preview",
-    "electron": "wait-on tcp:5173 && cross-env IS_DEV=true electron .",
+    "electron": "wait-on tcp:5173 && cross-env IS_DEV=true electron . --enable-features=UseOzonePlatform,WaylandWindowDecorations --ozone-platform-hint=auto",
     "electron:pack": "electron-builder --dir",
     "preelectron:pack": "npm run build:web",
     "type-check": "tsc --noEmit",
