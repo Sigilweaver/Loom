@@ -9,12 +9,16 @@
  * Run with: npm run test:integration
  */
 
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { getToolMetadata, getPolarsFunctions, healthCheck, type MetadataResponse, type ColumnSchema } from '../backend';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
-const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
+// Path to test fixture created in backend (computed relative to this file)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_CSV = path.resolve(__dirname, '../../../../backend/tests/fixtures/sample.csv');
 
 /**
  * Helper to get all columns from metadata response (flattened from all input sockets)
@@ -737,8 +741,8 @@ describe('Metadata and Functions Integration', () => {
      */
 
     // Second CSV with different schema for testing Join
-    const EMPLOYEES_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
     // Note: Using same CSV but the principle is tested - in reality these would be different files
+    const EMPLOYEES_CSV = TEST_CSV;
 
     it('should return columns keyed by socket ID for Join tool', async () => {
       const workflow = createWorkflow(

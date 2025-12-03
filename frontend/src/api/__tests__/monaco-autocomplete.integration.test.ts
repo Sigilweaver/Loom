@@ -11,12 +11,16 @@
  * Run with: npm run test:integration
  */
 
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { getToolMetadata, getPolarsFunctions, healthCheck, type MetadataResponse, type ColumnSchema } from '../backend';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
-const TEST_CSV = '/home/nathanriley/Documents/Code/sigilweaver/sigilweaver-app/backend/tests/fixtures/sample.csv';
+// Path to test fixture created in backend (computed relative to this file)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_CSV = path.resolve(__dirname, '../../../../backend/tests/fixtures/sample.csv');
 
 /**
  * Helper to get all columns from metadata response (flattened from all input sockets)

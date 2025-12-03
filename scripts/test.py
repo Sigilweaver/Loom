@@ -435,7 +435,7 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
     return suite
 
 
-def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bool = True) -> None:
+def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bool = True, is_full_run: bool = True) -> None:
     """Print verification summary with colors."""
     print_header("Verification Summary", force=True)
     
@@ -466,7 +466,10 @@ def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bo
     print()
     
     if all_passed:
-        print(f"{Colors.GREEN}{Colors.BOLD}All checks passed! Ready for PR.{Colors.RESET}")
+        if is_full_run:
+            print(f"{Colors.GREEN}{Colors.BOLD}All checks passed! Ready for PR.{Colors.RESET}")
+        else:
+            print(f"{Colors.GREEN}{Colors.BOLD}All checks passed!{Colors.RESET}")
     else:
         failed_suites = [r.name for r in results if not r.passed]
         print(f"{Colors.RED}{Colors.BOLD}FAILED: {', '.join(failed_suites)}{Colors.RESET}")
@@ -568,8 +571,11 @@ Examples:
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
+    # Determine if this is a full run (all suites enabled, no exclusions)
+    is_full_run = run_backend and run_frontend and run_integration
+    
     # Print summary
-    print_summary(results, strict=args.strict, coverage=run_coverage)
+    print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run)
     
     # Return appropriate exit code
     return 0 if all(r.passed for r in results) else 1
