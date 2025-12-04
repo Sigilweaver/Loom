@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,8 +8,8 @@ import {
   flexRender,
   SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useUIStore } from "@state/uiStore";
-import { useState } from "react";
 
 export interface ColumnSchema {
   name: string;
@@ -19,6 +19,9 @@ export interface ColumnSchema {
 
 // Max characters to show before truncating
 const MAX_STRING_LENGTH = 50;
+
+// Fixed row height for virtualization (matches py-2 padding + text)
+const ROW_HEIGHT = 33;
 
 // Check if a dtype is numeric
 const isNumericType = (dtype: string): boolean => {
@@ -30,6 +33,7 @@ const DataTable = () => {
   const previewState = useUIStore((s) => s.previewState);
   const showNotification = useUIStore((s) => s.showNotification);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Copy value to clipboard
   const copyToClipboard = useCallback((value: unknown) => {
@@ -123,6 +127,15 @@ const DataTable = () => {
     enableColumnResizing: true,
   });
 
+  const { rows } = table.getRowModel();
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 5,
+  });
+
   if (!previewState) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-theme-text-secondary">
@@ -157,6 +170,8 @@ const DataTable = () => {
     );
   }
 
+  const virtualRows = virtualizer.getVirtualItems();
+
   return (
     <div className="flex flex-col h-full">
       {/* Header Info */}
@@ -164,8 +179,11 @@ const DataTable = () => {
         <strong>{data.length}</strong> rows × <strong>{schema.length}</strong> columns
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Virtualized Table */}
+      <div 
+        ref={tableContainerRef}
+        className="flex-1 overflow-auto"
+      >
         <table
           className="w-full text-xs border-collapse"
           style={{ width: table.getCenterTotalSize() }}
@@ -210,31 +228,54 @@ const DataTable = () => {
               </tr>
             ))}
           </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row, idx) => (
-              <tr
-                key={row.id}
-                className={`border-b border-theme-border-secondary hover:bg-theme-surface-panel transition-colors ${
-                  idx % 2 === 0 ? "" : "bg-theme-surface-elevated"
-                }`}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const isNumeric = (cell.column.columnDef.meta as { isNumeric?: boolean })?.isNumeric;
-                  const isRowNum = cell.column.id === '_rowNum';
-                  return (
-                    <td
-                      key={cell.id}
-                      className={`px-3 py-2 border-r text-theme-text-primary border-theme-border-primary last:border-r-0 ${
-                        isNumeric ? 'text-right' : ''
-                      } ${isRowNum ? 'bg-theme-surface-elevated' : ''}`}
-                      style={{ width: cell.column.getSize() }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+          <tbody
+            style={{
+              display: 'block',
+              height: `${virtualizer.getTotalSize()}px`,
+              position: 'relative',
+            }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              if (!row) return null;
+              
+              return (
+                <tr
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  style={{
+                    display: 'flex',
+                    position: 'absolute',
+                    transform: `translateY(${virtualRow.start}px)`,
+                    width: '100%',
+                    height: `${ROW_HEIGHT}px`,
+                  }}
+                  className={`border-b border-theme-border-secondary hover:bg-theme-surface-panel transition-colors ${
+                    virtualRow.index % 2 === 0 ? "" : "bg-theme-surface-elevated"
+                  }`}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const isNumeric = (cell.column.columnDef.meta as { isNumeric?: boolean })?.isNumeric;
+                    const isRowNum = cell.column.id === '_rowNum';
+                    return (
+                      <td
+                        key={cell.id}
+                        className={`px-3 py-2 border-r text-theme-text-primary border-theme-border-primary last:border-r-0 flex items-center ${
+                          isNumeric ? 'justify-end' : ''
+                        } ${isRowNum ? 'bg-theme-surface-elevated' : ''}`}
+                        style={{ 
+                          width: cell.column.getSize(),
+                          minWidth: cell.column.getSize(),
+                          maxWidth: cell.column.getSize(),
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
