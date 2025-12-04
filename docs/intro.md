@@ -9,8 +9,8 @@ slug: /
 
 Sigilweaver is a visual workflow designer for building and executing data processing pipelines through an intuitive drag-and-drop interface. Built as a cross-platform desktop application, it empowers you to create complex data transformations with minimal code.
 
-:::info Documentation Coming Soon
-We're actively building out the documentation. Check back soon for tutorials, guides, and reference material.
+:::warning Pre-Release Software
+Sigilweaver is currently in active development. The software and source code are pre-release, but binaries are available for download. Expect rough edges, breaking changes between versions, and evolving APIs. See the [Roadmap](/developer/roadmap) for current priorities and upcoming features.
 :::
 
 ## Why Sigilweaver?

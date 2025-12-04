@@ -6,9 +6,15 @@ sidebar_position: 1
 
 Where we're going and why.
 
+## Development Timeline
+
+Sigilweaver has been in active development since **August 1, 2025**, with 4-8 hours of daily work. This isn't a weekend project or an AI-generated app thrown together in an afternoon—it's a serious, sustained effort to build something genuinely useful.
+
+**Target v1.0 release: June 1, 2026**
+
 ## Current State
 
-Sigilweaver is in **active development**, pre-v1.0. The core is functional but rough. The focus right now is building out the foundation—not polish.
+Sigilweaver is in **active development**, pre-v1.0. The core is functional but has rough UI/UX. The focus right now is building out the foundation—not polish.
 
 ### What Works
 
@@ -18,7 +24,7 @@ Sigilweaver is in **active development**, pre-v1.0. The core is functional but r
 - Export to Python code
 - Multi-tab workflow editing
 - Undo/redo history
-- Auto-save and manual save
+- Workflow persistence (save/load)
 - Cross-platform builds (Linux, Windows, macOS)
 
 ### What's Rough
@@ -33,26 +39,27 @@ Sigilweaver is in **active development**, pre-v1.0. The core is functional but r
 
 ## Project Philosophy
 
-**Open Source:** AGPL-3.0 licensed—always free, always open.
+**Open Source:** AGPL-3.0 licensed—always free, always open. The AGPL was chosen specifically to prevent large companies from taking this work, wrapping it in proprietary code, and profiting without contributing back. If you use Sigilweaver, you share your improvements. That's the deal.
 
 **Desktop-Only:** No SaaS. You control your data and your infrastructure. The app runs locally, processes locally, saves locally.
 
 **Core Value:** Visual layout for complex data flows. Even if you're writing Polars expressions in the tools, *seeing* the pipeline structure makes complex joins/merges/splits comprehensible.
 
-**Target Audience:** People who already know Python and/or Polars. This isn't dumbed down—it assumes technical comfort. It's a tool for people who write code but want visual pipeline clarity.
+**Target Audience:** Anyone who is data-minded. You don't need prior Python or Polars experience—the expression engine is designed to be intuitive, and the documentation includes a crash course in Polars expressions. If you've used other visual data tools, you'll find Sigilweaver easier to pick up than you might expect.
 
 ---
 
 ## Phases
 
-### Phase 1: Pre-Share (Current)
+### Phase 1: Stealth Development (Current)
 
-Build out the core feature set. Don't worry about polish.
+Build out the core feature set until the software is genuinely usable. Source code remains private during this phase.
 
 **Focus:**
+- All major data file sources that Polars supports
+- Extensive testing with real-world data
+- Easy-to-use, intuitive tools
 - Data integrity (correct results matter most)
-- Reliable workflow execution
-- Enough tools to do real work
 
 **Defer:**
 - Beautiful UI (functional is fine)
@@ -60,35 +67,77 @@ Build out the core feature set. Don't worry about polish.
 - Marketing materials
 - Documentation polish
 
-**Done when:** Can demo a real workflow end-to-end without it crashing.
+**Done when:** The software reaches Minimum Competitive Product—can handle real workflows end-to-end without friction.
 
 ### Phase 2: Early Testers
 
-Bring in 2-3 trusted people who actually do data work.
+Open to a small group of trusted testers: professional colleagues and data-literate friends. This mix ensures feedback from both advanced and basic users.
 
 **Approach:**
-- 4-6 weeks, weekly check-ins
+- Weekly check-ins with testers
 - Watch them use it, see what breaks
 - Find out what features actually matter
+- Testers stay engaged throughout the feedback incorporation period
 
 **Goal:** Validate this solves real problems, not just feature-complete against a checklist.
 
-**Done when:** They'd recommend it to a colleague.
+**Done when:** Testers would recommend it to a colleague.
 
-### Phase 3: v1.0 Public Release
+### Phase 3: Polish Sprint
+
+After initial tester feedback, a focused month of intensive development.
+
+**Focus:**
+- Documentation quality
+- Presentation and UI polish
+- Functionality gaps identified by testers
+- Feature completeness
+
+**Testers remain engaged** during this phase to validate fixes and catch regressions.
+
+### Phase 4: Code Signing & Platform Prep
+
+2-4 weeks before v1.0 release.
+
+**Tasks:**
+- Obtain code signing certificates from Microsoft and Apple
+- Test installation on Windows and macOS without OS warnings
+- Prepare Linux distribution packages:
+  - AppImage (direct download)
+  - Flatpak (Flathub)
+  - Snap Store
+  - AUR (Arch User Repository)
+- Verify successful install on all platforms
+
+**Done when:** Can download and install successfully on Linux, Windows, and macOS without friction.
+
+### Phase 5: v1.0 Public Release
 
 Ship something stable that works.
 
 **Must-haves:**
-- AGPL-3.0 license in place ✓
+- Open source license (AGPL-3.0 or similar in spirit) ✓
 - Cross-platform builds ✓
 - Documentation (enough to get started)
-- Code signing (so OS doesn't flag as malware)
-- GitHub Issues enabled (engagement is good!)
+- Code signing complete
+- Contributor License Agreement (CLA) in place
+- GitHub Issues enabled
 
-**Success metric:** Python/Polars users adopt it as their visual pipeline tool.
+**Release as v1.0.0** once installation works smoothly on all platforms.
 
-### Phase 4: Post-v1.0
+### Phase 6: Announcement
+
+Following v1.0 release, announce on:
+- Reddit (relevant subreddits)
+- Hacker News
+- LinkedIn
+- Other developer/data communities
+
+**Timing:** Mid-week (Tuesday-Thursday), morning US time for best visibility.
+
+**Messaging:** Transparent that this is "stable" but also early development software. Set appropriate expectations.
+
+### Phase 7: Post-v1.0
 
 **Near-term (3-6 months):**
 - Fix bugs from real usage
@@ -159,6 +208,16 @@ The roadmap isn't fixed. It evolves based on what real users actually need.
 
 ---
 
+## Contributor License Agreement (CLA)
+
+Contributions to Sigilweaver require signing a Contributor License Agreement. This grants the project maintainer rights to your contributions while you retain ownership of your work.
+
+**Why a CLA?** To preserve flexibility for the project's long-term sustainability. We may offer dual licensing in the future—AGPL for open source users, commercial licenses for enterprises who need different terms. A CLA makes this possible without needing to track down every contributor for permission.
+
+**Transparency:** The project is and will remain AGPL-3.0 (or license in similar spirit). Any commercial licensing would be *in addition to*, not *instead of*, the open source version. The CLA exists to keep options open, not to take them away from the community.
+
+---
+
 ## Non-Goals
 
 Things Sigilweaver intentionally won't do:
@@ -167,6 +226,31 @@ Things Sigilweaver intentionally won't do:
 - **Become a database** - Use a real database
 - **Replace Python or Polars** - It's complementary, not a substitute
 - **Enterprise lock-in** - AGPL means anyone can fork/modify
+
+---
+
+## Stability Commitments
+
+### Workflow JSON Format
+
+The JSON workflow format is designed to be **verbose and explicit** for data operations. This verbosity is intentional—it makes the format resilient to change.
+
+**Our commitment:**
+- Workflows saved in v1.0 will remain loadable in future versions
+- Most JSON handling happens server-side, allowing transparent migration
+- If breaking changes ever become necessary, automatic handling of legacy structures will be provided
+
+The workflow format is the primary stability contract. We take this seriously.
+
+### Polars Dependency
+
+Sigilweaver is deeply integrated with [Polars](https://pola.rs). Our roadmap is influenced by theirs:
+
+- New Polars features may enable new Sigilweaver capabilities
+- Polars breaking changes may require Sigilweaver updates
+- We track Polars releases and test compatibility
+
+This dependency is a feature, not a bug—Polars is excellent, and tight integration means you get its full power.
 
 ---
 
