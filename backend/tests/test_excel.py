@@ -72,6 +72,37 @@ def multi_sheet_excel(tmp_path: Path) -> Path:
     return excel_path
 
 
+@pytest.fixture
+def legacy_xls_excel(tmp_path: Path) -> Path:
+    """Create a legacy .xls file for testing (Excel 97-2003 format)"""
+    import xlwt
+
+    excel_path = tmp_path / "test_legacy.xls"
+
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("Sheet1")
+
+    # Write header
+    sheet.write(0, 0, "id")
+    sheet.write(0, 1, "name")
+    sheet.write(0, 2, "value")
+
+    # Write data
+    data = [
+        (1, "Alpha", 100),
+        (2, "Beta", 200),
+        (3, "Gamma", 300),
+    ]
+    for row_idx, (id_val, name_val, value_val) in enumerate(data, start=1):
+        sheet.write(row_idx, 0, id_val)
+        sheet.write(row_idx, 1, name_val)
+        sheet.write(row_idx, 2, value_val)
+
+    workbook.save(str(excel_path))
+
+    return excel_path
+
+
 # Factory tests
 def test_detect_excel_source_type():
     """Test Excel source type detection"""
@@ -128,6 +159,58 @@ async def test_excel_datasource_preview_with_offset(sample_excel: Path):
     assert preview.returned_rows == 2
     assert preview.data[0]["name"] == "Charlie"
     assert preview.data[1]["name"] == "David"
+
+
+# Legacy .xls format tests
+@pytest.mark.asyncio
+async def test_legacy_xls_datasource_inspect(legacy_xls_excel: Path):
+    """Test ExcelDataSource.inspect() with legacy .xls format"""
+    datasource = ExcelDataSource()
+
+    schema = await datasource.inspect(str(legacy_xls_excel), {})
+
+    assert len(schema.columns) == 3
+    assert schema.columns[0].name == "id"
+    assert schema.columns[1].name == "name"
+    assert schema.columns[2].name == "value"
+    assert schema.file_size_bytes > 0
+
+
+@pytest.mark.asyncio
+async def test_legacy_xls_datasource_preview(legacy_xls_excel: Path):
+    """Test ExcelDataSource.preview() with legacy .xls format"""
+    datasource = ExcelDataSource()
+
+    preview = await datasource.preview(str(legacy_xls_excel), {}, max_rows=10)
+
+    assert preview.returned_rows == 3
+    assert len(preview.data) == 3
+    assert preview.data[0]["name"] == "Alpha"
+    assert preview.data[1]["name"] == "Beta"
+    assert preview.data[2]["value"] == 300
+
+
+@pytest.mark.asyncio
+async def test_legacy_xls_input_tool(legacy_xls_excel: Path):
+    """Test InputTool with legacy .xls file"""
+    tool = InputTool()
+
+    config = {
+        "type": "excel",
+        "source": str(legacy_xls_excel)
+    }
+
+    outputs = await tool.execute(config, {})
+
+    assert "output" in outputs
+    lf = outputs["output"]
+    assert isinstance(lf, pl.LazyFrame)
+
+    # Collect to verify data
+    df = lf.collect()
+    assert len(df) == 3
+    assert df["name"][0] == "Alpha"
+    assert df["value"][2] == 300
 
 
 @pytest.mark.asyncio
