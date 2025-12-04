@@ -8,6 +8,81 @@ const sidebars: SidebarsConfig = {
     'intro',
     {
       type: 'category',
+      label: 'User Guide',
+      link: {
+        type: 'doc',
+        id: 'user/index',
+      },
+      items: [
+        {
+          type: 'category',
+          label: 'Interface',
+          items: [
+            'user/interface/canvas',
+            'user/interface/tool-palette',
+            'user/interface/wiring',
+            'user/interface/configuration-panel',
+            'user/interface/data-preview',
+            'user/interface/keyboard-shortcuts',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Expressions',
+          items: [
+            'user/expressions/basics',
+            'user/expressions/syntax-rules',
+            'user/expressions/common-operations',
+          ],
+        },
+        'user/data-types',
+        {
+          type: 'category',
+          label: 'Tools',
+          link: {
+            type: 'doc',
+            id: 'user/tools/index',
+          },
+          items: [
+            {
+              type: 'category',
+              label: 'Input/Output',
+              items: [
+                'user/tools/input-output/input',
+                'user/tools/input-output/output',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Preparation',
+              items: [
+                'user/tools/preparation/filter',
+                'user/tools/preparation/select',
+                'user/tools/preparation/sort',
+                'user/tools/preparation/formula',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Join',
+              items: [
+                'user/tools/join/union',
+                'user/tools/join/join-tool',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Aggregate',
+              items: [
+                'user/tools/aggregate/summarize',
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Developer Guide',
       link: {
         type: 'doc',
