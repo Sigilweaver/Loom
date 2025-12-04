@@ -50,6 +50,8 @@ class InputTool(BaseTool):
         elif source_type == "parquet":
             parquet_mode: str = config.get("parquetMode", "scan") or "scan"
             lf = await self._load_parquet(config, parquet_mode)
+        elif source_type == "excel":
+            lf = await self._load_excel(config)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -106,6 +108,31 @@ class InputTool(BaseTool):
             raise ToolError(f"Unknown Parquet mode: {mode}")
 
         # Handle column selection (not supported as scan parameter)
+        if "columns" in config and config["columns"]:
+            lf = lf.select(config["columns"])
+
+        return lf
+
+    async def _load_excel(
+        self, config: dict[str, Any]
+    ) -> pl.LazyFrame:
+        """Load Excel file (always eager, converted to lazy)
+
+        Excel files only support eager reading via read_excel.
+        Supports .xlsx, .xls, and .xlsb files.
+        """
+        source = config.get("source")
+        if not source:
+            raise ToolError("Excel config missing 'source' field")
+
+        # Build Polars read kwargs from config
+        read_kwargs = self._build_excel_kwargs(config)
+
+        # Excel only supports eager reading, convert to lazy
+        df = pl.read_excel(source, **read_kwargs)
+        lf = df.lazy()
+
+        # Handle column selection after reading
         if "columns" in config and config["columns"]:
             lf = lf.select(config["columns"])
 
@@ -178,6 +205,37 @@ class InputTool(BaseTool):
 
         return kwargs
 
+    def _build_excel_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars read_excel kwargs"""
+        kwargs: dict[str, Any] = {}
+
+        # Sheet selection (only one can be set)
+        if "sheet_id" in config and config["sheet_id"] is not None:
+            kwargs["sheet_id"] = config["sheet_id"]
+        elif "sheet_name" in config and config["sheet_name"] is not None:
+            kwargs["sheet_name"] = config["sheet_name"]
+        # Default: sheet_id=1 (first sheet) if neither specified
+
+        # Map config keys to Polars parameters
+        key_mapping = {
+            "has_header": "has_header",
+            "infer_schema_length": "infer_schema_length",
+            "drop_empty_rows": "drop_empty_rows",
+            "drop_empty_cols": "drop_empty_cols",
+            "raise_if_empty": "raise_if_empty",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:
+                    kwargs[polars_key] = value
+
+        # Engine is always calamine (fastest, default in Polars)
+        kwargs["engine"] = "calamine"
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -214,7 +272,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["csv", "parquet"]:
+        if source_type and source_type not in ["csv", "excel", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -302,6 +360,30 @@ class InputTool(BaseTool):
             # If read mode, convert to lazy
             if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
+
+        elif source_type == "excel":
+            # Excel only supports eager reading
+            options = []
+            excel_kwargs = self._build_excel_kwargs(config)
+
+            for key, value in excel_kwargs.items():
+                if key == "engine":
+                    options.append(f'{key}="{value}"')
+                elif isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.read_excel("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.read_excel("{escaped_path}")')
+
+            # Always convert to lazy for consistency
+            lines.append(f'{var_name} = {var_name}.lazy()')
 
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')

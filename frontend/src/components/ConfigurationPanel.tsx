@@ -10,6 +10,7 @@ import { ToolConfig } from "../domain/workflow/entities/workflow";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
+import { ExcelConfiguration } from "./ExcelConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
@@ -150,6 +151,22 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "excel") {
+                  // Excel (no mode selection - always eager read)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "excel" as const,
+                    sheet_id: 1, // Default to first sheet
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 } else if (dataSource.id === "parquet") {
                   // Parquet with mode selection
                   const dataSourceWithMode = dataSource as typeof dataSource & {
@@ -180,6 +197,15 @@ export default function ConfigurationPanel() {
             /* CSV Configuration Panel */
             <CsvConfiguration
               mode={(selectedTool.config.csvMode as CSVMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "excel" ? (
+            /* Excel Configuration Panel */
+            <ExcelConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)

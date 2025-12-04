@@ -5,6 +5,7 @@ from typing import Type
 
 from app.domain.datasources.base import DataSource
 from app.domain.datasources.csv import CSVDataSource
+from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.parquet import ParquetDataSource
 from app.utils.errors import DataSourceError
 
@@ -15,9 +16,9 @@ class DataSourceFactory:
     # Registry of data source implementations
     _sources: dict[str, Type[DataSource]] = {
         "csv": CSVDataSource,
+        "excel": ExcelDataSource,
         "parquet": ParquetDataSource,
         # Future data sources:
-        # "excel": ExcelDataSource,
         # "json": JSONDataSource,
     }
 
@@ -27,10 +28,11 @@ class DataSourceFactory:
         ".tsv": "csv",  # Tab-separated values are CSV with different separator
         ".tab": "csv",
         ".txt": "csv",
+        ".xlsx": "excel",
+        ".xls": "excel",
+        ".xlsb": "excel",
         ".parquet": "parquet",
         # Future:
-        # ".xlsx": "excel",
-        # ".xls": "excel",
         # ".json": "json",
         # ".jsonl": "json",
     }

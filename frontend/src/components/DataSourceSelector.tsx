@@ -24,8 +24,8 @@ const DATA_SOURCES: DataSource[] = [
     id: "excel",
     name: "Excel",
     category: "file",
-    description: "Microsoft Excel spreadsheet",
-    enabled: false,
+    description: "Microsoft Excel spreadsheet (.xlsx, .xls, .xlsb)",
+    enabled: true,
   },
   {
     id: "parquet",
