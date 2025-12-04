@@ -1,8 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { ToolConfig, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
 import { CodeEditor } from "./common/CodeEditor";
+import { HelpLink } from "./common/HelpLink";
 import { useMetadata, usePolarsFunctions } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { EXPRESSION_DOCS_URL } from "@data/tools";
 
 interface FilterConfigurationProps {
   config: ToolConfig;
@@ -72,9 +74,12 @@ export function FilterConfiguration({
 
         {/* Expression Input */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-theme-text-primary">
-            Filter Expression
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-theme-text-primary">
+              Filter Expression
+            </label>
+            <HelpLink url={EXPRESSION_DOCS_URL} label="Expression syntax help" />
+          </div>
           <div className="border border-theme-border rounded overflow-hidden">
             <CodeEditor
               value={(config.expression as string) || ""}

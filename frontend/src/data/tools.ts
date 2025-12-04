@@ -1,5 +1,7 @@
 import { ToolDefinition } from '../domain/workflow/entities/workflow';
 
+const DOCS_BASE_URL = 'https://docs.sigilweaver.app/user';
+
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // In/Out Tools
   {
@@ -12,7 +14,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
     sockets: [
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/input-output/input`,
   },
   {
     type: 'Output',
@@ -24,7 +27,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
     sockets: [
       { id: 'input', direction: 'input' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/input-output/output`,
   },
   
   // Preparation Tools
@@ -41,7 +45,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: 'input', direction: 'input' },
       { id: 'output-true', direction: 'output', type: 'T' },
       { id: 'output-false', direction: 'output', type: 'F' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/filter`,
   },
   {
     type: 'Select',
@@ -54,7 +59,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     sockets: [
       { id: 'input', direction: 'input' },
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/select`,
   },
   {
     type: 'Sort',
@@ -67,7 +73,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     sockets: [
       { id: 'input', direction: 'input' },
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/sort`,
   },
   {
     type: 'Formula',
@@ -81,7 +88,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     sockets: [
       { id: 'input', direction: 'input' },
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/formula`,
   },
   
   // Join Tools
@@ -96,7 +104,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     sockets: [
       { id: 'input', direction: 'input', multiple: true },
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/join/union`,
   },
   {
     type: 'Join',
@@ -114,7 +123,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: 'output-left', direction: 'output', type: 'L' },
       { id: 'output-match', direction: 'output', type: 'J' },
       { id: 'output-right', direction: 'output', type: 'R' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/join/join-tool`,
   },
 
   // Aggregate Tools
@@ -137,9 +147,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     sockets: [
       { id: 'input', direction: 'input' },
       { id: 'output', direction: 'output' }
-    ]
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/aggregate/summarize`,
   },
 ];
+
+export const EXPRESSION_DOCS_URL = `${DOCS_BASE_URL}/expressions/basics`;
 
 export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
 

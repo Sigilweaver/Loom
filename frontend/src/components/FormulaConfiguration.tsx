@@ -3,8 +3,10 @@ import { ToolConfig, EmissionMap, Tool, Wire, WorkflowMeta } from "../domain/wor
 import { ConfigText } from "./primitives/ConfigText";
 import { ConfigSelect } from "./primitives/ConfigSelect";
 import { CodeEditor } from "./common/CodeEditor";
+import { HelpLink } from "./common/HelpLink";
 import { useMetadata, usePolarsFunctions } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { EXPRESSION_DOCS_URL } from "@data/tools";
 
 // Special value indicating creation of a new column
 const NEW_COLUMN_VALUE = "__new_column__";
@@ -182,10 +184,13 @@ export function FormulaConfiguration({
 
         {/* Expression Input */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-theme-text-primary">
-            Formula Expression
-            <span className="text-theme-error ml-1">*</span>
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-theme-text-primary">
+              Formula Expression
+              <span className="text-theme-error ml-1">*</span>
+            </label>
+            <HelpLink url={EXPRESSION_DOCS_URL} label="Expression syntax help" />
+          </div>
           <div className="border border-theme-border rounded overflow-hidden">
             <CodeEditor
               value={(config.expression as string) || ""}

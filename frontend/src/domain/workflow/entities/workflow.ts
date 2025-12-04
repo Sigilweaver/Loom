@@ -58,6 +58,7 @@ export interface ToolDefinition {
   category: "inout" | "preparation" | "join" | "aggregate";
   defaultConfig: ToolConfig;
   sockets: Socket[];
+  docsUrl?: string;
 }
 
 export type ToolCategory =
