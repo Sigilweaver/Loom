@@ -1014,3 +1014,27 @@ img[data-src].loaded {
     font-size: 8px;
   }
 }
+
+/* ===================================
+   Mobile Menu Animation
+   =================================== */
+
+.mobile-menu {
+  @apply transition-all duration-300 ease-in-out opacity-0 -translate-y-4 pointer-events-none;
+}
+
+.mobile-menu.active {
+  @apply opacity-100 translate-y-0 pointer-events-auto;
+}
+
+/* ===================================
+   Tooltip Animation
+   =================================== */
+
+.copy-tooltip {
+  @apply absolute -top-8 left-1/2 -translate-x-1/2 bg-gold-500 text-mystic-900 text-xs font-bold px-2 py-1 rounded opacity-0 transition-opacity duration-200 pointer-events-none;
+}
+
+.copy-tooltip.show {
+  @apply opacity-100;
+}

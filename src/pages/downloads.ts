@@ -106,22 +106,128 @@ async function fetchDownloads(): Promise<void> {
       renderSection(grid, 'Client Only', 'Connect to an existing Sigilweaver backend.', data.variants.client);
     }
 
-    // Render Web Downloads
-    if (data.variants.web && data.variants.web.length > 0) {
-      renderSection(grid, 'Web Version', 'Host the UI yourself.', data.variants.web);
-    }
+    // Render Other Section (Server + Web)
+    renderOtherSection(grid, data.variants.web);
 
     // Update Hero Button based on OS
     updateHeroButton(data);
+    
+    // Initialize copy buttons
+    setupCopyButtons();
 
   } catch (error) {
     console.error('Error fetching downloads:', error);
     grid.innerHTML = `
       <div class="col-span-full text-center py-12 bg-mystic-800/50 rounded-xl border border-red-500/30">
         <p class="text-red-400 mb-2">Failed to load download information.</p>
-        <p class="text-mystic-400 text-sm">You can check our <a href="https://github.com/sigilweaver/sigilweaver/releases" class="text-gold-400 hover:underline">GitHub Releases</a> page directly.</p>
+        <button id="retry-downloads-btn" class="text-sm bg-mystic-700 hover:bg-mystic-600 text-white px-4 py-2 rounded-lg transition-colors mb-4 inline-flex items-center space-x-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>Retry</span>
+        </button>
+        <p class="text-mystic-400 text-sm">Or check our <a href="https://github.com/sigilweaver/sigilweaver/releases" class="text-gold-400 hover:underline">GitHub Releases</a> page directly.</p>
       </div>
     `;
+    document.getElementById('retry-downloads-btn')?.addEventListener('click', () => fetchDownloads());
+  }
+}
+
+/**
+ * Render the Other Options section (Server + Web)
+ */
+function renderOtherSection(container: HTMLElement, webVariants?: DownloadAsset[]): void {
+  // Section Header
+  const header = document.createElement('div');
+  header.className = 'mt-8 mb-4 col-span-full first:mt-0';
+  header.innerHTML = `
+    <h2 class="text-2xl font-bold text-mystic-200">Other Options</h2>
+    <p class="text-mystic-400">Server deployment and self-hosted web components.</p>
+  `;
+  container.appendChild(header);
+
+  // --- Server Card ---
+  const serverCard = document.createElement('article');
+  serverCard.className = 'flex flex-col p-6 transition-colors border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 hover:border-gold-500/30';
+  
+  serverCard.innerHTML = `
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <h3 class="text-xl font-bold text-mystic-200">Server</h3>
+          <div class="text-xs text-mystic-400 font-mono mt-1 flex items-center gap-2">
+            <span>Universal</span>
+            <span class="w-1 h-1 rounded-full bg-mystic-600"></span>
+            <span>Guide</span>
+          </div>
+        </div>
+        <div class="text-gold-400 p-2 bg-mystic-800/50 rounded-lg border border-mystic-700/30">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+        </div>
+      </div>
+      
+      <div>
+        <a href="https://docs.sigilweaver.app/server/getting-started" target="_blank" rel="noopener noreferrer" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+          <span class="flex items-center justify-center gap-2">
+            View Documentation
+            <svg class="w-4 h-4 opacity-70 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          </span>
+        </a>
+        
+        <p class="text-xs text-mystic-400 mt-3 text-center opacity-80 border-t border-mystic-700/30 pt-3">
+          Learn how to deploy via Docker, Kubernetes, or bare metal.
+        </p>
+      </div>
+  `;
+  container.appendChild(serverCard);
+
+  // --- Web Variants ---
+  if (webVariants && webVariants.length > 0) {
+    webVariants.forEach(item => {
+      const card = document.createElement('article');
+      card.className = 'flex flex-col p-6 transition-colors border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 hover:border-gold-500/30';
+      
+      const meta = getOsMeta(item.os, item.fileName);
+      const sizeMB = (item.size / (1024 * 1024)).toFixed(1);
+
+      card.innerHTML = `
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-bold text-mystic-200">${meta.name}</h3>
+            <div class="text-xs text-mystic-400 font-mono mt-1 flex items-center gap-2">
+              <span>${item.arch}</span>
+              <span class="w-1 h-1 rounded-full bg-mystic-600"></span>
+              <span>${item.kind}</span>
+              <span class="w-1 h-1 rounded-full bg-mystic-600"></span>
+              <span>${sizeMB} MB</span>
+            </div>
+          </div>
+          <div class="text-gold-400 p-2 bg-mystic-800/50 rounded-lg border border-mystic-700/30">
+            ${meta.icon}
+          </div>
+        </div>
+        
+        <div>
+          <a href="${item.url}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+            <span class="flex items-center justify-center gap-2">
+              Download
+              <svg class="w-4 h-4 opacity-70 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </span>
+          </a>
+          
+          <div class="flex items-center justify-between gap-3 text-xs text-mystic-500 bg-mystic-900/30 rounded px-3 py-2 border border-mystic-700/30">
+            <span class="uppercase tracking-wider text-[10px] font-semibold opacity-60">SHA256</span>
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono truncate select-all" title="${item.sha256}">${truncateHash(item.sha256)}</span>
+              <button class="text-mystic-400 hover:text-gold-400 transition-colors focus:outline-none copy-btn relative p-1 -mr-1 rounded hover:bg-mystic-800/50" data-hash="${item.sha256}" aria-label="Copy SHA256 hash">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <span class="copy-tooltip">Copied!</span>
+              </button>
+            </div>
+          </div>
+
+          ${meta.note ? `<p class="text-xs text-mystic-400 mt-3 text-center opacity-80 border-t border-mystic-700/30 pt-3">${meta.note}</p>` : ''}
+        </div>
+      `;
+      container.appendChild(card);
+    });
   }
 }
 
@@ -131,7 +237,7 @@ async function fetchDownloads(): Promise<void> {
 function renderSection(container: HTMLElement, title: string, description: string, items: DownloadAsset[]): void {
   // Section Header
   const header = document.createElement('div');
-  header.className = 'col-span-full mt-8 first:mt-0 mb-4';
+  header.className = 'mt-8 mb-4 col-span-full first:mt-0';
   header.innerHTML = `
     <h2 class="text-2xl font-bold text-mystic-200">${title}</h2>
     <p class="text-mystic-400">${description}</p>
@@ -141,36 +247,48 @@ function renderSection(container: HTMLElement, title: string, description: strin
   // Items
   items.forEach(item => {
     const card = document.createElement('article');
-    card.className = 'bg-mystic-700/30 p-6 rounded-xl backdrop-blur-sm border border-mystic-600/50 hover:border-gold-500/30 transition-colors flex flex-col';
+    card.className = 'flex flex-col p-6 transition-colors border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 hover:border-gold-500/30';
     
     const meta = getOsMeta(item.os, item.fileName);
     const sizeMB = (item.size / (1024 * 1024)).toFixed(1);
 
     card.innerHTML = `
-      <div class="flex items-start justify-between mb-4">
+      <div class="flex items-start justify-between mb-6">
         <div>
           <h3 class="text-xl font-bold text-mystic-200">${meta.name}</h3>
-          <span class="text-xs text-mystic-400 font-mono">${item.arch} • ${item.kind}</span>
+          <div class="text-xs text-mystic-400 font-mono mt-1 flex items-center gap-2">
+            <span>${item.arch}</span>
+            <span class="w-1 h-1 rounded-full bg-mystic-600"></span>
+            <span>${item.kind}</span>
+            <span class="w-1 h-1 rounded-full bg-mystic-600"></span>
+            <span>${sizeMB} MB</span>
+          </div>
         </div>
-        <div class="text-gold-400">
+        <div class="text-gold-400 p-2 bg-mystic-800/50 rounded-lg border border-mystic-700/30">
           ${meta.icon}
         </div>
       </div>
       
-      <div class="mt-auto">
-        <a href="${item.url}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-colors mb-3 font-medium">
-          Download
+      <div>
+        <a href="${item.url}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+          <span class="flex items-center justify-center gap-2">
+            Download
+            <svg class="w-4 h-4 opacity-70 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          </span>
         </a>
-        <div class="flex justify-between items-center text-xs text-mystic-500 mb-2">
-          <span>${sizeMB} MB</span>
+        
+        <div class="flex items-center justify-between gap-3 text-xs text-mystic-500 bg-mystic-900/30 rounded px-3 py-2 border border-mystic-700/30">
+          <span class="uppercase tracking-wider text-[10px] font-semibold opacity-60">SHA256</span>
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="font-mono truncate select-all" title="${item.sha256}">${truncateHash(item.sha256)}</span>
+            <button class="text-mystic-400 hover:text-gold-400 transition-colors focus:outline-none copy-btn relative p-1 -mr-1 rounded hover:bg-mystic-800/50" data-hash="${item.sha256}" aria-label="Copy SHA256 hash">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              <span class="copy-tooltip">Copied!</span>
+            </button>
+          </div>
         </div>
-        <div class="mb-1">
-          <span class="text-[10px] text-mystic-500 uppercase tracking-wide">SHA256:</span>
-        </div>
-        <div class="text-[10px] text-mystic-400 font-mono break-all bg-mystic-900/50 p-2 rounded border border-mystic-700/50 select-all" title="SHA256 Hash">
-          ${item.sha256}
-        </div>
-        ${meta.note ? `<p class="text-xs text-mystic-400 mt-3 border-t border-mystic-700/50 pt-2">${meta.note}</p>` : ''}
+
+        ${meta.note ? `<p class="text-xs text-mystic-400 mt-3 text-center opacity-80 border-t border-mystic-700/30 pt-3">${meta.note}</p>` : ''}
       </div>
     `;
     container.appendChild(card);
@@ -210,7 +328,7 @@ function getOsMeta(os: string, fileName: string): OsMeta {
       name = 'Linux (Snap)';
       note = 'Requires snapd.';
     }
-  } else if (os === 'mac' || os === 'darwin') {
+  } else if (os === 'mac' || os === 'darwin' || os === 'macos') {
     icon = icons.mac;
     name = 'macOS';
     note = 'Unsigned: Right-click → Open to bypass security check.';
@@ -555,21 +673,27 @@ function renderReleaseVariant(title: string, assets: DownloadAsset[]): string {
     const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
     
     html += `
-      <div class="bg-mystic-900/50 p-4 rounded-lg border border-mystic-700/50">
-        <div class="flex items-start justify-between mb-2">
+      <div class="bg-mystic-900/50 p-4 rounded-lg border border-mystic-700/50 flex flex-col">
+        <div class="flex items-start justify-between mb-3">
           <div class="flex-1">
             <div class="text-sm font-semibold text-mystic-200">${meta.name}</div>
-            <div class="text-xs text-mystic-500">${asset.arch} • ${sizeMB} MB</div>
+            <div class="text-xs text-mystic-500 mt-0.5">${asset.arch} • ${sizeMB} MB</div>
           </div>
         </div>
-        <a href="${asset.url}" class="block text-center bg-mystic-700 hover:bg-mystic-600 text-white px-3 py-2 rounded text-sm transition-colors mb-2">
+        
+        <a href="${asset.url}" class="block text-center bg-mystic-700 hover:bg-mystic-600 text-white px-3 py-2 rounded text-sm transition-colors mb-3 font-medium">
           Download
         </a>
-        <div class="mb-1">
-          <span class="text-[9px] text-mystic-500 uppercase tracking-wide">SHA256:</span>
-        </div>
-        <div class="text-[9px] text-mystic-500 font-mono break-all bg-mystic-800/50 p-1.5 rounded border border-mystic-700/30">
-          ${asset.sha256}
+        
+        <div class="mt-auto flex items-center justify-between gap-2 text-[10px] text-mystic-500 bg-mystic-800/30 rounded px-2 py-1.5 border border-mystic-700/30">
+          <span class="uppercase tracking-wider font-semibold opacity-60">SHA</span>
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-mono truncate select-all" title="${asset.sha256}">${truncateHash(asset.sha256, 6, 6)}</span>
+            <button class="text-mystic-400 hover:text-gold-400 transition-colors focus:outline-none copy-btn relative p-0.5 -mr-0.5 rounded hover:bg-mystic-700/50" data-hash="${asset.sha256}" aria-label="Copy SHA256 hash">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              <span class="copy-tooltip">Copied!</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -577,4 +701,41 @@ function renderReleaseVariant(title: string, assets: DownloadAsset[]): string {
   
   html += '</div></div>';
   return html;
+}
+
+/**
+ * Truncate a hash string to show only the start and end
+ */
+function truncateHash(hash: string, startChars = 8, endChars = 8): string {
+  if (hash.length <= startChars + endChars) return hash;
+  return `${hash.slice(0, startChars)}...${hash.slice(-endChars)}`;
+}
+
+/**
+ * Initialize copy buttons for SHA256 hashes
+ */
+function setupCopyButtons(): void {
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const button = e.currentTarget as HTMLButtonElement;
+      const hash = button.dataset.hash;
+      const tooltip = button.querySelector('.copy-tooltip');
+      
+      if (hash) {
+        try {
+          await navigator.clipboard.writeText(hash);
+          
+          // Show tooltip
+          tooltip?.classList.add('show');
+          
+          // Hide after 2 seconds
+          setTimeout(() => {
+            tooltip?.classList.remove('show');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy hash:', err);
+        }
+      }
+    });
+  });
 }
