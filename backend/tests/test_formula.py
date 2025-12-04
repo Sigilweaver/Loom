@@ -284,7 +284,7 @@ class TestFormulaCodeGeneration:
         assert output_vars == {"output": "df_fml"}
 
     def test_code_gen_multiline_expression(self):
-        """Test code generation normalizes multiline expressions"""
+        """Test code generation preserves multiline expressions wrapped in parens"""
         tool = FormulaTool()
         config = {
             "column_name": "status",
@@ -297,10 +297,10 @@ class TestFormulaCodeGeneration:
         lines, output_vars = tool.to_python_code("fmla", config, input_vars)
 
         assert len(lines) == 1
-        # Expression should be normalized to single line
-        assert "\n" not in lines[0]
+        # Expression is wrapped in parens, newlines are preserved (valid Python)
         assert "with_columns" in lines[0]
         assert '.alias("status")' in lines[0]
+        assert "pl.when(pl.col('x') > 0)" in lines[0]
         assert output_vars == {"output": "df_fmla"}
 
     def test_code_gen_replace_column(self):

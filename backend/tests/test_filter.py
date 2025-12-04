@@ -381,8 +381,9 @@ class TestFilterCodeGeneration:
         lines, output_vars = tool.to_python_code("filter1", config, input_vars)
 
         assert len(lines) == 2
-        assert "df_filter1_t = df_input.filter(pl.col('amount') > 100)" in lines[0]
-        assert "df_filter1_f = df_input.filter(~(pl.col('amount') > 100))" in lines[1]
+        # Expression is wrapped in parentheses with closing paren on new line
+        assert "df_filter1_t = df_input.filter((pl.col('amount') > 100" in lines[0]
+        assert "df_filter1_f = df_input.filter(~((pl.col('amount') > 100" in lines[1]
         assert output_vars == {"output-true": "df_filter1_t", "output-false": "df_filter1_f"}
 
     def test_code_gen_empty_expression(self):
@@ -409,6 +410,7 @@ class TestFilterCodeGeneration:
 
         lines, output_vars = tool.to_python_code("flt", config, input_vars)
 
-        assert "(pl.col('a') > 10) & (pl.col('b') < 20)" in lines[0]
-        assert "~((pl.col('a') > 10) & (pl.col('b') < 20))" in lines[1]
+        # Expression is wrapped in parentheses
+        assert "((pl.col('a') > 10) & (pl.col('b') < 20)" in lines[0]
+        assert "~(((pl.col('a') > 10) & (pl.col('b') < 20)" in lines[1]
 

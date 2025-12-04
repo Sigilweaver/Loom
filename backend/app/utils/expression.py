@@ -13,24 +13,51 @@ from app.utils.errors import ToolError
 
 def normalize_expression(expression: str) -> str:
     """
-    Normalize expression whitespace for consistent parsing.
+    Normalize expression for consistent parsing.
 
-    Replaces newlines and multiple spaces with single spaces,
-    allowing users to write multi-line expressions for readability.
+    Wraps expression in parentheses to allow multi-line expressions
+    that would otherwise be invalid Python syntax. The closing paren
+    is on its own line to handle trailing comments.
+
+    This enables multiline expressions with inline comments like::
+
+        (pl.col('price') > 100)   # expensive items
+        & (pl.col('qty') >= 3)    # in stock
+
+    Which becomes valid Python when wrapped::
+
+        ((pl.col('price') > 100)   # expensive items
+        & (pl.col('qty') >= 3)    # in stock
+        )
+
+    Important:
+        Each comparison must be wrapped in parentheses due to Python
+        operator precedence. The ``&`` and ``|`` operators bind tighter
+        than comparison operators (``>``, ``<``, ``==``, etc.), so::
+
+            pl.col('a') > 10 & pl.col('b') < 20  # WRONG - parse error
+
+        Is parsed by Python as ``pl.col('a') > (10 & pl.col('b')) < 20``,
+        which fails. Always parenthesize comparisons::
+
+            (pl.col('a') > 10) & (pl.col('b') < 20)  # CORRECT
 
     Args:
         expression: Raw expression string (may contain newlines)
 
     Returns:
-        Normalized expression with single spaces
+        Expression wrapped in parentheses, or empty string if input is empty
 
     Example:
-        >>> normalize_expression('''pl.col("a") > 10
+        >>> normalize_expression('''(pl.col("a") > 10)
         ... &
-        ... pl.col("b") < 20''')
-        'pl.col("a") > 10 & pl.col("b") < 20'
+        ... (pl.col("b") < 20)''')
+        '((pl.col("a") > 10)\n&\n(pl.col("b") < 20)\n)'
     """
-    return " ".join(expression.split())
+    stripped = expression.strip()
+    if not stripped:
+        return ""
+    return f"({stripped}\n)"
 
 
 def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:

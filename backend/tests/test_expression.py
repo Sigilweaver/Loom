@@ -10,35 +10,37 @@ from app.utils.expression import normalize_expression, parse_polars_expression
 class TestNormalizeExpression:
     """Tests for normalize_expression function."""
 
-    def test_single_line_unchanged(self):
-        """Single line expressions remain unchanged."""
+    def test_single_line_wrapped(self):
+        """Single line expressions are wrapped in parentheses."""
         expr = "pl.col('age') > 18"
-        assert normalize_expression(expr) == expr
+        expected = "(pl.col('age') > 18\n)"
+        assert normalize_expression(expr) == expected
 
-    def test_multiline_to_single(self):
-        """Multiline expressions are joined with single spaces."""
-        expr = """pl.col('a') > 10
+    def test_multiline_wrapped(self):
+        """Multiline expressions are wrapped with closing paren on new line."""
+        expr = """(pl.col('a') > 10)
 &
-pl.col('b') < 20"""
-        expected = "pl.col('a') > 10 & pl.col('b') < 20"
+(pl.col('b') < 20)"""
+        expected = "((pl.col('a') > 10)\n&\n(pl.col('b') < 20)\n)"
         assert normalize_expression(expr) == expected
 
-    def test_multiple_spaces_collapsed(self):
-        """Multiple spaces are collapsed to single spaces."""
+    def test_multiline_with_comments(self):
+        """Multiline expressions with trailing comments are preserved."""
+        expr = """(pl.col('price') > 100)  # expensive items
+& (pl.col('qty') >= 3)  # in stock"""
+        expected = "((pl.col('price') > 100)  # expensive items\n& (pl.col('qty') >= 3)  # in stock\n)"
+        assert normalize_expression(expr) == expected
+
+    def test_preserves_internal_whitespace(self):
+        """Internal whitespace is preserved."""
         expr = "pl.col('a')    >    10"
-        expected = "pl.col('a') > 10"
+        expected = "(pl.col('a')    >    10\n)"
         assert normalize_expression(expr) == expected
 
-    def test_tabs_normalized(self):
-        """Tabs are converted to spaces."""
-        expr = "pl.col('a')\t>\t10"
-        expected = "pl.col('a') > 10"
-        assert normalize_expression(expr) == expected
-
-    def test_leading_trailing_whitespace_removed(self):
-        """Leading and trailing whitespace is removed."""
+    def test_leading_trailing_whitespace_stripped(self):
+        """Leading and trailing whitespace is stripped before wrapping."""
         expr = "  pl.col('a') > 10  "
-        expected = "pl.col('a') > 10"
+        expected = "(pl.col('a') > 10\n)"
         assert normalize_expression(expr) == expected
 
     def test_empty_string(self):
