@@ -106,13 +106,29 @@ class JoinTool(BaseTool):
         left_keys = config.get("leftKeys", [])
         right_keys = config.get("rightKeys", [])
         right_suffix = config.get("rightSuffix", "_right")
+        join_type = config.get("joinType", "inner")
 
-        # If no keys, no match possible
-        if not left_keys or not right_keys:
+        # Cross join: all columns from both sides (with suffix for conflicts)
+        # This happens when no keys are specified OR joinType is explicitly "cross"
+        is_cross_join = join_type == "cross" or (not left_keys or not right_keys)
+        if is_cross_join:
+            # Build cross join schema: all left columns + all right columns (with suffix if needed)
+            left_col_names = {col.name for col in left_schema.columns}
+            cross_columns = list(left_schema.columns)
+            for col in right_schema.columns:
+                if col.name in left_col_names:
+                    new_col = ColumnSchema(
+                        name=col.name + right_suffix,
+                        dtype=col.dtype,
+                        nullable=col.nullable,
+                    )
+                    cross_columns.append(new_col)
+                else:
+                    cross_columns.append(col)
             return {
-                "output-left": left_schema,
-                "output-match": empty_schema,
-                "output-right": right_schema,
+                "output-left": empty_schema,
+                "output-match": DataSchema(columns=cross_columns),
+                "output-right": empty_schema,
             }
 
         # Build matched schema: left columns + right non-key columns (with suffix if needed)
@@ -170,7 +186,7 @@ class JoinTool(BaseTool):
 
         # Validate join type
         join_type = config.get("joinType", "inner")
-        valid_types = {"inner", "left", "right", "outer"}
+        valid_types = {"inner", "left", "right", "outer", "cross"}
         if join_type not in valid_types:
             errors.append(
                 f"Invalid join type '{join_type}'. Must be one of: {', '.join(valid_types)}"

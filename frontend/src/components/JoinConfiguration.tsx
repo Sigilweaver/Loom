@@ -177,6 +177,32 @@ export function JoinConfiguration({
   const hasLeftInput = !!leftWireConnection;
   const hasRightInput = !!rightWireConnection;
 
+  // Determine if this is a cross join (no keys selected with both inputs connected)
+  const hasValidKeys = leftKeys.length > 0 && rightKeys.length > 0 && 
+    leftKeys.every(k => k) && rightKeys.every(k => k);
+  const isCrossJoin = hasLeftInput && hasRightInput && !hasValidKeys;
+
+  // Auto-set joinType based on whether keys are selected
+  useEffect(() => {
+    if (!hasLeftInput || !hasRightInput) return;
+    
+    const currentJoinType = config.joinType as string;
+    const targetJoinType = hasValidKeys ? "inner" : "cross";
+    
+    // Only update if the joinType needs to change
+    if (currentJoinType !== targetJoinType) {
+      const newConfig = {
+        ...config,
+        joinType: targetJoinType,
+        _emit: {
+          ...(config._emit as Record<string, boolean> | undefined),
+          joinType: true,
+        },
+      } as ToolConfig;
+      onChange(newConfig);
+    }
+  }, [hasLeftInput, hasRightInput, hasValidKeys, config, onChange]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
@@ -365,6 +391,22 @@ export function JoinConfiguration({
             </p>
           </div>
         ) : null}
+
+        {/* Cross Join Info Banner */}
+        {isCrossJoin && (
+          <div className="p-3 text-sm border rounded bg-blue-500/10 border-blue-500/30">
+            <p className="font-medium text-blue-500 mb-1">
+              Cross Join Mode
+            </p>
+            <p className="text-blue-400 text-xs">
+              No join keys selected. This will produce a Cartesian product of both datasets 
+              (every row from left combined with every row from right).
+            </p>
+            <p className="text-blue-400 text-xs mt-1">
+              Select matching columns above to perform a standard join instead.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -174,8 +174,8 @@ class TestJoinToolExecute:
         assert sorted(matched["value_r"].to_list()) == [10, 20]
 
     @pytest.mark.asyncio
-    async def test_join_empty_keys(self, left_dataframe, right_dataframe):
-        """Test that empty keys returns all rows as unmatched."""
+    async def test_join_empty_keys_cross_join(self, left_dataframe, right_dataframe):
+        """Test that empty keys performs a cross join (Cartesian product)."""
         tool = JoinTool()
         config = {"leftKeys": [], "rightKeys": []}
         result = await tool.execute(
@@ -183,16 +183,20 @@ class TestJoinToolExecute:
             {"input-left": left_dataframe, "input-right": right_dataframe},
         )
 
-        # No matches without keys
+        # Cross join produces Cartesian product in matched output
         matched = result["output-match"].collect()
-        assert len(matched) == 0
+        # 4 left rows x 4 right rows = 16 matched rows
+        assert len(matched) == 16
+        # Should have columns from both sides
+        assert "name" in matched.columns
+        assert "salary" in matched.columns
 
-        # All rows should be in unmatched
+        # Unmatched outputs should be empty for cross join
         unmatched_left = result["output-left"].collect()
-        assert len(unmatched_left) == 4
+        assert len(unmatched_left) == 0
 
         unmatched_right = result["output-right"].collect()
-        assert len(unmatched_right) == 4
+        assert len(unmatched_right) == 0
 
     @pytest.mark.asyncio
     async def test_join_missing_left_input(self, right_dataframe):
@@ -286,8 +290,8 @@ class TestJoinToolOutputSchema:
         assert "value_right" in matched_col_names
 
     @pytest.mark.asyncio
-    async def test_schema_no_keys(self, left_schema, right_schema):
-        """Test schema with no keys specified."""
+    async def test_schema_no_keys_cross_join(self, left_schema, right_schema):
+        """Test schema with no keys specified produces cross join schema."""
         tool = JoinTool()
         config = {"leftKeys": [], "rightKeys": []}
 
@@ -296,11 +300,21 @@ class TestJoinToolOutputSchema:
             {"input-left": left_schema, "input-right": right_schema},
         )
 
-        # Matched should be empty when no keys
-        assert len(result["output-match"].columns) == 0
-        # Unmatched should pass through schemas
-        assert result["output-left"] == left_schema
-        assert result["output-right"] == right_schema
+        # Cross join: matched output has all columns from both sides
+        matched_col_names = [col.name for col in result["output-match"].columns]
+        assert "id" in matched_col_names
+        assert "name" in matched_col_names
+        assert "department" in matched_col_names
+        assert "salary" in matched_col_names
+        assert "location" in matched_col_names
+        # Right id gets suffix since it conflicts with left id
+        assert "id_right" in matched_col_names
+        # Total: 3 left + 3 right = 6 columns
+        assert len(matched_col_names) == 6
+        
+        # Unmatched outputs should be empty for cross join
+        assert len(result["output-left"].columns) == 0
+        assert len(result["output-right"].columns) == 0
 
 
 class TestJoinToolValidation:
@@ -331,11 +345,23 @@ class TestJoinToolValidation:
         assert "same number" in errors[0]
 
     @pytest.mark.asyncio
+    async def test_cross_join_type_is_valid(self):
+        """Test that cross join type is valid."""
+        tool = JoinTool()
+        config = {
+            "joinType": "cross",
+            "leftKeys": [],
+            "rightKeys": [],
+        }
+        errors = await tool.validate_config(config)
+        assert len(errors) == 0
+
+    @pytest.mark.asyncio
     async def test_invalid_join_type(self):
         """Test error for invalid join type."""
         tool = JoinTool()
         config = {
-            "joinType": "cross",
+            "joinType": "invalid_type",
             "leftKeys": ["id"],
             "rightKeys": ["id"],
         }
@@ -410,3 +436,26 @@ class TestJoinCodeGeneration:
         # Left passes through, others empty
         assert "df_left" in code
         assert "pl.LazyFrame([])" in code
+
+    def test_code_gen_cross_join(self):
+        """Test code generation for cross join (no keys specified)."""
+        tool = JoinTool()
+        config = {"leftKeys": [], "rightKeys": [], "rightSuffix": "_right"}
+        lines, output_vars = tool.to_python_code(
+            "join1",
+            config,
+            {"input-left": "df_left", "input-right": "df_right"},
+        )
+
+        code = "\n".join(lines)
+
+        # Check we generate cross join
+        assert 'how="cross"' in code
+        assert "df_left" in code
+        assert "df_right" in code
+
+        # Unmatched outputs should be empty LazyFrames
+        assert "pl.LazyFrame([])" in code
+
+        # Check output variables
+        assert len(output_vars) == 3

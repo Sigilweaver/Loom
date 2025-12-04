@@ -427,8 +427,14 @@ class JoinOperation:
         if right_lf is None:
             return left_lf, empty, empty
 
+        # Cross join when no keys are specified
         if not self.left_keys or not self.right_keys:
-            return left_lf, empty, right_lf
+            matched = left_lf.join(
+                right_lf,
+                how="cross",
+                suffix=self.right_suffix,
+            )
+            return empty, matched, empty
 
         # Inner join for matched rows
         matched = left_lf.join(
@@ -481,10 +487,16 @@ class JoinOperation:
             lines.append(f"{match_out_var} = pl.LazyFrame([])")
             lines.append(f"{right_out_var} = pl.LazyFrame([])")
         elif not self.left_keys or not self.right_keys:
-            lines.append("# No join keys specified - passing through unmatched")
-            lines.append(f"{left_out_var} = {left_var}")
-            lines.append(f"{match_out_var} = pl.LazyFrame([])")
-            lines.append(f"{right_out_var} = {right_var}")
+            # Cross join when no keys specified
+            lines.append("# Cross join: Cartesian product of both datasets")
+            lines.append(
+                f"{match_out_var} = {left_var}.join("
+                f"{right_var}, "
+                f'how="cross", '
+                f'suffix="{self.right_suffix}")'
+            )
+            lines.append(f"{left_out_var} = pl.LazyFrame([])")
+            lines.append(f"{right_out_var} = pl.LazyFrame([])")
         else:
             left_keys_str = repr(self.left_keys)
             right_keys_str = repr(self.right_keys)
