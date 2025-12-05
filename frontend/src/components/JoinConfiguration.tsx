@@ -183,25 +183,26 @@ export function JoinConfiguration({
   const isCrossJoin = hasLeftInput && hasRightInput && !hasValidKeys;
 
   // Auto-set joinType based on whether keys are selected
+  // Extract primitive values to avoid infinite loops from config object reference changes
+  const currentJoinType = config.joinType as string | undefined;
   useEffect(() => {
     if (!hasLeftInput || !hasRightInput) return;
     
-    const currentJoinType = config.joinType as string;
     const targetJoinType = hasValidKeys ? "inner" : "cross";
     
-    // Only update if the joinType needs to change
+    // Only update if the joinType actually needs to change
     if (currentJoinType !== targetJoinType) {
-      const newConfig = {
+      onChange({
         ...config,
         joinType: targetJoinType,
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
           joinType: true,
         },
-      } as ToolConfig;
-      onChange(newConfig);
+      });
     }
-  }, [hasLeftInput, hasRightInput, hasValidKeys, config, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only react to primitive value changes, not config object reference
+  }, [hasLeftInput, hasRightInput, hasValidKeys, currentJoinType]);
 
   return (
     <div className="flex flex-col h-full">
