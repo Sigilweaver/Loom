@@ -54,6 +54,8 @@ class OutputTool(BaseTool):
             await self._save_parquet(lf, config)
         elif output_type == "excel":
             await self._save_excel(lf, config)
+        elif output_type == "json":
+            await self._save_json(lf, config)
         else:
             raise ToolError(f"Unsupported output type: {output_type}")
 
@@ -259,6 +261,71 @@ class OutputTool(BaseTool):
 
         return kwargs
 
+    async def _save_json(
+        self, lf: pl.LazyFrame, config: dict[str, Any]
+    ) -> None:
+        """Save to JSON or NDJSON based on file extension and mode
+
+        Supports two formats:
+        - Standard JSON (.json): Always eager, writes array of objects
+        - NDJSON (.jsonl, .ndjson): Supports sink (streaming) and write (eager)
+        """
+        destination = config.get("destination")
+        if not destination:
+            raise ToolError("JSON output config missing 'destination' field")
+
+        # Ensure destination directory exists
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Detect format from extension
+        is_ndjson = dest_path.suffix.lower() in {".jsonl", ".ndjson"}
+
+        # Build JSON write kwargs
+        json_kwargs = self._build_json_kwargs(config, is_ndjson)
+
+        try:
+            if is_ndjson:
+                # NDJSON supports sink (streaming) and write (eager)
+                mode = config.get("jsonMode", "sink")
+                if mode == "sink":
+                    # Streaming write - more memory efficient
+                    lf.sink_ndjson(destination)
+                elif mode == "write":
+                    # Collect then write
+                    df = lf.collect()
+                    df.write_ndjson(destination)
+                else:
+                    raise ToolError(f"Unknown JSON mode: {mode}")
+            else:
+                # Standard JSON: only eager write supported
+                df = lf.collect()
+                df.write_json(destination, **json_kwargs)
+        except Exception as e:
+            raise ToolError(f"Failed to write JSON: {str(e)}") from e
+
+    def _build_json_kwargs(self, config: dict[str, Any], is_ndjson: bool) -> dict[str, Any]:
+        """
+        Convert frontend config to Polars JSON write kwargs.
+
+        Note: write_json and write_ndjson have different parameter sets.
+        """
+        kwargs: dict[str, Any] = {}
+
+        if is_ndjson:
+            # NDJSON write options (write_ndjson has no parameters currently)
+            pass
+        else:
+            # Standard JSON write options
+            # write_json currently has minimal options in Polars
+            # row_oriented defaults to True (array of objects)
+            if "row_oriented" in config:
+                value = config["row_oriented"]
+                if value is not None:
+                    kwargs["row_oriented"] = value
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -279,7 +346,7 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["csv", "parquet", "excel"]:
+        if output_type and output_type not in ["csv", "json", "parquet", "excel"]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -294,6 +361,24 @@ class OutputTool(BaseTool):
             if mode not in ["sink", "write"]:
                 errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'"
             )
+
+        # Validate JSON mode
+        if output_type == "json":
+            destination = config.get("destination", "")
+            is_ndjson = Path(destination).suffix.lower() in {".jsonl", ".ndjson"} if destination else False
+            mode = config.get("jsonMode", "write")
+
+            if is_ndjson:
+                # NDJSON supports both sink and write
+                if mode not in ["sink", "write"]:
+                    errors.append(f"Invalid JSON mode: {mode}. Must be 'sink' or 'write'")
+            else:
+                # Standard JSON only supports write mode
+                if mode == "sink":
+                    errors.append(
+                        "Sink mode is not supported for standard JSON (.json). "
+                        "Use .jsonl or .ndjson for streaming output, or use 'write' mode."
+                    )
 
         # Validate Excel-specific options
         if output_type == "excel":
@@ -422,6 +507,22 @@ class OutputTool(BaseTool):
             opts_str = f", {', '.join(options)}" if options else ""
 
             lines.append(f'{input_var}.collect().write_excel("{escaped_path}"{opts_str})')
+
+        elif output_type == "json":
+            # Detect NDJSON from extension
+            is_ndjson = Path(destination).suffix.lower() in {".jsonl", ".ndjson"}
+            escaped_path = PythonCodeGenerator.escape_path(destination)
+
+            if is_ndjson:
+                # NDJSON supports sink (streaming) and write (eager)
+                mode = config.get("jsonMode", "sink")
+                if mode == "sink":
+                    lines.append(f'{input_var}.sink_ndjson("{escaped_path}")')
+                else:  # write mode
+                    lines.append(f'{input_var}.collect().write_ndjson("{escaped_path}")')
+            else:
+                # Standard JSON: only eager write supported
+                lines.append(f'{input_var}.collect().write_json("{escaped_path}")')
 
         else:
             lines.append(

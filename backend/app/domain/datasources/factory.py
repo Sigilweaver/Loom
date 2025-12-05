@@ -6,6 +6,7 @@ from typing import Type
 from app.domain.datasources.base import DataSource
 from app.domain.datasources.csv import CSVDataSource
 from app.domain.datasources.excel import ExcelDataSource
+from app.domain.datasources.json import JSONDataSource
 from app.domain.datasources.parquet import ParquetDataSource
 from app.utils.errors import DataSourceError
 
@@ -17,9 +18,8 @@ class DataSourceFactory:
     _sources: dict[str, Type[DataSource]] = {
         "csv": CSVDataSource,
         "excel": ExcelDataSource,
+        "json": JSONDataSource,
         "parquet": ParquetDataSource,
-        # Future data sources:
-        # "json": JSONDataSource,
     }
 
     # File extension to source type mapping
@@ -31,10 +31,10 @@ class DataSourceFactory:
         ".xlsx": "excel",
         ".xls": "excel",
         ".xlsb": "excel",
+        ".json": "json",
+        ".jsonl": "json",  # Newline-delimited JSON
+        ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
         ".parquet": "parquet",
-        # Future:
-        # ".json": "json",
-        # ".jsonl": "json",
     }
 
     @classmethod

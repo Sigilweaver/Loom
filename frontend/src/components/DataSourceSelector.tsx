@@ -39,8 +39,9 @@ const DATA_SOURCES: DataSource[] = [
     id: "json",
     name: "JSON",
     category: "file",
-    description: "JavaScript Object Notation files",
-    enabled: false,
+    description: "JSON and NDJSON files (.json, .jsonl, .ndjson)",
+    enabled: true,
+    defaultMode: "scan",
   },
 
   // Databases

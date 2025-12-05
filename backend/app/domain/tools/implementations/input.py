@@ -52,6 +52,9 @@ class InputTool(BaseTool):
             lf = await self._load_parquet(config, parquet_mode)
         elif source_type == "excel":
             lf = await self._load_excel(config)
+        elif source_type == "json":
+            json_mode: str = config.get("jsonMode", "scan") or "scan"
+            lf = await self._load_json(config, json_mode)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -108,6 +111,53 @@ class InputTool(BaseTool):
             raise ToolError(f"Unknown Parquet mode: {mode}")
 
         # Handle column selection (not supported as scan parameter)
+        if "columns" in config and config["columns"]:
+            lf = lf.select(config["columns"])
+
+        return lf
+
+    async def _load_json(
+        self, config: dict[str, Any], mode: str = "scan"
+    ) -> pl.LazyFrame:
+        """Load JSON file using appropriate mode
+
+        Supports two JSON formats:
+        - Standard JSON (.json): Array of objects, always eager (read_json)
+        - NDJSON (.jsonl, .ndjson): Newline-delimited, supports lazy scan (scan_ndjson)
+
+        The mode parameter only affects NDJSON files.
+        Standard JSON files always use read mode (no lazy support).
+        """
+        from pathlib import Path
+
+        source = config.get("source")
+        if not source:
+            raise ToolError("JSON config missing 'source' field")
+
+        # Detect JSON format from extension
+        path = Path(source)
+        is_ndjson = path.suffix.lower() in {".jsonl", ".ndjson"}
+
+        if is_ndjson:
+            # NDJSON: supports scan (lazy) and read (eager) modes
+            ndjson_kwargs = self._build_ndjson_kwargs(config)
+
+            if mode == "scan":
+                # Lazy loading (most efficient for large files)
+                lf = pl.scan_ndjson(source, **ndjson_kwargs)
+            elif mode == "read":
+                # Eager loading, convert to lazy
+                df = pl.read_ndjson(source, **ndjson_kwargs)
+                lf = df.lazy()
+            else:
+                raise ToolError(f"Unknown JSON mode: {mode}")
+        else:
+            # Standard JSON: only eager read supported
+            json_kwargs = self._build_json_kwargs(config)
+            df = pl.read_json(source, **json_kwargs)
+            lf = df.lazy()
+
+        # Handle column selection after reading
         if "columns" in config and config["columns"]:
             lf = lf.select(config["columns"])
 
@@ -236,6 +286,53 @@ class InputTool(BaseTool):
 
         return kwargs
 
+    def _build_json_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars read_json kwargs
+
+        Standard JSON has limited options compared to NDJSON.
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Key mapping: frontend -> polars
+        key_mapping = {
+            "infer_schema_length": "infer_schema_length",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:
+                    kwargs[polars_key] = value
+
+        return kwargs
+
+    def _build_ndjson_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars scan_ndjson / read_ndjson kwargs
+
+        NDJSON has more options including lazy scan support.
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Key mapping: frontend -> polars
+        key_mapping = {
+            "infer_schema_length": "infer_schema_length",
+            "batch_size": "batch_size",
+            "n_rows": "n_rows",
+            "low_memory": "low_memory",
+            "rechunk": "rechunk",
+            "row_index_name": "row_index_name",
+            "row_index_offset": "row_index_offset",
+            "ignore_errors": "ignore_errors",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:
+                    kwargs[polars_key] = value
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -272,7 +369,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["csv", "excel", "parquet"]:
+        if source_type and source_type not in ["csv", "excel", "json", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -384,6 +481,54 @@ class InputTool(BaseTool):
 
             # Always convert to lazy for consistency
             lines.append(f'{var_name} = {var_name}.lazy()')
+
+        elif source_type == "json":
+            from pathlib import Path
+            path = Path(source_path)
+            is_ndjson = path.suffix.lower() in {".jsonl", ".ndjson"}
+
+            if is_ndjson:
+                # NDJSON: supports scan and read modes
+                mode = config.get("jsonMode", "scan")
+                func_name = "read_ndjson" if mode == "read" else "scan_ndjson"
+
+                options = []
+                ndjson_kwargs = self._build_ndjson_kwargs(config)
+
+                for key, value in ndjson_kwargs.items():
+                    if isinstance(value, str):
+                        options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                    elif isinstance(value, bool):
+                        options.append(f'{key}={str(value)}')
+                    elif isinstance(value, (int, float)):
+                        options.append(f'{key}={value}')
+
+                escaped_path = PythonCodeGenerator.escape_path(source_path)
+                if options:
+                    lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
+                else:
+                    lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
+
+                # If read mode, convert to lazy
+                if mode == "read":
+                    lines.append(f'{var_name} = {var_name}.lazy()')
+            else:
+                # Standard JSON: only eager read supported
+                options = []
+                json_kwargs = self._build_json_kwargs(config)
+
+                for key, value in json_kwargs.items():
+                    if isinstance(value, (int, float)):
+                        options.append(f'{key}={value}')
+
+                escaped_path = PythonCodeGenerator.escape_path(source_path)
+                if options:
+                    lines.append(f'{var_name} = pl.read_json("{escaped_path}", {", ".join(options)})')
+                else:
+                    lines.append(f'{var_name} = pl.read_json("{escaped_path}")')
+
+                # Always convert to lazy for consistency
+                lines.append(f'{var_name} = {var_name}.lazy()')
 
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')

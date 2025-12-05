@@ -1,5 +1,7 @@
 import { CSVMode } from "@domain/dataSources/csv";
 import { CSVOutputMode } from "@domain/dataSources/csvOutput";
+import { JSONMode } from "@domain/dataSources/json";
+import { JSONOutputMode } from "@domain/dataSources/jsonOutput";
 import { ParquetMode } from "@domain/dataSources/parquet";
 import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
@@ -12,6 +14,8 @@ import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
 import { ExcelConfiguration } from "./ExcelConfiguration";
 import { ExcelOutputConfiguration } from "./ExcelOutputConfiguration";
+import { JsonConfiguration } from "./JsonConfiguration";
+import { JsonOutputConfiguration } from "./JsonOutputConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
@@ -189,6 +193,27 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "json") {
+                  // JSON with mode selection (mode only applies to NDJSON)
+                  const dataSourceWithMode = dataSource as typeof dataSource & {
+                    selectedMode?: string;
+                  };
+                  const selectedMode =
+                    dataSourceWithMode.selectedMode || "scan"; // Default to scan mode
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "json" as const,
+                    jsonMode: selectedMode,
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -217,6 +242,16 @@ export default function ConfigurationPanel() {
             /* Parquet Configuration Panel */
             <ParquetConfiguration
               mode={(selectedTool.config.parquetMode as ParquetMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "json" ? (
+            /* JSON Configuration Panel */
+            <JsonConfiguration
+              mode={(selectedTool.config.jsonMode as JSONMode) || "scan"}
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
@@ -270,6 +305,14 @@ export default function ConfigurationPanel() {
                     float_precision: 3,
                   };
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "json") {
+                  // JSON with mode selection (default to sink for NDJSON)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "json" as const,
+                    jsonMode: "sink", // Default to streaming mode
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -298,6 +341,16 @@ export default function ConfigurationPanel() {
             selectedTool.config.type === "excel" ? (
             /* Excel Output Configuration Panel */
             <ExcelOutputConfiguration
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "json" ? (
+            /* JSON Output Configuration Panel */
+            <JsonOutputConfiguration
+              mode={(selectedTool.config.jsonMode as JSONOutputMode) || "sink"}
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
