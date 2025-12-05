@@ -1,22 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@contexts/ThemeContext";
 import { useUIStore } from "@state/uiStore";
 import DataTable from "../DataTable";
-
-// Mock @tanstack/react-virtual to return all rows as visible in tests
-vi.mock("@tanstack/react-virtual", () => ({
-  useVirtualizer: ({ count }: { count: number }) => ({
-    getVirtualItems: () =>
-      Array.from({ length: count }, (_, i) => ({
-        index: i,
-        start: i * 33,
-        size: 33,
-        key: i,
-      })),
-    getTotalSize: () => count * 33,
-  }),
-}));
 
 describe("DataTable", () => {
   beforeEach(() => {
