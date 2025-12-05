@@ -11,6 +11,7 @@ import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
 import { ExcelConfiguration } from "./ExcelConfiguration";
+import { ExcelOutputConfiguration } from "./ExcelOutputConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
@@ -257,6 +258,18 @@ export default function ConfigurationPanel() {
                     parquetMode: "sink", // Default to streaming mode
                   };
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "excel") {
+                  // Excel output (always eager - no streaming)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "excel" as const,
+                    table_style: "Table Style Medium 4", // Default table style
+                    include_header: true,
+                    autofilter: true,
+                    autofit: false,
+                    float_precision: 3,
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -276,6 +289,15 @@ export default function ConfigurationPanel() {
             /* Parquet Output Configuration Panel */
             <ParquetOutputConfiguration
               mode={(selectedTool.config.parquetMode as ParquetOutputMode) || "sink"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "excel" ? (
+            /* Excel Output Configuration Panel */
+            <ExcelOutputConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)

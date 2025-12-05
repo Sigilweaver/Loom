@@ -52,6 +52,8 @@ class OutputTool(BaseTool):
             await self._save_csv(lf, config)
         elif output_type == "parquet":
             await self._save_parquet(lf, config)
+        elif output_type == "excel":
+            await self._save_excel(lf, config)
         else:
             raise ToolError(f"Unsupported output type: {output_type}")
 
@@ -180,6 +182,83 @@ class OutputTool(BaseTool):
 
         return kwargs
 
+    async def _save_excel(
+        self, lf: pl.LazyFrame, config: dict[str, Any]
+    ) -> None:
+        """Save to Excel using write_excel (always eager - no streaming support)"""
+        destination = config.get("destination")
+        if not destination:
+            raise ToolError("Excel output config missing 'destination' field")
+
+        # Ensure destination directory exists
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Build Excel write kwargs
+        excel_kwargs = self._build_excel_kwargs(config)
+
+        try:
+            # Excel only supports eager write - must collect first
+            df = lf.collect()
+            df.write_excel(destination, **excel_kwargs)
+        except Exception as e:
+            raise ToolError(f"Failed to write Excel: {str(e)}") from e
+
+    def _build_excel_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert frontend config to Polars Excel write kwargs.
+
+        Maps parameters for write_excel.
+        """
+        kwargs = {}
+
+        # Worksheet name
+        if "worksheet" in config and config["worksheet"]:
+            kwargs["worksheet"] = config["worksheet"]
+
+        # Table style - can be a string name or None to disable
+        if "table_style" in config:
+            value = config["table_style"]
+            # Empty string or "none" means no table styling
+            if value == "" or value == "none" or value is None:
+                kwargs["table_style"] = None
+            else:
+                kwargs["table_style"] = value
+
+        # Table name for Excel references
+        if "table_name" in config and config["table_name"]:
+            kwargs["table_name"] = config["table_name"]
+
+        # Boolean options
+        bool_params = {
+            "include_header": "include_header",
+            "autofilter": "autofilter",
+            "autofit": "autofit",
+            "hide_gridlines": "hide_gridlines",
+        }
+
+        for config_key, polars_key in bool_params.items():
+            if config_key in config and config[config_key] is not None:
+                kwargs[polars_key] = config[config_key]
+
+        # Numeric options
+        if "float_precision" in config and config["float_precision"] is not None:
+            kwargs["float_precision"] = config["float_precision"]
+
+        if "sheet_zoom" in config and config["sheet_zoom"] is not None:
+            kwargs["sheet_zoom"] = config["sheet_zoom"]
+
+        # Freeze panes - tuple of (row, col) for split position
+        if "freeze_panes" in config and config["freeze_panes"]:
+            freeze = config["freeze_panes"]
+            # Accept string notation like "A2" or tuple like [1, 0]
+            if isinstance(freeze, str):
+                kwargs["freeze_panes"] = freeze
+            elif isinstance(freeze, (list, tuple)) and len(freeze) >= 2:
+                kwargs["freeze_panes"] = tuple(freeze[:2])
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -200,7 +279,7 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["csv", "parquet"]:
+        if output_type and output_type not in ["csv", "parquet", "excel"]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -213,7 +292,32 @@ class OutputTool(BaseTool):
         if output_type == "parquet":
             mode = config.get("parquetMode", "sink")
             if mode not in ["sink", "write"]:
-                errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'")
+                errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'"
+            )
+
+        # Validate Excel-specific options
+        if output_type == "excel":
+            # Validate sheet_zoom if provided
+            sheet_zoom = config.get("sheet_zoom")
+            if sheet_zoom is not None:
+                if not isinstance(sheet_zoom, int) or sheet_zoom < 10 or sheet_zoom > 400:
+                    errors.append(
+                        f"Invalid sheet_zoom: {sheet_zoom}. Must be integer between 10 and 400"
+                    )
+
+            # Validate float_precision if provided
+            float_precision = config.get("float_precision")
+            if float_precision is not None:
+                is_invalid = (
+                    not isinstance(float_precision, int)
+                    or float_precision < 0
+                    or float_precision > 15
+                )
+                if is_invalid:
+                    errors.append(
+                        f"Invalid float_precision: {float_precision}. "
+                        "Must be integer between 0 and 15"
+                    )
 
         # Validate destination path
         destination = config.get("destination")
@@ -296,6 +400,28 @@ class OutputTool(BaseTool):
                 lines.append(f'{input_var}.sink_parquet("{escaped_path}"{opts_str})')
             else:  # write mode
                 lines.append(f'{input_var}.collect().write_parquet("{escaped_path}"{opts_str})')
+
+        elif output_type == "excel":
+            # Excel always requires collect (no streaming support)
+            options = []
+            excel_kwargs = self._build_excel_kwargs(config)
+
+            for key, value in excel_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)) and value is not None:
+                    options.append(f'{key}={value}')
+                elif isinstance(value, tuple):
+                    options.append(f'{key}={value}')
+                elif value is None:
+                    options.append(f'{key}=None')
+
+            escaped_path = PythonCodeGenerator.escape_path(destination)
+            opts_str = f", {', '.join(options)}" if options else ""
+
+            lines.append(f'{input_var}.collect().write_excel("{escaped_path}"{opts_str})')
 
         else:
             lines.append(
