@@ -42,6 +42,11 @@ a = Analysis(
         'pydantic',
         'pydantic_core',
         
+        # Excel support
+        'fastexcel',
+        'fastexcel._fastexcel',
+        'xlsxwriter',
+        
         # Other dependencies
         'multipart',
         'python_multipart',
