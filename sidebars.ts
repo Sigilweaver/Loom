@@ -142,6 +142,7 @@ const sidebars: SidebarsConfig = {
         'developer/known-issues',
       ],
     },
+    'code-of-conduct',
   ],
 };
 

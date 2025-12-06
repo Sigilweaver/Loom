@@ -31,8 +31,6 @@ Sigilweaver is in **active development**, pre-v1.0. The core is functional but h
 
 - UI could be prettier
 - Some edge cases in tool configs
-- Error messages could be clearer
-- Documentation is sparse
 - No code signing yet (OS warnings on install)
 
 ---
@@ -116,8 +114,8 @@ After initial tester feedback, a focused month of intensive development.
 Ship something stable that works.
 
 **Must-haves:**
-- Open source license (AGPL-3.0 or similar in spirit) ✓
-- Cross-platform builds ✓
+- Open source license (AGPL-3.0 or similar in spirit)
+- Cross-platform builds
 - Documentation (enough to get started)
 - Code signing complete
 - Contributor License Agreement (CLA) in place
