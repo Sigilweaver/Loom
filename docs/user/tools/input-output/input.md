@@ -86,10 +86,45 @@ Columnar binary format with embedded schema.
 | Use Statistics | `true` | Use file statistics for optimization |
 | Parallel | `auto` | Parallel reading strategy |
 
+### IPC / Arrow
+
+Apache Arrow's native binary format (.arrow, .ipc, .feather). Designed for zero-copy data sharing and maximum performance.
+
+**Reading Modes:**
+
+| Mode | Description | Best For |
+|------|-------------|----------|
+| **Scan** | Lazy loading, memory-mapped | Large files, memory efficiency |
+| **Read** | Eager loading | Small files |
+
+**IPC Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the Arrow file |
+| N Rows | (all) | Limit number of rows to read |
+| Memory Map | `true` | Memory-map the file for efficient access |
+| Cache | `true` | Cache scan result (scan mode only) |
+| Rechunk | `false` / `true` | Rechunk to contiguous memory (default differs by mode) |
+| Retries | `2` | Number of retries on I/O errors |
+
+**Advanced Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Row Index Name | (none) | Add a row index column with this name |
+| Row Index Offset | `0` | Start row index at this value |
+| Hive Partitioning | `false` | Infer partition columns from directory structure |
+| Parse Hive Dates | `true` | Try to parse date columns from Hive partitions |
+
+:::tip Performance
+IPC/Arrow is the **fastest format** for read/write operations. Use it for intermediate files in your workflow or for sharing data between applications that support Apache Arrow (DuckDB, Spark, R, Julia, etc.).
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
-2. Select the data source type (CSV, Excel, or Parquet)
+2. Select the data source type (CSV, Excel, Parquet, or IPC/Arrow)
 3. Choose the file using the file picker
 4. Configure format-specific options as needed
 
@@ -118,9 +153,17 @@ Columnar binary format with embedded schema.
 3. Click "Browse" and select your file
 4. Wire the output to downstream tools
 
+### Loading an IPC/Arrow File
+
+1. Drag Input tool to canvas
+2. Select "IPC / Arrow" as the data source
+3. Click "Browse" and select your .arrow, .ipc, or .feather file
+4. Wire the output to downstream tools
+
 ## Notes
 
-- **Lazy loading** (Scan mode) is recommended for CSV and Parquet when working with large files
-- **Excel files** are always loaded entirely into memory - consider converting large Excel files to CSV or Parquet for better performance
+- **Lazy loading** (Scan mode) is recommended for CSV, Parquet, and IPC/Arrow when working with large files
+- **Excel files** are always loaded entirely into memory - consider converting large Excel files to CSV, Parquet, or IPC for better performance
+- **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
 - **Schema inference** may not always be accurate - use Select to cast types if needed
 - **File paths** must be accessible from where Sigilweaver is running
