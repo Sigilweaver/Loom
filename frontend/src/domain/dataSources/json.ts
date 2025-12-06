@@ -14,6 +14,7 @@
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_json.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_ndjson.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_ndjson.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#json
  */
 
 /**

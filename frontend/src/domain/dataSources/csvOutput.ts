@@ -8,6 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_csv.html
+ * https://docs.sigilweaver.app/user/tools/input-output/output/#csv
  */
 
 /**

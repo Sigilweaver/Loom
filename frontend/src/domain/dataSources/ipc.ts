@@ -8,6 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_ipc.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_ipc.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#ipc--arrow
  *
  * IPC (Inter-Process Communication) is Apache Arrow's native binary format,
  * also known as Feather v2. It's designed for zero-copy data sharing and

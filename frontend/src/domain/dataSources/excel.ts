@@ -6,6 +6,7 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_excel.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#excel
  *
  * Note: Excel files only support eager reading. The calamine engine (default)
  * is the fastest option, using the fastexcel module.

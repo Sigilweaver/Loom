@@ -6,6 +6,7 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_avro.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#avro
  *
  * Apache Avro is a row-based binary data format commonly used in
  * big data ecosystems (Hadoop, Kafka, Spark). It's schema-first and

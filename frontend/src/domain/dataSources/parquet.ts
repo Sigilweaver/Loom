@@ -8,6 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_parquet.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_parquet.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#parquet
  */
 
 /**

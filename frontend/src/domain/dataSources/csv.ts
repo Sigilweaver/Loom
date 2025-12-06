@@ -10,6 +10,7 @@
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv_batched.html
+ * https://docs.sigilweaver.app/user/tools/input-output/input/#csv
  */
 
 /**

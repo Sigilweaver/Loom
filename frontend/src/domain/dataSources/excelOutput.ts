@@ -7,8 +7,10 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_excel.html
  * https://xlsxwriter.readthedocs.io/working_with_tables.html
+ * https://docs.sigilweaver.app/user/tools/input-output/output/#excel
  *
  * Note: Excel files only support eager writing. The file is written using xlsxwriter.
+ * See Sigilweaver documentation for visual reference of all Excel table styles.
  */
 
 /**

@@ -12,8 +12,9 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_json.html
- * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_ndjson.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_ndjson.html
+ * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_ndjson.html
+ * https://docs.sigilweaver.app/user/tools/input-output/output/#json
  */
 
 /**
