@@ -22,7 +22,7 @@ Sigilweaver is currently in active development. The software and source code are
 
 ## Get Started
 
-- **Download**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads.html)
+- **Download**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)
 - **Website**: [sigilweaver.app](https://sigilweaver.app)
 - **GitHub**: [github.com/sigilweaver/sigilweaver-app](https://github.com/sigilweaver/sigilweaver-app)
 

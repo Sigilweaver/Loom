@@ -81,7 +81,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://sigilweaver.app/downloads.html',
+          href: 'https://sigilweaver.app/downloads',
           label: 'Download',
           position: 'right',
         },
@@ -117,7 +117,7 @@ const config: Config = {
             },
             {
               label: 'Downloads',
-              href: 'https://sigilweaver.app/downloads.html',
+              href: 'https://sigilweaver.app/downloads',
             },
             {
               label: 'GitHub',
@@ -130,16 +130,16 @@ const config: Config = {
           items: [
             {
               label: 'Terms of Use',
-              href: 'https://sigilweaver.app/terms.html',
+              href: 'https://sigilweaver.app/terms',
             },
             {
               label: 'Privacy Policy',
-              href: 'https://sigilweaver.app/privacy.html',
+              href: 'https://sigilweaver.app/privacy',
             },
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Nathan Riley (DBA Sigilweaver). Sigilweaver™ is a trademark of Nathan Riley. AGPL-3.0 Licensed.`,
+      copyright: `© ${new Date().getFullYear()} Nathan Riley (DBA Sigilweaver). Sigilweaver™ is a trademark of Nathan Riley. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>.`,
     },
     prism: {
       theme: prismThemes.github,
