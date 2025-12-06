@@ -143,11 +143,16 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
         "--port", "8000"
     ]
     
+    # Set environment variables
+    env = os.environ.copy()
+    env["POLARS_VERBOSE"] = "1"
+    
     try:
         # Use shell=False for cross-platform compatibility
         backend_process = subprocess.Popen(
             cmd,
             cwd=backend_dir,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,

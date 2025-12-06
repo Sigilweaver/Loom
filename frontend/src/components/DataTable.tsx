@@ -141,7 +141,7 @@ const DataTable = () => {
 
   if (previewState.error) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-theme-text-error">
+      <div className="flex items-center justify-center h-full text-sm text-theme-notification-error-text">
         Error: {previewState.error}
       </div>
     );

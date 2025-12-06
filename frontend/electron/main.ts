@@ -105,6 +105,7 @@ async function startBackend(): Promise<void> {
       env: {
         ...process.env,
         PYTHONUNBUFFERED: "1",
+        POLARS_VERBOSE: "1",
         // Enable ephemeral auth mode with generated token
         AUTH_MODE: "ephemeral",
         SESSION_TOKEN: sessionToken,
