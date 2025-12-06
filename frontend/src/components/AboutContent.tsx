@@ -131,6 +131,7 @@ const AboutContent: React.FC = () => {
                 <li><a href="https://reactflow.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-border-focus)', fontWeight: 'bold' }} className="hover:underline" title="https://reactflow.dev">Xyflow</a> - Canvas/graph rendering</li>
                 <li><a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-border-focus)', fontWeight: 'bold' }} className="hover:underline" title="https://vitejs.dev">Vite</a> - Build tooling</li>
                 <li><a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-border-focus)', fontWeight: 'bold' }} className="hover:underline" title="https://tailwindcss.com">TailwindCSS</a> - Styling</li>
+                <li><a href="https://lucide.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-border-focus)', fontWeight: 'bold' }} className="hover:underline" title="https://lucide.dev">Lucide</a> - Icons</li>
               </ul>
             </div>
             <div>

@@ -121,6 +121,19 @@ const SocketTabs = () => {
     return { inputs, outputs };
   }, [currentTool, toolDefinition, wires]);
 
+  // Get tool category color
+  const categoryColorClass = useMemo(() => {
+    if (!toolDefinition) return "text-theme-text-primary";
+    
+    switch (toolDefinition.category) {
+      case "inout": return "text-theme-tool-inout";
+      case "preparation": return "text-theme-tool-preparation";
+      case "join": return "text-theme-tool-join";
+      case "aggregate": return "text-theme-tool-aggregate";
+      default: return "text-theme-text-primary";
+    }
+  }, [toolDefinition]);
+
   // Handle tab click
   const handleTabClick = (socketId: string, direction: "input" | "output") => {
     if (!currentTool) return;
@@ -155,7 +168,7 @@ const SocketTabs = () => {
       {/* Tool Name Header */}
       <div className="px-3 pb-2 mb-2 border-b border-theme-border-secondary">
         <div className="flex items-center gap-2">
-          <toolDefinition.icon className="w-4 h-4" />
+          <toolDefinition.icon className={`w-4 h-4 ${categoryColorClass}`} />
           <span className="text-xs font-medium truncate text-theme-text-primary">
             {currentTool.type}
           </span>
