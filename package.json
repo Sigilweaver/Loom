@@ -26,5 +26,8 @@
     "open-source"
   ],
   "author": "Sigilweaver Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "lucide": "^0.556.0"
+  }
 }

@@ -28,9 +28,7 @@ export function createHeader(options: HeaderOptions = {}): string {
       aria-pressed="false" 
       title="Enable accessibility mode"
     >
-      <svg class="w-4 h-4 text-mystic-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-      </svg>
+      <i data-lucide="zap" class="w-4 h-4 text-mystic-400" aria-hidden="true"></i>
       <span class="text-xs text-mystic-400">A11y</span>
       <div class="toggle-switch" aria-hidden="true">
         <div class="toggle-slider"></div>
@@ -49,9 +47,7 @@ export function createHeader(options: HeaderOptions = {}): string {
         title="Enable accessibility mode"
       >
         <span class="flex items-center space-x-2">
-          <svg class="w-4 h-4 text-mystic-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
+          <i data-lucide="zap" class="w-4 h-4 text-mystic-400" aria-hidden="true"></i>
           <span class="text-mystic-300">Accessibility Mode</span>
         </span>
         <div class="toggle-switch" aria-hidden="true">
@@ -86,9 +82,7 @@ export function createHeader(options: HeaderOptions = {}): string {
             ${desktopA11yToggle}
           </div>
           <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
+            <i data-lucide="menu" class="w-6 h-6" aria-hidden="true"></i>
           </button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { initializeAccessibility } from '@lib/accessibility';
 import { initializeNavigation } from '@lib/navigation';
 import { initializeScrollEffects, initializeHeroAnimations } from '@lib/scroll-effects';
 import { initializeNodeConnections } from '@lib/node-connections';
+import { createIcons, Shield, Check, Globe, Clipboard, AlertTriangle, BookOpen, Search, Sparkles, Lock, Lightbulb, Key, MessageSquare, UserCog, Moon, Settings, Brush, Coffee, Clock, Loader2, Zap, Wrench, Timer, Bomb, UserX, RefreshCw, FileText, Mail, Wand2, Menu, Heart, Target } from 'lucide';
 
 // Export for use by page-specific scripts
 export { initializeLayout } from '@lib/layout';
@@ -34,6 +35,13 @@ export function initializeSite(): void {
   // Initialize layout components
   initializeLayout();
   
+  // Initialize icons for static HTML
+  createIcons({
+    icons: {
+      Shield, Check, Globe, Clipboard, AlertTriangle, BookOpen, Search, Sparkles, Lock, Lightbulb, Key, MessageSquare, UserCog, Moon, Settings, Brush, Coffee, Clock, Loader2, Zap, Wrench, Timer, Bomb, UserX, RefreshCw, FileText, Mail, Wand2, Menu, Heart, Target
+    }
+  });
+
   // Initialize accessibility preferences FIRST
   // This sets the a11y class before other initializations check it
   initializeAccessibility();
