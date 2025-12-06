@@ -21,7 +21,7 @@ Each guide covers:
 | **Power Query** | Business users comfortable with M language (Excel/Power BI) | [Power Query Guide](./power-query) |
 | **KNIME** | Scientists and researchers using node-based workflows | [KNIME Guide](./knime) |
 | **Orange** | Data scientists building visual ML pipelines | [Orange Guide](./orange) |
-| **Excel** | Spreadsheet users ready for scalable data pipelines | [Excel Users Guide](./excel) |
+| **Excel** | Spreadsheet users ready for scalable data pipelines | [Excel Guide](./excel) |
 
 ## Not Listed?
 

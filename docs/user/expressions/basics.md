@@ -20,7 +20,7 @@ Column names with spaces or special characters work the same way - just wrap the
 
 ## Literals
 
-Use `pl.lit()` to create constant values in expressions:
+Use `pl.lit()` to wrap constant values when they need to become column expressions:
 
 ```python
 pl.lit("active")       # String literal
@@ -29,17 +29,40 @@ pl.lit(3.14)           # Float literal
 pl.lit(True)           # Boolean literal
 ```
 
-### When You Need Literals
+### When You Need `pl.lit()`
 
-You need `pl.lit()` when using a constant in an expression context:
+You **must** use `pl.lit()` when assigning or returning a constant value:
 
 ```python
-# Assign a literal string to a new column
+# In Formula tool - assign a constant to a new column
 pl.lit("Complete")
 
-# Use in conditional logic (If status = "active" then "Yes" else "No")
+# In conditional returns (.then and .otherwise)
 pl.when(pl.col("status") == "active").then(pl.lit("Yes")).otherwise(pl.lit("No"))
+
+# Fill null values with a constant
+pl.col("value").fill_null(pl.lit(0))
 ```
+
+### When You Don't Need `pl.lit()`
+
+You **don't need** `pl.lit()` for comparisons - bare values work fine:
+
+```python
+# Comparing to constants - no pl.lit() needed
+pl.col("status") == "active"        # Works
+pl.col("age") > 18                   # Works
+pl.col("price") < 100.0              # Works
+
+# These also work but are unnecessarily verbose:
+pl.col("status") == pl.lit("active") # Unnecessary
+pl.col("age") > pl.lit(18)           # Unnecessary
+```
+
+:::tip Rule of Thumb
+**Comparisons**: Use bare values (`"active"`, `18`, `100.0`)  
+**Assignments/Returns**: Use `pl.lit()` to wrap the value
+:::
 
 ## Comparison Operators
 
