@@ -233,15 +233,20 @@ export function SummarizeConfiguration({
     });
   }, []);
 
-  // Select all columns
-  const selectAllColumns = useCallback(() => {
-    setSelectedColumns(new Set(inputColumns.map((c) => c.name)));
-  }, [inputColumns]);
+  // Calculate selection state for header checkbox
+  const allSelected =
+    inputColumns.length > 0 && inputColumns.every((c) => selectedColumns.has(c.name));
+  const someSelected = inputColumns.some((c) => selectedColumns.has(c.name));
+  const isIndeterminate = someSelected && !allSelected;
 
-  // Deselect all columns
-  const deselectAllColumns = useCallback(() => {
-    setSelectedColumns(new Set());
-  }, []);
+  // Toggle all columns
+  const toggleAll = useCallback((checked: boolean) => {
+    if (checked) {
+      setSelectedColumns(new Set(inputColumns.map((c) => c.name)));
+    } else {
+      setSelectedColumns(new Set());
+    }
+  }, [inputColumns]);
 
   // Add selected columns with an action
   const addColumnsWithAction = useCallback(
@@ -392,27 +397,22 @@ export function SummarizeConfiguration({
         {/* Columns Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
           <span className="text-sm font-semibold text-theme-text-primary">Columns:</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={selectAllColumns}
-              className="px-2 py-0.5 text-xs border rounded border-theme-border-primary hover:bg-theme-surface-hover text-theme-text-secondary"
-            >
-              Select All
-            </button>
-            <button
-              type="button"
-              onClick={deselectAllColumns}
-              className="px-2 py-0.5 text-xs border rounded border-theme-border-primary hover:bg-theme-surface-hover text-theme-text-secondary"
-            >
-              Clear
-            </button>
-          </div>
         </div>
 
         {/* Columns Table Header */}
-        <div className="px-4 py-1 border-b border-theme-border-primary bg-theme-surface-panel">
-          <div className="grid grid-cols-[1fr_100px] gap-2 text-xs font-medium text-theme-text-secondary">
+        <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
+          <div className="grid grid-cols-[32px_1fr_100px] gap-2 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide items-center">
+            <div className="flex items-center justify-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = isIndeterminate;
+                }}
+                onChange={(e) => toggleAll(e.target.checked)}
+                className="w-4 h-4 rounded border-theme-border-primary bg-theme-surface-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
+              />
+            </div>
             <div>Column</div>
             <div>Type</div>
           </div>
@@ -435,11 +435,20 @@ export function SummarizeConfiguration({
                     key={col.name}
                     onClick={() => toggleColumnSelection(col.name)}
                     className={clsx(
-                      "px-4 py-1.5 grid grid-cols-[1fr_100px] gap-2 items-center cursor-pointer",
+                      "px-4 py-2 grid grid-cols-[32px_1fr_100px] gap-2 items-center cursor-pointer",
                       isSelected && "bg-theme-interactive-accent/20",
                       !isSelected && "hover:bg-theme-surface-hover"
                     )}
                   >
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleColumnSelection(col.name)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-theme-border-primary bg-theme-surface-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
+                      />
+                    </div>
                     <div className="flex items-center gap-2 min-w-0">
                       <span
                         className={clsx(
@@ -527,8 +536,8 @@ export function SummarizeConfiguration({
         </div>
 
         {/* Actions Table Header */}
-        <div className="px-4 py-1 border-b border-theme-border-primary bg-theme-surface-panel">
-          <div className="grid grid-cols-[1fr_120px_1fr_24px] gap-2 text-xs font-medium text-theme-text-secondary">
+        <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
+          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide items-center">
             <div>Column</div>
             <div>Action</div>
             <div>Output Name</div>
@@ -550,10 +559,10 @@ export function SummarizeConfiguration({
                   return (
                   <div
                     key={`${action.column}-${index}`}
-                    className="px-4 py-1.5 grid grid-cols-[1fr_120px_1fr_24px] gap-2 items-center hover:bg-theme-surface-hover"
+                    className="px-4 py-2 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 items-center hover:bg-theme-surface-hover"
                   >
                     {/* Column Name */}
-                    <div className="text-sm truncate text-theme-text-primary">
+                    <div className="text-sm truncate text-theme-text-primary" title={action.column}>
                       {action.column}
                     </div>
 
@@ -564,7 +573,7 @@ export function SummarizeConfiguration({
                         updateAction(index, { action: e.target.value })
                       }
                       className={clsx(
-                        "px-2 py-1 text-xs rounded border appearance-none",
+                        "w-full px-2 py-1 text-xs rounded border appearance-none",
                         "bg-theme-surface-panel border-theme-border-primary",
                         "text-theme-text-primary",
                         "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
@@ -585,7 +594,7 @@ export function SummarizeConfiguration({
                         updateAction(index, { outputName: e.target.value })
                       }
                       className={clsx(
-                        "px-2 py-1 text-xs rounded border",
+                        "w-full px-2 py-1 text-xs rounded border",
                         "bg-theme-surface-panel border-theme-border-primary",
                         "text-theme-text-primary",
                         "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
@@ -596,10 +605,12 @@ export function SummarizeConfiguration({
                     <button
                       type="button"
                       onClick={() => removeAction(index)}
-                      className="p-1 text-xs text-theme-text-tertiary hover:text-red-400"
+                      className="p-1 text-xs text-theme-text-tertiary hover:text-red-400 flex justify-center"
                       title="Remove"
                     >
-                      X
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      </svg>
                     </button>
                   </div>
                 );
