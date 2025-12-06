@@ -6,6 +6,7 @@ from typing import Type
 from app.domain.datasources.base import DataSource
 from app.domain.datasources.csv import CSVDataSource
 from app.domain.datasources.excel import ExcelDataSource
+from app.domain.datasources.ipc import IPCDataSource
 from app.domain.datasources.json import JSONDataSource
 from app.domain.datasources.parquet import ParquetDataSource
 from app.utils.errors import DataSourceError
@@ -18,6 +19,7 @@ class DataSourceFactory:
     _sources: dict[str, Type[DataSource]] = {
         "csv": CSVDataSource,
         "excel": ExcelDataSource,
+        "ipc": IPCDataSource,
         "json": JSONDataSource,
         "parquet": ParquetDataSource,
     }
@@ -35,6 +37,9 @@ class DataSourceFactory:
         ".jsonl": "json",  # Newline-delimited JSON
         ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
         ".parquet": "parquet",
+        ".arrow": "ipc",  # Apache Arrow IPC format
+        ".ipc": "ipc",  # IPC format
+        ".feather": "ipc",  # Feather v2 (same as Arrow IPC)
     }
 
     @classmethod

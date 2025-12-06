@@ -55,6 +55,9 @@ class InputTool(BaseTool):
         elif source_type == "json":
             json_mode: str = config.get("jsonMode", "scan") or "scan"
             lf = await self._load_json(config, json_mode)
+        elif source_type == "ipc":
+            ipc_mode: str = config.get("ipcMode", "scan") or "scan"
+            lf = await self._load_ipc(config, ipc_mode)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -183,6 +186,43 @@ class InputTool(BaseTool):
         lf = df.lazy()
 
         # Handle column selection after reading
+        if "columns" in config and config["columns"]:
+            lf = lf.select(config["columns"])
+
+        return lf
+
+    async def _load_ipc(
+        self, config: dict[str, Any], mode: str = "scan"
+    ) -> pl.LazyFrame:
+        """Load IPC/Arrow file using appropriate mode
+
+        Supports .arrow, .ipc, and .feather file extensions.
+        IPC is Apache Arrow's native binary format for zero-copy data sharing.
+        """
+        source = config.get("source")
+        if not source:
+            raise ToolError("IPC config missing 'source' field")
+
+        # Build Polars scan kwargs from config
+        scan_kwargs = self._build_ipc_kwargs(config)
+
+        # Load based on mode
+        if mode == "scan":
+            # Lazy loading (most efficient)
+            lf = pl.scan_ipc(source, **scan_kwargs)
+        elif mode == "read":
+            # Eager loading, convert to lazy
+            # read_ipc has a subset of scan_ipc parameters
+            read_kwargs = {
+                k: v for k, v in scan_kwargs.items()
+                if k in {"n_rows", "memory_map", "row_index_name", "row_index_offset", "rechunk"}
+            }
+            df = pl.read_ipc(source, **read_kwargs)
+            lf = df.lazy()
+        else:
+            raise ToolError(f"Unknown IPC mode: {mode}")
+
+        # Handle column selection (not supported as scan parameter)
         if "columns" in config and config["columns"]:
             lf = lf.select(config["columns"])
 
@@ -333,6 +373,35 @@ class InputTool(BaseTool):
 
         return kwargs
 
+    def _build_ipc_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars scan_ipc kwargs
+
+        IPC (Arrow) has similar options to Parquet with memory mapping support.
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Key mapping: frontend -> polars
+        key_mapping = {
+            "n_rows": "n_rows",
+            "cache": "cache",
+            "rechunk": "rechunk",
+            "row_index_name": "row_index_name",
+            "row_index_offset": "row_index_offset",
+            "memory_map": "memory_map",
+            "retries": "retries",
+            "hive_partitioning": "hive_partitioning",
+            "hive_schema": "hive_schema",
+            "try_parse_hive_dates": "try_parse_hive_dates",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:
+                    kwargs[polars_key] = value
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -369,7 +438,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["csv", "excel", "json", "parquet"]:
+        if source_type and source_type not in ["csv", "excel", "ipc", "json", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -528,6 +597,35 @@ class InputTool(BaseTool):
                     lines.append(f'{var_name} = pl.read_json("{escaped_path}")')
 
                 # Always convert to lazy for consistency
+                lines.append(f'{var_name} = {var_name}.lazy()')
+
+        elif source_type == "ipc":
+            mode = config.get("ipcMode", "scan")
+            func_name = "read_ipc" if mode == "read" else "scan_ipc"
+
+            # Build IPC options
+            options = []
+            ipc_kwargs = self._build_ipc_kwargs(config)
+
+            for key, value in ipc_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+                elif isinstance(value, dict):
+                    # For hive_schema
+                    options.append(f'{key}={value}')
+
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.{func_name}("{escaped_path}")')
+
+            # If read mode, convert to lazy
+            if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
 
         else:

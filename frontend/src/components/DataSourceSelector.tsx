@@ -8,6 +8,8 @@ interface DataSource {
   description: string;
   enabled: boolean;
   defaultMode?: string;
+  /** Which operations this format supports. Defaults to both if not specified. */
+  supportedOperations?: ("input" | "output")[];
 }
 
 const DATA_SOURCES: DataSource[] = [
@@ -42,6 +44,29 @@ const DATA_SOURCES: DataSource[] = [
     description: "JSON and NDJSON files (.json, .jsonl, .ndjson)",
     enabled: true,
     defaultMode: "scan",
+  },
+  {
+    id: "ipc",
+    name: "IPC / Arrow",
+    category: "file",
+    description: "Apache Arrow IPC format (.arrow, .ipc, .feather)",
+    enabled: true,
+    defaultMode: "scan",
+  },
+  {
+    id: "avro",
+    name: "Avro",
+    category: "file",
+    description: "Apache Avro binary format (.avro)",
+    enabled: false,
+  },
+  {
+    id: "ods",
+    name: "ODS",
+    category: "file",
+    description: "OpenDocument Spreadsheet (.ods) - LibreOffice/OpenOffice",
+    enabled: false,
+    supportedOperations: ["input"], // Read-only in Polars
   },
 
   // Databases
@@ -92,6 +117,8 @@ const DATA_SOURCES: DataSource[] = [
 interface DataSourceSelectorProps {
   onSelect: (dataSource: DataSource) => void;
   selectedId?: string | undefined;
+  /** Filter data sources by operation type. Shows all if not specified. */
+  operation?: "input" | "output";
 }
 
 // Get icon URL based on theme and data source
@@ -127,6 +154,9 @@ const getIconUrl = (dataSourceId: string, currentTheme: string): string => {
     excel: "microsoftexcel",
     parquet: "apacheparquet",
     json: "json",
+    ipc: "apachearrow",
+    avro: "apachekafka", // Avro is closely associated with Kafka ecosystem
+    ods: "libreoffice",
     sqlite: "sqlite",
     postgresql: "postgresql",
     mysql: "mysql",
@@ -152,6 +182,7 @@ const getIconUrl = (dataSourceId: string, currentTheme: string): string => {
 export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
   onSelect,
   selectedId,
+  operation,
 }) => {
   const { currentTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
@@ -159,9 +190,18 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
     "all" | "file" | "database"
   >("all");
 
-  // Filter data sources based on search and category
+  // Filter data sources based on search, category, and operation
   const filteredSources = useMemo(() => {
     let sources = DATA_SOURCES;
+
+    // Filter by operation (input/output) if specified
+    if (operation) {
+      sources = sources.filter((ds) => {
+        // If supportedOperations is not specified, the format supports both
+        const supported = ds.supportedOperations || ["input", "output"];
+        return supported.includes(operation);
+      });
+    }
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -177,7 +217,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
     }
 
     return sources;
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, operation]);
 
   // Group sources by category
   const fileFormats = filteredSources.filter((ds) => ds.category === "file");

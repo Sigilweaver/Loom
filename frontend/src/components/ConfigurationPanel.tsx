@@ -1,5 +1,7 @@
 import { CSVMode } from "@domain/dataSources/csv";
 import { CSVOutputMode } from "@domain/dataSources/csvOutput";
+import { IpcMode } from "@domain/dataSources/ipc";
+import { IpcOutputMode } from "@domain/dataSources/ipcOutput";
 import { JSONMode } from "@domain/dataSources/json";
 import { JSONOutputMode } from "@domain/dataSources/jsonOutput";
 import { ParquetMode } from "@domain/dataSources/parquet";
@@ -14,6 +16,8 @@ import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
 import { ExcelConfiguration } from "./ExcelConfiguration";
 import { ExcelOutputConfiguration } from "./ExcelOutputConfiguration";
+import { IpcConfiguration } from "./IpcConfiguration";
+import { IpcOutputConfiguration } from "./IpcOutputConfiguration";
 import { JsonConfiguration } from "./JsonConfiguration";
 import { JsonOutputConfiguration } from "./JsonOutputConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
@@ -134,6 +138,7 @@ export default function ConfigurationPanel() {
           {/* Show data source selector if no data source selected */}
           {!selectedTool.config?.category ? (
             <DataSourceSelector
+              operation="input"
               onSelect={(dataSource) => {
                 if (dataSource.id === "csv") {
                   // CSV with mode selection
@@ -214,6 +219,27 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "ipc") {
+                  // IPC/Arrow with mode selection
+                  const dataSourceWithMode = dataSource as typeof dataSource & {
+                    selectedMode?: string;
+                  };
+                  const selectedMode =
+                    dataSourceWithMode.selectedMode || "scan"; // Default to scan mode
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "ipc" as const,
+                    ipcMode: selectedMode,
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -257,6 +283,16 @@ export default function ConfigurationPanel() {
                 handleToolConfigChange(selectedTool.id, config)
               }
             />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "ipc" ? (
+            /* IPC/Arrow Configuration Panel */
+            <IpcConfiguration
+              mode={(selectedTool.config.ipcMode as IpcMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
           ) : (
             /* Other data source types */
             <div className="p-4 text-center text-theme-text-tertiary">
@@ -276,6 +312,7 @@ export default function ConfigurationPanel() {
           {/* Show data source selector if no type selected */}
           {!selectedTool.config?.type ? (
             <DataSourceSelector
+              operation="output"
               onSelect={(dataSource) => {
                 if (dataSource.id === "csv") {
                   // CSV with mode selection (default to sink)
@@ -311,6 +348,14 @@ export default function ConfigurationPanel() {
                     category: "file" as const,
                     type: "json" as const,
                     jsonMode: "sink", // Default to streaming mode
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "ipc") {
+                  // IPC/Arrow with mode selection (default to sink)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "ipc" as const,
+                    ipcMode: "sink", // Default to streaming mode
                   };
                   handleToolConfigChange(selectedTool.id, newConfig);
                 }
@@ -351,6 +396,16 @@ export default function ConfigurationPanel() {
             /* JSON Output Configuration Panel */
             <JsonOutputConfiguration
               mode={(selectedTool.config.jsonMode as JSONOutputMode) || "sink"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "ipc" ? (
+            /* IPC/Arrow Output Configuration Panel */
+            <IpcOutputConfiguration
+              mode={(selectedTool.config.ipcMode as IpcOutputMode) || "sink"}
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)

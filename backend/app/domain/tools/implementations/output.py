@@ -56,6 +56,8 @@ class OutputTool(BaseTool):
             await self._save_excel(lf, config)
         elif output_type == "json":
             await self._save_json(lf, config)
+        elif output_type == "ipc":
+            await self._save_ipc(lf, config)
         else:
             raise ToolError(f"Unsupported output type: {output_type}")
 
@@ -124,6 +126,46 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write Parquet: {str(e)}") from e
 
+    async def _save_ipc(
+        self, lf: pl.LazyFrame, config: dict[str, Any]
+    ) -> None:
+        """Save to IPC/Arrow using sink_ipc or write_ipc based on mode
+
+        IPC (Inter-Process Communication) is Apache Arrow's native binary format.
+        Supports .arrow, .ipc, and .feather file extensions.
+        """
+        destination = config.get("destination")
+        if not destination:
+            raise ToolError("IPC output config missing 'destination' field")
+
+        # Ensure destination directory exists
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Get mode (default to sink for streaming)
+        mode = config.get("ipcMode", "sink")
+
+        # Build IPC write kwargs
+        ipc_kwargs = self._build_ipc_kwargs(config)
+
+        try:
+            if mode == "sink":
+                # Streaming write - more memory efficient
+                lf.sink_ipc(destination, **ipc_kwargs)
+            elif mode == "write":
+                # Collect then write
+                # write_ipc has fewer parameters than sink_ipc
+                write_kwargs = {
+                    k: v for k, v in ipc_kwargs.items()
+                    if k in {"compression", "compat_level"}
+                }
+                df = lf.collect()
+                df.write_ipc(destination, **write_kwargs)
+            else:
+                raise ToolError(f"Unknown IPC mode: {mode}")
+        except Exception as e:
+            raise ToolError(f"Failed to write IPC: {str(e)}") from e
+
     def _build_csv_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars CSV write kwargs.
@@ -173,6 +215,30 @@ class OutputTool(BaseTool):
             "statistics": "statistics",
             "row_group_size": "row_group_size",
             "data_page_size": "data_page_size",
+        }
+
+        # Transfer config values
+        for config_key, polars_key in common_params.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:  # Skip None values to use Polars defaults
+                    kwargs[polars_key] = value
+
+        return kwargs
+
+    def _build_ipc_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert frontend config to Polars IPC write kwargs.
+
+        Maps parameters for sink_ipc and write_ipc.
+        IPC supports only uncompressed, lz4, and zstd compression.
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Common parameters between sink_ipc and write_ipc
+        common_params = {
+            "compression": "compression",
+            "compat_level": "compat_level",
         }
 
         # Transfer config values
@@ -346,7 +412,7 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["csv", "json", "parquet", "excel"]:
+        if output_type and output_type not in ["csv", "ipc", "json", "parquet", "excel"]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -361,6 +427,12 @@ class OutputTool(BaseTool):
             if mode not in ["sink", "write"]:
                 errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'"
             )
+
+        # Validate IPC mode
+        if output_type == "ipc":
+            mode = config.get("ipcMode", "sink")
+            if mode not in ["sink", "write"]:
+                errors.append(f"Invalid IPC mode: {mode}. Must be 'sink' or 'write'")
 
         # Validate JSON mode
         if output_type == "json":
@@ -523,6 +595,29 @@ class OutputTool(BaseTool):
             else:
                 # Standard JSON: only eager write supported
                 lines.append(f'{input_var}.collect().write_json("{escaped_path}")')
+
+        elif output_type == "ipc":
+            mode = config.get("ipcMode", "sink")
+
+            # Build IPC options
+            options = []
+            ipc_kwargs = self._build_ipc_kwargs(config)
+
+            for key, value in ipc_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)) and value is not None:
+                    options.append(f'{key}={value}')
+
+            escaped_path = PythonCodeGenerator.escape_path(destination)
+            opts_str = f", {', '.join(options)}" if options else ""
+
+            if mode == "sink":
+                lines.append(f'{input_var}.sink_ipc("{escaped_path}"{opts_str})')
+            else:  # write mode
+                lines.append(f'{input_var}.collect().write_ipc("{escaped_path}"{opts_str})')
 
         else:
             lines.append(
