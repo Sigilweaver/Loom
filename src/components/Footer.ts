@@ -30,7 +30,7 @@ export const defaultFooterConfig: FooterConfig = {
     {
       title: 'Quick Links',
       links: [
-        { label: 'Downloads', href: '/downloads.html' },
+        { label: 'Downloads', href: '/downloads' },
         { label: 'Contributing', href: '/contributing.html' },
         { label: 'GitHub', href: 'https://github.com/sigilweaver', isExternal: true },
       ],

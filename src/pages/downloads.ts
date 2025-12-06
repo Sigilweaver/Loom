@@ -8,8 +8,7 @@ import { initializeAccessibility } from '@lib/accessibility';
 import { initializeNavigation } from '@lib/navigation';
 import { initializeNodeConnections } from '@lib/node-connections';
 
-// API URLs for Backblaze-hosted download information
-const API_URL = 'https://download.sigilweaver.app/latest/downloads.json';
+// API URL for Backblaze-hosted releases index
 const RELEASES_INDEX_URL = 'https://download.sigilweaver.app/releases/index.json';
 const RELEASES_PER_PAGE = 10;
 
@@ -75,6 +74,7 @@ interface ReleasesIndex {
 
 /**
  * Fetch and display the latest downloads
+ * First fetches the releases index, then gets the latest version's downloads.json
  */
 async function fetchDownloads(): Promise<void> {
   const grid = document.getElementById('downloads-grid');
@@ -83,8 +83,22 @@ async function fetchDownloads(): Promise<void> {
   if (!grid) return;
   
   try {
-    const response = await fetch(API_URL);
-    if (!response.ok) throw new Error('Network response was not ok');
+    // Fetch releases index to find the latest version
+    const indexResponse = await fetch(RELEASES_INDEX_URL);
+    if (!indexResponse.ok) throw new Error('Failed to fetch releases index');
+    releasesData = await indexResponse.json();
+    
+    if (!releasesData || releasesData.releases.length === 0) {
+      throw new Error('No releases available');
+    }
+    
+    // Get the latest release (first in the list)
+    const latestVersion = releasesData.releases[0].version;
+    
+    // Fetch the downloads.json for the latest version
+    const downloadsUrl = `https://download.sigilweaver.app/releases/${latestVersion}/downloads.json`;
+    const response = await fetch(downloadsUrl);
+    if (!response.ok) throw new Error('Failed to fetch latest downloads');
     const data: DownloadsData = await response.json();
     
     // Update version display
@@ -389,6 +403,7 @@ function updateHeroButton(data: DownloadsData): void {
 
 /**
  * Load previous releases from the releases index
+ * Reuses releasesData if already fetched by fetchDownloads()
  */
 async function loadReleases(): Promise<void> {
   const button = document.getElementById('load-releases-btn') as HTMLButtonElement | null;
@@ -403,10 +418,12 @@ async function loadReleases(): Promise<void> {
   button.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Loading...';
   
   try {
-    const response = await fetch(RELEASES_INDEX_URL);
-    if (!response.ok) throw new Error('Failed to fetch releases');
-    
-    releasesData = await response.json();
+    // Reuse releasesData if already fetched, otherwise fetch it
+    if (!releasesData) {
+      const response = await fetch(RELEASES_INDEX_URL);
+      if (!response.ok) throw new Error('Failed to fetch releases');
+      releasesData = await response.json();
+    }
     
     // Hide button, show releases section
     button.classList.add('hidden');

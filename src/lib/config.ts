@@ -38,7 +38,7 @@ export const navConfig: NavConfig = {
   ],
   ctaButton: {
     label: 'Download',
-    href: '/downloads.html',
+    href: '/downloads',
   },
 };
 
@@ -49,7 +49,7 @@ export const simpleNavConfig: NavConfig = {
   logo: navConfig.logo,
   links: [
     { label: 'Home', href: '/' },
-    { label: 'Downloads', href: '/downloads.html' },
+    { label: 'Downloads', href: '/downloads' },
     { label: 'GitHub', href: 'https://github.com/sigilweaver', isExternal: true },
   ],
   ctaButton: navConfig.ctaButton,
