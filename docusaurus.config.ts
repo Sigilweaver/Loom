@@ -65,6 +65,8 @@ const config: Config = {
       logo: {
         alt: 'Sigilweaver Logo',
         src: 'img/logo.svg',
+        href: 'https://sigilweaver.app',
+        target: '_self',
       },
       items: [
         {
