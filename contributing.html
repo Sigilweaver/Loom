@@ -41,9 +41,9 @@
     <!-- GSAP for advanced animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
-<body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical">
+<body class="text-white bg-gradient-to-b from-mystic-900 to-mystic-700 font-mystical">
     <!-- Skip Link for Accessibility -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">
+    <a href="#main-content" class="z-50 px-4 py-2 font-semibold rounded-md sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900">
         Skip to main content
     </a>
     
@@ -62,68 +62,60 @@
 
     <!-- Hero Section -->
     <main>
-        <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20" aria-labelledby="hero-heading">
+        <section class="relative flex items-center justify-center min-h-screen pt-20 overflow-hidden" aria-labelledby="hero-heading">
             <!-- Animated Background -->
             <div class="absolute inset-0" aria-hidden="true">
-                <div class="workflow-canvas absolute inset-0 opacity-20"></div>
+                <div class="absolute inset-0 workflow-canvas opacity-20"></div>
             </div>
 
-            <div class="relative z-10 container mx-auto px-6 text-center" id="main-content">
+            <div class="container relative z-10 px-6 mx-auto text-center" id="main-content">
                 <div class="max-w-5xl mx-auto">
-                    <h1 id="hero-heading" class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                    <h1 id="hero-heading" class="mb-6 text-4xl font-bold leading-tight md:text-6xl">
                         <span class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Join the Circle of</span>
                         <span class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Data Magicians</span>
                     </h1>
-                    <p class="text-xl md:text-2xl text-mystic-200 mb-8 max-w-4xl mx-auto leading-relaxed">
+                    <p class="max-w-4xl mx-auto mb-8 text-xl leading-relaxed md:text-2xl text-mystic-200">
                         Every great spell is woven by many hands. Whether you're a seasoned wizard or an apprentice sourcerer, 
                         your unique magic can help shape the future of data pipeline creation.
                     </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a href="#ways-to-contribute" class="bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">
-                            Start Contributing
-                        </a>
-                        <a href="#support-the-magic" class="border-2 border-gold-500 hover:border-gold-400 px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:bg-gold-500/10 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50">
-                            Support the Magic
-                        </a>
-                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Ways to Contribute -->
         <section id="ways-to-contribute" class="py-20" aria-labelledby="contribute-heading">
-            <div class="container mx-auto px-6">
-                <h2 id="contribute-heading" class="text-4xl md:text-5xl font-bold text-center mb-16 text-mystic-200">Choose Your Path of Magic</h2>
+            <div class="container px-6 mx-auto">
+                <h2 id="contribute-heading" class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Choose Your Path of Magic</h2>
                 
-                <div class="grid md:grid-cols-2 gap-8 mb-16">
+                <div class="grid gap-8 mb-16 md:grid-cols-2">
                     <!-- Frontend Sourcerers -->
-                    <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all">
-                        <div class="flex items-center space-x-4 mb-6">
+                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                        <div class="flex items-center mb-6 space-x-4">
                             <div class="text-gold-400" role="img" aria-label="Magic wand icon"><i data-lucide="wand-2" class="w-12 h-12"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-gold-400">Frontend Sourcerers</h3>
                                 <p class="text-mystic-300">Weaving interfaces with grace and power</p>
                             </div>
                         </div>
-                        <p class="text-mystic-200 mb-6 leading-relaxed">
+                        <p class="mb-6 leading-relaxed text-mystic-200">
                             Are you a sourcerer who delights in crafting sigils that dance across the screen? 
                             Join our frontend circle and help keep the user interface flowing with ever more elegance.
                         </p>
-                        <div class="space-y-4 mb-6">
+                        <div class="mb-6 space-y-4">
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">React & TypeScript</h4>
-                                <p class="text-mystic-300 text-sm">Type-safe incantations for robust spells</p>
+                                <p class="text-sm text-mystic-300">Type-safe incantations for robust spells</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Vite & React Flow</h4>
-                                <p class="text-mystic-300 text-sm">Lightning-fast builds and visual node magic</p>
+                                <p class="text-sm text-mystic-300">Lightning-fast builds and visual node magic</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Electron</h4>
-                                <p class="text-mystic-300 text-sm">Cross-platform desktop enchantments</p>
+                                <p class="text-sm text-mystic-300">Cross-platform desktop enchantments</p>
                             </div>
                         </div>
-                        <a href="https://github.com/sigilweaver/sigilweaver-app/docs/CONTRIBUTING_FRONTEND.md" class="inline-flex items-center bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg font-semibold transition-all border border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/sigilweaver/sigilweaver-app/docs/CONTRIBUTING_FRONTEND.md" class="inline-flex items-center px-6 py-3 font-semibold transition-all border rounded-lg bg-mystic-600 hover:bg-mystic-500 border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
@@ -133,33 +125,33 @@
                     </article>
 
                     <!-- Backend Wizards -->
-                    <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all">
-                        <div class="flex items-center space-x-4 mb-6">
+                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                        <div class="flex items-center mb-6 space-x-4">
                             <div class="text-gold-400" role="img" aria-label="Crystal ball icon"><i data-lucide="sparkles" class="w-12 h-12"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-gold-400">Backend Wizards</h3>
                                 <p class="text-mystic-300">Masters of data flow and orchestration</p>
                             </div>
                         </div>
-                        <p class="text-mystic-200 mb-6 leading-relaxed">
+                        <p class="mb-6 leading-relaxed text-mystic-200">
                             Are you a wizard drawn to the deeper mysteries of data transformation? 
                             Join our backend coven and help us channel the raw power of data through elegant pipelines.
                         </p>
-                        <div class="space-y-4 mb-6">
+                        <div class="mb-6 space-y-4">
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Python Orchestrator</h4>
-                                <p class="text-mystic-300 text-sm">Transform visual workflows into executable spells</p>
+                                <p class="text-sm text-mystic-300">Transform visual workflows into executable spells</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Docker Compute Nodes</h4>
-                                <p class="text-mystic-300 text-sm">Containerized magic for scalable processing</p>
+                                <p class="text-sm text-mystic-300">Containerized magic for scalable processing</p>
                             </div>
                             <div class="tech-item">
-                                <h4 class="font-semibold text-mystic-200">Pandas & Polars</h4>
-                                <p class="text-mystic-300 text-sm">High-performance data manipulation mastery</p>
+                                <h4 class="font-semibold text-mystic-200">Polars</h4>
+                                <p class="text-sm text-mystic-300">High-performance data manipulation mastery</p>
                             </div>
                         </div>
-                        <a href="https://github.com/sigilweaver/sigilweaver-app/docs/CONTRIBUTING_BACKEND.md" class="inline-flex items-center bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg font-semibold transition-all border border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/sigilweaver/sigilweaver-app/docs/CONTRIBUTING_BACKEND.md" class="inline-flex items-center px-6 py-3 font-semibold transition-all border rounded-lg bg-mystic-600 hover:bg-mystic-500 border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.30.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
@@ -170,35 +162,35 @@
                 </div>
 
                 <!-- Documentation & Community -->
-                <div class="grid md:grid-cols-2 gap-8">
+                <div class="grid gap-8 md:grid-cols-2">
                     <!-- Knowledge Keepers -->
-                    <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all">
-                        <div class="flex items-center space-x-4 mb-6">
+                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                        <div class="flex items-center mb-6 space-x-4">
                             <div class="text-gold-400" role="img" aria-label="Scroll icon"><i data-lucide="scroll" class="w-12 h-12"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-gold-400">Knowledge Keepers</h3>
                                 <p class="text-mystic-300">Scribes of wisdom and clarity</p>
                             </div>
                         </div>
-                        <p class="text-mystic-200 mb-6 leading-relaxed">
+                        <p class="mb-6 leading-relaxed text-mystic-200">
                             Do you possess the gift of translating complex incantations into clear wisdom? 
                             Help us illuminate the path for fellow practitioners through excellent documentation.
                         </p>
-                        <div class="space-y-4 mb-6">
+                        <div class="mb-6 space-y-4">
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">User Guides & Tutorials</h4>
-                                <p class="text-mystic-300 text-sm">Light the way for new apprentices</p>
+                                <p class="text-sm text-mystic-300">Light the way for new apprentices</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">API Documentation</h4>
-                                <p class="text-mystic-300 text-sm">Chronicle the sacred interfaces</p>
+                                <p class="text-sm text-mystic-300">Chronicle the sacred interfaces</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Examples & Recipes</h4>
-                                <p class="text-mystic-300 text-sm">Share proven spells and patterns</p>
+                                <p class="text-sm text-mystic-300">Share proven spells and patterns</p>
                             </div>
                         </div>
-                        <a href="https://github.com/sigilweaver/sigilweaver-documentation" class="inline-flex items-center bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg font-semibold transition-all border border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/sigilweaver/sigilweaver-documentation" class="inline-flex items-center px-6 py-3 font-semibold transition-all border rounded-lg bg-mystic-600 hover:bg-mystic-500 border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.30.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
@@ -208,33 +200,33 @@
                     </article>
 
                     <!-- Web Weavers -->
-                    <article class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50 transition-all">
-                        <div class="flex items-center space-x-4 mb-6">
+                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                        <div class="flex items-center mb-6 space-x-4">
                             <div class="text-gold-400" role="img" aria-label="Spider web icon"><i data-lucide="globe" class="w-12 h-12"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-gold-400">Web Weavers</h3>
                                 <p class="text-mystic-300">Crafters of digital presence</p>
                             </div>
                         </div>
-                        <p class="text-mystic-200 mb-6 leading-relaxed">
+                        <p class="mb-6 leading-relaxed text-mystic-200">
                             Are you skilled in the art of web weaving? Help us enhance this very site and 
                             create an even more magical experience for visitors to our digital realm.
                         </p>
-                        <div class="space-y-4 mb-6">
+                        <div class="mb-6 space-y-4">
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">HTML, CSS & JavaScript</h4>
-                                <p class="text-mystic-300 text-sm">The fundamental elements of web magic</p>
+                                <p class="text-sm text-mystic-300">The fundamental elements of web magic</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Tailwind CSS</h4>
-                                <p class="text-mystic-300 text-sm">Utility-first styling enchantments</p>
+                                <p class="text-sm text-mystic-300">Utility-first styling enchantments</p>
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Accessibility & UX</h4>
-                                <p class="text-mystic-300 text-sm">Making magic accessible to all</p>
+                                <p class="text-sm text-mystic-300">Making magic accessible to all</p>
                             </div>
                         </div>
-                        <a href="https://github.com/sigilweaver/sigilweaver-website" class="inline-flex items-center bg-mystic-600 hover:bg-mystic-500 px-6 py-3 rounded-lg font-semibold transition-all border border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/sigilweaver/sigilweaver-website" class="inline-flex items-center px-6 py-3 font-semibold transition-all border rounded-lg bg-mystic-600 hover:bg-mystic-500 border-mystic-500 hover:border-gold-400" target="_blank" rel="noopener noreferrer">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.30 3.297-1.30.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
@@ -248,56 +240,56 @@
 
         <!-- Getting Started -->
         <section class="py-20 bg-mystic-800/20" aria-labelledby="getting-started-heading">
-            <div class="container mx-auto px-6">
-                <h2 id="getting-started-heading" class="text-4xl md:text-5xl font-bold text-center mb-16 text-mystic-200">Your First Steps Into Magic</h2>
+            <div class="container px-6 mx-auto">
+                <h2 id="getting-started-heading" class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Your First Steps Into Magic</h2>
                 
                 <div class="max-w-4xl mx-auto">
-                    <div class="grid md:grid-cols-2 gap-8 mb-12">
-                        <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
-                            <h3 class="text-2xl font-bold mb-6 text-gold-400 flex items-center">
+                    <div class="grid gap-8 mb-12 md:grid-cols-2">
+                        <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                            <h3 class="flex items-center mb-6 text-2xl font-bold text-gold-400">
                                 <i data-lucide="book-open" class="w-8 h-8 mr-3" role="img" aria-label="Books icon"></i>
                                 Study the Grimoire
                             </h3>
                             <ul class="space-y-3 text-mystic-200">
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
-                                    Read our&nbsp;<a href="https://github.com/sigilweaver/.github/blob/main/CONTRIBUTING.md" class="text-gold-400 hover:text-gold-300 underline" target="_blank" rel="noopener noreferrer">Contributing Guidelines</a>
+                                    <span class="mr-2 text-gold-400">•</span>
+                                    Read our&nbsp;<a href="https://docs.sigilweaver.app/developer/getting-started" class="underline text-gold-400 hover:text-gold-300" target="_blank" rel="noopener noreferrer">Contributing Guidelines</a>
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
-                                    Review the&nbsp;<a href="https://github.com/sigilweaver/.github/blob/main/CODE_OF_CONDUCT.md" class="text-gold-400 hover:text-gold-300 underline" target="_blank" rel="noopener noreferrer">Code of Conduct</a>
+                                    <span class="mr-2 text-gold-400">•</span>
+                                    Review the&nbsp;<a href="https://docs.sigilweaver.app/code-of-conduct" class="underline text-gold-400 hover:text-gold-300" target="_blank" rel="noopener noreferrer">Code of Conduct</a>
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
-                                    Browse&nbsp;<a href="https://github.com/issues?q=is%3Aopen+is%3Aissue+org%3Asigilweaver+label%3A%22good+first+issue%22" class="text-gold-400 hover:text-gold-300 underline" target="_blank" rel="noopener noreferrer">good first issues</a>
+                                    <span class="mr-2 text-gold-400">•</span>
+                                    Browse&nbsp;<a href="https://github.com/issues?q=is%3Aopen+is%3Aissue+org%3Asigilweaver+label%3A%22good+first+issue%22" class="underline text-gold-400 hover:text-gold-300" target="_blank" rel="noopener noreferrer">good first issues</a>
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
-                                    Join our&nbsp;<a href="https://github.com/orgs/sigilweaver/discussions" class="text-gold-400 hover:text-gold-300 underline" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>
+                                    <span class="mr-2 text-gold-400">•</span>
+                                    Join our&nbsp;<a href="https://github.com/orgs/sigilweaver/discussions" class="underline text-gold-400 hover:text-gold-300" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>
                                 </li>
                             </ul>
                         </div>
 
-                        <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
-                            <h3 class="text-2xl font-bold mb-6 text-gold-400 flex items-center">
+                        <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                            <h3 class="flex items-center mb-6 text-2xl font-bold text-gold-400">
                                 <i data-lucide="rocket" class="w-8 h-8 mr-3" role="img" aria-label="Rocket icon"></i>
                                 Cast Your First Spell
                             </h3>
                             <ul class="space-y-3 text-mystic-200">
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
+                                    <span class="mr-2 text-gold-400">•</span>
                                     Fork the repository of your choice
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
+                                    <span class="mr-2 text-gold-400">•</span>
                                     Set up your local development environment
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
+                                    <span class="mr-2 text-gold-400">•</span>
                                     Create a feature branch for your contribution
                                 </li>
                                 <li class="flex items-start">
-                                    <span class="text-gold-400 mr-2">•</span>
+                                    <span class="mr-2 text-gold-400">•</span>
                                     Submit a pull request with your magical improvements
                                 </li>
                             </ul>
@@ -305,10 +297,10 @@
                     </div>
 
                     <div class="text-center">
-                        <div class="bg-mystic-700/30 p-8 rounded-xl backdrop-blur-sm border border-mystic-600/50">
+                        <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                             <div class="flex justify-center mb-4" role="img" aria-label="Heart icon"><i data-lucide="heart" class="w-12 h-12 text-gold-400"></i></div>
-                            <h3 class="text-2xl font-bold mb-4 text-gold-400">Community First</h3>
-                            <p class="text-mystic-200 mb-6 leading-relaxed">
+                            <h3 class="mb-4 text-2xl font-bold text-gold-400">Community First</h3>
+                            <p class="mb-6 leading-relaxed text-mystic-200">
                                 We believe in fostering an inclusive, welcoming community where every contribution is valued. 
                                 Whether you're fixing a typo, adding a feature, or sharing ideas, your participation makes Sigilweaver stronger.
                             </p>
