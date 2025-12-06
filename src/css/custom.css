@@ -124,9 +124,6 @@
    ============================================ */
 
 /* Navbar styling */
-.navbar {
-  backdrop-filter: blur(8px);
-}
 
 [data-theme='dark'] .navbar {
   background-color: #1a0b2e !important;
@@ -267,9 +264,4 @@ th {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-/* Smooth transitions for theme switching */
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
