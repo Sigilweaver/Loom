@@ -29,8 +29,8 @@ class ExcelDataSource(DataSource):
 
         # Build Polars read configuration
         read_kwargs = self._build_read_kwargs(config)
-        # Limit rows for schema inference
-        read_kwargs["infer_schema_length"] = config.get("infer_schema_length", 100)
+        # Default to full file scan for schema inference (eager read anyway)
+        read_kwargs["infer_schema_length"] = config.get("infer_schema_length", None)
 
         try:
             # Read Excel (eager - no lazy support for Excel)

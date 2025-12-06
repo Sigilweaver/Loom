@@ -65,7 +65,7 @@ const DATA_SOURCES: DataSource[] = [
     name: "ODS",
     category: "file",
     description: "OpenDocument Spreadsheet (.ods) - LibreOffice/OpenOffice",
-    enabled: false,
+    enabled: true,
     supportedOperations: ["input"], // Read-only in Polars
   },
 

@@ -34,8 +34,11 @@ export interface PolarsExcelConfig {
   // === Header Options ===
   has_header: boolean; // First row contains column names. Default: true
 
+  // === Column Selection ===
+  columns: string[] | number[] | null; // Columns to read (names or indices)
+
   // === Schema Inference ===
-  infer_schema_length: number | null; // Rows to scan for type inference (null = all). Default: 100
+  infer_schema_length: number | null; // Rows to scan for type inference (null = all). Default: null
 
   // === Empty Data Handling ===
   drop_empty_rows: boolean; // Omit empty rows. Default: true
@@ -49,12 +52,13 @@ export interface PolarsExcelConfig {
 /**
  * Default configuration for Excel
  */
-export const EXCEL_DEFAULTS: Partial<PolarsExcelConfig> = {
+export const EXCEL_DEFAULTS: PolarsExcelConfig = {
   source: "",
-  sheet_id: 1, // First sheet
+  sheet_id: 1, // First sheet by default
   sheet_name: null,
   has_header: true,
-  infer_schema_length: 100,
+  columns: null,
+  infer_schema_length: null, // Scan entire file (eager read anyway)
   drop_empty_rows: true,
   drop_empty_cols: true,
   raise_if_empty: true,

@@ -9,6 +9,7 @@ from app.domain.datasources.csv import CSVDataSource
 from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.ipc import IPCDataSource
 from app.domain.datasources.json import JSONDataSource
+from app.domain.datasources.ods import ODSDataSource
 from app.domain.datasources.parquet import ParquetDataSource
 from app.utils.errors import DataSourceError
 
@@ -23,6 +24,7 @@ class DataSourceFactory:
         "excel": ExcelDataSource,
         "ipc": IPCDataSource,
         "json": JSONDataSource,
+        "ods": ODSDataSource,
         "parquet": ParquetDataSource,
     }
 
@@ -36,6 +38,7 @@ class DataSourceFactory:
         ".xlsx": "excel",
         ".xls": "excel",
         ".xlsb": "excel",
+        ".ods": "ods",  # OpenDocument Spreadsheet
         ".json": "json",
         ".jsonl": "json",  # Newline-delimited JSON
         ".ndjson": "json",  # Newline-delimited JSON (alternative extension)

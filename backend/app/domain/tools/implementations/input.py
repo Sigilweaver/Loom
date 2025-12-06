@@ -60,6 +60,8 @@ class InputTool(BaseTool):
             lf = await self._load_ipc(config, ipc_mode)
         elif source_type == "avro":
             lf = await self._load_avro(config)
+        elif source_type == "ods":
+            lf = await self._load_ods(config)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -248,6 +250,27 @@ class InputTool(BaseTool):
 
         # Avro only supports eager reading, convert to lazy
         df = pl.read_avro(source, **read_kwargs)
+        lf = df.lazy()
+
+        return lf
+
+    async def _load_ods(
+        self, config: dict[str, Any]
+    ) -> pl.LazyFrame:
+        """Load ODS file (always eager, converted to lazy)
+
+        OpenDocument Spreadsheet files only support eager reading via read_ods.
+        Supports .ods files from LibreOffice and OpenOffice.
+        """
+        source = config.get("source")
+        if not source:
+            raise ToolError("ODS config missing 'source' field")
+
+        # Build Polars read kwargs from config
+        read_kwargs = self._build_ods_kwargs(config)
+
+        # ODS only supports eager reading, convert to lazy
+        df = pl.read_ods(source, **read_kwargs)
         lf = df.lazy()
 
         return lf
@@ -449,6 +472,38 @@ class InputTool(BaseTool):
 
         return kwargs
 
+    def _build_ods_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars read_ods kwargs
+
+        Similar to Excel, with sheet selection and data options.
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Sheet selection (only one can be set)
+        if "sheet_id" in config and config["sheet_id"] is not None:
+            kwargs["sheet_id"] = config["sheet_id"]
+        elif "sheet_name" in config and config["sheet_name"] is not None:
+            kwargs["sheet_name"] = config["sheet_name"]
+        # Default: sheet_id=1 (first sheet) if neither specified
+
+        # Map config keys to Polars parameters
+        key_mapping = {
+            "has_header": "has_header",
+            "columns": "columns",
+            "infer_schema_length": "infer_schema_length",
+            "drop_empty_rows": "drop_empty_rows",
+            "drop_empty_cols": "drop_empty_cols",
+            "raise_if_empty": "raise_if_empty",
+        }
+
+        for config_key, polars_key in key_mapping.items():
+            if config_key in config:
+                value = config[config_key]
+                if value is not None:
+                    kwargs[polars_key] = value
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -485,7 +540,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["avro", "csv", "excel", "ipc", "json", "parquet"]:
+        if source_type and source_type not in ["avro", "csv", "excel", "ipc", "json", "ods", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -696,6 +751,35 @@ class InputTool(BaseTool):
                 lines.append(f'{var_name} = pl.read_avro("{escaped_path}", {", ".join(options)})')
             else:
                 lines.append(f'{var_name} = pl.read_avro("{escaped_path}")')
+
+            # Always convert to lazy for consistency
+            lines.append(f'{var_name} = {var_name}.lazy()')
+
+        elif source_type == "ods":
+            # ODS only supports eager reading
+            options = []
+            ods_kwargs = self._build_ods_kwargs(config)
+
+            for key, value in ods_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f'{key}={str(value)}')
+                elif isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+                elif isinstance(value, list) and value:
+                    # For columns
+                    if all(isinstance(v, str) for v in value):
+                        escaped = [f'"{PythonCodeGenerator.escape_string(v)}"' for v in value]
+                        options.append(f'{key}=[{", ".join(escaped)}]')
+                    else:
+                        options.append(f'{key}={value}')
+
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.read_ods("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.read_ods("{escaped_path}")')
 
             # Always convert to lazy for consistency
             lines.append(f'{var_name} = {var_name}.lazy()')

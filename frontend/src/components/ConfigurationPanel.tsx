@@ -22,6 +22,7 @@ import { IpcConfiguration } from "./IpcConfiguration";
 import { IpcOutputConfiguration } from "./IpcOutputConfiguration";
 import { JsonConfiguration } from "./JsonConfiguration";
 import { JsonOutputConfiguration } from "./JsonOutputConfiguration";
+import { OdsConfiguration } from "./OdsConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
@@ -257,6 +258,26 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "ods") {
+                  // ODS has no mode selection (always eager read)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "ods" as const,
+                    sheet_id: 1, // Default to first sheet
+                    has_header: true,
+                    drop_empty_rows: true,
+                    drop_empty_cols: true,
+                    raise_if_empty: true,
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -314,6 +335,15 @@ export default function ConfigurationPanel() {
             selectedTool.config.type === "avro" ? (
             /* Avro Configuration Panel */
             <AvroConfiguration
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "ods" ? (
+            /* ODS Configuration Panel */
+            <OdsConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
