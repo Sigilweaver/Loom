@@ -58,6 +58,8 @@ class OutputTool(BaseTool):
             await self._save_json(lf, config)
         elif output_type == "ipc":
             await self._save_ipc(lf, config)
+        elif output_type == "avro":
+            await self._save_avro(lf, config)
         else:
             raise ToolError(f"Unsupported output type: {output_type}")
 
@@ -166,6 +168,34 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write IPC: {str(e)}") from e
 
+    async def _save_avro(
+        self, lf: pl.LazyFrame, config: dict[str, Any]
+    ) -> None:
+        """Save to Avro format (always eager - no streaming support)
+
+        Apache Avro is a row-based binary format commonly used in
+        big data ecosystems (Hadoop, Kafka, Spark).
+
+        Note: Polars only supports eager write for Avro (no sink).
+        """
+        destination = config.get("destination")
+        if not destination:
+            raise ToolError("Avro output config missing 'destination' field")
+
+        # Ensure destination directory exists
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Build Avro write kwargs
+        avro_kwargs = self._build_avro_kwargs(config)
+
+        try:
+            # Avro only supports eager write - must collect first
+            df = lf.collect()
+            df.write_avro(destination, **avro_kwargs)
+        except Exception as e:
+            raise ToolError(f"Failed to write Avro: {str(e)}") from e
+
     def _build_csv_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Convert frontend config to Polars CSV write kwargs.
@@ -247,6 +277,29 @@ class OutputTool(BaseTool):
                 value = config[config_key]
                 if value is not None:  # Skip None values to use Polars defaults
                     kwargs[polars_key] = value
+
+        return kwargs
+
+    def _build_avro_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert frontend config to Polars Avro write kwargs.
+
+        write_avro parameters:
+        - compression: 'uncompressed' | 'snappy' | 'deflate'
+        - name: str (schema name, defaults to empty string)
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Avro write parameters
+        if "compression" in config:
+            value = config["compression"]
+            if value is not None:
+                kwargs["compression"] = value
+
+        if "name" in config:
+            value = config["name"]
+            if value is not None and value != "":
+                kwargs["name"] = value
 
         return kwargs
 
@@ -412,7 +465,7 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["csv", "ipc", "json", "parquet", "excel"]:
+        if output_type and output_type not in ["avro", "csv", "excel", "ipc", "json", "parquet"]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -618,6 +671,20 @@ class OutputTool(BaseTool):
                 lines.append(f'{input_var}.sink_ipc("{escaped_path}"{opts_str})')
             else:  # write mode
                 lines.append(f'{input_var}.collect().write_ipc("{escaped_path}"{opts_str})')
+
+        elif output_type == "avro":
+            # Avro only supports eager write (no sink)
+            options = []
+            avro_kwargs = self._build_avro_kwargs(config)
+
+            for key, value in avro_kwargs.items():
+                if isinstance(value, str):
+                    options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+
+            escaped_path = PythonCodeGenerator.escape_path(destination)
+            opts_str = f", {', '.join(options)}" if options else ""
+
+            lines.append(f'{input_var}.collect().write_avro("{escaped_path}"{opts_str})')
 
         else:
             lines.append(

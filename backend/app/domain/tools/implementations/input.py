@@ -58,6 +58,8 @@ class InputTool(BaseTool):
         elif source_type == "ipc":
             ipc_mode: str = config.get("ipcMode", "scan") or "scan"
             lf = await self._load_ipc(config, ipc_mode)
+        elif source_type == "avro":
+            lf = await self._load_avro(config)
         else:
             raise ToolError(f"Unsupported data source type: {source_type}")
 
@@ -225,6 +227,28 @@ class InputTool(BaseTool):
         # Handle column selection (not supported as scan parameter)
         if "columns" in config and config["columns"]:
             lf = lf.select(config["columns"])
+
+        return lf
+
+    async def _load_avro(
+        self, config: dict[str, Any]
+    ) -> pl.LazyFrame:
+        """Load Avro file (always eager, converted to lazy)
+
+        Avro files only support eager reading via read_avro.
+        Apache Avro is a row-based binary format commonly used
+        in big data ecosystems (Hadoop, Kafka, Spark).
+        """
+        source = config.get("source")
+        if not source:
+            raise ToolError("Avro config missing 'source' field")
+
+        # Build Polars read kwargs from config
+        read_kwargs = self._build_avro_kwargs(config)
+
+        # Avro only supports eager reading, convert to lazy
+        df = pl.read_avro(source, **read_kwargs)
+        lf = df.lazy()
 
         return lf
 
@@ -402,6 +426,29 @@ class InputTool(BaseTool):
 
         return kwargs
 
+    def _build_avro_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert frontend config to Polars read_avro kwargs
+
+        Avro read has limited options:
+        - columns: list[int] | list[str] | None
+        - n_rows: int | None
+        """
+        kwargs: dict[str, Any] = {}
+
+        # Columns can be list of names (str) or indices (int)
+        if "columns" in config:
+            value = config["columns"]
+            if value is not None and value:  # Non-empty list
+                kwargs["columns"] = value
+
+        # Limit rows
+        if "n_rows" in config:
+            value = config["n_rows"]
+            if value is not None:
+                kwargs["n_rows"] = value
+
+        return kwargs
+
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
@@ -438,7 +485,7 @@ class InputTool(BaseTool):
 
         # Validate source type
         source_type = config.get("type")
-        if source_type and source_type not in ["csv", "excel", "ipc", "json", "parquet"]:
+        if source_type and source_type not in ["avro", "csv", "excel", "ipc", "json", "parquet"]:
             errors.append(f"Unsupported source type: {source_type}")
 
         return errors
@@ -627,6 +674,31 @@ class InputTool(BaseTool):
             # If read mode, convert to lazy
             if mode == "read":
                 lines.append(f'{var_name} = {var_name}.lazy()')
+
+        elif source_type == "avro":
+            # Avro only supports eager reading
+            options = []
+            avro_kwargs = self._build_avro_kwargs(config)
+
+            for key, value in avro_kwargs.items():
+                if isinstance(value, (int, float)):
+                    options.append(f'{key}={value}')
+                elif isinstance(value, list) and value:
+                    # For columns (list of strings or ints)
+                    if all(isinstance(v, str) for v in value):
+                        escaped = [f'"{PythonCodeGenerator.escape_string(v)}"' for v in value]
+                        options.append(f'{key}=[{", ".join(escaped)}]')
+                    else:
+                        options.append(f'{key}={value}')
+
+            escaped_path = PythonCodeGenerator.escape_path(source_path)
+            if options:
+                lines.append(f'{var_name} = pl.read_avro("{escaped_path}", {", ".join(options)})')
+            else:
+                lines.append(f'{var_name} = pl.read_avro("{escaped_path}")')
+
+            # Always convert to lazy for consistency
+            lines.append(f'{var_name} = {var_name}.lazy()')
 
         else:
             lines.append(f'# TODO: {source_type} input not yet supported in code generation')

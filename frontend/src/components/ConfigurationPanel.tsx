@@ -11,6 +11,8 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
+import { AvroConfiguration } from "./AvroConfiguration";
+import { AvroOutputConfiguration } from "./AvroOutputConfiguration";
 import ConfigurationHeader from "./ConfigurationHeader";
 import { CsvConfiguration } from "./CsvConfiguration";
 import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
@@ -240,6 +242,21 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "avro") {
+                  // Avro has no mode selection (always eager read)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "avro" as const,
+                  };
+                  // Preserve existing file path if any
+                  const existingFilePath = selectedTool.config?.filePath;
+                  if (
+                    existingFilePath !== undefined &&
+                    existingFilePath !== null
+                  ) {
+                    newConfig.filePath = existingFilePath;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -288,6 +305,15 @@ export default function ConfigurationPanel() {
             /* IPC/Arrow Configuration Panel */
             <IpcConfiguration
               mode={(selectedTool.config.ipcMode as IpcMode) || "scan"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "avro" ? (
+            /* Avro Configuration Panel */
+            <AvroConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
@@ -358,6 +384,14 @@ export default function ConfigurationPanel() {
                     ipcMode: "sink", // Default to streaming mode
                   };
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "avro") {
+                  // Avro output (always eager - no streaming)
+                  const newConfig: ToolConfig = {
+                    category: "file" as const,
+                    type: "avro" as const,
+                    compression: "uncompressed", // Default compression
+                  };
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -406,6 +440,15 @@ export default function ConfigurationPanel() {
             /* IPC/Arrow Output Configuration Panel */
             <IpcOutputConfiguration
               mode={(selectedTool.config.ipcMode as IpcOutputMode) || "sink"}
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "file" &&
+            selectedTool.config.type === "avro" ? (
+            /* Avro Output Configuration Panel */
+            <AvroOutputConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)

@@ -58,7 +58,7 @@ const DATA_SOURCES: DataSource[] = [
     name: "Avro",
     category: "file",
     description: "Apache Avro binary format (.avro)",
-    enabled: false,
+    enabled: true,
   },
   {
     id: "ods",

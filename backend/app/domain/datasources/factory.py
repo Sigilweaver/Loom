@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Type
 
 from app.domain.datasources.base import DataSource
+from app.domain.datasources.avro import AvroDataSource
 from app.domain.datasources.csv import CSVDataSource
 from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.ipc import IPCDataSource
@@ -17,6 +18,7 @@ class DataSourceFactory:
 
     # Registry of data source implementations
     _sources: dict[str, Type[DataSource]] = {
+        "avro": AvroDataSource,
         "csv": CSVDataSource,
         "excel": ExcelDataSource,
         "ipc": IPCDataSource,
@@ -26,6 +28,7 @@ class DataSourceFactory:
 
     # File extension to source type mapping
     _extension_mapping: dict[str, str] = {
+        ".avro": "avro",  # Apache Avro binary format
         ".csv": "csv",
         ".tsv": "csv",  # Tab-separated values are CSV with different separator
         ".tab": "csv",
