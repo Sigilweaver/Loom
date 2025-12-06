@@ -18,10 +18,10 @@ Each guide covers:
 |------|----------|-------|
 | **Tableau Prep** | Business analysts familiar with Tableau's visual ETL | [Tableau Prep Guide](./tableau-prep) |
 | **Alteryx** | Enterprise data analysts with complex workflow experience | [Alteryx Guide](./alteryx) |
-| **Power Query** | Business users comfortable with M language (Excel/Power BI) | [Power Query Guide](./excel-power-query) |
+| **Power Query** | Business users comfortable with M language (Excel/Power BI) | [Power Query Guide](./power-query) |
 | **KNIME** | Scientists and researchers using node-based workflows | [KNIME Guide](./knime) |
 | **Orange** | Data scientists building visual ML pipelines | [Orange Guide](./orange) |
-| **Excel** | Spreadsheet users ready for scalable data pipelines | [Excel Users Guide](./excel-users) |
+| **Excel** | Spreadsheet users ready for scalable data pipelines | [Excel Users Guide](./excel) |
 
 ## Not Listed?
 
