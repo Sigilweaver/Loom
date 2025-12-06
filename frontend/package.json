@@ -56,6 +56,8 @@
     "@xyflow/react": "^12.9.3",
     "clsx": "^2.1.0",
     "electron-store": "^11.0.2",
+    "lucide": "^0.556.0",
+    "lucide-react": "^0.556.0",
     "monaco-editor": "^0.55.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
