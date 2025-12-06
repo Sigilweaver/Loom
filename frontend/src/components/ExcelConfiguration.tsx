@@ -6,6 +6,7 @@ import {
 } from "@components/primitives";
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
+  EXCEL_DOCUMENTATION_URL,
   EXCEL_MODE_INFO,
   type PolarsExcelConfig,
 } from "@domain/dataSources/excel";
@@ -75,6 +76,15 @@ export const ExcelConfiguration: React.FC<ExcelConfigurationProps> = ({
           <p className="text-xs text-theme-text-tertiary">
             {EXCEL_MODE_INFO.description}
           </p>
+          <a
+            href={EXCEL_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

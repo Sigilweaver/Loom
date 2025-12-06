@@ -9,6 +9,7 @@ import {
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   PARALLEL_STRATEGIES,
+  PARQUET_DOCUMENTATION_URL,
   PARQUET_MODE_INFO,
   switchParquetMode,
   type ParquetMode,
@@ -117,6 +118,15 @@ export const ParquetConfiguration: React.FC<ParquetConfigurationProps> = ({
           <p className="text-xs text-theme-text-tertiary">
             {modeInfo.description}
           </p>
+          <a
+            href={PARQUET_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

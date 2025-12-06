@@ -82,6 +82,7 @@ export const AVRO_OUTPUT_INFO = {
   name: "Apache Avro",
   description:
     "Row-based binary format for big data ecosystems",
+  documentationUrl: "https://docs.sigilweaver.app/user/tools/input-output/output/#avro",
   note: "Avro does not support streaming writes - data is collected before writing",
   features: [
     "Self-describing with embedded schema",

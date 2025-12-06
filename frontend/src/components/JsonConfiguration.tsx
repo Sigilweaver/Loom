@@ -9,6 +9,7 @@ import {
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   isNdjsonFile,
+  JSON_DOCUMENTATION_URL,
   JSON_MODE_INFO,
   switchJsonMode,
   type JSONMode,
@@ -136,6 +137,15 @@ export const JsonConfiguration: React.FC<JsonConfigurationProps> = ({
               </p>
             </>
           )}
+          <a
+            href={JSON_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

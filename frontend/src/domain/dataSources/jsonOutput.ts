@@ -170,3 +170,5 @@ export const JSON_OUTPUT_MODE_INFO: Record<
     badge: "Eager",
   },
 };
+
+export const JSON_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#json";

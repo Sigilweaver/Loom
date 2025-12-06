@@ -6,6 +6,7 @@ import {
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   isNdjsonOutputFile,
+  JSON_OUTPUT_DOCUMENTATION_URL,
   JSON_OUTPUT_MODE_INFO,
   switchJsonOutputMode,
   type JSONOutputMode,
@@ -104,6 +105,15 @@ export const JsonOutputConfiguration: React.FC<
               <p className="text-xs text-theme-text-tertiary">
                 {modeInfo.description}
               </p>
+              <a
+                href={JSON_OUTPUT_DOCUMENTATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+                style={{ color: 'var(--color-border-focus)' }}
+              >
+                Learn more
+              </a>
             </>
           ) : (
             /* Standard JSON: Fixed write mode */
@@ -119,6 +129,15 @@ export const JsonOutputConfiguration: React.FC<
               <p className="text-xs text-theme-text-tertiary">
                 Standard JSON files only support eager writing (no streaming available).
               </p>
+              <a
+                href={JSON_OUTPUT_DOCUMENTATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+                style={{ color: 'var(--color-border-focus)' }}
+              >
+                Learn more
+              </a>
             </>
           )}
         </div>

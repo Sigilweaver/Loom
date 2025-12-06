@@ -11,6 +11,7 @@ import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   COMMON_LINE_TERMINATORS,
   COMMON_SEPARATORS,
+  CSV_OUTPUT_DOCUMENTATION_URL,
   CSV_OUTPUT_MODE_INFO,
   QUOTE_STYLE_OPTIONS,
   switchCsvOutputMode,
@@ -120,6 +121,15 @@ export const CsvOutputConfiguration: React.FC<CsvOutputConfigurationProps> = ({
               {modeInfo.description}
             </p>
           </div>
+          <a
+            href={CSV_OUTPUT_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

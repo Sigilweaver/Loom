@@ -126,6 +126,18 @@ export const AvroConfiguration: React.FC<AvroConfigurationProps> = ({
                 <li key={i}>{limitation}</li>
               ))}
             </ul>
+
+            <div className="pt-3 border-t border-theme-border-primary">
+              <a
+                href={AVRO_INFO.documentationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium hover:underline"
+                style={{ color: 'var(--color-border-focus)' }}
+              >
+                Learn more
+              </a>
+            </div>
           </div>
         </section>
       </div>

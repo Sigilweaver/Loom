@@ -81,6 +81,8 @@ export const EXCEL_OUTPUT_MODE_INFO = {
   badge: "Eager",
 };
 
+export const EXCEL_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#excel";
+
 /**
  * Curated list of popular Excel table styles
  * Users can also enter custom style names

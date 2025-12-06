@@ -76,6 +76,8 @@ export const EXCEL_MODE_INFO = {
   useCase: "Best for: All Excel files - this is the only available mode.",
 };
 
+export const EXCEL_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#excel";
+
 /**
  * Get default configuration
  */

@@ -134,6 +134,8 @@ export const IPC_OUTPUT_MODE_INFO: Record<
   },
 };
 
+export const IPC_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#ipc--arrow";
+
 /**
  * Compression options with descriptions
  */

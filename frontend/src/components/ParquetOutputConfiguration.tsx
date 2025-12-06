@@ -9,6 +9,7 @@ import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   COMPRESSION_LEVEL_RANGES,
   COMPRESSION_OPTIONS,
+  PARQUET_OUTPUT_DOCUMENTATION_URL,
   PARQUET_OUTPUT_MODE_INFO,
   switchParquetOutputMode,
   type ParquetOutputMode,
@@ -112,6 +113,15 @@ export const ParquetOutputConfiguration: React.FC<
             <p className="mt-2 text-xs text-theme-text-tertiary">
               {modeInfo.description}
             </p>
+            <a
+              href={PARQUET_OUTPUT_DOCUMENTATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+              style={{ color: 'var(--color-border-focus)' }}
+            >
+              Learn more
+            </a>
           </div>
         </div>
       </div>

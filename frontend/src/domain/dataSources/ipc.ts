@@ -101,6 +101,8 @@ export const IPC_MODE_INFO: Record<
   },
 };
 
+export const IPC_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#ipc--arrow";
+
 /**
  * Get default configuration for a mode
  */

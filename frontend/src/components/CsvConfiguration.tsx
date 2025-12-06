@@ -10,6 +10,7 @@ import {
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   COMMON_ENCODINGS,
+  CSV_DOCUMENTATION_URL,
   CSV_MODE_INFO,
   switchCsvMode,
   type CSVMode,
@@ -156,6 +157,15 @@ export const CsvConfiguration: React.FC<CsvConfigurationProps> = ({
           <p className="text-xs text-theme-text-tertiary">
             {modeInfo.description}
           </p>
+          <a
+            href={CSV_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

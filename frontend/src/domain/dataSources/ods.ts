@@ -55,6 +55,7 @@ export const ODS_INFO = {
   name: "OpenDocument Spreadsheet",
   description: "Spreadsheet format used by LibreOffice and OpenOffice",
   extensions: [".ods"],
+  documentationUrl: "https://docs.sigilweaver.app/user/tools/input-output/input/#ods",
   features: [
     "Open standard format",
     "Cross-platform compatibility",

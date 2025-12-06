@@ -267,6 +267,8 @@ export const CSV_MODE_INFO: Record<
   },
 };
 
+export const CSV_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#csv";
+
 /**
  * Common delimiter options
  */

@@ -8,6 +8,7 @@ import {
 } from "@components/primitives";
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
+  IPC_DOCUMENTATION_URL,
   IPC_MODE_INFO,
   switchIpcMode,
   type IpcMode,
@@ -113,6 +114,15 @@ export const IpcConfiguration: React.FC<IpcConfigurationProps> = ({
           <p className="text-xs text-theme-text-tertiary">
             {modeInfo.description}
           </p>
+          <a
+            href={IPC_DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: 'var(--color-border-focus)' }}
+          >
+            Learn more
+          </a>
         </div>
       </div>
 

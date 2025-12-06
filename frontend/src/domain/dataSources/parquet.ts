@@ -105,6 +105,8 @@ export const PARQUET_MODE_INFO: Record<
   },
 };
 
+export const PARQUET_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#parquet";
+
 /**
  * Parallel strategy options
  */

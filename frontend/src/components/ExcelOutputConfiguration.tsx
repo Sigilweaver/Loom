@@ -9,6 +9,7 @@ import {
 } from "@components/primitives";
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
+  EXCEL_OUTPUT_DOCUMENTATION_URL,
   EXCEL_OUTPUT_MODE_INFO,
   EXCEL_TABLE_STYLE_OPTIONS,
   FREEZE_PANE_OPTIONS,
@@ -97,6 +98,15 @@ export const ExcelOutputConfiguration: React.FC<
             <p className="mt-2 text-xs text-theme-text-tertiary">
               {EXCEL_OUTPUT_MODE_INFO.description}
             </p>
+            <a
+              href={EXCEL_OUTPUT_DOCUMENTATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+              style={{ color: 'var(--color-border-focus)' }}
+            >
+              Learn more
+            </a>
           </div>
         </div>
       </div>

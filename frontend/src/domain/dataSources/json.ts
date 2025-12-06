@@ -147,6 +147,8 @@ export const JSON_MODE_INFO: Record<
   },
 };
 
+export const JSON_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#json";
+
 /**
  * Detect JSON format from file extension
  */

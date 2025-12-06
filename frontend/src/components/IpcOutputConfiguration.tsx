@@ -6,6 +6,7 @@ import {
 import { mergeEmitPatch } from "@components/primitives/hooks";
 import {
   IPC_COMPRESSION_OPTIONS,
+  IPC_OUTPUT_DOCUMENTATION_URL,
   IPC_OUTPUT_MODE_INFO,
   switchIpcOutputMode,
   type IpcOutputMode,
@@ -101,6 +102,15 @@ export const IpcOutputConfiguration: React.FC<IpcOutputConfigurationProps> = ({
             <p className="mt-2 text-xs text-theme-text-tertiary">
               {modeInfo.description}
             </p>
+            <a
+              href={IPC_OUTPUT_DOCUMENTATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+              style={{ color: 'var(--color-border-focus)' }}
+            >
+              Learn more
+            </a>
           </div>
         </div>
       </div>

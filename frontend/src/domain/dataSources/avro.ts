@@ -51,6 +51,7 @@ export const AVRO_INFO = {
   description:
     "Row-based binary format commonly used in Hadoop and Kafka ecosystems",
   extensions: [".avro"],
+  documentationUrl: "https://docs.sigilweaver.app/user/tools/input-output/input/#avro",
   features: [
     "Schema-first design",
     "Compact binary encoding",
