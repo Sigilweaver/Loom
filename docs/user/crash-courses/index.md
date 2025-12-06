@@ -25,7 +25,7 @@ Each guide covers:
 
 ## Not Listed?
 
-If you're coming from another tool (Pandas, dbt, Informatica, etc.), start with the [User Guide](../index) and explore the [Interface](../interface/canvas) documentation. The core concepts section covers everything you need to know.
+If you're coming from another tool (Pandas, dbt, Informatica, etc.), start with the [User Guide](../) and explore the [Interface](../interface/canvas) documentation. The core concepts section covers everything you need to know.
 
 ## After the Crash Course
 
