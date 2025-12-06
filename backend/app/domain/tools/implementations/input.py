@@ -186,7 +186,7 @@ class InputTool(BaseTool):
         read_kwargs = self._build_excel_kwargs(config)
 
         # Excel only supports eager reading, convert to lazy
-        df = pl.read_excel(source, **read_kwargs)
+        df: pl.DataFrame = pl.read_excel(source, **read_kwargs)
         lf = df.lazy()
 
         # Handle column selection after reading
@@ -270,7 +270,7 @@ class InputTool(BaseTool):
         read_kwargs = self._build_ods_kwargs(config)
 
         # ODS only supports eager reading, convert to lazy
-        df = pl.read_ods(source, **read_kwargs)
+        df: pl.DataFrame = pl.read_ods(source, **read_kwargs)
         lf = df.lazy()
 
         return lf

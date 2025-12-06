@@ -201,7 +201,6 @@ export function JoinConfiguration({
         },
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only react to primitive value changes, not config object reference
   }, [hasLeftInput, hasRightInput, hasValidKeys, currentJoinType]);
 
   return (

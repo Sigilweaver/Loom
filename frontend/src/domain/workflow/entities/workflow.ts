@@ -1,3 +1,5 @@
+import { LucideIcon } from 'lucide-react';
+
 // Domain entities and type contracts for workflow graph (moved from src/types/workflow.ts)
 
 // Tool configuration value type for serialization
@@ -54,7 +56,7 @@ export interface Wire {
 export interface ToolDefinition {
   type: string;
   name: string;
-  icon: any;
+  icon: LucideIcon;
   category: "inout" | "preparation" | "join" | "aggregate";
   defaultConfig: ToolConfig;
   sockets: Socket[];
