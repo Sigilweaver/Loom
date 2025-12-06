@@ -88,6 +88,47 @@ Apache Arrow's native binary format (.arrow, .ipc, .feather). Fastest format for
 - **Memory efficiency**: Files can be memory-mapped for efficient access
 :::
 
+### Excel
+
+Microsoft Excel spreadsheet files (.xlsx).
+
+**Writing Mode:**
+
+Excel only supports eager writing (data is collected before writing). There is no streaming sink support.
+
+**Excel Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Destination | (required) | Path for the output file (.xlsx) |
+| Worksheet | `Sheet1` | Name of the worksheet to create |
+| Table Name | (empty) | Optional name for the Excel table object |
+| Table Style | `Table Style Medium 4` | Excel table style (e.g., "Table Style Medium 9") |
+| Include Header | `true` | Write column names as header row |
+| Autofilter | `true` | Enable autofilter dropdown in header |
+| Autofit | `false` | Auto-calculate column widths to fit content |
+| Hide Gridlines | `false` | Hide worksheet gridlines |
+| Float Precision | `3` | Decimal places for float numbers |
+| Sheet Zoom | `100%` | Zoom level (10-400%) |
+| Freeze Panes | (none) | Cell position to freeze (e.g., "A2" freezes top row) |
+
+:::tip Excel Table Styles
+Excel table styles provide professional formatting. Popular options include:
+- **Light styles** (1-21): Subtle, minimalist
+- **Medium styles** (1-28): Balanced, good for most uses
+- **Dark styles** (1-11): High contrast, bold headers
+- **None**: Plain data without table formatting
+
+You can also enter any custom Excel table style name. See the full visual reference below.
+
+<details>
+<summary>Click to view all Excel table styles</summary>
+
+![Excel Table Styles Reference](/img/excel-table-styles.png)
+
+</details>
+:::
+
 ### Avro
 
 Apache Avro binary format (.avro). Row-based format for big data ecosystems.
@@ -117,7 +158,7 @@ For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
 
 1. Add an Output tool to the canvas
 2. Connect an input wire from an upstream tool
-3. Select the output format (CSV, Parquet, IPC/Arrow, or Avro)
+3. Select the output format (CSV, Excel, Parquet, IPC/Arrow, JSON, or Avro)
 4. Choose the destination path
 5. Configure format-specific options as needed
 
@@ -144,6 +185,14 @@ For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
 3. Enter the destination file path (e.g., `/path/to/output.arrow`)
 4. Choose compression if needed (uncompressed is fastest, zstd for smaller files)
 
+### Saving to Excel
+
+1. Wire data into the Output tool
+2. Select "Excel" as the output format
+3. Enter the destination file path (e.g., `/path/to/output.xlsx`)
+4. Optionally configure worksheet name, table styling, and formatting options
+5. Use freeze panes to keep headers visible when scrolling
+
 ### Saving to Avro
 
 1. Wire data into the Output tool
@@ -154,8 +203,9 @@ For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
 ## Notes
 
 - **Destination directories** are created automatically if they don't exist
-- **Sink mode** is recommended for large datasets to minimize memory usage (CSV, Parquet, IPC)
-- **Avro** does not support streaming - data is collected before writing
+- **Sink mode** is recommended for large datasets to minimize memory usage (CSV, Parquet, IPC, JSON/NDJSON)
+- **Excel and Avro** do not support streaming - data is collected before writing
 - **IPC/Arrow** is the fastest format - use it when speed is critical
+- **Excel files** are best for business reporting and sharing with non-technical users
 - **Overwriting**: Existing files at the destination path will be overwritten
 - **Execution**: Output tools only write files when the workflow is executed (not during preview)

@@ -24,7 +24,7 @@ Comma-separated values and other delimited text files.
 |------|-------------|----------|
 | **Scan** | Lazy loading, streams data | Large files, memory efficiency |
 | **Read** | Eager loading, loads entire file | Small files, when you need all data upfront |
-| **Batched** | Processes in chunks | Very large files |
+| **Batched** | Processes in chunks like Dask | Very large files |
 
 **CSV Options:**
 
