@@ -54,7 +54,7 @@ export interface Wire {
 export interface ToolDefinition {
   type: string;
   name: string;
-  icon: string;
+  icon: any;
   category: "inout" | "preparation" | "join" | "aggregate";
   defaultConfig: ToolConfig;
   sockets: Socket[];

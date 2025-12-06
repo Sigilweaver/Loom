@@ -1,4 +1,15 @@
 import { ToolDefinition } from '../domain/workflow/entities/workflow';
+import { 
+  FileInput, 
+  FileOutput, 
+  Filter, 
+  CheckSquare, 
+  ArrowUpDown, 
+  Calculator, 
+  Layers, 
+  Link, 
+  Sigma 
+} from 'lucide-react';
 
 const DOCS_BASE_URL = 'https://docs.sigilweaver.app/user';
 
@@ -7,7 +18,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Input',
     name: 'Input',
-    icon: '📂',
+    icon: FileInput,
     category: 'inout',
     defaultConfig: {
       placeholder: 'Configuration coming soon...',
@@ -20,7 +31,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Output',
     name: 'Output',
-    icon: '💾',
+    icon: FileOutput,
     category: 'inout',
     defaultConfig: {
       placeholder: 'Configuration coming soon...',
@@ -35,7 +46,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Filter',
     name: 'Filter',
-    icon: '🔍',
+    icon: Filter,
     category: 'preparation',
     defaultConfig: {
       expression: '',
@@ -51,7 +62,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Select',
     name: 'Select',
-    icon: '✅',
+    icon: CheckSquare,
     category: 'preparation',
     defaultConfig: {
       columnConfigs: [],
@@ -65,7 +76,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Sort',
     name: 'Sort',
-    icon: '🔢',
+    icon: ArrowUpDown,
     category: 'preparation',
     defaultConfig: {
       sortColumns: [],
@@ -79,7 +90,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Formula',
     name: 'Formula',
-    icon: '🧮',
+    icon: Calculator,
     category: 'preparation',
     defaultConfig: {
       expression: '',
@@ -96,7 +107,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Union',
     name: 'Union',
-    icon: '🔗',
+    icon: Layers,
     category: 'join',
     defaultConfig: {
       mode: 'ByName',
@@ -110,7 +121,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Join',
     name: 'Join',
-    icon: '🤝',
+    icon: Link,
     category: 'join',
     defaultConfig: {
       joinType: 'inner',
@@ -131,7 +142,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Summarize',
     name: 'Summarize',
-    icon: '📊',
+    icon: Sigma,
     category: 'aggregate',
     defaultConfig: {
       groupByColumns: [],

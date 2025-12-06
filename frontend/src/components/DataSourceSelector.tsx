@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTheme } from "../contexts/ThemeContext";
+import { FileText, Database, Search } from "lucide-react";
 
 interface DataSource {
   id: string;
@@ -309,7 +310,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
       <div className="flex-shrink-0 p-4 space-y-3 border-b border-theme-border-primary bg-theme-surface-panel">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <span className="text-sm text-theme-text-tertiary">🔍</span>
+            <Search className="w-4 h-4 text-theme-text-tertiary" />
           </div>
           <input
             type="text"
@@ -341,7 +342,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
                 : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
             }`}
           >
-            <span>📁</span>
+            <FileText className="w-3 h-3" />
             Files
           </button>
 
@@ -353,7 +354,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
                 : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
             }`}
           >
-            <span>🗄️</span>
+            <Database className="w-3 h-3" />
             Databases
           </button>
         </div>
@@ -366,7 +367,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
             <div>
               {selectedCategory === "all" && (
                 <h4 className="flex items-center gap-2 mb-2 text-sm font-medium text-theme-text-primary">
-                  <span>📁</span>
+                  <FileText className="w-4 h-4" />
                   File Formats
                 </h4>
               )}
@@ -382,7 +383,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
             <div>
               {selectedCategory === "all" && (
                 <h4 className="flex items-center gap-2 mb-2 text-sm font-medium text-theme-text-primary">
-                  <span>🗄️</span>
+                  <Database className="w-4 h-4" />
                   Databases
                 </h4>
               )}
@@ -398,7 +399,9 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
         {/* No Results */}
         {filteredSources.length === 0 && (
           <div className="py-8 text-center text-theme-text-tertiary">
-            <div className="mb-2 text-2xl">🔍</div>
+            <div className="flex justify-center mb-2">
+              <Search className="w-8 h-8 opacity-50" />
+            </div>
             <p className="text-sm">No data sources found</p>
             <p className="mt-1 text-xs">
               Try adjusting your search or category filter

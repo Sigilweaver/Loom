@@ -2,28 +2,29 @@ import React from "react";
 import { getToolsByCategory } from "../data/tools";
 import { ToolCategory } from "../domain/workflow/entities/workflow";
 import { useUIStore } from "../state/uiStore";
+import { Star, ArrowRightLeft, Wrench, Link, BarChart3 } from 'lucide-react';
 
-const TABS: { id: ToolCategory; name: string; color: string; icon: string }[] =
+const TABS: { id: ToolCategory; name: string; color: string; icon: React.ElementType }[] =
   [
     {
       id: "favorites",
       name: "Favorites",
       color: "bg-theme-tool-favorites",
-      icon: "⭐",
+      icon: Star,
     },
-    { id: "inout", name: "In/Out", color: "bg-theme-tool-inout", icon: "📁" },
+    { id: "inout", name: "In/Out", color: "bg-theme-tool-inout", icon: ArrowRightLeft },
     {
       id: "preparation",
       name: "Preparation",
       color: "bg-theme-tool-preparation",
-      icon: "🔧",
+      icon: Wrench,
     },
-    { id: "join", name: "Join", color: "bg-theme-tool-join", icon: "🔗" },
+    { id: "join", name: "Join", color: "bg-theme-tool-join", icon: Link },
     {
       id: "aggregate",
       name: "Aggregate",
       color: "bg-theme-tool-aggregate",
-      icon: "📊",
+      icon: BarChart3,
     },
   ];
 
@@ -63,7 +64,7 @@ export default function ToolPalette() {
               borderColor: "var(--color-border-primary)",
             }}
           >
-            <span className="text-base">{tab.icon}</span>
+            <tab.icon className="w-4 h-4" />
             <span>{tab.name}</span>
           </button>
         ))}
@@ -100,7 +101,7 @@ export default function ToolPalette() {
                     borderColor: categoryColor,
                   }}
                 >
-                  <div className="text-2xl">{tool.icon}</div>
+                  <tool.icon className="w-8 h-8" style={{ color: categoryColor }} />
                 </div>
                 {/* Tool label - below node, matches canvas styling */}
                 <div

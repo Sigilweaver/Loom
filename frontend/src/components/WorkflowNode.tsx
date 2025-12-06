@@ -162,7 +162,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
 
       {/* Tool icon - centered */}
       <div className="flex items-center justify-center h-full">
-        <div className="text-2xl">{definition.icon}</div>
+        <definition.icon className="w-6 h-6" style={{ color: categoryColor }} />
       </div>
 
       {/* Output handles */}

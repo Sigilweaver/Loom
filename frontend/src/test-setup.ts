@@ -163,3 +163,21 @@ vi.mock('monaco-editor', () => ({
   Position: class {},
   IRange: {},
 }));
+
+// Mock lucide-react icons to avoid rendering issues in tests
+vi.mock('lucide-react', () => {
+  const icons = [
+    'FileInput', 'FileOutput', 'Filter', 'CheckSquare', 'ArrowUpDown', 
+    'Calculator', 'Layers', 'Link', 'Sigma', 'Star', 'ArrowRightLeft', 
+    'Wrench', 'BarChart3', 'Settings'
+  ];
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockIcons: Record<string, React.FC<any>> = {};
+  icons.forEach(icon => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockIcons[icon] = (props: any) => React.createElement('div', { ...props, 'data-testid': `icon-${icon}` }, icon);
+  });
+  
+  return mockIcons;
+});

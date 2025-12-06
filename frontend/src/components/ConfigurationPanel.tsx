@@ -35,6 +35,7 @@ import { SummarizeConfiguration } from "./SummarizeConfiguration";
 import { UnionConfiguration } from "./UnionConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
+import { Settings } from "lucide-react";
 
 const logger = createLogger('ConfigurationPanel');
 
@@ -100,7 +101,7 @@ export default function ConfigurationPanel() {
         {/* Workflow Configuration Header */}
         <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
           <div className="flex items-center space-x-3">
-            <div className="text-2xl">⚙️</div>
+            <Settings className="w-6 h-6 text-theme-text-primary" />
             <div>
               <h2 className="text-lg font-semibold text-theme-text-primary">
                 Workflow Configuration
