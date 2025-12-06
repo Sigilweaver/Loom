@@ -12,8 +12,6 @@ from typing import Dict, Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from .manifest_builder import strip_version_from_filename
-
 
 class B2Uploader:
     """Upload release assets to Backblaze B2."""
@@ -68,7 +66,7 @@ class B2Uploader:
     
     def upload_assets(self, assets_dir: Path, version: str):
         """
-        Upload release assets to both latest/ and releases/{version}/.
+        Upload release assets to releases/{version}/.
         
         Args:
             assets_dir: Directory containing release assets
@@ -84,37 +82,12 @@ class B2Uploader:
             if file.name in ('SHA256SUMS.txt', 'downloads.json'):
                 continue
             
-            # Upload to latest/ with version stripped from filename
-            generic_name = strip_version_from_filename(file.name)
-            self._upload_file(
-                file,
-                f"latest/{generic_name}",
-                cache_control="max-age=300,public"
-            )
-            
-            # Upload to versioned location with original filename
+            # Upload to versioned location
             self._upload_file(
                 file,
                 f"releases/{version}/{file.name}",
                 cache_control="max-age=31536000,public,immutable"  # 1 year - versioned is immutable
             )
-    
-    def upload_checksums(self, checksums_file: Path):
-        """
-        Upload SHA256SUMS.txt to latest/.
-        
-        Args:
-            checksums_file: Path to SHA256SUMS.txt
-        """
-        if not checksums_file.exists():
-            print(f"Warning: Checksums file not found: {checksums_file}")
-            return
-        
-        self._upload_file(
-            checksums_file,
-            f"latest/{checksums_file.name}",
-            cache_control="max-age=300,public"
-        )
     
     def upload_manifest_atomic(self, manifest_data: Dict, key: str, cache_control: str = "max-age=60,public"):
         """

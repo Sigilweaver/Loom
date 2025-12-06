@@ -54,6 +54,8 @@ class ManifestBuilder:
         self.assets_dir = Path(assets_dir)
         self.version = version
         self.base_url = base_url.rstrip('/')
+        # Path prefix for all assets in this release
+        self.path_prefix = f"releases/{version}"
         
     def build_stable_manifest(self, commit_sha: str) -> Dict:
         """
@@ -75,7 +77,7 @@ class ManifestBuilder:
             if file.name in ('SHA256SUMS.txt', 'downloads.json'):
                 continue
             
-            asset_info = self._build_asset_info(file, path_prefix='latest')
+            asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
             if asset_info:
                 assets.append(asset_info)
         
@@ -108,15 +110,15 @@ class ManifestBuilder:
                 continue
             
             if is_variant(file.name, 'Client'):
-                asset_info = self._build_asset_info(file, path_prefix='latest')
+                asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
                     client_assets.append(asset_info)
             elif is_variant(file.name, 'Web'):
-                asset_info = self._build_asset_info(file, path_prefix='latest')
+                asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
                     web_assets.append(asset_info)
             else:
-                asset_info = self._build_asset_info(file, path_prefix='latest')
+                asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
                     full_assets.append(asset_info)
         
@@ -131,13 +133,13 @@ class ManifestBuilder:
             }
         }
     
-    def _build_asset_info(self, file: Path, path_prefix: str = 'latest') -> Optional[Dict]:
+    def _build_asset_info(self, file: Path, path_prefix: str) -> Optional[Dict]:
         """
         Build asset information dictionary.
         
         Args:
             file: Path to asset file
-            path_prefix: URL path prefix (e.g., 'latest' or 'releases/v0.2.5')
+            path_prefix: URL path prefix (e.g., 'releases/v0.2.5')
             
         Returns:
             Asset info dictionary or None if file should be skipped
@@ -150,12 +152,8 @@ class ManifestBuilder:
             for chunk in iter(lambda: f.read(8192), b''):
                 sha256_hash.update(chunk)
         
-        # For 'latest' paths, use generic filenames (no version)
-        # For versioned paths, keep the original filename
-        if path_prefix == 'latest':
-            url_filename = strip_version_from_filename(file.name)
-        else:
-            url_filename = file.name
+        # Always use the original filename
+        url_filename = file.name
         
         return {
             'id': type_info['id'],

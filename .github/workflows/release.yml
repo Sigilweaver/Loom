@@ -135,15 +135,6 @@ jobs:
             python3 .github/scripts/generate-checksums.py release-assets/
           fi
 
-      - name: Generate downloads.json manifest
-        env:
-          B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
-          B2_ENDPOINT_URL: ${{ secrets.B2_ENDPOINT_URL }}
-        shell: bash
-        run: |
-          export NOW_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          python3 .github/scripts/generate-downloads-manifest.py
-
       - name: Validate release assets
         shell: bash
         run: |
@@ -225,17 +216,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
           echo "## B2 Upload Summary" >> "$GITHUB_STEP_SUMMARY"
           if compgen -G "release-assets/*" > /dev/null; then
-            echo "Uploaded the following to https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/:" >> "$GITHUB_STEP_SUMMARY"
+            echo "Uploaded the following to https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${VERSION}/:" >> "$GITHUB_STEP_SUMMARY"
             for f in release-assets/*; do
               [ -e "$f" ] || continue
               base=$(basename "$f")
-              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/${base}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${VERSION}/${base}" >> "$GITHUB_STEP_SUMMARY"
             done
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Downloads manifest:** https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/downloads.json" >> "$GITHUB_STEP_SUMMARY"
-            echo "Stable manifest: https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/latest/stable/manifest.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Downloads manifest:** https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${VERSION}/downloads.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Stable manifest:** https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/${VERSION}/manifest.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Releases index:** https://${B2_BUCKET_NAME}.${B2_ENDPOINT_URL}/releases/index.json" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No release-assets present." >> "$GITHUB_STEP_SUMMARY"
           fi

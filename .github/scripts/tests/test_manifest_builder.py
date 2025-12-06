@@ -54,10 +54,10 @@ class TestManifestBuilder:
         
         asset = manifest['assets'][0]
         assert asset['url'].startswith(base_url)
-        assert '/latest/' in asset['url']
-        # For latest/, URL should use generic filename (no version)
-        assert 'Sigilweaver-Web.zip' in asset['url']
-        # But fileName should keep the original versioned name
+        assert f'/releases/{version}/' in asset['url']
+        # URL should use the original versioned filename
+        assert 'Sigilweaver-Web-v0.2.5-alpha.zip' in asset['url']
+        # fileName should also keep the original versioned name
         assert asset['fileName'] == 'Sigilweaver-Web-v0.2.5-alpha.zip'
     
     def test_downloads_manifest_structure(self, sample_assets_dir, version, base_url):
