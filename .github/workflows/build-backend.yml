@@ -8,10 +8,6 @@ on:
         required: false
         type: string
         default: '3.11'
-    outputs:
-      artifact-name:
-        description: "Name of the uploaded backend artifact"
-        value: ${{ jobs.build-backend.outputs.artifact-name }}
 
 jobs:
   build-backend:
@@ -29,8 +25,6 @@ jobs:
             executable-name: backend
     
     runs-on: ${{ matrix.os }}
-    outputs:
-      artifact-name: ${{ matrix.artifact-name }}
     
     steps:
       - name: Checkout
