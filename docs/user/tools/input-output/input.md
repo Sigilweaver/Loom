@@ -147,10 +147,42 @@ Avro is ideal when:
 For pure performance within Sigilweaver, consider IPC/Arrow or Parquet instead.
 :::
 
+### ODS
+
+OpenDocument Spreadsheet (.ods) files from LibreOffice and OpenOffice. Similar to Excel but uses an open standard format.
+
+**Reading Mode:**
+
+ODS files only support eager reading (the entire file is loaded into memory). Polars does not support lazy scanning or writing for ODS format - it is input-only.
+
+**ODS Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the ODS file |
+| Sheet ID | 1 | Which sheet to read (1-indexed, 0 = all sheets) |
+| Sheet Name | (none) | Alternative to Sheet ID - read by name |
+| Has Header | true | First row contains column names |
+| Columns | (all) | Specific columns to load (by name or index) |
+| Infer Schema Length | 100 | Number of rows to scan for type inference |
+| Drop Empty Rows | true | Remove completely empty rows |
+| Drop Empty Cols | true | Remove completely empty columns |
+| Raise If Empty | true | Error if the sheet is empty |
+
+:::note When to Use ODS
+ODS is ideal when:
+- Working with LibreOffice or OpenOffice spreadsheets
+- You need an open standard alternative to Excel
+- Sharing data between open source office suites
+- Compatibility with government or academic systems using open formats
+
+**Note:** ODS is input-only - use Excel Output or convert to CSV/Parquet for saving data.
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
-2. Select the data source type (CSV, Excel, Parquet, IPC/Arrow, or Avro)
+2. Select the data source type (CSV, Excel, Parquet, IPC/Arrow, Avro, or ODS)
 3. Choose the file using the file picker
 4. Configure format-specific options as needed
 
@@ -194,11 +226,21 @@ For pure performance within Sigilweaver, consider IPC/Arrow or Parquet instead.
 4. Optionally limit rows with "Max Rows" option
 5. Wire the output to downstream tools
 
+### Loading an ODS File
+
+1. Drag Input tool to canvas
+2. Select "ODS" as the data source
+3. Click "Browse" and select your .ods file
+4. Select the sheet to read (by number or name)
+5. Configure options like drop empty rows/columns
+6. Wire the output to downstream tools
+
 ## Notes
 
 - **Lazy loading** (Scan mode) is recommended for CSV, Parquet, and IPC/Arrow when working with large files
-- **Excel and Avro files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
+- **Excel, Avro, and ODS files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
 - **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
+- **ODS** is read-only in Sigilweaver (Polars limitation) - use Excel Output or convert to other formats for saving
 - **Schema inference** may not always be accurate - use Select to cast types if needed
 - **File paths** must be accessible from where Sigilweaver is running
