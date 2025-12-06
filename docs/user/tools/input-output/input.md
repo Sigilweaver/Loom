@@ -121,10 +121,36 @@ Apache Arrow's native binary format (.arrow, .ipc, .feather). Designed for zero-
 IPC/Arrow is the **fastest format** for read/write operations. Use it for intermediate files in your workflow or for sharing data between applications that support Apache Arrow (DuckDB, Spark, R, Julia, etc.).
 :::
 
+### Avro
+
+Apache Avro binary format (.avro). A row-based format commonly used in big data ecosystems like Hadoop, Kafka, and Spark.
+
+**Reading Mode:**
+
+Avro files only support eager reading (the entire file is loaded into memory). Unlike IPC or Parquet, Avro does not support lazy scanning in Polars.
+
+**Avro Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the Avro file |
+| N Rows | (all) | Limit number of rows to read |
+| Columns | (all) | Specific columns to load (by name or index) |
+
+:::note When to Use Avro
+Avro is ideal when:
+- Integrating with Hadoop, Kafka, or Spark pipelines
+- You need schema evolution support
+- Working with row-based data patterns
+- Interoperability with Java/JVM ecosystems is important
+
+For pure performance within Sigilweaver, consider IPC/Arrow or Parquet instead.
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
-2. Select the data source type (CSV, Excel, Parquet, or IPC/Arrow)
+2. Select the data source type (CSV, Excel, Parquet, IPC/Arrow, or Avro)
 3. Choose the file using the file picker
 4. Configure format-specific options as needed
 
@@ -160,10 +186,19 @@ IPC/Arrow is the **fastest format** for read/write operations. Use it for interm
 3. Click "Browse" and select your .arrow, .ipc, or .feather file
 4. Wire the output to downstream tools
 
+### Loading an Avro File
+
+1. Drag Input tool to canvas
+2. Select "Avro" as the data source
+3. Click "Browse" and select your .avro file
+4. Optionally limit rows with "Max Rows" option
+5. Wire the output to downstream tools
+
 ## Notes
 
 - **Lazy loading** (Scan mode) is recommended for CSV, Parquet, and IPC/Arrow when working with large files
-- **Excel files** are always loaded entirely into memory - consider converting large Excel files to CSV, Parquet, or IPC for better performance
+- **Excel and Avro files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
 - **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
+- **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
 - **Schema inference** may not always be accurate - use Select to cast types if needed
 - **File paths** must be accessible from where Sigilweaver is running
