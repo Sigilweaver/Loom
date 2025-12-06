@@ -64,6 +64,60 @@ You can add inline comments to explain each part:
 The closing parenthesis on its own line before `&` or `|` is intentional - it makes Python's parser happy with the newlines.
 :::
 
+## Method Chaining for Readability
+
+When an expression has multiple method calls, use **method chaining** with one method per line. Wrap the entire chain in parentheses:
+
+```python
+(pl.col("customer_email")
+    .str.to_lowercase()
+    .str.strip_chars()
+    .str.replace_all("@gmail.com", "@google.com")
+)
+```
+
+This is especially useful for complex string operations:
+
+```python
+(pl.col("product_name")
+    .str.to_lowercase()              # Normalize case
+    .str.strip_chars()               # Remove leading/trailing whitespace
+    .str.replace_all("  ", " ")      # Collapse multiple spaces
+    .str.replace("&", "and")         # Expand ampersands
+    .str.slice(0, 50)                # Truncate to 50 characters
+)
+```
+
+### Chaining with Conditionals
+
+You can chain `.when()` / `.then()` / `.otherwise()` calls for complex logic:
+
+```python
+(pl.col("purchase_amount")
+    .when(pl.col("customer_tier") == "gold")
+    .then(pl.col("purchase_amount") * 0.8)   # 20% discount
+    .when(pl.col("customer_tier") == "silver")
+    .then(pl.col("purchase_amount") * 0.9)   # 10% discount
+    .otherwise(pl.col("purchase_amount"))    # No discount
+)
+```
+
+### Chaining Date Operations
+
+Date/time methods chain naturally:
+
+```python
+(pl.col("order_date")
+    .dt.truncate("1d")        # Truncate to day
+    .dt.offset_by("1w")       # Add one week
+    .dt.strftime("%Y-%m-%d")  # Format as string
+)
+```
+
+:::tip Key Rule
+Always wrap the entire chain in outer parentheses. Each method call goes on its own line, indented for readability.
+:::
+
 ## Quote Characters
 
 Use single or double quotes for strings - they're interchangeable:
@@ -125,5 +179,6 @@ pl.col("Status") == "active"
 | Wrap comparisons with `&`/`\|` | `(a > 10) & (b < 20)` |
 | Use `~` for NOT (booleans only) | `~pl.col("is_deleted")` |
 | Multi-line needs outer parens | `(expr1\n) & (expr2\n)` |
+| Chain methods with line breaks | `(col\n  .method1()\n  .method2()\n)` |
 | Use `pl.lit()` for constants | `pl.lit("active")` |
 | Use `==` for equality | `pl.col("x") == 5` |

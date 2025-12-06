@@ -14,8 +14,8 @@ Load and save data:
 
 | Tool | Purpose |
 |------|---------|
-| [Input](./input-output/input) | Load data from CSV or Parquet files |
-| [Output](./input-output/output) | Save data to CSV or Parquet files |
+| [Input](./input-output/input) | Load data from files |
+| [Output](./input-output/output) | Save data to files |
 
 ### Preparation
 

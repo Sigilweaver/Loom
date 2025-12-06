@@ -10,6 +10,10 @@ Welcome to the Sigilweaver User Guide. This documentation covers everything you 
 
 Sigilweaver is a visual data pipeline tool that lets you build complex data transformations through an intuitive drag-and-drop interface. Under the hood, it uses [Polars](https://pola.rs) for fast, efficient data processing with lazy evaluation.
 
+:::tip Coming from another tool?
+If you're switching from **Tableau Prep**, **Alteryx**, **Power Query**, **KNIME**, **Orange**, or **Excel**, check out our [Crash Courses](./crash-courses/) to quickly map what you already know to Sigilweaver's approach.
+:::
+
 ## Documentation Sections
 
 ### [Interface](./interface/canvas)
