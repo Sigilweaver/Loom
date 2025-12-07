@@ -329,6 +329,45 @@ describe('FormulaConfiguration', () => {
       expect(lastCall._emit.column_name).toBe(true);
       expect(lastCall._emit.expression).toBe(true);
     });
+
+    it('handles undefined _emit when setting column_name then expression', async () => {
+      const user = userEvent.setup();
+      // Start with config that has column_name set but no _emit (simulating deserialized state)
+      const configWithColumnButNoEmit: ToolConfig = {
+        column_name: 'calculated',
+        expression: '',
+        _emit: { column_name: true }, // column_name was already set
+      };
+
+      renderWithTheme(
+        <FormulaConfiguration
+          config={configWithColumnButNoEmit}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      // Type in expression - this should preserve the existing _emit.column_name
+      const editor = screen.getByTestId('monaco-editor');
+      await user.type(editor, "x");
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalled();
+      });
+
+      // Verify both column_name and expression are in _emit
+      // Every onChange call should preserve the existing _emit.column_name
+      const calls = mockOnChange.mock.calls;
+      for (const call of calls) {
+        const config = call[0];
+        // This is the key assertion: column_name should be preserved!
+        expect(config._emit.column_name).toBe(true);
+        expect(config._emit.expression).toBe(true);
+      }
+    });
   });
 
   describe('Metadata Fetching', () => {

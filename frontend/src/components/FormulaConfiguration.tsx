@@ -103,7 +103,7 @@ export function FormulaConfiguration({
       // When selecting new column, clear column_name for user to type
       column_name: isNew ? "" : value,
       _emit: {
-        ...config._emit,
+        ...(config._emit as Record<string, boolean> | undefined),
         column_name: !isNew,
       },
     };
@@ -119,7 +119,7 @@ export function FormulaConfiguration({
       ...config,
       column_name: value || "",
       _emit: {
-        ...config._emit,
+        ...(config._emit as Record<string, boolean> | undefined),
         ...emitPatch,
       },
     };
@@ -131,7 +131,7 @@ export function FormulaConfiguration({
       ...config,
       expression: value || "",
       _emit: {
-        ...config._emit,
+        ...(config._emit as Record<string, boolean> | undefined),
         expression: true,
       },
     };
