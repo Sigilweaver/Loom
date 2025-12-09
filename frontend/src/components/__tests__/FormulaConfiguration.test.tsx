@@ -271,7 +271,8 @@ describe('FormulaConfiguration', () => {
 
       const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
       expect(lastCall.column_name).toBe('total');
-      expect(lastCall._emit.column_name).toBe(true);
+      // _emit should mark column_name for emission since it differs from default ""
+      expect(lastCall._emit?.column_name).toBe(true);
     });
 
     it('calls onChange when expression changes', async () => {
@@ -289,27 +290,28 @@ describe('FormulaConfiguration', () => {
       );
 
       const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, 'test');
+      await user.type(editor, 'x');
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
       const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      expect(lastCall._emit.expression).toBe(true);
+      expect(lastCall.expression).toBe('x');
+      // _emit should mark expression for emission since it differs from default ""
+      expect(lastCall._emit?.expression).toBe(true);
     });
 
-    it('preserves existing _emit values when updating', async () => {
+    it('preserves existing config values when updating expression', async () => {
       const user = userEvent.setup();
-      const configWithEmit: ToolConfig = {
+      const configWithValues: ToolConfig = {
         column_name: 'existing',
         expression: 'existing_expr',
-        _emit: { column_name: true, expression: false },
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithEmit}
+          config={configWithValues}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -319,29 +321,32 @@ describe('FormulaConfiguration', () => {
       );
 
       const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, 'new');
+      await user.type(editor, 'x');
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
       const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      expect(lastCall._emit.column_name).toBe(true);
-      expect(lastCall._emit.expression).toBe(true);
+      // column_name should be preserved when editing expression
+      expect(lastCall.column_name).toBe('existing');
+      expect(lastCall.expression).toBe('existing_exprx');
+      // BOTH should be in _emit since both differ from defaults
+      expect(lastCall._emit?.column_name).toBe(true);
+      expect(lastCall._emit?.expression).toBe(true);
     });
 
-    it('handles undefined _emit when setting column_name then expression', async () => {
+    it('preserves column_name when setting expression', async () => {
       const user = userEvent.setup();
-      // Start with config that has column_name set but no _emit (simulating deserialized state)
-      const configWithColumnButNoEmit: ToolConfig = {
+      // Start with config that has column_name set
+      const configWithColumn: ToolConfig = {
         column_name: 'calculated',
         expression: '',
-        _emit: { column_name: true }, // column_name was already set
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithColumnButNoEmit}
+          config={configWithColumn}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -350,7 +355,7 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      // Type in expression - this should preserve the existing _emit.column_name
+      // Type in expression - this should preserve the existing column_name
       const editor = screen.getByTestId('monaco-editor');
       await user.type(editor, "x");
 
@@ -358,15 +363,51 @@ describe('FormulaConfiguration', () => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
-      // Verify both column_name and expression are in _emit
-      // Every onChange call should preserve the existing _emit.column_name
-      const calls = mockOnChange.mock.calls;
-      for (const call of calls) {
-        const config = call[0];
-        // This is the key assertion: column_name should be preserved!
-        expect(config._emit.column_name).toBe(true);
-        expect(config._emit.expression).toBe(true);
-      }
+      // Verify column_name is preserved when editing expression
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      // column_name should be preserved
+      expect(lastCall.column_name).toBe('calculated');
+      // Both fields should be in _emit since they differ from defaults
+      expect(lastCall._emit?.column_name).toBe(true);
+      expect(lastCall._emit?.expression).toBe(true);
+    });
+
+    it('builds correct _emit when editing loaded workflow without _emit', async () => {
+      const user = userEvent.setup();
+      // This simulates a workflow loaded from JSON - has values but NO _emit
+      // The handler should rebuild _emit based on what differs from defaults
+      const loadedWorkflowConfig: ToolConfig = {
+        column_name: 'total_price',
+        expression: "pl.col('price') * pl.col('qty')",
+        // NO _emit field! This is what happens when loading from JSON
+      };
+
+      renderWithTheme(
+        <FormulaConfiguration
+          config={loadedWorkflowConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      // User makes a small change to the expression
+      const editor = screen.getByTestId('monaco-editor');
+      await user.type(editor, " ");  // Just add a space
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalled();
+      });
+
+      // The key assertion: _emit should be rebuilt with BOTH fields
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      expect(lastCall.expression).toBe("pl.col('price') * pl.col('qty') ");
+      expect(lastCall.column_name).toBe('total_price');
+      // Both should be in _emit since they differ from default ""
+      expect(lastCall._emit?.expression).toBe(true);
+      expect(lastCall._emit?.column_name).toBe(true);
     });
   });
 

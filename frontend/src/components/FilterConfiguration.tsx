@@ -1,10 +1,43 @@
 import { useEffect, useMemo } from "react";
-import { ToolConfig, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
+import { ToolConfig, EmissionMap, Tool, Wire, WorkflowMeta } from "../domain/workflow/entities/workflow";
 import { CodeEditor } from "./common/CodeEditor";
 import { HelpLink } from "./common/HelpLink";
 import { useMetadata, usePolarsFunctions } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { EXPRESSION_DOCS_URL } from "@data/tools";
+
+// Default values for Filter tool (must match TOOL_DEFINITIONS)
+const FILTER_DEFAULTS = {
+  expression: "",
+  mode: "Custom",
+} as const;
+
+/**
+ * Build the emission map for Filter tool config.
+ * Preserves existing _emit entries and updates Filter-specific fields
+ * based on whether they differ from defaults.
+ */
+function buildFilterEmit(config: ToolConfig): EmissionMap {
+  // Start with existing _emit to preserve entries for other fields
+  const emit: EmissionMap = { ...(config._emit as EmissionMap | undefined) };
+  
+  const expression = (config.expression as string) ?? "";
+  const mode = (config.mode as string) ?? FILTER_DEFAULTS.mode;
+  
+  // Update Filter-specific fields based on whether they differ from defaults
+  if (expression !== FILTER_DEFAULTS.expression) {
+    emit.expression = true;
+  } else {
+    delete emit.expression;
+  }
+  if (mode !== FILTER_DEFAULTS.mode) {
+    emit.mode = true;
+  } else {
+    delete emit.mode;
+  }
+  
+  return emit;
+}
 
 interface FilterConfigurationProps {
   config: ToolConfig;
@@ -47,14 +80,12 @@ export function FilterConfiguration({
     fetchMetadata(toolId, JSON.parse(workflow), 'input');
   }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
   const handleExpressionChange = (value: string) => {
-    const newConfig = {
+    const newConfig: ToolConfig = {
       ...config,
       expression: value || "",
-      _emit: {
-        ...config._emit,
-        expression: true,
-      },
     };
+    // Build emission map based on what differs from defaults
+    newConfig._emit = buildFilterEmit(newConfig);
     onChange(newConfig);
   };
 

@@ -11,6 +11,39 @@ import { EXPRESSION_DOCS_URL } from "@data/tools";
 // Special value indicating creation of a new column
 const NEW_COLUMN_VALUE = "__new_column__";
 
+// Default values for Formula tool (must match TOOL_DEFINITIONS)
+const FORMULA_DEFAULTS = {
+  expression: "",
+  column_name: "",
+} as const;
+
+/**
+ * Build the emission map for Formula tool config.
+ * Preserves existing _emit entries and updates Formula-specific fields
+ * based on whether they differ from defaults.
+ */
+function buildFormulaEmit(config: ToolConfig): EmissionMap {
+  // Start with existing _emit to preserve entries for other fields
+  const emit: EmissionMap = { ...(config._emit as EmissionMap | undefined) };
+  
+  const expression = (config.expression as string) ?? "";
+  const columnName = (config.column_name as string) ?? "";
+  
+  // Update Formula-specific fields based on whether they differ from defaults
+  if (expression !== FORMULA_DEFAULTS.expression) {
+    emit.expression = true;
+  } else {
+    delete emit.expression;
+  }
+  if (columnName !== FORMULA_DEFAULTS.column_name) {
+    emit.column_name = true;
+  } else {
+    delete emit.column_name;
+  }
+  
+  return emit;
+}
+
 interface FormulaConfigurationProps {
   config: ToolConfig;
   onChange: (config: ToolConfig) => void;
@@ -97,44 +130,37 @@ export function FormulaConfiguration({
     _shouldEmit: boolean
   ) => {
     const isNew = value === NEW_COLUMN_VALUE || !value;
-    const newConfig = {
+    const newColumnName = isNew ? "" : value;
+    const newConfig: ToolConfig = {
       ...config,
-      // When selecting an existing column, set column_name to that column
-      // When selecting new column, clear column_name for user to type
-      column_name: isNew ? "" : value,
-      _emit: {
-        ...(config._emit as Record<string, boolean> | undefined),
-        column_name: !isNew,
-      },
+      column_name: newColumnName,
     };
+    // Build emission map based on what differs from defaults
+    newConfig._emit = buildFormulaEmit(newConfig);
     onChange(newConfig);
   };
 
   const handleColumnNameChange = (
     value: string | undefined,
-    emitPatch: EmissionMap,
+    _emitPatch: EmissionMap,
     _shouldEmit: boolean
   ) => {
-    const newConfig = {
+    const newConfig: ToolConfig = {
       ...config,
       column_name: value || "",
-      _emit: {
-        ...(config._emit as Record<string, boolean> | undefined),
-        ...emitPatch,
-      },
     };
+    // Build emission map based on what differs from defaults
+    newConfig._emit = buildFormulaEmit(newConfig);
     onChange(newConfig);
   };
 
   const handleExpressionChange = (value: string) => {
-    const newConfig = {
+    const newConfig: ToolConfig = {
       ...config,
       expression: value || "",
-      _emit: {
-        ...(config._emit as Record<string, boolean> | undefined),
-        expression: true,
-      },
     };
+    // Build emission map based on what differs from defaults
+    newConfig._emit = buildFormulaEmit(newConfig);
     onChange(newConfig);
   };
 

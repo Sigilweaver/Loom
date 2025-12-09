@@ -52,8 +52,10 @@ export class WorkflowSerializer {
     config: Record<string, unknown>,
     emit: Record<string, unknown> | undefined
   ): ToolConfig {
-    // Fields that must always be included (structural/discriminator fields)
-    const alwaysInclude = new Set(['category', 'type', 'csvMode', 'source', 'destination']);
+    // Structural/discriminator fields that must always be included
+    const alwaysInclude = new Set([
+      'category', 'type', 'csvMode', 'source', 'destination',
+    ]);
 
     if (!emit) {
       // No emission map means include all fields (except _emit)

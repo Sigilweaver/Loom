@@ -356,4 +356,88 @@ describe("WorkflowSerializer - Import/Export Integration", () => {
     // _emit should not be in serialized output
     expect(inputTool.config._emit).toBeUndefined();
   });
+
+  it("should include Formula tool column_name and expression based on _emit", () => {
+    // Formula tool: fields should be serialized when _emit marks them true
+    // When both fields differ from default (""), they should both be in _emit
+    const tools: Tool[] = [
+      {
+        id: "formula_001",
+        type: "Formula",
+        x: 100,
+        y: 100,
+        config: {
+          column_name: "total_price",
+          expression: "pl.col('price') * pl.col('qty')",
+          // Both fields differ from default (""), so both should be in _emit
+          _emit: {
+            column_name: true,
+            expression: true,
+          },
+        },
+        sockets: [
+          { id: "input", direction: "input" },
+          { id: "output", direction: "output" },
+        ],
+      },
+    ];
+
+    const meta: WorkflowMeta = {
+      name: "Formula Emission Test",
+      description: "Tests that Formula fields are serialized based on _emit",
+      author: "Test Suite",
+      workflowId: "test_formula_emission",
+      created: "2025-12-07T00:00:00.000Z",
+    };
+
+    const json = WorkflowSerializer.toJSON(tools, [], meta);
+    const parsed = JSON.parse(json);
+
+    const formulaTool = parsed.tools[0];
+    // Both should be included because both are marked in _emit
+    expect(formulaTool.config.column_name).toBe("total_price");
+    expect(formulaTool.config.expression).toBe("pl.col('price') * pl.col('qty')");
+    // _emit should not be in serialized output
+    expect(formulaTool.config._emit).toBeUndefined();
+  });
+
+  it("should omit Formula fields that are at default values", () => {
+    // When fields are at their default (""), they should not be in _emit
+    // and should be omitted from serialization
+    const tools: Tool[] = [
+      {
+        id: "formula_001",
+        type: "Formula",
+        x: 100,
+        y: 100,
+        config: {
+          column_name: "",  // default - should be omitted
+          expression: "",   // default - should be omitted
+          _emit: {},        // empty because nothing differs from default
+        },
+        sockets: [
+          { id: "input", direction: "input" },
+          { id: "output", direction: "output" },
+        ],
+      },
+    ];
+
+    const meta: WorkflowMeta = {
+      name: "Formula Default Test",
+      description: "Tests that default Formula fields are omitted",
+      author: "Test Suite",
+      workflowId: "test_formula_defaults",
+      created: "2025-12-07T00:00:00.000Z",
+    };
+
+    const json = WorkflowSerializer.toJSON(tools, [], meta);
+    const parsed = JSON.parse(json);
+
+    const formulaTool = parsed.tools[0];
+    // Both should be omitted because they're at defaults and not in _emit
+    expect(formulaTool.config.column_name).toBeUndefined();
+    expect(formulaTool.config.expression).toBeUndefined();
+    // _emit should not be in serialized output
+    expect(formulaTool.config._emit).toBeUndefined();
+  });
 });
