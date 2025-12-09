@@ -21,6 +21,10 @@ Create or replace calculated columns using Polars expressions.
 | New Column Name | If new | Name for the new column (only when creating new) |
 | Formula Expression | Yes | Polars expression defining the column value |
 
+:::tip Using the Expression Editor
+The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics#using-the-expression-editor) for a step-by-step guide.
+:::
+
 ## Creating a New Column
 
 1. Select "(New Column)" from the Target Column dropdown
