@@ -19,6 +19,7 @@ class PolarsDataType(str, Enum):
     UINT64 = "UInt64"
     FLOAT32 = "Float32"
     FLOAT64 = "Float64"
+    DECIMAL = "Decimal"
     BOOLEAN = "Boolean"
     UTF8 = "Utf8"
     STRING = "String"

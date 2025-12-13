@@ -18,6 +18,7 @@ POLARS_TO_MODEL: dict[type, PolarsDataType] = {
     pl.UInt64: PolarsDataType.UINT64,
     pl.Float32: PolarsDataType.FLOAT32,
     pl.Float64: PolarsDataType.FLOAT64,
+    pl.Decimal: PolarsDataType.DECIMAL,
     pl.Boolean: PolarsDataType.BOOLEAN,
     pl.Utf8: PolarsDataType.UTF8,
     pl.String: PolarsDataType.STRING,

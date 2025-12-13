@@ -9,6 +9,7 @@ import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
+import { isNumericPolarsType } from "../data/polarsTypes";
 
 /**
  * Aggregation action definitions
@@ -46,18 +47,6 @@ interface ColumnAction {
 }
 
 /**
- * Check if a dtype is numeric
- */
-function isNumericDtype(dtype: string): boolean {
-  const numericTypes = new Set([
-    "Int8", "Int16", "Int32", "Int64",
-    "UInt8", "UInt16", "UInt32", "UInt64",
-    "Float32", "Float64", "Decimal",
-  ]);
-  return numericTypes.has(dtype);
-}
-
-/**
  * Check if a dtype is string-like
  */
 function isStringDtype(dtype: string): boolean {
@@ -70,9 +59,9 @@ function isStringDtype(dtype: string): boolean {
 function getValidActions(columns: ColumnSchema[]): ActionInfo[] {
   if (columns.length === 0) return [];
 
-  const allNumeric = columns.every((c) => isNumericDtype(c.dtype || ""));
+  const allNumeric = columns.every((c) => isNumericPolarsType(c.dtype || ""));
   const allString = columns.every((c) => isStringDtype(c.dtype || ""));
-  const anyNumeric = columns.some((c) => isNumericDtype(c.dtype || ""));
+  const anyNumeric = columns.some((c) => isNumericPolarsType(c.dtype || ""));
 
   return ALL_ACTIONS.filter((action) => {
     // Numeric-only actions require all columns to be numeric

@@ -9,7 +9,7 @@ import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
-import { POLARS_TYPES_MAP } from "../data/polarsTypes";
+import { POLARS_TYPES_MAP, CASTABLE_TYPES_BY_UI_GROUP } from "../data/polarsTypes";
 
 // Re-export for local use with original name for minimal code changes
 const TYPE_INFO_MAP = POLARS_TYPES_MAP;
@@ -581,34 +581,15 @@ export function SelectConfiguration({
                         )}
                         title={typeInfo?.description}
                       >
-                        <optgroup label="Integers (Signed)">
-                          <option value="Int8">Int8</option>
-                          <option value="Int16">Int16</option>
-                          <option value="Int32">Int32</option>
-                          <option value="Int64">Int64</option>
-                        </optgroup>
-                        <optgroup label="Integers (Unsigned)">
-                          <option value="UInt8">UInt8</option>
-                          <option value="UInt16">UInt16</option>
-                          <option value="UInt32">UInt32</option>
-                          <option value="UInt64">UInt64</option>
-                        </optgroup>
-                        <optgroup label="Decimal">
-                          <option value="Float32">Float32</option>
-                          <option value="Float64">Float64</option>
-                        </optgroup>
-                        <optgroup label="Text">
-                          <option value="String">String</option>
-                          <option value="Utf8">Utf8</option>
-                        </optgroup>
-                        <optgroup label="Other">
-                          <option value="Boolean">Boolean</option>
-                          <option value="Date">Date</option>
-                          <option value="Datetime">Datetime</option>
-                          <option value="Time">Time</option>
-                          <option value="Duration">Duration</option>
-                          <option value="Categorical">Categorical</option>
-                        </optgroup>
+                        {Array.from(CASTABLE_TYPES_BY_UI_GROUP.entries()).map(([groupName, types]) => (
+                          <optgroup key={groupName} label={groupName}>
+                            {types.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
                       </select>
                     </div>
 

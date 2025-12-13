@@ -1,33 +1,16 @@
 import { getToolDefinition } from "@data/tools";
-import { Socket, Tool, ToolConfig, Wire } from "@domain/workflow/entities/workflow";
 import { useClipboardStore } from "@state/clipboardStore";
-import { useHistoryStore } from "@state/historyStore";
-import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
-import { useTabStore } from "@state/tabStore";
-import {
-  alignHorizontally as doAlignH,
-  alignVertically as doAlignV,
-  distributeHorizontally as doDistH,
-  distributeVertically as doDistV,
-  type PositionUpdate,
-} from "@utils/alignDistribute";
-import { generateUniqueId } from "@utils/id";
-import { createLogger } from "@utils/logger";
-import { calculateMenuPosition } from "@utils/menuPositioning";
 import {
   useEdgesState,
   useNodesState,
   useReactFlow,
-  type Connection,
-  type Edge,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -40,9 +23,17 @@ import { CanvasMinimap } from "./CanvasMinimap";
 import { CanvasPositionMenu } from "./CanvasPositionMenu";
 import { CanvasSurface } from "./CanvasSurface";
 import { useArrowKeyMovement } from "./hooks/useArrowKeyMovement";
+import { useCanvasAlignment } from "./hooks/useCanvasAlignment";
 import { useCanvasClipboard } from "./hooks/useCanvasClipboard";
+import { useCanvasConnection } from "./hooks/useCanvasConnection";
+import { useCanvasContextMenu } from "./hooks/useCanvasContextMenu";
+import { useCanvasDrag } from "./hooks/useCanvasDrag";
+import { useCanvasHandlers } from "./hooks/useCanvasHandlers";
 import { useCanvasKeyboard } from "./hooks/useCanvasKeyboard";
+import { useCanvasLasso } from "./hooks/useCanvasLasso";
+import { useCanvasMinimap } from "./hooks/useCanvasMinimap";
 import { useCanvasPaste } from "./hooks/useCanvasPaste";
+import { useCanvasSelection } from "./hooks/useCanvasSelection";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
 import { useNodeResync } from "./hooks/useNodeResync";
@@ -53,231 +44,50 @@ export interface CanvasRef {
 }
 
 const nodeTypes = { workflow: WorkflowNode };
-const logger = createLogger('CanvasShell');
 
 export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
 
-  // Access Zustand stores
-  const tools = useWorkflowStore((s) => s.tools);
-  const wires = useWorkflowStore((s) => s.wires);
-  const edges = useWorkflowStore((s) => s.edges);
-  const addTool = useWorkflowStore((s) => s.addTool);
-  const removeTool = useWorkflowStore((s) => s.removeTool);
-  const updateTool = useWorkflowStore((s) => s.updateTool);
-  const addWire = useWorkflowStore((s) => s.addWire);
-  const removeWire = useWorkflowStore((s) => s.removeWire);
-  const batchAddToolsAndWires = useWorkflowStore(
-    (s) => s.batchAddToolsAndWires
-  );
-  const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
-  const pushState = useHistoryStore((s) => s.pushState);
-  const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
-  const setPreviewState = useUIStore((s) => s.setPreviewState);
-  const activeTabId = useTabStore((s) => s.activeTabId);
-  const markTabDirty = useTabStore((s) => s.markTabDirty);
-
-  // Handler functions (replace props with direct store calls)
-  const handleAddTool = useCallback(
-    (
-      type: string,
-      x: number,
-      y: number,
-      idOverride?: string,
-      configOverride?: ToolConfig,
-      socketsOverride?: Socket[]
-    ) => {
-      logger.debug("Adding tool:", type, "at", x, y);
-
-      // Build tool object - use overrides if provided (e.g., from paste)
-      const newTool: Tool = {
-        id: idOverride || generateUniqueId(new Set(tools.map((t) => t.id))),
-        type,
-        x,
-        y,
-        config: configOverride ?? {},
-        sockets: socketsOverride ?? getToolDefinition(type)?.sockets ?? [],
-      };
-
-      pushState(tools, wires, workflowMeta);
-      addTool(newTool);
-      
-      // Mark tab as dirty
-      if (activeTabId) {
-        markTabDirty(activeTabId);
-      }
-    },
-    [addTool, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
-  );
-
-  const handleRemoveTool = useCallback(
-    (id: string) => {
-      logger.debug("Removing tool:", id);
-      pushState(tools, wires, workflowMeta);
-      removeTool(id);
-      
-      // Mark tab as dirty
-      if (activeTabId) {
-        markTabDirty(activeTabId);
-      }
-    },
-    [removeTool, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
-  );
-
-  const handleToolMove = useCallback(
-    (id: string, x: number, y: number) => {
-      // Note: No snapshot for moves - too frequent. Snapshot saved on drag end.
-      logger.debug("Moving tool:", id, "to", x, y);
-      updateTool(id, { x, y });
-    },
-    [updateTool]
-  );
-
-  const handleAddWire = useCallback(
-    (
-      from: { tool: string; socket: string },
-      to: { tool: string; socket: string }
-    ) => {
-      logger.debug("Adding wire:", from, "->", to);
-      const wire: Wire = { from, to };
-      pushState(tools, wires, workflowMeta);
-      addWire(wire);
-      
-      // Mark tab as dirty
-      if (activeTabId) {
-        markTabDirty(activeTabId);
-      }
-    },
-    [addWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
-  );
-
-  const handleRemoveWire = useCallback(
-    (id: string) => {
-      logger.debug("Removing wire:", id);
-      // Parse wire ID to extract from/to info
-      // Format: "encodeURIComponent(from.tool)_from.socket_encodeURIComponent(to.tool)_to.socket"
-      const parts = id.split("_");
-      if (parts.length >= 4 && parts[0] && parts[1] && parts[2] && parts[3]) {
-        const from = {
-          tool: decodeURIComponent(parts[0]),
-          socket: parts[1],
-        };
-        const to = {
-          tool: decodeURIComponent(parts[2]),
-          socket: parts.slice(3).join('_'),  // Socket IDs may contain underscores
-        };
-        pushState(tools, wires, workflowMeta);
-        removeWire(from, to);
-        
-        // Mark tab as dirty
-        if (activeTabId) {
-          markTabDirty(activeTabId);
-        }
-      } else {
-        logger.warn("Invalid wire ID format:", id);
-      }
-    },
-    [removeWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
-  );
-
-  const handleBatchAdd = useCallback(
-    (
-      toolAdds: {
-        id: string;
-        type: string;
-        x: number;
-        y: number;
-        config: ToolConfig;
-        sockets: Socket[];
-      }[],
-      wiresToAdd: {
-        from: { tool: string; socket: string };
-        to: { tool: string; socket: string };
-      }[]
-    ) => {
-      logger.debug(
-        "Batch adding:",
-        toolAdds.length,
-        "tools,",
-        wiresToAdd.length,
-        "wires"
-      );
-
-      // Use provided tool data (includes config/sockets from clipboard)
-      const fullTools: Tool[] = toolAdds.map((t) => ({
-        id: t.id,
-        type: t.type,
-        x: t.x,
-        y: t.y,
-        config: t.config,
-        sockets: t.sockets,
-      }));
-
-      const fullWires: Wire[] = wiresToAdd.map((w) => ({
-        from: w.from,
-        to: w.to,
-      }));
-
-      pushState(tools, wires, workflowMeta);
-      batchAddToolsAndWires(fullTools, fullWires);
-      
-      // Mark tab as dirty
-      if (activeTabId) {
-        markTabDirty(activeTabId);
-      }
-    },
-    [batchAddToolsAndWires, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
-  );
-
-  const handleBeginTransaction = useCallback(() => {
-    logger.debug("Begin transaction (drag start)");
-    // Optional: Could set a flag here if needed for transaction tracking
-  }, []);
-
-  const handleCommitTransaction = useCallback(() => {
-    logger.debug("Commit transaction (drag end)");
-    pushState(tools, wires, workflowMeta);
-  }, [pushState, tools, wires, workflowMeta]);
-
-  const handleToolSelect = useCallback(
-    (tool: Tool | null) => {
-      logger.debug("Tool selected:", tool?.id || "none");
-      setSelectedTool(tool);
-    },
-    [setSelectedTool]
-  );
-
   // Keyboard scope: only active when this wrapper has focus
   const keyScopeRef = useRef<HTMLDivElement>(null);
-  // Track pointer state via hook (for guarded resync)
-  // Initialized after useNodesState below
+
+  // Browser detection for Firefox paste handling
   const isFirefox = useMemo(
     () =>
       typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent),
     []
   );
-  // Track latest tools from store to avoid races when wiring after paste
-  const latestToolsRef = useRef<Tool[]>(tools);
-  useEffect(() => {
-    latestToolsRef.current = tools;
-  }, [tools]);
-  const minimapButtonRef = useRef<HTMLDivElement>(null);
-  const actionsButtonRef = useRef<HTMLDivElement>(null);
-  const minimapVisible = useUIStore((s) => s.minimapVisible);
-  const minimapPosition = useUIStore((s) => s.minimapPosition);
-  const positionMenuOpen = useUIStore((s) => s.positionMenuOpen);
-  const positionMenuCoords = useUIStore((s) => s.positionMenuCoords);
-  const toggleMinimap = useUIStore((s) => s.toggleMinimap);
-  const setMinimapPosition = useUIStore((s) => s.setMinimapPosition);
-  const openPositionMenu = useUIStore((s) => s.openPositionMenu);
-  const closePositionMenu = useUIStore((s) => s.closePositionMenu);
+
+  // Grid and snapping configuration
   const snapGrid: [number, number] = [20, 20];
   const { snapToGrid, toggleSnapToGrid, snap } = useSnapToGrid(snapGrid);
+
+  // Expose fitView to parent via ref
   useImperativeHandle(
     ref,
     () => ({ fitView: () => fitView({ duration: 800, padding: 0.1 }) }),
     [fitView]
   );
+
+  // === Core handlers hook ===
+  const {
+    tools,
+    wires,
+    handleAddTool,
+    handleRemoveTool,
+    handleToolMove,
+    handleToolSelect,
+    handleAddWire,
+    handleRemoveWire,
+    handleBatchAdd,
+    handleBeginTransaction,
+    handleCommitTransaction,
+  } = useCanvasHandlers();
+
+  // Get edges from workflow store
+  const edges = useWorkflowStore((s) => s.edges);
+
+  // === Build React Flow nodes from tools ===
   const nodes: Node[] = useMemo(
     () =>
       tools.map((tool) => ({
@@ -294,166 +104,20 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       })),
     [tools, handleToolMove]
   );
+
+  // === React Flow state ===
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
+
+  // Sync nodes when tools change (guarded by pointer state)
   const isPointerDownRef = useNodeResync(nodes, setNodes);
-  // resync handled by useNodeResync
+
+  // Sync edges when edges change
   React.useEffect(() => {
     setEdges(edges);
   }, [edges, setEdges]);
-  const onConnect = useCallback(
-    (c: Connection) => {
-      if (c.source && c.target && c.sourceHandle && c.targetHandle) {
-        const fromSocket = c.sourceHandle.replace("output-", "");
-        const toSocket = c.targetHandle.replace("input-", "");
-        handleAddWire(
-          { tool: c.source, socket: fromSocket },
-          { tool: c.target, socket: toSocket }
-        );
-      }
-    },
-    [handleAddWire]
-  );
-  const onEdgesDelete = useCallback(
-    (es: Edge[]) => {
-      es.forEach((e) => handleRemoveWire(e.id));
-    },
-    [handleRemoveWire]
-  );
-  const onNodesDelete = useCallback(
-    (ns: Node[]) => {
-      ns.forEach((n) => handleRemoveTool(n.id));
-      handleToolSelect(null);
-    },
-    [handleRemoveTool, handleToolSelect]
-  );
-  const onNodeClick = useCallback(
-    (_e: React.MouseEvent, n: Node) => {
-      const tool = tools.find((t) => t.id === n.id);
-      if (tool) {
-        handleToolSelect(tool);
-        // Note: Preview only happens when clicking sockets, not the node itself
-      }
-    },
-    [tools, handleToolSelect]
-  );
-  const onNodeContextMenu = useCallback(
-    (e: MouseEvent | React.MouseEvent, n: Node) => {
-      e.preventDefault();
-      // Select only this node if it's not already part of a selection
-      setNodes((ns) => {
-        const alreadySelected = ns.find((nd) => nd.id === n.id)?.selected;
-        if (alreadySelected) return ns; // keep multi-selection
-        return ns.map((nd) => ({ ...nd, selected: nd.id === n.id }));
-      });
-      // Position menu at mouse cursor and set paste anchor
-      const clientX =
-        (e as MouseEvent).clientX ?? (e as React.MouseEvent).clientX;
-      const clientY =
-        (e as MouseEvent).clientY ?? (e as React.MouseEvent).clientY;
-      const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
-      setPasteAnchor(flowPos.x, flowPos.y);
-      setActionsCoords({ x: clientX, y: clientY });
-      setActionsOpen(true);
-    },
-    [setNodes, screenToFlowPosition]
-  );
-  const onPaneClick = useCallback(() => {
-    closePositionMenu();
-    handleToolSelect(null);
-    setNodes((ns) => ns.map((n) => ({ ...n, selected: false })));
-    // Clear preview when clicking away
-    setPreviewState(null);
-  }, [closePositionMenu, handleToolSelect, setNodes, setPreviewState]);
-  const onPaneContextMenu = useCallback(
-    (e: MouseEvent | React.MouseEvent) => {
-      e.preventDefault();
-      // Update last mouse flow position to this point so Paste uses it
-      const clientX =
-        (e as MouseEvent).clientX ?? (e as React.MouseEvent).clientX;
-      const clientY =
-        (e as MouseEvent).clientY ?? (e as React.MouseEvent).clientY;
-      const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
-      setPasteAnchor(flowPos.x, flowPos.y);
-      // Build a paste-only menu if clipboard exists
-      const hasClipboard = !!useClipboardStore.getState().clipboard;
-      if (!hasClipboard) return;
-      setActionsCoords({ x: clientX, y: clientY });
-      setActionsOpen(true);
-    },
-    [screenToFlowPosition]
-  );
-  const onNodeDragStart = useCallback(
-    (_e: React.MouseEvent, _n: Node) => {
-      handleBeginTransaction();
-    },
-    [handleBeginTransaction]
-  );
-  const onNodeDragStop = useCallback(
-    (_e: React.MouseEvent, _n: Node) => {
-      // Persist positions for all selected nodes (group move)
-      const current = getNodes();
-      current
-        .filter((nd) => nd.selected)
-        .forEach((nd) => {
-          const s = snap(nd.position.x, nd.position.y);
-          handleToolMove(nd.id, s.x, s.y);
-        });
-      handleCommitTransaction();
-    },
-    [getNodes, handleToolMove, snap, handleCommitTransaction]
-  );
-  const handleMinimapButtonContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (minimapButtonRef.current && !positionMenuOpen) {
-        const rect = minimapButtonRef.current.getBoundingClientRect();
-        const pos = calculateMenuPosition(
-          rect,
-          { width: 100, height: 160 },
-          4,
-          "bottom"
-        );
-        openPositionMenu({ x: pos.x, y: pos.y });
-      } else if (positionMenuOpen) {
-        closePositionMenu();
-      }
-    },
-    [positionMenuOpen, openPositionMenu, closePositionMenu]
-  );
-  const handlePositionSelect = useCallback(
-    (p: "top-left" | "top-right" | "bottom-left" | "bottom-right") =>
-      setMinimapPosition(p),
-    [setMinimapPosition]
-  );
-  const handleWheel = useCallback((_e: React.WheelEvent) => {}, []);
-  // Actions menu (left-click)
-  const [actionsOpen, setActionsOpen] = React.useState(false);
-  const [actionsCoords, setActionsCoords] = React.useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  // Edge context menu state
-  const [edgeMenuOpen, setEdgeMenuOpen] = React.useState(false);
-  const [edgeMenuCoords, setEdgeMenuCoords] = React.useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [edgeMenuEdge, setEdgeMenuEdge] = React.useState<Edge | null>(null);
-  const openActionsMenu = useCallback(() => {
-    if (!actionsButtonRef.current) return;
-    const rect = actionsButtonRef.current.getBoundingClientRect();
-    const pos = calculateMenuPosition(
-      rect,
-      { width: 140, height: 160 },
-      4,
-      "bottom"
-    );
-    setActionsCoords({ x: pos.x, y: pos.y });
-    setActionsOpen(true);
-  }, []);
-  const closeActionsMenu = useCallback(() => setActionsOpen(false), []);
-  // Clipboard hook (copy/cut/delete/paste + anchor)
+
+  // === Clipboard hook ===
   const { doCopy, doCut, doDelete, doPaste, setPasteAnchor } =
     useCanvasClipboard({
       tools,
@@ -467,6 +131,86 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       setNodes: (updater) => setNodes((ns) => updater(ns)),
       onToolSelect: handleToolSelect,
     });
+
+  // === Context menu hook ===
+  const {
+    actionsOpen,
+    actionsCoords,
+    openActionsMenuAt,
+    closeActionsMenu,
+    onNodeContextMenu,
+    onPaneContextMenu,
+    edgeMenuOpen,
+    edgeMenuCoords,
+    edgeMenuEdge,
+    onEdgeContextMenu,
+    closeEdgeMenu,
+  } = useCanvasContextMenu({
+    screenToFlowPosition,
+    setNodes,
+    setPasteAnchor,
+  });
+
+  // === Minimap hook ===
+  const {
+    minimapButtonRef,
+    actionsButtonRef,
+    minimapVisible,
+    minimapPosition,
+    positionMenuOpen,
+    positionMenuCoords,
+    toggleMinimap,
+    handleMinimapButtonContextMenu,
+    handlePositionSelect,
+    openActionsMenu,
+    closePositionMenu,
+  } = useCanvasMinimap({
+    onOpenActionsMenu: openActionsMenuAt,
+  });
+
+  // === Selection hook ===
+  const { onNodeClick, onPaneClick, onSelectionChange } = useCanvasSelection({
+    tools,
+    setNodes,
+    onToolSelect: handleToolSelect,
+    onClosePositionMenu: closePositionMenu,
+  });
+
+  // === Connection hook ===
+  const { onConnect, onEdgesDelete, onNodesDelete } = useCanvasConnection({
+    onAddWire: handleAddWire,
+    onRemoveWire: handleRemoveWire,
+    onRemoveTool: handleRemoveTool,
+    onToolSelect: handleToolSelect,
+  });
+
+  // === Drag hook ===
+  const { onNodeDragStart, onNodeDragStop } = useCanvasDrag({
+    getNodes,
+    snap,
+    onToolMove: handleToolMove,
+    onBeginTransaction: handleBeginTransaction,
+    onCommitTransaction: handleCommitTransaction,
+  });
+
+  // === Alignment hook ===
+  const {
+    alignHorizontally,
+    alignVertically,
+    distributeHorizontally,
+    distributeVertically,
+  } = useCanvasAlignment({
+    getNodes,
+    snap,
+    onToolMove: handleToolMove,
+    onBeginTransaction: handleBeginTransaction,
+    onCommitTransaction: handleCommitTransaction,
+  });
+
+  // === Lasso selection visual state ===
+  useCanvasLasso();
+
+  // === Mouse tracking for paste anchor ===
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -474,73 +218,14 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     },
     [screenToFlowPosition, setPasteAnchor]
   );
-  // Keep UI selection state in sync with app selection
-  const onSelectionChange = useCallback(
-    ({ nodes: selectedNodes }: { nodes: Node[]; edges: Edge[] }) => {
-      if (selectedNodes.length === 1) {
-        const first = selectedNodes[0];
-        const tool = first
-          ? (tools.find((t) => t.id === first.id) ?? null)
-          : null;
-        handleToolSelect(tool);
-      } else {
-        handleToolSelect(null);
-      }
-    },
-    [tools, handleToolSelect]
-  );
-  // Show marquee only while actively dragging a selection
-  useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      if (e.button === 0) {
-        document.body.classList.add("sig-lasso-active");
-      }
-    };
-    const onMouseUp = () => {
-      document.body.classList.remove("sig-lasso-active");
-    };
-    window.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, []);
-  // Clipboard hook now provides selection-aware actions; keep CanvasShell free of selection helpers
-  // Alignment & distribution helpers
-  const applyPositions = useCallback(
-    (updates: PositionUpdate[]) => {
-      if (!updates.length) return;
-      handleBeginTransaction();
-      updates.forEach((u) => handleToolMove(u.id, u.x, u.y));
-      handleCommitTransaction();
-    },
-    [handleBeginTransaction, handleCommitTransaction, handleToolMove]
-  );
-  const alignHorizontally = useCallback(() => {
-    const updates = doAlignH(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
-  const alignVertically = useCallback(() => {
-    const updates = doAlignV(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
-  const distributeHorizontally = useCallback(() => {
-    const updates = doDistH(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
-  const distributeVertically = useCallback(() => {
-    const updates = doDistV(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
 
-  // Handle native paste event (works in Firefox). Prefer event.clipboardData over async clipboard.
+  // === Paste event handler (Firefox compatibility) ===
   const onPaste = useCanvasPaste({
     setNodes,
     doPaste,
   });
 
-  // Arrow key movement for selected nodes
+  // === Arrow key movement ===
   const moveSelectedNodes = useArrowKeyMovement({
     getNodes,
     snap,
@@ -550,7 +235,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     gridSize: snapGrid,
   });
 
-  // Esc clears selection; Ctrl/Cmd+C/X/V handle only when canvas wrapper has focus
+  // === Keyboard handler ===
   const onKeyDown = useCanvasKeyboard({
     isFirefox,
     setNodes,
@@ -561,15 +246,14 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     doPaste,
     moveSelectedNodes,
   });
+
+  // === Visual styling hooks ===
   const getNodeColor = useNodeColor(tools);
   const getMinimapStyle = useMinimapStyle(minimapPosition);
-  // Edge menu items now built in CanvasMenus
-  const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
-    e.preventDefault();
-    setEdgeMenuEdge(edge);
-    setEdgeMenuCoords({ x: e.clientX, y: e.clientY });
-    setEdgeMenuOpen(true);
-  }, []);
+
+  // === No-op handler for wheel ===
+  const handleWheel = useCallback((_e: React.WheelEvent) => {}, []);
+
   return (
     <div
       ref={keyScopeRef}
@@ -675,7 +359,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
           onDistV={distributeVertically}
           edgeMenuOpen={edgeMenuOpen && !!edgeMenuEdge}
           edgeMenuCoords={edgeMenuCoords}
-          onCloseEdgeMenu={() => setEdgeMenuOpen(false)}
+          onCloseEdgeMenu={closeEdgeMenu}
           edge={edgeMenuEdge}
           tools={tools}
           wires={wires}

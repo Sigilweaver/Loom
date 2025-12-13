@@ -13,6 +13,11 @@
  * https://docs.sigilweaver.app/user/tools/input-output/input/#csv
  */
 
+import { PolarsDataType } from "../../data/polarsTypes";
+
+// Re-export for consumers of this module
+export type { PolarsDataType };
+
 /**
  * CSV Reading Mode
  */
@@ -27,31 +32,6 @@ export type QuoteChar = '"' | "'" | null;
  * Null Value Representation
  */
 export type NullValues = string | string[] | Record<string, string>;
-
-/**
- * Column Data Types (Polars types)
- */
-export type PolarsDataType =
-  | "Int8"
-  | "Int16"
-  | "Int32"
-  | "Int64"
-  | "UInt8"
-  | "UInt16"
-  | "UInt32"
-  | "UInt64"
-  | "Float32"
-  | "Float64"
-  | "Boolean"
-  | "Utf8"
-  | "String"
-  | "Date"
-  | "Datetime"
-  | "Time"
-  | "Duration"
-  | "Categorical"
-  | "List"
-  | "Struct";
 
 /**
  * Schema Definition (column name -> data type)
