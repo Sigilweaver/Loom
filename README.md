@@ -1,6 +1,14 @@
-# Website
+# Sigilweaver Documentation
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+
+## License
+
+The documentation is licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**.
+
+This means you're free to share and adapt the documentation, provided you give appropriate credit and distribute your contributions under the same license.
+
+See [LICENSE](LICENSE) for the full text.
 
 ## Installation
 
