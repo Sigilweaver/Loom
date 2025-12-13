@@ -14,12 +14,6 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 ### Linux
 
-**Wayland file dialog z-order** *(Resolved)*
-
-- **Issue**: File dialog sometimes appeared behind the main window on GNOME/Wayland
-- **Resolution**: Fixed in Electron 36+ which uses GTK 4 by default
-- **Current state**: No longer an issue with modern Electron
-
 **X11 support**
 
 - **Status**: Not tested, not a priority
