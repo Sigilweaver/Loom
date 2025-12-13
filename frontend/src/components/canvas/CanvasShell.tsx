@@ -1,4 +1,3 @@
-import { getToolDefinition } from "@data/tools";
 import { useClipboardStore } from "@state/clipboardStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import {
@@ -8,13 +7,7 @@ import {
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import React, {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-} from "react";
+import { forwardRef, useCallback } from "react";
 import WorkflowNode from "../WorkflowNode";
 import { CanvasControls } from "./CanvasControls";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
@@ -23,51 +16,48 @@ import { CanvasMinimap } from "./CanvasMinimap";
 import { CanvasPositionMenu } from "./CanvasPositionMenu";
 import { CanvasSurface } from "./CanvasSurface";
 import { useArrowKeyMovement } from "./hooks/useArrowKeyMovement";
+import { useBrowserDetection } from "./hooks/useBrowserDetection";
 import { useCanvasAlignment } from "./hooks/useCanvasAlignment";
 import { useCanvasClipboard } from "./hooks/useCanvasClipboard";
 import { useCanvasConnection } from "./hooks/useCanvasConnection";
 import { useCanvasContextMenu } from "./hooks/useCanvasContextMenu";
 import { useCanvasDrag } from "./hooks/useCanvasDrag";
+import { useCanvasEdgeSync } from "./hooks/useCanvasEdgeSync";
+import { useCanvasFocus } from "./hooks/useCanvasFocus";
 import { useCanvasHandlers } from "./hooks/useCanvasHandlers";
+import {
+  useCanvasImperativeHandle,
+  type CanvasRef,
+} from "./hooks/useCanvasImperativeHandle";
 import { useCanvasKeyboard } from "./hooks/useCanvasKeyboard";
 import { useCanvasLasso } from "./hooks/useCanvasLasso";
 import { useCanvasMinimap } from "./hooks/useCanvasMinimap";
+import { useCanvasMouseTracking } from "./hooks/useCanvasMouseTracking";
+import { useCanvasNodes } from "./hooks/useCanvasNodes";
 import { useCanvasPaste } from "./hooks/useCanvasPaste";
 import { useCanvasSelection } from "./hooks/useCanvasSelection";
+import { useCanvasWheelHandler } from "./hooks/useCanvasWheelHandler";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
 import { useNodeResync } from "./hooks/useNodeResync";
 import { useSnapToGrid } from "./hooks/useSnapToGrid";
 
-export interface CanvasRef {
-  fitView: () => void;
-}
+export type { CanvasRef };
 
 const nodeTypes = { workflow: WorkflowNode };
 
 export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
 
-  // Keyboard scope: only active when this wrapper has focus
-  const keyScopeRef = useRef<HTMLDivElement>(null);
-
-  // Browser detection for Firefox paste handling
-  const isFirefox = useMemo(
-    () =>
-      typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent),
-    []
-  );
-
   // Grid and snapping configuration
   const snapGrid: [number, number] = [20, 20];
   const { snapToGrid, toggleSnapToGrid, snap } = useSnapToGrid(snapGrid);
 
+  // Browser capabilities detection
+  const { isFirefox } = useBrowserDetection();
+
   // Expose fitView to parent via ref
-  useImperativeHandle(
-    ref,
-    () => ({ fitView: () => fitView({ duration: 800, padding: 0.1 }) }),
-    [fitView]
-  );
+  useCanvasImperativeHandle({ ref, fitView });
 
   // === Core handlers hook ===
   const {
@@ -88,22 +78,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const edges = useWorkflowStore((s) => s.edges);
 
   // === Build React Flow nodes from tools ===
-  const nodes: Node[] = useMemo(
-    () =>
-      tools.map((tool) => ({
-        id: tool.id,
-        type: "workflow",
-        position: { x: tool.x, y: tool.y },
-        data: {
-          tool,
-          definition: getToolDefinition(tool.type),
-          onToolMove: handleToolMove,
-        },
-        deletable: true,
-        selectable: true,
-      })),
-    [tools, handleToolMove]
-  );
+  const nodes = useCanvasNodes({ tools, onToolMove: handleToolMove });
 
   // === React Flow state ===
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
@@ -113,9 +88,13 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const isPointerDownRef = useNodeResync(nodes, setNodes);
 
   // Sync edges when edges change
-  React.useEffect(() => {
-    setEdges(edges);
-  }, [edges, setEdges]);
+  useCanvasEdgeSync({ edges, setEdges });
+
+  // === Wrapper for setNodes to match expected type ===
+  const setNodesWrapper = useCallback(
+    (updater: (ns: Node[]) => Node[]) => setNodes(updater),
+    [setNodes]
+  );
 
   // === Clipboard hook ===
   const { doCopy, doCut, doDelete, doPaste, setPasteAnchor } =
@@ -128,7 +107,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       onAddTool: handleAddTool,
       onAddWire: handleAddWire,
       onRemoveTool: handleRemoveTool,
-      setNodes: (updater) => setNodes((ns) => updater(ns)),
+      setNodes: setNodesWrapper,
       onToolSelect: handleToolSelect,
     });
 
@@ -211,13 +190,10 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   useCanvasLasso();
 
   // === Mouse tracking for paste anchor ===
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      setPasteAnchor(pos.x, pos.y);
-    },
-    [screenToFlowPosition, setPasteAnchor]
-  );
+  const onMouseMove = useCanvasMouseTracking({
+    screenToFlowPosition,
+    setPasteAnchor,
+  });
 
   // === Paste event handler (Firefox compatibility) ===
   const onPaste = useCanvasPaste({
@@ -251,8 +227,11 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const getNodeColor = useNodeColor(tools);
   const getMinimapStyle = useMinimapStyle(minimapPosition);
 
-  // === No-op handler for wheel ===
-  const handleWheel = useCallback((_e: React.WheelEvent) => {}, []);
+  // === Wheel handler ===
+  const handleWheel = useCanvasWheelHandler();
+
+  // === Focus and pointer management ===
+  const { keyScopeRef, onMouseDown } = useCanvasFocus({ isPointerDownRef });
 
   return (
     <div
@@ -260,17 +239,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       tabIndex={0}
       onPaste={onPaste}
       onKeyDown={onKeyDown}
-      onMouseDown={(e) => {
-        if (e.button === 0) {
-          isPointerDownRef.current = true;
-          const onUp = () => {
-            isPointerDownRef.current = false;
-            window.removeEventListener("mouseup", onUp);
-          };
-          window.addEventListener("mouseup", onUp);
-        }
-        keyScopeRef.current?.focus();
-      }}
+      onMouseDown={onMouseDown}
       className="flex-1 h-full min-h-0"
       style={{ outline: "none" }}
     >
