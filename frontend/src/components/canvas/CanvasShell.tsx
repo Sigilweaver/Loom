@@ -197,7 +197,6 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   // === Paste event handler (Firefox compatibility) ===
   const onPaste = useCanvasPaste({
-    setNodes,
     doPaste,
   });
 

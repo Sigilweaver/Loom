@@ -13,14 +13,11 @@ vi.mock("@state/clipboardStore", () => ({
 describe("useCanvasPaste", () => {
   let params: UseCanvasPasteParams;
   let doPaste: ReturnType<typeof vi.fn>;
-  let setNodes: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     doPaste = vi.fn();
-    setNodes = vi.fn();
 
     params = {
-      setNodes,
       doPaste,
     };
 
@@ -188,7 +185,7 @@ describe("useCanvasPaste", () => {
       expect(handler1).toBe(handler2);
     });
 
-    it("should update callback when dependencies change", () => {
+    it("should update callback when doPaste changes", () => {
       const { result, rerender } = renderHook(() => useCanvasPaste(params));
       const handler1 = result.current;
 
