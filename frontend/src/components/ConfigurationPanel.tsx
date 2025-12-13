@@ -26,16 +26,10 @@ import { OdsConfiguration } from "./OdsConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
-import { FilterConfiguration } from "./FilterConfiguration";
-import { FormulaConfiguration } from "./FormulaConfiguration";
-import { JoinConfiguration } from "./JoinConfiguration";
-import { SelectConfiguration } from "./SelectConfiguration";
-import { SortConfiguration } from "./SortConfiguration";
-import { SummarizeConfiguration } from "./SummarizeConfiguration";
-import { UnionConfiguration } from "./UnionConfiguration";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
 import { Settings } from "lucide-react";
+import { getToolConfigEntry } from "@data/toolConfigComponents";
 
 const logger = createLogger('ConfigurationPanel');
 
@@ -498,97 +492,49 @@ export default function ConfigurationPanel() {
             </div>
           )}
         </div>
-      ) : selectedTool.type === "Filter" ? (
-        /* Filter Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <FilterConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : selectedTool.type === "Formula" ? (
-        /* Formula Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <FormulaConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : selectedTool.type === "Select" ? (
-        /* Select Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <SelectConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : selectedTool.type === "Union" ? (
-        /* Union Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <UnionConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-          />
-        </div>
-      ) : selectedTool.type === "Join" ? (
-        /* Join Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <JoinConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : selectedTool.type === "Sort" ? (
-        /* Sort Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <SortConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : selectedTool.type === "Summarize" ? (
-        /* Summarize Tool Configuration */
-        <div className="flex-1 overflow-hidden">
-          <SummarizeConfiguration
-            config={selectedTool.config}
-            onChange={(config) => handleToolConfigChange(selectedTool.id, config)}
-            toolId={selectedTool.id}
-            tools={tools}
-            wires={wires}
-            workflowMeta={workflowMeta}
-          />
-        </div>
-      ) : (
-        /* Default placeholder for other tools */
-        <div className="p-4 text-center text-theme-text-tertiary">
-          <div className="text-sm">
-            Configuration not available for {selectedTool.type} tools
+      ) : (() => {
+        // Use registry for non-Input/Output tools
+        const configEntry = getToolConfigEntry(selectedTool.type);
+        if (configEntry) {
+          // Use discriminated union - TypeScript narrows based on needsWorkflowContext
+          if (configEntry.needsWorkflowContext) {
+            const ConfigComponent = configEntry.component;
+            return (
+              <div className="flex-1 overflow-hidden">
+                <ConfigComponent
+                  config={selectedTool.config}
+                  onChange={(config: ToolConfig) => handleToolConfigChange(selectedTool.id, config)}
+                  toolId={selectedTool.id}
+                  tools={tools}
+                  wires={wires}
+                  workflowMeta={workflowMeta}
+                />
+              </div>
+            );
+          } else {
+            const ConfigComponent = configEntry.component;
+            return (
+              <div className="flex-1 overflow-hidden">
+                <ConfigComponent
+                  config={selectedTool.config}
+                  onChange={(config: ToolConfig) => handleToolConfigChange(selectedTool.id, config)}
+                />
+              </div>
+            );
+          }
+        }
+        // Default placeholder for tools without configuration
+        return (
+          <div className="p-4 text-center text-theme-text-tertiary">
+            <div className="text-sm">
+              Configuration not available for {selectedTool.type} tools
+            </div>
+            <div className="mt-2 text-xs text-theme-text-disabled">
+              Coming soon...
+            </div>
           </div>
-          <div className="mt-2 text-xs text-theme-text-disabled">
-            Coming soon...
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </ResizablePanel>
   );
 }
