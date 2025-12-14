@@ -284,6 +284,7 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
   onDelete,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const isServerManaged = connection.owner === 'server';
 
   return (
     <div 
@@ -293,11 +294,23 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
         border: '1px solid var(--color-modal-container-border)',
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-1">
         <Database className="w-5 h-5" style={{ color: 'var(--color-modal-content-text)', opacity: 0.6 }} />
-        <div>
-          <div className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
-            {connection.name}
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
+              {connection.name}
+            </span>
+            <span 
+              className="px-2 py-0.5 text-xs font-medium rounded"
+              style={{
+                backgroundColor: isServerManaged ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                color: isServerManaged ? 'rgb(96, 165, 250)' : 'rgb(74, 222, 128)',
+                border: isServerManaged ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(34, 197, 94, 0.2)',
+              }}
+            >
+              {isServerManaged ? 'Server-Managed' : 'Local'}
+            </span>
           </div>
           <div className="text-xs opacity-60" style={{ color: 'var(--color-modal-content-text)' }}>
             {DATABASE_TYPE_NAMES[connection.type]} - {connection.host}:{connection.port}/{connection.database}
@@ -328,20 +341,28 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
           </>
         ) : (
           <>
-            <button
-              onClick={() => onEdit(connection)}
-              className="p-1.5 rounded hover:opacity-70"
-              title="Edit connection"
-            >
-              <Pencil className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
-            </button>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded hover:opacity-70"
-              title="Delete connection"
-            >
-              <Trash2 className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
-            </button>
+            {!isServerManaged ? (
+              <>
+                <button
+                  onClick={() => onEdit(connection)}
+                  className="p-1.5 rounded hover:opacity-70"
+                  title="Edit connection"
+                >
+                  <Pencil className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="p-1.5 rounded hover:opacity-70"
+                  title="Delete connection"
+                >
+                  <Trash2 className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
+                </button>
+              </>
+            ) : (
+              <span className="text-xs px-2 py-1 opacity-50" style={{ color: 'var(--color-modal-content-text)' }}>
+                Read-only
+              </span>
+            )}
           </>
         )}
       </div>
@@ -528,7 +549,7 @@ export const ConnectionManager: React.FC = () => {
           }}
         >
           <Plus className="w-4 h-4" />
-          <span className="text-sm">Add Connection</span>
+          <span className="text-sm">Add Local Connection</span>
         </button>
       </div>
 
@@ -574,15 +595,51 @@ export const ConnectionManager: React.FC = () => {
       )}
 
       {!loading && connections.length > 0 && (
-        <div className="space-y-2">
-          {connections.map(connection => (
-            <ConnectionListItem
-              key={connection.id}
-              connection={connection}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="space-y-4">
+          {/* Server-Managed Connections */}
+          {connections.some(c => c.owner === 'server') && (
+            <div>
+              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
+                Server-Managed Connections
+              </h4>
+              <div className="space-y-2">
+                {connections
+                  .filter(c => c.owner === 'server')
+                  .map(connection => (
+                    <ConnectionListItem
+                      key={connection.id}
+                      connection={connection}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+              </div>
+              <p className="text-xs opacity-40 mt-2" style={{ color: 'var(--color-modal-content-text)' }}>
+                Server connections are managed by your administrator and cannot be edited.
+              </p>
+            </div>
+          )}
+
+          {/* Local Connections */}
+          {connections.some(c => c.owner === 'client') && (
+            <div>
+              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
+                Local Connections
+              </h4>
+              <div className="space-y-2">
+                {connections
+                  .filter(c => c.owner === 'client')
+                  .map(connection => (
+                    <ConnectionListItem
+                      key={connection.id}
+                      connection={connection}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -2,13 +2,21 @@
  * Database Connection Types
  * 
  * Type definitions for secure credential storage and database connections.
- * Credentials are stored encrypted via Electron's safeStorage API.
+ * Credentials are stored encrypted via Electron's safeStorage API (client)
+ * or Fernet encryption (server).
  */
 
 /**
  * Supported database types
  */
 export type DatabaseType = 'postgresql' | 'mysql' | 'sqlite';
+
+/**
+ * Who manages the connection credentials
+ * - 'client': Credentials stored in Electron (desktop app)
+ * - 'server': Credentials stored on backend server
+ */
+export type ConnectionOwner = 'client' | 'server';
 
 /**
  * Connection credentials (sensitive - never stored in plaintext)
@@ -25,6 +33,8 @@ export interface ConnectionInfo {
   id: string;
   name: string;
   type: DatabaseType;
+  /** Who manages this connection's credentials */
+  owner: ConnectionOwner;
   host: string;
   port: number;
   database: string;

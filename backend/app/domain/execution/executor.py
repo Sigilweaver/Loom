@@ -10,6 +10,7 @@ import polars as pl
 from app.api.models.common import DataSchema
 from app.api.models.workflow import Tool, Workflow
 from app.config import settings
+from app.domain.connections.store import get_connection_store
 from app.domain.execution.graph import ExecutionGraph
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import ExecutionError
@@ -356,15 +357,76 @@ class WorkflowExecutor:
     async def _execute_tool(
         self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
-        """Execute a single tool"""
+        """Execute a single tool, resolving server connections if needed."""
         try:
+            # Resolve server-managed connections before executing database tools
+            resolved_config = self._resolve_server_connection(tool)
+            
             tool_impl = ToolRegistry.get(tool.type)
-            outputs = await tool_impl.execute(tool.config, inputs)
+            outputs = await tool_impl.execute(resolved_config, inputs)
             return outputs
         except Exception as e:
             raise ExecutionError(
                 f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
             ) from e
+
+    def _resolve_server_connection(self, tool: Tool) -> dict[str, Any]:
+        """
+        Resolve server-managed connection for database tools.
+        
+        If the tool config has owner="server" and a connectionId,
+        resolve the connection URI from the server connection store.
+        
+        For client-managed connections (owner="client") or connections
+        with source already populated, return config unchanged.
+        """
+        config = dict(tool.config)  # Make a copy to avoid mutating original
+        
+        # Only process Input tools with database category
+        if tool.type != "Input" or config.get("category") != "database":
+            return config
+        
+        # Check connection ownership
+        owner = config.get("owner", "client")  # Default to client for backward compatibility
+        connection_id = config.get("connectionId")
+        
+        # If source is already populated (client-resolved), use it
+        if config.get("source"):
+            logger.debug(f"Tool {tool.id}: Using client-provided source URI")
+            return config
+        
+        # If no connectionId, error
+        if not connection_id:
+            raise ExecutionError(
+                f"Tool {tool.id}: Database connection requires either 'source' URI or 'connectionId'"
+            )
+        
+        # If server-owned, resolve from server store
+        if owner == "server":
+            logger.debug(f"Tool {tool.id}: Resolving server connection {connection_id}")
+            store = get_connection_store()
+            
+            if not store.is_enabled:
+                raise ExecutionError(
+                    f"Tool {tool.id}: Server connection store not enabled. "
+                    "Set CONNECTION_ENCRYPTION_KEY environment variable."
+                )
+            
+            uri = store.build_connection_uri(connection_id)
+            if not uri:
+                raise ExecutionError(
+                    f"Tool {tool.id}: Server connection {connection_id} not found"
+                )
+            
+            config["source"] = uri
+            logger.info(f"Tool {tool.id}: Resolved server connection {connection_id}")
+            return config
+        
+        # Client-owned but no source - client should have resolved this
+        raise ExecutionError(
+            f"Tool {tool.id}: Client-owned connection {connection_id} not resolved. "
+            "Client must provide 'source' URI for client-managed connections."
+        )
 
     def _gather_inputs(
         self, tool_id: str, graph: ExecutionGraph

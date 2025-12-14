@@ -73,14 +73,20 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
   const handleConnectionChange = useCallback(
     (connectionId: string) => {
       console.log('[PostgresqlConfig] Connection changed:', connectionId);
+      
+      // Find the connection to get its owner
+      const connection = postgresConnections.find(c => c.id === connectionId);
+      const owner = connection?.owner || 'client';
+      
       const updatedConfig = {
         ...config,
         connectionId,
+        owner, // Set owner field based on the selected connection
       } as ToolConfig;
       console.log('[PostgresqlConfig] New config:', updatedConfig);
       onChange(updatedConfig);
     },
-    [config, onChange]
+    [config, onChange, postgresConnections]
   );
 
   // Type-safe getters
@@ -139,7 +145,7 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
                   <option value="">Select a connection...</option>
                   {postgresConnections.map((conn) => (
                     <option key={conn.id} value={conn.id}>
-                      {conn.name} ({conn.host}:{conn.port}/{conn.database})
+                      {conn.name} ({conn.host}:{conn.port}/{conn.database}) {conn.owner === 'server' ? '[Server]' : '[Local]'}
                     </option>
                   ))}
                   <option value="__configure_new__" className="border-t border-theme-border-primary">
@@ -151,10 +157,19 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
 
             {selectedConnection && (
               <div className="p-2 mt-2 text-xs border rounded border-theme-border-primary bg-theme-surface-panel text-theme-text-tertiary">
-                <div className="flex items-center gap-1">
-                  <Database className="w-3 h-3" />
-                  <span className="font-medium text-theme-text-secondary">
-                    {selectedConnection.name}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1">
+                    <Database className="w-3 h-3" />
+                    <span className="font-medium text-theme-text-secondary">
+                      {selectedConnection.name}
+                    </span>
+                  </div>
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                    selectedConnection.owner === 'server' 
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  }`}>
+                    {selectedConnection.owner === 'server' ? 'Server-Managed' : 'Local'}
                   </span>
                 </div>
                 <div className="mt-1">

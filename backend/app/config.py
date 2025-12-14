@@ -47,5 +47,10 @@ class Settings(BaseSettings):
     audit_path: str = "./audit/logs"
     audit_retention_days: int = 30  # 0 = keep forever
 
+    # Server Connection Store
+    # Fernet encryption key for credentials (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    connection_encryption_key: str = ""
+    connection_store_path: str = "./connections.json"
+
 
 settings = Settings()

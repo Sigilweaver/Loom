@@ -4,11 +4,15 @@
  * Resolves database connection references in workflows before execution.
  * This ensures credentials are only passed to the backend at execution time,
  * never stored in workflow files.
+ * 
+ * Connection ownership:
+ * - owner='client': Credentials stored in Electron, resolved here before sending to backend
+ * - owner='server': Credentials stored on backend, resolved by executor during execution
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { Tool } from '../domain/workflow/entities/workflow';
-import type { ResolvedConnection } from '../types/connections';
+import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
 
 /**
  * Builds a connection URI from a resolved connection.
@@ -28,9 +32,12 @@ function buildConnectionUri(connection: ResolvedConnection): string {
 /**
  * Resolves all database connection references in a workflow.
  * 
- * For each tool with category="database", resolves the connectionId to a full
+ * For client-owned connections (owner='client'), resolves the connectionId to a full
  * connection URI with embedded credentials. The resolved URI is stored in the
  * `source` field which the backend expects.
+ * 
+ * For server-owned connections (owner='server'), passes the connectionId through
+ * without resolving - the backend will resolve these during execution.
  * 
  * @param workflow - The workflow to resolve connections for
  * @returns A new workflow with resolved connections, or the original if no database tools
@@ -45,6 +52,7 @@ export async function resolveWorkflowConnections(
     configCategory: t.config?.category,
     configType: t.config?.type,
     connectionId: t.config?.connectionId,
+    owner: t.config?.owner,
   })));
 
   // Find all Input tools with database category
@@ -62,18 +70,28 @@ export async function resolveWorkflowConnections(
     return workflow;
   }
 
-  // Check if Electron API is available
-  if (!window.electronAPI?.resolveConnection) {
-    // Not running in Electron - database connections require Electron for secure credential storage
-    console.error('[ConnectionResolver] Electron API not available - database connections require the desktop app');
-    throw new Error('Database connections require the desktop app. Please run Sigilweaver as a desktop application to use database features.');
+  // Separate client-owned and server-owned connections
+  const clientTools = databaseTools.filter(
+    (tool: Tool) => (tool.config?.owner as ConnectionOwner) !== 'server'
+  );
+  const serverTools = databaseTools.filter(
+    (tool: Tool) => (tool.config?.owner as ConnectionOwner) === 'server'
+  );
+
+  console.log('[ConnectionResolver] Client-owned connections:', clientTools.length);
+  console.log('[ConnectionResolver] Server-owned connections:', serverTools.length);
+
+  // For client-owned connections, we need Electron API
+  if (clientTools.length > 0 && !window.electronAPI?.resolveConnection) {
+    console.error('[ConnectionResolver] Electron API not available - client connections require the desktop app');
+    throw new Error('Client database connections require the desktop app. Please run Sigilweaver as a desktop application to use client-managed database features.');
   }
 
-  // Resolve all connections in parallel
+  // Resolve client-owned connections
   const resolutions = await Promise.all(
-    databaseTools.map(async (tool: Tool) => {
+    clientTools.map(async (tool: Tool) => {
       const connectionId = tool.config?.connectionId as string;
-      console.log('[ConnectionResolver] Resolving connection:', connectionId);
+      console.log('[ConnectionResolver] Resolving client connection:', connectionId);
       try {
         const resolved = await window.electronAPI!.resolveConnection(connectionId);
         console.log('[ConnectionResolver] Resolved:', resolved ? 'success' : 'null');
@@ -85,7 +103,7 @@ export async function resolveWorkflowConnections(
     })
   );
 
-  // Create a map of tool ID to resolved URI
+  // Create a map of tool ID to resolved URI (for client connections only)
   const resolutionMap = new Map<string, string>();
   for (const { toolId, resolved } of resolutions) {
     if (resolved) {
@@ -94,26 +112,55 @@ export async function resolveWorkflowConnections(
     }
   }
 
-  // If no connections were resolved, return original workflow
-  if (resolutionMap.size === 0) {
-    console.warn('No database connections could be resolved');
-    return workflow;
+  // Check if any client connections failed to resolve
+  const failedClientCount = clientTools.length - resolutionMap.size;
+  if (failedClientCount > 0) {
+    console.warn(`[ConnectionResolver] ${failedClientCount} client connections could not be resolved`);
   }
 
-  // Create a new workflow with resolved URIs in the source field
+  // Create a new workflow with:
+  // - Client connections: resolved URI in source field, owner='client'
+  // - Server connections: connectionId passed through, owner='server' (no source)
   const resolvedWorkflow: WorkflowJSON = {
     ...workflow,
     tools: workflow.tools.map((tool: Tool) => {
-      const resolvedUri = resolutionMap.get(tool.id);
-      if (resolvedUri && tool.config) {
+      // Skip non-database tools
+      if (tool.type !== 'Input' || tool.config?.category !== 'database') {
+        return tool;
+      }
+
+      const owner = (tool.config?.owner as ConnectionOwner) || 'client';
+      
+      if (owner === 'server') {
+        // Server-owned: pass connectionId and owner, no source
+        // Backend will resolve during execution
+        console.log(`[ConnectionResolver] Tool ${tool.id}: server-owned, passing connectionId to backend`);
         return {
           ...tool,
           config: {
             ...tool.config,
+            owner: 'server',
+            // Explicitly don't set source - backend will resolve
+          },
+        };
+      }
+
+      // Client-owned: set resolved URI in source field
+      const resolvedUri = resolutionMap.get(tool.id);
+      if (resolvedUri) {
+        console.log(`[ConnectionResolver] Tool ${tool.id}: client-owned, resolved to URI`);
+        return {
+          ...tool,
+          config: {
+            ...tool.config,
+            owner: 'client',
             source: resolvedUri,
           },
         };
       }
+
+      // Client connection but failed to resolve - pass through unchanged
+      console.warn(`[ConnectionResolver] Tool ${tool.id}: client-owned but failed to resolve`);
       return tool;
     }),
   };
@@ -148,6 +195,28 @@ export function getWorkflowConnectionIds(workflow: WorkflowJSON): string[] {
         tool.type === 'Input' && 
         tool.config?.category === 'database' &&
         tool.config?.connectionId
+    )
+    .map((tool: Tool) => tool.config!.connectionId as string);
+}
+
+/**
+ * Gets connection IDs by owner type.
+ * 
+ * @param workflow - The workflow to inspect
+ * @param owner - The owner type to filter by
+ * @returns Array of connection IDs
+ */
+export function getWorkflowConnectionIdsByOwner(
+  workflow: WorkflowJSON, 
+  owner: ConnectionOwner
+): string[] {
+  return workflow.tools
+    .filter(
+      (tool: Tool) => 
+        tool.type === 'Input' && 
+        tool.config?.category === 'database' &&
+        tool.config?.connectionId &&
+        (tool.config?.owner || 'client') === owner
     )
     .map((tool: Tool) => tool.config!.connectionId as string);
 }

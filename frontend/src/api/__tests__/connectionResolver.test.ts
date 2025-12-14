@@ -3,6 +3,10 @@
  * 
  * Tests the connection resolver that converts connectionId references
  * to actual connection URIs with credentials before workflow execution.
+ * 
+ * Connection ownership:
+ * - owner='client': Resolved locally via Electron API
+ * - owner='server': Passed through to backend for resolution
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -10,6 +14,7 @@ import {
   resolveWorkflowConnections,
   hasDatabaseConnections,
   getWorkflowConnectionIds,
+  getWorkflowConnectionIdsByOwner,
 } from '../connectionResolver';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { ResolvedConnection } from '../../types/connections';
@@ -70,6 +75,7 @@ describe('connectionResolver', () => {
         database: 'testdb',
         username: 'testuser',
         password: 'testpass',
+        owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
       };
@@ -126,6 +132,7 @@ describe('connectionResolver', () => {
         database: 'testdb',
         username: 'user@example.com',
         password: 'p@ss:w/ord',
+        owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
       };
@@ -179,6 +186,7 @@ describe('connectionResolver', () => {
           database: 'db1',
           username: 'user1',
           password: 'pass1',
+          owner: 'client',
           createdAt: '2025-08-01',
           updatedAt: '2025-08-01',
         })
@@ -191,6 +199,7 @@ describe('connectionResolver', () => {
           database: 'db2',
           username: 'user2',
           password: 'pass2',
+          owner: 'client',
           createdAt: '2025-08-01',
           updatedAt: '2025-08-01',
         });
@@ -330,6 +339,7 @@ describe('connectionResolver', () => {
         database: 'db',
         username: 'user',
         password: 'pass',
+        owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
       });
@@ -392,6 +402,181 @@ describe('connectionResolver', () => {
       const tool1 = result.tools[1];
       if (!tool1 || !tool1.config) throw new Error('Tool not found');
       expect(tool1.config.source).toBeDefined();
+    });
+
+    it('should pass through server-owned connections without resolving', async () => {
+      // Server connections should not be resolved client-side
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              owner: 'server',
+              connectionId: 'server-conn-1',
+              query: 'SELECT * FROM users',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // Should NOT call Electron API for server connections
+      expect(mockElectronAPI.resolveConnection).not.toHaveBeenCalled();
+      
+      const tool0 = result.tools[0];
+      if (!tool0 || !tool0.config) throw new Error('Tool not found');
+      
+      // Should preserve connectionId and owner, no source
+      expect(tool0.config.connectionId).toBe('server-conn-1');
+      expect(tool0.config.owner).toBe('server');
+      expect(tool0.config.source).toBeUndefined();
+    });
+
+    it('should handle mixed client and server connections', async () => {
+      mockElectronAPI.resolveConnection.mockResolvedValue({
+        id: 'client-conn-1',
+        name: 'Client DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'clientdb',
+        username: 'clientuser',
+        password: 'clientpass',
+        owner: 'client',
+        createdAt: '2025-08-01',
+        updatedAt: '2025-08-01',
+      });
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              owner: 'client',
+              connectionId: 'client-conn-1',
+              query: 'SELECT * FROM client_table',
+            },
+            sockets: [],
+          },
+          {
+            id: 'db2',
+            type: 'Input',
+            x: 100,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              owner: 'server',
+              connectionId: 'server-conn-1',
+              query: 'SELECT * FROM server_table',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // Should only resolve client connection
+      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledTimes(1);
+      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('client-conn-1');
+      
+      const tool0 = result.tools[0];
+      const tool1 = result.tools[1];
+      if (!tool0 || !tool0.config || !tool1 || !tool1.config) throw new Error('Tools not found');
+      
+      // Client connection should have source
+      expect(tool0.config.source).toContain('clientdb');
+      expect(tool0.config.owner).toBe('client');
+      
+      // Server connection should NOT have source (backend resolves it)
+      expect(tool1.config.source).toBeUndefined();
+      expect(tool1.config.owner).toBe('server');
+      expect(tool1.config.connectionId).toBe('server-conn-1');
+    });
+
+    it('should default to client owner when not specified', async () => {
+      mockElectronAPI.resolveConnection.mockResolvedValue({
+        id: 'conn-1',
+        name: 'DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'db',
+        username: 'user',
+        password: 'pass',
+        owner: 'client',
+        createdAt: '2025-08-01',
+        updatedAt: '2025-08-01',
+      });
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              // No owner specified - should default to 'client'
+              connectionId: 'conn-1',
+              query: 'SELECT 1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // Should resolve as client connection
+      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('conn-1');
+      
+      const tool0 = result.tools[0];
+      if (!tool0 || !tool0.config) throw new Error('Tool not found');
+      expect(tool0.config.source).toBeDefined();
+      expect(tool0.config.owner).toBe('client');
     });
   });
 
@@ -580,6 +765,91 @@ describe('connectionResolver', () => {
       const ids = getWorkflowConnectionIds(workflow);
       
       expect(ids).toHaveLength(0);
+    });
+  });
+
+  describe('getWorkflowConnectionIdsByOwner', () => {
+    it('should filter connection IDs by client owner', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              owner: 'client',
+              connectionId: 'client-conn-1',
+            },
+            sockets: [],
+          },
+          {
+            id: 'db2',
+            type: 'Input',
+            x: 100,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              owner: 'server',
+              connectionId: 'server-conn-1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const clientIds = getWorkflowConnectionIdsByOwner(workflow, 'client');
+      const serverIds = getWorkflowConnectionIdsByOwner(workflow, 'server');
+      
+      expect(clientIds).toEqual(['client-conn-1']);
+      expect(serverIds).toEqual(['server-conn-1']);
+    });
+
+    it('should default to client owner for connections without owner field', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              // No owner specified
+              connectionId: 'conn-1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const clientIds = getWorkflowConnectionIdsByOwner(workflow, 'client');
+      const serverIds = getWorkflowConnectionIdsByOwner(workflow, 'server');
+      
+      expect(clientIds).toEqual(['conn-1']);
+      expect(serverIds).toEqual([]);
     });
   });
 });

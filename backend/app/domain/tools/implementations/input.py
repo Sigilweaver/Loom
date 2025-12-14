@@ -133,22 +133,33 @@ class InputTool(BaseTool):
 
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
-        if not source:
+        if not source and category != "database":
             lines = [f"{var_name} = None  # ERROR: No source specified"]
             return (lines, {"output": var_name})
 
         # Database-specific code generation
+        # SECURITY: Never include actual credentials in generated code
         if category == "database" or LoaderFactory.is_database_type(source_type):
             query = config.get("query", "")
+            owner = config.get("owner", "client")
+            connection_name = config.get("connectionName", "database")
+            
+            # Build sanitized URI placeholder based on database type
+            db_type = source_type if source_type else "postgresql"
+            
             lines = [
-                f"# Database query from {source_type}",
-                f'# NOTE: Replace CONNECTION_URI with your actual connection string',
-                f'CONNECTION_URI = "postgresql://user:password@host:port/database"',
-                f'{var_name} = pl.read_database_uri(',
+                f"# Database query from {db_type}",
+                f"# Connection: {connection_name} (managed by {owner})",
+                f"#",
+                f"# SECURITY: Replace placeholder credentials before running",
+                f"# Never commit actual credentials to version control",
+                f'CONNECTION_URI = "{db_type}://user:password@host:port/database"',
+                f"",
+                f"{var_name} = pl.read_database_uri(",
                 f'    query="""{query}""",',
-                f'    uri=CONNECTION_URI,',
+                f"    uri=CONNECTION_URI,",
                 f'    engine="connectorx",',
-                f').lazy()',
+                f").lazy()",
             ]
             return (lines, {"output": var_name})
 

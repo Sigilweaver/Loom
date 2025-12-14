@@ -15,6 +15,7 @@ import type {
   ConnectionTestResult,
   DatabaseType 
 } from '../types/connections';
+import { initializeServerConnectionsAuth, listServerConnections } from '../api/serverConnections';
 
 interface ConnectionState {
   /** All connections (without credentials) */
@@ -48,17 +49,38 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   encryptionAvailable: false,
 
   loadConnections: async () => {
-    if (!window.electronAPI?.listConnections) {
-      console.warn('[ConnectionStore] Electron API not available');
-      set({ loaded: true, connections: [] });
-      return;
-    }
-
     set({ loading: true, error: null });
+    
     try {
-      const connections = await window.electronAPI.listConnections();
-      const encryptionAvailable = await window.electronAPI.isEncryptionAvailable?.() ?? false;
-      set({ connections, loaded: true, loading: false, encryptionAvailable });
+      // Initialize auth for server connections
+      await initializeServerConnectionsAuth();
+      
+      // Load client-managed connections from Electron
+      const clientConnections: ConnectionInfo[] = [];
+      let encryptionAvailable = false;
+      
+      if (window.electronAPI?.listConnections) {
+        const electronConns = await window.electronAPI.listConnections();
+        clientConnections.push(...electronConns);
+        encryptionAvailable = await window.electronAPI.isEncryptionAvailable?.() ?? false;
+      } else {
+        console.warn('[ConnectionStore] Electron API not available - client connections unavailable');
+      }
+      
+      // Load server-managed connections from backend
+      const serverConnections: ConnectionInfo[] = [];
+      try {
+        const backendConns = await listServerConnections();
+        serverConnections.push(...backendConns);
+        console.log(`[ConnectionStore] Loaded ${serverConnections.length} server connections`);
+      } catch (error) {
+        console.warn('[ConnectionStore] Failed to load server connections:', error);
+        // Don't fail the whole load - client connections still work
+      }
+      
+      // Combine both sources
+      const allConnections = [...clientConnections, ...serverConnections];
+      set({ connections: allConnections, loaded: true, loading: false, encryptionAvailable });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load connections';
       set({ error: message, loading: false, loaded: true });
