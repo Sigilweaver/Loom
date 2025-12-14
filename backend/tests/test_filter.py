@@ -47,7 +47,7 @@ async def test_filter_basic_numeric_condition(sample_data_csv):
             description="Test basic numeric filter",
             author="Test",
             workflowId="test-filter-numeric",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -111,7 +111,7 @@ async def test_filter_string_condition(sample_data_csv):
             description="Test string filter",
             author="Test",
             workflowId="test-filter-string",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -172,7 +172,7 @@ async def test_filter_compound_condition(sample_data_csv):
             description="Test compound filter",
             author="Test",
             workflowId="test-filter-compound",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -240,7 +240,7 @@ async def test_filter_empty_expression(sample_data_csv):
             description="Test empty filter",
             author="Test",
             workflowId="test-filter-empty",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -301,7 +301,7 @@ async def test_filter_schema_propagation(sample_data_csv):
             description="Test filter schema propagation",
             author="Test",
             workflowId="test-filter-schema",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(

@@ -55,7 +55,7 @@ async def test_output_csv_sink(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-sink",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -109,7 +109,7 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-write",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -158,7 +158,7 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-dir",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -206,7 +206,7 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-tsv",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -305,7 +305,7 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-pipeline",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -369,7 +369,7 @@ async def test_output_excel_basic(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-excel",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -435,7 +435,7 @@ async def test_output_excel_with_options(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-excel-opts",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -494,7 +494,7 @@ async def test_output_excel_no_table_style(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-excel-no-style",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 
@@ -595,7 +595,7 @@ async def test_output_excel_freeze_panes(tmp_path: Path, sample_csv: Path):
             description="Test",
             author="Test",
             workflowId="test-excel-freeze",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
     )
 

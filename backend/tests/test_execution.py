@@ -15,7 +15,7 @@ def test_simple_linear_workflow():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -48,7 +48,7 @@ def test_parallel_branches():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -83,7 +83,7 @@ def test_diamond_pattern():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -130,7 +130,7 @@ def test_cycle_detection():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Filter", x=0, y=0, config={}, sockets=[]),
@@ -166,7 +166,7 @@ def test_get_tool_inputs():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -202,7 +202,7 @@ def test_multi_input_socket():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -239,7 +239,7 @@ def test_validate_missing_tool_reference():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -270,7 +270,7 @@ def test_isolated_tool():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
@@ -302,7 +302,7 @@ def test_empty_workflow():
             description="Test",
             author="Test",
             workflowId="test",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[],
         wires=[],

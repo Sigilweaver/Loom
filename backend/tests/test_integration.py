@@ -44,7 +44,7 @@ async def test_frontend_schema_workflow(sample_csv):
             description="Test schema propagation",
             author="Test",
             workflowId="test-schema",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -191,7 +191,7 @@ async def test_frontend_preview_workflow(sample_csv):
             description="Test data preview",
             author="Test",
             workflowId="test-preview",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -270,7 +270,7 @@ async def test_preview_all_tools(sample_csv):
             description="Test preview all tools",
             author="Test",
             workflowId="test-preview-all",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -380,7 +380,7 @@ async def test_socket_specific_schema(sample_csv):
             description="Test socket-specific schema",
             author="Test",
             workflowId="test-socket-schema",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -455,7 +455,7 @@ async def test_socket_specific_preview(sample_csv):
             description="Test socket-specific preview",
             author="Test",
             workflowId="test-socket-preview",
-            created="2024-01-01",
+            created="2025-08-01",
         ),
         tools=[
             Tool(
@@ -539,7 +539,7 @@ def test_tool_schema_requires_socket_id(client, sample_csv):
             "description": "",
             "author": "Test",
             "workflowId": "test-validation",
-            "created": "2024-01-01",
+            "created": "2025-08-01",
         },
         "tools": [
             {
@@ -586,7 +586,7 @@ def test_tool_execute_requires_socket_id(client, sample_csv):
             "description": "",
             "author": "Test",
             "workflowId": "test-validation",
-            "created": "2024-01-01",
+            "created": "2025-08-01",
         },
         "tools": [
             {

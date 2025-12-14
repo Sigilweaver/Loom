@@ -1,0 +1,585 @@
+/**
+ * Tests for connection resolution utilities
+ * 
+ * Tests the connection resolver that converts connectionId references
+ * to actual connection URIs with credentials before workflow execution.
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  resolveWorkflowConnections,
+  hasDatabaseConnections,
+  getWorkflowConnectionIds,
+} from '../connectionResolver';
+import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
+import type { ResolvedConnection } from '../../types/connections';
+
+describe('connectionResolver', () => {
+  // Mock Electron API
+  const mockElectronAPI = {
+    resolveConnection: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // @ts-expect-error - mocking window.electronAPI
+    window.electronAPI = mockElectronAPI;
+  });
+
+  describe('resolveWorkflowConnections', () => {
+    it('should return workflow unchanged when no database tools present', async () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'csv1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: '/path/to/file.csv',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+      
+      expect(result).toEqual(workflow);
+      expect(mockElectronAPI.resolveConnection).not.toHaveBeenCalled();
+    });
+
+    it('should resolve database connection to URI', async () => {
+      const mockResolved: ResolvedConnection = {
+        id: 'conn-1',
+        name: 'Test DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'testdb',
+        username: 'testuser',
+        password: 'testpass',
+        createdAt: '2025-08-01',
+        updatedAt: '2025-08-01',
+      };
+
+      mockElectronAPI.resolveConnection.mockResolvedValue(mockResolved);
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+              query: 'SELECT * FROM users',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('conn-1');
+      const tool0 = result.tools[0];
+      if (!tool0 || !tool0.config) throw new Error('Tool not found');
+      expect(tool0.config.source).toBe(
+        'postgresql://testuser:testpass@localhost:5432/testdb'
+      );
+      // Original config should be preserved
+      expect(tool0.config.connectionId).toBe('conn-1');
+      expect(tool0.config.query).toBe('SELECT * FROM users');
+    });
+
+    it('should URL encode special characters in credentials', async () => {
+      const mockResolved: ResolvedConnection = {
+        id: 'conn-1',
+        name: 'Test DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'testdb',
+        username: 'user@example.com',
+        password: 'p@ss:w/ord',
+        createdAt: '2025-08-01',
+        updatedAt: '2025-08-01',
+      };
+
+      mockElectronAPI.resolveConnection.mockResolvedValue(mockResolved);
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+              query: 'SELECT 1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // Should encode special characters
+      const tool0 = result.tools[0];
+      if (!tool0 || !tool0.config) throw new Error('Tool not found');
+      expect(tool0.config.source).toContain('user%40example.com');
+      expect(tool0.config.source).toContain('p%40ss%3Aw%2Ford');
+    });
+
+    it('should handle multiple database connections', async () => {
+      mockElectronAPI.resolveConnection
+        .mockResolvedValueOnce({
+          id: 'conn-1',
+          name: 'DB1',
+          type: 'postgresql',
+          host: 'host1',
+          port: 5432,
+          database: 'db1',
+          username: 'user1',
+          password: 'pass1',
+          createdAt: '2025-08-01',
+          updatedAt: '2025-08-01',
+        })
+        .mockResolvedValueOnce({
+          id: 'conn-2',
+          name: 'DB2',
+          type: 'postgresql',
+          host: 'host2',
+          port: 5433,
+          database: 'db2',
+          username: 'user2',
+          password: 'pass2',
+          createdAt: '2025-08-01',
+          updatedAt: '2025-08-01',
+        });
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+              query: 'SELECT * FROM table1',
+            },
+            sockets: [],
+          },
+          {
+            id: 'db2',
+            type: 'Input',
+            x: 100,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-2',
+              query: 'SELECT * FROM table2',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledTimes(2);
+      const tool0 = result.tools[0];
+      const tool1 = result.tools[1];
+      if (!tool0 || !tool0.config || !tool1 || !tool1.config) throw new Error('Tools not found');
+      expect(tool0.config.source).toContain('host1');
+      expect(tool1.config.source).toContain('host2');
+    });
+
+    it('should return original workflow if connection resolution fails', async () => {
+      mockElectronAPI.resolveConnection.mockResolvedValue(null);
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'invalid-conn',
+              query: 'SELECT 1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // Should return original since resolution failed
+      expect(result).toEqual(workflow);
+      const tool0 = result.tools[0];
+      if (!tool0 || !tool0.config) throw new Error('Tool not found');
+      expect(tool0.config.source).toBeUndefined();
+    });
+
+    it('should throw error when Electron API not available', async () => {
+      // @ts-expect-error - intentionally removing API
+      window.electronAPI = undefined;
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+              query: 'SELECT 1',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      await expect(resolveWorkflowConnections(workflow)).rejects.toThrow(
+        'desktop app'
+      );
+    });
+
+    it('should not modify non-database tools', async () => {
+      mockElectronAPI.resolveConnection.mockResolvedValue({
+        id: 'conn-1',
+        name: 'DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'db',
+        username: 'user',
+        password: 'pass',
+        createdAt: '2025-08-01',
+        updatedAt: '2025-08-01',
+      });
+
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'csv1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+              source: '/path/to/file.csv',
+            },
+            sockets: [],
+          },
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 100,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+              query: 'SELECT 1',
+            },
+            sockets: [],
+          },
+          {
+            id: 'filter1',
+            type: 'Filter',
+            x: 200,
+            y: 0,
+            config: {
+              expression: 'pl.col("age") > 25',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const result = await resolveWorkflowConnections(workflow);
+
+      // CSV and Filter should be unchanged
+      expect(result.tools[0]).toEqual(workflow.tools[0]);
+      expect(result.tools[2]).toEqual(workflow.tools[2]);
+      // Only database tool should have source added
+      const tool1 = result.tools[1];
+      if (!tool1 || !tool1.config) throw new Error('Tool not found');
+      expect(tool1.config.source).toBeDefined();
+    });
+  });
+
+  describe('hasDatabaseConnections', () => {
+    it('should return true when workflow has database tools', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      expect(hasDatabaseConnections(workflow)).toBe(true);
+    });
+
+    it('should return false when workflow has no database tools', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'csv1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      expect(hasDatabaseConnections(workflow)).toBe(false);
+    });
+
+    it('should return false for empty workflow', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [],
+        wires: [],
+      };
+
+      expect(hasDatabaseConnections(workflow)).toBe(false);
+    });
+  });
+
+  describe('getWorkflowConnectionIds', () => {
+    it('should extract all connection IDs from workflow', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-1',
+            },
+            sockets: [],
+          },
+          {
+            id: 'db2',
+            type: 'Input',
+            x: 100,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              connectionId: 'conn-2',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const ids = getWorkflowConnectionIds(workflow);
+      
+      expect(ids).toHaveLength(2);
+      expect(ids).toContain('conn-1');
+      expect(ids).toContain('conn-2');
+    });
+
+    it('should return empty array when no database tools', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'csv1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'file',
+              type: 'csv',
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const ids = getWorkflowConnectionIds(workflow);
+      
+      expect(ids).toHaveLength(0);
+    });
+
+    it('should ignore database tools without connectionId', () => {
+      const workflow: WorkflowJSON = {
+        version: '1.0',
+        meta: {
+          name: 'Test',
+          description: '',
+          author: 'Test',
+          workflowId: 'test-1',
+          created: '2025-08-01',
+        },
+        tools: [
+          {
+            id: 'db1',
+            type: 'Input',
+            x: 0,
+            y: 0,
+            config: {
+              category: 'database',
+              type: 'postgresql',
+              // No connectionId
+            },
+            sockets: [],
+          },
+        ],
+        wires: [],
+      };
+
+      const ids = getWorkflowConnectionIds(workflow);
+      
+      expect(ids).toHaveLength(0);
+    });
+  });
+});

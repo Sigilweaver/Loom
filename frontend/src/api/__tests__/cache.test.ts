@@ -30,7 +30,7 @@ function createTestWorkflow(): WorkflowJSON {
       description: '',
       author: '',
       workflowId: 'wf_test',
-      created: '2024-01-01T00:00:00.000Z',
+      created: '2025-08-01T00:00:00.000Z',
     },
     tools: [
       {
