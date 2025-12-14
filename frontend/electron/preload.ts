@@ -29,5 +29,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getSessionToken: async () => {
     return ipcRenderer.invoke('get-session-token')
-  }
+  },
+  
+  // Connection management APIs (credentials encrypted via safeStorage)
+  isEncryptionAvailable: async () => {
+    return ipcRenderer.invoke('connection:isEncryptionAvailable')
+  },
+  listConnections: async () => {
+    return ipcRenderer.invoke('connection:list')
+  },
+  listConnectionsByType: async (type: string) => {
+    return ipcRenderer.invoke('connection:listByType', type)
+  },
+  getConnection: async (id: string) => {
+    return ipcRenderer.invoke('connection:get', id)
+  },
+  createConnection: async (input: any) => {
+    return ipcRenderer.invoke('connection:create', input)
+  },
+  updateConnection: async (id: string, input: any) => {
+    return ipcRenderer.invoke('connection:update', id, input)
+  },
+  deleteConnection: async (id: string) => {
+    return ipcRenderer.invoke('connection:delete', id)
+  },
+  resolveConnection: async (id: string) => {
+    return ipcRenderer.invoke('connection:resolve', id)
+  },
+  testConnection: async (id: string) => {
+    return ipcRenderer.invoke('connection:test', id)
+  },
 })

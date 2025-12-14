@@ -5,13 +5,14 @@ import { useSettingsStore } from "@state/settingsStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { previewTool } from "../api/backend";
 import { getCachedPreview, cachePreview } from "../api/cache";
+import { resolveWorkflowConnections } from "../api/connectionResolver";
 
 /**
  * Hook for handling socket preview functionality
  */
 export function useSocketPreview() {
-  const tools = useWorkflowStore((s) => s.tools);
-  const wires = useWorkflowStore((s) => s.wires);
+  // Note: We get the store itself, not subscribed values, to avoid stale closures
+  // The actual values are read fresh inside previewSocket
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   
   const previewRows = useSettingsStore((s) => s.backend.previewRows);
@@ -23,6 +24,10 @@ export function useSocketPreview() {
 
   const previewSocket = useCallback(
     async (toolId: string, socketId: string, socketDirection: "input" | "output") => {
+      // Read fresh state from store to avoid stale closure issues
+      const tools = useWorkflowStore.getState().tools;
+      const wires = useWorkflowStore.getState().wires;
+      
       // Open bottom pane and switch to preview tab
       setBottomPaneOpen(true);
       setActiveBottomTab("preview");
@@ -94,11 +99,14 @@ export function useSocketPreview() {
       });
 
       try {
+        // Resolve database connections before preview
+        const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        
         // Execute preview with the filtered upstream subgraph
         // socketId is now mandatory (3rd parameter)
-        const result = await previewTool(targetToolId, workflow, socketKey, previewRows);
+        const result = await previewTool(targetToolId, resolvedWorkflow, socketKey, previewRows);
         
-        // Cache the result (includes socketId in cache key)
+        // Cache with original workflow (pre-resolution) for consistent cache keys
         cachePreview(targetToolId, workflow, previewRows, socketKey, result);
 
         // Response is now single-socket format with data directly on result
@@ -128,7 +136,7 @@ export function useSocketPreview() {
         showNotification(`Preview failed: ${errorMessage}`, "error");
       }
     },
-    [tools, wires, workflowMeta, previewRows, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
+    [workflowMeta, previewRows, setPreviewState, setBottomPaneOpen, setActiveBottomTab, showNotification]
   );
 
   return { previewSocket };

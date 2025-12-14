@@ -53,8 +53,11 @@ export class WorkflowSerializer {
     emit: Record<string, unknown> | undefined
   ): ToolConfig {
     // Structural/discriminator fields that must always be included
+    // These are critical for workflow execution and must survive serialization
     const alwaysInclude = new Set([
       'category', 'type', 'csvMode', 'source', 'destination',
+      // Database connection fields
+      'connectionId', 'query',
     ]);
 
     if (!emit) {

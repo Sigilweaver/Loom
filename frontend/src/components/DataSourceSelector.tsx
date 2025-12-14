@@ -83,7 +83,8 @@ const DATA_SOURCES: DataSource[] = [
     name: "PostgreSQL",
     category: "database",
     description: "Advanced open source database",
-    enabled: false,
+    enabled: true,
+    supportedOperations: ["input"], // Read-only for now
   },
   {
     id: "mysql",

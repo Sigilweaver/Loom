@@ -28,6 +28,7 @@ import {
   getCachedMetadata,
   cacheMetadata,
 } from './cache';
+import { resolveWorkflowConnections } from './connectionResolver';
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 
 export interface UseSchemaResult {
@@ -137,14 +138,18 @@ export function usePreview(): UsePreviewResult {
       setError(null);
       
       try {
-        const result = await previewTool(toolId, workflow, socketId, limit);
+        // Resolve database connections before preview
+        const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        const result = await previewTool(toolId, resolvedWorkflow, socketId, limit);
         setPreview(result);
-        // Cache the result (includes socketId in cache key)
+        // Cache with original workflow (pre-resolution) for consistent cache keys
         cachePreview(toolId, workflow, limit, socketId, result);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
-          : 'Failed to execute preview';
+          : err instanceof Error
+            ? err.message
+            : 'Failed to execute preview';
         setError(message);
         setPreview(null);
       } finally {
@@ -196,12 +201,16 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult {
       setError(null);
       
       try {
-        const execResult = await executeWorkflow(workflow, targetToolId);
+        // Resolve database connections (replace connectionIds with URIs)
+        const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        const execResult = await executeWorkflow(resolvedWorkflow, targetToolId);
         setResult(execResult);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
-          : 'Failed to execute workflow';
+          : err instanceof Error
+            ? err.message
+            : 'Failed to execute workflow';
         setError(message);
         setResult(null);
       } finally {
@@ -245,12 +254,16 @@ export function useCodePreview(): UseCodePreviewResult {
       setError(null);
       
       try {
-        const result = await previewCode(workflow);
+        // Resolve database connections before generating code
+        const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        const result = await previewCode(resolvedWorkflow);
         setCode(result.code);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
-          : 'Failed to generate code preview';
+          : err instanceof Error
+            ? err.message
+            : 'Failed to generate code preview';
         setError(message);
         setCode(null);
       } finally {
@@ -308,14 +321,18 @@ export function useMetadata(): UseMetadataResult {
     setError(null);
     
     try {
-      const result = await getToolMetadata(toolId, workflow, socketId);
+      // Resolve database connections before fetching metadata
+      const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+      const result = await getToolMetadata(toolId, resolvedWorkflow, socketId);
       setMetadata(result);
-      // Cache the result
+      // Cache with original workflow (pre-resolution) for consistent cache keys
       cacheMetadata(toolId, workflow, result, socketId);
     } catch (err) {
       const message = err instanceof BackendError 
         ? err.message 
-        : 'Failed to fetch metadata';
+        : err instanceof Error
+          ? err.message
+          : 'Failed to fetch metadata';
       setError(message);
       setMetadata(null);
     } finally {
@@ -425,12 +442,16 @@ export function usePreviewAll(): UsePreviewAllResult {
       setError(null);
       
       try {
-        const result = await previewAllTools(workflow, limit);
+        // Resolve database connections before preview all
+        const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        const result = await previewAllTools(resolvedWorkflow, limit);
         setPreviews(result);
       } catch (err) {
         const message = err instanceof BackendError 
           ? err.message 
-          : 'Failed to execute preview all';
+          : err instanceof Error
+            ? err.message
+            : 'Failed to execute preview all';
         setError(message);
         setPreviews(null);
       } finally {

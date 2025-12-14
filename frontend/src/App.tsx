@@ -20,6 +20,7 @@ import { initializeAuth } from "./api/backend";
 function App() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'general' | 'connections' | 'backend' | 'appearance' | 'about'>('general');
   // Zustand stores - primary state
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
@@ -84,6 +85,22 @@ function App() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveCurrentTab]);
+
+  // Listen for open-settings custom event (e.g., from PostgresqlConfiguration)
+  useEffect(() => {
+    const handleOpenSettings = (e: Event) => {
+      const customEvent = e as CustomEvent<{ tab?: string }>;
+      const tab = customEvent.detail?.tab;
+      if (tab && ['general', 'connections', 'backend', 'appearance', 'about'].includes(tab)) {
+        setSettingsInitialTab(tab as typeof settingsInitialTab);
+      } else {
+        setSettingsInitialTab('general');
+      }
+      setShowSettings(true);
+    };
+    window.addEventListener('open-settings', handleOpenSettings);
+    return () => window.removeEventListener('open-settings', handleOpenSettings);
+  }, []);
 
   useEffect(() => {
     startNotificationAutoHide();
@@ -297,7 +314,14 @@ function App() {
         {/* Notification System - uses uiStore internally */}
         <Notification />
         
-        <SettingsDialog isOpen={showSettings} onClose={() => setShowSettings(false)} />
+        <SettingsDialog 
+          isOpen={showSettings} 
+          onClose={() => {
+            setShowSettings(false);
+            setSettingsInitialTab('general'); // Reset to default for next open
+          }}
+          initialTab={settingsInitialTab}
+        />
       </div>
     </ThemeProvider>
   );

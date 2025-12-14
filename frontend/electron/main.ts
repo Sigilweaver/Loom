@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell, safeStorage } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -31,6 +31,81 @@ const getSystemUsername = (): string => {
 };
 
 const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'sigilweaver-settings' });
+
+// =============================================================================
+// CONNECTION STORE - Secure credential storage using safeStorage
+// =============================================================================
+
+interface StoredConnection {
+  id: string;
+  name: string;
+  type: 'postgresql' | 'mysql' | 'sqlite';
+  host: string;
+  port: number;
+  database: string;
+  // Credentials stored as base64-encoded encrypted buffer
+  encryptedCredentials: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ConnectionCredentials {
+  username: string;
+  password: string;
+}
+
+// Separate store for connections (encrypted credentials)
+const connectionStore = new Store<{ connections: Record<string, StoredConnection> }>({
+  defaults: { connections: {} },
+  name: 'sigilweaver-connections',
+});
+
+/**
+ * Encrypt credentials using Electron's safeStorage
+ * Uses OS-level encryption (Keychain on macOS, DPAPI on Windows, Secret Service on Linux)
+ */
+function encryptCredentials(credentials: ConnectionCredentials): string {
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.warn('[Connections] Encryption not available, using base64 encoding only');
+    // Fallback: just base64 encode (not secure, but allows testing)
+    return Buffer.from(JSON.stringify(credentials)).toString('base64');
+  }
+  const encrypted = safeStorage.encryptString(JSON.stringify(credentials));
+  return encrypted.toString('base64');
+}
+
+/**
+ * Decrypt credentials using Electron's safeStorage
+ */
+function decryptCredentials(encryptedBase64: string): ConnectionCredentials {
+  if (!safeStorage.isEncryptionAvailable()) {
+    // Fallback: just base64 decode
+    return JSON.parse(Buffer.from(encryptedBase64, 'base64').toString('utf8'));
+  }
+  const encrypted = Buffer.from(encryptedBase64, 'base64');
+  const decrypted = safeStorage.decryptString(encrypted);
+  return JSON.parse(decrypted);
+}
+
+/**
+ * Convert stored connection to public info (without credentials)
+ */
+function toConnectionInfo(stored: StoredConnection) {
+  return {
+    id: stored.id,
+    name: stored.name,
+    type: stored.type,
+    host: stored.host,
+    port: stored.port,
+    database: stored.database,
+    createdAt: stored.createdAt,
+    updatedAt: stored.updatedAt,
+  };
+}
+
+// =============================================================================
+// END CONNECTION STORE
+// =============================================================================
 
 // Backend process management
 let backendProcess: ChildProcess | null = null;
@@ -425,6 +500,185 @@ ipcMain.handle('set-settings', async (_event, settings) => {
 ipcMain.handle('get-session-token', async () => {
   return sessionToken;
 });
+
+// =============================================================================
+// CONNECTION IPC HANDLERS - Secure credential management
+// =============================================================================
+
+// Check if encryption is available
+ipcMain.handle('connection:isEncryptionAvailable', async () => {
+  return safeStorage.isEncryptionAvailable();
+});
+
+// List all connections (without credentials)
+ipcMain.handle('connection:list', async () => {
+  const connections = connectionStore.get('connections', {});
+  return Object.values(connections).map(toConnectionInfo);
+});
+
+// List connections by type
+ipcMain.handle('connection:listByType', async (_event, type: string) => {
+  const connections = connectionStore.get('connections', {});
+  return Object.values(connections)
+    .filter(c => c.type === type)
+    .map(toConnectionInfo);
+});
+
+// Get a single connection by ID (without credentials)
+ipcMain.handle('connection:get', async (_event, id: string) => {
+  const connections = connectionStore.get('connections', {});
+  const connection = connections[id];
+  return connection ? toConnectionInfo(connection) : null;
+});
+
+// Create a new connection
+ipcMain.handle('connection:create', async (_event, input: {
+  name: string;
+  type: 'postgresql' | 'mysql' | 'sqlite';
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+}) => {
+  const connections = connectionStore.get('connections', {});
+  
+  // Check for duplicate names
+  const existingNames = Object.values(connections).map(c => c.name.toLowerCase());
+  if (existingNames.includes(input.name.toLowerCase())) {
+    throw new Error(`A connection named "${input.name}" already exists`);
+  }
+  
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  
+  const stored: StoredConnection = {
+    id,
+    name: input.name,
+    type: input.type,
+    host: input.host,
+    port: input.port,
+    database: input.database,
+    encryptedCredentials: encryptCredentials({
+      username: input.username,
+      password: input.password,
+    }),
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  connections[id] = stored;
+  connectionStore.set('connections', connections);
+  
+  console.log(`[Connections] Created connection: ${input.name} (${id})`);
+  return toConnectionInfo(stored);
+});
+
+// Update an existing connection
+ipcMain.handle('connection:update', async (_event, id: string, input: {
+  name?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+}) => {
+  const connections = connectionStore.get('connections', {});
+  const existing = connections[id];
+  
+  if (!existing) {
+    throw new Error(`Connection ${id} not found`);
+  }
+  
+  // Check for duplicate names (excluding current connection)
+  if (input.name) {
+    const existingNames = Object.values(connections)
+      .filter(c => c.id !== id)
+      .map(c => c.name.toLowerCase());
+    if (existingNames.includes(input.name.toLowerCase())) {
+      throw new Error(`A connection named "${input.name}" already exists`);
+    }
+  }
+  
+  // Update non-credential fields
+  if (input.name !== undefined) existing.name = input.name;
+  if (input.host !== undefined) existing.host = input.host;
+  if (input.port !== undefined) existing.port = input.port;
+  if (input.database !== undefined) existing.database = input.database;
+  
+  // Update credentials if provided
+  if (input.username !== undefined || input.password !== undefined) {
+    const currentCreds = decryptCredentials(existing.encryptedCredentials);
+    existing.encryptedCredentials = encryptCredentials({
+      username: input.username ?? currentCreds.username,
+      password: input.password ?? currentCreds.password,
+    });
+  }
+  
+  existing.updatedAt = new Date().toISOString();
+  connections[id] = existing;
+  connectionStore.set('connections', connections);
+  
+  console.log(`[Connections] Updated connection: ${existing.name} (${id})`);
+  return toConnectionInfo(existing);
+});
+
+// Delete a connection
+ipcMain.handle('connection:delete', async (_event, id: string) => {
+  const connections = connectionStore.get('connections', {});
+  const existing = connections[id];
+  
+  if (!existing) {
+    throw new Error(`Connection ${id} not found`);
+  }
+  
+  delete connections[id];
+  connectionStore.set('connections', connections);
+  
+  console.log(`[Connections] Deleted connection: ${existing.name} (${id})`);
+});
+
+// Resolve connection with decrypted credentials (for backend requests)
+ipcMain.handle('connection:resolve', async (_event, id: string) => {
+  console.log(`[Connections] Resolving connection: ${id}`);
+  const connections = connectionStore.get('connections', {});
+  const connection = connections[id];
+  
+  if (!connection) {
+    console.log(`[Connections] Connection not found: ${id}`);
+    return null;
+  }
+  
+  const credentials = decryptCredentials(connection.encryptedCredentials);
+  console.log(`[Connections] Resolved connection: ${connection.name}`);
+  
+  return {
+    ...toConnectionInfo(connection),
+    username: credentials.username,
+    password: credentials.password,
+  };
+});
+
+// Test a connection
+ipcMain.handle('connection:test', async (_event, id: string) => {
+  const connections = connectionStore.get('connections', {});
+  const connection = connections[id];
+  
+  if (!connection) {
+    return { success: false, message: 'Connection not found' };
+  }
+  
+  // For now, just return success - actual testing will be done via backend
+  // In future, could use native Node.js pg/mysql drivers here
+  return { 
+    success: true, 
+    message: 'Connection configured (test via backend pending)',
+  };
+});
+
+// =============================================================================
+// END CONNECTION IPC HANDLERS
+// =============================================================================
 
 // IPC handlers
 ipcMain.handle(

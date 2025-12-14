@@ -4,20 +4,27 @@
  * Persistent application settings with tabbed interface.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettingsStore } from '../state/settingsStore';
 import { availableThemes } from '../themes';
 import AboutContent from './AboutContent';
+import ConnectionManager from './ConnectionManager';
 
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: SettingsTab;
 }
 
-type SettingsTab = 'general' | 'backend' | 'appearance' | 'about';
+type SettingsTab = 'general' | 'connections' | 'backend' | 'appearance' | 'about';
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, initialTab = 'general' }) => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  
+  // Sync activeTab when initialTab changes (e.g., opening to a specific tab)
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   
   const {
     author,
@@ -46,6 +53,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
 
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'general', label: 'General' },
+    { id: 'connections', label: 'Connections' },
     { id: 'backend', label: 'Backend' },
     { id: 'appearance', label: 'Appearance' },
     { id: 'about', label: 'About' },
@@ -132,6 +140,10 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                 </p>
               </div>
             </div>
+          )}
+
+          {activeTab === 'connections' && (
+            <ConnectionManager />
           )}
 
           {activeTab === 'backend' && (

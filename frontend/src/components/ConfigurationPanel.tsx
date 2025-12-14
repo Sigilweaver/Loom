@@ -25,6 +25,7 @@ import { JsonOutputConfiguration } from "./JsonOutputConfiguration";
 import { OdsConfiguration } from "./OdsConfiguration";
 import { ParquetConfiguration } from "./ParquetConfiguration";
 import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
+import { PostgresqlConfiguration } from "./PostgresqlConfiguration";
 import { DataSourceSelector } from "./DataSourceSelector";
 import ResizablePanel from "./ResizablePanel";
 import WorkflowConfiguration from "./WorkflowConfiguration";
@@ -273,6 +274,19 @@ export default function ConfigurationPanel() {
                     newConfig.filePath = existingFilePath;
                   }
                   handleToolConfigChange(selectedTool.id, newConfig);
+                } else if (dataSource.id === "postgresql") {
+                  // PostgreSQL database connection
+                  const newConfig: ToolConfig = {
+                    category: "database" as const,
+                    type: "postgresql" as const,
+                    query: "",
+                  };
+                  // Preserve existing connection ID if any
+                  const existingConnectionId = selectedTool.config?.connectionId;
+                  if (existingConnectionId) {
+                    newConfig.connectionId = existingConnectionId;
+                  }
+                  handleToolConfigChange(selectedTool.id, newConfig);
                 }
               }}
               selectedId={selectedTool.config?.type as string}
@@ -339,6 +353,15 @@ export default function ConfigurationPanel() {
             selectedTool.config.type === "ods" ? (
             /* ODS Configuration Panel */
             <OdsConfiguration
+              config={selectedTool.config}
+              onChange={(config) =>
+                handleToolConfigChange(selectedTool.id, config)
+              }
+            />
+          ) : selectedTool.config.category === "database" &&
+            selectedTool.config.type === "postgresql" ? (
+            /* PostgreSQL Configuration Panel */
+            <PostgresqlConfiguration
               config={selectedTool.config}
               onChange={(config) =>
                 handleToolConfigChange(selectedTool.id, config)
