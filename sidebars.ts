@@ -24,6 +24,7 @@ const sidebars: SidebarsConfig = {
             'user/interface/configuration-panel',
             'user/interface/data-preview',
             'user/interface/keyboard-shortcuts',
+            'user/interface/connections',
           ],
         },
         {

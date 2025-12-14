@@ -14,7 +14,7 @@ Load and save data:
 
 | Tool | Purpose |
 |------|---------|
-| [Input](./input-output/input) | Load data from files |
+| [Input](./input-output/input) | Load data from files or databases |
 | [Output](./input-output/output) | Save data to files |
 
 ### Preparation
@@ -69,6 +69,7 @@ All tools use Polars' lazy evaluation. Operations are not executed immediately -
 | I want to... | Use |
 |--------------|-----|
 | Load a CSV file | [Input](./input-output/input) |
+| Query a database | [Input](./input-output/input) (Database) |
 | Save results | [Output](./input-output/output) |
 | Keep only certain rows | [Filter](./preparation/filter) |
 | Remove or rename columns | [Select](./preparation/select) |

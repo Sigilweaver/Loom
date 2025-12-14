@@ -36,7 +36,8 @@ frontend/src/
 │   ├── historyStore.ts    # Undo/redo
 │   ├── tabStore.ts        # Multi-tab workflows
 │   ├── uiStore.ts         # UI preferences
-│   └── settingsStore.ts   # Persisted settings
+│   ├── settingsStore.ts   # Persisted settings
+│   └── connectionStore.ts # Database connections
 │
 ├── domain/             # Pure TypeScript business logic
 │   └── workflow/
@@ -46,7 +47,9 @@ frontend/src/
 ├── api/                # Backend communication
 │   ├── backend.ts      # HTTP client
 │   ├── hooks.ts        # React hooks for API calls
-│   └── cache.ts        # Request caching
+│   ├── cache.ts        # Request caching
+│   ├── connectionResolver.ts  # Resolve connections before execution
+│   └── serverConnections.ts   # Server connection API client
 │
 ├── data/
 │   └── tools.ts        # Tool definitions registry
@@ -143,6 +146,30 @@ interface SettingsState {
   };
 }
 ```
+
+### connectionStore
+
+Database connection management with dual-source support:
+
+```typescript
+interface ConnectionState {
+  connections: ConnectionInfo[];      // Merged client + server connections
+  loading: boolean;
+  error: string | null;
+  encryptionAvailable: boolean;       // Electron safeStorage available?
+  serverConnectionsEnabled: boolean;  // Server has encryption key?
+  
+  loadConnections: () => Promise<void>;  // Refresh from both sources
+  createConnection: (input: CreateConnectionInput) => Promise<ConnectionInfo>;
+  updateConnection: (id: string, input: UpdateConnectionInput) => Promise<void>;
+  deleteConnection: (id: string) => Promise<void>;
+  testConnection: (id: string) => Promise<ConnectionTestResult>;
+}
+```
+
+Connections from both sources are merged into a single list. The `owner` field distinguishes them:
+- `owner: 'client'` - stored in Electron via IPC
+- `owner: 'server'` - stored on backend via REST API
 
 ## Component Architecture
 

@@ -28,10 +28,12 @@ backend/app/
 │   │   ├── health.py    # Health check
 │   │   ├── schema.py    # Schema inference
 │   │   ├── preview.py   # Data preview
-│   │   └── execute.py   # Workflow execution
+│   │   ├── execute.py   # Workflow execution
+│   │   └── connections.py  # Connection CRUD
 │   └── models/          # Pydantic schemas
 │       ├── workflow.py  # Workflow, Tool, Wire
-│       └── common.py    # DataSchema, DataPreview
+│       ├── common.py    # DataSchema, DataPreview
+│       └── connections.py  # Connection request/response
 │
 ├── domain/              # Business logic
 │   ├── tools/           # Tool implementations
@@ -48,10 +50,14 @@ backend/app/
 │   │   └── graph.py     # Dependency resolution
 │   ├── workflow/        # Workflow utilities
 │   │   └── archive.py   # Audit archiving
-│   └── datasources/     # File type handlers
-│       ├── factory.py   # Datasource factory
-│       ├── csv.py       # CSV loader
-│       └── parquet.py   # Parquet loader
+│   ├── datasources/     # File type handlers
+│   │   ├── factory.py   # Datasource factory
+│   │   ├── csv.py       # CSV loader
+│   │   ├── database.py  # Database query loader
+│   │   └── parquet.py   # Parquet loader
+│   └── connections/     # Credential management
+│       ├── models.py    # Connection data models
+│       └── store.py     # Encrypted credential store
 │
 ├── middleware/          # Request middleware
 │   └── audit.py         # Audit logging
@@ -302,6 +308,62 @@ class DatasourceFactory:
 Each datasource implements:
 - `scan()` → LazyFrame (lazy load)
 - `infer_schema()` → DataSchema (column names and types)
+
+## Connections
+
+The `connections/` module manages secure database credential storage.
+
+### Connection Ownership
+
+Connections have two ownership modes:
+
+| Owner | Storage | Access |
+|-------|---------|--------|
+| `client` | Electron safeStorage (OS keychain) | Single user, single machine |
+| `server` | Fernet-encrypted JSON on server | All users with server access |
+
+The frontend handles client connections; the backend handles server connections.
+
+### ConnectionStore
+
+Server connections are managed by `ConnectionStore`:
+
+```python
+class ConnectionStore:
+    def __init__(self, storage_path: Path, encryption_key: str):
+        self._fernet = Fernet(encryption_key.encode())
+        self._connections: dict[str, StoredConnection] = {}
+        
+    def create_connection(self, input: CreateConnectionInput) -> ConnectionInfo:
+        # Encrypt credentials before storage
+        encrypted = self._encrypt_credentials(input.username, input.password)
+        # ... store connection
+        
+    def resolve_connection(self, connection_id: str) -> ResolvedConnection:
+        # Decrypt credentials for execution only
+        # WARNING: Returns sensitive data - internal use only
+```
+
+Key security properties:
+- **Encryption at rest**: Credentials encrypted with Fernet (AES-128-CBC + HMAC)
+- **Opaque to users**: API never returns credentials, only connection metadata
+- **Decryption only during execution**: `resolve_connection()` is called only when building connection URIs
+
+### Executor Integration
+
+During workflow execution, the executor resolves server connections:
+
+```python
+async def execute_workflow(self, workflow: Workflow, ...):
+    # For each database Input tool with owner="server"
+    if tool.config.get("owner") == "server":
+        connection_id = tool.config.get("connectionId")
+        resolved = connection_store.resolve_connection(connection_id)
+        uri = build_uri(resolved)
+        # Pass URI to DatabaseDataSource
+```
+
+This ensures credentials never leave the server - they're resolved just-in-time during execution.
 
 ## Error Handling
 

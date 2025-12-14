@@ -255,6 +255,136 @@ List supported file types.
 
 ---
 
+## Connections
+
+Server-managed database connection endpoints. These allow administrators to configure shared database connections with encrypted credentials.
+
+:::note Availability
+Connection endpoints require `CONNECTION_ENCRYPTION_KEY` to be configured. Without it, endpoints return 503.
+:::
+
+### GET /api/connections/status
+
+Check if server connections are enabled.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "connectionCount": 3
+}
+```
+
+### GET /api/connections/
+
+List all server-managed connections.
+
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Production Database",
+    "type": "postgresql",
+    "owner": "server",
+    "host": "db.example.com",
+    "port": 5432,
+    "database": "analytics",
+    "createdAt": "2025-08-01T10:00:00Z",
+    "updatedAt": "2025-08-01T10:00:00Z"
+  }
+]
+```
+
+Note: Credentials (username/password) are never returned. The `owner` field is always `"server"` for server-managed connections.
+
+### GET /api/connections/\{connection_id\}
+
+Get a specific connection by ID.
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Production Database",
+  "type": "postgresql",
+  "owner": "server",
+  "host": "db.example.com",
+  "port": 5432,
+  "database": "analytics",
+  "createdAt": "2025-08-01T10:00:00Z",
+  "updatedAt": "2025-08-01T10:00:00Z"
+}
+```
+
+### POST /api/connections/
+
+Create a new server-managed connection.
+
+**Request:**
+```json
+{
+  "name": "Production Database",
+  "type": "postgresql",
+  "host": "db.example.com",
+  "port": 5432,
+  "database": "analytics",
+  "username": "readonly_user",
+  "password": "secret123"
+}
+```
+
+**Response:** Same as GET, with status 201.
+
+Credentials are encrypted with Fernet before storage. Duplicate names return 409.
+
+### PUT /api/connections/\{connection_id\}
+
+Update an existing connection. All fields are optional.
+
+**Request:**
+```json
+{
+  "name": "Updated Name",
+  "host": "new-host.example.com"
+}
+```
+
+Leave `username`/`password` blank to keep existing credentials.
+
+**Response:** Same as GET.
+
+### DELETE /api/connections/\{connection_id\}
+
+Delete a connection.
+
+**Response:** 204 No Content
+
+### POST /api/connections/\{connection_id\}/test
+
+Test a connection by attempting to connect to the database.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully connected to Production Database",
+  "latencyMs": 42
+}
+```
+
+Or on failure:
+```json
+{
+  "success": false,
+  "message": "Connection failed: could not connect to server"
+}
+```
+
+Error messages are sanitized to remove any leaked credentials.
+
+---
+
 ## Archive
 
 Workflow execution history (audit trail).

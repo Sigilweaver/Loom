@@ -26,6 +26,7 @@ Learn how to navigate the application:
 - **[Configuration Panel](./interface/configuration-panel)** - Configure tool settings
 - **[Data Preview](./interface/data-preview)** - Inspect data at any point in your workflow
 - **[Keyboard Shortcuts](./interface/keyboard-shortcuts)** - Work faster with shortcuts
+- **[Managing Connections](./interface/connections)** - Set up database connections securely
 
 ### [Expressions](./expressions/basics)
 

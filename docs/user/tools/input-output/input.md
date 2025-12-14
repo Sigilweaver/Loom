@@ -179,6 +179,40 @@ ODS is ideal when:
 **Note:** ODS is input-only - use Excel Output or convert to CSV/Parquet for saving data.
 :::
 
+### PostgreSQL
+
+Query data directly from PostgreSQL databases.
+
+**Connection Modes:**
+
+| Mode | Description | Best For |
+|------|-------------|----------|
+| **Client Connection** | Credentials stored on your local machine via Electron's secure storage | Personal databases, development |
+| **Server Connection** | Credentials managed by server administrator | Shared databases, team environments |
+
+**PostgreSQL Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Connection | (required) | Select a configured database connection |
+| Query | (required) | SQL query to execute |
+
+**Setting Up Connections:**
+
+Connections are managed in **Settings > Connections**. See [Managing Connections](../../interface/connections) for details on creating and using database connections.
+
+:::tip Security
+Credentials are never stored in workflow files. Whether using client or server connections:
+- **Client connections**: Only a connection ID is stored in the workflow
+- **Server connections**: The connection ID references server-managed credentials that are completely opaque to users
+
+When you export Python code or view workflow JSON, credentials are stripped or represented only as references.
+:::
+
+:::note Lazy Evaluation
+PostgreSQL queries are lazily evaluated like file sources. The query is executed when you preview data or run the workflow, not when you configure the tool.
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
@@ -235,6 +269,15 @@ ODS is ideal when:
 5. Configure options like drop empty rows/columns
 6. Wire the output to downstream tools
 
+### Querying a PostgreSQL Database
+
+1. Drag Input tool to canvas
+2. Select "Database" as the data source category
+3. Select "PostgreSQL" as the database type
+4. Choose an existing connection or create one via Settings > Connections
+5. Enter your SQL query
+6. Wire the output to downstream tools
+
 ## Notes
 
 - **Lazy loading** (Scan mode) is recommended for CSV, Parquet, and IPC/Arrow when working with large files
@@ -242,5 +285,7 @@ ODS is ideal when:
 - **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
 - **ODS** is read-only in Sigilweaver (Polars limitation) - use Excel Output or convert to other formats for saving
+- **PostgreSQL** queries are executed lazily and return results as a Polars LazyFrame
+- **Database credentials** are never stored in workflow files - only connection IDs are saved
 - **Schema inference** may not always be accurate - use Select to cast types if needed
 - **File paths** must be accessible from where Sigilweaver is running
