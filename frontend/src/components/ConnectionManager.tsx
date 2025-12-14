@@ -14,7 +14,7 @@ import type {
   DatabaseType 
 } from '../types/connections';
 import { DEFAULT_PORTS, DATABASE_TYPE_NAMES } from '../types/connections';
-import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, Shield, ShieldOff } from 'lucide-react';
+import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, Shield, ShieldOff, HelpCircle } from 'lucide-react';
 
 interface ConnectionFormData {
   name: string;
@@ -537,9 +537,20 @@ export const ConnectionManager: React.FC = () => {
 
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
-        <h3 className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
-          Database Connections ({connections.length})
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
+            Database Connections ({connections.length})
+          </h3>
+          <a
+            href="https://docs.sigilweaver.app/user/interface/connections"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="opacity-50 hover:opacity-100 transition-opacity"
+            title="Connection documentation"
+          >
+            <HelpCircle className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
+          </a>
+        </div>
         <button
           onClick={() => setShowForm(true)}
           className="px-3 py-1.5 rounded flex items-center gap-1.5 transition-opacity hover:opacity-80"
@@ -596,6 +607,27 @@ export const ConnectionManager: React.FC = () => {
 
       {!loading && connections.length > 0 && (
         <div className="space-y-4">
+          {/* Local Connections */}
+          {connections.some(c => c.owner === 'client') && (
+            <div>
+              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
+                Local Connections
+              </h4>
+              <div className="space-y-2">
+                {connections
+                  .filter(c => c.owner === 'client')
+                  .map(connection => (
+                    <ConnectionListItem
+                      key={connection.id}
+                      connection={connection}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Server-Managed Connections */}
           {connections.some(c => c.owner === 'server') && (
             <div>
@@ -617,27 +649,6 @@ export const ConnectionManager: React.FC = () => {
               <p className="text-xs opacity-40 mt-2" style={{ color: 'var(--color-modal-content-text)' }}>
                 Server connections are managed by your administrator and cannot be edited.
               </p>
-            </div>
-          )}
-
-          {/* Local Connections */}
-          {connections.some(c => c.owner === 'client') && (
-            <div>
-              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
-                Local Connections
-              </h4>
-              <div className="space-y-2">
-                {connections
-                  .filter(c => c.owner === 'client')
-                  .map(connection => (
-                    <ConnectionListItem
-                      key={connection.id}
-                      connection={connection}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-              </div>
             </div>
           )}
         </div>

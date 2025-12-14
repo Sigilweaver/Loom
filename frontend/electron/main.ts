@@ -95,6 +95,7 @@ function toConnectionInfo(stored: StoredConnection) {
     id: stored.id,
     name: stored.name,
     type: stored.type,
+    owner: 'client' as const,
     host: stored.host,
     port: stored.port,
     database: stored.database,
