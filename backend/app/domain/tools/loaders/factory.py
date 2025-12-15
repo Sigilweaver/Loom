@@ -25,7 +25,9 @@ class LoaderFactory:
     # Database loaders by type
     _database_loaders: dict[str, str] = {
         "postgresql": "postgresql",
-        # Future: "mysql": "mysql", "sqlite": "sqlite", etc.
+        "mysql": "mysql",
+        "sqlite": "sqlite",
+        "mssql": "mssql",
     }
 
     @classmethod

@@ -17,16 +17,37 @@ import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
 /**
  * Builds a connection URI from a resolved connection.
  * 
+ * URI formats by database type:
+ * - PostgreSQL: postgresql://user:password@host:port/database
+ * - MySQL: mysql://user:password@host:port/database
+ * - SQLite: sqlite:///path/to/database.db (no credentials)
+ * - SQL Server: mssql://user:password@host:port/database?encrypt=true&trust_server_certificate=true
+ * 
  * @param connection - The resolved connection with credentials
  * @returns Connection URI string
  */
 function buildConnectionUri(connection: ResolvedConnection): string {
-  // URL encode the password in case it contains special characters
+  // URL encode the password and username in case they contain special characters
   const encodedPassword = encodeURIComponent(connection.password);
   const encodedUsername = encodeURIComponent(connection.username);
   
-  // Format: postgresql://user:password@host:port/database
-  return `${connection.type}://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}`;
+  switch (connection.type) {
+    case 'sqlite':
+      // SQLite uses file path, no credentials needed
+      // The 'database' field contains the file path
+      const encodedPath = encodeURIComponent(connection.database).replace(/%2F/g, '/');
+      return `sqlite://${encodedPath}`;
+    
+    case 'mssql':
+      // SQL Server requires specific parameters for secure connections
+      // encrypt=true: Use TLS encryption
+      // trust_server_certificate=true: Accept self-signed certs (common in dev)
+      return `mssql://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}?encrypt=true&trust_server_certificate=true`;
+    
+    default:
+      // PostgreSQL and MySQL use standard format
+      return `${connection.type}://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}`;
+  }
 }
 
 /**

@@ -60,6 +60,8 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
+    
+    // All connection types need host, port, database, and credentials
     if (!formData.host.trim()) {
       newErrors.host = 'Host is required';
     }
@@ -138,49 +140,49 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           disabled={isEditing || loading} // Can't change type when editing
         >
           <option value="postgresql">PostgreSQL</option>
-          {/* Future: Add more database types here */}
-          {/* <option value="mysql">MySQL</option> */}
+          <option value="mysql">MySQL</option>
+          <option value="mssql">SQL Server</option>
         </select>
       </div>
 
       {/* Host and Port */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>
-            Host *
-          </label>
-          <input
-            type="text"
-            value={formData.host}
-            onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
-            className="w-full px-3 py-2 rounded focus:outline-none"
-            style={inputStyle}
-            placeholder="localhost"
-            disabled={loading}
-          />
-          {errors.host && (
-            <p className="mt-1 text-xs text-red-500">{errors.host}</p>
-          )}
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1" style={labelStyle}>
+              Host *
+            </label>
+            <input
+              type="text"
+              value={formData.host}
+              onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
+              className="w-full px-3 py-2 rounded focus:outline-none"
+              style={inputStyle}
+              placeholder="localhost"
+              disabled={loading}
+            />
+            {errors.host && (
+              <p className="mt-1 text-xs text-red-500">{errors.host}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={labelStyle}>
+              Port *
+            </label>
+            <input
+              type="number"
+              value={formData.port}
+              onChange={(e) => setFormData(prev => ({ ...prev, port: parseInt(e.target.value, 10) || 0 }))}
+              className="w-full px-3 py-2 rounded focus:outline-none"
+              style={inputStyle}
+              min={1}
+              max={65535}
+              disabled={loading}
+            />
+            {errors.port && (
+              <p className="mt-1 text-xs text-red-500">{errors.port}</p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>
-            Port *
-          </label>
-          <input
-            type="number"
-            value={formData.port}
-            onChange={(e) => setFormData(prev => ({ ...prev, port: parseInt(e.target.value, 10) || 0 }))}
-            className="w-full px-3 py-2 rounded focus:outline-none"
-            style={inputStyle}
-            min={1}
-            max={65535}
-            disabled={loading}
-          />
-          {errors.port && (
-            <p className="mt-1 text-xs text-red-500">{errors.port}</p>
-          )}
-        </div>
-      </div>
 
       {/* Database Name */}
       <div>
@@ -203,40 +205,40 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
       {/* Credentials */}
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>
-            Username *
-          </label>
-          <input
-            type="text"
-            value={formData.username}
-            onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-            className="w-full px-3 py-2 rounded focus:outline-none"
-            style={inputStyle}
-            placeholder="postgres"
-            autoComplete="off"
-            disabled={loading}
-          />
-          {errors.username && (
-            <p className="mt-1 text-xs text-red-500">{errors.username}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={labelStyle}>
+              Username *
+            </label>
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              className="w-full px-3 py-2 rounded focus:outline-none"
+              style={inputStyle}
+              placeholder={formData.type === 'mssql' ? 'sa' : 'postgres'}
+              autoComplete="off"
+              disabled={loading}
+            />
+            {errors.username && (
+              <p className="mt-1 text-xs text-red-500">{errors.username}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={labelStyle}>
+              Password {isEditing ? '(leave blank to keep)' : ''}
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              className="w-full px-3 py-2 rounded focus:outline-none"
+              style={inputStyle}
+              placeholder={isEditing ? '********' : ''}
+              autoComplete="new-password"
+              disabled={loading}
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>
-            Password {isEditing ? '(leave blank to keep)' : ''}
-          </label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-            className="w-full px-3 py-2 rounded focus:outline-none"
-            style={inputStyle}
-            placeholder={isEditing ? '********' : ''}
-            autoComplete="new-password"
-            disabled={loading}
-          />
-        </div>
-      </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-2">

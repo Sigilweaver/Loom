@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch, AsyncMock
 import polars as pl
 
-from app.domain.datasources.database import DatabaseDataSource, PostgreSQLDataSource, _dtype_to_polars_type
+from app.domain.datasources.database import DatabaseDataSource, PostgreSQLDataSource, MySQLDataSource, SQLiteDataSource, MsSQLDataSource, _dtype_to_polars_type
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.tools.loaders.database import DatabaseLoader
 from app.domain.tools.loaders.factory import LoaderFactory
@@ -259,6 +259,57 @@ class TestPostgreSQLDataSource:
         assert len(errors) == 0
 
 
+class TestMySQLDataSource:
+    """Test MySQL-specific data source"""
+
+    def test_initialization(self):
+        """Test MySQLDataSource initializes with correct type"""
+        datasource = MySQLDataSource()
+        assert datasource.database_type == "mysql"
+
+    @pytest.mark.asyncio
+    async def test_inherits_validation(self):
+        """Test that MySQLDataSource inherits validation from base"""
+        datasource = MySQLDataSource()
+        
+        errors = await datasource.validate_config({"query": "SELECT 1"})
+        assert len(errors) == 0
+
+
+class TestSQLiteDataSource:
+    """Test SQLite-specific data source"""
+
+    def test_initialization(self):
+        """Test SQLiteDataSource initializes with correct type"""
+        datasource = SQLiteDataSource()
+        assert datasource.database_type == "sqlite"
+
+    @pytest.mark.asyncio
+    async def test_inherits_validation(self):
+        """Test that SQLiteDataSource inherits validation from base"""
+        datasource = SQLiteDataSource()
+        
+        errors = await datasource.validate_config({"query": "SELECT 1"})
+        assert len(errors) == 0
+
+
+class TestMsSQLDataSource:
+    """Test SQL Server-specific data source"""
+
+    def test_initialization(self):
+        """Test MsSQLDataSource initializes with correct type"""
+        datasource = MsSQLDataSource()
+        assert datasource.database_type == "mssql"
+
+    @pytest.mark.asyncio
+    async def test_inherits_validation(self):
+        """Test that MsSQLDataSource inherits validation from base"""
+        datasource = MsSQLDataSource()
+        
+        errors = await datasource.validate_config({"query": "SELECT 1"})
+        assert len(errors) == 0
+
+
 class TestDataSourceFactory:
     """Test factory integration with database sources"""
 
@@ -267,16 +318,37 @@ class TestDataSourceFactory:
         datasource = DataSourceFactory.create("postgresql")
         assert isinstance(datasource, PostgreSQLDataSource)
 
+    def test_create_mysql_datasource(self):
+        """Test creating MySQL data source via factory"""
+        datasource = DataSourceFactory.create("mysql")
+        assert isinstance(datasource, MySQLDataSource)
+
+    def test_create_sqlite_datasource(self):
+        """Test creating SQLite data source via factory"""
+        datasource = DataSourceFactory.create("sqlite")
+        assert isinstance(datasource, SQLiteDataSource)
+
+    def test_create_mssql_datasource(self):
+        """Test creating SQL Server data source via factory"""
+        datasource = DataSourceFactory.create("mssql")
+        assert isinstance(datasource, MsSQLDataSource)
+
     def test_is_database_type(self):
         """Test database type detection"""
         assert DataSourceFactory.is_database_type("postgresql")
+        assert DataSourceFactory.is_database_type("mysql")
+        assert DataSourceFactory.is_database_type("sqlite")
+        assert DataSourceFactory.is_database_type("mssql")
         assert not DataSourceFactory.is_database_type("csv")
         assert not DataSourceFactory.is_database_type("parquet")
 
-    def test_list_supported_includes_postgresql(self):
-        """Test that PostgreSQL is in supported types list"""
+    def test_list_supported_includes_all_databases(self):
+        """Test that all database types are in supported types list"""
         types = DataSourceFactory.list_supported_types()
         assert "postgresql" in types
+        assert "mysql" in types
+        assert "sqlite" in types
+        assert "mssql" in types
 
 
 # ============================================================================
@@ -448,26 +520,53 @@ class TestDatabaseLoader:
 class TestLoaderFactory:
     """Test LoaderFactory integration with database loaders"""
 
-    def test_create_database_loader(self):
-        """Test creating database loader via factory"""
+    def test_create_postgresql_loader(self):
+        """Test creating PostgreSQL loader via factory"""
         loader = LoaderFactory.create("postgresql")
         assert isinstance(loader, DatabaseLoader)
         assert loader.database_type == "postgresql"
 
+    def test_create_mysql_loader(self):
+        """Test creating MySQL loader via factory"""
+        loader = LoaderFactory.create("mysql")
+        assert isinstance(loader, DatabaseLoader)
+        assert loader.database_type == "mysql"
+
+    def test_create_sqlite_loader(self):
+        """Test creating SQLite loader via factory"""
+        loader = LoaderFactory.create("sqlite")
+        assert isinstance(loader, DatabaseLoader)
+        assert loader.database_type == "sqlite"
+
+    def test_create_mssql_loader(self):
+        """Test creating SQL Server loader via factory"""
+        loader = LoaderFactory.create("mssql")
+        assert isinstance(loader, DatabaseLoader)
+        assert loader.database_type == "mssql"
+
     def test_is_database_type(self):
         """Test database type detection"""
         assert LoaderFactory.is_database_type("postgresql")
+        assert LoaderFactory.is_database_type("mysql")
+        assert LoaderFactory.is_database_type("sqlite")
+        assert LoaderFactory.is_database_type("mssql")
         assert not LoaderFactory.is_database_type("csv")
         assert not LoaderFactory.is_database_type("parquet")
 
-    def test_is_supported_includes_postgresql(self):
-        """Test that PostgreSQL is supported"""
+    def test_is_supported_includes_all_databases(self):
+        """Test that all database types are supported"""
         assert LoaderFactory.is_supported("postgresql")
+        assert LoaderFactory.is_supported("mysql")
+        assert LoaderFactory.is_supported("sqlite")
+        assert LoaderFactory.is_supported("mssql")
 
-    def test_list_supported_includes_postgresql(self):
-        """Test that PostgreSQL is in supported types list"""
+    def test_list_supported_includes_all_databases(self):
+        """Test that all database types are in supported types list"""
         types = LoaderFactory.list_supported_types()
         assert "postgresql" in types
+        assert "mysql" in types
+        assert "sqlite" in types
+        assert "mssql" in types
 
 
 # ============================================================================

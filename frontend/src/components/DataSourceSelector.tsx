@@ -75,8 +75,9 @@ const DATA_SOURCES: DataSource[] = [
     id: "sqlite",
     name: "SQLite",
     category: "database",
-    description: "Lightweight SQL database",
-    enabled: false,
+    description: "Lightweight file-based SQL database",
+    enabled: true,
+    supportedOperations: ["input"], // Read-only for now
   },
   {
     id: "postgresql",
@@ -91,7 +92,8 @@ const DATA_SOURCES: DataSource[] = [
     name: "MySQL",
     category: "database",
     description: "Popular open source database",
-    enabled: false,
+    enabled: true,
+    supportedOperations: ["input"], // Read-only for now
   },
   {
     id: "mariadb",
@@ -108,11 +110,12 @@ const DATA_SOURCES: DataSource[] = [
     enabled: false,
   },
   {
-    id: "sqlserver",
+    id: "mssql",
     name: "SQL Server",
     category: "database",
     description: "Microsoft SQL Server database",
-    enabled: false,
+    enabled: true,
+    supportedOperations: ["input"], // Read-only for now
   },
 ];
 
@@ -163,7 +166,7 @@ const getIconUrl = (dataSourceId: string, currentTheme: string): string => {
     postgresql: "postgresql",
     mysql: "mysql",
     mariadb: "mariadb",
-    sqlserver: "microsoftsqlserver",
+    mssql: "microsoftsqlserver",
   };
 
   // For Oracle, use devicons since simple-icons removed it due to legal issues

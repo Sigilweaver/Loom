@@ -6,7 +6,12 @@ from typing import Type
 from app.domain.datasources.base import DataSource
 from app.domain.datasources.avro import AvroDataSource
 from app.domain.datasources.csv import CSVDataSource
-from app.domain.datasources.database import PostgreSQLDataSource
+from app.domain.datasources.database import (
+    PostgreSQLDataSource,
+    MySQLDataSource,
+    SQLiteDataSource,
+    MsSQLDataSource,
+)
 from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.ipc import IPCDataSource
 from app.domain.datasources.json import JSONDataSource
@@ -28,6 +33,9 @@ class DataSourceFactory:
         "ods": ODSDataSource,
         "parquet": ParquetDataSource,
         "postgresql": PostgreSQLDataSource,
+        "mysql": MySQLDataSource,
+        "sqlite": SQLiteDataSource,
+        "mssql": MsSQLDataSource,
     }
 
     # File extension to source type mapping
@@ -53,6 +61,9 @@ class DataSourceFactory:
     # Database source types (not file-based)
     _database_types: set[str] = {
         "postgresql",
+        "mysql",
+        "sqlite",
+        "mssql",
     }
 
     @classmethod

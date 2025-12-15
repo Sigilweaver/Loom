@@ -39,7 +39,7 @@ const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'sigil
 interface StoredConnection {
   id: string;
   name: string;
-  type: 'postgresql' | 'mysql' | 'sqlite';
+  type: 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
   host: string;
   port: number;
   database: string;
@@ -536,7 +536,7 @@ ipcMain.handle('connection:get', async (_event, id: string) => {
 // Create a new connection
 ipcMain.handle('connection:create', async (_event, input: {
   name: string;
-  type: 'postgresql' | 'mysql' | 'sqlite';
+  type: 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
   host: string;
   port: number;
   database: string;

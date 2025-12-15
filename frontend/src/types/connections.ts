@@ -9,7 +9,7 @@
 /**
  * Supported database types
  */
-export type DatabaseType = 'postgresql' | 'mysql' | 'sqlite';
+export type DatabaseType = 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
 
 /**
  * Who manages the connection credentials
@@ -93,6 +93,7 @@ export const DEFAULT_PORTS: Record<DatabaseType, number> = {
   postgresql: 5432,
   mysql: 3306,
   sqlite: 0, // SQLite doesn't use ports
+  mssql: 1433,
 };
 
 /**
@@ -102,4 +103,5 @@ export const DATABASE_TYPE_NAMES: Record<DatabaseType, string> = {
   postgresql: 'PostgreSQL',
   mysql: 'MySQL',
   sqlite: 'SQLite',
+  mssql: 'SQL Server',
 };

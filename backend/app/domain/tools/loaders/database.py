@@ -26,6 +26,9 @@ class DatabaseLoader(FileLoader):
     Note: Unlike file loaders, the 'source' parameter is a connection URI,
     not a file path. The URI format depends on the database type:
     - PostgreSQL: postgresql://user:password@host:port/database
+    - MySQL: mysql://user:password@host:port/database
+    - SQLite: sqlite:///path/to/database.db
+    - SQL Server: mssql://user:password@host:port/database?encrypt=true&trust_server_certificate=true
     """
     
     def __init__(self, database_type: str = "postgresql"):

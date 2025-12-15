@@ -18,6 +18,7 @@ class DatabaseType(str, Enum):
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
     SQLITE = "sqlite"
+    MSSQL = "mssql"
 
 
 class StoredConnection(BaseModel):
