@@ -7,7 +7,7 @@
  * 3. Configuration components pass data to CodeEditor
  * 4. Monaco completion provider uses data for suggestions
  * 
- * Requires backend running on http://localhost:8000
+ * Requires backend running on http://localhost:8001
  * Run with: npm run test:integration
  */
 

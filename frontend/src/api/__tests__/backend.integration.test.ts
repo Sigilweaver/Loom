@@ -2,7 +2,7 @@
  * End-to-end integration test with real backend
  * 
  * Tests the complete workflow from schema fetching to data preview.
- * Requires backend running on http://localhost:8000
+ * Requires backend running on http://localhost:8001
  * 
  * Run with: npm test -- src/api/__tests__/backend.e2e.test.ts
  */

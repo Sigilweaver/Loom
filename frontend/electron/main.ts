@@ -182,8 +182,9 @@ async function startBackend(): Promise<void> {
         ...process.env,
         PYTHONUNBUFFERED: "1",
         POLARS_VERBOSE: "1",
-        // Enable ephemeral auth mode with generated token
-        AUTH_MODE: "ephemeral",
+        // In development: disable auth for easier debugging
+        // In production: enable ephemeral auth mode with generated token
+        AUTH_MODE: isDev ? "disabled" : "ephemeral",
         SESSION_TOKEN: sessionToken,
       },
     });

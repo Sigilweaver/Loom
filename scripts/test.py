@@ -346,10 +346,10 @@ def run_frontend_suite(repo_root: Path, coverage: bool = False, strict: bool = F
 
 
 def check_backend_running() -> bool:
-    """Check if backend is running."""
+    """Check if backend is running on test port."""
     try:
         import urllib.request
-        urllib.request.urlopen("http://localhost:8000/api/health/", timeout=2)
+        urllib.request.urlopen("http://localhost:8001/api/health/", timeout=2)
         return True
     except Exception:
         return False
@@ -363,10 +363,10 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
     if python_path is None:
         return None
     
-    print("Starting backend server...")
+    print("Starting backend server on port 8001 (test backend)...")
     
     process = subprocess.Popen(
-        [str(python_path), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+        [str(python_path), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001"],
         cwd=backend_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -555,8 +555,10 @@ Examples:
     repo_root = get_repo_root()
     results: list[SuiteResult] = []
     
-    print_header("Sigilweaver Verification Suite")
-    if not _quiet_mode:
+    print_header("Sigilweaver Verification Suite", force=True)
+    if _quiet_mode:
+        print("Running tests (errors only)...")
+    else:
         print(f"Repository: {repo_root}")
         print(f"Mode: {'strict' if args.strict else 'CI-compatible'}")
         print(f"Coverage: {'enabled' if run_coverage else 'disabled'}")

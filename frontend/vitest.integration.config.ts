@@ -5,11 +5,14 @@ import { defineConfig } from "vitest/config";
 /**
  * Vitest configuration for integration tests
  * 
- * These tests require a running backend server on http://localhost:8000
+ * These tests require a running backend server on http://localhost:8001
  * Run with: npm run test:integration
  */
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify('http://localhost:8001/api'),
+  },
   resolve: {
     alias: {
       "@domain": path.resolve(__dirname, "src/domain"),
