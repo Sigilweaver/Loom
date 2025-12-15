@@ -2,11 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api.models.workflow import Workflow
 from app.config import settings
+from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.workflow.code_generator import PythonCodeGenerator
 from app.utils.errors import ExecutionError, ToolError, ValidationError
@@ -68,7 +69,10 @@ class ToolMetadataRequest(BaseModel):
 
 
 @router.post("/execute")
-async def execute_workflow(request: ExecuteWorkflowRequest) -> dict[str, Any]:
+async def execute_workflow(
+    request: ExecuteWorkflowRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
     """
     Execute entire workflow or up to a specific tool.
 
@@ -78,11 +82,18 @@ async def execute_workflow(request: ExecuteWorkflowRequest) -> dict[str, Any]:
     Use target_tool_id to execute only part of the workflow (useful for debugging).
     Use preview_limit to limit rows returned (useful for large datasets).
     The preview_limit is clamped to max_preview_rows from server config.
+    
+    Server connections are resolved before execution. Client connections must
+    have their source URI already populated.
     """
     try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+        
         executor = WorkflowExecutor()
         result = await executor.execute_workflow(
-            workflow=request.workflow,
+            workflow=resolved_workflow,
             target_tool_id=request.target_tool_id,
             preview_limit=_clamp_preview_limit(request.preview_limit),
         )
@@ -99,7 +110,10 @@ async def execute_workflow(request: ExecuteWorkflowRequest) -> dict[str, Any]:
 
 
 @router.post("/tool/execute")
-async def execute_tool(request: ExecuteToolRequest) -> dict[str, Any]:
+async def execute_tool(
+    request: ExecuteToolRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
     """
     Execute a single tool and its dependencies.
 
@@ -111,9 +125,13 @@ async def execute_tool(request: ExecuteToolRequest) -> dict[str, Any]:
     The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+        
         executor = WorkflowExecutor()
         result = await executor.execute_single_tool(
-            workflow=request.workflow,
+            workflow=resolved_workflow,
             tool_id=request.tool_id,
             socket_id=request.socket_id,
             preview_limit=_clamp_preview_limit(request.preview_limit),
@@ -131,7 +149,10 @@ async def execute_tool(request: ExecuteToolRequest) -> dict[str, Any]:
 
 
 @router.post("/tool/schema")
-async def get_tool_schema(request: ToolSchemaRequest) -> dict[str, Any]:
+async def get_tool_schema(
+    request: ToolSchemaRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
     """
     Get output schema for a tool without executing it fully.
 
@@ -142,9 +163,13 @@ async def get_tool_schema(request: ToolSchemaRequest) -> dict[str, Any]:
     Returns schema for the specified socket only.
     """
     try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+        
         executor = WorkflowExecutor()
         result = await executor.get_tool_schema(
-            workflow=request.workflow,
+            workflow=resolved_workflow,
             tool_id=request.tool_id,
             socket_id=request.socket_id,
         )
@@ -161,7 +186,10 @@ async def get_tool_schema(request: ToolSchemaRequest) -> dict[str, Any]:
 
 
 @router.post("/tool/metadata")
-async def get_tool_metadata(request: ToolMetadataRequest) -> dict[str, Any]:
+async def get_tool_metadata(
+    request: ToolMetadataRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
     """
     Get metadata for a tool for autocomplete suggestions.
 
@@ -171,9 +199,13 @@ async def get_tool_metadata(request: ToolMetadataRequest) -> dict[str, Any]:
     This executes upstream tools to determine input columns.
     """
     try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+        
         executor = WorkflowExecutor()
         result = await executor.get_tool_metadata(
-            workflow=request.workflow,
+            workflow=resolved_workflow,
             tool_id=request.tool_id,
             socket_id=request.socket_id,
         )
@@ -199,7 +231,10 @@ class PreviewAllRequest(BaseModel):
 
 
 @router.post("/preview_all")
-async def preview_all_tools(request: PreviewAllRequest) -> dict[str, Any]:
+async def preview_all_tools(
+    request: PreviewAllRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
     """
     Execute workflow and return preview data for ALL tools.
 
@@ -211,9 +246,13 @@ async def preview_all_tools(request: PreviewAllRequest) -> dict[str, Any]:
     The preview_limit is clamped to max_preview_rows from server config.
     """
     try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+        
         executor = WorkflowExecutor()
         result = await executor.preview_all_tools(
-            workflow=request.workflow,
+            workflow=resolved_workflow,
             preview_limit=_clamp_preview_limit(request.preview_limit),
         )
         return result

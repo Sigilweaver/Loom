@@ -578,3 +578,295 @@ class TestConnectionAPI:
         assert len(data) == 2
         names = {c["name"] for c in data}
         assert names == {"DB 1", "DB 2"}
+
+
+class TestConnectionResolver:
+    """Tests for the ConnectionResolver class."""
+
+    @pytest.fixture
+    def encryption_key(self) -> str:
+        """Generate a valid Fernet key for testing."""
+        return Fernet.generate_key().decode()
+
+    @pytest.fixture
+    def temp_storage(self) -> Path:
+        """Create a temporary storage file."""
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            return Path(f.name)
+
+    @pytest.fixture
+    def store(self, temp_storage: Path, encryption_key: str) -> ConnectionStore:
+        """Create a test connection store."""
+        return ConnectionStore(storage_path=temp_storage, encryption_key=encryption_key)
+
+    @pytest.fixture
+    def resolver(self, store: ConnectionStore):
+        """Create a resolver with the test store."""
+        from app.domain.connections.resolver import ConnectionResolver
+        return ConnectionResolver(connection_store=store)
+
+    @pytest.fixture
+    def sample_workflow(self):
+        """Create a sample workflow for testing."""
+        from app.api.models.workflow import (
+            Tool,
+            Wire,
+            WireEndpoint,
+            Workflow,
+            WorkflowMeta,
+        )
+        return Workflow(
+            meta=WorkflowMeta(
+                name="Test",
+                description="Test workflow",
+                author="Test",
+                workflowId="test-id",
+                created="2025-01-01",
+            ),
+            tools=[
+                Tool(
+                    id="input1",
+                    type="Input",
+                    x=0,
+                    y=0,
+                    config={
+                        "category": "file",
+                        "source": "/path/to/file.csv",
+                    },
+                    sockets=[],
+                ),
+                Tool(
+                    id="filter1",
+                    type="Filter",
+                    x=100,
+                    y=0,
+                    config={"expression": "col('a') > 5"},
+                    sockets=[],
+                ),
+            ],
+            wires=[
+                Wire(
+                    from_=WireEndpoint(tool="input1", socket="output"),
+                    to=WireEndpoint(tool="filter1", socket="input"),
+                ),
+            ],
+        )
+
+    def test_resolve_workflow_without_database_tools(self, resolver, sample_workflow):
+        """Should return workflow unchanged when no database tools present."""
+        result = resolver.resolve_workflow_connections(sample_workflow)
+        
+        # Should return same workflow (no changes needed)
+        assert len(result.tools) == len(sample_workflow.tools)
+        assert result.tools[0].config == sample_workflow.tools[0].config
+
+    def test_resolve_server_connection(self, resolver, store, sample_workflow):
+        """Should resolve server-owned database connection."""
+        from app.api.models.workflow import Tool
+        
+        # Create a server connection
+        conn = store.create_connection(
+            CreateConnectionInput(
+                name="Test DB",
+                type=DatabaseType.POSTGRESQL,
+                host="localhost",
+                port=5432,
+                database="testdb",
+                username="user",
+                password="secret",
+            )
+        )
+        
+        # Add a database tool to workflow
+        db_tool = Tool(
+            id="db_input",
+            type="Input",
+            x=0,
+            y=0,
+            config={
+                "category": "database",
+                "type": "postgresql",
+                "connectionId": conn.id,
+                "owner": "server",
+                "query": "SELECT * FROM users",
+            },
+            sockets=[],
+        )
+        sample_workflow.tools.append(db_tool)
+        
+        # Resolve connections
+        result = resolver.resolve_workflow_connections(sample_workflow)
+        
+        # Find the resolved db tool
+        resolved_db_tool = next(t for t in result.tools if t.id == "db_input")
+        
+        # Should have source URI populated
+        assert "source" in resolved_db_tool.config
+        assert resolved_db_tool.config["source"] == "postgresql://user:secret@localhost:5432/testdb"
+
+    def test_resolve_preserves_client_connection_with_source(self, resolver, sample_workflow):
+        """Should not modify client connections that already have source."""
+        from app.api.models.workflow import Tool
+        
+        # Add a client database tool with source already resolved
+        client_tool = Tool(
+            id="client_db",
+            type="Input",
+            x=0,
+            y=0,
+            config={
+                "category": "database",
+                "type": "postgresql",
+                "connectionId": "some-client-id",
+                "owner": "client",
+                "source": "postgresql://clientuser:clientpass@clienthost:5432/clientdb",
+                "query": "SELECT 1",
+            },
+            sockets=[],
+        )
+        sample_workflow.tools.append(client_tool)
+        
+        # Resolve connections
+        result = resolver.resolve_workflow_connections(sample_workflow)
+        
+        # Find the client tool
+        resolved_tool = next(t for t in result.tools if t.id == "client_db")
+        
+        # Source should be unchanged
+        assert resolved_tool.config["source"] == "postgresql://clientuser:clientpass@clienthost:5432/clientdb"
+
+    def test_resolve_fails_for_missing_server_connection(self, resolver, sample_workflow):
+        """Should raise error when server connection doesn't exist."""
+        from app.api.models.workflow import Tool
+        from app.utils.errors import ExecutionError
+        
+        # Add a database tool with non-existent connection
+        db_tool = Tool(
+            id="db_input",
+            type="Input",
+            x=0,
+            y=0,
+            config={
+                "category": "database",
+                "type": "postgresql",
+                "connectionId": "nonexistent-id",
+                "owner": "server",
+                "query": "SELECT 1",
+            },
+            sockets=[],
+        )
+        sample_workflow.tools.append(db_tool)
+        
+        # Should raise error
+        with pytest.raises(ExecutionError, match="not found"):
+            resolver.resolve_workflow_connections(sample_workflow)
+
+    def test_validate_client_connection_without_source_fails(self, resolver, sample_workflow):
+        """Should raise error when client connection is missing source URI."""
+        from app.api.models.workflow import Tool
+        from app.utils.errors import ExecutionError
+        
+        # Add a client database tool WITHOUT source (not resolved)
+        client_tool = Tool(
+            id="unresolved_client",
+            type="Input",
+            x=0,
+            y=0,
+            config={
+                "category": "database",
+                "type": "postgresql",
+                "connectionId": "some-client-id",
+                "owner": "client",
+                # Note: no "source" field - client should have resolved this
+                "query": "SELECT 1",
+            },
+            sockets=[],
+        )
+        sample_workflow.tools.append(client_tool)
+        
+        # resolve_workflow_connections won't touch client connections
+        # but validate_client_connections should catch the missing source
+        with pytest.raises(ExecutionError, match="not resolved"):
+            resolver.validate_client_connections(sample_workflow)
+
+    def test_resolve_multiple_server_connections(self, resolver, store, sample_workflow):
+        """Should resolve multiple server connections in one workflow."""
+        from app.api.models.workflow import Tool
+        
+        # Create two server connections
+        conn1 = store.create_connection(
+            CreateConnectionInput(
+                name="DB 1",
+                type=DatabaseType.POSTGRESQL,
+                host="host1",
+                port=5432,
+                database="db1",
+                username="user1",
+                password="pass1",
+            )
+        )
+        conn2 = store.create_connection(
+            CreateConnectionInput(
+                name="DB 2",
+                type=DatabaseType.POSTGRESQL,
+                host="host2",
+                port=5432,
+                database="db2",
+                username="user2",
+                password="pass2",
+            )
+        )
+        
+        # Add two database tools
+        sample_workflow.tools.extend([
+            Tool(
+                id="db1",
+                type="Input",
+                x=0,
+                y=0,
+                config={
+                    "category": "database",
+                    "type": "postgresql",
+                    "connectionId": conn1.id,
+                    "owner": "server",
+                    "query": "SELECT * FROM table1",
+                },
+                sockets=[],
+            ),
+            Tool(
+                id="db2",
+                type="Input",
+                x=100,
+                y=0,
+                config={
+                    "category": "database",
+                    "type": "postgresql",
+                    "connectionId": conn2.id,
+                    "owner": "server",
+                    "query": "SELECT * FROM table2",
+                },
+                sockets=[],
+            ),
+        ])
+        
+        # Resolve connections
+        result = resolver.resolve_workflow_connections(sample_workflow)
+        
+        # Both should have source URIs
+        db1_tool = next(t for t in result.tools if t.id == "db1")
+        db2_tool = next(t for t in result.tools if t.id == "db2")
+        
+        assert "source" in db1_tool.config
+        assert "host1" in db1_tool.config["source"]
+        assert "source" in db2_tool.config
+        assert "host2" in db2_tool.config["source"]
+
+    def test_resolver_without_store_uses_singleton(self):
+        """Should use singleton store when none provided."""
+        from app.domain.connections.resolver import ConnectionResolver
+        
+        # Create resolver without explicit store
+        resolver = ConnectionResolver()
+        
+        # Accessing store should work (lazy initialization)
+        assert resolver.store is not None
