@@ -146,7 +146,6 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
     # Set environment variables
     env = os.environ.copy()
     env["POLARS_VERBOSE"] = "1"
-    env["CONNECTION_ENCRYPTION_KEY"] = "iIaU9BqBrfUkNFNVsDK8Pu0QjsDVsx-kdpk8A16FRs8="
     env["AUTH_MODE"] = "disabled"  # Disable auth for direct API access during development
     
     try:

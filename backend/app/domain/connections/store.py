@@ -64,10 +64,11 @@ class ConnectionStore:
         
         Args:
             storage_path: Path to JSON storage file (uses config default if None)
-            encryption_key: Fernet key (uses env var if None)
+            encryption_key: Fernet key (uses env var if None, pass "" to explicitly disable)
         """
         self._storage_path = Path(storage_path or settings.connection_store_path)
-        self._encryption_key = encryption_key or settings.connection_encryption_key
+        # Only fall back to settings if encryption_key is None (not empty string)
+        self._encryption_key = encryption_key if encryption_key is not None else settings.connection_encryption_key
         self._fernet: Fernet | None = None
         self._connections: dict[str, StoredConnection] = {}
         

@@ -6,7 +6,6 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { mergeEmitPatch } from '@components/primitives/hooks';
 import {
   type EmissionMap,
   type ToolConfig,
@@ -14,6 +13,47 @@ import {
 import { useConnectionStore } from '@state/connectionStore';
 import type { ConnectionInfo } from '../types/connections';
 import { Database, AlertCircle, Settings } from 'lucide-react';
+import { CodeEditor } from './common/CodeEditor';
+
+// Default values for PostgreSQL tool (must match TOOL_DEFINITIONS)
+const POSTGRESQL_DEFAULTS = {
+  connectionId: "",
+  query: "",
+  owner: "client",
+} as const;
+
+/**
+ * Build the emission map for PostgreSQL tool config.
+ * Preserves existing _emit entries and updates PostgreSQL-specific fields
+ * based on whether they differ from defaults.
+ */
+function buildPostgresqlEmit(config: ToolConfig): EmissionMap {
+  // Start with existing _emit to preserve entries for other fields
+  const emit: EmissionMap = { ...(config._emit as EmissionMap | undefined) };
+  
+  const connectionId = (config.connectionId as string) ?? "";
+  const query = (config.query as string) ?? "";
+  const owner = (config.owner as string) ?? "client";
+  
+  // Update PostgreSQL-specific fields based on whether they differ from defaults
+  if (connectionId !== POSTGRESQL_DEFAULTS.connectionId) {
+    emit.connectionId = true;
+  } else {
+    delete emit.connectionId;
+  }
+  if (query !== POSTGRESQL_DEFAULTS.query) {
+    emit.query = true;
+  } else {
+    delete emit.query;
+  }
+  if (owner !== POSTGRESQL_DEFAULTS.owner) {
+    emit.owner = true;
+  } else {
+    delete emit.owner;
+  }
+  
+  return emit;
+}
 
 interface PostgresqlConfigurationProps {
   config: ToolConfig;
@@ -48,45 +88,35 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
     }
   }, [loaded, connections, getConnectionsByType]);
 
-  const updateConfig = useCallback(
-    (
-      key: string,
-      value: unknown,
-      emitPatch: EmissionMap,
-      shouldEmit: boolean
-    ) => {
-      const newEmit = shouldEmit
-        ? mergeEmitPatch(config._emit, emitPatch)
-        : (config._emit ?? {});
-
-      const updatedConfig = {
-        ...config,
-        [key]: value,
-        _emit: newEmit,
-      } as ToolConfig;
-
-      onChange(updatedConfig);
-    },
-    [config, onChange]
-  );
-
   const handleConnectionChange = useCallback(
     (connectionId: string) => {
-      console.log('[PostgresqlConfig] Connection changed:', connectionId);
-      
       // Find the connection to get its owner
       const connection = postgresConnections.find(c => c.id === connectionId);
       const owner = connection?.owner || 'client';
       
-      const updatedConfig = {
+      const newConfig: ToolConfig = {
         ...config,
         connectionId,
         owner, // Set owner field based on the selected connection
-      } as ToolConfig;
-      console.log('[PostgresqlConfig] New config:', updatedConfig);
-      onChange(updatedConfig);
+      };
+      // Build emission map based on what differs from defaults
+      newConfig._emit = buildPostgresqlEmit(newConfig);
+      onChange(newConfig);
     },
     [config, onChange, postgresConnections]
+  );
+
+  const handleQueryChange = useCallback(
+    (value: string) => {
+      const newConfig: ToolConfig = {
+        ...config,
+        query: value || "",
+      };
+      // Build emission map based on what differs from defaults
+      newConfig._emit = buildPostgresqlEmit(newConfig);
+      onChange(newConfig);
+    },
+    [config, onChange]
   );
 
   // Type-safe getters
@@ -184,14 +214,15 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
             <label className="block mb-2 text-sm font-medium text-theme-text-primary">
               SQL Query
             </label>
-            <textarea
-              value={query || ''}
-              onChange={(e) => updateConfig('query', e.target.value, {}, false)}
-              placeholder="SELECT * FROM table_name"
-              rows={8}
-              className="w-full px-3 py-2 font-mono text-sm border rounded-lg resize-y border-theme-border-primary bg-theme-surface-elevated text-theme-text-primary placeholder-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
-              style={{ minHeight: '120px' }}
-            />
+            <div className="border border-theme-border-primary rounded-lg overflow-hidden">
+              <CodeEditor
+                value={query || ''}
+                onChange={handleQueryChange}
+                language="sql"
+                height="200px"
+                placeholder="SELECT * FROM table_name"
+              />
+            </div>
             <p className="mt-1 text-xs text-theme-text-tertiary">
               Write a SQL query to load data from PostgreSQL. The query will be executed when the workflow runs.
             </p>
