@@ -14,7 +14,7 @@ import type {
   DatabaseType 
 } from '../types/connections';
 import { DEFAULT_PORTS, DATABASE_TYPE_NAMES } from '../types/connections';
-import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, Shield, ShieldOff, HelpCircle } from 'lucide-react';
+import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, HelpCircle, Info } from 'lucide-react';
 
 interface ConnectionFormData {
   name: string;
@@ -510,31 +510,6 @@ export const ConnectionManager: React.FC = () => {
   // Show connection list
   return (
     <div className="space-y-4">
-      {/* Encryption Status */}
-      <div 
-        className="p-3 rounded flex items-center gap-2"
-        style={{
-          backgroundColor: 'var(--color-modal-container-bg)',
-          border: '1px solid var(--color-modal-container-border)',
-        }}
-      >
-        {encryptionAvailable ? (
-          <>
-            <Shield className="w-4 h-4" style={{ color: 'var(--color-notification-success-text)' }} />
-            <span className="text-sm" style={{ color: 'var(--color-modal-content-text)' }}>
-              Credentials are encrypted using your operating system's secure storage
-            </span>
-          </>
-        ) : (
-          <>
-            <ShieldOff className="w-4 h-4" style={{ color: 'var(--color-notification-warning-text)' }} />
-            <span className="text-sm" style={{ color: 'var(--color-modal-content-text)' }}>
-              Secure storage not available - credentials are encoded but not encrypted
-            </span>
-          </>
-        )}
-      </div>
-
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -610,9 +585,21 @@ export const ConnectionManager: React.FC = () => {
           {/* Local Connections */}
           {connections.some(c => c.owner === 'client') && (
             <div>
-              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
-                Local Connections
-              </h4>
+              <div className="flex items-center gap-1.5 mb-2">
+                <h4 className="text-sm font-medium opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
+                  Local Connections
+                </h4>
+                <span 
+                  title={encryptionAvailable 
+                    ? "Stored locally. Credentials are encrypted using your operating system's secure storage." 
+                    : "Stored locally. Secure storage not available - credentials are encoded but not encrypted."}
+                >
+                  <Info 
+                    className="w-3.5 h-3.5 opacity-40 hover:opacity-70 cursor-help transition-opacity" 
+                    style={{ color: 'var(--color-modal-content-text)' }}
+                  />
+                </span>
+              </div>
               <div className="space-y-2">
                 {connections
                   .filter(c => c.owner === 'client')
@@ -631,9 +618,17 @@ export const ConnectionManager: React.FC = () => {
           {/* Server-Managed Connections */}
           {connections.some(c => c.owner === 'server') && (
             <div>
-              <h4 className="text-sm font-medium mb-2 opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
-                Server-Managed Connections
-              </h4>
+              <div className="flex items-center gap-1.5 mb-2">
+                <h4 className="text-sm font-medium opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
+                  Server-Managed Connections
+                </h4>
+                <span title="Managed by your administrator. Read-only and cannot be edited.">
+                  <Info 
+                    className="w-3.5 h-3.5 opacity-40 hover:opacity-70 cursor-help transition-opacity" 
+                    style={{ color: 'var(--color-modal-content-text)' }}
+                  />
+                </span>
+              </div>
               <div className="space-y-2">
                 {connections
                   .filter(c => c.owner === 'server')
@@ -646,18 +641,11 @@ export const ConnectionManager: React.FC = () => {
                     />
                   ))}
               </div>
-              <p className="text-xs opacity-40 mt-2" style={{ color: 'var(--color-modal-content-text)' }}>
-                Server connections are managed by your administrator and cannot be edited.
-              </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Help text */}
-      <p className="text-xs opacity-50" style={{ color: 'var(--color-modal-content-text)' }}>
-        Connections are stored locally on your machine. Credentials are encrypted using your operating system's secure storage when available.
-      </p>
     </div>
   );
 };
