@@ -7,7 +7,7 @@ on:
       python-version:
         required: false
         type: string
-        default: '3.11'
+        default: '3.13'
 
 jobs:
   build-backend:
@@ -30,20 +30,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: 'backend/uv.lock'
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ inputs.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'backend/requirements.txt'
+          python-version-file: 'backend/.python-version'
 
       - name: Install backend dependencies
         working-directory: backend
         shell: bash
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install pyinstaller
+        run: uv sync --all-extras
 
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
@@ -53,7 +54,7 @@ jobs:
         working-directory: backend
         shell: bash
         run: |
-          pyinstaller sigilweaver.spec
+          uv run pyinstaller sigilweaver.spec
 
       - name: Verify executable exists
         working-directory: backend

@@ -48,7 +48,7 @@ jobs:
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-backend.yml
     with:
-      python-version: '3.11'
+      python-version: '3.13'
 
   build-frontend-full:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}

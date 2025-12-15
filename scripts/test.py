@@ -112,9 +112,10 @@ def print_separator() -> None:
 
 
 def get_python_path(backend_dir: Path) -> Path | None:
-    """Get the Python executable path from the backend venv."""
+    """Get the Python executable path from the backend venv (managed by uv)."""
+    lock_path = backend_dir / "uv.lock"
     venv_path = backend_dir / ".venv"
-    if not venv_path.exists():
+    if not lock_path.exists() or not venv_path.exists():
         return None
     
     if sys.platform == "win32":
@@ -231,7 +232,7 @@ def run_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
             name="Backend Tests",
             passed=False,
             duration=0,
-            error="Virtual environment not found. Run: cd backend && python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'"
+            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
         )
     
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
@@ -256,12 +257,13 @@ def run_backend_suite(repo_root: Path, coverage: bool = False, strict: bool = Fa
     
     suite = SuiteResult(name="Backend")
     
-    if not venv_path.exists():
+    lock_path = backend_dir / "uv.lock"
+    if not lock_path.exists() or not venv_path.exists():
         suite.checks.append(CheckResult(
             name="Backend Setup",
             passed=False,
             duration=0,
-            error="Virtual environment not found. Run: cd backend && python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'"
+            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
         ))
         return suite
     

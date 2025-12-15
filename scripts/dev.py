@@ -66,18 +66,14 @@ def print_success(message: str) -> None:
 
 
 def check_backend_setup(repo_root: Path) -> bool:
-    """Check if backend virtual environment exists."""
+    """Check if backend is set up with uv."""
+    lock_path = repo_root / "backend" / "uv.lock"
     venv_path = repo_root / "backend" / ".venv"
-    if not venv_path.exists():
-        print_error("Backend virtual environment not found!")
+    if not lock_path.exists() or not venv_path.exists():
+        print_error("Backend not set up!")
         print_warning("Please set up the backend first:")
         print("  cd backend")
-        print("  python -m venv .venv")
-        if sys.platform == "win32":
-            print("  .venv\\Scripts\\activate")
-        else:
-            print("  source .venv/bin/activate")
-        print('  pip install -e ".[dev]"')
+        print("  uv sync --all-extras")
         return False
     return True
 

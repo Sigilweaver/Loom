@@ -95,31 +95,30 @@ def build_backend(repo_root: Path, platform: str) -> BuildResult:
     print_header("Step 1/3: Building Backend Executable")
     
     backend_dir = repo_root / "backend"
+    lock_path = backend_dir / "uv.lock"
     venv_path = backend_dir / ".venv"
     
-    if not venv_path.exists():
+    if not lock_path.exists():
         return BuildResult(
             name="Backend",
             success=False,
             duration=0,
-            error="Virtual environment not found. Run: cd backend && python -m venv .venv && source .venv/bin/activate && pip install -e '.[build]'"
+            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
         )
     
     # Determine the Python executable path
     if sys.platform == "win32":
         python_path = venv_path / "Scripts" / "python.exe"
-        pip_path = venv_path / "Scripts" / "pip.exe"
     else:
         python_path = venv_path / "bin" / "python"
-        pip_path = venv_path / "bin" / "pip"
     
     start_time = time.time()
     
     try:
-        # Install build dependencies
-        print("Installing build dependencies...")
+        # Sync dependencies including build extras using uv
+        print("Syncing dependencies with uv (including build extras)...")
         result = subprocess.run(
-            [str(pip_path), "install", "-e", ".[build]"],
+            ["uv", "sync", "--all-extras"],
             cwd=backend_dir,
             capture_output=True,
             text=True,
@@ -129,7 +128,7 @@ def build_backend(repo_root: Path, platform: str) -> BuildResult:
                 name="Backend",
                 success=False,
                 duration=time.time() - start_time,
-                error=f"Failed to install dependencies: {result.stderr}"
+                error=f"Failed to sync dependencies: {result.stderr}"
             )
         
         # Clean previous builds
