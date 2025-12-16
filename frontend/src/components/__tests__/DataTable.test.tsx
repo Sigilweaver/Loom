@@ -102,10 +102,10 @@ describe("DataTable", () => {
     expect(screen.getByText("Bob")).toBeInTheDocument();
 
     // Check header exists with row/column info
-    const header = screen.getByText((_content, element) => {
+    const headers = screen.getAllByText((_content, element) => {
       return element?.textContent === "2 rows × 2 columns";
     });
-    expect(header).toBeInTheDocument();
+    expect(headers.length).toBeGreaterThan(0);
   });
 
   it("renders null values correctly", () => {
