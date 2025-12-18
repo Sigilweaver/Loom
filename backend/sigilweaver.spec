@@ -47,6 +47,9 @@ a = Analysis(
         'fastexcel._fastexcel',
         'xlsxwriter',
         
+        # Database/SQL support
+        'connectorx',
+        
         # Other dependencies
         'multipart',
         'python_multipart',
