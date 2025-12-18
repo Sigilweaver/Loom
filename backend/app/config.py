@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     audit_path: str = "./audit/logs"
     audit_retention_days: int = 30  # 0 = keep forever
 
+    # Blocking Tool Cache
+    # Cache outputs of blocking operations (sort, summarize, join) and database inputs
+    cache_enabled: bool = True
+    cache_path: str = "./cache"
+
     # Server Connection Store
     # Fernet encryption key for credentials (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     connection_encryption_key: str = ""

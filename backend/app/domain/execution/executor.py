@@ -10,6 +10,7 @@ import polars as pl
 from app.api.models.common import DataSchema
 from app.api.models.workflow import Tool, Workflow
 from app.config import settings
+from app.domain.execution.cache import BlockingToolCache
 from app.domain.execution.graph import ExecutionGraph
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import ExecutionError
@@ -23,17 +24,22 @@ class WorkflowExecutor:
     Execute workflows by running tools in dependency order.
 
     Stores intermediate LazyFrames in memory and passes them between tools.
+    Optionally caches blocking tool outputs to disk to avoid re-computation.
     """
 
     def __init__(self) -> None:
         self.results: dict[str, dict[str, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
         self.archive_dir: Path | None = None  # Set when archiving is enabled
+        self.cache: BlockingToolCache | None = None  # Set when caching is enabled
+        self.graph: ExecutionGraph | None = None  # Set during execute_workflow
+        self.lineage_hashes: dict[str, str] = {}  # tool_id -> lineage_hash (for ALL tools)
 
     async def execute_workflow(
         self,
         workflow: Workflow,
         target_tool_id: str | None = None,
         preview_limit: int | None = None,
+        force_refresh: bool = False,
     ) -> dict[str, Any]:
         """
         Execute entire workflow or up to a specific tool.
@@ -42,6 +48,7 @@ class WorkflowExecutor:
             workflow: Workflow to execute
             target_tool_id: Optional tool ID to stop at (executes up to and including this tool)
             preview_limit: Optional row limit for preview results
+            force_refresh: If True, clears cache before execution (for manual refresh)
 
         Returns:
             Dict with execution results, schemas, and metrics
@@ -51,6 +58,7 @@ class WorkflowExecutor:
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "target_tool_id": target_tool_id,
             "preview_limit": preview_limit,
+            "force_refresh": force_refresh,
             "status": "started",
         }
 
@@ -67,12 +75,28 @@ class WorkflowExecutor:
                 logger.error(f"Failed to create workflow archive: {e}")
                 self.archive_dir = None
 
+        # Initialize cache if enabled
+        if settings.cache_enabled:
+            try:
+                workflow_id = workflow.meta.workflow_id
+                self.cache = BlockingToolCache(
+                    Path(settings.cache_path),
+                    workflow_id,
+                )
+                if force_refresh:
+                    self.cache.clear()
+                    execution_log["cache_cleared"] = True
+                    logger.info(f"Cache cleared for workflow {workflow_id} (force_refresh)")
+            except Exception as e:
+                logger.error(f"Failed to initialize cache: {e}")
+                self.cache = None
+
         try:
             # Build execution graph
-            graph = ExecutionGraph(workflow)
+            self.graph = ExecutionGraph(workflow)
 
             # Validate workflow
-            validation_errors = graph.validate()
+            validation_errors = self.graph.validate()
             if validation_errors:
                 error_msg = f"Workflow validation failed: {', '.join(validation_errors)}"
                 execution_log["status"] = "validation_failed"
@@ -82,24 +106,27 @@ class WorkflowExecutor:
                 raise ExecutionError(error_msg)
 
             # Get execution order
-            execution_order = graph.execution_order()
+            execution_order = self.graph.execution_order()
             execution_log["execution_order"] = execution_order
             execution_log["tool_count"] = len(execution_order)
 
             # Execute tools in order
             tool_execution_logs = []
+            cache_hits = 0
             for tool_id in execution_order:
                 tool_start = time.time()
                 tool = self._get_tool(workflow, tool_id)
 
                 # Gather inputs from previous results
-                inputs = self._gather_inputs(tool_id, graph)
+                inputs = self._gather_inputs(tool_id, self.graph)
 
-                # Execute tool
-                outputs = await self._execute_tool(tool, inputs)
+                # Execute tool (may use cache)
+                outputs, from_cache = await self._execute_tool_with_cache(tool, inputs)
 
                 # Store results
                 self.results[tool_id] = outputs
+                if from_cache:
+                    cache_hits += 1
 
                 # Log tool execution
                 tool_execution_logs.append({
@@ -107,6 +134,7 @@ class WorkflowExecutor:
                     "tool_type": tool.type,
                     "execution_time_ms": (time.time() - tool_start) * 1000,
                     "status": "success",
+                    "from_cache": from_cache,
                 })
 
                 # Stop if target reached
@@ -114,6 +142,7 @@ class WorkflowExecutor:
                     break
 
             execution_log["tool_executions"] = tool_execution_logs
+            execution_log["cache_hits"] = cache_hits
 
             # Format results
             result = await self._format_results(
@@ -146,6 +175,7 @@ class WorkflowExecutor:
         tool_id: str,
         socket_id: str,
         preview_limit: int | None = None,
+        force_refresh: bool = False,
     ) -> dict[str, Any]:
         """
         Execute a single tool and its dependencies.
@@ -157,12 +187,14 @@ class WorkflowExecutor:
             tool_id: Tool ID to execute
             socket_id: Socket ID to return data for
             preview_limit: Optional row limit for preview
+            force_refresh: If True, clears cache before execution
 
         Returns:
             Dict with single-socket output (tool_id, socket_id, data_schema, data, row_count)
         """
         result = await self.execute_workflow(
-            workflow, target_tool_id=tool_id, preview_limit=preview_limit
+            workflow, target_tool_id=tool_id, preview_limit=preview_limit,
+            force_refresh=force_refresh,
         )
 
         socket_key = str(socket_id)
@@ -237,21 +269,21 @@ class WorkflowExecutor:
         tool = self._get_tool(workflow, tool_id)
         tool_impl = ToolRegistry.get(tool.type)
 
-        # Build execution graph to find dependencies
-        graph = ExecutionGraph(workflow)
-        execution_order = graph.execution_order()
+        # Initialize cache and graph for upstream execution
+        self._init_cache_and_graph(workflow)
+        execution_order = self.graph.execution_order()
 
         # Execute upstream tools up to (but not including) target
         target_index = execution_order.index(tool_id)
         for upstream_tool_id in execution_order[:target_index]:
             upstream_tool = self._get_tool(workflow, upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, graph)
-            outputs = await self._execute_tool(upstream_tool, inputs)
+            inputs = self._gather_inputs(upstream_tool_id, self.graph)
+            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs)
             self.results[upstream_tool_id] = outputs
 
         # Get input schemas for target tool
         input_schemas: dict[str, DataSchema | list[DataSchema]] = {}
-        tool_inputs = graph.get_tool_inputs(tool_id)
+        tool_inputs = self.graph.get_tool_inputs(tool_id)
         for sid, source_list in tool_inputs.items():
             if not source_list:
                 continue
@@ -304,20 +336,20 @@ class WorkflowExecutor:
         Returns:
             Dict with columns for the requested socket(s)
         """
-        # Build execution graph to find dependencies
-        graph = ExecutionGraph(workflow)
-        execution_order = graph.execution_order()
+        # Initialize cache and graph for upstream execution
+        self._init_cache_and_graph(workflow)
+        execution_order = self.graph.execution_order()
 
         # Execute upstream tools up to (but not including) target
         target_index = execution_order.index(tool_id)
         for upstream_tool_id in execution_order[:target_index]:
             upstream_tool = self._get_tool(workflow, upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, graph)
-            outputs = await self._execute_tool(upstream_tool, inputs)
+            inputs = self._gather_inputs(upstream_tool_id, self.graph)
+            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs)
             self.results[upstream_tool_id] = outputs
 
         # Get input schemas for target tool, grouped by socket
-        tool_inputs = graph.get_tool_inputs(tool_id)
+        tool_inputs = self.graph.get_tool_inputs(tool_id)
 
         # If socket_id is specified, only process that socket
         sockets_to_process = (
@@ -353,10 +385,35 @@ class WorkflowExecutor:
             "inputs": inputs_metadata,
         }
 
+    def _init_cache_and_graph(self, workflow: Workflow) -> None:
+        """
+        Initialize cache and execution graph for a workflow.
+
+        This is used by methods that need caching but don't go through
+        execute_workflow (e.g., get_tool_metadata, get_tool_schema).
+
+        Note: Graph is always rebuilt because the workflow may have changed
+        since the last call (e.g., in tests that modify workflow in-place).
+        """
+        # Initialize cache if enabled and not already set
+        if settings.cache_enabled and self.cache is None:
+            try:
+                workflow_id = workflow.meta.workflow_id
+                self.cache = BlockingToolCache(
+                    Path(settings.cache_path),
+                    workflow_id,
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize cache: {e}")
+                self.cache = None
+
+        # Always rebuild graph to handle workflow changes
+        self.graph = ExecutionGraph(workflow)
+
     async def _execute_tool(
         self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
-        """Execute a single tool."""
+        """Execute a single tool (no caching)."""
         try:
             tool_impl = ToolRegistry.get(tool.type)
             outputs = await tool_impl.execute(tool.config, inputs)
@@ -365,6 +422,77 @@ class WorkflowExecutor:
             raise ExecutionError(
                 f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
             ) from e
+
+    async def _execute_tool_with_cache(
+        self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
+    ) -> tuple[dict[str, pl.LazyFrame], bool]:
+        """
+        Execute a single tool with cache support.
+
+        Returns:
+            Tuple of (outputs dict, from_cache bool)
+        """
+        tool_impl = ToolRegistry.get(tool.type)
+
+        # 1. ALWAYS compute lineage hash (even for non-cacheable tools)
+        # This hash is needed by downstream tools to compute their own hash
+        upstream_ids = (
+            self.graph.dependencies.get(tool.id, []) if self.graph else []
+        )
+        upstream_keys = [self.lineage_hashes.get(tid, "") for tid in upstream_ids]
+        lineage_hash = (
+            self.cache.compute_key(
+                tool.id, tool.type, tool.config, upstream_keys
+            )
+            if self.cache
+            else ""
+        )
+
+        # 2. Check cache (only if tool should be cached)
+        if self.cache and tool_impl.should_cache(tool.config):
+            # Get expected output sockets from tool definition
+            output_sockets = [s.id for s in tool.sockets if s.direction == "output"]
+            all_cached = all(
+                self.cache.exists(tool.id, sid, lineage_hash)
+                for sid in output_sockets
+            )
+            if all_cached:
+                cached_outputs = {
+                    sid: self.cache.get(tool.id, sid, lineage_hash)
+                    for sid in output_sockets
+                }
+                # Verify all cache reads succeeded
+                if all(v is not None for v in cached_outputs.values()):
+                    # Store hash for downstream tools
+                    self.lineage_hashes[tool.id] = lineage_hash
+                    logger.debug(f"Cache hit for tool {tool.id}")
+                    return cached_outputs, True
+                # Cache read failed, fall through to execute
+
+        # 3. Execute tool
+        try:
+            outputs = await tool_impl.execute(tool.config, inputs)
+        except Exception as e:
+            raise ExecutionError(
+                f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
+            ) from e
+
+        # 4. Write to cache (only if tool should be cached)
+        if self.cache and tool_impl.should_cache(tool.config):
+            try:
+                for socket_id, lf in outputs.items():
+                    self.cache.put(tool.id, socket_id, lineage_hash, lf)
+                    # Re-read from cache to get a scannable LazyFrame
+                    outputs[socket_id] = self.cache.get(tool.id, socket_id, lineage_hash)
+                logger.debug(f"Cached outputs for tool {tool.id}")
+            except Exception as e:
+                # Cache write failed, but we have the computed result, so continue
+                logger.warning(f"Failed to cache outputs for tool {tool.id}: {e}")
+
+        # 5. CRITICAL: Always store hash for downstream tools (even if not cached)
+        self.lineage_hashes[tool.id] = lineage_hash
+
+        return outputs, False
 
     def _gather_inputs(
         self, tool_id: str, graph: ExecutionGraph

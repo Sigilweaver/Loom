@@ -785,6 +785,7 @@ class TestDatabaseIntegration:
     @patch('app.domain.tools.loaders.database.pl.read_database_uri')
     async def test_database_to_filter_workflow(self, mock_read_db):
         """Test a workflow that loads from database and applies filter"""
+        import uuid
         from app.domain.execution.executor import WorkflowExecutor
         from app.api.models.workflow import Tool, Socket, Wire, WireEndpoint, Workflow, WorkflowMeta
         
@@ -797,12 +798,13 @@ class TestDatabaseIntegration:
         mock_read_db.return_value = sample_data
         
         # Create workflow: Database -> Filter
+        # Use unique workflow ID to avoid cache interference between test runs
         workflow = Workflow(
             meta=WorkflowMeta(
                 name="Database Filter Test",
                 description="Test database input with filter",
                 author="Test",
-                workflowId="test-db-filter",
+                workflowId=f"test-db-filter-{uuid.uuid4()}",
                 created="2025-08-01"
             ),
             tools=[

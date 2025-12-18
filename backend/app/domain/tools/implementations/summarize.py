@@ -78,6 +78,10 @@ class SummarizeTool(BaseTool):
     - includeNulls: bool - whether to include null values in grouping (default: False)
     """
 
+    def is_blocking(self) -> bool:
+        """Summarize is blocking - must see all rows per group."""
+        return True
+
     def _build_operation(self, config: dict[str, Any]) -> SummarizeOperation:
         """Build the summarize operation from config."""
         group_by_columns = config.get("groupByColumns", [])

@@ -1,6 +1,7 @@
 # Sigilweaver Specific
 audit/
 connections.json
+cache/
 
 # Python
 __pycache__/

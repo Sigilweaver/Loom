@@ -23,6 +23,17 @@ class InputTool(BaseTool):
     For database sources, the source is a connection URI with embedded credentials.
     """
 
+    def is_blocking(self) -> bool:
+        """Input tools are not blocking - file inputs are lazy."""
+        return False
+
+    def should_cache(self, config: dict[str, Any]) -> bool:
+        """
+        Database sources should be cached to avoid repeated queries.
+        File sources should NOT be cached - Polars scans them lazily.
+        """
+        return config.get("category") == "database"
+
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
