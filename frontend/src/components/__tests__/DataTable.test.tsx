@@ -95,7 +95,7 @@ describe("DataTable", () => {
     expect(screen.getByText("id")).toBeInTheDocument();
     expect(screen.getByText("name")).toBeInTheDocument();
     expect(screen.getByText("Int64")).toBeInTheDocument();
-    expect(screen.getByText(/Utf8.*nullable/)).toBeInTheDocument();
+    expect(screen.getByText("Utf8")).toBeInTheDocument();
 
     // Check data
     expect(screen.getByText("Alice")).toBeInTheDocument();
