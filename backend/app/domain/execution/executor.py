@@ -1,5 +1,6 @@
 """Workflow executor - orchestrates tool execution"""
 
+import asyncio
 import logging
 import time
 from pathlib import Path
@@ -243,7 +244,21 @@ class WorkflowExecutor:
         plan: ExecutionPlan,
         cache_mgr: CacheManager,
     ) -> tuple[list[dict[str, Any]], int]:
-        """Execute all tools in the plan."""
+        """
+        Execute all tools in the plan.
+
+        Uses either sequential or parallel execution based on settings.execution_mode.
+        """
+        if settings.execution_mode == "parallel":
+            return await self._execute_plan_parallel(plan, cache_mgr)
+        return await self._execute_plan_sequential(plan, cache_mgr)
+
+    async def _execute_plan_sequential(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Execute all tools sequentially in dependency order."""
         tool_logs = []
         cache_hits = 0
 
@@ -266,6 +281,95 @@ class WorkflowExecutor:
             })
 
         return tool_logs, cache_hits
+
+    async def _execute_plan_parallel(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """
+        Execute tools in parallel where possible.
+
+        Tools at the same execution level (no inter-dependencies) are
+        executed concurrently using asyncio.gather. This provides speedup
+        when the workflow has independent branches.
+
+        Note: Cache manager operations are not thread-safe, so we use
+        asyncio (cooperative multitasking) not threading.
+        """
+        tool_logs: list[dict[str, Any]] = []
+        cache_hits = 0
+        execution_levels = plan.get_execution_levels()
+
+        max_concurrent = settings.max_parallel_tools or len(plan)
+
+        for level_idx, level_tools in enumerate(execution_levels):
+            level_start = time.time()
+            logger.debug(
+                f"Executing level {level_idx + 1}/{len(execution_levels)} "
+                f"with {len(level_tools)} tools: {level_tools}"
+            )
+
+            # Execute tools at this level concurrently
+            if len(level_tools) == 1:
+                # Single tool - no need for gather
+                results = [await self._execute_single_tool_tracked(
+                    level_tools[0], plan, cache_mgr
+                )]
+            else:
+                # Multiple tools - execute concurrently with semaphore
+                semaphore = asyncio.Semaphore(max_concurrent)
+
+                async def limited_execute(tool_id: str) -> dict[str, Any]:
+                    async with semaphore:
+                        return await self._execute_single_tool_tracked(
+                            tool_id, plan, cache_mgr
+                        )
+
+                results = await asyncio.gather(
+                    *[limited_execute(tid) for tid in level_tools],
+                    return_exceptions=True,
+                )
+
+            # Process results
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Re-raise the first exception encountered
+                    raise result
+                tool_logs.append(result)
+                if result.get("from_cache"):
+                    cache_hits += 1
+
+            logger.debug(
+                f"Level {level_idx + 1} completed in "
+                f"{(time.time() - level_start) * 1000:.1f}ms"
+            )
+
+        return tool_logs, cache_hits
+
+    async def _execute_single_tool_tracked(
+        self,
+        tool_id: str,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> dict[str, Any]:
+        """Execute a single tool and return tracking info."""
+        tool_start = time.time()
+        tool = plan.get_tool(tool_id)
+        inputs = self._gather_inputs(tool_id, plan)
+        outputs, from_cache = await self._execute_tool_with_cache(
+            tool, inputs, plan, cache_mgr
+        )
+
+        self.results[tool_id] = outputs
+
+        return {
+            "tool_id": tool_id,
+            "tool_type": tool.type,
+            "execution_time_ms": (time.time() - tool_start) * 1000,
+            "status": "success",
+            "from_cache": from_cache,
+        }
 
     async def _execute_tool_with_cache(
         self,

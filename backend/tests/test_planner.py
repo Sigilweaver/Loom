@@ -371,3 +371,199 @@ class TestExecutionPlanner:
 
         # Should return full order when target not found
         assert list(plan) == ["A", "B"]
+
+
+class TestExecutionLevels:
+    """Tests for parallel execution level computation."""
+
+    def test_linear_workflow_single_level_per_tool(self):
+        """Test A -> B -> C has 3 levels."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["B"]},
+        )
+
+        levels = plan.get_execution_levels()
+
+        assert levels == [["A"], ["B"], ["C"]]
+
+    def test_parallel_branches_same_level(self):
+        """Test A -> B, A -> C has B and C at same level."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["A"]},
+        )
+
+        levels = plan.get_execution_levels()
+
+        assert levels[0] == ["A"]
+        assert set(levels[1]) == {"B", "C"}
+        assert len(levels) == 2
+
+    def test_diamond_pattern_levels(self):
+        """Test A -> B -> D, A -> C -> D has correct levels."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C", "D"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["A"], "D": ["B", "C"]},
+        )
+
+        levels = plan.get_execution_levels()
+
+        assert levels[0] == ["A"]
+        assert set(levels[1]) == {"B", "C"}
+        assert levels[2] == ["D"]
+
+    def test_complex_dag_levels(self):
+        """Test complex DAG with multiple independent branches."""
+        # A -> B -> E
+        # A -> C -> E
+        # D -> E (D is independent of A)
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "D", "B", "C", "E"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={
+                "A": [],
+                "D": [],
+                "B": ["A"],
+                "C": ["A"],
+                "E": ["B", "C", "D"],
+            },
+        )
+
+        levels = plan.get_execution_levels()
+
+        # Level 0: A, D (no dependencies)
+        assert set(levels[0]) == {"A", "D"}
+        # Level 1: B, C (depend on A)
+        assert set(levels[1]) == {"B", "C"}
+        # Level 2: E (depends on B, C, D)
+        assert levels[2] == ["E"]
+
+    def test_empty_plan_no_levels(self):
+        """Test empty plan returns empty levels."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=(),
+            tool_inputs={},
+            tool_map={},
+            dependencies={},
+        )
+
+        levels = plan.get_execution_levels()
+
+        assert levels == []
+
+    def test_single_tool_one_level(self):
+        """Test single tool has one level."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A",),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": []},
+        )
+
+        levels = plan.get_execution_levels()
+
+        assert levels == [["A"]]
+
+
+class TestReadyTools:
+    """Tests for dynamic ready tool computation."""
+
+    def test_initial_state_roots_ready(self):
+        """Test roots are ready with no completions."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["B"]},
+        )
+
+        ready = plan.get_ready_tools(completed=set())
+
+        assert ready == ["A"]
+
+    def test_dependencies_satisfied(self):
+        """Test tool becomes ready when dependencies complete."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["B"]},
+        )
+
+        ready = plan.get_ready_tools(completed={"A"})
+
+        assert ready == ["B"]
+
+    def test_multiple_ready(self):
+        """Test multiple tools can be ready at once."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"], "C": ["A"]},
+        )
+
+        ready = plan.get_ready_tools(completed={"A"})
+
+        assert set(ready) == {"B", "C"}
+
+    def test_partial_dependencies(self):
+        """Test tool not ready if only some deps complete."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C", "D"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": [], "C": [], "D": ["A", "B", "C"]},
+        )
+
+        # Only A and B complete, D still needs C
+        ready = plan.get_ready_tools(completed={"A", "B"})
+
+        assert "D" not in ready
+        assert "C" in ready
+
+    def test_all_complete_none_ready(self):
+        """Test nothing ready when all tools complete."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": ["A"]},
+        )
+
+        ready = plan.get_ready_tools(completed={"A", "B"})
+
+        assert ready == []
+
+    def test_independent_roots_both_ready(self):
+        """Test independent root nodes are all ready."""
+        plan = ExecutionPlan(
+            workflow_id="test",
+            execution_order=("A", "B", "C"),
+            tool_inputs={},
+            tool_map={},
+            dependencies={"A": [], "B": [], "C": ["A", "B"]},
+        )
+
+        ready = plan.get_ready_tools(completed=set())
+
+        assert set(ready) == {"A", "B"}

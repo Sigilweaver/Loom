@@ -66,6 +66,76 @@ class ExecutionPlan:
                 break
         return result
 
+    def get_execution_levels(self) -> list[list[str]]:
+        """
+        Compute execution levels for parallel execution.
+
+        Tools at the same level have no dependencies on each other and
+        can be executed concurrently. Level N tools depend only on
+        tools from levels 0 to N-1.
+
+        Returns:
+            List of levels, where each level is a list of tool IDs
+            that can be executed in parallel.
+
+        Example:
+            For workflow A -> B -> D, A -> C -> D:
+            Returns [["A"], ["B", "C"], ["D"]]
+        """
+        if not self.execution_order:
+            return []
+
+        # Compute depth for each tool (longest path from any root)
+        depths: dict[str, int] = {}
+        tools_in_plan = set(self.execution_order)
+
+        for tool_id in self.execution_order:
+            deps = [d for d in self.get_dependencies(tool_id) if d in tools_in_plan]
+            if not deps:
+                depths[tool_id] = 0
+            else:
+                # Depth is 1 + max depth of dependencies
+                depths[tool_id] = 1 + max(depths[d] for d in deps)
+
+        # Group tools by depth
+        max_depth = max(depths.values()) if depths else 0
+        levels: list[list[str]] = [[] for _ in range(max_depth + 1)]
+        for tool_id in self.execution_order:
+            levels[depths[tool_id]].append(tool_id)
+
+        return levels
+
+    def get_ready_tools(self, completed: set[str]) -> list[str]:
+        """
+        Get tools that are ready to execute (all dependencies completed).
+
+        Used for dynamic parallel scheduling where tools are scheduled
+        as soon as their dependencies complete. This enables more aggressive
+        parallelism than level-based batching (get_execution_levels) by
+        starting tools immediately when their dependencies finish.
+
+        Note: Currently reserved for future use. The executor uses
+        get_execution_levels() for simpler level-based parallel execution.
+
+        Args:
+            completed: Set of tool IDs that have completed execution
+
+        Returns:
+            List of tool IDs ready to execute (not yet completed,
+            all dependencies satisfied)
+        """
+        ready = []
+        tools_in_plan = set(self.execution_order)
+
+        for tool_id in self.execution_order:
+            if tool_id in completed:
+                continue
+            deps = [d for d in self.get_dependencies(tool_id) if d in tools_in_plan]
+            if all(d in completed for d in deps):
+                ready.append(tool_id)
+
+        return ready
+
 
 class ExecutionPlanner:
     """

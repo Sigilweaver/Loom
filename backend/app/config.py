@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     cache_enabled: bool = True
     cache_path: str = "./cache"
 
+    # Parallel Execution
+    # Execute independent tools concurrently for improved performance
+    # Modes: "sequential" (default, safe), "parallel" (concurrent independent tools)
+    execution_mode: str = "sequential"
+    # Maximum concurrent tool executions (0 = unlimited)
+    max_parallel_tools: int = 4
+
     # Server Connection Store
     # Fernet encryption key for credentials
     # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
