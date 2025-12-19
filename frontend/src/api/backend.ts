@@ -7,9 +7,12 @@
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
+import { createLogger } from '../utils/logger';
 
 // Re-export RequestContext for consumers
 export type { RequestContext } from '../state/runtimeLogStore';
+
+const logger = createLogger('API');
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -30,7 +33,7 @@ export async function initializeAuth(): Promise<void> {
   if (window.electronAPI?.getSessionToken) {
     sessionToken = await window.electronAPI.getSessionToken();
     if (sessionToken) {
-      console.log('[API] Session token retrieved from Electron');
+      logger.info('Session token retrieved from Electron');
       return;
     }
   }
@@ -39,7 +42,7 @@ export async function initializeAuth(): Promise<void> {
   const storedToken = localStorage.getItem('sigilweaver-api-token');
   if (storedToken) {
     sessionToken = storedToken;
-    console.log('[API] Session token retrieved from localStorage');
+    logger.info('Session token retrieved from localStorage');
   }
 }
 

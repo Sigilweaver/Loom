@@ -8,8 +8,11 @@ import { useWorkflowExecute } from "../api/hooks";
 import { previewAllTools, clearBackendWorkflowCache } from "../api/backend";
 import { resolveWorkflowConnections } from "../api/connectionResolver";
 import { cacheAllPreviews } from "../api/cache";
+import { createLogger } from "../utils/logger";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { useEffect, forwardRef, useImperativeHandle, useState, useRef, useCallback } from "react";
+
+const logger = createLogger('Header');
 
 interface HeaderProps {
   onShowSettings: () => void;
@@ -166,7 +169,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
         "success"
       );
     } catch (error) {
-      console.error("Error opening workflow:", error);
+      logger.error("Error opening workflow:", error);
       showNotification(
         "Failed to open workflow. Please check the file format.",
         "error"
@@ -223,7 +226,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
           "success"
         );
       } catch (error) {
-        console.error("Error importing workflow:", error);
+        logger.error("Error importing workflow:", error);
         showNotification(
           "Failed to import workflow. Please check the file format.",
           "error"
@@ -264,7 +267,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
               "success"
             );
           } catch (error) {
-            console.error("Error importing workflow:", error);
+            logger.error("Error importing workflow:", error);
             showNotification(
               "Failed to import workflow. Please check the file format.",
               "error"
@@ -296,7 +299,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
           handleSaveAsWorkflow();
         }
       } catch (error) {
-        console.error("Save error:", error);
+        logger.error("Save error:", error);
         showNotification("Failed to save workflow", "error");
       }
     } else {
@@ -364,7 +367,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
         showNotification("Workflow saved successfully!", "success");
       }
     } catch (error) {
-      console.error("Save error:", error);
+      logger.error("Save error:", error);
       showNotification("Failed to save workflow", "error");
     }
   };

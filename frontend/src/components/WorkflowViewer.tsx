@@ -3,7 +3,10 @@ import { WorkflowSerializer } from "../domain/workflow/services/WorkflowSerializ
 import { useCodePreview } from "../api/hooks";
 import { useUIStore } from "../state/uiStore";
 import { useWorkflowStore } from "../state/workflowStore";
+import { createLogger } from "../utils/logger";
 import CodeBlock from "./common/CodeBlock";
+
+const logger = createLogger('WorkflowViewer');
 
 type ViewMode = "json" | "python";
 
@@ -78,7 +81,7 @@ export default function WorkflowViewer() {
       await navigator.clipboard.writeText(formattedContent);
       // Could add notification here if needed
     } catch (err) {
-      console.error("Failed to copy content:", err);
+      logger.error("Failed to copy content:", err);
     }
   };
 

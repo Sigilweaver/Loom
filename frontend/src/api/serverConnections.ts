@@ -6,6 +6,9 @@
  */
 
 import type { ConnectionInfo, DatabaseType } from '../types/connections';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ServerConnections');
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -88,7 +91,7 @@ export async function listServerConnections(): Promise<ConnectionInfo[]> {
   if (!response.ok) {
     if (response.status === 503) {
       // Server connections not enabled - return empty list
-      console.log('[ServerConnections] Server connection store not enabled');
+      logger.info('Server connection store not enabled');
       return [];
     }
     throw new Error(`Failed to list server connections: ${response.statusText}`);
