@@ -37,6 +37,8 @@ npm run test:integration
 
 ```
 frontend/src/
+├── __tests__/
+│   └── type-contracts.test.ts      # Frontend/backend contract tests
 ├── domain/
 │   └── workflow/
 │       └── services/
@@ -48,11 +50,17 @@ frontend/src/
 │       ├── workflowStore.test.ts
 │       ├── historyStore.test.ts
 │       └── store-integration.test.ts
+├── hooks/
+│   └── __tests__/
+│       └── useToolConfiguration.test.ts
 ├── utils/
 │   └── __tests__/
 │       ├── id.test.ts
 │       └── alignDistribute.test.ts
 ├── components/
+│   ├── __tests__/
+│   │   ├── FilterConfiguration.test.tsx
+│   │   └── FormulaConfiguration.test.tsx
 │   └── primitives/
 │       └── __tests__/
 │           ├── ConfigText.test.tsx
@@ -287,6 +295,177 @@ describe('historyStore', () => {
   });
 });
 ```
+
+## Hook Testing
+
+### useToolConfiguration Tests
+
+The `useToolConfiguration` hook is tested with React Testing Library's `renderHook`:
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useToolConfiguration } from '../useToolConfiguration';
+import { CommonSockets } from '@domain/workflow/constants/socketIds';
+
+describe('useToolConfiguration', () => {
+  const mockOnChange = vi.fn();
+  
+  beforeEach(() => {
+    mockOnChange.mockClear();
+  });
+  
+  it('detects connected inputs', () => {
+    const tools = [createTestTool('input', 'Input'), createTestTool('filter', 'Filter')];
+    const wires = [createTestWire('input', 'output', 'filter', 'input')];
+    
+    const { result } = renderHook(() => useToolConfiguration({
+      toolId: 'filter',
+      socketId: CommonSockets.INPUT,
+      tools,
+      wires,
+      workflowMeta: createTestMeta(),
+      config: {},
+      onChange: mockOnChange,
+    }));
+    
+    expect(result.current.hasInput).toBe(true);
+  });
+  
+  it('generates stable connectionKey', () => {
+    const wires = [createTestWire('a', 'output', 'target', 'input')];
+    
+    const { result, rerender } = renderHook(() => useToolConfiguration({...}));
+    const key1 = result.current.connectionKey;
+    
+    rerender();
+    
+    expect(result.current.connectionKey).toBe(key1);
+  });
+  
+  it('refetches metadata when connections change', async () => {
+    const fetchMetadata = vi.fn();
+    vi.mock('../api/hooks', () => ({
+      useMetadata: () => ({
+        columns: [],
+        loading: false,
+        error: null,
+        fetchMetadata,
+      }),
+    }));
+    
+    const wires1 = [createTestWire('a', 'output', 'target', 'input')];
+    const wires2 = [createTestWire('b', 'output', 'target', 'input')];
+    
+    const { rerender } = renderHook(
+      ({ wires }) => useToolConfiguration({ toolId: 'target', wires, ... }),
+      { initialProps: { wires: wires1 } }
+    );
+    
+    await waitFor(() => expect(fetchMetadata).toHaveBeenCalledTimes(1));
+    
+    rerender({ wires: wires2 });
+    
+    await waitFor(() => expect(fetchMetadata).toHaveBeenCalledTimes(2));
+  });
+  
+  it('updateField tracks emission', () => {
+    const { result } = renderHook(() => useToolConfiguration({
+      config: { expression: '' },
+      onChange: mockOnChange,
+      ...
+    }));
+    
+    act(() => {
+      result.current.updateField('expression', 'age > 30');
+    });
+    
+    expect(mockOnChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expression: 'age > 30',
+        _emit: { expression: true },
+      })
+    );
+  });
+});
+```
+
+## Type Contract Testing
+
+Type contract tests validate that frontend and backend stay in sync.
+
+### Socket ID Contracts
+
+```typescript
+// src/__tests__/type-contracts.test.ts
+import { describe, it, expect } from 'vitest';
+import { CommonSockets, FilterSockets, JoinSockets } from '@domain/workflow/constants/socketIds';
+import { TOOL_DEFINITIONS } from '@/data/tools';
+
+describe('Socket ID Contracts', () => {
+  it('Filter tool uses correct socket IDs', () => {
+    const filterDef = TOOL_DEFINITIONS.find(t => t.type === 'Filter')!;
+    const socketIds = filterDef.sockets.map(s => s.id);
+    
+    expect(socketIds).toContain(FilterSockets.INPUT);
+    expect(socketIds).toContain(FilterSockets.OUTPUT_TRUE);
+    expect(socketIds).toContain(FilterSockets.OUTPUT_FALSE);
+  });
+  
+  it('Join tool uses correct socket IDs', () => {
+    const joinDef = TOOL_DEFINITIONS.find(t => t.type === 'Join')!;
+    const socketIds = joinDef.sockets.map(s => s.id);
+    
+    expect(socketIds).toContain(JoinSockets.INPUT_LEFT);
+    expect(socketIds).toContain(JoinSockets.INPUT_RIGHT);
+    expect(socketIds).toContain(JoinSockets.OUTPUT_LEFT);
+    expect(socketIds).toContain(JoinSockets.OUTPUT_MATCH);
+    expect(socketIds).toContain(JoinSockets.OUTPUT_RIGHT);
+  });
+});
+```
+
+### Workflow Serialization Contracts
+
+```typescript
+describe('Workflow Serialization Contracts', () => {
+  it('produces valid workflow JSON for backend', () => {
+    const tools = [
+      createTestTool('input', 'Input', { path: '/data/test.csv' }),
+      createTestTool('filter', 'Filter', { expression: 'age > 30' }),
+    ];
+    const wires = [createTestWire('input', 'output', 'filter', 'input')];
+    
+    const json = WorkflowSerializer.toJSON(tools, wires, createTestMeta());
+    const workflow = JSON.parse(json);
+    
+    // Validate structure matches backend Pydantic models
+    expect(workflow).toHaveProperty('version');
+    expect(workflow).toHaveProperty('meta.workflow_id');
+    expect(workflow).toHaveProperty('tools');
+    expect(workflow).toHaveProperty('wires');
+    
+    // Tools have required fields
+    for (const tool of workflow.tools) {
+      expect(tool).toHaveProperty('id');
+      expect(tool).toHaveProperty('type');
+      expect(tool).toHaveProperty('config');
+      expect(tool).toHaveProperty('sockets');
+      expect(tool).toHaveProperty('position');
+    }
+    
+    // Wires have required fields
+    for (const wire of workflow.wires) {
+      expect(wire).toHaveProperty('from.tool');
+      expect(wire).toHaveProperty('from.socket');
+      expect(wire).toHaveProperty('to.tool');
+      expect(wire).toHaveProperty('to.socket');
+    }
+  });
+});
+```
+
+These tests ensure that changes to either frontend or backend serialization formats are caught before they cause runtime errors.
 
 ## Component Testing
 

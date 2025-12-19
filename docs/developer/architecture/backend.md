@@ -40,15 +40,18 @@ backend/app/
 │   │   ├── base.py      # BaseTool ABC
 │   │   ├── registry.py  # Tool registry + decorator
 │   │   ├── register.py  # Imports all tools
+│   │   ├── sockets.py   # Socket ID constants (shared with frontend)
 │   │   └── implementations/
 │   │       ├── input.py
 │   │       ├── filter.py
 │   │       ├── select.py
 │   │       └── ...
 │   ├── execution/       # Workflow execution
-│   │   ├── executor.py  # Main executor
+│   │   ├── executor.py  # Main executor (orchestration)
+│   │   ├── planner.py   # ExecutionPlanner + ExecutionPlan
+│   │   ├── cache_manager.py  # CacheManager (lineage + caching)
 │   │   ├── graph.py     # Dependency resolution
-│   │   └── cache.py     # Blocking tool cache
+│   │   └── cache.py     # BlockingToolCache (disk storage)
 │   ├── workflow/        # Workflow utilities
 │   │   └── archive.py   # Audit archiving
 │   ├── datasources/     # File type handlers
@@ -71,6 +74,45 @@ backend/app/
 ## Tool System
 
 The heart of the backend. Every transformation (Filter, Select, Join, etc.) is a Tool.
+
+### Socket ID Constants
+
+Tool inputs and outputs use named "sockets" to connect together. To prevent mismatches between frontend and backend, socket IDs are defined as constants in both layers:
+
+**Backend** (`app/domain/tools/sockets.py`):
+```python
+class CommonSockets:
+    INPUT = "input"
+    OUTPUT = "output"
+
+class FilterSockets:
+    INPUT = "input"
+    OUTPUT_TRUE = "output-true"
+    OUTPUT_FALSE = "output-false"
+
+class JoinSockets:
+    INPUT_LEFT = "input-left"
+    INPUT_RIGHT = "input-right"
+    OUTPUT_LEFT = "output-left"
+    OUTPUT_MATCH = "output-match"
+    OUTPUT_RIGHT = "output-right"
+```
+
+**Frontend** (`src/domain/workflow/constants/socketIds.ts`):
+```typescript
+export const CommonSockets = {
+  INPUT: "input",
+  OUTPUT: "output",
+} as const;
+
+export const FilterSockets = {
+  INPUT: "input",
+  OUTPUT_TRUE: "output-true",
+  OUTPUT_FALSE: "output-false",
+} as const;
+```
+
+These constants are validated by type contract tests that ensure frontend and backend stay in sync.
 
 ### BaseTool Interface
 
@@ -168,7 +210,92 @@ This ensures all tools are registered before any API request.
 
 ## Execution Engine
 
-The `WorkflowExecutor` orchestrates tool execution:
+The execution engine orchestrates workflow execution. It has been decomposed into three focused components:
+
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| **ExecutionPlanner** | `planner.py` | Builds execution plans, topological sort |
+| **CacheManager** | `cache_manager.py` | Lineage hashes, cache decisions |
+| **WorkflowExecutor** | `executor.py` | Orchestrates execution, tool invocation |
+
+### ExecutionPlanner
+
+The `ExecutionPlanner` creates an immutable `ExecutionPlan` that determines what needs to execute and in what order:
+
+```python
+from app.domain.execution.planner import ExecutionPlanner
+
+planner = ExecutionPlanner(workflow)
+plan = planner.create_plan(target_tool_id="output-1")
+
+# Iterate over tool IDs in execution order
+for tool_id in plan:
+    tool = plan.get_tool(tool_id)
+    inputs = plan.get_inputs(tool_id)
+    dependencies = plan.get_dependencies(tool_id)
+```
+
+The `ExecutionPlan` is immutable (uses frozen dataclass with tuples) and provides:
+- `execution_order`: Topological sort of tool IDs
+- `get_tool(tool_id)`: Access tool by ID
+- `get_inputs(tool_id)`: Input socket mappings
+- `get_dependencies(tool_id)`: Upstream tool IDs
+- `get_execution_levels()`: Groups for parallel execution
+
+### CacheManager
+
+The `CacheManager` handles all caching decisions and lineage tracking:
+
+```python
+from app.domain.execution.cache_manager import CacheManager
+
+cache_mgr = CacheManager(workflow_id, force_refresh=False)
+
+# Compute lineage hash (includes upstream state)
+lineage_hash = cache_mgr.compute_lineage_hash(tool, plan)
+
+# Check for cached outputs
+cached = cache_mgr.check_cache(tool, lineage_hash)
+if cached:
+    # Use cached outputs
+    pass
+else:
+    # Execute tool, then cache
+    outputs = await tool_impl.execute(...)
+    outputs = cache_mgr.store_in_cache(tool, lineage_hash, outputs)
+
+# Always record hash (even for non-cached tools)
+cache_mgr.record_lineage_hash(tool.id, lineage_hash)
+```
+
+Key responsibilities:
+- **Lineage hash computation**: Deterministic hash including tool config and all upstream hashes
+- **Cache decisions**: Determines if a tool should be cached based on `should_cache()`
+- **Cache operations**: Check hits, store results, clear cache
+- **Hash tracking**: Records hashes for all tools (required for downstream hash computation)
+
+### Parallel Execution
+
+The executor supports optional parallel execution of independent tools:
+
+```python
+# In config.py
+execution_mode: str = "sequential"  # or "parallel"
+max_parallel_tools: int = 4
+```
+
+When `execution_mode="parallel"`, the executor uses `get_execution_levels()` to identify tools that can run concurrently:
+
+```
+Example workflow: A -> B -> D, A -> C -> D
+
+Execution levels:
+  Level 0: [A]        # Run first
+  Level 1: [B, C]     # Run in parallel (both depend only on A)
+  Level 2: [D]        # Run after B and C complete
+```
+
+Tools within a level have no dependencies on each other and execute concurrently using `asyncio.gather()` with semaphore limiting.
 
 ### Execution Graph
 
@@ -188,18 +315,19 @@ class ExecutionGraph:
 This handles:
 - Determining which tools need to run for a given target
 - Detecting cycles (which should be caught by frontend, but we verify)
-- Computing dependency depth for parallel execution (future)
+- Computing dependency depth for parallel execution
 
 ### Execution Flow
 
-1. Build execution graph from workflow
-2. Initialize cache (if enabled) for the workflow
-3. Determine execution order (topological sort)
-4. For each tool in order:
-   - Compute lineage hash (always, even for non-cacheable tools)
-   - Check cache for blocking tools (Sort, Join, Summarize)
+1. Create `ExecutionPlanner` and build `ExecutionPlan`
+2. Initialize `CacheManager` for the workflow
+3. Determine execution mode (sequential or parallel)
+4. For each tool (or level of tools):
+   - Compute lineage hash via `CacheManager`
+   - Check cache for blocking tools
    - If cache hit: use cached output, skip execution
-   - If cache miss: execute tool, cache output if blocking
+   - If cache miss: execute tool, cache if blocking
+   - Record lineage hash (always)
    - Store outputs for downstream tools
 5. Collect results for target tool (preview or output)
 
@@ -212,13 +340,14 @@ async def execute_workflow(
     target_tool_id: str | None = None,
     preview_limit: int | None = None,
 ) -> dict[str, Any]:
-    graph = ExecutionGraph(workflow)
-    execution_order = graph.get_execution_order(target_tool_id)
+    planner = ExecutionPlanner(workflow)
+    plan = planner.create_plan(target_tool_id)
+    cache_mgr = CacheManager(workflow.meta.workflow_id)
     
-    for tool_id in execution_order:
-        tool = self._get_tool(tool_id)
+    for tool_id in plan:
+        tool = plan.get_tool(tool_id)
         inputs = self._gather_inputs(tool_id)
-        outputs = await tool.execute(tool.config, inputs)
+        outputs = await self._execute_tool_with_cache(tool, inputs, cache_mgr, plan)
         self.results[tool_id] = outputs
     
     # Collect and return target results

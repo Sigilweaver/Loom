@@ -43,18 +43,26 @@ pytest -s
 
 ```
 backend/tests/
-├── conftest.py          # Shared fixtures
+├── conftest.py              # Shared fixtures
 ├── fixtures/
-│   └── sample.csv       # Test data files
-├── test_execution.py    # Execution engine tests
-├── test_formula.py      # Formula tool tests
-├── test_filter.py       # Filter tool tests
-├── test_select.py       # Select tool tests
-├── test_output.py       # Output tool tests
-├── test_parquet.py      # Parquet datasource tests
-├── test_datasources.py  # Datasource factory tests
-├── test_integration.py  # End-to-end workflow tests
-└── test_models.py       # Pydantic model tests
+│   └── sample.csv           # Test data files
+├── test_execution.py        # Execution engine tests
+├── test_planner.py          # ExecutionPlanner tests
+├── test_cache_manager.py    # CacheManager tests
+├── test_parallel_execution.py # Parallel execution tests
+├── test_type_contracts.py   # Frontend/backend contract tests
+├── test_cache.py            # BlockingToolCache tests
+├── test_formula.py          # Formula tool tests
+├── test_filter.py           # Filter tool tests
+├── test_select.py           # Select tool tests
+├── test_join.py             # Join tool tests
+├── test_output.py           # Output tool tests
+├── test_parquet.py          # Parquet datasource tests
+├── test_datasources.py      # Datasource factory tests
+├── test_database.py         # Database datasource tests
+├── test_connections.py      # Connection store tests
+├── test_integration.py      # End-to-end workflow tests
+└── test_models.py           # Pydantic model tests
 ```
 
 ## Fixtures
@@ -196,6 +204,135 @@ async def test_filter_invalid_column():
 ```
 
 ## Execution Engine Testing
+
+The execution engine has been decomposed into several components, each with dedicated tests:
+
+### ExecutionPlanner Tests
+
+```python
+import pytest
+from app.domain.execution.planner import ExecutionPlanner, ExecutionPlan
+from app.api.models.workflow import Workflow
+
+
+def test_execution_plan_immutable():
+    """Test that ExecutionPlan is immutable."""
+    workflow = create_workflow([...])
+    planner = ExecutionPlanner(workflow)
+    plan = planner.create_plan()
+    
+    # execution_order is a tuple, not a list
+    assert isinstance(plan.execution_order, tuple)
+
+
+def test_partial_plan():
+    """Test creating plan for subset of workflow."""
+    workflow = create_workflow([
+        tool("A", "Input"),
+        tool("B", "Filter"),
+        tool("C", "Output"),
+    ], wires=[...])
+    
+    planner = ExecutionPlanner(workflow)
+    plan = planner.create_plan(target_tool_id="B")
+    
+    # Only includes A and B, not C
+    assert "A" in plan.execution_order
+    assert "B" in plan.execution_order
+    assert "C" not in plan.execution_order
+
+
+def test_execution_levels():
+    """Test parallel execution level computation."""
+    # A -> B -> D
+    # A -> C -> D
+    workflow = create_workflow([
+        tool("A", "Input"),
+        tool("B", "Filter"),
+        tool("C", "Select"),
+        tool("D", "Output"),
+    ], wires=[
+        wire("A", "output", "B", "input"),
+        wire("A", "output", "C", "input"),
+        wire("B", "output", "D", "input"),
+        wire("C", "output", "D", "input"),
+    ])
+    
+    planner = ExecutionPlanner(workflow)
+    plan = planner.create_plan()
+    levels = plan.get_execution_levels()
+    
+    assert levels[0] == ["A"]       # Level 0
+    assert set(levels[1]) == {"B", "C"}  # Level 1 (parallel)
+    assert levels[2] == ["D"]       # Level 2
+```
+
+### CacheManager Tests
+
+```python
+import pytest
+from app.domain.execution.cache_manager import CacheManager
+
+
+def test_lineage_hash_deterministic():
+    """Test that same inputs produce same hash."""
+    cache1 = CacheManager("workflow-1")
+    cache2 = CacheManager("workflow-1")
+    
+    # Same tool, same plan -> same hash
+    hash1 = cache1.compute_lineage_hash(tool, plan)
+    hash2 = cache2.compute_lineage_hash(tool, plan)
+    
+    assert hash1 == hash2
+
+
+def test_lineage_hash_chain():
+    """Test that upstream changes propagate to downstream hashes."""
+    cache = CacheManager("workflow-1")
+    
+    # Execute upstream tool, record hash
+    upstream_hash = cache.compute_lineage_hash(upstream_tool, plan)
+    cache.record_lineage_hash(upstream_tool.id, upstream_hash)
+    
+    # Downstream hash includes upstream
+    downstream_hash = cache.compute_lineage_hash(downstream_tool, plan)
+    
+    # Change upstream config
+    upstream_tool.config["expression"] = "different"
+    new_upstream_hash = cache.compute_lineage_hash(upstream_tool, plan)
+    cache.record_lineage_hash(upstream_tool.id, new_upstream_hash)
+    
+    # Downstream hash should change
+    new_downstream_hash = cache.compute_lineage_hash(downstream_tool, plan)
+    assert new_downstream_hash != downstream_hash
+```
+
+### Parallel Execution Tests
+
+```python
+@pytest.mark.asyncio
+async def test_parallel_execution_respects_dependencies():
+    """Test that parallel execution never runs tool before its deps."""
+    workflow = create_parallel_workflow()
+    executor = WorkflowExecutor()
+    
+    # Track execution order
+    execution_log = []
+    
+    result = await executor.execute_workflow(
+        workflow,
+        execution_mode="parallel"
+    )
+    
+    # Verify dependencies ran first
+    for tool_id, deps in get_dependencies(workflow).items():
+        tool_index = execution_log.index(tool_id)
+        for dep in deps:
+            dep_index = execution_log.index(dep)
+            assert dep_index < tool_index
+```
+
+### Execution Graph Tests
 
 ```python
 import pytest

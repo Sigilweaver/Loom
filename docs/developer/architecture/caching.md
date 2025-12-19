@@ -66,15 +66,18 @@ Now if the user changes Select's config:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      WorkflowExecutor                           │
-│  ┌───────────────┐    ┌────────────────────┐                    │
-│  │ lineage_hashes│    │ BlockingToolCache  │                    │
-│  │ dict[str,str] │    │  ┌──────────────┐  │                    │
-│  │               │    │  │ cache_root/  │  │                    │
-│  │ tool-1: abc.. │    │  │ workflow-id/ │  │                    │
-│  │ tool-2: def.. │    │  │  ├─ *.parquet│  │                    │
-│  │ tool-3: ghi.. │    │  │  └─ *.parquet│  │                    │
-│  └───────────────┘    │  └──────────────┘  │                    │
-│                       └────────────────────┘                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              CacheManager                                 │  │
+│  │  ┌───────────────┐    ┌────────────────────┐              │  │
+│  │  │ lineage_hashes│    │ BlockingToolCache  │              │  │
+│  │  │ dict[str,str] │    │  ┌──────────────┐  │              │  │
+│  │  │               │    │  │ cache_root/  │  │              │  │
+│  │  │ tool-1: abc.. │    │  │ workflow-id/ │  │              │  │
+│  │  │ tool-2: def.. │    │  │  ├─ *.parquet│  │              │  │
+│  │  │ tool-3: ghi.. │    │  │  └─ *.parquet│  │              │  │
+│  │  └───────────────┘    │  └──────────────┘  │              │  │
+│  │                       └────────────────────┘              │  │
+│  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,10 +85,49 @@ Now if the user changes Select's config:
 
 | File | Purpose |
 |------|---------|
-| `app/backend/app/domain/execution/cache.py` | `BlockingToolCache` class |
-| `app/backend/app/domain/execution/executor.py` | Cache integration in `_execute_tool_with_cache` |
+| `app/backend/app/domain/execution/cache_manager.py` | `CacheManager` class - caching decisions and lineage |
+| `app/backend/app/domain/execution/cache.py` | `BlockingToolCache` class - disk storage |
+| `app/backend/app/domain/execution/executor.py` | Uses `CacheManager` in `_execute_tool_with_cache` |
 | `app/backend/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
 | `app/backend/app/config.py` | `cache_enabled` and `cache_path` settings |
+
+## CacheManager
+
+The `CacheManager` is the high-level interface for caching decisions. It wraps `BlockingToolCache` and handles lineage tracking:
+
+```python
+from app.domain.execution.cache_manager import CacheManager
+
+cache_mgr = CacheManager(workflow_id="my-workflow-uuid", force_refresh=False)
+
+# Check if caching is available
+if cache_mgr.is_enabled:
+    # Compute lineage hash for a tool
+    lineage_hash = cache_mgr.compute_lineage_hash(tool, plan)
+    
+    # Check for cached outputs
+    cached = cache_mgr.check_cache(tool, lineage_hash)
+    if cached:
+        outputs = cached
+    else:
+        outputs = await tool_impl.execute(...)
+        outputs = cache_mgr.store_in_cache(tool, lineage_hash, outputs)
+    
+    # Always record the hash (even for non-cached tools)
+    cache_mgr.record_lineage_hash(tool.id, lineage_hash)
+```
+
+### CacheManager Methods
+
+| Method | Purpose |
+|--------|---------|
+| `compute_lineage_hash(tool, plan)` | Compute deterministic hash including upstream state |
+| `should_cache_tool(tool)` | Check if tool's output should be cached |
+| `check_cache(tool, hash)` | Return cached outputs if all sockets cached |
+| `store_in_cache(tool, hash, outputs)` | Write outputs to disk, return scannable LazyFrames |
+| `record_lineage_hash(tool_id, hash)` | Store hash for downstream dependency computation |
+| `get_cache_stats()` | Return cache statistics |
+| `clear()` | Clear all cached data for workflow |
 
 ## BlockingToolCache API
 
@@ -233,46 +275,31 @@ class InputTool(BaseTool):
 
 ## Executor Integration
 
-The `_execute_tool_with_cache` method implements the caching logic:
+The `CacheManager` handles all caching logic. The executor simply calls its methods:
 
 ```python
-async def _execute_tool_with_cache(self, tool, inputs):
+async def _execute_tool_with_cache(self, tool, inputs, cache_mgr, plan):
     tool_impl = ToolRegistry.get(tool.type)
     
-    # 1. ALWAYS compute lineage hash (even for non-cacheable tools)
-    upstream_ids = self.graph.dependencies.get(tool.id, [])
-    upstream_keys = [self.lineage_hashes.get(tid, "") for tid in upstream_ids]
-    lineage_hash = self.cache.compute_key(
-        tool.id, tool.type, tool.config, upstream_keys
-    )
+    # 1. Compute lineage hash
+    lineage_hash = cache_mgr.compute_lineage_hash(tool, plan)
     
     # 2. Check cache (only if tool should be cached)
-    if self.cache and tool_impl.should_cache(tool.config):
-        output_sockets = [s.id for s in tool.sockets if s.direction == "output"]
-        all_cached = all(
-            self.cache.exists(tool.id, sid, lineage_hash)
-            for sid in output_sockets
-        )
-        if all_cached:
-            cached_outputs = {
-                sid: self.cache.get(tool.id, sid, lineage_hash)
-                for sid in output_sockets
-            }
-            self.lineage_hashes[tool.id] = lineage_hash  # Store for downstream
-            return cached_outputs, True  # Cache hit
+    if cache_mgr.should_cache_tool(tool):
+        cached = cache_mgr.check_cache(tool, lineage_hash)
+        if cached:
+            cache_mgr.record_lineage_hash(tool.id, lineage_hash)
+            return cached, True  # Cache hit
     
     # 3. Execute tool
     outputs = await tool_impl.execute(tool.config, inputs)
     
     # 4. Write to cache (only if tool should be cached)
-    if self.cache and tool_impl.should_cache(tool.config):
-        for socket_id, lf in outputs.items():
-            self.cache.put(tool.id, socket_id, lineage_hash, lf)
-            # Re-read from cache to get scannable LazyFrame
-            outputs[socket_id] = self.cache.get(tool.id, socket_id, lineage_hash)
+    if cache_mgr.should_cache_tool(tool):
+        outputs = cache_mgr.store_in_cache(tool, lineage_hash, outputs)
     
-    # 5. CRITICAL: Always store hash (even for non-cacheable tools)
-    self.lineage_hashes[tool.id] = lineage_hash
+    # 5. CRITICAL: Always record hash (even for non-cacheable tools)
+    cache_mgr.record_lineage_hash(tool.id, lineage_hash)
     
     return outputs, False  # Cache miss
 ```

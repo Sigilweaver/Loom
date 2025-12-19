@@ -117,12 +117,28 @@ See [Backend Architecture](./backend) for details. Key points:
 - **Pydantic** for request/response validation
 - **Tool Registry** pattern for extensibility
 
+The execution engine is decomposed into focused components:
+
+| Component | Purpose |
+|-----------|---------|
+| **ExecutionPlanner** | Creates immutable execution plans with topological sort |
+| **CacheManager** | Handles lineage hashes and caching decisions |
+| **WorkflowExecutor** | Orchestrates tool execution (sequential or parallel) |
+
 The tool system uses a decorator-based registry:
 ```python
 @register_tool("Filter")
 class FilterTool(BaseTool):
     async def execute(self, config, inputs):
         # Transformation logic
+```
+
+Socket IDs are defined as constants in both frontend and backend to prevent mismatches:
+```python
+# Backend: app/domain/tools/sockets.py
+class CommonSockets:
+    INPUT = "input"
+    OUTPUT = "output"
 ```
 
 This makes adding new tools straightforward—implement the interface, register it, done.

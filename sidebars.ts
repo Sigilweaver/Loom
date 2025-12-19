@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
             'user/interface/data-preview',
             'user/interface/keyboard-shortcuts',
             'user/interface/connections',
+            'user/interface/caching',
           ],
         },
         {

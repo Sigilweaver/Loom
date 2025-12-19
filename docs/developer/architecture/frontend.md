@@ -171,6 +171,119 @@ Connections from both sources are merged into a single list. The `owner` field d
 - `owner: 'client'` - stored in Electron via IPC
 - `owner: 'server'` - stored on backend via REST API
 
+## Configuration Hooks
+
+Tool configuration components share common patterns: wire connection tracking, metadata fetching, and emission map management. These patterns are extracted into reusable hooks.
+
+### useToolConfiguration
+
+For single-input tools (Filter, Select, Sort, Formula, Summarize):
+
+```typescript
+import { useToolConfiguration } from '@/hooks/useToolConfiguration';
+import { CommonSockets } from '@domain/workflow/constants/socketIds';
+
+function FilterConfiguration({ toolId, config, onChange, tools, wires, workflowMeta }) {
+  const {
+    columns,       // Upstream columns available for configuration
+    loading,       // Metadata fetch in progress
+    error,         // Error message if fetch failed
+    hasInput,      // Whether socket has incoming connection
+    connectionKey, // String identifying current connections (for deps)
+    updateField,   // Update single field with emission tracking
+    updateFields,  // Update multiple fields at once
+    refreshMetadata, // Manual re-fetch
+  } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
+  return (
+    <Select
+      value={config.column}
+      onChange={(v) => updateField('column', v)}
+      disabled={!hasInput || loading}
+    >
+      {columns.map(col => <Option key={col.name}>{col.name}</Option>)}
+    </Select>
+  );
+}
+```
+
+Key benefits:
+- **Automatic metadata refresh**: When wire connections change, metadata is re-fetched
+- **Emission tracking**: `updateField` automatically marks fields in `_emit` for partial updates
+- **Connection detection**: `hasInput` tells you if the socket is connected
+
+### useMultiSocketConfiguration
+
+For multi-input tools like Join:
+
+```typescript
+import { useMultiSocketConfiguration } from '@/hooks/useToolConfiguration';
+import { JoinSockets } from '@domain/workflow/constants/socketIds';
+
+function JoinConfiguration({ toolId, config, onChange, tools, wires, workflowMeta }) {
+  const result = useMultiSocketConfiguration({
+    toolId,
+    socketIds: [JoinSockets.INPUT_LEFT, JoinSockets.INPUT_RIGHT],
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
+  // Access per-socket state by socket ID
+  const { columns: leftColumns, hasInput: hasLeft } = result[JoinSockets.INPUT_LEFT];
+  const { columns: rightColumns, hasInput: hasRight } = result[JoinSockets.INPUT_RIGHT];
+
+  return (
+    <>
+      <Select disabled={!hasLeft}>
+        {leftColumns.map(col => <Option key={col.name}>{col.name}</Option>)}
+      </Select>
+      <Select disabled={!hasRight}>
+        {rightColumns.map(col => <Option key={col.name}>{col.name}</Option>)}
+      </Select>
+    </>
+  );
+}
+```
+
+### Socket ID Constants
+
+Socket IDs are defined as constants to prevent mismatches between frontend and backend:
+
+```typescript
+// src/domain/workflow/constants/socketIds.ts
+export const CommonSockets = {
+  INPUT: "input",
+  OUTPUT: "output",
+} as const;
+
+export const FilterSockets = {
+  INPUT: "input",
+  OUTPUT_TRUE: "output-true",
+  OUTPUT_FALSE: "output-false",
+} as const;
+
+export const JoinSockets = {
+  INPUT_LEFT: "input-left",
+  INPUT_RIGHT: "input-right",
+  OUTPUT_LEFT: "output-left",
+  OUTPUT_MATCH: "output-match",
+  OUTPUT_RIGHT: "output-right",
+} as const;
+```
+
+These constants are mirrored in the backend (`app/domain/tools/sockets.py`) and validated by type contract tests.
+
 ## Component Architecture
 
 ### Canvas
