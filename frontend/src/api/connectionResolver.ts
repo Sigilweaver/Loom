@@ -13,6 +13,9 @@
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { Tool } from '../domain/workflow/entities/workflow';
 import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ConnectionResolver');
 
 /**
  * Builds a connection URI from a resolved connection.
@@ -68,7 +71,7 @@ export async function resolveWorkflowConnections(
   workflow: WorkflowJSON
 ): Promise<WorkflowJSON> {
   // Debug: log all tools to see their structure
-  console.log('[ConnectionResolver] All tools:', workflow.tools.map((t: Tool) => ({
+  logger.debug('All tools:', workflow.tools.map((t: Tool) => ({
     id: t.id,
     type: t.type,
     configCategory: t.config?.category,
@@ -85,7 +88,7 @@ export async function resolveWorkflowConnections(
       tool.config?.connectionId
   );
 
-  console.log('[ConnectionResolver] Found database tools:', databaseTools.length);
+  logger.debug('Found database tools:', databaseTools.length);
 
   if (databaseTools.length === 0) {
     // No database connections to resolve
@@ -100,12 +103,12 @@ export async function resolveWorkflowConnections(
     (tool: Tool) => (tool.config?.owner as ConnectionOwner) === 'server'
   );
 
-  console.log('[ConnectionResolver] Client-owned connections:', clientTools.length);
-  console.log('[ConnectionResolver] Server-owned connections:', serverTools.length);
+  logger.debug('Client-owned connections:', clientTools.length);
+  logger.debug('Server-owned connections:', serverTools.length);
 
   // For client-owned connections, we need Electron API
   if (clientTools.length > 0 && !window.electronAPI?.resolveConnection) {
-    console.error('[ConnectionResolver] Electron API not available - client connections require the desktop app');
+    logger.error('Electron API not available - client connections require the desktop app');
     throw new Error('Client database connections require the desktop app. Please run Sigilweaver as a desktop application to use client-managed database features.');
   }
 
@@ -113,13 +116,13 @@ export async function resolveWorkflowConnections(
   const resolutions = await Promise.all(
     clientTools.map(async (tool: Tool) => {
       const connectionId = tool.config?.connectionId as string;
-      console.log('[ConnectionResolver] Resolving client connection:', connectionId);
+      logger.debug('Resolving client connection:', connectionId);
       try {
         const resolved = await window.electronAPI!.resolveConnection(connectionId);
-        console.log('[ConnectionResolver] Resolved:', resolved ? 'success' : 'null');
+        logger.debug('Resolved:', resolved ? 'success' : 'null');
         return { toolId: tool.id, resolved };
       } catch (error) {
-        console.error(`[ConnectionResolver] Failed to resolve connection ${connectionId}:`, error);
+        logger.error(`Failed to resolve connection ${connectionId}:`, error);
         return { toolId: tool.id, resolved: null };
       }
     })
@@ -137,7 +140,7 @@ export async function resolveWorkflowConnections(
   // Check if any client connections failed to resolve
   const failedClientCount = clientTools.length - resolutionMap.size;
   if (failedClientCount > 0) {
-    console.warn(`[ConnectionResolver] ${failedClientCount} client connections could not be resolved`);
+    logger.warn(`${failedClientCount} client connections could not be resolved`);
   }
 
   // Create a new workflow with:
@@ -156,7 +159,7 @@ export async function resolveWorkflowConnections(
       if (owner === 'server') {
         // Server-owned: pass connectionId and owner, no source
         // Backend will resolve during execution
-        console.log(`[ConnectionResolver] Tool ${tool.id}: server-owned, passing connectionId to backend`);
+        logger.debug(`Tool ${tool.id}: server-owned, passing connectionId to backend`);
         return {
           ...tool,
           config: {
@@ -170,7 +173,7 @@ export async function resolveWorkflowConnections(
       // Client-owned: set resolved URI in source field
       const resolvedUri = resolutionMap.get(tool.id);
       if (resolvedUri) {
-        console.log(`[ConnectionResolver] Tool ${tool.id}: client-owned, resolved to URI`);
+        logger.debug(`Tool ${tool.id}: client-owned, resolved to URI`);
         return {
           ...tool,
           config: {
@@ -182,7 +185,7 @@ export async function resolveWorkflowConnections(
       }
 
       // Client connection but failed to resolve - pass through unchanged
-      console.warn(`[ConnectionResolver] Tool ${tool.id}: client-owned but failed to resolve`);
+      logger.warn(`Tool ${tool.id}: client-owned but failed to resolve`);
       return tool;
     }),
   };
