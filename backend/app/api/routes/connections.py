@@ -38,7 +38,7 @@ async def get_status() -> ConnectionStoreStatus:
     store = get_connection_store()
     return ConnectionStoreStatus(
         enabled=store.is_enabled,
-        connectionCount=len(store.list_connections()),
+        connection_count=len(store.list_connections()),
     )
 
 
@@ -61,8 +61,8 @@ async def list_connections() -> list[ConnectionInfoResponse]:
             host=c.host,
             port=c.port,
             database=c.database,
-            createdAt=c.created_at,
-            updatedAt=c.updated_at,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
         )
         for c in connections
     ]
@@ -89,8 +89,8 @@ async def get_connection(connection_id: str) -> ConnectionInfoResponse:
         host=conn.host,
         port=conn.port,
         database=conn.database,
-        createdAt=conn.created_at,
-        updatedAt=conn.updated_at,
+        created_at=conn.created_at,
+        updated_at=conn.updated_at,
     )
 
 
@@ -131,8 +131,8 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
             host=conn.host,
             port=conn.port,
             database=conn.database,
-            createdAt=conn.created_at,
-            updatedAt=conn.updated_at,
+            created_at=conn.created_at,
+            updated_at=conn.updated_at,
         )
     except DuplicateConnectionError as e:
         raise HTTPException(status_code=409, detail=str(e))
@@ -180,8 +180,8 @@ async def update_connection(
             host=conn.host,
             port=conn.port,
             database=conn.database,
-            createdAt=conn.created_at,
-            updatedAt=conn.updated_at,
+            created_at=conn.created_at,
+            updated_at=conn.updated_at,
         )
     except ConnectionNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
