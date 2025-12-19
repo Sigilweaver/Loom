@@ -47,7 +47,8 @@ backend/app/
 │   │       └── ...
 │   ├── execution/       # Workflow execution
 │   │   ├── executor.py  # Main executor
-│   │   └── graph.py     # Dependency resolution
+│   │   ├── graph.py     # Dependency resolution
+│   │   └── cache.py     # Blocking tool cache
 │   ├── workflow/        # Workflow utilities
 │   │   └── archive.py   # Audit archiving
 │   ├── datasources/     # File type handlers
@@ -192,12 +193,17 @@ This handles:
 ### Execution Flow
 
 1. Build execution graph from workflow
-2. Determine execution order (topological sort)
-3. For each tool in order:
-   - Get inputs from previously executed tools (or datasources)
-   - Execute tool, get LazyFrame outputs
+2. Initialize cache (if enabled) for the workflow
+3. Determine execution order (topological sort)
+4. For each tool in order:
+   - Compute lineage hash (always, even for non-cacheable tools)
+   - Check cache for blocking tools (Sort, Join, Summarize)
+   - If cache hit: use cached output, skip execution
+   - If cache miss: execute tool, cache output if blocking
    - Store outputs for downstream tools
-4. Collect results for target tool (preview or output)
+5. Collect results for target tool (preview or output)
+
+See [Caching System](./caching.md) for details on how blocking tool outputs are cached.
 
 ```python
 async def execute_workflow(
