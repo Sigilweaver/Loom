@@ -7,6 +7,7 @@ import { HelpLink } from "./common/HelpLink";
 import { useMetadata, usePolarsFunctions } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { EXPRESSION_DOCS_URL } from "@data/tools";
+import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
 // Special value indicating creation of a new column
 const NEW_COLUMN_VALUE = "__new_column__";
@@ -82,7 +83,7 @@ export function FormulaConfiguration({
     const { tools: upstreamTools, wires: upstreamWires } = 
       WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
     const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow), 'input');
+    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
   }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
 
   // Build dropdown options from available columns

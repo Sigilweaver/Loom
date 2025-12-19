@@ -8,6 +8,7 @@ from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 # Valid aggregation operations with their Polars methods
@@ -113,10 +114,10 @@ class SummarizeTool(BaseTool):
         If aggregations is empty but groupByColumns is provided, returns distinct
         values for those columns (like SQL SELECT DISTINCT).
         """
-        if "input" not in inputs:
+        if CommonSockets.INPUT not in inputs:
             raise ToolError("Summarize tool requires input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Summarize tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
@@ -131,7 +132,7 @@ class SummarizeTool(BaseTool):
         op = self._build_operation(config)
         result = op.execute(lf)
 
-        return {"output": result}
+        return {CommonSockets.OUTPUT: result}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -139,10 +140,10 @@ class SummarizeTool(BaseTool):
         """
         Calculate output schema based on group by and aggregation configuration.
         """
-        if "input" not in input_schemas:
+        if CommonSockets.INPUT not in input_schemas:
             raise ToolError("Summarize tool requires input schema on socket 'input'")
 
-        input_data = input_schemas["input"]
+        input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Summarize tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
@@ -184,7 +185,7 @@ class SummarizeTool(BaseTool):
                 nullable=True,  # Aggregations can produce nulls (e.g., empty groups)
             ))
 
-        return {"output": DataSchema(
+        return {CommonSockets.OUTPUT: DataSchema(
             columns=output_columns,
             row_count=None,  # Row count depends on number of groups
             file_size_bytes=None,
@@ -247,11 +248,11 @@ class SummarizeTool(BaseTool):
         """Generate Python code for Summarize tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = self._get_input_var(input_vars.get("input"))
+        input_var = self._get_input_var(input_vars.get(CommonSockets.INPUT))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()
         op = self._build_operation(config)
         lines = op.to_code(input_var, var_name)
 
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})

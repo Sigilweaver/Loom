@@ -10,6 +10,7 @@ import {
   Link, 
   Sigma 
 } from 'lucide-react';
+import { CommonSockets, FilterSockets, JoinSockets, UnionSockets } from '../domain/workflow/constants/socketIds';
 
 const DOCS_BASE_URL = 'https://docs.sigilweaver.app/user';
 
@@ -24,7 +25,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       placeholder: 'Configuration coming soon...',
     },
     sockets: [
-      { id: 'output', direction: 'output' }
+      { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/input-output/input`,
   },
@@ -37,7 +38,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       placeholder: 'Configuration coming soon...',
     },
     sockets: [
-      { id: 'input', direction: 'input' }
+      { id: CommonSockets.INPUT, direction: 'input' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/input-output/output`,
   },
@@ -53,9 +54,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       mode: 'Custom',
     },
     sockets: [
-      { id: 'input', direction: 'input' },
-      { id: 'output-true', direction: 'output', type: 'T' },
-      { id: 'output-false', direction: 'output', type: 'F' }
+      { id: FilterSockets.INPUT, direction: 'input' },
+      { id: FilterSockets.OUTPUT_TRUE, direction: 'output', type: 'T' },
+      { id: FilterSockets.OUTPUT_FALSE, direction: 'output', type: 'F' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/filter`,
   },
@@ -68,8 +69,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       columnConfigs: [],
     },
     sockets: [
-      { id: 'input', direction: 'input' },
-      { id: 'output', direction: 'output' }
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/select`,
   },
@@ -82,8 +83,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       sortColumns: [],
     },
     sockets: [
-      { id: 'input', direction: 'input' },
-      { id: 'output', direction: 'output' }
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/sort`,
   },
@@ -97,8 +98,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       column_name: '',
     },
     sockets: [
-      { id: 'input', direction: 'input' },
-      { id: 'output', direction: 'output' }
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/formula`,
   },
@@ -113,8 +114,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       mode: 'ByName',
     },
     sockets: [
-      { id: 'input', direction: 'input', multiple: true },
-      { id: 'output', direction: 'output' }
+      { id: UnionSockets.INPUT, direction: 'input', multiple: true },
+      { id: UnionSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/join/union`,
   },
@@ -129,11 +130,11 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       rightKeys: [],
     },
     sockets: [
-      { id: 'input-left', direction: 'input', type: 'L' },
-      { id: 'input-right', direction: 'input', type: 'R' },
-      { id: 'output-left', direction: 'output', type: 'L' },
-      { id: 'output-match', direction: 'output', type: 'J' },
-      { id: 'output-right', direction: 'output', type: 'R' }
+      { id: JoinSockets.INPUT_LEFT, direction: 'input', type: 'L' },
+      { id: JoinSockets.INPUT_RIGHT, direction: 'input', type: 'R' },
+      { id: JoinSockets.OUTPUT_LEFT, direction: 'output', type: 'L' },
+      { id: JoinSockets.OUTPUT_MATCH, direction: 'output', type: 'J' },
+      { id: JoinSockets.OUTPUT_RIGHT, direction: 'output', type: 'R' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/join/join-tool`,
   },
@@ -156,8 +157,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       includeNulls: false,
     },
     sockets: [
-      { id: 'input', direction: 'input' },
-      { id: 'output', direction: 'output' }
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/aggregate/summarize`,
   },

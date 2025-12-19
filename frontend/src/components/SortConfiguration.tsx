@@ -8,6 +8,7 @@ import {
 import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { ColumnSchema } from "../api/backend";
+import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
 /**
  * Sort options for dropdown
@@ -114,7 +115,7 @@ export function SortConfiguration({
       upstreamWires,
       workflowMeta
     );
-    fetchMetadata(toolId, JSON.parse(workflow), 'input');
+    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
   }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata

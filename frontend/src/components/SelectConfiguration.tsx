@@ -10,6 +10,7 @@ import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
 import { POLARS_TYPES_MAP, CASTABLE_TYPES_BY_UI_GROUP } from "../data/polarsTypes";
+import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
 // Re-export for local use with original name for minimal code changes
 const TYPE_INFO_MAP = POLARS_TYPES_MAP;
@@ -108,7 +109,7 @@ export function SelectConfiguration({
     const { tools: upstreamTools, wires: upstreamWires } = 
       WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
     const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow), 'input');
+    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
   }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata

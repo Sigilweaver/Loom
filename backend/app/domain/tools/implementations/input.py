@@ -9,6 +9,7 @@ from app.domain.datasources.factory import DataSourceFactory
 from app.domain.tools.base import BaseTool
 from app.domain.tools.loaders.factory import LoaderFactory
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 
@@ -75,7 +76,7 @@ class InputTool(BaseTool):
             lf = await loader.load(config)
 
         # Return on output socket
-        return {"output": lf}
+        return {CommonSockets.OUTPUT: lf}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -99,7 +100,7 @@ class InputTool(BaseTool):
         # Inspect to get schema
         schema = await datasource.inspect(source_path, config)
 
-        return {"output": schema}
+        return {CommonSockets.OUTPUT: schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate input tool configuration"""
@@ -146,7 +147,7 @@ class InputTool(BaseTool):
 
         if not source and category != "database":
             lines = [f"{var_name} = None  # ERROR: No source specified"]
-            return (lines, {"output": var_name})
+            return (lines, {CommonSockets.OUTPUT: var_name})
 
         # Database-specific code generation
         # SECURITY: Never include actual credentials in generated code
@@ -172,7 +173,7 @@ class InputTool(BaseTool):
                 f'    engine="connectorx",',
                 f").lazy()",
             ]
-            return (lines, {"output": var_name})
+            return (lines, {CommonSockets.OUTPUT: var_name})
 
         # Use loader to generate code for file types
         if LoaderFactory.is_supported(source_type):
@@ -181,4 +182,4 @@ class InputTool(BaseTool):
         else:
             lines = [f"# TODO: {source_type} input not yet supported in code generation"]
 
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})

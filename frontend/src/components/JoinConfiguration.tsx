@@ -8,6 +8,7 @@ import {
 import { useMetadata } from "../api/hooks";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
 import { filterCompatibleColumns } from "@domain/workflow/services/typeCompatibility";
+import { JoinSockets } from "@domain/workflow/constants/socketIds";
 import clsx from "clsx";
 
 interface JoinConfigurationProps {
@@ -56,14 +57,14 @@ export function JoinConfiguration({
   // Track wire connections to this tool's specific sockets
   const leftWireConnection = useMemo(() => {
     const wire = wires.find(
-      (w) => w.to.tool === toolId && w.to.socket === "input-left"
+      (w) => w.to.tool === toolId && w.to.socket === JoinSockets.INPUT_LEFT
     );
     return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
   }, [wires, toolId]);
 
   const rightWireConnection = useMemo(() => {
     const wire = wires.find(
-      (w) => w.to.tool === toolId && w.to.socket === "input-right"
+      (w) => w.to.tool === toolId && w.to.socket === JoinSockets.INPUT_RIGHT
     );
     return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
   }, [wires, toolId]);
@@ -78,7 +79,7 @@ export function JoinConfiguration({
       upstreamWires,
       workflowMeta
     );
-    fetchLeftMetadata(toolId, JSON.parse(workflow), "input-left");
+    fetchLeftMetadata(toolId, JSON.parse(workflow), JoinSockets.INPUT_LEFT);
   }, [toolId, leftWireConnection, fetchLeftMetadata, tools, wires, workflowMeta]);
 
   // Fetch metadata for right input when connection changes
@@ -91,7 +92,7 @@ export function JoinConfiguration({
       upstreamWires,
       workflowMeta
     );
-    fetchRightMetadata(toolId, JSON.parse(workflow), "input-right");
+    fetchRightMetadata(toolId, JSON.parse(workflow), JoinSockets.INPUT_RIGHT);
   }, [toolId, rightWireConnection, fetchRightMetadata, tools, wires, workflowMeta]);
 
   // Get current keys from config

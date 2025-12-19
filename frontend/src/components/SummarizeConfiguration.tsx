@@ -10,6 +10,7 @@ import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
 import { isNumericPolarsType } from "../data/polarsTypes";
+import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
 /**
  * Aggregation action definitions
@@ -277,7 +278,7 @@ export function SummarizeConfiguration({
       upstreamWires,
       workflowMeta
     );
-    fetchMetadata(toolId, JSON.parse(workflow), 'input');
+    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
   }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata
