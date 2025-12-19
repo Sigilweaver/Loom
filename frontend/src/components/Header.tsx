@@ -5,10 +5,11 @@ import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
 import { useSettingsStore } from "@state/settingsStore";
 import { useWorkflowExecute } from "../api/hooks";
-import { previewAllTools } from "../api/backend";
+import { previewAllTools, clearBackendWorkflowCache } from "../api/backend";
+import { resolveWorkflowConnections } from "../api/connectionResolver";
 import { cacheAllPreviews } from "../api/cache";
 import SigilWeaverLogo from "./SigilWeaverLogo";
-import { useEffect, forwardRef, useImperativeHandle, useState } from "react";
+import { useEffect, forwardRef, useImperativeHandle, useState, useRef, useCallback } from "react";
 
 interface HeaderProps {
   onShowSettings: () => void;
@@ -44,6 +45,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   );
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
+  const bypassCache = useUIStore((s) => s.bypassCache);
+  const setBypassCache = useUIStore((s) => s.setBypassCache);
 
   // Settings
   const previewRows = useSettingsStore((s) => s.backend.previewRows);
@@ -59,8 +62,23 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   // Execution hook
   const { execute } = useWorkflowExecute();
 
-  // Local state for preview loading
+  // Local state for preview loading and dropdown
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewDropdownOpen, setPreviewDropdownOpen] = useState(false);
+  const previewDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (previewDropdownRef.current && !previewDropdownRef.current.contains(event.target as Node)) {
+        setPreviewDropdownOpen(false);
+      }
+    };
+    if (previewDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [previewDropdownOpen]);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -374,8 +392,12 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
       const workflow = JSON.parse(workflowJSON);
 
+      // Resolve database connections before preview all
+      const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+
       // Execute preview all using configured preview rows
-      const result = await previewAllTools(workflow, previewRows);
+      // Pass bypassCache to force_refresh parameter
+      const result = await previewAllTools(resolvedWorkflow, previewRows, bypassCache);
 
       // Cache all previews in the unified cache
       // Transform ToolOutput to expected format (filter out undefined data)
@@ -405,6 +427,21 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       showNotification(`Preview failed: ${message}`, "error");
     }
   };
+
+  const handleClearCache = useCallback(async () => {
+    try {
+      setPreviewDropdownOpen(false);
+      const result = await clearBackendWorkflowCache(workflowMeta.workflowId);
+      if (result.status === "cleared") {
+        showNotification("Backend cache cleared successfully", "success");
+      } else if (result.status === "cache_disabled") {
+        showNotification("Backend cache is disabled", "info");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showNotification(`Failed to clear cache: ${message}`, "error");
+    }
+  }, [workflowMeta.workflowId, showNotification]);
 
   const handleRunWorkflow = async () => {
     try {
@@ -562,18 +599,70 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
 
-            <button
-              onClick={handlePreviewWorkflow}
-              disabled={isPreviewLoading}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-preview-bg border border-theme-header-btn-preview-border text-theme-header-btn-preview-text
-                hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
-                active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
-                disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
-              title="Preview All Tools (Ctrl+P)"
-            >
-              {isPreviewLoading ? "Loading..." : "Preview All"}
-            </button>
+            {/* Preview All with dropdown */}
+            <div className="relative" ref={previewDropdownRef}>
+              <div className="flex">
+                <button
+                  onClick={handlePreviewWorkflow}
+                  disabled={isPreviewLoading}
+                  className="px-3 py-1.5 rounded-l text-sm font-medium transition-colors
+                    bg-theme-header-btn-preview-bg border border-r-0 border-theme-header-btn-preview-border text-theme-header-btn-preview-text
+                    hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
+                    active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
+                    disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
+                  title={bypassCache ? "Preview All Tools - Cache Bypassed (Ctrl+P)" : "Preview All Tools (Ctrl+P)"}
+                >
+                  {isPreviewLoading ? "Loading..." : bypassCache ? "Preview All*" : "Preview All"}
+                </button>
+                <button
+                  onClick={() => setPreviewDropdownOpen(!previewDropdownOpen)}
+                  disabled={isPreviewLoading}
+                  className="px-1.5 py-1.5 rounded-r text-sm font-medium transition-colors
+                    bg-theme-header-btn-preview-bg border border-theme-header-btn-preview-border text-theme-header-btn-preview-text
+                    hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
+                    active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
+                    disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
+                  title="Preview options"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Dropdown menu */}
+              {previewDropdownOpen && (
+                <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg z-50
+                  bg-theme-canvas-bg border border-theme-border-primary">
+                  <div className="py-1">
+                    {/* Bypass Cache toggle */}
+                    <button
+                      onClick={() => {
+                        setBypassCache(!bypassCache);
+                      }}
+                      className="w-full px-4 py-2 text-sm text-left flex items-center justify-between
+                        text-theme-text-primary hover:bg-theme-panel-section-bg"
+                    >
+                      <span>Bypass Cache</span>
+                      <span className={`w-8 h-4 rounded-full relative transition-colors ${bypassCache ? 'bg-blue-500' : 'bg-gray-400'}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${bypassCache ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </span>
+                    </button>
+                    
+                    <div className="border-t border-theme-border-primary my-1"></div>
+                    
+                    {/* Clear Cache action */}
+                    <button
+                      onClick={handleClearCache}
+                      className="w-full px-4 py-2 text-sm text-left
+                        text-theme-text-primary hover:bg-theme-panel-section-bg"
+                    >
+                      Clear Backend Cache
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleRunWorkflow}

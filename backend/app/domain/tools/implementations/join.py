@@ -32,6 +32,10 @@ class JoinTool(BaseTool):
         rightSuffix: suffix for right columns on conflict (default: '_right')
     """
 
+    def is_blocking(self) -> bool:
+        """Join is blocking - must scan both sides for matches."""
+        return True
+
     def _build_operation(self, config: dict[str, Any]) -> JoinOperation:
         """Build the join operation from config."""
         return JoinOperation(

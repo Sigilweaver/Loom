@@ -114,3 +114,32 @@ class BaseTool(ABC):
         if isinstance(var, list):
             return var[0] if var else default
         return var
+
+    def is_blocking(self) -> bool:
+        """
+        Check if this tool requires full data materialization.
+
+        Blocking tools break Polars streaming optimization - they must
+        see all input data before producing any output. Examples include
+        Sort (must see all rows to determine order), Summarize (must see
+        all rows per group), and Join (must scan both sides for matches).
+
+        Returns:
+            True if the tool is blocking, False otherwise
+        """
+        return False
+
+    def should_cache(self, config: dict[str, Any]) -> bool:
+        """
+        Check if this tool's output should be cached to disk.
+
+        By default, cache if the tool is blocking. Override this method
+        for special cases (e.g., Input caches for databases but not files).
+
+        Args:
+            config: Tool-specific configuration
+
+        Returns:
+            True if output should be cached, False otherwise
+        """
+        return self.is_blocking()

@@ -36,6 +36,8 @@ interface UIState {
   activeBottomTab: BottomPaneTab;
   previewState: PreviewState | null;
   notification: NotificationState;
+  // Development/debug mode - bypass backend cache (ephemeral, not persisted)
+  bypassCache: boolean;
   toggleSnapToGrid: () => void;
   toggleMinimap: () => void;
   setMinimapPosition: (pos: UIState["minimapPosition"]) => void;
@@ -50,6 +52,7 @@ interface UIState {
   setPreviewState: (state: PreviewState | null) => void;
   setPreviewLoading: (loading: boolean) => void;
   setPreviewError: (error: string | null) => void;
+  setBypassCache: (bypass: boolean) => void;
   showNotification: (
     message: string,
     type?: NotificationType,
@@ -108,6 +111,10 @@ export const useUIStore = create<UIState>()((set) => ({
     set((s) => (s.previewState ? { previewState: { ...s.previewState, loading } } : {})),
   setPreviewError: (error) =>
     set((s) => (s.previewState ? { previewState: { ...s.previewState, error, loading: false } } : {})),
+
+  // Development/debug mode - bypass backend cache (ephemeral, not persisted)
+  bypassCache: false,
+  setBypassCache: (bypass) => set({ bypassCache: bypass }),
 
   notification: {
     message: "",

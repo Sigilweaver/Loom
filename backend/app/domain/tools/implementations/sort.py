@@ -27,6 +27,10 @@ class SortTool(BaseTool):
         - nullsFirst: bool - whether nulls should come first (default: False)
     """
 
+    def is_blocking(self) -> bool:
+        """Sort is blocking - must see all rows to determine order."""
+        return True
+
     def _build_operation(self, config: dict[str, Any]) -> SortOperation:
         """Build the sort operation from config."""
         sort_columns = config.get("sortColumns", [])

@@ -37,6 +37,9 @@ class ExecuteWorkflowRequest(BaseModel):
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview"
     )
+    force_refresh: bool = Field(
+        False, description="Optional: Clear cache before execution (for manual refresh)"
+    )
 
 
 class ExecuteToolRequest(BaseModel):
@@ -47,6 +50,9 @@ class ExecuteToolRequest(BaseModel):
     socket_id: str = Field(description="Output socket ID to return data for")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview"
+    )
+    force_refresh: bool = Field(
+        False, description="Optional: Clear cache before execution (for manual refresh)"
     )
 
 
@@ -82,6 +88,7 @@ async def execute_workflow(
     Use target_tool_id to execute only part of the workflow (useful for debugging).
     Use preview_limit to limit rows returned (useful for large datasets).
     The preview_limit is clamped to max_preview_rows from server config.
+    Use force_refresh to clear cache and re-execute (useful for DB refresh).
     
     Server connections are resolved before execution. Client connections must
     have their source URI already populated.
@@ -96,6 +103,7 @@ async def execute_workflow(
             workflow=resolved_workflow,
             target_tool_id=request.target_tool_id,
             preview_limit=_clamp_preview_limit(request.preview_limit),
+            force_refresh=request.force_refresh,
         )
         return result
 
@@ -123,6 +131,7 @@ async def execute_tool(
     The tool and all upstream dependencies will be executed.
     Returns data for the specified socket only.
     The preview_limit is clamped to max_preview_rows from server config.
+    Use force_refresh to clear cache and re-execute (useful for DB refresh).
     """
     try:
         # Resolve server connections and validate client connections
@@ -135,6 +144,7 @@ async def execute_tool(
             tool_id=request.tool_id,
             socket_id=request.socket_id,
             preview_limit=_clamp_preview_limit(request.preview_limit),
+            force_refresh=request.force_refresh,
         )
         return result
 
@@ -228,6 +238,9 @@ class PreviewAllRequest(BaseModel):
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview per tool"
     )
+    force_refresh: bool = Field(
+        False, description="Optional: Clear cache before execution (for manual refresh)"
+    )
 
 
 @router.post("/preview_all")
@@ -244,6 +257,7 @@ async def preview_all_tools(
 
     Returns a dict mapping tool_id -> outputs for every tool in the workflow.
     The preview_limit is clamped to max_preview_rows from server config.
+    Use force_refresh to clear cache and re-execute (useful for DB refresh).
     """
     try:
         # Resolve server connections and validate client connections
@@ -254,6 +268,7 @@ async def preview_all_tools(
         result = await executor.preview_all_tools(
             workflow=resolved_workflow,
             preview_limit=_clamp_preview_limit(request.preview_limit),
+            force_refresh=request.force_refresh,
         )
         return result
 
@@ -298,3 +313,48 @@ async def preview_code(request: PreviewCodeRequest) -> PreviewCodeResponse:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+class ClearCacheRequest(BaseModel):
+    """Request to clear workflow cache"""
+
+    workflow_id: str = Field(description="Workflow ID to clear cache for")
+
+
+class ClearCacheResponse(BaseModel):
+    """Response from cache clear operation"""
+
+    status: str = Field(description="Operation status")
+    workflow_id: str = Field(description="Workflow ID that was cleared")
+
+
+@router.post("/cache/clear", response_model=ClearCacheResponse)
+async def clear_workflow_cache(request: ClearCacheRequest) -> ClearCacheResponse:
+    """
+    Clear cache for a specific workflow.
+
+    This removes all cached blocking tool outputs for the workflow.
+    Useful when you want to force re-execution of all tools.
+    """
+    from pathlib import Path
+    from app.domain.execution.cache import BlockingToolCache
+
+    try:
+        if not settings.cache_enabled:
+            return ClearCacheResponse(
+                status="cache_disabled",
+                workflow_id=request.workflow_id,
+            )
+
+        cache = BlockingToolCache(
+            Path(settings.cache_path),
+            request.workflow_id,
+        )
+        cache.clear()
+        return ClearCacheResponse(
+            status="cleared",
+            workflow_id=request.workflow_id,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")

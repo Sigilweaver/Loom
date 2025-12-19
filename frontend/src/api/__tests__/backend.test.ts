@@ -180,6 +180,7 @@ describe('Backend API Client', () => {
             workflow: mockWorkflow,
             socket_id: 'output',
             preview_limit: 100,
+            force_refresh: false,
           }),
         })
       );
@@ -221,6 +222,7 @@ describe('Backend API Client', () => {
           body: JSON.stringify({
             workflow: mockWorkflow,
             target_tool_id: undefined,
+            force_refresh: false,
           }),
         })
       );
@@ -254,6 +256,7 @@ describe('Backend API Client', () => {
           body: JSON.stringify({
             workflow: mockWorkflow,
             target_tool_id: 'filter1',
+            force_refresh: false,
           }),
         })
       );
