@@ -323,10 +323,22 @@ class TestExecutionPlanner:
                 Tool(id="D", type="Union", x=0, y=0, config={}, sockets=[]),
             ],
             wires=[
-                Wire(from_=WireEndpoint(tool="A", socket="output"), to=WireEndpoint(tool="B", socket="input")),
-                Wire(from_=WireEndpoint(tool="A", socket="output"), to=WireEndpoint(tool="C", socket="input")),
-                Wire(from_=WireEndpoint(tool="B", socket="output"), to=WireEndpoint(tool="D", socket="input")),
-                Wire(from_=WireEndpoint(tool="C", socket="output"), to=WireEndpoint(tool="D", socket="input")),
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="B", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="C", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="B", socket="output"),
+                    to=WireEndpoint(tool="D", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="C", socket="output"),
+                    to=WireEndpoint(tool="D", socket="input"),
+                ),
             ],
         )
 
@@ -347,7 +359,10 @@ class TestExecutionPlanner:
                 Tool(id="B", type="Filter", x=0, y=0, config={}, sockets=[]),
             ],
             wires=[
-                Wire(from_=WireEndpoint(tool="A", socket="output"), to=WireEndpoint(tool="B", socket="input")),
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="B", socket="input"),
+                ),
             ],
         )
 

@@ -66,7 +66,10 @@ class ConnectionStore:
         """
         self._storage_path = Path(storage_path or settings.connection_store_path)
         # Only fall back to settings if encryption_key is None (not empty string)
-        self._encryption_key = encryption_key if encryption_key is not None else settings.connection_encryption_key
+        if encryption_key is not None:
+            self._encryption_key = encryption_key
+        else:
+            self._encryption_key = settings.connection_encryption_key
         self._fernet: Fernet | None = None
         self._connections: dict[str, StoredConnection] = {}
 
@@ -307,8 +310,12 @@ class ConnectionStore:
         # Update credentials if provided
         if input.username is not None or input.password is not None:
             current_creds = self._decrypt_credentials(conn.encrypted_credentials)
-            new_username = input.username if input.username is not None else current_creds["username"]
-            new_password = input.password if input.password is not None else current_creds["password"]
+            new_username = (
+                input.username if input.username is not None else current_creds["username"]
+            )
+            new_password = (
+                input.password if input.password is not None else current_creds["password"]
+            )
             conn.encrypted_credentials = self._encrypt_credentials(new_username, new_password)
 
         conn.updated_at = datetime.utcnow()

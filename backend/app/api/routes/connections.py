@@ -107,7 +107,8 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
     if not store.is_enabled:
         raise HTTPException(
             status_code=503,
-            detail="Server connections not enabled. Set CONNECTION_ENCRYPTION_KEY environment variable.",
+            detail="Server connections not enabled. "
+            "Set CONNECTION_ENCRYPTION_KEY environment variable.",
         )
 
     try:
@@ -142,7 +143,9 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
 
 
 @router.put("/{connection_id}", response_model=ConnectionInfoResponse)
-async def update_connection(connection_id: str, request: UpdateConnectionRequest) -> ConnectionInfoResponse:
+async def update_connection(
+    connection_id: str, request: UpdateConnectionRequest
+) -> ConnectionInfoResponse:
     """
     Update an existing connection.
 
@@ -154,7 +157,8 @@ async def update_connection(connection_id: str, request: UpdateConnectionRequest
     if not store.is_enabled:
         raise HTTPException(
             status_code=503,
-            detail="Server connections not enabled. Set CONNECTION_ENCRYPTION_KEY environment variable.",
+            detail="Server connections not enabled. "
+            "Set CONNECTION_ENCRYPTION_KEY environment variable.",
         )
 
     try:
@@ -219,7 +223,8 @@ async def test_connection(connection_id: str) -> ConnectionTestResult:
     if not store.is_enabled:
         raise HTTPException(
             status_code=503,
-            detail="Server connections not enabled. Set CONNECTION_ENCRYPTION_KEY environment variable.",
+            detail="Server connections not enabled. "
+            "Set CONNECTION_ENCRYPTION_KEY environment variable.",
         )
 
     resolved = store.resolve_connection(connection_id)

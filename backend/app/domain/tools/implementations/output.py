@@ -491,7 +491,11 @@ class OutputTool(BaseTool):
         # Validate JSON mode
         if output_type == "json":
             destination = config.get("destination", "")
-            is_ndjson = Path(destination).suffix.lower() in {".jsonl", ".ndjson"} if destination else False
+            is_ndjson = (
+                Path(destination).suffix.lower() in {".jsonl", ".ndjson"}
+                if destination
+                else False
+            )
             mode = config.get("jsonMode", "write")
 
             if is_ndjson:

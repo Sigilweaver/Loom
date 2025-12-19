@@ -129,7 +129,9 @@ class TestLineageHash:
 
         assert hash1 == hash2
 
-    def test_compute_lineage_hash_changes_with_upstream(self, cache_settings, sample_tool, sample_plan):
+    def test_compute_lineage_hash_changes_with_upstream(
+        self, cache_settings, sample_tool, sample_plan
+    ):
         """Test that hash changes when upstream changes."""
         mgr = CacheManager("test-workflow")
 

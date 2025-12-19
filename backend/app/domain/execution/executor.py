@@ -131,7 +131,9 @@ class WorkflowExecutor:
         force_refresh: bool = False,
     ) -> dict[str, Any]:
         """Execute entire workflow and return preview data for ALL tools."""
-        await self.execute_workflow(workflow, preview_limit=preview_limit, force_refresh=force_refresh)
+        await self.execute_workflow(
+            workflow, preview_limit=preview_limit, force_refresh=force_refresh
+        )
 
         all_results = {}
         for tool_id, tool_outputs in self.results.items():
@@ -178,7 +180,11 @@ class WorkflowExecutor:
         if socket_key not in output_schemas:
             raise ExecutionError(f"Socket {socket_id} not found in tool {tool_id} output schemas")
 
-        return {"tool_id": tool_id, "socket_id": socket_id, "data_schema": output_schemas[socket_key]}
+        return {
+            "tool_id": tool_id,
+            "socket_id": socket_id,
+            "data_schema": output_schemas[socket_key],
+        }
 
     async def get_tool_metadata(
         self,
@@ -201,7 +207,10 @@ class WorkflowExecutor:
 
         # Get input schemas grouped by socket
         tool_inputs = plan.get_inputs(tool_id)
-        sockets_to_process = {socket_id: tool_inputs.get(socket_id, [])} if socket_id else tool_inputs
+        if socket_id:
+            sockets_to_process = {socket_id: tool_inputs.get(socket_id, [])}
+        else:
+            sockets_to_process = tool_inputs
 
         inputs_metadata: dict[str, list[dict[str, Any]]] = {}
         for sid, source_list in sockets_to_process.items():
@@ -211,7 +220,11 @@ class WorkflowExecutor:
                     lf = self.results[source_tool_id][source_socket_id]
                     schema = schema_from_polars(lf)
                     for col in schema.columns:
-                        col_info = {"name": col.name, "dtype": col.dtype.value, "nullable": col.nullable}
+                        col_info = {
+                            "name": col.name,
+                            "dtype": col.dtype.value,
+                            "nullable": col.nullable,
+                        }
                         if col_info not in socket_columns:
                             socket_columns.append(col_info)
             inputs_metadata[sid] = socket_columns
@@ -301,13 +314,18 @@ class WorkflowExecutor:
             if len(source_list) == 1:
                 source_tool_id, source_socket_id = source_list[0]
                 if source_tool_id not in self.results:
-                    raise ExecutionError(f"Tool {tool_id} depends on {source_tool_id} but it hasn't been executed")
+                    raise ExecutionError(
+                        f"Tool {tool_id} depends on {source_tool_id} but it hasn't been executed"
+                    )
                 inputs[socket_id] = self.results[source_tool_id][source_socket_id]
             elif len(source_list) > 1:
                 frames = []
                 for source_tool_id, source_socket_id in source_list:
                     if source_tool_id not in self.results:
-                        raise ExecutionError(f"Tool {tool_id} depends on {source_tool_id} but it hasn't been executed")
+                        raise ExecutionError(
+                            f"Tool {tool_id} depends on {source_tool_id} "
+                            "but it hasn't been executed"
+                        )
                     frames.append(self.results[source_tool_id][source_socket_id])
                 inputs[socket_id] = frames
 
@@ -340,7 +358,9 @@ class WorkflowExecutor:
 
         return input_schemas
 
-    def _format_results(self, target_tool_id: str, preview_limit: int | None = None) -> dict[str, Any]:
+    def _format_results(
+        self, target_tool_id: str, preview_limit: int | None = None
+    ) -> dict[str, Any]:
         """Format execution results for API response."""
         if target_tool_id not in self.results:
             raise ExecutionError(f"Tool {target_tool_id} was not executed")
