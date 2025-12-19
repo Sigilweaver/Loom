@@ -5,8 +5,7 @@ import {
   Wire,
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
-import { useMetadata } from "../api/hooks";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { useToolConfiguration } from "../hooks/useToolConfiguration";
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
 import { isNumericPolarsType } from "../data/polarsTypes";
@@ -257,29 +256,18 @@ export function SummarizeConfiguration({
   wires,
   workflowMeta,
 }: SummarizeConfigurationProps) {
-  const { columns, fetchMetadata, loading } = useMetadata();
+  // Unified configuration hook - handles metadata and connections
+  const { columns, loading, hasInput } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
-
-  // Track wire connections to this tool
-  const wireConnections = useMemo(() => {
-    return wires
-      .filter((w) => w.to.tool === toolId)
-      .map((w) => `${w.from.tool}-${w.from.socket}`)
-      .sort()
-      .join(",");
-  }, [wires, toolId]);
-
-  // Fetch metadata when component mounts or connections change
-  useEffect(() => {
-    const { tools: upstreamTools, wires: upstreamWires } =
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(
-      upstreamTools,
-      upstreamWires,
-      workflowMeta
-    );
-    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
-  }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata
   const inputColumns: ColumnSchema[] = columns;
@@ -436,9 +424,6 @@ export function SummarizeConfiguration({
     },
     [columnMap]
   );
-
-  // Check if we have any input
-  const hasInput = wireConnections.length > 0;
 
   // State for dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

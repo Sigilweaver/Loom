@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ToolConfig,
   Tool,
   Wire,
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
-import { useMetadata } from "../api/hooks";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { useMultiSocketConfiguration } from "../hooks/useToolConfiguration";
 import { filterCompatibleColumns } from "@domain/workflow/services/typeCompatibility";
 import { JoinSockets } from "@domain/workflow/constants/socketIds";
 import clsx from "clsx";
@@ -37,63 +36,29 @@ export function JoinConfiguration({
   wires,
   workflowMeta,
 }: JoinConfigurationProps) {
-  // Separate metadata hooks for left and right inputs
-  const {
-    columns: leftColumns,
-    fetchMetadata: fetchLeftMetadata,
-    loading: leftLoading,
-  } = useMetadata();
-  const {
-    columns: rightColumns,
-    fetchMetadata: fetchRightMetadata,
-    loading: rightLoading,
-  } = useMetadata();
+  // Multi-socket configuration hook for left and right inputs
+  const socketMetadata = useMultiSocketConfiguration({
+    toolId,
+    sockets: [
+      { id: JoinSockets.INPUT_LEFT, name: "left" },
+      { id: JoinSockets.INPUT_RIGHT, name: "right" },
+    ],
+    tools,
+    wires,
+    workflowMeta,
+  });
+
+  const leftColumns = socketMetadata.left?.columns ?? [];
+  const rightColumns = socketMetadata.right?.columns ?? [];
+  const leftLoading = socketMetadata.left?.loading ?? false;
+  const rightLoading = socketMetadata.right?.loading ?? false;
+  const hasLeftInput = socketMetadata.left?.hasInput ?? false;
+  const hasRightInput = socketMetadata.right?.hasInput ?? false;
 
   // Local state for suffix editing
   const [localRightSuffix, setLocalRightSuffix] = useState<string>(
     (config.rightSuffix as string) || "_right"
   );
-
-  // Track wire connections to this tool's specific sockets
-  const leftWireConnection = useMemo(() => {
-    const wire = wires.find(
-      (w) => w.to.tool === toolId && w.to.socket === JoinSockets.INPUT_LEFT
-    );
-    return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
-  }, [wires, toolId]);
-
-  const rightWireConnection = useMemo(() => {
-    const wire = wires.find(
-      (w) => w.to.tool === toolId && w.to.socket === JoinSockets.INPUT_RIGHT
-    );
-    return wire ? `${wire.from.tool}-${wire.from.socket}` : "";
-  }, [wires, toolId]);
-
-  // Fetch metadata for left input when connection changes
-  useEffect(() => {
-    if (!leftWireConnection) return;
-    const { tools: upstreamTools, wires: upstreamWires } =
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(
-      upstreamTools,
-      upstreamWires,
-      workflowMeta
-    );
-    fetchLeftMetadata(toolId, JSON.parse(workflow), JoinSockets.INPUT_LEFT);
-  }, [toolId, leftWireConnection, fetchLeftMetadata, tools, wires, workflowMeta]);
-
-  // Fetch metadata for right input when connection changes
-  useEffect(() => {
-    if (!rightWireConnection) return;
-    const { tools: upstreamTools, wires: upstreamWires } =
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(
-      upstreamTools,
-      upstreamWires,
-      workflowMeta
-    );
-    fetchRightMetadata(toolId, JSON.parse(workflow), JoinSockets.INPUT_RIGHT);
-  }, [toolId, rightWireConnection, fetchRightMetadata, tools, wires, workflowMeta]);
 
   // Get current keys from config
   const leftKeys = parseKeys(config, "leftKeys");
@@ -173,10 +138,6 @@ export function JoinConfiguration({
   // A row is "complete" when both left and right are populated
   const populatedPairCount = Math.max(leftKeys.length, rightKeys.length);
   const keyPairCount = populatedPairCount + 1; // Always show one blank row at the end
-
-  // Check if inputs are connected
-  const hasLeftInput = !!leftWireConnection;
-  const hasRightInput = !!rightWireConnection;
 
   // Determine if this is a cross join (no keys selected with both inputs connected)
   const hasValidKeys = leftKeys.length > 0 && rightKeys.length > 0 && 

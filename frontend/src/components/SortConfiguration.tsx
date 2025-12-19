@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ToolConfig,
   Tool,
   Wire,
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
-import { useMetadata } from "../api/hooks";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { useToolConfiguration } from "../hooks/useToolConfiguration";
 import { ColumnSchema } from "../api/backend";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
@@ -95,28 +94,16 @@ export function SortConfiguration({
   wires,
   workflowMeta,
 }: SortConfigurationProps) {
-  const { columns, fetchMetadata, loading } = useMetadata();
-
-  // Track wire connections to this tool
-  const wireConnections = useMemo(() => {
-    return wires
-      .filter((w) => w.to.tool === toolId)
-      .map((w) => `${w.from.tool}-${w.from.socket}`)
-      .sort()
-      .join(",");
-  }, [wires, toolId]);
-
-  // Fetch metadata when component mounts or connections change
-  useEffect(() => {
-    const { tools: upstreamTools, wires: upstreamWires } =
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(
-      upstreamTools,
-      upstreamWires,
-      workflowMeta
-    );
-    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
-  }, [toolId, wireConnections, fetchMetadata]);
+  // Unified configuration hook - handles metadata and connections
+  const { columns, loading, hasInput } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
 
   // Get input columns from metadata
   const inputColumns: ColumnSchema[] = columns;
@@ -225,9 +212,6 @@ export function SortConfiguration({
     },
     [config, onChange]
   );
-
-  // Check if we have any input
-  const hasInput = wireConnections.length > 0;
 
   // Count active sorts
   const activeSortCount = sortColumnsMap.size;

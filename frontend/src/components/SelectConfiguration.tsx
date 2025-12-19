@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ToolConfig,
   Tool,
   Wire,
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
-import { useMetadata } from "../api/hooks";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { useToolConfiguration } from "../hooks/useToolConfiguration";
 import { ColumnSchema } from "../api/backend";
 import clsx from "clsx";
 import { POLARS_TYPES_MAP, CASTABLE_TYPES_BY_UI_GROUP } from "../data/polarsTypes";
@@ -90,27 +89,19 @@ export function SelectConfiguration({
   wires,
   workflowMeta,
 }: SelectConfigurationProps) {
-  const { columns, fetchMetadata, loading } = useMetadata();
+  // Unified configuration hook - handles metadata and connections
+  const { columns, loading, hasInput } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Track wire connections to this tool
-  const wireConnections = useMemo(() => {
-    return wires
-      .filter((w) => w.to.tool === toolId)
-      .map((w) => `${w.from.tool}-${w.from.socket}`)
-      .sort()
-      .join(",");
-  }, [wires, toolId]);
-
-  // Fetch metadata when component mounts or connections change
-  // Use upstream subgraph only to avoid errors from downstream tools
-  useEffect(() => {
-    const { tools: upstreamTools, wires: upstreamWires } = 
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow), CommonSockets.INPUT);
-  }, [toolId, wireConnections, fetchMetadata]);
 
   // Get input columns from metadata
   const inputColumns: ColumnSchema[] = columns;
@@ -351,9 +342,6 @@ export function SelectConfiguration({
     filteredConfigs.length > 0 && filteredConfigs.every((c) => c.selected);
   const someSelected = filteredConfigs.some((c) => c.selected);
   const isIndeterminate = someSelected && !allSelected;
-
-  // Check if we have any input
-  const hasInput = wireConnections.length > 0;
 
   if (!hasInput) {
     return (
