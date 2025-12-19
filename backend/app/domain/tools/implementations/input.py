@@ -68,7 +68,7 @@ class InputTool(BaseTool):
 
         # Use LoaderFactory to get appropriate loader and load data
         loader = LoaderFactory.create(source_type)
-        
+
         # Database loaders expect the source (URI) as first argument
         if LoaderFactory.is_database_type(source_type):
             lf = await loader.load(source, config)
@@ -114,7 +114,7 @@ class InputTool(BaseTool):
         if source_type and not LoaderFactory.is_supported(source_type):
             supported = ", ".join(LoaderFactory.list_supported_types())
             errors.append(f"Unsupported source type: {source_type}. Supported: {supported}")
-        
+
         # For database types, source is required (the resolved connection URI)
         # This will be resolved by the frontend before execution
         category = config.get("category")
@@ -155,23 +155,23 @@ class InputTool(BaseTool):
             query = config.get("query", "")
             owner = config.get("owner", "client")
             connection_name = config.get("connectionName", "database")
-            
+
             # Build sanitized URI placeholder based on database type
             db_type = source_type if source_type else "postgresql"
-            
+
             lines = [
                 f"# Database query from {db_type}",
                 f"# Connection: {connection_name} (managed by {owner})",
-                f"#",
-                f"# SECURITY: Replace placeholder credentials before running",
-                f"# Never commit actual credentials to version control",
+                "#",
+                "# SECURITY: Replace placeholder credentials before running",
+                "# Never commit actual credentials to version control",
                 f'CONNECTION_URI = "{db_type}://user:password@host:port/database"',
-                f"",
+                "",
                 f"{var_name} = pl.read_database_uri(",
                 f'    query="""{query}""",',
-                f"    uri=CONNECTION_URI,",
-                f'    engine="connectorx",',
-                f").lazy()",
+                "    uri=CONNECTION_URI,",
+                '    engine="connectorx",',
+                ").lazy()",
             ]
             return (lines, {CommonSockets.OUTPUT: var_name})
 

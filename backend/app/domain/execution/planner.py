@@ -7,7 +7,7 @@ Separated from WorkflowExecutor to:
 3. Support execution plan caching
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterator
 
 from app.api.models.workflow import Tool, Workflow

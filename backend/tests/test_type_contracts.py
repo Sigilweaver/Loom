@@ -8,7 +8,6 @@ If these tests fail, it indicates a schema drift between
 frontend TypeScript types and backend Pydantic models.
 """
 
-import pytest
 
 from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 

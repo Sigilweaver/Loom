@@ -9,7 +9,6 @@ from app.domain.datasources.json import JSONDataSource
 from app.domain.tools.implementations.input import InputTool
 from app.domain.tools.implementations.output import OutputTool
 
-
 # -----------------------------------------------------------------------------
 # Fixtures
 # -----------------------------------------------------------------------------

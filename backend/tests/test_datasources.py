@@ -4,8 +4,8 @@
 import pytest
 
 from app.domain.datasources.csv import CSVDataSource
-from app.domain.datasources.json import JSONDataSource
 from app.domain.datasources.factory import DataSourceFactory
+from app.domain.datasources.json import JSONDataSource
 from app.utils.errors import DataSourceError
 
 

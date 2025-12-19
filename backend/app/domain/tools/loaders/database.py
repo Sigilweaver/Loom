@@ -9,8 +9,9 @@ The loader always produces eager DataFrames (converted to LazyFrames for consist
 since connectorx doesn't support lazy evaluation.
 """
 
-import polars as pl
 from typing import Any
+
+import polars as pl
 
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
@@ -30,7 +31,7 @@ class DatabaseLoader(FileLoader):
     - SQLite: sqlite:///path/to/database.db
     - SQL Server: mssql://user:password@host:port/database?encrypt=true&trust_server_certificate=true
     """
-    
+
     def __init__(self, database_type: str = "postgresql"):
         """
         Initialize database loader.
@@ -39,7 +40,7 @@ class DatabaseLoader(FileLoader):
             database_type: Type of database (postgresql, mysql, etc.)
         """
         self.database_type = database_type
-    
+
     async def load(
         self,
         source: str,
@@ -62,11 +63,11 @@ class DatabaseLoader(FileLoader):
         query = config.get("query")
         if not query:
             raise ToolError("SQL query is required for database loading")
-        
+
         query = query.strip()
         if not query:
             raise ToolError("SQL query cannot be empty")
-        
+
         try:
             # read_database_uri returns a DataFrame (eager)
             # We convert to LazyFrame for consistency with the rest of the system
@@ -76,10 +77,10 @@ class DatabaseLoader(FileLoader):
                 engine="connectorx",
             )
             return df.lazy()
-            
+
         except Exception as e:
             error_msg = str(e)
-            
+
             # Provide more helpful error messages for common issues
             if "connection refused" in error_msg.lower():
                 raise ToolError(
@@ -93,13 +94,13 @@ class DatabaseLoader(FileLoader):
                 )
             elif "does not exist" in error_msg.lower() and "database" in error_msg.lower():
                 raise ToolError(
-                    f"Database does not exist. Please verify the database name."
+                    "Database does not exist. Please verify the database name."
                 )
             elif "syntax error" in error_msg.lower():
                 raise ToolError(f"SQL syntax error: {error_msg}")
             else:
                 raise ToolError(f"Database query failed: {error_msg}")
-    
+
     async def load_eager(
         self,
         source: str,
@@ -153,19 +154,19 @@ class DatabaseLoader(FileLoader):
             List of Python code lines
         """
         query = config.get("query", "SELECT 1")
-        
+
         # Escape the query for multi-line string
         escaped_query = query.replace('"""', '\\"\\"\\"')
-        
+
         lines = [
             f"# Database query from {self.database_type}",
-            f"# NOTE: Replace CONNECTION_URI with your actual connection string",
+            "# NOTE: Replace CONNECTION_URI with your actual connection string",
             f'CONNECTION_URI = "{self.database_type}://user:password@host:port/database"',
             f"{var_name} = pl.read_database_uri(",
             f'    query="""{escaped_query}""",',
-            f"    uri=CONNECTION_URI,",
-            f'    engine="connectorx",',
-            f").lazy()",
+            "    uri=CONNECTION_URI,",
+            '    engine="connectorx",',
+            ").lazy()",
         ]
-        
+
         return lines

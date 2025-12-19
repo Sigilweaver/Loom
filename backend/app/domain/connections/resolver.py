@@ -8,7 +8,6 @@ Future: Add RBAC checks here (can this user access this connection?).
 """
 
 import logging
-from typing import Any
 
 from app.api.models.workflow import Tool, Workflow
 from app.domain.connections.store import ConnectionStore, get_connection_store
@@ -65,17 +64,17 @@ class ConnectionResolver:
         """
         # Find all database tools that need server connection resolution
         server_connections = self._find_server_connections(workflow)
-        
+
         if not server_connections:
             # No server connections to resolve
             return workflow
-        
+
         # Validate all connections exist before modifying anything (fail-fast)
         self._validate_connections_exist(server_connections)
-        
+
         # Future: Add RBAC authorization check here
         # self._authorize_connections(server_connections, user)
-        
+
         # Resolve all connections
         resolved_tools = []
         for tool in workflow.tools:
@@ -84,7 +83,7 @@ class ConnectionResolver:
                 resolved_tools.append(resolved_tool)
             else:
                 resolved_tools.append(tool)
-        
+
         # Return new workflow with resolved tools
         return Workflow(
             meta=workflow.meta,
@@ -100,13 +99,13 @@ class ConnectionResolver:
             Dict of tool_id -> connection_id for server-owned database tools
         """
         server_connections: dict[str, str] = {}
-        
+
         for tool in workflow.tools:
             if self._is_server_database_tool(tool):
                 connection_id = tool.config.get("connectionId")
                 if connection_id:
                     server_connections[tool.id] = connection_id
-                    
+
         return server_connections
 
     def _is_server_database_tool(self, tool: Tool) -> bool:
@@ -131,13 +130,13 @@ class ConnectionResolver:
         """
         if not server_connections:
             return
-            
+
         if not self.store.is_enabled:
             raise ExecutionError(
                 "Server connection store not enabled. "
                 "Set CONNECTION_ENCRYPTION_KEY environment variable."
             )
-        
+
         for tool_id, connection_id in server_connections.items():
             if not self.store.has_connection(connection_id):
                 raise ExecutionError(
@@ -152,19 +151,19 @@ class ConnectionResolver:
             New Tool with resolved connection URI in config
         """
         connection_id = tool.config.get("connectionId")
-        
+
         uri = self.store.build_connection_uri(connection_id)
         if not uri:
             raise ExecutionError(
                 f"Tool {tool.id}: Failed to build URI for connection '{connection_id}'"
             )
-        
+
         # Create new config with source URI
         new_config = dict(tool.config)
         new_config["source"] = uri
-        
+
         logger.info(f"Tool {tool.id}: Resolved server connection '{connection_id}'")
-        
+
         # Return new Tool with updated config
         return Tool(
             id=tool.id,
@@ -190,11 +189,11 @@ class ConnectionResolver:
                 continue
             if tool.config.get("category") != "database":
                 continue
-                
+
             owner = tool.config.get("owner", "client")
             connection_id = tool.config.get("connectionId")
             source = tool.config.get("source")
-            
+
             # Client-owned with connectionId but no source = error
             if owner == "client" and connection_id and not source:
                 raise ExecutionError(

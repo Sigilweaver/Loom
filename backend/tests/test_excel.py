@@ -8,7 +8,6 @@ import pytest
 from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.tools.implementations.input import InputTool
-from app.utils.errors import DataSourceError
 
 
 @pytest.fixture

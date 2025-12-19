@@ -97,7 +97,7 @@ async def execute_workflow(
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
         resolver.validate_client_connections(resolved_workflow)
-        
+
         executor = WorkflowExecutor()
         result = await executor.execute_workflow(
             workflow=resolved_workflow,
@@ -137,7 +137,7 @@ async def execute_tool(
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
         resolver.validate_client_connections(resolved_workflow)
-        
+
         executor = WorkflowExecutor()
         result = await executor.execute_single_tool(
             workflow=resolved_workflow,
@@ -176,7 +176,7 @@ async def get_tool_schema(
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
         resolver.validate_client_connections(resolved_workflow)
-        
+
         executor = WorkflowExecutor()
         result = await executor.get_tool_schema(
             workflow=resolved_workflow,
@@ -212,7 +212,7 @@ async def get_tool_metadata(
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
         resolver.validate_client_connections(resolved_workflow)
-        
+
         executor = WorkflowExecutor()
         result = await executor.get_tool_metadata(
             workflow=resolved_workflow,
@@ -263,7 +263,7 @@ async def preview_all_tools(
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
         resolver.validate_client_connections(resolved_workflow)
-        
+
         executor = WorkflowExecutor()
         result = await executor.preview_all_tools(
             workflow=resolved_workflow,
@@ -337,6 +337,7 @@ async def clear_workflow_cache(request: ClearCacheRequest) -> ClearCacheResponse
     Useful when you want to force re-execution of all tools.
     """
     from pathlib import Path
+
     from app.domain.execution.cache import BlockingToolCache
 
     try:

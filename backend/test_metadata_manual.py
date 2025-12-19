@@ -1,6 +1,7 @@
 """Manual test script for metadata endpoint"""
 
 import json
+
 import requests
 
 # Create a simple workflow with Input -> Filter
@@ -53,20 +54,20 @@ response = requests.post(
 )
 
 print(f"Status: {response.status_code}")
-print(f"\nResponse:")
+print("\nResponse:")
 data = response.json()
 print(json.dumps(data, indent=2))
 
-print(f"\n\nSummary:")
+print("\n\nSummary:")
 print(f"- Tool ID: {data['tool_id']}")
 print(f"- Columns: {len(data['columns'])}")
 print(f"- Polars Functions: {len(data['polars_functions'])}")
 
-print(f"\n\nAvailable columns:")
+print("\n\nAvailable columns:")
 for col in data['columns']:
     print(f"  - {col['name']} ({col['dtype']})")
 
-print(f"\n\nSample Polars functions:")
+print("\n\nSample Polars functions:")
 for fn in data['polars_functions'][:5]:
     print(f"  - {fn['name']}: {fn['description']}")
     print(f"    Snippet: {fn['snippet']}")

@@ -311,7 +311,7 @@ class TestJoinToolOutputSchema:
         assert "id_right" in matched_col_names
         # Total: 3 left + 3 right = 6 columns
         assert len(matched_col_names) == 6
-        
+
         # Unmatched outputs should be empty for cross join
         assert len(result["output-left"].columns) == 0
         assert len(result["output-right"].columns) == 0
