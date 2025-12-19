@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import {
   ToolConfig,
   Tool,
@@ -135,6 +135,109 @@ function columnActionsToConfig(actions: ColumnAction[]): { groupByColumns: strin
 
   return { groupByColumns, aggregations };
 }
+
+/**
+ * Props for the ActionRow component
+ */
+interface ActionRowProps {
+  action: ColumnAction;
+  index: number;
+  availableActions: ActionInfo[];
+  onUpdateAction: (index: number, updates: Partial<ColumnAction>) => void;
+  onRemoveAction: (index: number) => void;
+}
+
+/**
+ * Memoized row component with local state for output name input
+ * This prevents cursor jumping by maintaining local state during typing
+ */
+const ActionRow = memo(function ActionRow({
+  action,
+  index,
+  availableActions,
+  onUpdateAction,
+  onRemoveAction,
+}: ActionRowProps) {
+  const [localOutputName, setLocalOutputName] = useState(action.outputName);
+
+  // Sync local state when prop changes from outside (e.g., action type change)
+  useEffect(() => {
+    setLocalOutputName(action.outputName);
+  }, [action.outputName]);
+
+  const handleOutputNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalOutputName(e.target.value);
+  }, []);
+
+  const handleOutputNameBlur = useCallback(() => {
+    if (localOutputName !== action.outputName) {
+      onUpdateAction(index, { outputName: localOutputName });
+    }
+  }, [localOutputName, action.outputName, index, onUpdateAction]);
+
+  const handleActionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onUpdateAction(index, { action: e.target.value });
+  }, [index, onUpdateAction]);
+
+  const handleRemove = useCallback(() => {
+    onRemoveAction(index);
+  }, [index, onRemoveAction]);
+
+  return (
+    <div
+      className="px-4 py-2 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 items-center hover:bg-theme-surface-hover"
+    >
+      {/* Column Name */}
+      <div className="text-sm truncate text-theme-text-primary" title={action.column}>
+        {action.column}
+      </div>
+
+      {/* Action Dropdown */}
+      <select
+        value={action.action}
+        onChange={handleActionChange}
+        className={clsx(
+          "w-full px-2 py-1 text-xs rounded border appearance-none",
+          "bg-theme-surface-panel border-theme-border-primary",
+          "text-theme-text-primary",
+          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
+        )}
+      >
+        {availableActions.map((a: ActionInfo) => (
+          <option key={a.value} value={a.value}>
+            {a.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Output Name Input */}
+      <input
+        type="text"
+        value={localOutputName}
+        onChange={handleOutputNameChange}
+        onBlur={handleOutputNameBlur}
+        className={clsx(
+          "w-full px-2 py-1 text-xs rounded border",
+          "bg-theme-surface-panel border-theme-border-primary",
+          "text-theme-text-primary",
+          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
+        )}
+      />
+
+      {/* Remove Button */}
+      <button
+        type="button"
+        onClick={handleRemove}
+        className="flex justify-center p-1 text-xs text-theme-text-tertiary hover:text-red-400"
+        title="Remove"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+        </svg>
+      </button>
+    </div>
+  );
+});
 
 interface SummarizeConfigurationProps {
   config: ToolConfig;
@@ -438,7 +541,7 @@ export function SummarizeConfiguration({
                         className="w-4 h-4 rounded border-theme-border-primary bg-theme-surface-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
                       />
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center min-w-0 gap-2">
                       <span
                         className={clsx(
                           "text-sm truncate",
@@ -545,63 +648,15 @@ export function SummarizeConfiguration({
               {columnActions.map((action: ColumnAction, index: number) => {
                 const availableActions = getActionsForColumn(action.column);
 
-                  return (
-                  <div
+                return (
+                  <ActionRow
                     key={`${action.column}-${index}`}
-                    className="px-4 py-2 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 items-center hover:bg-theme-surface-hover"
-                  >
-                    {/* Column Name */}
-                    <div className="text-sm truncate text-theme-text-primary" title={action.column}>
-                      {action.column}
-                    </div>
-
-                    {/* Action Dropdown */}
-                    <select
-                      value={action.action}
-                      onChange={(e) =>
-                        updateAction(index, { action: e.target.value })
-                      }
-                      className={clsx(
-                        "w-full px-2 py-1 text-xs rounded border appearance-none",
-                        "bg-theme-surface-panel border-theme-border-primary",
-                        "text-theme-text-primary",
-                        "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
-                      )}
-                    >
-                      {availableActions.map((a: ActionInfo) => (
-                        <option key={a.value} value={a.value}>
-                          {a.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Output Name Input */}
-                    <input
-                      type="text"
-                      value={action.outputName}
-                      onChange={(e) =>
-                        updateAction(index, { outputName: e.target.value })
-                      }
-                      className={clsx(
-                        "w-full px-2 py-1 text-xs rounded border",
-                        "bg-theme-surface-panel border-theme-border-primary",
-                        "text-theme-text-primary",
-                        "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
-                      )}
-                    />
-
-                    {/* Remove Button */}
-                    <button
-                      type="button"
-                      onClick={() => removeAction(index)}
-                      className="p-1 text-xs text-theme-text-tertiary hover:text-red-400 flex justify-center"
-                      title="Remove"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                      </svg>
-                    </button>
-                  </div>
+                    action={action}
+                    index={index}
+                    availableActions={availableActions}
+                    onUpdateAction={updateAction}
+                    onRemoveAction={removeAction}
+                  />
                 );
               })}
             </div>
