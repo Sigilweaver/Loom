@@ -343,3 +343,234 @@ class TestToolCachingBehavior:
         tool = FormulaTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({}) is False
+
+
+class TestCacheEviction:
+    """Tests for cache eviction strategies."""
+
+    def test_invalidate_stale_removes_old_keys(self, cache, sample_lazyframe):
+        """Test that invalidate_stale removes files with different keys."""
+        # Cache with old key
+        cache.put("sort-1", "output", "old_key_123", sample_lazyframe)
+        assert cache.exists("sort-1", "output", "old_key_123")
+
+        # Invalidate stale with new key
+        removed = cache.invalidate_stale("sort-1", "new_key_456")
+        assert removed == 1
+        assert not cache.exists("sort-1", "output", "old_key_123")
+
+    def test_invalidate_stale_keeps_current_key(self, cache, sample_lazyframe):
+        """Test that invalidate_stale keeps files matching current key."""
+        # Cache with current key
+        cache.put("sort-1", "output", "current_key", sample_lazyframe)
+        assert cache.exists("sort-1", "output", "current_key")
+
+        # Invalidate stale with same key
+        removed = cache.invalidate_stale("sort-1", "current_key")
+        assert removed == 0
+        assert cache.exists("sort-1", "output", "current_key")
+
+    def test_invalidate_stale_only_affects_target_tool(self, cache, sample_lazyframe):
+        """Test that invalidate_stale only affects the specified tool."""
+        # Cache for two different tools
+        cache.put("sort-1", "output", "old_key", sample_lazyframe)
+        cache.put("sort-2", "output", "old_key", sample_lazyframe)
+
+        # Invalidate stale for sort-1 only
+        removed = cache.invalidate_stale("sort-1", "new_key")
+        assert removed == 1
+        assert not cache.exists("sort-1", "output", "old_key")
+        assert cache.exists("sort-2", "output", "old_key")
+
+    def test_invalidate_stale_handles_multiple_sockets(self, cache, sample_lazyframe):
+        """Test that invalidate_stale handles tools with multiple output sockets."""
+        # Cache multiple sockets for same tool with old key
+        cache.put("join-1", "left", "old_key", sample_lazyframe)
+        cache.put("join-1", "match", "old_key", sample_lazyframe)
+        cache.put("join-1", "right", "old_key", sample_lazyframe)
+
+        # Invalidate stale
+        removed = cache.invalidate_stale("join-1", "new_key")
+        assert removed == 3
+
+    def test_invalidate_stale_empty_cache(self, cache):
+        """Test that invalidate_stale handles empty cache gracefully."""
+        removed = cache.invalidate_stale("nonexistent", "key")
+        assert removed == 0
+
+
+class TestTTLCleanup:
+    """Tests for TTL-based cache cleanup."""
+
+    def test_cleanup_old_cache_files_removes_expired(self, temp_cache_dir, sample_lazyframe):
+        """Test that cleanup removes files older than retention period."""
+        import time
+        from app.domain.execution.cache import cleanup_old_cache_files
+
+        # Create a workflow cache with old file
+        cache = BlockingToolCache(temp_cache_dir, "old-workflow")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        # Manually set old mtime (8 days ago)
+        cache_file = cache.cache_path("sort-1", "output", "abc123")
+        old_time = time.time() - (8 * 86400)
+        import os
+        os.utime(cache_file, (old_time, old_time))
+
+        # Cleanup with 7 day retention
+        deleted = cleanup_old_cache_files(temp_cache_dir, 7)
+        assert deleted == 1
+        assert not cache.exists("sort-1", "output", "abc123")
+
+    def test_cleanup_old_cache_files_keeps_recent(self, temp_cache_dir, sample_lazyframe):
+        """Test that cleanup keeps files newer than retention period."""
+        from app.domain.execution.cache import cleanup_old_cache_files
+
+        # Create a workflow cache with recent file
+        cache = BlockingToolCache(temp_cache_dir, "recent-workflow")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        # Cleanup with 7 day retention (file is just created, should be kept)
+        deleted = cleanup_old_cache_files(temp_cache_dir, 7)
+        assert deleted == 0
+        assert cache.exists("sort-1", "output", "abc123")
+
+    def test_cleanup_old_cache_files_zero_retention(self, temp_cache_dir, sample_lazyframe):
+        """Test that cleanup with 0 retention does nothing."""
+        from app.domain.execution.cache import cleanup_old_cache_files
+
+        cache = BlockingToolCache(temp_cache_dir, "workflow")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        deleted = cleanup_old_cache_files(temp_cache_dir, 0)
+        assert deleted == 0
+        assert cache.exists("sort-1", "output", "abc123")
+
+    def test_cleanup_old_cache_files_removes_empty_dirs(self, temp_cache_dir, sample_lazyframe):
+        """Test that cleanup removes empty workflow directories."""
+        import time
+        import os
+        from app.domain.execution.cache import cleanup_old_cache_files
+
+        cache = BlockingToolCache(temp_cache_dir, "to-be-empty")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        # Make file old
+        cache_file = cache.cache_path("sort-1", "output", "abc123")
+        old_time = time.time() - (8 * 86400)
+        os.utime(cache_file, (old_time, old_time))
+
+        # Cleanup
+        cleanup_old_cache_files(temp_cache_dir, 7)
+
+        # Directory should be removed
+        assert not cache.cache_dir.exists()
+
+
+class TestLRUEviction:
+    """Tests for LRU-based cache quota enforcement."""
+
+    def test_enforce_quota_evicts_when_over_limit(self, temp_cache_dir, sample_lazyframe):
+        """Test that enforce_quota evicts files when over limit."""
+        from app.domain.execution.cache import enforce_cache_quota
+
+        # Create multiple cache files
+        cache = BlockingToolCache(temp_cache_dir, "workflow")
+        for i in range(5):
+            cache.put(f"tool-{i}", "output", f"key{i}", sample_lazyframe)
+
+        # Get current size
+        files = list(cache.cache_dir.glob("*.parquet"))
+        total_size = sum(f.stat().st_size for f in files)
+
+        # Enforce a quota smaller than total size (half)
+        quota = total_size // 2
+        evicted = enforce_cache_quota(temp_cache_dir, quota)
+
+        # Some files should be evicted
+        assert evicted > 0
+
+        # Remaining size should be under quota
+        remaining_files = list(cache.cache_dir.glob("*.parquet"))
+        remaining_size = sum(f.stat().st_size for f in remaining_files)
+        assert remaining_size <= quota
+
+    def test_enforce_quota_no_eviction_when_under_limit(self, temp_cache_dir, sample_lazyframe):
+        """Test that enforce_quota does nothing when under limit."""
+        from app.domain.execution.cache import enforce_cache_quota
+
+        cache = BlockingToolCache(temp_cache_dir, "workflow")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        # Enforce a large quota (1GB)
+        evicted = enforce_cache_quota(temp_cache_dir, 1024**3)
+        assert evicted == 0
+        assert cache.exists("sort-1", "output", "abc123")
+
+    def test_enforce_quota_zero_means_unlimited(self, temp_cache_dir, sample_lazyframe):
+        """Test that quota of 0 means unlimited (no eviction)."""
+        from app.domain.execution.cache import enforce_cache_quota
+
+        cache = BlockingToolCache(temp_cache_dir, "workflow")
+        for i in range(5):
+            cache.put(f"tool-{i}", "output", f"key{i}", sample_lazyframe)
+
+        evicted = enforce_cache_quota(temp_cache_dir, 0)
+        assert evicted == 0
+
+
+class TestGlobalCacheStats:
+    """Tests for global cache statistics."""
+
+    def test_get_global_cache_stats_empty(self, temp_cache_dir):
+        """Test stats for empty cache directory."""
+        from app.domain.execution.cache import get_global_cache_stats
+
+        stats = get_global_cache_stats(temp_cache_dir)
+        assert stats["workflow_count"] == 0
+        assert stats["file_count"] == 0
+        assert stats["total_size_bytes"] == 0
+
+    def test_get_global_cache_stats_with_data(self, temp_cache_dir, sample_lazyframe):
+        """Test stats with multiple workflows."""
+        from app.domain.execution.cache import get_global_cache_stats
+
+        # Create caches for multiple workflows
+        cache1 = BlockingToolCache(temp_cache_dir, "workflow-1")
+        cache2 = BlockingToolCache(temp_cache_dir, "workflow-2")
+
+        cache1.put("sort-1", "output", "key1", sample_lazyframe)
+        cache1.put("sort-2", "output", "key2", sample_lazyframe)
+        cache2.put("sort-1", "output", "key1", sample_lazyframe)
+
+        stats = get_global_cache_stats(temp_cache_dir)
+        assert stats["workflow_count"] == 2
+        assert stats["file_count"] == 3
+        assert stats["total_size_bytes"] > 0
+
+    def test_get_global_cache_stats_nonexistent_dir(self, temp_cache_dir):
+        """Test stats for nonexistent directory."""
+        from app.domain.execution.cache import get_global_cache_stats
+
+        nonexistent = temp_cache_dir / "does_not_exist"
+        stats = get_global_cache_stats(nonexistent)
+        assert stats["workflow_count"] == 0
+
+
+class TestFileAccessTime:
+    """Tests for file access time helper."""
+
+    def test_get_file_access_time(self, temp_cache_dir, sample_lazyframe):
+        """Test that get_file_access_time returns a valid timestamp."""
+        from app.domain.execution.cache import get_file_access_time
+
+        cache = BlockingToolCache(temp_cache_dir, "workflow")
+        cache.put("sort-1", "output", "abc123", sample_lazyframe)
+
+        cache_file = cache.cache_path("sort-1", "output", "abc123")
+        access_time = get_file_access_time(cache_file)
+
+        assert access_time > 0
+        # Should be recent (within last minute)
+        import time
+        assert time.time() - access_time < 60

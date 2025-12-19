@@ -4,12 +4,35 @@ import hashlib
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 
 logger = logging.getLogger(__name__)
+
+
+def get_file_access_time(path: Path) -> float:
+    """
+    Get file access time, preferring atime but falling back to mtime.
+
+    Some filesystems disable atime for performance. This function tries
+    atime first, but if it equals mtime (common when atime is disabled),
+    falls back to mtime which is always reliable.
+
+    Args:
+        path: Path to the file
+
+    Returns:
+        Unix timestamp of last access/modification
+    """
+    stat = path.stat()
+    # If atime equals mtime, atime tracking is likely disabled
+    # In that case, mtime is more meaningful
+    if stat.st_atime == stat.st_mtime:
+        return stat.st_mtime
+    return stat.st_atime
 
 
 class BlockingToolCache:
@@ -227,3 +250,220 @@ class BlockingToolCache:
             "total_size_bytes": total_size,
             "total_size_mb": round(total_size / (1024 * 1024), 2),
         }
+
+    def invalidate_stale(self, tool_id: str, current_key: str) -> int:
+        """
+        Remove stale cache entries for a tool that don't match the current key.
+
+        When a tool's lineage changes (upstream config changed), old cache files
+        become stale. This method removes them to prevent unbounded disk growth.
+
+        Args:
+            tool_id: Tool identifier
+            current_key: The current valid lineage hash
+
+        Returns:
+            Number of stale files removed
+        """
+        if not self.cache_dir.exists():
+            return 0
+
+        count = 0
+        for path in self.cache_dir.glob(f"{tool_id}_*.parquet"):
+            # Filename format: {tool_id}_{safe_socket_id}_{key}.parquet
+            # The key is always the 16-char hash at the end before .parquet
+            # We check if the filename ends with _{current_key}.parquet
+            expected_suffix = f"_{current_key}.parquet"
+            if not path.name.endswith(expected_suffix):
+                try:
+                    path.unlink()
+                    count += 1
+                    logger.debug(f"Removed stale cache file: {path.name}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete stale cache file {path}: {e}")
+
+        if count:
+            logger.info(
+                f"Invalidated {count} stale cache entries for tool {tool_id}"
+            )
+        return count
+
+
+def cleanup_old_cache_files(cache_root: Path, retention_days: int) -> int:
+    """
+    Remove cache files older than the retention period.
+
+    This is a global cleanup function that runs across all workflow caches.
+    Should be called on application startup.
+
+    Args:
+        cache_root: Root directory containing all workflow cache directories
+        retention_days: Delete files older than this many days (0 = skip cleanup)
+
+    Returns:
+        Number of files deleted
+    """
+    if retention_days <= 0:
+        return 0
+
+    if not cache_root.exists():
+        return 0
+
+    cutoff = time.time() - (retention_days * 86400)
+    deleted = 0
+
+    try:
+        for workflow_dir in cache_root.iterdir():
+            if not workflow_dir.is_dir():
+                continue
+
+            # Check each parquet file in the workflow cache
+            for cache_file in workflow_dir.glob("*.parquet"):
+                try:
+                    if cache_file.stat().st_mtime < cutoff:
+                        cache_file.unlink()
+                        deleted += 1
+                        logger.debug(f"Removed expired cache file: {cache_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to check/delete cache file {cache_file}: {e}")
+
+            # Remove empty workflow directories
+            try:
+                if workflow_dir.exists() and not any(workflow_dir.iterdir()):
+                    workflow_dir.rmdir()
+                    logger.debug(f"Removed empty cache directory: {workflow_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to remove empty directory {workflow_dir}: {e}")
+
+    except Exception as e:
+        logger.error(f"Error during cache cleanup: {e}")
+
+    if deleted:
+        logger.info(f"TTL cleanup: removed {deleted} cache files older than {retention_days} days")
+
+    return deleted
+
+
+def enforce_cache_quota(cache_root: Path, max_size_bytes: int) -> int:
+    """
+    Enforce cache size quota using LRU eviction.
+
+    When total cache size exceeds the quota, removes least-recently-used
+    files until under the limit. Uses file access time (atime) if available,
+    falling back to modification time (mtime).
+
+    Args:
+        cache_root: Root directory containing all workflow cache directories
+        max_size_bytes: Maximum total cache size in bytes (0 = no limit)
+
+    Returns:
+        Number of files evicted
+    """
+    if max_size_bytes <= 0:
+        return 0
+
+    if not cache_root.exists():
+        return 0
+
+    # Collect all cache files with their size and access time
+    cache_files: list[tuple[Path, int, float]] = []  # (path, size, access_time)
+
+    try:
+        for workflow_dir in cache_root.iterdir():
+            if not workflow_dir.is_dir():
+                continue
+            for cache_file in workflow_dir.glob("*.parquet"):
+                try:
+                    stat = cache_file.stat()
+                    access_time = get_file_access_time(cache_file)
+                    cache_files.append((cache_file, stat.st_size, access_time))
+                except Exception as e:
+                    logger.warning(f"Failed to stat cache file {cache_file}: {e}")
+    except Exception as e:
+        logger.error(f"Error scanning cache files: {e}")
+        return 0
+
+    # Calculate total size
+    total_size = sum(size for _, size, _ in cache_files)
+
+    if total_size <= max_size_bytes:
+        return 0
+
+    # Sort by access time (oldest first = LRU)
+    cache_files.sort(key=lambda x: x[2])
+
+    evicted = 0
+    for path, size, _ in cache_files:
+        if total_size <= max_size_bytes:
+            break
+
+        try:
+            path.unlink()
+            total_size -= size
+            evicted += 1
+            logger.debug(f"LRU evicted cache file: {path}")
+        except Exception as e:
+            logger.warning(f"Failed to evict cache file {path}: {e}")
+
+    # Clean up empty directories
+    try:
+        for workflow_dir in cache_root.iterdir():
+            if workflow_dir.is_dir() and not any(workflow_dir.iterdir()):
+                workflow_dir.rmdir()
+                logger.debug(f"Removed empty cache directory: {workflow_dir}")
+    except Exception:
+        pass  # Best effort cleanup
+
+    if evicted:
+        logger.info(
+            f"LRU eviction: removed {evicted} files to enforce "
+            f"{max_size_bytes / (1024**3):.1f}GB quota"
+        )
+
+    return evicted
+
+
+def get_global_cache_stats(cache_root: Path) -> dict[str, Any]:
+    """
+    Get statistics about the entire cache across all workflows.
+
+    Args:
+        cache_root: Root directory containing all workflow cache directories
+
+    Returns:
+        Dict with global cache statistics
+    """
+    if not cache_root.exists():
+        return {
+            "workflow_count": 0,
+            "file_count": 0,
+            "total_size_bytes": 0,
+            "total_size_mb": 0.0,
+            "total_size_gb": 0.0,
+        }
+
+    workflow_count = 0
+    file_count = 0
+    total_size = 0
+
+    try:
+        for workflow_dir in cache_root.iterdir():
+            if not workflow_dir.is_dir():
+                continue
+            workflow_count += 1
+            for cache_file in workflow_dir.glob("*.parquet"):
+                try:
+                    file_count += 1
+                    total_size += cache_file.stat().st_size
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"Error getting cache stats: {e}")
+
+    return {
+        "workflow_count": workflow_count,
+        "file_count": file_count,
+        "total_size_bytes": total_size,
+        "total_size_mb": round(total_size / (1024**2), 2),
+        "total_size_gb": round(total_size / (1024**3), 3),
+    }

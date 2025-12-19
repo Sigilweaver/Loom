@@ -76,6 +76,7 @@ class CacheManager:
         self,
         tool: Tool,
         plan: ExecutionPlan,
+        invalidate_stale: bool = True,
     ) -> str:
         """
         Compute lineage hash for a tool.
@@ -87,6 +88,7 @@ class CacheManager:
         Args:
             tool: Tool to compute hash for
             plan: Execution plan containing dependency information
+            invalidate_stale: If True, remove stale cache files for this tool
 
         Returns:
             16-character hex string hash
@@ -98,9 +100,15 @@ class CacheManager:
         upstream_ids = plan.get_dependencies(tool.id)
         upstream_keys = [self._lineage_hashes.get(tid, "") for tid in upstream_ids]
 
-        return self._cache.compute_key(
+        lineage_hash = self._cache.compute_key(
             tool.id, tool.type, tool.config, upstream_keys
         )
+
+        # Clean up stale cache files that don't match current lineage
+        if invalidate_stale:
+            self._cache.invalidate_stale(tool.id, lineage_hash)
+
+        return lineage_hash
 
     def should_cache_tool(self, tool: Tool) -> bool:
         """

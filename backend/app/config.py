@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # Cache outputs of blocking operations (sort, summarize, join) and database inputs
     cache_enabled: bool = True
     cache_path: str = "./cache"
+    # Cache retention: delete cache files older than this many days (0 = keep forever)
+    cache_retention_days: int = 7
+    # Cache quota: maximum total cache size in GB (0 = unlimited)
+    cache_max_size_gb: float = 20.0
+    # Clear workflow cache when workflow is closed (default: on)
+    cache_clear_on_close: bool = True
 
     # Parallel Execution
     # Execute independent tools concurrently for improved performance

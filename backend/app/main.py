@@ -1,5 +1,9 @@
 """FastAPI application entry point"""
 
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,9 +11,33 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.domain.tools.register  # noqa: F401
 from app import __version__
 from app.api.router import api_router
+from app.api.routes.cache import run_startup_maintenance
 from app.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.auth import AuthMiddleware
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Manage application lifespan events."""
+    # Startup: Run cache maintenance (TTL cleanup and LRU eviction)
+    try:
+        result = run_startup_maintenance()
+        if result["enabled"]:
+            if result["ttl_deleted"] or result["lru_evicted"]:
+                logger.info(
+                    f"Cache maintenance: {result['ttl_deleted']} TTL deletions, "
+                    f"{result['lru_evicted']} LRU evictions"
+                )
+    except Exception as e:
+        logger.warning(f"Cache startup maintenance failed: {e}")
+
+    yield
+
+    # Shutdown: Nothing special needed for now
+
 
 # Create FastAPI application
 # Note: Named 'application' to avoid shadowing the 'app' module import
@@ -19,6 +47,7 @@ application = FastAPI(
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Add authentication middleware
