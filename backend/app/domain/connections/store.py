@@ -49,17 +49,17 @@ class DuplicateConnectionError(ConnectionStoreError):
 class ConnectionStore:
     """
     Encrypted credential store for server-managed database connections.
-    
+
     Credentials are encrypted using Fernet (AES-128-CBC with HMAC).
     The encryption key must be provided via environment variable.
-    
+
     Storage format: JSON file with encrypted credential blobs.
     """
 
     def __init__(self, storage_path: str | Path | None = None, encryption_key: str | None = None):
         """
         Initialize the connection store.
-        
+
         Args:
             storage_path: Path to JSON storage file (uses config default if None)
             encryption_key: Fernet key (uses env var if None, pass "" to explicitly disable)
@@ -182,7 +182,7 @@ class ConnectionStore:
     def resolve_connection(self, connection_id: str) -> ResolvedConnection | None:
         """
         Resolve connection with decrypted credentials.
-        
+
         WARNING: Returns sensitive data - use only for building connection URIs
         during workflow execution. Never expose to API responses.
         """
@@ -206,10 +206,10 @@ class ConnectionStore:
     def build_connection_uri(self, connection_id: str) -> str | None:
         """
         Build a connection URI for the given connection ID.
-        
+
         Returns URI with embedded credentials for use with Polars/connectorx.
         Returns None if connection not found.
-        
+
         URI formats by database type:
         - PostgreSQL: postgresql://user:pass@host:port/database
         - MySQL: mysql://user:pass@host:port/database
@@ -341,7 +341,7 @@ _connection_store: ConnectionStore | None = None
 def get_connection_store() -> ConnectionStore:
     """
     Get the singleton connection store instance.
-    
+
     Lazy initialization - created on first access.
     """
     global _connection_store

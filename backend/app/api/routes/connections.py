@@ -31,7 +31,7 @@ router = APIRouter(prefix="/connections", tags=["connections"])
 async def get_status() -> ConnectionStoreStatus:
     """
     Get connection store status.
-    
+
     Returns whether server connections are enabled (encryption key configured)
     and the current connection count.
     """
@@ -46,7 +46,7 @@ async def get_status() -> ConnectionStoreStatus:
 async def list_connections() -> list[ConnectionInfoResponse]:
     """
     List all server-managed connections.
-    
+
     Returns connection metadata without credentials.
     All returned connections have owner="server".
     """
@@ -72,7 +72,7 @@ async def list_connections() -> list[ConnectionInfoResponse]:
 async def get_connection(connection_id: str) -> ConnectionInfoResponse:
     """
     Get a specific connection by ID.
-    
+
     Returns connection metadata without credentials.
     """
     store = get_connection_store()
@@ -98,7 +98,7 @@ async def get_connection(connection_id: str) -> ConnectionInfoResponse:
 async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoResponse:
     """
     Create a new server-managed connection.
-    
+
     Credentials are encrypted at rest using Fernet encryption.
     Requires CONNECTION_ENCRYPTION_KEY to be configured.
     """
@@ -145,7 +145,7 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
 async def update_connection(connection_id: str, request: UpdateConnectionRequest) -> ConnectionInfoResponse:
     """
     Update an existing connection.
-    
+
     All fields are optional - only provided fields will be updated.
     Credentials remain encrypted.
     """
@@ -193,7 +193,7 @@ async def update_connection(connection_id: str, request: UpdateConnectionRequest
 async def delete_connection(connection_id: str) -> None:
     """
     Delete a connection.
-    
+
     Removes the connection and its encrypted credentials from storage.
     """
     store = get_connection_store()
@@ -210,7 +210,7 @@ async def delete_connection(connection_id: str) -> None:
 async def test_connection(connection_id: str) -> ConnectionTestResult:
     """
     Test a connection by attempting to connect to the database.
-    
+
     This decrypts credentials server-side and attempts a connection.
     Useful for validating connection configuration.
     """

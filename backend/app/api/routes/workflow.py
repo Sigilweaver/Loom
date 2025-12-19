@@ -89,7 +89,7 @@ async def execute_workflow(
     Use preview_limit to limit rows returned (useful for large datasets).
     The preview_limit is clamped to max_preview_rows from server config.
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
-    
+
     Server connections are resolved before execution. Client connections must
     have their source URI already populated.
     """

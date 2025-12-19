@@ -72,7 +72,7 @@ class DatabaseDataSource(DataSource):
     def __init__(self, database_type: str = "postgresql"):
         """
         Initialize database data source.
-        
+
         Args:
             database_type: Type of database (postgresql, mysql, etc.)
         """

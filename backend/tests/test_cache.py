@@ -205,7 +205,7 @@ class TestBlockingToolCache:
         assert orphan.exists()
 
         # Init cache should clean up orphan
-        cache = BlockingToolCache(temp_cache_dir, "cleanup-test")
+        BlockingToolCache(temp_cache_dir, "cleanup-test")
         assert not orphan.exists()
 
 

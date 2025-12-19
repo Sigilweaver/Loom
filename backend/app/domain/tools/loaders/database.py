@@ -20,10 +20,10 @@ from app.utils.errors import ToolError
 class DatabaseLoader(FileLoader):
     """
     Loader for executing SQL queries against database connections.
-    
+
     This loader uses Polars' read_database_uri with connectorx engine
     to execute SQL queries and return the results as a LazyFrame.
-    
+
     Note: Unlike file loaders, the 'source' parameter is a connection URI,
     not a file path. The URI format depends on the database type:
     - PostgreSQL: postgresql://user:password@host:port/database
@@ -35,7 +35,7 @@ class DatabaseLoader(FileLoader):
     def __init__(self, database_type: str = "postgresql"):
         """
         Initialize database loader.
-        
+
         Args:
             database_type: Type of database (postgresql, mysql, etc.)
         """
@@ -48,15 +48,15 @@ class DatabaseLoader(FileLoader):
     ) -> pl.LazyFrame:
         """
         Execute a SQL query against a database connection.
-        
+
         Args:
             source: Connection URI (e.g., postgresql://user:pass@host:port/db)
             config: Configuration dict containing:
                 - query: SQL query to execute (required)
-                
+
         Returns:
             LazyFrame containing query results
-            
+
         Raises:
             ToolError: If query fails or connection cannot be established
         """
@@ -108,11 +108,11 @@ class DatabaseLoader(FileLoader):
     ) -> pl.DataFrame:
         """
         Execute a SQL query and return a DataFrame directly.
-        
+
         Args:
             source: Connection URI
             config: Configuration dict containing query
-            
+
         Returns:
             DataFrame containing query results
         """
@@ -122,12 +122,12 @@ class DatabaseLoader(FileLoader):
     def build_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Build kwargs for database query.
-        
+
         For databases, this is minimal since most config is in the URI and query.
-        
+
         Args:
             config: Configuration dict
-            
+
         Returns:
             Dict with engine specification
         """
@@ -142,14 +142,14 @@ class DatabaseLoader(FileLoader):
     ) -> list[str]:
         """
         Generate Python code for database loading.
-        
+
         Note: The actual connection URI is replaced with a placeholder
         for security - users should never see credentials in generated code.
-        
+
         Args:
             var_name: Variable name to assign result to
             config: Configuration dict
-            
+
         Returns:
             List of Python code lines
         """

@@ -20,7 +20,7 @@ class InputTool(BaseTool):
 
     Uses the LoaderFactory to delegate loading to format-specific loaders.
     Always returns LazyFrame for efficient lazy evaluation.
-    
+
     For database sources, the source is a connection URI with embedded credentials.
     """
 

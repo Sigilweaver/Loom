@@ -224,7 +224,7 @@ class TestDatabaseDataSource:
         mock_read_db.return_value = mock_df
 
         datasource = DatabaseDataSource()
-        preview = await datasource.preview(
+        await datasource.preview(
             "postgresql://user:pass@localhost/db",
             {"query": "SELECT * FROM users"},
             columns=['id', 'name']  # Request only columns that exist
@@ -638,7 +638,7 @@ class TestEdgeCases:
     def test_database_loader_preserves_lazy_evaluation(self):
         """Test that database loader converts to LazyFrame for consistency"""
         # This is important for the lazy evaluation pattern
-        loader = DatabaseLoader()
+        DatabaseLoader()
 
         # The loader should convert eager DataFrame to LazyFrame
         # This is tested in test_load_basic via the mock

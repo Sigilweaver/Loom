@@ -105,10 +105,10 @@ class LoaderFactory:
     def is_database_type(cls, source_type: str) -> bool:
         """
         Check if a source type is a database connection.
-        
+
         Args:
             source_type: Type identifier to check
-            
+
         Returns:
             True if database type, False otherwise
         """
