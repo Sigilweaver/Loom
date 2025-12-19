@@ -248,6 +248,7 @@ export async function getToolSchema(
  * @param workflow - The complete workflow definition
  * @param socketId - The socket ID to get data for
  * @param previewLimit - Maximum number of rows to return (default: 100)
+ * @param forceRefresh - Clear cache before execution (default: false)
  * @param context - Optional request context for logging
  * @returns Preview data and schema for the specified socket
  */
@@ -256,6 +257,7 @@ export async function previewTool(
   workflow: WorkflowJSON,
   socketId: string,
   previewLimit = 100,
+  forceRefresh = false,
   context?: RequestContext
 ): Promise<ExecuteResponse> {
   return apiRequest<ExecuteResponse>('/workflow/tool/execute', {
@@ -265,6 +267,7 @@ export async function previewTool(
       workflow,
       socket_id: socketId,
       preview_limit: previewLimit,
+      force_refresh: forceRefresh,
     }),
   }, { ...context, toolId });
 }
@@ -274,12 +277,14 @@ export async function previewTool(
  * 
  * @param workflow - The complete workflow definition
  * @param targetToolId - Optional tool ID to execute up to (default: all tools)
+ * @param forceRefresh - Clear cache before execution (default: false)
  * @param context - Optional request context for logging
  * @returns Output data from the target tool (or final tool if not specified)
  */
 export async function executeWorkflow(
   workflow: WorkflowJSON,
   targetToolId?: string,
+  forceRefresh = false,
   context?: RequestContext
 ): Promise<WorkflowExecuteResponse> {
   return apiRequest<WorkflowExecuteResponse>('/workflow/execute', {
@@ -287,6 +292,7 @@ export async function executeWorkflow(
     body: JSON.stringify({
       workflow,
       target_tool_id: targetToolId,
+      force_refresh: forceRefresh,
     }),
   }, context);
 }
@@ -441,12 +447,14 @@ export interface PreviewAllResponse {
  * 
  * @param workflow - The complete workflow definition
  * @param previewLimit - Maximum number of rows to return per tool (default: 100)
+ * @param forceRefresh - Clear cache before execution (default: false)
  * @param context - Optional request context for logging
  * @returns Preview data for all tools in the workflow
  */
 export async function previewAllTools(
   workflow: WorkflowJSON,
   previewLimit = 100,
+  forceRefresh = false,
   context?: RequestContext
 ): Promise<PreviewAllResponse> {
   return apiRequest<PreviewAllResponse>('/workflow/preview_all', {
@@ -454,6 +462,40 @@ export async function previewAllTools(
     body: JSON.stringify({
       workflow,
       preview_limit: previewLimit,
+      force_refresh: forceRefresh,
+    }),
+  }, context);
+}
+
+/**
+ * Response from /api/workflow/cache/clear endpoint
+ */
+export interface ClearCacheResponse {
+  status: 'cleared' | 'cache_disabled';
+  workflow_id: string;
+}
+
+/**
+ * Clear backend disk cache for a specific workflow
+ * 
+ * Removes all cached blocking tool outputs for the workflow from the backend.
+ * Useful when you want to force re-execution of all tools.
+ * 
+ * Note: This clears the BACKEND disk cache, not the frontend in-memory cache.
+ * For frontend cache, use clearWorkflowCache from './cache'.
+ * 
+ * @param workflowId - The workflow ID to clear cache for
+ * @param context - Optional request context for logging
+ * @returns Status of the cache clear operation
+ */
+export async function clearBackendWorkflowCache(
+  workflowId: string,
+  context?: RequestContext
+): Promise<ClearCacheResponse> {
+  return apiRequest<ClearCacheResponse>('/workflow/cache/clear', {
+    method: 'POST',
+    body: JSON.stringify({
+      workflow_id: workflowId,
     }),
   }, context);
 }

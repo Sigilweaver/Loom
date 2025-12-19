@@ -6,6 +6,7 @@ import { useExecutionStore } from "@state/executionStore";
 import { useSettingsStore } from "@state/settingsStore";
 import { useWorkflowExecute } from "../api/hooks";
 import { previewAllTools } from "../api/backend";
+import { resolveWorkflowConnections } from "../api/connectionResolver";
 import { cacheAllPreviews } from "../api/cache";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { useEffect, forwardRef, useImperativeHandle, useState } from "react";
@@ -374,8 +375,11 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
       const workflow = JSON.parse(workflowJSON);
 
+      // Resolve database connections before preview all
+      const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+
       // Execute preview all using configured preview rows
-      const result = await previewAllTools(workflow, previewRows);
+      const result = await previewAllTools(resolvedWorkflow, previewRows);
 
       // Cache all previews in the unified cache
       // Transform ToolOutput to expected format (filter out undefined data)

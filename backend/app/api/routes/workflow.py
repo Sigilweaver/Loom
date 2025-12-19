@@ -238,6 +238,9 @@ class PreviewAllRequest(BaseModel):
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview per tool"
     )
+    force_refresh: bool = Field(
+        False, description="Optional: Clear cache before execution (for manual refresh)"
+    )
 
 
 @router.post("/preview_all")
@@ -254,6 +257,7 @@ async def preview_all_tools(
 
     Returns a dict mapping tool_id -> outputs for every tool in the workflow.
     The preview_limit is clamped to max_preview_rows from server config.
+    Use force_refresh to clear cache and re-execute (useful for DB refresh).
     """
     try:
         # Resolve server connections and validate client connections
@@ -264,6 +268,7 @@ async def preview_all_tools(
         result = await executor.preview_all_tools(
             workflow=resolved_workflow,
             preview_limit=_clamp_preview_limit(request.preview_limit),
+            force_refresh=request.force_refresh,
         )
         return result
 

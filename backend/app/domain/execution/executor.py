@@ -214,6 +214,7 @@ class WorkflowExecutor:
         self,
         workflow: Workflow,
         preview_limit: int = 100,
+        force_refresh: bool = False,
     ) -> dict[str, Any]:
         """
         Execute entire workflow and return preview data for ALL tools.
@@ -224,12 +225,15 @@ class WorkflowExecutor:
         Args:
             workflow: Workflow to execute
             preview_limit: Row limit for preview per tool
+            force_refresh: If True, clears cache before execution
 
         Returns:
             Dict with tool_id -> outputs for every executed tool
         """
         # Execute the full workflow (this populates self.results for all tools)
-        await self.execute_workflow(workflow, preview_limit=preview_limit)
+        await self.execute_workflow(
+            workflow, preview_limit=preview_limit, force_refresh=force_refresh
+        )
 
         # Format results for all tools
         all_results = {}
