@@ -82,10 +82,10 @@ Now if the user changes Select's config:
 
 | File | Purpose |
 |------|---------|
-| [app/backend/app/domain/execution/cache.py](app/backend/app/domain/execution/cache.py) | `BlockingToolCache` class |
-| [app/backend/app/domain/execution/executor.py](app/backend/app/domain/execution/executor.py) | Cache integration in `_execute_tool_with_cache` |
-| [app/backend/app/domain/tools/base.py](app/backend/app/domain/tools/base.py) | `is_blocking()` and `should_cache()` methods |
-| [app/backend/app/config.py](app/backend/app/config.py) | `cache_enabled` and `cache_path` settings |
+| `app/backend/app/domain/execution/cache.py` | `BlockingToolCache` class |
+| `app/backend/app/domain/execution/executor.py` | Cache integration in `_execute_tool_with_cache` |
+| `app/backend/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
+| `app/backend/app/config.py` | `cache_enabled` and `cache_path` settings |
 
 ## BlockingToolCache API
 
@@ -421,7 +421,7 @@ This means:
 
 ## Testing
 
-Cache behavior is tested in [app/backend/tests/test_cache.py](app/backend/tests/test_cache.py):
+Cache behavior is tested in `app/backend/tests/test_cache.py`:
 
 ```bash
 cd app && ./scripts/test.py -k test_cache
