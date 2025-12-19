@@ -162,7 +162,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
         // Helper: Check if dtype is numeric
         const isNumericType = (dtype: string | null): boolean => {
-          return !!dtype && /^(Int|UInt|Float)\d+$/.test(dtype);
+          return !!dtype && (/^(Int|UInt|Float)\d+$/.test(dtype) || dtype.startsWith('Decimal'));
         };
 
         // Helper: Check if dtype is datetime
