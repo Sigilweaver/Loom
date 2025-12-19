@@ -238,7 +238,31 @@ describe('FilterConfiguration', () => {
   });
 
   describe('Metadata Fetching', () => {
-    it('fetches metadata on mount', async () => {
+    it('fetches metadata on mount when input is connected', async () => {
+      const wiresWithInput: Wire[] = [
+        {
+          from: { tool: 'tool-0', socket: 'output' },
+          to: { tool: 'tool-1', socket: 'input' },
+        },
+      ];
+
+      renderWithTheme(
+        <FilterConfiguration
+          config={defaultConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={wiresWithInput}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      await waitFor(() => {
+        expect(mockFetchMetadata).toHaveBeenCalled();
+      });
+    });
+
+    it('does not fetch metadata on mount when input is not connected', async () => {
       renderWithTheme(
         <FilterConfiguration
           config={defaultConfig}
@@ -250,9 +274,8 @@ describe('FilterConfiguration', () => {
         />
       );
 
-      await waitFor(() => {
-        expect(mockFetchMetadata).toHaveBeenCalled();
-      });
+      // With no input connection, should not fetch metadata
+      expect(mockFetchMetadata).not.toHaveBeenCalled();
     });
 
     it('fetches metadata when wire connections change', async () => {
@@ -296,6 +319,10 @@ describe('FilterConfiguration', () => {
 
     it('does not refetch metadata when unrelated wires change', async () => {
       const initialWires: Wire[] = [
+        {
+          from: { tool: 'tool-0', socket: 'output' },
+          to: { tool: 'tool-1', socket: 'input' }, // Wire to tool-1
+        },
         {
           from: { tool: 'tool-0', socket: 'output' },
           to: { tool: 'tool-2', socket: 'input' }, // Different tool
@@ -345,13 +372,20 @@ describe('FilterConfiguration', () => {
     });
 
     it('passes correct workflow data to fetchMetadata', async () => {
+      const wiresWithInput: Wire[] = [
+        {
+          from: { tool: 'tool-0', socket: 'output' },
+          to: { tool: 'tool-1', socket: 'input' },
+        },
+      ];
+
       renderWithTheme(
         <FilterConfiguration
           config={defaultConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
-          wires={defaultWires}
+          wires={wiresWithInput}
           workflowMeta={defaultMeta}
         />
       );

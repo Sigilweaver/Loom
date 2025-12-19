@@ -1,5 +1,6 @@
 """Workflow executor - orchestrates tool execution"""
 
+import asyncio
 import logging
 import time
 from pathlib import Path
@@ -10,8 +11,8 @@ import polars as pl
 from app.api.models.common import DataSchema
 from app.api.models.workflow import Tool, Workflow
 from app.config import settings
-from app.domain.execution.cache import BlockingToolCache
-from app.domain.execution.graph import ExecutionGraph
+from app.domain.execution.cache_manager import CacheManager
+from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import ExecutionError
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
@@ -24,15 +25,13 @@ class WorkflowExecutor:
     Execute workflows by running tools in dependency order.
 
     Stores intermediate LazyFrames in memory and passes them between tools.
-    Optionally caches blocking tool outputs to disk to avoid re-computation.
+    Delegates caching decisions to CacheManager and execution planning to
+    ExecutionPlanner.
     """
 
     def __init__(self) -> None:
-        self.results: dict[str, dict[str, pl.LazyFrame]] = {}  # tool_id -> socket_id -> LazyFrame
-        self.archive_dir: Path | None = None  # Set when archiving is enabled
-        self.cache: BlockingToolCache | None = None  # Set when caching is enabled
-        self.graph: ExecutionGraph | None = None  # Set during execute_workflow
-        self.lineage_hashes: dict[str, str] = {}  # tool_id -> lineage_hash (for ALL tools)
+        self.results: dict[str, dict[str, pl.LazyFrame]] = {}
+        self.archive_dir: Path | None = None
 
     async def execute_workflow(
         self,
@@ -46,123 +45,53 @@ class WorkflowExecutor:
 
         Args:
             workflow: Workflow to execute
-            target_tool_id: Optional tool ID to stop at (executes up to and including this tool)
+            target_tool_id: Optional tool ID to stop at
             preview_limit: Optional row limit for preview results
-            force_refresh: If True, clears cache before execution (for manual refresh)
+            force_refresh: If True, clears cache before execution
 
         Returns:
             Dict with execution results, schemas, and metrics
         """
         start_time = time.time()
-        execution_log: dict[str, Any] = {
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "target_tool_id": target_tool_id,
-            "preview_limit": preview_limit,
-            "force_refresh": force_refresh,
-            "status": "started",
-        }
+        execution_log = self._create_execution_log(target_tool_id, preview_limit, force_refresh)
 
         # Initialize archive if enabled
-        if settings.archive_enabled:
-            try:
-                from app.domain.workflow.archive import WorkflowArchive
-                archive = WorkflowArchive(settings.archive_path)
-                self.archive_dir = archive.create_archive(workflow)
-                archive_rel = str(self.archive_dir.relative_to(archive.archive_root))
-                execution_log["archive_path"] = archive_rel
-                logger.info(f"Workflow archived to: {self.archive_dir}")
-            except Exception as e:
-                logger.error(f"Failed to create workflow archive: {e}")
-                self.archive_dir = None
+        self._init_archive(workflow, execution_log)
 
-        # Initialize cache if enabled
-        if settings.cache_enabled:
-            try:
-                workflow_id = workflow.meta.workflow_id
-                self.cache = BlockingToolCache(
-                    Path(settings.cache_path),
-                    workflow_id,
-                )
-                if force_refresh:
-                    self.cache.clear()
-                    execution_log["cache_cleared"] = True
-                    logger.info(f"Cache cleared for workflow {workflow_id} (force_refresh)")
-            except Exception as e:
-                logger.error(f"Failed to initialize cache: {e}")
-                self.cache = None
+        # Initialize cache manager
+        cache_mgr = CacheManager(workflow.meta.workflow_id, force_refresh)
+        if force_refresh and cache_mgr.is_enabled:
+            execution_log["cache_cleared"] = True
 
         try:
-            # Build execution graph
-            self.graph = ExecutionGraph(workflow)
-
-            # Validate workflow
-            validation_errors = self.graph.validate()
+            # Create execution plan
+            planner = ExecutionPlanner(workflow)
+            validation_errors = planner.validate()
             if validation_errors:
-                error_msg = f"Workflow validation failed: {', '.join(validation_errors)}"
-                execution_log["status"] = "validation_failed"
-                execution_log["error"] = error_msg
-                execution_log["validation_errors"] = validation_errors
-                self._save_execution_log(execution_log, start_time)
-                raise ExecutionError(error_msg)
+                return self._handle_validation_failure(execution_log, validation_errors, start_time)
 
-            # Get execution order
-            execution_order = self.graph.execution_order()
-            execution_log["execution_order"] = execution_order
-            execution_log["tool_count"] = len(execution_order)
+            plan = planner.create_plan(target_tool_id)
+            execution_log["execution_order"] = list(plan.execution_order)
+            execution_log["tool_count"] = len(plan)
 
-            # Execute tools in order
-            tool_execution_logs = []
-            cache_hits = 0
-            for tool_id in execution_order:
-                tool_start = time.time()
-                tool = self._get_tool(workflow, tool_id)
-
-                # Gather inputs from previous results
-                inputs = self._gather_inputs(tool_id, self.graph)
-
-                # Execute tool (may use cache)
-                outputs, from_cache = await self._execute_tool_with_cache(tool, inputs)
-
-                # Store results
-                self.results[tool_id] = outputs
-                if from_cache:
-                    cache_hits += 1
-
-                # Log tool execution
-                tool_execution_logs.append({
-                    "tool_id": tool_id,
-                    "tool_type": tool.type,
-                    "execution_time_ms": (time.time() - tool_start) * 1000,
-                    "status": "success",
-                    "from_cache": from_cache,
-                })
-
-                # Stop if target reached
-                if target_tool_id and tool_id == target_tool_id:
-                    break
-
-            execution_log["tool_executions"] = tool_execution_logs
+            # Execute tools
+            tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
+            execution_log["tool_executions"] = tool_logs
             execution_log["cache_hits"] = cache_hits
 
             # Format results
-            result = await self._format_results(
-                workflow,
-                target_tool_id or execution_order[-1],
-                preview_limit
-            )
+            final_tool_id = target_tool_id or list(plan.execution_order)[-1]
+            result = self._format_results(final_tool_id, preview_limit)
 
-            # Update execution log with success
             execution_log["status"] = "completed"
             execution_log["result_summary"] = {
                 "tool_id": result["tool_id"],
                 "output_count": len(result["outputs"]),
             }
             self._save_execution_log(execution_log, start_time)
-
             return result
 
         except Exception as e:
-            # Log execution failure
             execution_log["status"] = "failed"
             execution_log["error"] = str(e)
             execution_log["error_type"] = type(e).__name__
@@ -177,21 +106,7 @@ class WorkflowExecutor:
         preview_limit: int | None = None,
         force_refresh: bool = False,
     ) -> dict[str, Any]:
-        """
-        Execute a single tool and its dependencies.
-
-        Useful for previewing a tool's output in the UI.
-
-        Args:
-            workflow: Workflow containing the tool
-            tool_id: Tool ID to execute
-            socket_id: Socket ID to return data for
-            preview_limit: Optional row limit for preview
-            force_refresh: If True, clears cache before execution
-
-        Returns:
-            Dict with single-socket output (tool_id, socket_id, data_schema, data, row_count)
-        """
+        """Execute a single tool and its dependencies."""
         result = await self.execute_workflow(
             workflow, target_tool_id=tool_id, preview_limit=preview_limit,
             force_refresh=force_refresh,
@@ -216,31 +131,15 @@ class WorkflowExecutor:
         preview_limit: int = 100,
         force_refresh: bool = False,
     ) -> dict[str, Any]:
-        """
-        Execute entire workflow and return preview data for ALL tools.
-
-        This is more efficient than calling execute_single_tool multiple times
-        because upstream tools are only executed once.
-
-        Args:
-            workflow: Workflow to execute
-            preview_limit: Row limit for preview per tool
-            force_refresh: If True, clears cache before execution
-
-        Returns:
-            Dict with tool_id -> outputs for every executed tool
-        """
-        # Execute the full workflow (this populates self.results for all tools)
+        """Execute entire workflow and return preview data for ALL tools."""
         await self.execute_workflow(
             workflow, preview_limit=preview_limit, force_refresh=force_refresh
         )
 
-        # Format results for all tools
         all_results = {}
         for tool_id, tool_outputs in self.results.items():
             outputs = {}
             for socket_id, lf in tool_outputs.items():
-                # Collect data for preview
                 df = lf.head(preview_limit).collect()
                 outputs[str(socket_id)] = {
                     "data_schema": schema_from_polars(df),
@@ -257,58 +156,25 @@ class WorkflowExecutor:
         tool_id: str,
         socket_id: str,
     ) -> dict[str, Any]:
-        """
-        Get output schema for a tool without executing it.
-
-        Executes upstream tools if needed to determine schemas.
-
-        Args:
-            workflow: Workflow containing the tool
-            tool_id: Tool ID to get schema for
-            socket_id: Socket ID to return schema for
-
-        Returns:
-            Dict with single-socket schema (tool_id, socket_id, data_schema)
-        """
+        """Get output schema for a tool without full execution."""
         tool = self._get_tool(workflow, tool_id)
         tool_impl = ToolRegistry.get(tool.type)
 
-        # Initialize cache and graph for upstream execution
-        self._init_cache_and_graph(workflow)
-        execution_order = self.graph.execution_order()
+        # Execute upstream tools to get input schemas
+        cache_mgr = CacheManager(workflow.meta.workflow_id)
+        planner = ExecutionPlanner(workflow)
+        plan = planner.create_plan(tool_id)
+        execution_order = list(plan.execution_order)
 
-        # Execute upstream tools up to (but not including) target
         target_index = execution_order.index(tool_id)
         for upstream_tool_id in execution_order[:target_index]:
-            upstream_tool = self._get_tool(workflow, upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, self.graph)
-            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs)
+            upstream_tool = plan.get_tool(upstream_tool_id)
+            inputs = self._gather_inputs(upstream_tool_id, plan)
+            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs, plan, cache_mgr)
             self.results[upstream_tool_id] = outputs
 
         # Get input schemas for target tool
-        input_schemas: dict[str, DataSchema | list[DataSchema]] = {}
-        tool_inputs = self.graph.get_tool_inputs(tool_id)
-        for sid, source_list in tool_inputs.items():
-            if not source_list:
-                continue
-
-            if len(source_list) > 1:
-                # Multiple inputs (Union tool)
-                schemas = []
-                for source_tool_id, source_socket_id in source_list:
-                    if source_tool_id in self.results:
-                        lf = self.results[source_tool_id][source_socket_id]
-                        schemas.append(schema_from_polars(lf))
-                input_schemas[sid] = schemas
-            else:
-                # Single input
-                source_tool_id, source_socket_id = source_list[0]
-                if source_tool_id in self.results:
-                    # Get schema from LazyFrame
-                    lf = self.results[source_tool_id][source_socket_id]
-                    input_schemas[sid] = schema_from_polars(lf)
-
-        # Get output schemas from tool
+        input_schemas = self._build_input_schemas(tool_id, plan)
         output_schemas = await tool_impl.get_output_schema(tool.config, input_schemas)
 
         socket_key = str(socket_id)
@@ -327,45 +193,29 @@ class WorkflowExecutor:
         tool_id: str,
         socket_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Get metadata for a tool for autocomplete suggestions.
+        """Get metadata for a tool for autocomplete suggestions."""
+        cache_mgr = CacheManager(workflow.meta.workflow_id)
+        planner = ExecutionPlanner(workflow)
+        plan = planner.create_plan(tool_id)
+        execution_order = list(plan.execution_order)
 
-        Returns available columns per input socket, or for a specific socket.
-
-        Args:
-            workflow: Workflow containing the tool
-            tool_id: Tool ID to get metadata for
-            socket_id: Optional socket ID to filter columns for
-
-        Returns:
-            Dict with columns for the requested socket(s)
-        """
-        # Initialize cache and graph for upstream execution
-        self._init_cache_and_graph(workflow)
-        execution_order = self.graph.execution_order()
-
-        # Execute upstream tools up to (but not including) target
         target_index = execution_order.index(tool_id)
         for upstream_tool_id in execution_order[:target_index]:
-            upstream_tool = self._get_tool(workflow, upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, self.graph)
-            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs)
+            upstream_tool = plan.get_tool(upstream_tool_id)
+            inputs = self._gather_inputs(upstream_tool_id, plan)
+            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs, plan, cache_mgr)
             self.results[upstream_tool_id] = outputs
 
-        # Get input schemas for target tool, grouped by socket
-        tool_inputs = self.graph.get_tool_inputs(tool_id)
-
-        # If socket_id is specified, only process that socket
-        sockets_to_process = (
-            {socket_id: tool_inputs.get(socket_id, [])}
-            if socket_id
-            else tool_inputs
-        )
+        # Get input schemas grouped by socket
+        tool_inputs = plan.get_inputs(tool_id)
+        if socket_id:
+            sockets_to_process = {socket_id: tool_inputs.get(socket_id, [])}
+        else:
+            sockets_to_process = tool_inputs
 
         inputs_metadata: dict[str, list[dict[str, Any]]] = {}
         for sid, source_list in sockets_to_process.items():
             socket_columns = []
-            # For Union-style multi-input, merge all sources
             for source_tool_id, source_socket_id in source_list:
                 if source_tool_id in self.results:
                     lf = self.results[source_tool_id][source_socket_id]
@@ -376,12 +226,10 @@ class WorkflowExecutor:
                             "dtype": col.dtype.value,
                             "nullable": col.nullable,
                         }
-                        # Avoid duplicates for Union
                         if col_info not in socket_columns:
                             socket_columns.append(col_info)
             inputs_metadata[sid] = socket_columns
 
-        # Return metadata
         return {
             "tool_id": tool_id,
             "socket_id": socket_id,
@@ -389,129 +237,185 @@ class WorkflowExecutor:
             "inputs": inputs_metadata,
         }
 
-    def _init_cache_and_graph(self, workflow: Workflow) -> None:
-        """
-        Initialize cache and execution graph for a workflow.
+    # --- Private methods ---
 
-        This is used by methods that need caching but don't go through
-        execute_workflow (e.g., get_tool_metadata, get_tool_schema).
-
-        Note: Graph is always rebuilt because the workflow may have changed
-        since the last call (e.g., in tests that modify workflow in-place).
+    async def _execute_plan(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
         """
-        # Initialize cache if enabled and not already set
-        if settings.cache_enabled and self.cache is None:
-            try:
-                workflow_id = workflow.meta.workflow_id
-                self.cache = BlockingToolCache(
-                    Path(settings.cache_path),
-                    workflow_id,
+        Execute all tools in the plan.
+
+        Uses either sequential or parallel execution based on settings.execution_mode.
+        """
+        if settings.execution_mode == "parallel":
+            return await self._execute_plan_parallel(plan, cache_mgr)
+        return await self._execute_plan_sequential(plan, cache_mgr)
+
+    async def _execute_plan_sequential(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Execute all tools sequentially in dependency order."""
+        tool_logs = []
+        cache_hits = 0
+
+        for tool_id in plan:
+            tool_start = time.time()
+            tool = plan.get_tool(tool_id)
+            inputs = self._gather_inputs(tool_id, plan)
+            outputs, from_cache = await self._execute_tool_with_cache(tool, inputs, plan, cache_mgr)
+
+            self.results[tool_id] = outputs
+            if from_cache:
+                cache_hits += 1
+
+            tool_logs.append({
+                "tool_id": tool_id,
+                "tool_type": tool.type,
+                "execution_time_ms": (time.time() - tool_start) * 1000,
+                "status": "success",
+                "from_cache": from_cache,
+            })
+
+        return tool_logs, cache_hits
+
+    async def _execute_plan_parallel(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """
+        Execute tools in parallel where possible.
+
+        Tools at the same execution level (no inter-dependencies) are
+        executed concurrently using asyncio.gather. This provides speedup
+        when the workflow has independent branches.
+
+        Note: Cache manager operations are not thread-safe, so we use
+        asyncio (cooperative multitasking) not threading.
+        """
+        tool_logs: list[dict[str, Any]] = []
+        cache_hits = 0
+        execution_levels = plan.get_execution_levels()
+
+        max_concurrent = settings.max_parallel_tools or len(plan)
+
+        for level_idx, level_tools in enumerate(execution_levels):
+            level_start = time.time()
+            logger.debug(
+                f"Executing level {level_idx + 1}/{len(execution_levels)} "
+                f"with {len(level_tools)} tools: {level_tools}"
+            )
+
+            # Execute tools at this level concurrently
+            if len(level_tools) == 1:
+                # Single tool - no need for gather
+                results = [await self._execute_single_tool_tracked(
+                    level_tools[0], plan, cache_mgr
+                )]
+            else:
+                # Multiple tools - execute concurrently with semaphore
+                semaphore = asyncio.Semaphore(max_concurrent)
+
+                async def limited_execute(tool_id: str) -> dict[str, Any]:
+                    async with semaphore:
+                        return await self._execute_single_tool_tracked(
+                            tool_id, plan, cache_mgr
+                        )
+
+                results = await asyncio.gather(
+                    *[limited_execute(tid) for tid in level_tools],
+                    return_exceptions=True,
                 )
-            except Exception as e:
-                logger.error(f"Failed to initialize cache: {e}")
-                self.cache = None
 
-        # Always rebuild graph to handle workflow changes
-        self.graph = ExecutionGraph(workflow)
+            # Process results
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Re-raise the first exception encountered
+                    raise result
+                tool_logs.append(result)
+                if result.get("from_cache"):
+                    cache_hits += 1
 
-    async def _execute_tool(
-        self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> dict[str, pl.LazyFrame]:
-        """Execute a single tool (no caching)."""
+            logger.debug(
+                f"Level {level_idx + 1} completed in "
+                f"{(time.time() - level_start) * 1000:.1f}ms"
+            )
+
+        return tool_logs, cache_hits
+
+    async def _execute_single_tool_tracked(
+        self,
+        tool_id: str,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> dict[str, Any]:
+        """Execute a single tool and return tracking info."""
+        tool_start = time.time()
+        tool = plan.get_tool(tool_id)
+        inputs = self._gather_inputs(tool_id, plan)
+        outputs, from_cache = await self._execute_tool_with_cache(
+            tool, inputs, plan, cache_mgr
+        )
+
+        self.results[tool_id] = outputs
+
+        return {
+            "tool_id": tool_id,
+            "tool_type": tool.type,
+            "execution_time_ms": (time.time() - tool_start) * 1000,
+            "status": "success",
+            "from_cache": from_cache,
+        }
+
+    async def _execute_tool_with_cache(
+        self,
+        tool: Tool,
+        inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]],
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[dict[str, pl.LazyFrame], bool]:
+        """Execute a single tool with cache support."""
+        # Compute lineage hash (needed for all tools, even non-cached)
+        lineage_hash = cache_mgr.compute_lineage_hash(tool, plan)
+
+        # Check cache
+        if cache_mgr.should_cache_tool(tool):
+            cached = cache_mgr.check_cache(tool, lineage_hash)
+            if cached:
+                cache_mgr.record_lineage_hash(tool.id, lineage_hash)
+                logger.debug(f"Cache hit for tool {tool.id}")
+                return cached, True
+
+        # Execute tool
         try:
             tool_impl = ToolRegistry.get(tool.type)
             outputs = await tool_impl.execute(tool.config, inputs)
-            return outputs
         except Exception as e:
-            raise ExecutionError(
-                f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
-            ) from e
+            raise ExecutionError(f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}") from e
 
-    async def _execute_tool_with_cache(
-        self, tool: Tool, inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> tuple[dict[str, pl.LazyFrame], bool]:
-        """
-        Execute a single tool with cache support.
+        # Store in cache if appropriate
+        if cache_mgr.should_cache_tool(tool):
+            outputs = cache_mgr.store_in_cache(tool, lineage_hash, outputs)
 
-        Returns:
-            Tuple of (outputs dict, from_cache bool)
-        """
-        tool_impl = ToolRegistry.get(tool.type)
-
-        # 1. ALWAYS compute lineage hash (even for non-cacheable tools)
-        # This hash is needed by downstream tools to compute their own hash
-        upstream_ids = (
-            self.graph.dependencies.get(tool.id, []) if self.graph else []
-        )
-        upstream_keys = [self.lineage_hashes.get(tid, "") for tid in upstream_ids]
-        lineage_hash = (
-            self.cache.compute_key(
-                tool.id, tool.type, tool.config, upstream_keys
-            )
-            if self.cache
-            else ""
-        )
-
-        # 2. Check cache (only if tool should be cached)
-        if self.cache and tool_impl.should_cache(tool.config):
-            # Get expected output sockets from tool definition
-            output_sockets = [s.id for s in tool.sockets if s.direction == "output"]
-            all_cached = all(
-                self.cache.exists(tool.id, sid, lineage_hash)
-                for sid in output_sockets
-            )
-            if all_cached:
-                cached_outputs = {
-                    sid: self.cache.get(tool.id, sid, lineage_hash)
-                    for sid in output_sockets
-                }
-                # Verify all cache reads succeeded
-                if all(v is not None for v in cached_outputs.values()):
-                    # Store hash for downstream tools
-                    self.lineage_hashes[tool.id] = lineage_hash
-                    logger.debug(f"Cache hit for tool {tool.id}")
-                    return cached_outputs, True
-                # Cache read failed, fall through to execute
-
-        # 3. Execute tool
-        try:
-            outputs = await tool_impl.execute(tool.config, inputs)
-        except Exception as e:
-            raise ExecutionError(
-                f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
-            ) from e
-
-        # 4. Write to cache (only if tool should be cached)
-        if self.cache and tool_impl.should_cache(tool.config):
-            try:
-                for socket_id, lf in outputs.items():
-                    self.cache.put(tool.id, socket_id, lineage_hash, lf)
-                    # Re-read from cache to get a scannable LazyFrame
-                    outputs[socket_id] = self.cache.get(tool.id, socket_id, lineage_hash)
-                logger.debug(f"Cached outputs for tool {tool.id}")
-            except Exception as e:
-                # Cache write failed, but we have the computed result, so continue
-                logger.warning(f"Failed to cache outputs for tool {tool.id}: {e}")
-
-        # 5. CRITICAL: Always store hash for downstream tools (even if not cached)
-        self.lineage_hashes[tool.id] = lineage_hash
-
+        # Record lineage hash for downstream tools
+        cache_mgr.record_lineage_hash(tool.id, lineage_hash)
         return outputs, False
 
     def _gather_inputs(
-        self, tool_id: str, graph: ExecutionGraph
+        self,
+        tool_id: str,
+        plan: ExecutionPlan,
     ) -> dict[str, pl.LazyFrame | list[pl.LazyFrame]]:
-        """
-        Gather inputs for a tool from previous results.
-
-        For tools with multiple inputs on same socket (Union), returns list of LazyFrames.
-        """
+        """Gather inputs for a tool from previous results."""
         inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]] = {}
-        tool_inputs = graph.get_tool_inputs(tool_id)
+        tool_inputs = plan.get_inputs(tool_id)
 
         for socket_id, source_list in tool_inputs.items():
             if len(source_list) == 1:
-                # Single input
                 source_tool_id, source_socket_id = source_list[0]
                 if source_tool_id not in self.results:
                     raise ExecutionError(
@@ -519,7 +423,6 @@ class WorkflowExecutor:
                     )
                 inputs[socket_id] = self.results[source_tool_id][source_socket_id]
             elif len(source_list) > 1:
-                # Multiple inputs (Union tool) - return list
                 frames = []
                 for source_tool_id, source_socket_id in source_list:
                     if source_tool_id not in self.results:
@@ -528,58 +431,112 @@ class WorkflowExecutor:
                             "but it hasn't been executed"
                         )
                     frames.append(self.results[source_tool_id][source_socket_id])
-
                 inputs[socket_id] = frames
 
         return inputs
 
-    async def _format_results(
+    def _build_input_schemas(
         self,
-        workflow: Workflow,
-        target_tool_id: str,
-        preview_limit: int | None = None,
+        tool_id: str,
+        plan: ExecutionPlan,
+    ) -> dict[str, DataSchema | list[DataSchema]]:
+        """Build input schemas for a tool from executed results."""
+        input_schemas: dict[str, DataSchema | list[DataSchema]] = {}
+        tool_inputs = plan.get_inputs(tool_id)
+
+        for sid, source_list in tool_inputs.items():
+            if not source_list:
+                continue
+            if len(source_list) > 1:
+                schemas = []
+                for source_tool_id, source_socket_id in source_list:
+                    if source_tool_id in self.results:
+                        lf = self.results[source_tool_id][source_socket_id]
+                        schemas.append(schema_from_polars(lf))
+                input_schemas[sid] = schemas
+            else:
+                source_tool_id, source_socket_id = source_list[0]
+                if source_tool_id in self.results:
+                    lf = self.results[source_tool_id][source_socket_id]
+                    input_schemas[sid] = schema_from_polars(lf)
+
+        return input_schemas
+
+    def _format_results(
+        self, target_tool_id: str, preview_limit: int | None = None
     ) -> dict[str, Any]:
-        """Format execution results for API response"""
+        """Format execution results for API response."""
         if target_tool_id not in self.results:
             raise ExecutionError(f"Tool {target_tool_id} was not executed")
 
         outputs = {}
-        tool_outputs = self.results[target_tool_id]
-
-        for socket_id, lf in tool_outputs.items():
-            # Collect data for preview
-            if preview_limit:
-                df = lf.head(preview_limit).collect()
-            else:
-                df = lf.collect()
-
+        for socket_id, lf in self.results[target_tool_id].items():
+            df = lf.head(preview_limit).collect() if preview_limit else lf.collect()
             outputs[str(socket_id)] = {
                 "data_schema": schema_from_polars(df),
                 "data": dataframe_to_dict_list(df),
                 "row_count": len(df),
             }
 
-        return {
-            "tool_id": target_tool_id,
-            "outputs": outputs,
-        }
+        return {"tool_id": target_tool_id, "outputs": outputs}
 
     def _get_tool(self, workflow: Workflow, tool_id: str) -> Tool:
-        """Get tool by ID from workflow"""
+        """Get tool by ID from workflow."""
         for tool in workflow.tools:
             if tool.id == tool_id:
                 return tool
         raise ExecutionError(f"Tool {tool_id} not found in workflow")
 
+    def _create_execution_log(
+        self,
+        target_tool_id: str | None,
+        preview_limit: int | None,
+        force_refresh: bool,
+    ) -> dict[str, Any]:
+        """Create initial execution log."""
+        return {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "target_tool_id": target_tool_id,
+            "preview_limit": preview_limit,
+            "force_refresh": force_refresh,
+            "status": "started",
+        }
+
+    def _init_archive(self, workflow: Workflow, execution_log: dict[str, Any]) -> None:
+        """Initialize archive if enabled."""
+        if not settings.archive_enabled:
+            return
+        try:
+            from app.domain.workflow.archive import WorkflowArchive
+            archive = WorkflowArchive(settings.archive_path)
+            self.archive_dir = archive.create_archive(workflow)
+            archive_rel = str(self.archive_dir.relative_to(archive.archive_root))
+            execution_log["archive_path"] = archive_rel
+            logger.info(f"Workflow archived to: {self.archive_dir}")
+        except Exception as e:
+            logger.error(f"Failed to create workflow archive: {e}")
+            self.archive_dir = None
+
+    def _handle_validation_failure(
+        self,
+        execution_log: dict[str, Any],
+        validation_errors: list[str],
+        start_time: float,
+    ) -> dict[str, Any]:
+        """Handle workflow validation failure."""
+        error_msg = f"Workflow validation failed: {', '.join(validation_errors)}"
+        execution_log["status"] = "validation_failed"
+        execution_log["error"] = error_msg
+        execution_log["validation_errors"] = validation_errors
+        self._save_execution_log(execution_log, start_time)
+        raise ExecutionError(error_msg)
+
     def _save_execution_log(self, log_data: dict[str, Any], start_time: float) -> None:
-        """Save execution log to archive"""
+        """Save execution log to archive."""
         if not self.archive_dir or not settings.archive_enabled:
             return
-
         try:
-            # Add execution time
             log_data["execution_time_ms"] = (time.time() - start_time) * 1000
-
             from app.domain.workflow.archive import WorkflowArchive
             archive = WorkflowArchive(settings.archive_path)
             archive.save_execution_log(self.archive_dir, log_data)

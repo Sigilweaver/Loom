@@ -4,7 +4,6 @@ Connection-related dependencies for FastAPI routes.
 Provides dependency injection for connection resolution in workflow execution.
 """
 
-from fastapi import Depends
 
 from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 

@@ -8,6 +8,7 @@ from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FilterOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import FilterSockets
 from app.utils.errors import ToolError
 from app.utils.expression import parse_polars_expression
 
@@ -35,10 +36,10 @@ class FilterTool(BaseTool):
         Config should contain:
         - expression: Polars expression string (e.g., "pl.col('amount') > 100")
         """
-        if "input" not in inputs:
+        if FilterSockets.INPUT not in inputs:
             raise ToolError("Filter tool requires input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[FilterSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Filter tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
@@ -47,8 +48,8 @@ class FilterTool(BaseTool):
         lf_true, lf_false = op.execute(lf)
 
         return {
-            "output-true": lf_true,
-            "output-false": lf_false,
+            FilterSockets.OUTPUT_TRUE: lf_true,
+            FilterSockets.OUTPUT_FALSE: lf_false,
         }
 
     async def get_output_schema(
@@ -59,17 +60,17 @@ class FilterTool(BaseTool):
 
         Filter doesn't change schema, just removes rows.
         """
-        if "input" not in input_schemas:
+        if FilterSockets.INPUT not in input_schemas:
             raise ToolError("Filter tool requires input schema on socket 'input'")
 
-        input_data = input_schemas["input"]
+        input_data = input_schemas[FilterSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Filter tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
 
         return {
-            "output-true": input_schema,  # T output - same schema
-            "output-false": input_schema,  # F output - same schema
+            FilterSockets.OUTPUT_TRUE: input_schema,  # T output - same schema
+            FilterSockets.OUTPUT_FALSE: input_schema,  # F output - same schema
         }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
@@ -97,7 +98,7 @@ class FilterTool(BaseTool):
         """Generate Python code for Filter tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = self._get_input_var(input_vars.get("input"))
+        input_var = self._get_input_var(input_vars.get(FilterSockets.INPUT))
         var_t = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_t"
         var_f = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}_f"
 
@@ -105,4 +106,4 @@ class FilterTool(BaseTool):
         op = self._build_operation(config)
         lines = op.to_code(input_var, var_t, var_f)
 
-        return (lines, {"output-true": var_t, "output-false": var_f})
+        return (lines, {FilterSockets.OUTPUT_TRUE: var_t, FilterSockets.OUTPUT_FALSE: var_f})

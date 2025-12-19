@@ -7,10 +7,8 @@ Stores connections in a JSON file with credentials encrypted at rest.
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 from urllib.parse import quote as url_quote
 from uuid import uuid4
 
@@ -51,27 +49,30 @@ class DuplicateConnectionError(ConnectionStoreError):
 class ConnectionStore:
     """
     Encrypted credential store for server-managed database connections.
-    
+
     Credentials are encrypted using Fernet (AES-128-CBC with HMAC).
     The encryption key must be provided via environment variable.
-    
+
     Storage format: JSON file with encrypted credential blobs.
     """
 
     def __init__(self, storage_path: str | Path | None = None, encryption_key: str | None = None):
         """
         Initialize the connection store.
-        
+
         Args:
             storage_path: Path to JSON storage file (uses config default if None)
             encryption_key: Fernet key (uses env var if None, pass "" to explicitly disable)
         """
         self._storage_path = Path(storage_path or settings.connection_store_path)
         # Only fall back to settings if encryption_key is None (not empty string)
-        self._encryption_key = encryption_key if encryption_key is not None else settings.connection_encryption_key
+        if encryption_key is not None:
+            self._encryption_key = encryption_key
+        else:
+            self._encryption_key = settings.connection_encryption_key
         self._fernet: Fernet | None = None
         self._connections: dict[str, StoredConnection] = {}
-        
+
         # Initialize encryption if key is available
         if self._encryption_key:
             try:
@@ -82,7 +83,7 @@ class ConnectionStore:
                     "Invalid CONNECTION_ENCRYPTION_KEY format. "
                     "Must be a valid Fernet key (32 url-safe base64-encoded bytes)."
                 )
-        
+
         # Load existing connections
         self._load()
 
@@ -100,14 +101,14 @@ class ConnectionStore:
         try:
             with open(self._storage_path, "r") as f:
                 data = json.load(f)
-            
+
             self._connections = {}
             for conn_id, conn_data in data.get("connections", {}).items():
                 # Parse dates
                 conn_data["created_at"] = datetime.fromisoformat(conn_data["created_at"])
                 conn_data["updated_at"] = datetime.fromisoformat(conn_data["updated_at"])
                 self._connections[conn_id] = StoredConnection(**conn_data)
-                
+
             logger.info(f"Loaded {len(self._connections)} connections from {self._storage_path}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse connection store: {e}")
@@ -120,7 +121,7 @@ class ConnectionStore:
         """Save connections to disk."""
         # Ensure directory exists
         self._storage_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Serialize connections
         data = {
             "connections": {
@@ -132,17 +133,17 @@ class ConnectionStore:
                 for conn_id, conn in self._connections.items()
             }
         }
-        
+
         with open(self._storage_path, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         logger.debug(f"Saved {len(self._connections)} connections to {self._storage_path}")
 
     def _encrypt_credentials(self, username: str, password: str) -> str:
         """Encrypt credentials using Fernet."""
         if not self._fernet:
             raise EncryptionKeyError("Encryption not available - no key configured")
-        
+
         creds = json.dumps({"username": username, "password": password})
         encrypted = self._fernet.encrypt(creds.encode())
         return encrypted.decode()
@@ -151,7 +152,7 @@ class ConnectionStore:
         """Decrypt credentials using Fernet."""
         if not self._fernet:
             raise EncryptionKeyError("Decryption not available - no key configured")
-        
+
         try:
             decrypted = self._fernet.decrypt(encrypted.encode())
             return json.loads(decrypted.decode())
@@ -184,16 +185,16 @@ class ConnectionStore:
     def resolve_connection(self, connection_id: str) -> ResolvedConnection | None:
         """
         Resolve connection with decrypted credentials.
-        
+
         WARNING: Returns sensitive data - use only for building connection URIs
         during workflow execution. Never expose to API responses.
         """
         conn = self._connections.get(connection_id)
         if not conn:
             return None
-        
+
         creds = self._decrypt_credentials(conn.encrypted_credentials)
-        
+
         return ResolvedConnection(
             id=conn.id,
             name=conn.name,
@@ -208,10 +209,10 @@ class ConnectionStore:
     def build_connection_uri(self, connection_id: str) -> str | None:
         """
         Build a connection URI for the given connection ID.
-        
+
         Returns URI with embedded credentials for use with Polars/connectorx.
         Returns None if connection not found.
-        
+
         URI formats by database type:
         - PostgreSQL: postgresql://user:pass@host:port/database
         - MySQL: mysql://user:pass@host:port/database
@@ -219,24 +220,24 @@ class ConnectionStore:
         - MSSQL: mssql://user:pass@host:port/database?encrypt=true&trust_server_certificate=true
         """
         from app.domain.connections.models import DatabaseType
-        
+
         resolved = self.resolve_connection(connection_id)
         if not resolved:
             return None
-        
+
         # URL-encode username and password to handle special characters
         encoded_user = url_quote(resolved.username, safe="")
         encoded_pass = url_quote(resolved.password, safe="")
-        
+
         db_type = resolved.type
-        
+
         if db_type == DatabaseType.SQLITE:
             # SQLite uses file path, no credentials needed
             # Format: sqlite:///path/to/database.db
             # URL-encode the path for special characters
             encoded_path = url_quote(resolved.database, safe="/")
             return f"sqlite://{encoded_path}"
-        
+
         elif db_type == DatabaseType.MSSQL:
             # SQL Server requires specific parameters for secure connections
             # encrypt=true: Use TLS encryption
@@ -245,7 +246,7 @@ class ConnectionStore:
                 f"mssql://{encoded_user}:{encoded_pass}@{resolved.host}:{resolved.port}/{resolved.database}"
                 f"?encrypt=true&trust_server_certificate=true"
             )
-        
+
         else:
             # PostgreSQL and MySQL use standard format
             return f"{db_type.value}://{encoded_user}:{encoded_pass}@{resolved.host}:{resolved.port}/{resolved.database}"
@@ -254,15 +255,15 @@ class ConnectionStore:
         """Create a new connection."""
         if not self._fernet:
             raise EncryptionKeyError("Cannot create connections - no encryption key configured")
-        
+
         # Check for duplicate names
         existing_names = {c.name.lower() for c in self._connections.values()}
         if input.name.lower() in existing_names:
             raise DuplicateConnectionError(f"A connection named '{input.name}' already exists")
-        
+
         conn_id = str(uuid4())
         now = datetime.utcnow()
-        
+
         stored = StoredConnection(
             id=conn_id,
             name=input.name,
@@ -274,10 +275,10 @@ class ConnectionStore:
             created_at=now,
             updated_at=now,
         )
-        
+
         self._connections[conn_id] = stored
         self._save()
-        
+
         logger.info(f"Created connection: {input.name} ({conn_id})")
         return self._to_info(stored)
 
@@ -286,7 +287,7 @@ class ConnectionStore:
         conn = self._connections.get(connection_id)
         if not conn:
             raise ConnectionNotFoundError(f"Connection {connection_id} not found")
-        
+
         # Check for duplicate names (excluding current)
         if input.name:
             existing_names = {
@@ -295,7 +296,7 @@ class ConnectionStore:
             }
             if input.name.lower() in existing_names:
                 raise DuplicateConnectionError(f"A connection named '{input.name}' already exists")
-        
+
         # Update non-credential fields
         if input.name is not None:
             conn.name = input.name
@@ -305,18 +306,22 @@ class ConnectionStore:
             conn.port = input.port
         if input.database is not None:
             conn.database = input.database
-        
+
         # Update credentials if provided
         if input.username is not None or input.password is not None:
             current_creds = self._decrypt_credentials(conn.encrypted_credentials)
-            new_username = input.username if input.username is not None else current_creds["username"]
-            new_password = input.password if input.password is not None else current_creds["password"]
+            new_username = (
+                input.username if input.username is not None else current_creds["username"]
+            )
+            new_password = (
+                input.password if input.password is not None else current_creds["password"]
+            )
             conn.encrypted_credentials = self._encrypt_credentials(new_username, new_password)
-        
+
         conn.updated_at = datetime.utcnow()
         self._connections[connection_id] = conn
         self._save()
-        
+
         logger.info(f"Updated connection: {conn.name} ({connection_id})")
         return self._to_info(conn)
 
@@ -325,10 +330,10 @@ class ConnectionStore:
         conn = self._connections.get(connection_id)
         if not conn:
             raise ConnectionNotFoundError(f"Connection {connection_id} not found")
-        
+
         del self._connections[connection_id]
         self._save()
-        
+
         logger.info(f"Deleted connection: {conn.name} ({connection_id})")
 
     def has_connection(self, connection_id: str) -> bool:
@@ -343,7 +348,7 @@ _connection_store: ConnectionStore | None = None
 def get_connection_store() -> ConnectionStore:
     """
     Get the singleton connection store instance.
-    
+
     Lazy initialization - created on first access.
     """
     global _connection_store

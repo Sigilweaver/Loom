@@ -1,6 +1,5 @@
 """Tests for server connection store and API."""
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -9,7 +8,6 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
 from app.domain.connections.models import (
-    ConnectionInfo,
     CreateConnectionInput,
     DatabaseType,
     UpdateConnectionInput,
@@ -306,7 +304,7 @@ class TestConnectionStore:
 
         # Create new store instance pointing to same file
         store2 = ConnectionStore(storage_path=temp_storage, encryption_key=encryption_key)
-        
+
         # Should be able to read the connection
         loaded = store2.get_connection(created.id)
         assert loaded is not None
@@ -655,7 +653,7 @@ class TestConnectionResolver:
     def test_resolve_workflow_without_database_tools(self, resolver, sample_workflow):
         """Should return workflow unchanged when no database tools present."""
         result = resolver.resolve_workflow_connections(sample_workflow)
-        
+
         # Should return same workflow (no changes needed)
         assert len(result.tools) == len(sample_workflow.tools)
         assert result.tools[0].config == sample_workflow.tools[0].config
@@ -663,7 +661,7 @@ class TestConnectionResolver:
     def test_resolve_server_connection(self, resolver, store, sample_workflow):
         """Should resolve server-owned database connection."""
         from app.api.models.workflow import Tool
-        
+
         # Create a server connection
         conn = store.create_connection(
             CreateConnectionInput(
@@ -676,7 +674,7 @@ class TestConnectionResolver:
                 password="secret",
             )
         )
-        
+
         # Add a database tool to workflow
         db_tool = Tool(
             id="db_input",
@@ -693,13 +691,13 @@ class TestConnectionResolver:
             sockets=[],
         )
         sample_workflow.tools.append(db_tool)
-        
+
         # Resolve connections
         result = resolver.resolve_workflow_connections(sample_workflow)
-        
+
         # Find the resolved db tool
         resolved_db_tool = next(t for t in result.tools if t.id == "db_input")
-        
+
         # Should have source URI populated
         assert "source" in resolved_db_tool.config
         assert resolved_db_tool.config["source"] == "postgresql://user:secret@localhost:5432/testdb"
@@ -707,7 +705,7 @@ class TestConnectionResolver:
     def test_resolve_preserves_client_connection_with_source(self, resolver, sample_workflow):
         """Should not modify client connections that already have source."""
         from app.api.models.workflow import Tool
-        
+
         # Add a client database tool with source already resolved
         client_tool = Tool(
             id="client_db",
@@ -725,13 +723,13 @@ class TestConnectionResolver:
             sockets=[],
         )
         sample_workflow.tools.append(client_tool)
-        
+
         # Resolve connections
         result = resolver.resolve_workflow_connections(sample_workflow)
-        
+
         # Find the client tool
         resolved_tool = next(t for t in result.tools if t.id == "client_db")
-        
+
         # Source should be unchanged
         assert resolved_tool.config["source"] == "postgresql://clientuser:clientpass@clienthost:5432/clientdb"
 
@@ -739,7 +737,7 @@ class TestConnectionResolver:
         """Should raise error when server connection doesn't exist."""
         from app.api.models.workflow import Tool
         from app.utils.errors import ExecutionError
-        
+
         # Add a database tool with non-existent connection
         db_tool = Tool(
             id="db_input",
@@ -756,7 +754,7 @@ class TestConnectionResolver:
             sockets=[],
         )
         sample_workflow.tools.append(db_tool)
-        
+
         # Should raise error
         with pytest.raises(ExecutionError, match="not found"):
             resolver.resolve_workflow_connections(sample_workflow)
@@ -765,7 +763,7 @@ class TestConnectionResolver:
         """Should raise error when client connection is missing source URI."""
         from app.api.models.workflow import Tool
         from app.utils.errors import ExecutionError
-        
+
         # Add a client database tool WITHOUT source (not resolved)
         client_tool = Tool(
             id="unresolved_client",
@@ -783,7 +781,7 @@ class TestConnectionResolver:
             sockets=[],
         )
         sample_workflow.tools.append(client_tool)
-        
+
         # resolve_workflow_connections won't touch client connections
         # but validate_client_connections should catch the missing source
         with pytest.raises(ExecutionError, match="not resolved"):
@@ -792,7 +790,7 @@ class TestConnectionResolver:
     def test_resolve_multiple_server_connections(self, resolver, store, sample_workflow):
         """Should resolve multiple server connections in one workflow."""
         from app.api.models.workflow import Tool
-        
+
         # Create two server connections
         conn1 = store.create_connection(
             CreateConnectionInput(
@@ -816,7 +814,7 @@ class TestConnectionResolver:
                 password="pass2",
             )
         )
-        
+
         # Add two database tools
         sample_workflow.tools.extend([
             Tool(
@@ -848,14 +846,14 @@ class TestConnectionResolver:
                 sockets=[],
             ),
         ])
-        
+
         # Resolve connections
         result = resolver.resolve_workflow_connections(sample_workflow)
-        
+
         # Both should have source URIs
         db1_tool = next(t for t in result.tools if t.id == "db1")
         db2_tool = next(t for t in result.tools if t.id == "db2")
-        
+
         assert "source" in db1_tool.config
         assert "host1" in db1_tool.config["source"]
         assert "source" in db2_tool.config
@@ -864,9 +862,9 @@ class TestConnectionResolver:
     def test_resolver_without_store_uses_singleton(self):
         """Should use singleton store when none provided."""
         from app.domain.connections.resolver import ConnectionResolver
-        
+
         # Create resolver without explicit store
         resolver = ConnectionResolver()
-        
+
         # Accessing store should work (lazy initialization)
         assert resolver.store is not None

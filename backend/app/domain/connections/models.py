@@ -24,7 +24,7 @@ class DatabaseType(str, Enum):
 class StoredConnection(BaseModel):
     """
     Full connection data as stored on disk (encrypted credentials).
-    
+
     This is the internal storage format - credentials are encrypted at rest.
     """
     id: str
@@ -42,7 +42,7 @@ class StoredConnection(BaseModel):
 class ConnectionInfo(BaseModel):
     """
     Connection metadata without credentials (safe to send to clients).
-    
+
     This is what the API returns - credentials are never exposed.
     """
     id: str
@@ -62,7 +62,7 @@ class ConnectionInfo(BaseModel):
 class ResolvedConnection(BaseModel):
     """
     Connection with decrypted credentials (for internal use during execution).
-    
+
     This should NEVER leave the server - used only for building connection URIs.
     """
     id: str

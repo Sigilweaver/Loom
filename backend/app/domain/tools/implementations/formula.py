@@ -8,6 +8,7 @@ from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FormulaOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 
@@ -50,10 +51,10 @@ class FormulaTool(BaseTool):
         - column_name: str - name of the column
         - expression: str - Polars expression
         """
-        if "input" not in inputs:
+        if CommonSockets.INPUT not in inputs:
             raise ToolError("Formula tool requires input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Formula tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
@@ -69,7 +70,7 @@ class FormulaTool(BaseTool):
         op = self._build_operation(config)
         result = op.execute(lf)
 
-        return {"output": result}
+        return {CommonSockets.OUTPUT: result}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -80,10 +81,10 @@ class FormulaTool(BaseTool):
         Note: We don't know the exact type without executing,
         so we return a generic type.
         """
-        if "input" not in input_schemas:
+        if CommonSockets.INPUT not in input_schemas:
             raise ToolError("Formula tool requires input schema on socket 'input'")
 
-        input_data = input_schemas["input"]
+        input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Formula tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
@@ -119,7 +120,7 @@ class FormulaTool(BaseTool):
             output_columns.append(new_column)
 
         return {
-            "output": DataSchema(
+            CommonSockets.OUTPUT: DataSchema(
                 columns=output_columns,
                 row_count=input_schema.row_count,
                 file_size_bytes=None,
@@ -151,12 +152,12 @@ class FormulaTool(BaseTool):
         """Generate Python code for Formula tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = self._get_input_var(input_vars.get("input"))
+        input_var = self._get_input_var(input_vars.get(CommonSockets.INPUT))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()
         op = self._build_operation(config)
         lines = op.to_code(input_var, var_name)
 
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})
 

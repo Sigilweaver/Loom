@@ -21,7 +21,7 @@ class LoaderFactory:
     _special_loaders: dict[str, type[FileLoader]] = {
         "json": JsonLoader,
     }
-    
+
     # Database loaders by type
     _database_loaders: dict[str, str] = {
         "postgresql": "postgresql",
@@ -73,7 +73,7 @@ class LoaderFactory:
         """
         # Combine spec types, special loaders, and database loaders
         types = (
-            set(LOADER_SPECS.keys()) 
+            set(LOADER_SPECS.keys())
             | set(cls._special_loaders.keys())
             | set(cls._database_loaders.keys())
         )
@@ -100,15 +100,15 @@ class LoaderFactory:
             or source_type in cls._special_loaders
             or source_type in cls._database_loaders
         )
-    
+
     @classmethod
     def is_database_type(cls, source_type: str) -> bool:
         """
         Check if a source type is a database connection.
-        
+
         Args:
             source_type: Type identifier to check
-            
+
         Returns:
             True if database type, False otherwise
         """

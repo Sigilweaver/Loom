@@ -8,6 +8,7 @@ import polars as pl
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 
@@ -33,10 +34,10 @@ class OutputTool(BaseTool):
         - ... other format-specific config
         """
         # Output tools require exactly one input
-        if len(inputs) != 1 or "input" not in inputs:
+        if len(inputs) != 1 or CommonSockets.INPUT not in inputs:
             raise ToolError("Output tool requires exactly one input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[CommonSockets.INPUT]
         # Extract single LazyFrame (Output tool doesn't support list inputs)
         if isinstance(input_data, list):
             raise ToolError("Output tool does not support multiple inputs")
@@ -490,7 +491,11 @@ class OutputTool(BaseTool):
         # Validate JSON mode
         if output_type == "json":
             destination = config.get("destination", "")
-            is_ndjson = Path(destination).suffix.lower() in {".jsonl", ".ndjson"} if destination else False
+            is_ndjson = (
+                Path(destination).suffix.lower() in {".jsonl", ".ndjson"}
+                if destination
+                else False
+            )
             mode = config.get("jsonMode", "write")
 
             if is_ndjson:
@@ -555,11 +560,11 @@ class OutputTool(BaseTool):
         output_type = config.get("type", "csv")
         destination = config.get("destination", "")
 
-        if "input" not in input_vars:
+        if CommonSockets.INPUT not in input_vars:
             lines.append(f"# ERROR: Output {tool_id} has no input")
             return (lines, {})
 
-        input_var = input_vars["input"]
+        input_var = input_vars[CommonSockets.INPUT]
 
         if not destination:
             lines.append(f"# ERROR: Output {tool_id} has no destination specified")

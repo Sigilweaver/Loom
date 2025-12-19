@@ -8,6 +8,7 @@ from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import JoinSockets
 
 
 @register_tool("Join")
@@ -49,8 +50,8 @@ class JoinTool(BaseTool):
         config: dict[str, Any],
         inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]],
     ) -> dict[str, pl.LazyFrame]:
-        left_input = inputs.get("input-left")
-        right_input = inputs.get("input-right")
+        left_input = inputs.get(JoinSockets.INPUT_LEFT)
+        right_input = inputs.get(JoinSockets.INPUT_RIGHT)
 
         # Normalize inputs (might be list from multi-input socket, take first)
         left_lf = self._normalize_input(left_input)
@@ -60,9 +61,9 @@ class JoinTool(BaseTool):
         unmatched_left, matched, unmatched_right = op.execute(left_lf, right_lf)
 
         return {
-            "output-left": unmatched_left,
-            "output-match": matched,
-            "output-right": unmatched_right,
+            JoinSockets.OUTPUT_LEFT: unmatched_left,
+            JoinSockets.OUTPUT_MATCH: matched,
+            JoinSockets.OUTPUT_RIGHT: unmatched_right,
         }
 
     def _normalize_input(
@@ -80,30 +81,30 @@ class JoinTool(BaseTool):
         config: dict[str, Any],
         input_schemas: dict[str, DataSchema | list[DataSchema]],
     ) -> dict[str, DataSchema]:
-        left_schema = self._normalize_schema(input_schemas.get("input-left"))
-        right_schema = self._normalize_schema(input_schemas.get("input-right"))
+        left_schema = self._normalize_schema(input_schemas.get(JoinSockets.INPUT_LEFT))
+        right_schema = self._normalize_schema(input_schemas.get(JoinSockets.INPUT_RIGHT))
 
         # Handle missing schemas
         empty_schema = DataSchema(columns=[])
         if left_schema is None and right_schema is None:
             return {
-                "output-left": empty_schema,
-                "output-match": empty_schema,
-                "output-right": empty_schema,
+                JoinSockets.OUTPUT_LEFT: empty_schema,
+                JoinSockets.OUTPUT_MATCH: empty_schema,
+                JoinSockets.OUTPUT_RIGHT: empty_schema,
             }
 
         if left_schema is None:
             return {
-                "output-left": empty_schema,
-                "output-match": empty_schema,
-                "output-right": right_schema or empty_schema,
+                JoinSockets.OUTPUT_LEFT: empty_schema,
+                JoinSockets.OUTPUT_MATCH: empty_schema,
+                JoinSockets.OUTPUT_RIGHT: right_schema or empty_schema,
             }
 
         if right_schema is None:
             return {
-                "output-left": left_schema,
-                "output-match": empty_schema,
-                "output-right": empty_schema,
+                JoinSockets.OUTPUT_LEFT: left_schema,
+                JoinSockets.OUTPUT_MATCH: empty_schema,
+                JoinSockets.OUTPUT_RIGHT: empty_schema,
             }
 
         # Get config
@@ -130,9 +131,9 @@ class JoinTool(BaseTool):
                 else:
                     cross_columns.append(col)
             return {
-                "output-left": empty_schema,
-                "output-match": DataSchema(columns=cross_columns),
-                "output-right": empty_schema,
+                JoinSockets.OUTPUT_LEFT: empty_schema,
+                JoinSockets.OUTPUT_MATCH: DataSchema(columns=cross_columns),
+                JoinSockets.OUTPUT_RIGHT: empty_schema,
             }
 
         # Build matched schema: left columns + right non-key columns (with suffix if needed)
@@ -156,9 +157,9 @@ class JoinTool(BaseTool):
                 matched_columns.append(col)
 
         return {
-            "output-left": left_schema,
-            "output-match": DataSchema(columns=matched_columns),
-            "output-right": right_schema,
+            JoinSockets.OUTPUT_LEFT: left_schema,
+            JoinSockets.OUTPUT_MATCH: DataSchema(columns=matched_columns),
+            JoinSockets.OUTPUT_RIGHT: right_schema,
         }
 
     def _normalize_schema(
@@ -198,8 +199,8 @@ class JoinTool(BaseTool):
 
         # Validate key columns exist in schemas if provided
         if input_schemas:
-            left_schema = self._normalize_schema(input_schemas.get("input-left"))
-            right_schema = self._normalize_schema(input_schemas.get("input-right"))
+            left_schema = self._normalize_schema(input_schemas.get(JoinSockets.INPUT_LEFT))
+            right_schema = self._normalize_schema(input_schemas.get(JoinSockets.INPUT_RIGHT))
 
             if left_schema and left_keys:
                 left_col_names = {col.name for col in left_schema.columns}
@@ -225,8 +226,8 @@ class JoinTool(BaseTool):
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
         # Get input variables - join can have optional inputs
-        left_var = self._get_optional_input_var(input_vars.get("input-left"))
-        right_var = self._get_optional_input_var(input_vars.get("input-right"))
+        left_var = self._get_optional_input_var(input_vars.get(JoinSockets.INPUT_LEFT))
+        right_var = self._get_optional_input_var(input_vars.get(JoinSockets.INPUT_RIGHT))
 
         # Generate output variable names
         base_name = PythonCodeGenerator.sanitize_var_name(tool_id)
@@ -241,9 +242,9 @@ class JoinTool(BaseTool):
         return (
             lines,
             {
-                "output-left": left_out_var,
-                "output-match": match_out_var,
-                "output-right": right_out_var,
+                JoinSockets.OUTPUT_LEFT: left_out_var,
+                JoinSockets.OUTPUT_MATCH: match_out_var,
+                JoinSockets.OUTPUT_RIGHT: right_out_var,
             },
         )
 

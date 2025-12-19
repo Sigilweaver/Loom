@@ -9,6 +9,7 @@ from app.domain.datasources.factory import DataSourceFactory
 from app.domain.tools.base import BaseTool
 from app.domain.tools.loaders.factory import LoaderFactory
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 
@@ -19,7 +20,7 @@ class InputTool(BaseTool):
 
     Uses the LoaderFactory to delegate loading to format-specific loaders.
     Always returns LazyFrame for efficient lazy evaluation.
-    
+
     For database sources, the source is a connection URI with embedded credentials.
     """
 
@@ -67,7 +68,7 @@ class InputTool(BaseTool):
 
         # Use LoaderFactory to get appropriate loader and load data
         loader = LoaderFactory.create(source_type)
-        
+
         # Database loaders expect the source (URI) as first argument
         if LoaderFactory.is_database_type(source_type):
             lf = await loader.load(source, config)
@@ -75,7 +76,7 @@ class InputTool(BaseTool):
             lf = await loader.load(config)
 
         # Return on output socket
-        return {"output": lf}
+        return {CommonSockets.OUTPUT: lf}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -99,7 +100,7 @@ class InputTool(BaseTool):
         # Inspect to get schema
         schema = await datasource.inspect(source_path, config)
 
-        return {"output": schema}
+        return {CommonSockets.OUTPUT: schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate input tool configuration"""
@@ -113,7 +114,7 @@ class InputTool(BaseTool):
         if source_type and not LoaderFactory.is_supported(source_type):
             supported = ", ".join(LoaderFactory.list_supported_types())
             errors.append(f"Unsupported source type: {source_type}. Supported: {supported}")
-        
+
         # For database types, source is required (the resolved connection URI)
         # This will be resolved by the frontend before execution
         category = config.get("category")
@@ -146,7 +147,7 @@ class InputTool(BaseTool):
 
         if not source and category != "database":
             lines = [f"{var_name} = None  # ERROR: No source specified"]
-            return (lines, {"output": var_name})
+            return (lines, {CommonSockets.OUTPUT: var_name})
 
         # Database-specific code generation
         # SECURITY: Never include actual credentials in generated code
@@ -154,25 +155,25 @@ class InputTool(BaseTool):
             query = config.get("query", "")
             owner = config.get("owner", "client")
             connection_name = config.get("connectionName", "database")
-            
+
             # Build sanitized URI placeholder based on database type
             db_type = source_type if source_type else "postgresql"
-            
+
             lines = [
                 f"# Database query from {db_type}",
                 f"# Connection: {connection_name} (managed by {owner})",
-                f"#",
-                f"# SECURITY: Replace placeholder credentials before running",
-                f"# Never commit actual credentials to version control",
+                "#",
+                "# SECURITY: Replace placeholder credentials before running",
+                "# Never commit actual credentials to version control",
                 f'CONNECTION_URI = "{db_type}://user:password@host:port/database"',
-                f"",
+                "",
                 f"{var_name} = pl.read_database_uri(",
                 f'    query="""{query}""",',
-                f"    uri=CONNECTION_URI,",
-                f'    engine="connectorx",',
-                f").lazy()",
+                "    uri=CONNECTION_URI,",
+                '    engine="connectorx",',
+                ").lazy()",
             ]
-            return (lines, {"output": var_name})
+            return (lines, {CommonSockets.OUTPUT: var_name})
 
         # Use loader to generate code for file types
         if LoaderFactory.is_supported(source_type):
@@ -181,4 +182,4 @@ class InputTool(BaseTool):
         else:
             lines = [f"# TODO: {source_type} input not yet supported in code generation"]
 
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})

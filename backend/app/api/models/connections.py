@@ -17,11 +17,12 @@ class ConnectionInfoResponse(BaseModel):
     host: str
     port: int
     database: str
-    createdAt: datetime
-    updatedAt: datetime
+    created_at: datetime = Field(serialization_alias="createdAt")
+    updated_at: datetime = Field(serialization_alias="updatedAt")
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class CreateConnectionRequest(BaseModel):
@@ -49,10 +50,15 @@ class ConnectionTestResult(BaseModel):
     """Result of testing a connection."""
     success: bool
     message: str
-    latencyMs: int | None = None
+    latency_ms: int | None = Field(None, serialization_alias="latencyMs")
 
 
 class ConnectionStoreStatus(BaseModel):
     """Status of the connection store."""
-    enabled: bool = Field(description="Whether server connections are enabled (encryption key configured)")
-    connectionCount: int = Field(description="Number of stored connections")
+    enabled: bool = Field(
+        description="Whether server connections are enabled (encryption key configured)"
+    )
+    connection_count: int = Field(
+        serialization_alias="connectionCount",
+        description="Number of stored connections",
+    )

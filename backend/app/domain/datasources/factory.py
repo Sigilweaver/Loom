@@ -3,14 +3,14 @@
 from pathlib import Path
 from typing import Type
 
-from app.domain.datasources.base import DataSource
 from app.domain.datasources.avro import AvroDataSource
+from app.domain.datasources.base import DataSource
 from app.domain.datasources.csv import CSVDataSource
 from app.domain.datasources.database import (
-    PostgreSQLDataSource,
-    MySQLDataSource,
-    SQLiteDataSource,
     MsSQLDataSource,
+    MySQLDataSource,
+    PostgreSQLDataSource,
+    SQLiteDataSource,
 )
 from app.domain.datasources.excel import ExcelDataSource
 from app.domain.datasources.ipc import IPCDataSource
@@ -57,7 +57,7 @@ class DataSourceFactory:
         ".ipc": "ipc",  # IPC format
         ".feather": "ipc",  # Feather v2 (same as Arrow IPC)
     }
-    
+
     # Database source types (not file-based)
     _database_types: set[str] = {
         "postgresql",
@@ -123,7 +123,7 @@ class DataSourceFactory:
     def list_supported_extensions(cls) -> list[str]:
         """List all supported file extensions"""
         return list(cls._extension_mapping.keys())
-    
+
     @classmethod
     def is_database_type(cls, source_type: str) -> bool:
         """Check if a source type is a database connection (not file-based)"""

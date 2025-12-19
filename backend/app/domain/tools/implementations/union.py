@@ -6,6 +6,7 @@ from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UnionOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import UnionSockets
 
 
 @register_tool("Union")
@@ -19,7 +20,7 @@ class UnionTool(BaseTool):
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
         # Get inputs from socket 'input'
-        input_data = inputs.get("input")
+        input_data = inputs.get(UnionSockets.INPUT)
 
         # Ensure we have a list of frames
         frames: list[pl.LazyFrame] = []
@@ -33,15 +34,15 @@ class UnionTool(BaseTool):
         op = self._build_operation(config)
         result = op.execute(frames)
 
-        return {"output": result}
+        return {UnionSockets.OUTPUT: result}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
     ) -> dict[str, DataSchema]:
-        input_schema_data = input_schemas.get("input")
+        input_schema_data = input_schemas.get(UnionSockets.INPUT)
 
         if not input_schema_data:
-            return {"output": DataSchema(columns=[])}
+            return {UnionSockets.OUTPUT: DataSchema(columns=[])}
 
         schemas: list[DataSchema] = []
         if isinstance(input_schema_data, list):
@@ -50,7 +51,7 @@ class UnionTool(BaseTool):
             schemas = [input_schema_data]
 
         if not schemas:
-            return {"output": DataSchema(columns=[])}
+            return {UnionSockets.OUTPUT: DataSchema(columns=[])}
 
         mode = config.get("mode", "ByName")
 
@@ -68,13 +69,13 @@ class UnionTool(BaseTool):
                         merged_columns[col.name] = col
                     # TODO: Handle type merging if needed
 
-            return {"output": DataSchema(columns=list(merged_columns.values()))}
+            return {UnionSockets.OUTPUT: DataSchema(columns=list(merged_columns.values()))}
 
         elif mode == "ByPosition":
             # Output schema matches the first input
-            return {"output": schemas[0]}
+            return {UnionSockets.OUTPUT: schemas[0]}
 
-        return {"output": schemas[0]}
+        return {UnionSockets.OUTPUT: schemas[0]}
 
     def to_python_code(
         self,
@@ -86,7 +87,7 @@ class UnionTool(BaseTool):
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
         # Get input variable(s) - can be a single var or list
-        input_data = input_vars.get("input")
+        input_data = input_vars.get(UnionSockets.INPUT)
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Normalize to list
@@ -101,4 +102,4 @@ class UnionTool(BaseTool):
         op = self._build_operation(config)
         lines = op.to_code(input_list, var_name)
 
-        return (lines, {"output": var_name})
+        return (lines, {UnionSockets.OUTPUT: var_name})

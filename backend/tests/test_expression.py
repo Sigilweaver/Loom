@@ -28,7 +28,10 @@ class TestNormalizeExpression:
         """Multiline expressions with trailing comments are preserved."""
         expr = """(pl.col('price') > 100)  # expensive items
 & (pl.col('qty') >= 3)  # in stock"""
-        expected = "((pl.col('price') > 100)  # expensive items\n& (pl.col('qty') >= 3)  # in stock\n)"
+        expected = (
+            "((pl.col('price') > 100)  # expensive items\n"
+            "& (pl.col('qty') >= 3)  # in stock\n)"
+        )
         assert normalize_expression(expr) == expected
 
     def test_preserves_internal_whitespace(self):

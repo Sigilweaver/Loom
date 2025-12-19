@@ -43,11 +43,11 @@ def _dtype_to_polars_type(dtype: pl.DataType) -> PolarsDataType:
         "Date": PolarsDataType.DATE,
         "Time": PolarsDataType.TIME,
     }
-    
+
     # Check for exact match first
     if dtype_str in dtype_mapping:
         return dtype_mapping[dtype_str]
-    
+
     # Handle parameterized types (Datetime, Duration, List, etc.)
     if dtype_str.startswith("Datetime"):
         return PolarsDataType.DATETIME
@@ -61,7 +61,7 @@ def _dtype_to_polars_type(dtype: pl.DataType) -> PolarsDataType:
         return PolarsDataType.STRUCT
     if dtype_str.startswith("Categorical"):
         return PolarsDataType.CATEGORICAL
-    
+
     # Default to String for unknown types
     return PolarsDataType.STRING
 
@@ -72,7 +72,7 @@ class DatabaseDataSource(DataSource):
     def __init__(self, database_type: str = "postgresql"):
         """
         Initialize database data source.
-        
+
         Args:
             database_type: Type of database (postgresql, mysql, etc.)
         """
@@ -100,13 +100,13 @@ class DatabaseDataSource(DataSource):
             # Execute query with LIMIT 0 to get schema without data
             # Wrap the query to avoid modifying complex queries
             schema_query = f"SELECT * FROM ({query}) AS _schema_query LIMIT 0"
-            
+
             df = pl.read_database_uri(
                 query=schema_query,
                 uri=source,
                 engine="connectorx",
             )
-            
+
             columns = [
                 ColumnSchema(
                     name=col,
@@ -115,10 +115,10 @@ class DatabaseDataSource(DataSource):
                 )
                 for col in df.columns
             ]
-            
+
             return DataSchema(columns=columns, row_count=None)
 
-        except Exception as e:
+        except Exception:
             # If the LIMIT 0 wrapper fails, try original query with small limit
             try:
                 df = pl.read_database_uri(
@@ -126,7 +126,7 @@ class DatabaseDataSource(DataSource):
                     uri=source,
                     engine="connectorx",
                 )
-                
+
                 columns = [
                     ColumnSchema(
                         name=col,
@@ -135,9 +135,9 @@ class DatabaseDataSource(DataSource):
                     )
                     for col in df.columns
                 ]
-                
+
                 return DataSchema(columns=columns, row_count=len(df))
-                
+
             except Exception as inner_e:
                 raise DataSourceError(f"Failed to inspect database query: {inner_e}")
 
@@ -183,19 +183,19 @@ class DatabaseDataSource(DataSource):
                 LIMIT {max_rows}
                 OFFSET {offset}
             """
-            
+
             df = pl.read_database_uri(
                 query=limited_query,
                 uri=source,
                 engine="connectorx",
             )
-            
+
             # Apply column filter if specified
             if columns:
                 available = [c for c in columns if c in df.columns]
                 if available:
                     df = df.select(available)
-            
+
             # Build schema
             schema_columns = [
                 ColumnSchema(
@@ -205,10 +205,10 @@ class DatabaseDataSource(DataSource):
                 )
                 for col in df.columns
             ]
-            
+
             # Convert to row format
             rows = df.to_dicts()
-            
+
             return DataPreview(
                 data_schema=DataSchema(columns=schema_columns, row_count=None),
                 data=rows,
@@ -230,7 +230,7 @@ class DatabaseDataSource(DataSource):
             List of error messages (empty if valid)
         """
         errors: list[str] = []
-        
+
         # Connection URI is required (passed as source, not in config)
         # But we validate query is present
         query = config.get("query")
@@ -238,33 +238,33 @@ class DatabaseDataSource(DataSource):
             errors.append("SQL query is required")
         elif not query.strip():
             errors.append("SQL query cannot be empty")
-        
+
         return errors
 
 
 class PostgreSQLDataSource(DatabaseDataSource):
     """PostgreSQL-specific data source."""
-    
+
     def __init__(self):
         super().__init__(database_type="postgresql")
 
 
 class MySQLDataSource(DatabaseDataSource):
     """MySQL-specific data source."""
-    
+
     def __init__(self):
         super().__init__(database_type="mysql")
 
 
 class SQLiteDataSource(DatabaseDataSource):
     """SQLite-specific data source."""
-    
+
     def __init__(self):
         super().__init__(database_type="sqlite")
 
 
 class MsSQLDataSource(DatabaseDataSource):
     """Microsoft SQL Server-specific data source."""
-    
+
     def __init__(self):
         super().__init__(database_type="mssql")

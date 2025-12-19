@@ -9,7 +9,6 @@ from app.domain.datasources.json import JSONDataSource
 from app.domain.tools.implementations.input import InputTool
 from app.domain.tools.implementations.output import OutputTool
 
-
 # -----------------------------------------------------------------------------
 # Fixtures
 # -----------------------------------------------------------------------------
@@ -359,7 +358,7 @@ async def test_ndjson_output_tool_sink_mode(tmp_path: Path):
         "jsonMode": "sink"
     }
 
-    outputs = await tool.execute(config, {"input": lf})
+    await tool.execute(config, {"input": lf})
 
     # Verify file was created
     assert output_path.exists()
@@ -387,7 +386,7 @@ async def test_ndjson_output_tool_write_mode(tmp_path: Path):
         "jsonMode": "write"
     }
 
-    outputs = await tool.execute(config, {"input": lf})
+    await tool.execute(config, {"input": lf})
 
     assert output_path.exists()
 
@@ -412,7 +411,7 @@ async def test_json_output_tool_standard_format(tmp_path: Path):
         "jsonMode": "write"  # Standard JSON only supports write
     }
 
-    outputs = await tool.execute(config, {"input": lf})
+    await tool.execute(config, {"input": lf})
 
     assert output_path.exists()
 
@@ -439,7 +438,7 @@ async def test_jsonl_output_treated_as_ndjson(tmp_path: Path):
         "jsonMode": "sink"
     }
 
-    outputs = await tool.execute(config, {"input": lf})
+    await tool.execute(config, {"input": lf})
 
     assert output_path.exists()
 

@@ -8,6 +8,7 @@ from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SelectOperation, build_select_expr
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 # Mapping from PolarsDataType string to actual Polars type for casting
@@ -68,10 +69,10 @@ class SelectTool(BaseTool):
         Config should contain:
         - columnConfigs: list[dict] - column configurations
         """
-        if "input" not in inputs:
+        if CommonSockets.INPUT not in inputs:
             raise ToolError("Select tool requires input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Select tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
@@ -80,7 +81,7 @@ class SelectTool(BaseTool):
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            return {"output": lf}
+            return {CommonSockets.OUTPUT: lf}
 
         op = self._build_operation(config)
 
@@ -88,7 +89,7 @@ class SelectTool(BaseTool):
             raise ToolError("At least one column must be selected")
 
         result = op.execute(lf)
-        return {"output": result}
+        return {CommonSockets.OUTPUT: result}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -96,10 +97,10 @@ class SelectTool(BaseTool):
         """
         Calculate output schema based on column configuration.
         """
-        if "input" not in input_schemas:
+        if CommonSockets.INPUT not in input_schemas:
             raise ToolError("Select tool requires input schema on socket 'input'")
 
-        input_data = input_schemas["input"]
+        input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Select tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
@@ -108,7 +109,7 @@ class SelectTool(BaseTool):
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            return {"output": input_schema}
+            return {CommonSockets.OUTPUT: input_schema}
 
         # Build output columns based on config
         output_columns: list[ColumnSchema] = []
@@ -154,7 +155,7 @@ class SelectTool(BaseTool):
         if not output_columns:
             raise ToolError("At least one column must be selected")
 
-        return {"output": DataSchema(
+        return {CommonSockets.OUTPUT: DataSchema(
             columns=output_columns,
             row_count=input_schema.row_count,
             file_size_bytes=None,
@@ -230,12 +231,12 @@ class SelectTool(BaseTool):
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
         column_configs = config.get("columnConfigs", [])
-        input_var = self._get_input_var(input_vars.get("input"))
+        input_var = self._get_input_var(input_vars.get(CommonSockets.INPUT))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # If no column configs, pass through unchanged
         if not column_configs:
-            return ([f"{var_name} = {input_var}"], {"output": var_name})
+            return ([f"{var_name} = {input_var}"], {CommonSockets.OUTPUT: var_name})
 
         # Use the same operation builder as execute()
         op = self._build_operation(config)
@@ -243,8 +244,8 @@ class SelectTool(BaseTool):
         if not op.expressions:
             return (
                 ["# ERROR: No columns selected", f"{var_name} = {input_var}"],
-                {"output": var_name},
+                {CommonSockets.OUTPUT: var_name},
             )
 
         lines = op.to_code(input_var, var_name)
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})

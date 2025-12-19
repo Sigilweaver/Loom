@@ -4,9 +4,10 @@ import { ConfigText } from "./primitives/ConfigText";
 import { ConfigSelect } from "./primitives/ConfigSelect";
 import { CodeEditor } from "./common/CodeEditor";
 import { HelpLink } from "./common/HelpLink";
-import { useMetadata, usePolarsFunctions } from "../api/hooks";
-import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+import { usePolarsFunctions } from "../api/hooks";
+import { useToolConfiguration } from "../hooks/useToolConfiguration";
 import { EXPRESSION_DOCS_URL } from "@data/tools";
+import { CommonSockets } from "@domain/workflow/constants/socketIds";
 
 // Special value indicating creation of a new column
 const NEW_COLUMN_VALUE = "__new_column__";
@@ -61,29 +62,22 @@ export function FormulaConfiguration({
   wires,
   workflowMeta,
 }: FormulaConfigurationProps) {
-  const { columns, fetchMetadata } = useMetadata();
+  // Unified configuration hook - handles metadata and connections
+  const { columns } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
+  // Polars functions for autocomplete
   const { functions, fetchFunctions } = usePolarsFunctions();
-
-  // Fetch Polars functions on mount
   useEffect(() => {
-    if (!functions) {
-      fetchFunctions();
-    }
+    if (!functions) fetchFunctions();
   }, [functions, fetchFunctions]);
-
-  // Track wire connections to this tool - only refetch when they change
-  const wireConnections = useMemo(() => {
-    return wires.filter(w => w.to.tool === toolId).map(w => `${w.from.tool}-${w.from.socket}`).sort().join(',');
-  }, [wires, toolId]);
-
-  // Fetch metadata when component mounts or connections change
-  // Use upstream subgraph only to avoid errors from downstream tools
-  useEffect(() => {
-    const { tools: upstreamTools, wires: upstreamWires } = 
-      WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
-    const workflow = WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta);
-    fetchMetadata(toolId, JSON.parse(workflow), 'input');
-  }, [toolId, wireConnections, fetchMetadata]); // Only depend on wireConnections, not all tools/wires/meta
 
   // Build dropdown options from available columns
   const targetColumnOptions = useMemo(() => {

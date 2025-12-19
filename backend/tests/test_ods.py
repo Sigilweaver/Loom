@@ -8,7 +8,6 @@ import pytest
 from app.domain.datasources.ods import ODSDataSource
 from app.domain.tools.implementations.input import InputTool
 
-
 # Path to sample ODS file (Polars cannot write ODS, so we use a pre-made file)
 SAMPLE_ODS = Path(__file__).parent / "fixtures" / "sample.ods"
 

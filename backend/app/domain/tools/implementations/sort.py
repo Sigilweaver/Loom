@@ -8,6 +8,7 @@ from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SortColumn, SortOperation
 from app.domain.tools.registry import register_tool
+from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 
 # Valid sort directions
@@ -54,10 +55,10 @@ class SortTool(BaseTool):
         """
         Execute sort operation.
         """
-        if "input" not in inputs:
+        if CommonSockets.INPUT not in inputs:
             raise ToolError("Sort tool requires input on socket 'input'")
 
-        input_data = inputs["input"]
+        input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Sort tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
@@ -65,7 +66,7 @@ class SortTool(BaseTool):
         op = self._build_operation(config)
         result = op.execute(lf)
 
-        return {"output": result}
+        return {CommonSockets.OUTPUT: result}
 
     async def get_output_schema(
         self, config: dict[str, Any], input_schemas: dict[str, DataSchema | list[DataSchema]]
@@ -73,16 +74,16 @@ class SortTool(BaseTool):
         """
         Sort preserves the input schema exactly.
         """
-        if "input" not in input_schemas:
+        if CommonSockets.INPUT not in input_schemas:
             raise ToolError("Sort tool requires input schema on socket 'input'")
 
-        input_data = input_schemas["input"]
+        input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
             raise ToolError("Sort tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
 
         # Sort doesn't change the schema, just the row order
-        return {"output": input_schema}
+        return {CommonSockets.OUTPUT: input_schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate sort configuration"""
@@ -130,11 +131,11 @@ class SortTool(BaseTool):
         """Generate Python code for Sort tool - uses same operation as execute()"""
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
-        input_var = self._get_input_var(input_vars.get("input"))
+        input_var = self._get_input_var(input_vars.get(CommonSockets.INPUT))
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
 
         # Use the same operation builder as execute()
         op = self._build_operation(config)
         lines = op.to_code(input_var, var_name)
 
-        return (lines, {"output": var_name})
+        return (lines, {CommonSockets.OUTPUT: var_name})
