@@ -474,7 +474,7 @@ export async function previewAllTools(
  * Response from /api/workflow/cache/clear endpoint
  */
 export interface ClearCacheResponse {
-  status: 'cleared' | 'cache_disabled';
+  status: 'cleared' | 'cache_disabled' | 'cleared_on_close' | 'close_acknowledged';
   workflow_id: string;
 }
 
@@ -501,4 +501,41 @@ export async function clearBackendWorkflowCache(
       workflow_id: workflowId,
     }),
   }, context);
+}
+
+/**
+ * Notify backend that a workflow has been closed
+ * 
+ * This signals to the backend that the workflow is no longer active.
+ * If cache_clear_on_close is enabled (default), the backend will clear
+ * the workflow's disk cache. This is more efficient than keeping cache
+ * for workflows that are no longer in use.
+ * 
+ * Call this when:
+ * - User closes a workflow tab
+ * - User switches to a different workflow (for the previous workflow)
+ * - Application is shutting down (for all open workflows)
+ * 
+ * Note: This is fire-and-forget - errors are logged but not thrown.
+ * 
+ * @param workflowId - The workflow ID being closed
+ * @param context - Optional request context for logging
+ */
+export async function closeWorkflowCacheOnBackend(
+  workflowId: string,
+  context?: RequestContext
+): Promise<void> {
+  try {
+    await apiRequest<ClearCacheResponse>('/cache/close', {
+      method: 'POST',
+      body: JSON.stringify({
+        workflow_id: workflowId,
+      }),
+    }, context);
+    logger.debug('Backend cache closed for workflow:', workflowId);
+  } catch (error) {
+    // Fire-and-forget: log error but don't throw
+    // This prevents cache cleanup failures from blocking workflow operations
+    logger.warn('Failed to close backend cache for workflow:', workflowId, error);
+  }
 }

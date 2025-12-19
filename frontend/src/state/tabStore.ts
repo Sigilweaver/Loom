@@ -329,7 +329,7 @@ export const useTabStore = create<TabState>()(
        * Close all tabs (with confirmation if any have unsaved changes)
        */
       closeAllTabs: () => {
-        const { tabs } = get();
+        const { tabs, tabData } = get();
         const dirtyTabs = tabs.filter((t) => t.isDirty);
 
         if (dirtyTabs.length > 0) {
@@ -340,6 +340,11 @@ export const useTabStore = create<TabState>()(
             return;
           }
         }
+
+        // Collect all workflow IDs to clear caches for
+        const workflowIds = tabs
+          .map((t) => tabData[t.id]?.workflow?.workflowMeta?.workflowId)
+          .filter((id): id is string => !!id);
 
         // Create one new clean tab
         const newTabId = uuidv4();
@@ -365,6 +370,12 @@ export const useTabStore = create<TabState>()(
         });
 
         get().loadTab(newTabId);
+
+        // Clear caches for all closed workflows
+        for (const workflowId of workflowIds) {
+          logger.debug("Clearing cache for closed workflow:", workflowId);
+          clearWorkflowCache(workflowId);
+        }
       },
 
       /**
@@ -373,7 +384,7 @@ export const useTabStore = create<TabState>()(
        * @param tabId - ID of tab to keep open
        */
       closeOtherTabs: (tabId: string) => {
-        const { tabs } = get();
+        const { tabs, tabData } = get();
         const otherTabs = tabs.filter((t) => t.id !== tabId);
         const dirtyTabs = otherTabs.filter((t) => t.isDirty);
 
@@ -385,6 +396,11 @@ export const useTabStore = create<TabState>()(
             return;
           }
         }
+
+        // Collect workflow IDs of tabs being closed
+        const workflowIds = otherTabs
+          .map((t) => tabData[t.id]?.workflow?.workflowMeta?.workflowId)
+          .filter((id): id is string => !!id);
 
         // Save target tab data before filtering
         const targetTabData = get().tabData[tabId];
@@ -399,6 +415,12 @@ export const useTabStore = create<TabState>()(
         });
 
         get().loadTab(tabId);
+
+        // Clear caches for all closed workflows
+        for (const workflowId of workflowIds) {
+          logger.debug("Clearing cache for closed workflow:", workflowId);
+          clearWorkflowCache(workflowId);
+        }
       },
 
       /**
