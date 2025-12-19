@@ -32,11 +32,12 @@ function buildConnectionUri(connection: ResolvedConnection): string {
   const encodedUsername = encodeURIComponent(connection.username);
   
   switch (connection.type) {
-    case 'sqlite':
+    case 'sqlite': {
       // SQLite uses file path, no credentials needed
       // The 'database' field contains the file path
       const encodedPath = encodeURIComponent(connection.database).replace(/%2F/g, '/');
       return `sqlite://${encodedPath}`;
+    }
     
     case 'mssql':
       // SQL Server requires specific parameters for secure connections
