@@ -7,12 +7,14 @@ from app.domain.tools.implementations import (
     InputTool,
     JoinTool,
     OutputTool,
+    PivotTool,
     SampleTool,
     SelectTool,
     SortTool,
     SummarizeTool,
     UnionTool,
     UniqueTool,
+    UnpivotTool,
 )
 
 # Tools are automatically registered via @register_tool decorator
@@ -30,4 +32,6 @@ __all__ = [
     "JoinTool",
     "SampleTool",
     "UniqueTool",
+    "PivotTool",
+    "UnpivotTool",
 ]

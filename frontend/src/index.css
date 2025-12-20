@@ -180,6 +180,20 @@ code {
   scrollbar-color: var(--color-border-primary) transparent;
 }
 
+/* Native select/option element styling for dark mode */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--color-surface-elevated, #27272a);
+  color: var(--color-text-primary, #fafafa);
+}
+
+select option:checked {
+  background-color: var(--color-surface-overlay, #3f3f46);
+}
+
 /* Monaco Editor styling */
 .monaco-editor-wrapper {
   position: relative;

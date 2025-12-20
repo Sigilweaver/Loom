@@ -743,6 +743,123 @@ class UniqueOperation:
         return lines
 
 
+@dataclass
+class UnpivotOperation:
+    """Represents an unpivot (melt) operation - wide to long format.
+
+    Transforms columns into rows. Selected columns become values in a single column,
+    with a new column indicating which original column each value came from.
+    """
+
+    on: list[str]  # Columns to unpivot (their values become rows)
+    index: list[str] = field(default_factory=list)  # Columns to keep as identifiers
+    variable_name: str = "variable"  # Name for the column storing original column names
+    value_name: str = "value"  # Name for the column storing the values
+
+    def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
+        """Execute unpivot operation."""
+        return lf.unpivot(
+            on=self.on,
+            index=self.index if self.index else None,
+            variable_name=self.variable_name,
+            value_name=self.value_name,
+        )
+
+    def to_code(self, input_var: str, output_var: str) -> list[str]:
+        """Generate Python code for unpivot operation."""
+        on_str = ", ".join(f'"{c}"' for c in self.on)
+        var_escaped = self.variable_name.replace("\\", "\\\\").replace('"', '\\"')
+        val_escaped = self.value_name.replace("\\", "\\\\").replace('"', '\\"')
+
+        if self.index:
+            index_str = ", ".join(f'"{c}"' for c in self.index)
+            return [
+                f"{output_var} = {input_var}.unpivot(",
+                f'    on=[{on_str}],',
+                f'    index=[{index_str}],',
+                f'    variable_name="{var_escaped}",',
+                f'    value_name="{val_escaped}",',
+                ")",
+            ]
+        else:
+            return [
+                f"{output_var} = {input_var}.unpivot(",
+                f'    on=[{on_str}],',
+                f'    variable_name="{var_escaped}",',
+                f'    value_name="{val_escaped}",',
+                ")",
+            ]
+
+
+@dataclass
+class PivotOperation:
+    """Represents a pivot operation - long to wide format.
+
+    Transforms row values into columns. Values from one column become column headers,
+    values from another column fill those new columns.
+    """
+
+    on: str  # Column whose values become new column headers
+    index: list[str]  # Columns to group by (preserved as-is)
+    values: str  # Column whose values fill the new columns
+    aggregate_function: str = "first"  # How to aggregate duplicate values
+
+    # Valid aggregation functions for pivot
+    VALID_AGGREGATIONS: set[str] = field(default_factory=lambda: {
+        "first", "last", "sum", "mean", "median", "min", "max", "count", "len"
+    }, repr=False)
+
+    def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
+        """Execute pivot operation.
+
+        Note: Pivot is an eager operation in Polars. This collects the LazyFrame,
+        performs the pivot on the DataFrame, then returns as a LazyFrame.
+        The PivotTool is_blocking() returns True to ensure proper execution.
+        """
+        agg_func = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
+        # Pivot requires eager execution - collect, pivot, return lazy
+        df = lf.collect()
+        result = df.pivot(
+            on=self.on,
+            index=self.index if self.index else None,
+            values=self.values,
+            aggregate_function=agg_func,
+        )
+        return result.lazy()
+
+    def to_code(self, input_var: str, output_var: str) -> list[str]:
+        """Generate Python code for pivot operation.
+
+        Note: Pivot requires eager execution (DataFrame.pivot has different signature
+        than LazyFrame.pivot). We collect, pivot, then return lazy.
+        """
+        on_escaped = self.on.replace("\\", "\\\\").replace('"', '\\"')
+        values_escaped = self.values.replace("\\", "\\\\").replace('"', '\\"')
+        agg_func = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
+
+        lines = [f"_df_pivot_temp = {input_var}.collect()"]
+
+        if self.index:
+            index_str = ", ".join(f'"{c}"' for c in self.index)
+            lines.extend([
+                f"{output_var} = _df_pivot_temp.pivot(",
+                f'    on="{on_escaped}",',
+                f'    index=[{index_str}],',
+                f'    values="{values_escaped}",',
+                f'    aggregate_function="{agg_func}",',
+                ").lazy()",
+            ])
+        else:
+            lines.extend([
+                f"{output_var} = _df_pivot_temp.pivot(",
+                f'    on="{on_escaped}",',
+                f'    values="{values_escaped}",',
+                f'    aggregate_function="{agg_func}",',
+                ").lazy()",
+            ])
+        return lines
+
+
 def build_select_expr(col_config: dict[str, Any]) -> ExprNode | None:
     """Build a select expression from column configuration."""
     name = col_config.get("name")

@@ -26,6 +26,8 @@ import { UnionConfiguration } from "@components/UnionConfiguration";
 import { JoinConfiguration } from "@components/JoinConfiguration";
 import { SampleConfiguration } from "@components/SampleConfiguration";
 import { UniqueConfiguration } from "@components/UniqueConfiguration";
+import { PivotConfiguration } from "@components/PivotConfiguration";
+import { UnpivotConfiguration } from "@components/UnpivotConfiguration";
 
 /**
  * Base props that all configuration components receive
@@ -114,6 +116,14 @@ export const TOOL_CONFIG_REGISTRY: Record<string, ToolConfigEntry> = {
   // Aggregate Tools
   Summarize: {
     component: SummarizeConfiguration,
+    needsWorkflowContext: true,
+  },
+  Pivot: {
+    component: PivotConfiguration,
+    needsWorkflowContext: true,
+  },
+  Unpivot: {
+    component: UnpivotConfiguration,
     needsWorkflowContext: true,
   },
 };

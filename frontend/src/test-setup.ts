@@ -170,7 +170,7 @@ vi.mock('lucide-react', () => {
     'FileInput', 'FileOutput', 'Filter', 'CheckSquare', 'ArrowUpDown', 
     'Calculator', 'Layers', 'Link', 'Sigma', 'Star', 'ArrowRightLeft', 
     'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle',
-    'Fingerprint'
+    'Fingerprint', 'CornerRightDown', 'CornerLeftUp'
   ];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
