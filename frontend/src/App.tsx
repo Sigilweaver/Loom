@@ -16,6 +16,7 @@ import TabBar from "./components/TabBar";
 import SettingsDialog from "./components/SettingsDialog";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { initializeAuth } from "./api/backend";
+import { closeAllWorkflowCaches } from "./api/cache";
 
 function App() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
@@ -77,10 +78,19 @@ function App() {
     initSettings();
   }, [loadSettings, createTab]);
 
-  // Save current tab before unload
+  // Save current tab and close all caches before unload
   useEffect(() => {
     const handleBeforeUnload = () => {
+      // Save current tab state
       saveCurrentTab();
+      
+      // Close all workflow caches on the backend
+      const { tabs, tabData } = useTabStore.getState();
+      const workflowIds = tabs
+        .map((t) => tabData[t.id]?.workflow?.workflowMeta?.workflowId)
+        .filter((id): id is string => !!id);
+      
+      closeAllWorkflowCaches(workflowIds);
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);

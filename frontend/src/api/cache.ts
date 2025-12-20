@@ -5,10 +5,12 @@
  * - Workflow normalization (strips UI-only fields)
  * - Cache key generation based on tool + upstream dependencies
  * - Automatic invalidation when dependencies change
+ * - Backend cache synchronization on workflow close
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { SchemaResponse, ExecuteResponse, MetadataResponse, DataSchema } from './backend';
+import { closeWorkflowCacheOnBackend, closeWorkflowCachesBatchOnBackend } from './backend';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 import { createLogger } from '@utils/logger';
 
@@ -370,12 +372,17 @@ export function invalidateWireChange(
 /**
  * Clear cache entries for a specific workflow
  * Call this when closing a workflow tab
+ * 
+ * This clears both:
+ * 1. Frontend in-memory cache (immediate)
+ * 2. Backend disk cache (async, fire-and-forget)
  */
 export function clearWorkflowCache(workflowId: string): void {
   const keysToDelete: string[] = [];
   
   logger.debug('Clearing cache for workflowId:', workflowId);
   
+  // Clear frontend in-memory cache
   for (const key of cache.keys()) {
     if (key.includes(`"workflowId":"${workflowId}"`)) {
       keysToDelete.push(key);
@@ -389,6 +396,9 @@ export function clearWorkflowCache(workflowId: string): void {
   }
   
   logger.debug(`Cache size after clear: ${cache.size}`);
+  
+  // Also notify backend to clear disk cache (fire-and-forget)
+  closeWorkflowCacheOnBackend(workflowId);
 }
 
 /**
@@ -397,6 +407,28 @@ export function clearWorkflowCache(workflowId: string): void {
  */
 export function clearAllCaches(): void {
   cache.clear();
+}
+
+/**
+ * Close all workflow caches on app shutdown
+ * 
+ * This should be called when the application is closing to notify the backend
+ * that all open workflows are being closed. Uses a single batch request for
+ * efficiency instead of making N individual requests.
+ * 
+ * The backend will clear each workflow's disk cache if cache_clear_on_close
+ * is enabled (default).
+ * 
+ * @param workflowIds - Array of workflow IDs currently open
+ */
+export function closeAllWorkflowCaches(workflowIds: string[]): void {
+  logger.debug('Closing all workflow caches on app shutdown:', workflowIds.length, 'workflows');
+  
+  // Clear frontend in-memory cache
+  cache.clear();
+  
+  // Notify backend with a single batch request (fire-and-forget)
+  closeWorkflowCachesBatchOnBackend(workflowIds);
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   invalidateWireChange,
   clearWorkflowCache,
   clearAllCaches,
+  closeAllWorkflowCaches,
   getCacheStats,
 } from '../cache';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
@@ -490,6 +491,39 @@ describe('cache', () => {
 
       cacheSchema('filter1', workflow, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
       expect(getCacheStats().size).toBe(2);
+    });
+  });
+
+  describe('closeAllWorkflowCaches', () => {
+    it('clears local cache for all workflows', () => {
+      const workflow1 = createTestWorkflow();
+      const workflow2 = { 
+        ...createTestWorkflow(), 
+        meta: { ...createTestWorkflow().meta, workflowId: 'wf_other' } 
+      };
+      
+      cacheSchema('filter1', workflow1, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+      cacheSchema('filter1', workflow2, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+
+      expect(getCacheStats().size).toBe(2);
+
+      // Call with both workflow IDs
+      closeAllWorkflowCaches(['wf_test', 'wf_other']);
+
+      // Local cache should be cleared
+      expect(getCacheStats().size).toBe(0);
+    });
+
+    it('handles empty workflow list gracefully', () => {
+      const workflow = createTestWorkflow();
+      cacheSchema('filter1', workflow, '1', { tool_id: 'filter1', socket_id: '1', data_schema: { columns: [] } });
+
+      expect(getCacheStats().size).toBe(1);
+
+      // Call with empty list - should still clear local cache
+      closeAllWorkflowCaches([]);
+
+      expect(getCacheStats().size).toBe(0);
     });
   });
 });
