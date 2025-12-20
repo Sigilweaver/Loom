@@ -169,7 +169,8 @@ vi.mock('lucide-react', () => {
   const icons = [
     'FileInput', 'FileOutput', 'Filter', 'CheckSquare', 'ArrowUpDown', 
     'Calculator', 'Layers', 'Link', 'Sigma', 'Star', 'ArrowRightLeft', 
-    'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle'
+    'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle',
+    'Fingerprint'
   ];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

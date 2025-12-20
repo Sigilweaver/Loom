@@ -29,8 +29,15 @@ export const UnionSockets = {
   OUTPUT: "output",
 } as const;
 
+export const UniqueSockets = {
+  INPUT: "input",
+  OUTPUT_UNIQUE: "output-unique",
+  OUTPUT_DUPLICATE: "output-duplicate",
+} as const;
+
 // Type exports for use in TypeScript
 export type CommonSocketId = (typeof CommonSockets)[keyof typeof CommonSockets];
 export type FilterSocketId = (typeof FilterSockets)[keyof typeof FilterSockets];
 export type JoinSocketId = (typeof JoinSockets)[keyof typeof JoinSockets];
 export type UnionSocketId = (typeof UnionSockets)[keyof typeof UnionSockets];
+export type UniqueSocketId = (typeof UniqueSockets)[keyof typeof UniqueSockets];

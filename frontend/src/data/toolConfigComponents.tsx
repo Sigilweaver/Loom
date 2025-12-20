@@ -25,6 +25,7 @@ import { SummarizeConfiguration } from "@components/SummarizeConfiguration";
 import { UnionConfiguration } from "@components/UnionConfiguration";
 import { JoinConfiguration } from "@components/JoinConfiguration";
 import { SampleConfiguration } from "@components/SampleConfiguration";
+import { UniqueConfiguration } from "@components/UniqueConfiguration";
 
 /**
  * Base props that all configuration components receive
@@ -94,6 +95,10 @@ export const TOOL_CONFIG_REGISTRY: Record<string, ToolConfigEntry> = {
   Sample: {
     component: SampleConfiguration,
     needsWorkflowContext: false,
+  },
+  Unique: {
+    component: UniqueConfiguration,
+    needsWorkflowContext: true,
   },
 
   // Join Tools

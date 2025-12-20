@@ -10,6 +10,7 @@ from app.domain.tools.implementations.select import SelectTool
 from app.domain.tools.implementations.sort import SortTool
 from app.domain.tools.implementations.summarize import SummarizeTool
 from app.domain.tools.implementations.union import UnionTool
+from app.domain.tools.implementations.unique import UniqueTool
 
 __all__ = [
     "InputTool",
@@ -22,4 +23,5 @@ __all__ = [
     "SortTool",
     "JoinTool",
     "SampleTool",
+    "UniqueTool",
 ]
