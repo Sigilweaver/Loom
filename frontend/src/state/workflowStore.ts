@@ -129,7 +129,6 @@ const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {
       strokeDasharray: wouldLoop ? "5,5" : undefined,
       cursor: "pointer",
     },
-    markerEnd: { type: MarkerType.ArrowClosed, color: strokeColor },
     data: { isError: wouldLoop, errorType: wouldLoop ? "cycle" : undefined },
     deletable: true,
     selectable: true,
