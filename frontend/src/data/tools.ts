@@ -10,7 +10,9 @@ import {
   Link, 
   Sigma,
   FlaskRound,
-  Fingerprint 
+  Fingerprint,
+  CornerRightDown,
+  CornerLeftUp,
 } from 'lucide-react';
 import { CommonSockets, FilterSockets, JoinSockets, UnionSockets, UniqueSockets } from '../domain/workflow/constants/socketIds';
 
@@ -197,6 +199,40 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/aggregate/summarize`,
+  },
+  {
+    type: 'Pivot',
+    name: 'Pivot',
+    icon: CornerRightDown,
+    category: 'aggregate',
+    defaultConfig: {
+      on: '',
+      index: [],
+      values: '',
+      aggregateFunction: 'first',
+    },
+    sockets: [
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/aggregate/pivot`,
+  },
+  {
+    type: 'Unpivot',
+    name: 'Unpivot',
+    icon: CornerLeftUp,
+    category: 'aggregate',
+    defaultConfig: {
+      on: [],
+      index: [],
+      variableName: 'variable',
+      valueName: 'value',
+    },
+    sockets: [
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/aggregate/unpivot`,
   },
 ];
 
