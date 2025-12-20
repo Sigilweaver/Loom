@@ -11,26 +11,29 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
-import { AvroConfiguration } from "./AvroConfiguration";
-import { AvroOutputConfiguration } from "./AvroOutputConfiguration";
+// Input/Output configurations
+import { AvroConfiguration } from "./config/inout/AvroConfiguration";
+import { CsvConfiguration } from "./config/inout/CsvConfiguration";
+import { ExcelConfiguration } from "./config/inout/ExcelConfiguration";
+import { IpcConfiguration } from "./config/inout/IpcConfiguration";
+import { JsonConfiguration } from "./config/inout/JsonConfiguration";
+import { OdsConfiguration } from "./config/inout/OdsConfiguration";
+import { ParquetConfiguration } from "./config/inout/ParquetConfiguration";
+import { PostgresqlConfiguration } from "./config/inout/PostgresqlConfiguration";
+import { SqliteConfiguration } from "./config/inout/SqliteConfiguration";
+import { DatabaseConfiguration } from "./config/inout/DatabaseConfiguration";
+import { DataSourceSelector } from "./config/inout/DataSourceSelector";
+import { AvroOutputConfiguration } from "./config/inout/AvroOutputConfiguration";
+import { CsvOutputConfiguration } from "./config/inout/CsvOutputConfiguration";
+import { ExcelOutputConfiguration } from "./config/inout/ExcelOutputConfiguration";
+import { IpcOutputConfiguration } from "./config/inout/IpcOutputConfiguration";
+import { JsonOutputConfiguration } from "./config/inout/JsonOutputConfiguration";
+import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfiguration";
+// Shell components
 import ConfigurationHeader from "./ConfigurationHeader";
-import { CsvConfiguration } from "./CsvConfiguration";
-import { CsvOutputConfiguration } from "./CsvOutputConfiguration";
-import { ExcelConfiguration } from "./ExcelConfiguration";
-import { ExcelOutputConfiguration } from "./ExcelOutputConfiguration";
-import { IpcConfiguration } from "./IpcConfiguration";
-import { IpcOutputConfiguration } from "./IpcOutputConfiguration";
-import { JsonConfiguration } from "./JsonConfiguration";
-import { JsonOutputConfiguration } from "./JsonOutputConfiguration";
-import { OdsConfiguration } from "./OdsConfiguration";
-import { ParquetConfiguration } from "./ParquetConfiguration";
-import { ParquetOutputConfiguration } from "./ParquetOutputConfiguration";
-import { PostgresqlConfiguration } from "./PostgresqlConfiguration";
-import { SqliteConfiguration } from "./SqliteConfiguration";
-import { DatabaseConfiguration } from "./DatabaseConfiguration";
-import { DataSourceSelector } from "./DataSourceSelector";
-import ResizablePanel from "./ResizablePanel";
-import WorkflowConfiguration from "./WorkflowConfiguration";
+import ResizablePanel from "./shell/ResizablePanel";
+// Workflow components
+import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
 import { Settings } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 

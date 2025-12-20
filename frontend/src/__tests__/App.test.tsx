@@ -17,6 +17,7 @@ vi.mock("../data/tools", () => ({
       { id: 2, direction: "input", multiple: false },
     ],
   })),
+  getToolsByCategory: vi.fn(() => []),
 }));
 
 vi.mock("../utils/id", () => ({
@@ -30,7 +31,7 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 // Mock all the components
-vi.mock("../components/ToolPalette", () => ({
+vi.mock("../components/shell/ToolPalette", () => ({
   default: () => <div data-testid="tool-palette">Tool Palette</div>,
 }));
 
@@ -44,18 +45,19 @@ vi.mock("../components/Canvas", () => {
         Canvas
       </div>
     )),
+    CanvasRef: {},
   };
 });
 
-vi.mock("../components/WorkflowViewer", () => ({
+vi.mock("../components/workflow/WorkflowViewer", () => ({
   default: () => <div data-testid="workflow-viewer">Workflow Viewer</div>,
 }));
 
-vi.mock("../components/Header", () => ({
+vi.mock("../components/shell/Header", () => ({
   default: () => <div data-testid="header">Header</div>,
 }));
 
-vi.mock("../components/Notification", () => ({
+vi.mock("../components/shell/Notification", () => ({
   default: () => <div data-testid="notification">Notification</div>,
 }));
 
