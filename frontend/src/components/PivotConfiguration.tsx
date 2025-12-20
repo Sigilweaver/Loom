@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import {
   ToolConfig,
   Tool,
@@ -6,10 +6,24 @@ import {
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
 import { useToolConfiguration } from "../hooks/useToolConfiguration";
-import { ColumnSchema } from "../api/backend";
+import { ColumnSchema, profileColumns, ProfileResponse } from "../api/backend";
+import { resolveWorkflowConnections } from "../api/connectionResolver";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { isNumericPolarsType } from "../data/polarsTypes";
+import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
+
+/** Threshold for warning about too many unique values for pivot */
+const PIVOT_UNIQUE_WARNING = 100;
+/** Threshold for blocking pivot (too many columns would be created) */
+const PIVOT_UNIQUE_DANGER = 1000;
+
+/** Emoji indicators for cardinality levels */
+const CARDINALITY_EMOJI = {
+  safe: "\u{1F7E2}",    // Green circle
+  warning: "\u{1F7E1}", // Yellow circle
+  danger: "\u{1F534}",  // Red circle
+} as const;
 
 /**
  * Aggregation functions available for pivot
@@ -50,7 +64,7 @@ export function PivotConfiguration({
   workflowMeta,
 }: PivotConfigurationProps) {
   // Unified configuration hook - handles metadata and connections
-  const { columns, loading, hasInput } = useToolConfiguration({
+  const { columns, loading, hasInput, connectionKey } = useToolConfiguration({
     toolId,
     socketId: CommonSockets.INPUT,
     tools,
@@ -61,6 +75,80 @@ export function PivotConfiguration({
   });
 
   const inputColumns: ColumnSchema[] = columns;
+
+  // Profile state for unique counts
+  const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Fetch profile data when connection changes
+  useEffect(() => {
+    if (!hasInput || !connectionKey) {
+      setProfileData(null);
+      setProfileError(null);
+      return;
+    }
+
+    // Ensure the current tool exists in the tools array
+    const currentTool = tools.find(t => t.id === toolId);
+    if (!currentTool) {
+      console.warn("[PivotConfiguration] Current tool not found in tools array:", toolId);
+      setProfileError("Tool not ready");
+      return;
+    }
+
+    const fetchProfile = async () => {
+      setProfileLoading(true);
+      setProfileError(null);
+      try {
+        const { tools: upstreamTools, wires: upstreamWires } =
+          WorkflowSerializer.extractUpstreamSubgraph(tools, wires, toolId);
+        const workflowJson = JSON.parse(
+          WorkflowSerializer.toJSON(upstreamTools, upstreamWires, workflowMeta)
+        );
+        // Resolve database connections before profiling
+        const resolvedWorkflow = await resolveWorkflowConnections(workflowJson);
+        // Only fetch unique_count for pivot safety
+        const result = await profileColumns(
+          toolId,
+          resolvedWorkflow,
+          CommonSockets.INPUT,
+          undefined, // all columns
+          ["unique_count"]
+        );
+        setProfileData(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load profile";
+        console.warn("[PivotConfiguration] Profile fetch failed:", message);
+        setProfileError(message);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [toolId, hasInput, connectionKey, tools, wires, workflowMeta]);
+
+  // Get unique count for a column
+  const getUniqueCount = useCallback(
+    (columnName: string): number | null => {
+      if (!profileData?.columns) return null;
+      const profile = profileData.columns[columnName];
+      return profile?.unique_count ?? null;
+    },
+    [profileData]
+  );
+
+  // Get safety level for a column's unique count
+  const getUniqueSafetyLevel = useCallback(
+    (uniqueCount: number | null): "safe" | "warning" | "danger" | "unknown" => {
+      if (uniqueCount === null) return "unknown";
+      if (uniqueCount >= PIVOT_UNIQUE_DANGER) return "danger";
+      if (uniqueCount >= PIVOT_UNIQUE_WARNING) return "warning";
+      return "safe";
+    },
+    []
+  );
 
   // Get current configuration values
   const selectedOn = (config.on as string) || "";
@@ -154,9 +242,20 @@ export function PivotConfiguration({
   );
 
   // Get columns available for 'on' and 'values' dropdowns
+  // Sort pivot columns by cardinality bucket: safe (green) -> warning (yellow) -> danger (red) -> unknown
   const availableColumnsForOn = useMemo(() => {
-    return inputColumns.filter((c) => c.name !== selectedValues);
-  }, [inputColumns, selectedValues]);
+    const filtered = inputColumns.filter((c) => c.name !== selectedValues);
+    
+    // Sort by safety bucket
+    const bucketOrder = { safe: 0, warning: 1, danger: 2, unknown: 3 };
+    return [...filtered].sort((a, b) => {
+      const aCount = profileData?.columns?.[a.name]?.unique_count ?? null;
+      const bCount = profileData?.columns?.[b.name]?.unique_count ?? null;
+      const aLevel = aCount === null ? "unknown" : aCount >= PIVOT_UNIQUE_DANGER ? "danger" : aCount >= PIVOT_UNIQUE_WARNING ? "warning" : "safe";
+      const bLevel = bCount === null ? "unknown" : bCount >= PIVOT_UNIQUE_DANGER ? "danger" : bCount >= PIVOT_UNIQUE_WARNING ? "warning" : "safe";
+      return bucketOrder[aLevel] - bucketOrder[bLevel];
+    });
+  }, [inputColumns, selectedValues, profileData]);
 
   const availableColumnsForValues = useMemo(() => {
     return inputColumns.filter((c) => c.name !== selectedOn);
@@ -275,12 +374,64 @@ export function PivotConfiguration({
                 className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-accent"
               >
                 <option value="">Select column...</option>
-                {availableColumnsForOn.map((col) => (
-                  <option key={col.name} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
-                ))}
+                {availableColumnsForOn.map((col) => {
+                  const uniqueCount = getUniqueCount(col.name);
+                  const safetyLevel = getUniqueSafetyLevel(uniqueCount);
+                  const emoji = safetyLevel !== "unknown" ? CARDINALITY_EMOJI[safetyLevel] + " " : "";
+                  const countLabel = uniqueCount !== null ? ` (${uniqueCount.toLocaleString()} unique)` : "";
+                  return (
+                    <option key={col.name} value={col.name}>
+                      {emoji}{col.name} - {col.dtype}{countLabel}
+                    </option>
+                  );
+                })}
               </select>
+              
+              {/* Status messages */}
+              {profileLoading && (
+                <p className="text-xs text-theme-text-tertiary">Loading column statistics...</p>
+              )}
+              {profileError && (
+                <div className="flex items-start gap-2 text-xs text-amber-400" title={profileError}>
+                  <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  <span className="truncate">Could not load statistics</span>
+                </div>
+              )}
+              
+              {/* Cardinality warning for selected column */}
+              {selectedOn && (() => {
+                const uniqueCount = getUniqueCount(selectedOn);
+                const safetyLevel = getUniqueSafetyLevel(uniqueCount);
+                if (safetyLevel === "danger") {
+                  return (
+                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-red-500/10 border-red-500/30">
+                      <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-red-300">High cardinality warning</p>
+                        <p className="text-theme-text-secondary">
+                          This column has {uniqueCount?.toLocaleString()} unique values. 
+                          Pivoting will create {uniqueCount?.toLocaleString()} new columns, 
+                          which may cause performance issues or crash the application.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                } else if (safetyLevel === "warning") {
+                  return (
+                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-amber-500/10 border-amber-500/30">
+                      <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-amber-300">Moderate cardinality</p>
+                        <p className="text-theme-text-secondary">
+                          This column has {uniqueCount?.toLocaleString()} unique values. 
+                          This will create {uniqueCount?.toLocaleString()} new columns.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Values Column */}

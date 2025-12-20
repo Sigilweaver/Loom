@@ -13,6 +13,7 @@ from app.api.models.workflow import Tool, Workflow
 from app.config import settings
 from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
+from app.domain.profiling.profiler import ColumnProfiler, ProfileMetrics
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import ExecutionError
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
@@ -235,6 +236,89 @@ class WorkflowExecutor:
             "socket_id": socket_id,
             "columns": inputs_metadata.get(socket_id, []) if socket_id else None,
             "inputs": inputs_metadata,
+        }
+
+    async def profile_columns(
+        self,
+        workflow: Workflow,
+        tool_id: str,
+        socket_id: str,
+        columns: list[str] | None = None,
+        metrics: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Profile columns for data quality and statistics.
+
+        Executes upstream tools and collects the full dataset to compute
+        profile statistics. This is a blocking operation.
+
+        Args:
+            workflow: Workflow containing the tool
+            tool_id: Tool to profile input for
+            socket_id: Input socket to profile
+            columns: Specific columns to profile (None = all columns)
+            metrics: Specific metrics to compute (None = all metrics)
+
+        Returns:
+            Dictionary with column profiles and metadata
+        """
+        cache_mgr = CacheManager(workflow.meta.workflow_id)
+        planner = ExecutionPlanner(workflow)
+        plan = planner.create_plan(tool_id)
+        execution_order = list(plan.execution_order)
+
+        # Execute all upstream tools
+        target_index = execution_order.index(tool_id)
+        for upstream_tool_id in execution_order[:target_index]:
+            upstream_tool = plan.get_tool(upstream_tool_id)
+            inputs = self._gather_inputs(upstream_tool_id, plan)
+            outputs, _ = await self._execute_tool_with_cache(
+                upstream_tool, inputs, plan, cache_mgr
+            )
+            self.results[upstream_tool_id] = outputs
+
+        # Get the input data for the target tool's socket
+        tool_inputs = plan.get_inputs(tool_id)
+        source_list = tool_inputs.get(socket_id, [])
+
+        if not source_list:
+            raise ExecutionError(
+                f"Socket {socket_id} on tool {tool_id} has no connected input"
+            )
+
+        # Get the LazyFrame from the source
+        source_tool_id, source_socket_id = source_list[0]
+        if source_tool_id not in self.results:
+            raise ExecutionError(
+                f"Source tool {source_tool_id} has not been executed"
+            )
+
+        lf = self.results[source_tool_id][source_socket_id]
+
+        # Collect the full dataset for profiling
+        df = lf.collect()
+        row_count = len(df)
+
+        # Parse metrics if provided
+        parsed_metrics: list[ProfileMetrics] | None = None
+        if metrics:
+            parsed_metrics = []
+            for m in metrics:
+                try:
+                    parsed_metrics.append(ProfileMetrics(m))
+                except ValueError:
+                    logger.warning(f"Unknown profile metric: {m}")
+
+        # Create profiler and compute profiles
+        profiler = ColumnProfiler(metrics=parsed_metrics)
+        column_profiles = profiler.profile_columns(df, columns)
+
+        return {
+            "tool_id": tool_id,
+            "socket_id": socket_id,
+            "row_count": row_count,
+            "column_count": len(df.columns),
+            "columns": column_profiles,
         }
 
     # --- Private methods ---
