@@ -10,7 +10,7 @@
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { SchemaResponse, ExecuteResponse, MetadataResponse, DataSchema } from './backend';
-import { closeWorkflowCacheOnBackend } from './backend';
+import { closeWorkflowCacheOnBackend, closeWorkflowCachesBatchOnBackend } from './backend';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 import { createLogger } from '@utils/logger';
 
@@ -413,8 +413,11 @@ export function clearAllCaches(): void {
  * Close all workflow caches on app shutdown
  * 
  * This should be called when the application is closing to notify the backend
- * that all open workflows are being closed. Each workflow's backend disk cache
- * will be cleared (if cache_clear_on_close is enabled).
+ * that all open workflows are being closed. Uses a single batch request for
+ * efficiency instead of making N individual requests.
+ * 
+ * The backend will clear each workflow's disk cache if cache_clear_on_close
+ * is enabled (default).
  * 
  * @param workflowIds - Array of workflow IDs currently open
  */
@@ -424,10 +427,8 @@ export function closeAllWorkflowCaches(workflowIds: string[]): void {
   // Clear frontend in-memory cache
   cache.clear();
   
-  // Notify backend for each workflow (fire-and-forget)
-  for (const workflowId of workflowIds) {
-    closeWorkflowCacheOnBackend(workflowId);
-  }
+  // Notify backend with a single batch request (fire-and-forget)
+  closeWorkflowCachesBatchOnBackend(workflowIds);
 }
 
 /**

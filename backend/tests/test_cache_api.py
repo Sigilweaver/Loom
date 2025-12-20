@@ -150,6 +150,71 @@ class TestCacheAPIRoutes:
             # Verify NOT cleared
             assert cache.exists("tool-1", "output", "key123")
 
+    def test_close_workflow_caches_batch(self, client, temp_cache_dir):
+        """Test batch close endpoint clears multiple workflow caches."""
+        import polars as pl
+        from app.domain.execution.cache import BlockingToolCache
+
+        with patch("app.api.routes.cache.settings") as mock_settings:
+            mock_settings.cache_enabled = True
+            mock_settings.cache_clear_on_close = True
+            mock_settings.cache_path = str(temp_cache_dir)
+
+            # Create cache data for multiple workflows
+            workflows = ["batch-wf-1", "batch-wf-2", "batch-wf-3"]
+            caches = []
+            for wf_id in workflows:
+                cache = BlockingToolCache(temp_cache_dir, wf_id)
+                lf = pl.LazyFrame({"a": [1, 2, 3]})
+                cache.put("tool-1", "output", "key123", lf)
+                caches.append(cache)
+                assert cache.cache_dir.exists()
+
+            # Close all via batch API
+            response = client.post(
+                "/api/cache/close/batch",
+                json={"workflow_ids": workflows}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "cleared_on_close"
+            assert data["cleared_count"] == 3
+            assert data["workflow_ids"] == workflows
+
+            # Verify all cleared
+            for cache in caches:
+                assert not cache.cache_dir.exists()
+
+    def test_close_workflow_caches_batch_empty_list(self, client):
+        """Test batch close endpoint with empty list."""
+        with patch("app.api.routes.cache.settings") as mock_settings:
+            mock_settings.cache_enabled = True
+            mock_settings.cache_clear_on_close = True
+
+            response = client.post(
+                "/api/cache/close/batch",
+                json={"workflow_ids": []}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "cleared_on_close"
+            assert data["cleared_count"] == 0
+
+    def test_close_workflow_caches_batch_disabled(self, client):
+        """Test batch close endpoint when cache_clear_on_close is disabled."""
+        with patch("app.api.routes.cache.settings") as mock_settings:
+            mock_settings.cache_enabled = True
+            mock_settings.cache_clear_on_close = False
+
+            response = client.post(
+                "/api/cache/close/batch",
+                json={"workflow_ids": ["wf-1", "wf-2"]}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "close_acknowledged"
+            assert data["cleared_count"] == 0
+
     def test_run_maintenance(self, client, temp_cache_dir):
         """Test manual maintenance endpoint."""
         with patch("app.api.routes.cache.settings") as mock_settings:

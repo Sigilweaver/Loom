@@ -539,3 +539,50 @@ export async function closeWorkflowCacheOnBackend(
     logger.warn('Failed to close backend cache for workflow:', workflowId, error);
   }
 }
+
+/**
+ * Response from batch cache clear operation
+ */
+interface BatchClearCacheResponse {
+  status: string;
+  cleared_count: number;
+  workflow_ids: string[];
+}
+
+/**
+ * Notify backend that multiple workflows have been closed (batch)
+ * 
+ * This is more efficient than calling closeWorkflowCacheOnBackend for each
+ * workflow individually. Use this when the application is shutting down
+ * to clear all open workflow caches in a single request.
+ * 
+ * If cache_clear_on_close is enabled (default), the backend will clear
+ * the disk cache for each workflow.
+ * 
+ * Note: This is fire-and-forget - errors are logged but not thrown.
+ * 
+ * @param workflowIds - Array of workflow IDs being closed
+ * @param context - Optional request context for logging
+ */
+export async function closeWorkflowCachesBatchOnBackend(
+  workflowIds: string[],
+  context?: RequestContext
+): Promise<void> {
+  if (workflowIds.length === 0) {
+    return;
+  }
+  
+  try {
+    const response = await apiRequest<BatchClearCacheResponse>('/cache/close/batch', {
+      method: 'POST',
+      body: JSON.stringify({
+        workflow_ids: workflowIds,
+      }),
+    }, context);
+    logger.debug('Backend caches closed for', response.cleared_count, 'workflows');
+  } catch (error) {
+    // Fire-and-forget: log error but don't throw
+    // This prevents cache cleanup failures from blocking app shutdown
+    logger.warn('Failed to close backend caches for workflows:', workflowIds, error);
+  }
+}

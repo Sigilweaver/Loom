@@ -23,11 +23,25 @@ class WorkflowCacheRequest(BaseModel):
     workflow_id: str = Field(description="Workflow ID to operate on")
 
 
+class BatchWorkflowCacheRequest(BaseModel):
+    """Request for batch workflow cache operations"""
+
+    workflow_ids: list[str] = Field(description="List of workflow IDs to operate on")
+
+
 class ClearCacheResponse(BaseModel):
     """Response from cache clear operation"""
 
     status: str = Field(description="Operation status")
     workflow_id: str = Field(description="Workflow ID that was cleared")
+
+
+class BatchClearCacheResponse(BaseModel):
+    """Response from batch cache clear operation"""
+
+    status: str = Field(description="Operation status")
+    cleared_count: int = Field(description="Number of workflow caches cleared")
+    workflow_ids: list[str] = Field(description="Workflow IDs that were processed")
 
 
 class CacheStatsResponse(BaseModel):
@@ -120,6 +134,56 @@ async def close_workflow_cache(request: WorkflowCacheRequest) -> ClearCacheRespo
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to clear cache on close: {str(e)}"
+        )
+
+
+@router.post("/close/batch", response_model=BatchClearCacheResponse)
+async def close_workflow_caches_batch(
+    request: BatchWorkflowCacheRequest,
+) -> BatchClearCacheResponse:
+    """
+    Notify the backend that multiple workflows have been closed.
+
+    This is more efficient than calling /close for each workflow individually.
+    Use this when closing the application to clear all open workflow caches
+    in a single request.
+
+    If cache_clear_on_close is enabled (default), this will clear the cache
+    for each workflow. Otherwise, it's a no-op that acknowledges the close.
+    """
+    try:
+        if not settings.cache_enabled:
+            return BatchClearCacheResponse(
+                status="cache_disabled",
+                cleared_count=0,
+                workflow_ids=request.workflow_ids,
+            )
+
+        if not settings.cache_clear_on_close:
+            return BatchClearCacheResponse(
+                status="close_acknowledged",
+                cleared_count=0,
+                workflow_ids=request.workflow_ids,
+            )
+
+        cleared_count = 0
+        for workflow_id in request.workflow_ids:
+            cache = BlockingToolCache(
+                Path(settings.cache_path),
+                workflow_id,
+            )
+            cache.clear()
+            cleared_count += 1
+
+        return BatchClearCacheResponse(
+            status="cleared_on_close",
+            cleared_count=cleared_count,
+            workflow_ids=request.workflow_ids,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear caches on close: {str(e)}"
         )
 
 
