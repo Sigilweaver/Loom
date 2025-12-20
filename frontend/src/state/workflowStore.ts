@@ -6,7 +6,7 @@ import {
 } from "@domain/workflow/entities/workflow";
 import { wouldCreateCycle } from "@domain/workflow/services/loopDetection";
 import { getThemeColor } from "@utils/themeColors";
-import { Edge, MarkerType } from "@xyflow/react";
+import { Edge } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";

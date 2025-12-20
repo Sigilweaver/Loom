@@ -28,8 +28,11 @@ class ProfileMetrics(str, Enum):
     MEAN = "mean"
     MEDIAN = "median"
     STD = "std"
+    MIN_VALUES = "min_values"  # Smallest N values
+    MAX_VALUES = "max_values"  # Largest N values
 
     # String quality metrics
+    EMPTY_COUNT = "empty_count"  # Empty strings (not null)
     WHITESPACE_LEADING = "whitespace_leading"
     WHITESPACE_TRAILING = "whitespace_trailing"
     CONTAINS_LINEBREAKS = "contains_linebreaks"
@@ -50,6 +53,9 @@ DEFAULT_METRICS: list[ProfileMetrics] = [
     ProfileMetrics.MEAN,
     ProfileMetrics.MEDIAN,
     ProfileMetrics.STD,
+    ProfileMetrics.MIN_VALUES,
+    ProfileMetrics.MAX_VALUES,
+    ProfileMetrics.EMPTY_COUNT,
     ProfileMetrics.WHITESPACE_LEADING,
     ProfileMetrics.WHITESPACE_TRAILING,
     ProfileMetrics.CONTAINS_LINEBREAKS,
@@ -62,10 +68,13 @@ NUMERIC_METRICS = {
     ProfileMetrics.MEAN,
     ProfileMetrics.MEDIAN,
     ProfileMetrics.STD,
+    ProfileMetrics.MIN_VALUES,
+    ProfileMetrics.MAX_VALUES,
 }
 
 # Metrics that only apply to string types
 STRING_METRICS = {
+    ProfileMetrics.EMPTY_COUNT,
     ProfileMetrics.WHITESPACE_LEADING,
     ProfileMetrics.WHITESPACE_TRAILING,
     ProfileMetrics.CONTAINS_LINEBREAKS,
@@ -230,6 +239,9 @@ class ColumnProfiler:
                     val = col.std()
                     return round(val, 4) if val is not None else None
 
+                case ProfileMetrics.EMPTY_COUNT:
+                    return self._count_empty_strings(col)
+
                 case ProfileMetrics.WHITESPACE_LEADING:
                     return self._count_whitespace_leading(col)
 
@@ -244,6 +256,12 @@ class ColumnProfiler:
 
                 case ProfileMetrics.TOP_VALUES:
                     return self._compute_top_values(col)
+
+                case ProfileMetrics.MIN_VALUES:
+                    return self._compute_min_values(col)
+
+                case ProfileMetrics.MAX_VALUES:
+                    return self._compute_max_values(col)
 
         except Exception:
             # If any metric computation fails, return None for that metric
@@ -262,6 +280,15 @@ class ColumnProfiler:
         if hasattr(val, "total_seconds"):
             return str(val)
         return val
+
+    def _count_empty_strings(self, col: pl.Series) -> int:
+        """Count empty strings (not null, but zero length)."""
+        non_null = col.drop_nulls()
+        if len(non_null) == 0:
+            return 0
+        # Values that are empty strings
+        is_empty = non_null.str.len_chars() == 0
+        return is_empty.sum()
 
     def _count_whitespace_leading(self, col: pl.Series) -> int:
         """Count values with leading whitespace."""
@@ -322,3 +349,27 @@ class ColumnProfiler:
             })
 
         return result
+
+    def _compute_min_values(self, col: pl.Series) -> list[Any]:
+        """Compute the N smallest unique values for numeric columns."""
+        non_null = col.drop_nulls()
+        if len(non_null) == 0:
+            return []
+
+        # Get unique values sorted ascending
+        unique_sorted = non_null.unique().sort()
+        smallest = unique_sorted.head(self.top_values_limit)
+
+        return [self._serialize_value(v) for v in smallest.to_list()]
+
+    def _compute_max_values(self, col: pl.Series) -> list[Any]:
+        """Compute the N largest unique values for numeric columns."""
+        non_null = col.drop_nulls()
+        if len(non_null) == 0:
+            return []
+
+        # Get unique values sorted descending
+        unique_sorted = non_null.unique().sort(descending=True)
+        largest = unique_sorted.head(self.top_values_limit)
+
+        return [self._serialize_value(v) for v in largest.to_list()]

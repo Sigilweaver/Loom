@@ -443,7 +443,10 @@ export interface ColumnProfile {
   mean?: number;
   median?: number;
   std?: number;
+  min_values?: unknown[];  // Smallest N unique values
+  max_values?: unknown[];  // Largest N unique values
   // String quality metrics
+  empty_count?: number;  // Empty strings (not null)
   whitespace_leading?: number;
   whitespace_trailing?: number;
   contains_linebreaks?: number;

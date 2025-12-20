@@ -1,6 +1,15 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Tool, ToolDefinition, Socket } from '../domain/workflow/entities/workflow';
 import { useSocketPreview } from '../hooks/useSocketPreview';
+import { useSocketProfile } from '../hooks/useSocketProfile';
+
+interface SocketContextMenu {
+  x: number;
+  y: number;
+  socketId: string;
+  direction: 'input' | 'output';
+}
 
 interface WorkflowNodeProps {
   data: {
@@ -13,6 +22,46 @@ interface WorkflowNodeProps {
 export default function WorkflowNode({ data }: WorkflowNodeProps) {
   const { definition, tool } = data;
   const { previewSocket } = useSocketPreview();
+  const { profileSocket } = useSocketProfile();
+  const [contextMenu, setContextMenu] = useState<SocketContextMenu | null>(null);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    if (!contextMenu) return;
+    
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [contextMenu]);
+
+  const handleSocketContextMenu = useCallback((
+    e: React.MouseEvent,
+    socketId: string,
+    direction: 'input' | 'output'
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      socketId,
+      direction,
+    });
+  }, []);
+
+  const handlePreviewData = useCallback(() => {
+    if (contextMenu) {
+      previewSocket(tool.id, contextMenu.socketId, contextMenu.direction);
+      setContextMenu(null);
+    }
+  }, [contextMenu, previewSocket, tool.id]);
+
+  const handleProfileData = useCallback(() => {
+    if (contextMenu) {
+      profileSocket(tool.id, contextMenu.socketId, contextMenu.direction);
+      setContextMenu(null);
+    }
+  }, [contextMenu, profileSocket, tool.id]);
 
   const inputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'input');
   const outputSockets = definition.sockets.filter((socket: Socket) => socket.direction === 'output');
@@ -91,6 +140,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             e.stopPropagation();
             previewSocket(tool.id, socket.id, "input");
           }}
+          onContextMenu={(e) => handleSocketContextMenu(e, socket.id, "input")}
           style={{
             top: getSocketPosition(index, inputSockets.length),
             left: `${socketOffset}px`,
@@ -176,6 +226,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             e.stopPropagation();
             previewSocket(tool.id, socket.id, "output");
           }}
+          onContextMenu={(e) => handleSocketContextMenu(e, socket.id, "output")}
           style={{
             top: getSocketPosition(index, outputSockets.length),
             right: `${socketOffset}px`,
@@ -215,6 +266,38 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
       >
         {definition.name}
       </div>
+      
+      {/* Socket context menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 py-1 rounded shadow-lg bg-theme-surface-elevated border border-theme-border-primary"
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 160),
+            top: Math.min(contextMenu.y, window.innerHeight - 100),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handlePreviewData}
+            className="w-full px-4 py-2 text-left text-xs hover:bg-theme-surface-panel text-theme-text-primary flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview Data
+          </button>
+          <button
+            onClick={handleProfileData}
+            className="w-full px-4 py-2 text-left text-xs hover:bg-theme-surface-panel text-theme-text-primary flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Profile Data
+          </button>
+        </div>
+      )}
     </div>
   );
 }
