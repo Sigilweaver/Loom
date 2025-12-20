@@ -1,4 +1,8 @@
-"""Tests for profile endpoint"""
+"""Tests for profile endpoint
+
+Note: The profile API expects output socket IDs. The frontend translates
+input socket requests to their upstream output socket before calling this API.
+"""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -36,33 +40,17 @@ async def test_profile_endpoint_basic(client, sample_csv):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
-                "y": 0,
-                "config": {"expression": "pl.col('age') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "filter1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
+    # Profile the Input tool's output socket
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
         },
     )
 
@@ -70,8 +58,8 @@ async def test_profile_endpoint_basic(client, sample_csv):
     data = response.json()
 
     # Check structure
-    assert data["tool_id"] == "filter1"
-    assert data["socket_id"] == "input"
+    assert data["tool_id"] == "input1"
+    assert data["socket_id"] == "output"
     assert data["row_count"] == 5  # sample.csv has 5 rows
     assert "columns" in data
 
@@ -117,33 +105,16 @@ async def test_profile_endpoint_specific_columns(client, sample_csv):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
-                "y": 0,
-                "config": {"expression": "pl.col('age') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "filter1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
             "columns": ["age", "name"],
         },
     )
@@ -183,34 +154,17 @@ async def test_profile_endpoint_specific_metrics(client, sample_csv):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
-                "y": 0,
-                "config": {"expression": "pl.col('age') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "filter1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
     # Request only unique_count metric
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
             "metrics": ["unique_count", "count"],
         },
     )
@@ -253,33 +207,17 @@ async def test_profile_endpoint_pivot_use_case(client, sample_csv):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "pivot1",
-                "type": "Pivot",
-                "x": 200,
-                "y": 0,
-                "config": {},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output", "direction": "output"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "pivot1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
     # Minimal profile for pivot safety - just unique counts
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "pivot1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
             "metrics": ["unique_count"],
         },
     )
@@ -335,33 +273,16 @@ async def test_profile_endpoint_string_quality(client, tmp_path):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
-                "y": 0,
-                "config": {"expression": "pl.col('id') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "filter1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
             "columns": ["text"],
             "metrics": [
                 "whitespace_leading",
@@ -408,33 +329,16 @@ async def test_profile_endpoint_top_values(client, sample_csv):
                 },
                 "sockets": [{"id": "output", "direction": "output"}],
             },
-            {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
-                "y": 0,
-                "config": {"expression": "pl.col('age') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
-            },
         ],
-        "wires": [
-            {
-                "from": {"tool": "input1", "socket": "output"},
-                "to": {"tool": "filter1", "socket": "input"},
-            }
-        ],
+        "wires": [],
     }
 
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "output",
             "columns": ["city"],
             "metrics": ["top_values"],
         },
@@ -452,8 +356,8 @@ async def test_profile_endpoint_top_values(client, sample_csv):
 
 
 @pytest.mark.asyncio
-async def test_profile_endpoint_no_connection_error(client, sample_csv):
-    """Test profile fails gracefully when socket has no input"""
+async def test_profile_endpoint_socket_not_found_error(client, sample_csv):
+    """Test profile fails gracefully when socket doesn't exist"""
     workflow = {
         "meta": {
             "name": "Test Workflow",
@@ -464,30 +368,30 @@ async def test_profile_endpoint_no_connection_error(client, sample_csv):
         },
         "tools": [
             {
-                "id": "filter1",
-                "type": "Filter",
-                "x": 200,
+                "id": "input1",
+                "type": "Input",
+                "x": 0,
                 "y": 0,
-                "config": {"expression": "pl.col('age') > 0"},
-                "sockets": [
-                    {"id": "input", "direction": "input"},
-                    {"id": "output-true", "direction": "output", "type": "T"},
-                    {"id": "output-false", "direction": "output", "type": "F"},
-                ],
+                "config": {
+                    "category": "file",
+                    "type": "csv",
+                    "source": str(sample_csv),
+                },
+                "sockets": [{"id": "output", "direction": "output"}],
             },
         ],
-        "wires": [],  # No connections
+        "wires": [],
     }
 
     response = client.post(
         "/api/workflow/tool/profile",
         json={
-            "tool_id": "filter1",
+            "tool_id": "input1",
             "workflow": workflow,
-            "socket_id": "input",
+            "socket_id": "nonexistent",
         },
     )
 
-    # Should fail with execution error (no input connected)
+    # Should fail with execution error (socket not found)
     assert response.status_code == 500
-    assert "no connected input" in response.json()["detail"]
+    assert "not found" in response.json()["detail"].lower()

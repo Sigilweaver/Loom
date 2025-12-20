@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import type { ToolCategory } from "../domain/workflow/entities/workflow";
+import type { ProfileResponse } from "../api/backend";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
-type BottomPaneTab = "preview" | "logs" | "network";
+type BottomPaneTab = "preview" | "logs" | "network" | "profile";
 
 export interface PreviewState {
   toolId: string;
@@ -11,6 +12,15 @@ export interface PreviewState {
   socketDirection: "input" | "output";
   data: Record<string, unknown>[];
   schema: Array<{ name: string; dtype: string; nullable: boolean }>;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface ProfileState {
+  toolId: string;
+  socketId: string;
+  socketDirection: "input" | "output";
+  profile: ProfileResponse | null;
   loading: boolean;
   error: string | null;
 }
@@ -35,6 +45,7 @@ interface UIState {
   bottomPaneHeight: number;
   activeBottomTab: BottomPaneTab;
   previewState: PreviewState | null;
+  profileState: ProfileState | null;
   notification: NotificationState;
   // Development/debug mode - bypass backend cache (ephemeral, not persisted)
   bypassCache: boolean;
@@ -52,6 +63,9 @@ interface UIState {
   setPreviewState: (state: PreviewState | null) => void;
   setPreviewLoading: (loading: boolean) => void;
   setPreviewError: (error: string | null) => void;
+  setProfileState: (state: ProfileState | null) => void;
+  setProfileLoading: (loading: boolean) => void;
+  setProfileError: (error: string | null) => void;
   setBypassCache: (bypass: boolean) => void;
   showNotification: (
     message: string,
@@ -111,6 +125,13 @@ export const useUIStore = create<UIState>()((set) => ({
     set((s) => (s.previewState ? { previewState: { ...s.previewState, loading } } : {})),
   setPreviewError: (error) =>
     set((s) => (s.previewState ? { previewState: { ...s.previewState, error, loading: false } } : {})),
+
+  profileState: null,
+  setProfileState: (state) => set({ profileState: state }),
+  setProfileLoading: (loading) =>
+    set((s) => (s.profileState ? { profileState: { ...s.profileState, loading } } : {})),
+  setProfileError: (error) =>
+    set((s) => (s.profileState ? { profileState: { ...s.profileState, error, loading: false } } : {})),
 
   // Development/debug mode - bypass backend cache (ephemeral, not persisted)
   bypassCache: false,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, MarkerType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes } from '@xyflow/react';
+import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes } from '@xyflow/react';
 import { useSettingsStore } from '../../state/settingsStore';
 
 interface Props {

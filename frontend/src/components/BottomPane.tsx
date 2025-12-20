@@ -3,6 +3,7 @@ import { useUIStore } from "@state/uiStore";
 import DataTable from "./DataTable.tsx";
 import LogViewer from "./LogViewer.tsx";
 import RuntimeLogViewer from "./RuntimeLogViewer.tsx";
+import ProfileViewer from "./ProfileViewer.tsx";
 import SocketTabs from "./SocketTabs.tsx";
 
 const BottomPane = () => {
@@ -76,6 +77,16 @@ const BottomPane = () => {
             Data Preview
           </button>
           <button
+            onClick={() => setActiveBottomTab("profile")}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              activeBottomTab === "profile"
+                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
+                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
+            }`}
+          >
+            Data Profile
+          </button>
+          <button
             onClick={() => setActiveBottomTab("logs")}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
               activeBottomTab === "logs"
@@ -83,7 +94,7 @@ const BottomPane = () => {
                 : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
             }`}
           >
-            Logs
+            Workflow Logs
           </button>
           <button
             onClick={() => setActiveBottomTab("network")}
@@ -93,7 +104,7 @@ const BottomPane = () => {
                 : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
             }`}
           >
-            Network
+            Network Logs
           </button>
         </div>
 
@@ -108,8 +119,8 @@ const BottomPane = () => {
 
       {/* Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Socket Tabs Sidebar - Only visible in Data Preview mode */}
-        {activeBottomTab === "preview" && (
+        {/* Socket Tabs Sidebar - Visible in Data Preview and Profile modes */}
+        {(activeBottomTab === "preview" || activeBottomTab === "profile") && (
           <div className="flex-shrink-0 w-30 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
             <SocketTabs />
           </div>
@@ -120,6 +131,7 @@ const BottomPane = () => {
           {activeBottomTab === "preview" && <DataTable />}
           {activeBottomTab === "logs" && <LogViewer />}
           {activeBottomTab === "network" && <RuntimeLogViewer />}
+          {activeBottomTab === "profile" && <ProfileViewer />}
         </div>
       </div>
     </div>

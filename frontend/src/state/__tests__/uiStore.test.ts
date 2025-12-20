@@ -12,6 +12,12 @@ describe("uiStore", () => {
       positionMenuCoords: null,
       workflowViewerVisible: false,
       activeToolTab: "favorites",
+      bottomPaneOpen: false,
+      bottomPaneHeight: 300,
+      activeBottomTab: "preview",
+      previewState: null,
+      profileState: null,
+      bypassCache: false,
       notification: {
         message: "",
         type: "info",
@@ -510,6 +516,215 @@ describe("uiStore", () => {
       expect(state.positionMenuOpen).toBe(true);
       expect(state.positionMenuCoords).toEqual({ x: 100, y: 200 });
       expect(state.notification.message).toBe("Initial"); // Message preserved
+    });
+  });
+
+  describe("Preview State", () => {
+    it("has null previewState by default", () => {
+      expect(useUIStore.getState().previewState).toBeNull();
+    });
+
+    it("sets preview state", () => {
+      const previewState = {
+        toolId: "tool1",
+        socketId: "output",
+        socketDirection: "output" as const,
+        data: [{ name: "Alice", age: 30 }],
+        schema: [{ name: "name", dtype: "String", nullable: false }],
+        loading: false,
+        error: null,
+      };
+
+      useUIStore.getState().setPreviewState(previewState);
+
+      expect(useUIStore.getState().previewState).toEqual(previewState);
+    });
+
+    it("clears preview state with null", () => {
+      useUIStore.setState({
+        previewState: {
+          toolId: "tool1",
+          socketId: "output",
+          socketDirection: "output",
+          data: [],
+          schema: [],
+          loading: false,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setPreviewState(null);
+
+      expect(useUIStore.getState().previewState).toBeNull();
+    });
+
+    it("sets preview loading state", () => {
+      useUIStore.setState({
+        previewState: {
+          toolId: "tool1",
+          socketId: "output",
+          socketDirection: "output",
+          data: [],
+          schema: [],
+          loading: false,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setPreviewLoading(true);
+
+      expect(useUIStore.getState().previewState?.loading).toBe(true);
+    });
+
+    it("sets preview error state", () => {
+      useUIStore.setState({
+        previewState: {
+          toolId: "tool1",
+          socketId: "output",
+          socketDirection: "output",
+          data: [],
+          schema: [],
+          loading: true,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setPreviewError("Failed to load");
+
+      const state = useUIStore.getState().previewState;
+      expect(state?.error).toBe("Failed to load");
+      expect(state?.loading).toBe(false);
+    });
+
+    it("does not set preview loading if previewState is null", () => {
+      useUIStore.setState({ previewState: null });
+
+      useUIStore.getState().setPreviewLoading(true);
+
+      expect(useUIStore.getState().previewState).toBeNull();
+    });
+  });
+
+  describe("Profile State", () => {
+    it("has null profileState by default", () => {
+      expect(useUIStore.getState().profileState).toBeNull();
+    });
+
+    it("sets profile state", () => {
+      const profileState = {
+        toolId: "tool1",
+        socketId: "input",
+        socketDirection: "input" as const,
+        profile: {
+          tool_id: "tool1",
+          socket_id: "input",
+          row_count: 100,
+          column_count: 3,
+          columns: {
+            name: {
+              column: "name",
+              dtype: "String",
+              count: 100,
+              null_count: 0,
+              null_percent: 0,
+              unique_count: 95,
+            },
+          },
+        },
+        loading: false,
+        error: null,
+      };
+
+      useUIStore.getState().setProfileState(profileState);
+
+      expect(useUIStore.getState().profileState).toEqual(profileState);
+    });
+
+    it("clears profile state with null", () => {
+      useUIStore.setState({
+        profileState: {
+          toolId: "tool1",
+          socketId: "input",
+          socketDirection: "input",
+          profile: null,
+          loading: false,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setProfileState(null);
+
+      expect(useUIStore.getState().profileState).toBeNull();
+    });
+
+    it("sets profile loading state", () => {
+      useUIStore.setState({
+        profileState: {
+          toolId: "tool1",
+          socketId: "input",
+          socketDirection: "input",
+          profile: null,
+          loading: false,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setProfileLoading(true);
+
+      expect(useUIStore.getState().profileState?.loading).toBe(true);
+    });
+
+    it("sets profile error state", () => {
+      useUIStore.setState({
+        profileState: {
+          toolId: "tool1",
+          socketId: "input",
+          socketDirection: "input",
+          profile: null,
+          loading: true,
+          error: null,
+        },
+      });
+
+      useUIStore.getState().setProfileError("Failed to profile");
+
+      const state = useUIStore.getState().profileState;
+      expect(state?.error).toBe("Failed to profile");
+      expect(state?.loading).toBe(false);
+    });
+
+    it("does not set profile loading if profileState is null", () => {
+      useUIStore.setState({ profileState: null });
+
+      useUIStore.getState().setProfileLoading(true);
+
+      expect(useUIStore.getState().profileState).toBeNull();
+    });
+  });
+
+  describe("Bottom Pane Tabs", () => {
+    it("has preview as default active tab", () => {
+      expect(useUIStore.getState().activeBottomTab).toBe("preview");
+    });
+
+    it("can switch to profile tab", () => {
+      useUIStore.getState().setActiveBottomTab("profile");
+
+      expect(useUIStore.getState().activeBottomTab).toBe("profile");
+    });
+
+    it("can switch between all tabs", () => {
+      useUIStore.getState().setActiveBottomTab("logs");
+      expect(useUIStore.getState().activeBottomTab).toBe("logs");
+
+      useUIStore.getState().setActiveBottomTab("network");
+      expect(useUIStore.getState().activeBottomTab).toBe("network");
+
+      useUIStore.getState().setActiveBottomTab("profile");
+      expect(useUIStore.getState().activeBottomTab).toBe("profile");
+
+      useUIStore.getState().setActiveBottomTab("preview");
+      expect(useUIStore.getState().activeBottomTab).toBe("preview");
     });
   });
 });

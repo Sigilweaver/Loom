@@ -249,13 +249,17 @@ class WorkflowExecutor:
         """
         Profile columns for data quality and statistics.
 
-        Executes upstream tools and collects the full dataset to compute
-        profile statistics. This is a blocking operation.
+        Executes the tool and collects the full dataset from the specified
+        output socket to compute profile statistics.
+
+        Note: The frontend always sends output socket IDs. For input sockets,
+        the frontend traces back to the upstream tool's output socket before
+        calling this endpoint.
 
         Args:
             workflow: Workflow containing the tool
-            tool_id: Tool to profile input for
-            socket_id: Input socket to profile
+            tool_id: Tool to execute and profile
+            socket_id: Output socket ID to profile
             columns: Specific columns to profile (None = all columns)
             metrics: Specific metrics to compute (None = all metrics)
 
@@ -267,33 +271,26 @@ class WorkflowExecutor:
         plan = planner.create_plan(tool_id)
         execution_order = list(plan.execution_order)
 
-        # Execute all upstream tools
+        # Execute all tools up to and including the target
         target_index = execution_order.index(tool_id)
-        for upstream_tool_id in execution_order[:target_index]:
-            upstream_tool = plan.get_tool(upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, plan)
+        for exec_tool_id in execution_order[:target_index + 1]:
+            exec_tool = plan.get_tool(exec_tool_id)
+            inputs = self._gather_inputs(exec_tool_id, plan)
             outputs, _ = await self._execute_tool_with_cache(
-                upstream_tool, inputs, plan, cache_mgr
+                exec_tool, inputs, plan, cache_mgr
             )
-            self.results[upstream_tool_id] = outputs
+            self.results[exec_tool_id] = outputs
 
-        # Get the input data for the target tool's socket
-        tool_inputs = plan.get_inputs(tool_id)
-        source_list = tool_inputs.get(socket_id, [])
-
-        if not source_list:
+        # Get the LazyFrame from the tool's output socket
+        if tool_id not in self.results:
+            raise ExecutionError(f"Tool {tool_id} has not been executed")
+        if socket_id not in self.results[tool_id]:
             raise ExecutionError(
-                f"Socket {socket_id} on tool {tool_id} has no connected input"
+                f"Socket {socket_id} not found in tool {tool_id} outputs. "
+                f"Available sockets: {list(self.results[tool_id].keys())}"
             )
 
-        # Get the LazyFrame from the source
-        source_tool_id, source_socket_id = source_list[0]
-        if source_tool_id not in self.results:
-            raise ExecutionError(
-                f"Source tool {source_tool_id} has not been executed"
-            )
-
-        lf = self.results[source_tool_id][source_socket_id]
+        lf = self.results[tool_id][socket_id]
 
         # Collect the full dataset for profiling
         df = lf.collect()
