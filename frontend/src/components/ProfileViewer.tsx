@@ -12,6 +12,32 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useSocketProfile } from "../hooks/useSocketProfile";
 import type { ColumnProfile, TopValueEntry } from "../api/backend";
 
+// Format numeric values for display (handles Decimal artifacts)
+const formatNumericDisplay = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  
+  // Handle scientific notation zeros like "0E-10"
+  if (/^-?0E[+-]?\d+$/i.test(str)) {
+    return '0';
+  }
+  
+  // Handle trailing zeros like "3327.540000000000" or "9.0000000000000"
+  // Only if it looks like a decimal number with excessive trailing zeros
+  if (/^-?\d+\.\d*0{4,}$/.test(str)) {
+    // Parse and format to remove trailing zeros
+    const num = parseFloat(str);
+    if (!isNaN(num)) {
+      return num.toString();
+    }
+  }
+  
+  return str;
+};
+
+// Minimum percentage threshold for displaying frequent values
+const MIN_FREQUENCY_PERCENT = 0.1;
+
 /**
  * Horizontal quality bar showing data quality distribution
  */
@@ -70,22 +96,34 @@ function QualityBar({
 
 /**
  * Compact top values display for a column
+ * Returns null if no values meet the minimum frequency threshold
  */
 function TopValuesList({ topValues, totalCount }: { topValues: TopValueEntry[]; totalCount: number }) {
   if (!topValues || topValues.length === 0) return null;
   
+  // Filter to only values meeting minimum threshold
+  const significantValues = topValues.filter(
+    (tv) => (tv.count / totalCount) * 100 >= MIN_FREQUENCY_PERCENT
+  ).slice(0, 5);
+  
+  // If no values meet threshold, return null (component won't render)
+  if (significantValues.length === 0) return null;
+  
   return (
     <div className="space-y-0.5">
-      {topValues.slice(0, 5).map((tv, idx) => (
-        <div key={idx} className="flex items-center justify-between gap-1 text-[10px]">
-          <span className="truncate text-theme-text-secondary max-w-[100px]" title={String(tv.value)}>
-            {String(tv.value)}
-          </span>
-          <span className="text-theme-text-tertiary whitespace-nowrap">
-            {((tv.count / totalCount) * 100).toFixed(0)}%
-          </span>
-        </div>
-      ))}
+      {significantValues.map((tv, idx) => {
+        const displayValue = formatNumericDisplay(tv.value);
+        return (
+          <div key={idx} className="flex items-center justify-between gap-1 text-[10px]">
+            <span className="truncate text-theme-text-secondary max-w-[100px]" title={displayValue}>
+              {displayValue}
+            </span>
+            <span className="text-theme-text-tertiary whitespace-nowrap">
+              {((tv.count / totalCount) * 100).toFixed(0)}%
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -151,7 +189,7 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
       <div className="flex-1 px-3 py-2 space-y-3 overflow-y-auto">
         {/* Count stats with quality breakdown */}
         <div className="space-y-1">
-          <div className="text-[10px] font-medium text-theme-text-secondary uppercase tracking-wide">Count</div>
+          <div className="text-[10px] font-medium text-theme-text-secondary tracking-wide">Count</div>
           <StatRow label="Total" value={count.toLocaleString()} />
           <StatRow label="Unique" value={(profile.unique_count ?? 0).toLocaleString()} />
           <div className="flex items-center gap-1.5 text-[10px]">
@@ -185,19 +223,20 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
         {/* Numeric aggregation stats */}
         {isNumeric && (profile.min !== undefined || profile.max !== undefined) && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-theme-text-secondary uppercase tracking-wide">Aggregation</div>
-            {profile.min !== undefined && <StatRow label="Min" value={String(profile.min)} />}
-            {profile.max !== undefined && <StatRow label="Max" value={String(profile.max)} />}
-            {profile.mean !== undefined && <StatRow label="Mean" value={profile.mean.toFixed(2)} />}
-            {profile.median !== undefined && <StatRow label="Median" value={profile.median.toFixed(2)} />}
-            {profile.std !== undefined && <StatRow label="Std Dev" value={profile.std.toFixed(2)} />}
+            <div className="text-[10px] font-medium text-theme-text-secondary tracking-wide">Aggregation</div>
+            {profile.min !== undefined && <StatRow label="Min" value={formatNumericDisplay(profile.min)} />}
+            {profile.max !== undefined && <StatRow label="Max" value={formatNumericDisplay(profile.max)} />}
+            {profile.mean !== undefined && <StatRow label="Mean" value={formatNumericDisplay(profile.mean.toFixed(2))} />}
+            {profile.median !== undefined && <StatRow label="Median" value={formatNumericDisplay(profile.median.toFixed(2))} />}
+            {profile.std !== undefined && <StatRow label="Std Dev" value={formatNumericDisplay(profile.std.toFixed(2))} />}
           </div>
         )}
         
-        {/* Most frequent values */}
-        {profile.top_values && profile.top_values.length > 0 && (
+        {/* Most frequent values - only show if any values meet threshold */}
+        {profile.top_values && profile.top_values.length > 0 && 
+          profile.top_values.some((tv) => (tv.count / count) * 100 >= MIN_FREQUENCY_PERCENT) && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-theme-text-secondary uppercase tracking-wide">Most Frequent</div>
+            <div className="text-[10px] font-medium text-theme-text-secondary tracking-wide">Most Frequent</div>
             <TopValuesList topValues={profile.top_values} totalCount={count} />
           </div>
         )}
@@ -205,13 +244,16 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
         {/* Min values for numeric columns */}
         {isNumeric && profile.min_values && profile.min_values.length > 0 && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-theme-text-secondary uppercase tracking-wide">Smallest</div>
+            <div className="text-[10px] font-medium text-theme-text-secondary tracking-wide">Smallest</div>
             <div className="space-y-0.5">
-              {profile.min_values.map((val, idx) => (
-                <div key={idx} className="text-[10px] font-mono text-theme-text-primary truncate" title={String(val)}>
-                  {String(val)}
-                </div>
-              ))}
+              {profile.min_values.map((val, idx) => {
+                const displayValue = formatNumericDisplay(val);
+                return (
+                  <div key={idx} className="text-[10px] font-mono text-theme-text-primary truncate" title={displayValue}>
+                    {displayValue}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -219,13 +261,16 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
         {/* Max values for numeric columns */}
         {isNumeric && profile.max_values && profile.max_values.length > 0 && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-theme-text-secondary uppercase tracking-wide">Largest</div>
+            <div className="text-[10px] font-medium text-theme-text-secondary tracking-wide">Largest</div>
             <div className="space-y-0.5">
-              {profile.max_values.map((val, idx) => (
-                <div key={idx} className="text-[10px] font-mono text-theme-text-primary truncate" title={String(val)}>
-                  {String(val)}
-                </div>
-              ))}
+              {profile.max_values.map((val, idx) => {
+                const displayValue = formatNumericDisplay(val);
+                return (
+                  <div key={idx} className="text-[10px] font-mono text-theme-text-primary truncate" title={displayValue}>
+                    {displayValue}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -233,7 +278,7 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
         {/* String quality issue details */}
         {isString && issueCount > 0 && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-red-400 uppercase tracking-wide">Issue Details</div>
+            <div className="text-[10px] font-medium text-red-400 tracking-wide">Issue Details</div>
             {(profile.whitespace_leading ?? 0) > 0 && (
               <StatRow label="Leading WS" value={profile.whitespace_leading ?? 0} className="text-red-400" />
             )}
