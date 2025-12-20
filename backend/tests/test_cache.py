@@ -344,6 +344,48 @@ class TestToolCachingBehavior:
         assert tool.is_blocking() is False
         assert tool.should_cache({}) is False
 
+    def test_sample_first_n_not_blocking(self):
+        """Test that SampleTool with FirstN mode is not blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "FirstN"}) is False
+        assert tool.should_cache({"mode": "FirstN"}) is False
+
+    def test_sample_every_n_not_blocking(self):
+        """Test that SampleTool with EveryN mode is not blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "EveryN"}) is False
+        assert tool.should_cache({"mode": "EveryN"}) is False
+
+    def test_sample_last_n_is_blocking(self):
+        """Test that SampleTool with LastN mode is blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "LastN"}) is True
+        assert tool.should_cache({"mode": "LastN"}) is True
+
+    def test_sample_random_is_blocking(self):
+        """Test that SampleTool with Random mode is blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "Random"}) is True
+        assert tool.should_cache({"mode": "Random"}) is True
+
+    def test_sample_random_percent_is_blocking(self):
+        """Test that SampleTool with RandomPercent mode is blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "RandomPercent"}) is True
+        assert tool.should_cache({"mode": "RandomPercent"}) is True
+
+    def test_sample_first_percent_is_blocking(self):
+        """Test that SampleTool with FirstPercent mode is blocking."""
+        from app.domain.tools.implementations.sample import SampleTool
+        tool = SampleTool()
+        assert tool.is_blocking({"mode": "FirstPercent"}) is True
+        assert tool.should_cache({"mode": "FirstPercent"}) is True
+
 
 class TestCacheEviction:
     """Tests for cache eviction strategies."""

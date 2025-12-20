@@ -7,6 +7,7 @@ from app.domain.tools.implementations import (
     InputTool,
     JoinTool,
     OutputTool,
+    SampleTool,
     SelectTool,
     SortTool,
     SummarizeTool,
@@ -26,4 +27,5 @@ __all__ = [
     "SummarizeTool",
     "SortTool",
     "JoinTool",
+    "SampleTool",
 ]

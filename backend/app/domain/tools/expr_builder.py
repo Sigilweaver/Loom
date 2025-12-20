@@ -275,6 +275,95 @@ class SortOperation:
         ]
 
 
+# Sample modes that require blocking (full data scan)
+BLOCKING_SAMPLE_MODES = {"LastN", "Random", "RandomPercent", "FirstPercent"}
+
+
+@dataclass
+class SampleOperation:
+    """Represents a sample operation with multiple modes."""
+
+    mode: str = "FirstN"  # FirstN, LastN, EveryN, Random, RandomPercent, FirstPercent
+    n: int = 100  # Number of rows (for FirstN, LastN, Random) or interval (for EveryN)
+    percent: float = 10.0  # Percentage for RandomPercent, FirstPercent
+    offset: int = 0  # Offset for EveryN mode
+    seed: int | None = None  # Random seed for reproducibility
+
+    def is_blocking(self) -> bool:
+        """Check if this mode requires full data scan."""
+        return self.mode in BLOCKING_SAMPLE_MODES
+
+    def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
+        """Execute sample operation."""
+        if self.mode == "FirstN":
+            return lf.head(self.n)
+
+        elif self.mode == "LastN":
+            return lf.tail(self.n)
+
+        elif self.mode == "EveryN":
+            return lf.gather_every(self.n, offset=self.offset)
+
+        elif self.mode == "Random":
+            # Random sampling requires collect() - blocking
+            df = lf.collect()
+            return df.sample(n=min(self.n, len(df)), seed=self.seed).lazy()
+
+        elif self.mode == "RandomPercent":
+            # Random percent sampling requires collect() - blocking
+            fraction = self.percent / 100.0
+            df = lf.collect()
+            return df.sample(fraction=min(fraction, 1.0), seed=self.seed).lazy()
+
+        elif self.mode == "FirstPercent":
+            # First N% requires knowing row count - blocking
+            df = lf.collect()
+            n_rows = max(1, int(len(df) * self.percent / 100.0))
+            return df.head(n_rows).lazy()
+
+        else:
+            # Unknown mode - pass through
+            return lf
+
+    def to_code(self, input_var: str, output_var: str) -> list[str]:
+        """Generate Python code for sample operation."""
+        if self.mode == "FirstN":
+            return [f"{output_var} = {input_var}.head({self.n})"]
+
+        elif self.mode == "LastN":
+            return [f"{output_var} = {input_var}.tail({self.n})"]
+
+        elif self.mode == "EveryN":
+            if self.offset > 0:
+                return [f"{output_var} = {input_var}.gather_every({self.n}, offset={self.offset})"]
+            return [f"{output_var} = {input_var}.gather_every({self.n})"]
+
+        elif self.mode == "Random":
+            seed_arg = f", seed={self.seed}" if self.seed is not None else ""
+            return [
+                f"_df_temp = {input_var}.collect()",
+                f"{output_var} = _df_temp.sample(n=min({self.n}, len(_df_temp)){seed_arg}).lazy()",
+            ]
+
+        elif self.mode == "RandomPercent":
+            fraction = self.percent / 100.0
+            seed_arg = f", seed={self.seed}" if self.seed is not None else ""
+            return [
+                f"_df_temp = {input_var}.collect()",
+                f"{output_var} = _df_temp.sample(fraction=min({fraction}, 1.0){seed_arg}).lazy()",
+            ]
+
+        elif self.mode == "FirstPercent":
+            return [
+                f"_df_temp = {input_var}.collect()",
+                f"_n_rows = max(1, int(len(_df_temp) * {self.percent} / 100.0))",
+                f"{output_var} = _df_temp.head(_n_rows).lazy()",
+            ]
+
+        else:
+            return [f"{output_var} = {input_var}"]
+
+
 # Aggregation method mapping
 AGGREGATION_METHODS = {
     "Sum": ("sum", ".sum()"),

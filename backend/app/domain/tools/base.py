@@ -115,7 +115,7 @@ class BaseTool(ABC):
             return var[0] if var else default
         return var
 
-    def is_blocking(self) -> bool:
+    def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """
         Check if this tool requires full data materialization.
 
@@ -123,6 +123,10 @@ class BaseTool(ABC):
         see all input data before producing any output. Examples include
         Sort (must see all rows to determine order), Summarize (must see
         all rows per group), and Join (must scan both sides for matches).
+
+        Args:
+            config: Optional tool configuration. Some tools (like Sample)
+                    have mode-dependent blocking behavior.
 
         Returns:
             True if the tool is blocking, False otherwise
