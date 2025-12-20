@@ -5,6 +5,7 @@ from app.domain.tools.implementations.formula import FormulaTool
 from app.domain.tools.implementations.input import InputTool
 from app.domain.tools.implementations.join import JoinTool
 from app.domain.tools.implementations.output import OutputTool
+from app.domain.tools.implementations.sample import SampleTool
 from app.domain.tools.implementations.select import SelectTool
 from app.domain.tools.implementations.sort import SortTool
 from app.domain.tools.implementations.summarize import SummarizeTool
@@ -20,4 +21,5 @@ __all__ = [
     "SummarizeTool",
     "SortTool",
     "JoinTool",
+    "SampleTool",
 ]

@@ -24,6 +24,7 @@ import { SortConfiguration } from "@components/SortConfiguration";
 import { SummarizeConfiguration } from "@components/SummarizeConfiguration";
 import { UnionConfiguration } from "@components/UnionConfiguration";
 import { JoinConfiguration } from "@components/JoinConfiguration";
+import { SampleConfiguration } from "@components/SampleConfiguration";
 
 /**
  * Base props that all configuration components receive
@@ -89,6 +90,10 @@ export const TOOL_CONFIG_REGISTRY: Record<string, ToolConfigEntry> = {
   Sort: {
     component: SortConfiguration,
     needsWorkflowContext: true,
+  },
+  Sample: {
+    component: SampleConfiguration,
+    needsWorkflowContext: false,
   },
 
   // Join Tools

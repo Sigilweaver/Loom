@@ -8,7 +8,8 @@ import {
   Calculator, 
   Layers, 
   Link, 
-  Sigma 
+  Sigma,
+  FlaskRound 
 } from 'lucide-react';
 import { CommonSockets, FilterSockets, JoinSockets, UnionSockets } from '../domain/workflow/constants/socketIds';
 
@@ -102,6 +103,24 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/formula`,
+  },
+  {
+    type: 'Sample',
+    name: 'Sample',
+    icon: FlaskRound,
+    category: 'preparation',
+    defaultConfig: {
+      mode: 'FirstN',
+      n: 100,
+      percent: 10.0,
+      offset: 0,
+      seed: null,
+    },
+    sockets: [
+      { id: CommonSockets.INPUT, direction: 'input' },
+      { id: CommonSockets.OUTPUT, direction: 'output' }
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/sample`,
   },
   
   // Join Tools
