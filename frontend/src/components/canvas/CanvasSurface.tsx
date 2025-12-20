@@ -54,9 +54,8 @@ export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapG
       connectionLineType={connectionLineType}
       defaultEdgeOptions={{
         type: edgeType,
-        markerEnd: { type: MarkerType.ArrowClosed, color: 'currentColor' },
       }}
-    deleteKeyCode={['Delete', 'Backspace']}
+    deleteKeyCode={['Delete', 'Backback']}
     multiSelectionKeyCode={['Meta', 'Control']}
       panOnScroll
       panOnScrollMode={PanOnScrollMode.Free}
