@@ -419,6 +419,107 @@ export async function getToolMetadata(
 }
 
 /**
+ * Top value entry in column profile
+ */
+export interface TopValueEntry {
+  value: unknown;
+  count: number;
+}
+
+/**
+ * Profile data for a single column
+ */
+export interface ColumnProfile {
+  column: string;
+  dtype: string;
+  // Basic metrics
+  count?: number;
+  null_count?: number;
+  null_percent?: number;
+  unique_count?: number;
+  // Numeric metrics
+  min?: unknown;
+  max?: unknown;
+  mean?: number;
+  median?: number;
+  std?: number;
+  // String quality metrics
+  whitespace_leading?: number;
+  whitespace_trailing?: number;
+  contains_linebreaks?: number;
+  contains_non_ascii?: number;
+  // Distribution
+  top_values?: TopValueEntry[];
+}
+
+/**
+ * Response from /api/workflow/tool/profile endpoint
+ */
+export interface ProfileResponse {
+  tool_id: string;
+  socket_id: string;
+  row_count: number;
+  column_count: number;
+  columns: Record<string, ColumnProfile>;
+}
+
+/**
+ * Available profile metrics
+ */
+export type ProfileMetric =
+  | 'count'
+  | 'null_count'
+  | 'null_percent'
+  | 'unique_count'
+  | 'min'
+  | 'max'
+  | 'mean'
+  | 'median'
+  | 'std'
+  | 'whitespace_leading'
+  | 'whitespace_trailing'
+  | 'contains_linebreaks'
+  | 'contains_non_ascii'
+  | 'top_values';
+
+/**
+ * Profile columns for a tool's input data
+ * 
+ * Computes statistical profiles for columns in the data flowing into
+ * the specified tool socket. Useful for:
+ * - Understanding data quality (nulls, whitespace issues)
+ * - Determining pivot safety (unique value counts)
+ * - Exploring data distribution
+ * 
+ * @param toolId - The tool to profile input for
+ * @param workflow - The complete workflow definition
+ * @param socketId - The input socket to profile
+ * @param columns - Optional specific columns to profile (null = all)
+ * @param metrics - Optional specific metrics to compute (null = all)
+ * @param context - Optional request context for logging
+ * @returns Column profiles with requested statistics
+ */
+export async function profileColumns(
+  toolId: string,
+  workflow: WorkflowJSON,
+  socketId: string,
+  columns?: string[],
+  metrics?: ProfileMetric[],
+  context?: RequestContext
+): Promise<ProfileResponse> {
+  return apiRequest<ProfileResponse>('/workflow/tool/profile', {
+    method: 'POST',
+    body: JSON.stringify({
+      tool_id: toolId,
+      workflow,
+      socket_id: socketId,
+      columns: columns ?? null,
+      metrics: metrics ?? null,
+    }),
+  }, { ...context, toolId });
+}
+
+/**
  * Get available Polars functions for autocomplete
  * 
  * Returns all Polars functions categorized by scope and type.

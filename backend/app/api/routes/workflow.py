@@ -74,6 +74,27 @@ class ToolMetadataRequest(BaseModel):
     )
 
 
+class ToolProfileRequest(BaseModel):
+    """Request to profile columns for a tool's input data"""
+
+    tool_id: str = Field(description="Tool ID to profile input for")
+    workflow: Workflow = Field(description="Full workflow for context")
+    socket_id: str = Field(description="Input socket ID to profile")
+    columns: list[str] | None = Field(
+        None,
+        description="Specific columns to profile. If null, profiles all columns.",
+    )
+    metrics: list[str] | None = Field(
+        None,
+        description=(
+            "Specific metrics to compute. If null, computes all metrics. "
+            "Available: count, null_count, null_percent, unique_count, min, max, "
+            "mean, median, std, whitespace_leading, whitespace_trailing, "
+            "contains_linebreaks, contains_non_ascii, top_values"
+        ),
+    )
+
+
 @router.post("/execute")
 async def execute_workflow(
     request: ExecuteWorkflowRequest,
@@ -218,6 +239,58 @@ async def get_tool_metadata(
             workflow=resolved_workflow,
             tool_id=request.tool_id,
             socket_id=request.socket_id,
+        )
+        return result
+
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ExecutionError as e:
+        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+    except ToolError as e:
+        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@router.post("/tool/profile")
+async def profile_tool_input(
+    request: ToolProfileRequest,
+    resolver: ConnectionResolver = Depends(get_connection_resolver),
+) -> dict[str, Any]:
+    """
+    Profile columns for a tool's input data.
+
+    Computes statistical profiles for columns in the data flowing into
+    the specified tool socket. This is useful for:
+    - Understanding data quality (nulls, whitespace issues, non-ASCII)
+    - Determining pivot safety (unique value counts)
+    - Exploring data distribution (top values, min/max)
+
+    This endpoint collects the FULL dataset (not preview limited) to
+    compute accurate statistics. It executes all upstream tools.
+
+    The metrics parameter allows requesting specific statistics:
+    - Basic: count, null_count, null_percent, unique_count
+    - Numeric: min, max, mean, median, std
+    - String quality: whitespace_leading, whitespace_trailing,
+                     contains_linebreaks, contains_non_ascii
+    - Distribution: top_values
+
+    The columns parameter allows profiling a subset of columns for
+    faster response times when only specific columns are of interest.
+    """
+    try:
+        # Resolve server connections and validate client connections
+        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolver.validate_client_connections(resolved_workflow)
+
+        executor = WorkflowExecutor()
+        result = await executor.profile_columns(
+            workflow=resolved_workflow,
+            tool_id=request.tool_id,
+            socket_id=request.socket_id,
+            columns=request.columns,
+            metrics=request.metrics,
         )
         return result
 
