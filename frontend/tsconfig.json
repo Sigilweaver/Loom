@@ -19,12 +19,14 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@domain/*": ["./src/domain/*"],
-      "@state/*": ["./src/state/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@data/*": ["./src/data/*"],
+      "@api/*": ["./src/api/*"],
       "@components/*": ["./src/components/*"],
-      "@contexts/*": ["./src/contexts/*"]
+      "@contexts/*": ["./src/contexts/*"],
+      "@data/*": ["./src/data/*"],
+      "@domain/*": ["./src/domain/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@state/*": ["./src/state/*"],
+      "@utils/*": ["./src/utils/*"]
     }
   },
   "include": ["src", "electron"],

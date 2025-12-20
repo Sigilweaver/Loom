@@ -8,7 +8,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { forwardRef, useCallback } from "react";
-import WorkflowNode from "../WorkflowNode";
+import WorkflowNode from "@components/workflow/WorkflowNode";
 import { CanvasControls } from "./CanvasControls";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import { CanvasMenus } from "./CanvasMenus";

@@ -6,12 +6,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@domain": path.resolve(__dirname, "src/domain"),
-      "@state": path.resolve(__dirname, "src/state"),
-      "@utils": path.resolve(__dirname, "src/utils"),
-      "@data": path.resolve(__dirname, "src/data"),
+      "@api": path.resolve(__dirname, "src/api"),
       "@components": path.resolve(__dirname, "src/components"),
       "@contexts": path.resolve(__dirname, "src/contexts"),
+      "@data": path.resolve(__dirname, "src/data"),
+      "@domain": path.resolve(__dirname, "src/domain"),
+      "@hooks": path.resolve(__dirname, "src/hooks"),
+      "@state": path.resolve(__dirname, "src/state"),
+      "@utils": path.resolve(__dirname, "src/utils"),
     },
   },
   test: {

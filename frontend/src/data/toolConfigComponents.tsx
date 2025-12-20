@@ -16,18 +16,20 @@ import {
   WorkflowMeta,
 } from "@domain/workflow/entities/workflow";
 
-// Tool configuration components
-import { FilterConfiguration } from "@components/FilterConfiguration";
-import { FormulaConfiguration } from "@components/FormulaConfiguration";
-import { SelectConfiguration } from "@components/SelectConfiguration";
-import { SortConfiguration } from "@components/SortConfiguration";
-import { SummarizeConfiguration } from "@components/SummarizeConfiguration";
-import { UnionConfiguration } from "@components/UnionConfiguration";
-import { JoinConfiguration } from "@components/JoinConfiguration";
-import { SampleConfiguration } from "@components/SampleConfiguration";
-import { UniqueConfiguration } from "@components/UniqueConfiguration";
-import { PivotConfiguration } from "@components/PivotConfiguration";
-import { UnpivotConfiguration } from "@components/UnpivotConfiguration";
+// Tool configuration components - Prepare
+import { FilterConfiguration } from "@components/config/prepare/FilterConfiguration";
+import { FormulaConfiguration } from "@components/config/prepare/FormulaConfiguration";
+import { SelectConfiguration } from "@components/config/prepare/SelectConfiguration";
+import { SortConfiguration } from "@components/config/prepare/SortConfiguration";
+import { SampleConfiguration } from "@components/config/prepare/SampleConfiguration";
+import { UniqueConfiguration } from "@components/config/prepare/UniqueConfiguration";
+// Tool configuration components - Join
+import { UnionConfiguration } from "@components/config/join/UnionConfiguration";
+import { JoinConfiguration } from "@components/config/join/JoinConfiguration";
+// Tool configuration components - Aggregate
+import { SummarizeConfiguration } from "@components/config/aggregate/SummarizeConfiguration";
+import { PivotConfiguration } from "@components/config/aggregate/PivotConfiguration";
+import { UnpivotConfiguration } from "@components/config/aggregate/UnpivotConfiguration";
 
 /**
  * Base props that all configuration components receive
