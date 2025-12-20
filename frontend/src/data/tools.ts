@@ -9,9 +9,10 @@ import {
   Layers, 
   Link, 
   Sigma,
-  FlaskRound 
+  FlaskRound,
+  Fingerprint 
 } from 'lucide-react';
-import { CommonSockets, FilterSockets, JoinSockets, UnionSockets } from '../domain/workflow/constants/socketIds';
+import { CommonSockets, FilterSockets, JoinSockets, UnionSockets, UniqueSockets } from '../domain/workflow/constants/socketIds';
 
 const DOCS_BASE_URL = 'https://docs.sigilweaver.app/user';
 
@@ -121,6 +122,22 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       { id: CommonSockets.OUTPUT, direction: 'output' }
     ],
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/sample`,
+  },
+  {
+    type: 'Unique',
+    name: 'Unique',
+    icon: Fingerprint,
+    category: 'preparation',
+    defaultConfig: {
+      columns: [],
+      mode: 'First',
+    },
+    sockets: [
+      { id: UniqueSockets.INPUT, direction: 'input' },
+      { id: UniqueSockets.OUTPUT_UNIQUE, direction: 'output', type: 'U' },
+      { id: UniqueSockets.OUTPUT_DUPLICATE, direction: 'output', type: 'D' }
+    ],
+    docsUrl: `${DOCS_BASE_URL}/tools/preparation/unique`,
   },
   
   // Join Tools

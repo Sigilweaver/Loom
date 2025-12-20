@@ -35,3 +35,11 @@ class UnionSockets:
 
     INPUT = "input"  # multiple=True
     OUTPUT = "output"
+
+
+class UniqueSockets:
+    """Unique tool socket IDs."""
+
+    INPUT = "input"
+    OUTPUT_UNIQUE = "output-unique"
+    OUTPUT_DUPLICATE = "output-duplicate"

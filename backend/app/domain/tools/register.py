@@ -12,6 +12,7 @@ from app.domain.tools.implementations import (
     SortTool,
     SummarizeTool,
     UnionTool,
+    UniqueTool,
 )
 
 # Tools are automatically registered via @register_tool decorator
@@ -28,4 +29,5 @@ __all__ = [
     "SortTool",
     "JoinTool",
     "SampleTool",
+    "UniqueTool",
 ]

@@ -682,6 +682,67 @@ class UnionOperation:
             return [f'{output_var} = pl.concat([{frames_str}], how="vertical")']
 
 
+@dataclass
+class UniqueOperation:
+    """Represents a unique/deduplicate operation with two outputs.
+
+    Modes:
+    - "First" (Alteryx-style): Unique = first occurrence of each value,
+                               Duplicate = subsequent occurrences
+    - "Strict": Unique = ONLY values appearing exactly once,
+                Duplicate = ALL rows where value appears more than once
+    """
+
+    columns: list[str] = field(default_factory=list)  # Empty = all columns
+    mode: str = "First"  # "First" or "Strict"
+
+    def execute(self, lf: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+        """Execute unique operation, returning (unique_output, duplicate_output)."""
+        # Build the key expression - use struct for multiple columns
+        if self.columns:
+            key_expr = pl.struct(self.columns)
+        else:
+            # Use all columns
+            all_cols = lf.collect_schema().names()
+            key_expr = pl.struct(all_cols)
+
+        if self.mode == "Strict":
+            # Strict mode: unique = values appearing exactly once
+            # duplicate = all rows where value appears more than once
+            mask_expr = key_expr.is_unique()
+        else:
+            # First mode (default): unique = first occurrence
+            # duplicate = subsequent occurrences
+            mask_expr = key_expr.is_first_distinct()
+
+        unique_output = lf.filter(mask_expr)
+        duplicate_output = lf.filter(~mask_expr)
+        return unique_output, duplicate_output
+
+    def to_code(
+        self, input_var: str, unique_var: str, duplicate_var: str
+    ) -> list[str]:
+        """Generate Python code for unique operation."""
+        lines: list[str] = []
+
+        # Build key expression code
+        if self.columns:
+            cols_str = ", ".join(f'"{c}"' for c in self.columns)
+            key_code = f"pl.struct([{cols_str}])"
+        else:
+            lines.append(f"_all_cols = {input_var}.collect_schema().names()")
+            key_code = "pl.struct(_all_cols)"
+
+        if self.mode == "Strict":
+            lines.append(f"_unique_mask = {key_code}.is_unique()")
+        else:
+            lines.append(f"_unique_mask = {key_code}.is_first_distinct()")
+
+        lines.append(f"{unique_var} = {input_var}.filter(_unique_mask)")
+        lines.append(f"{duplicate_var} = {input_var}.filter(~_unique_mask)")
+        return lines
+
+
 def build_select_expr(col_config: dict[str, Any]) -> ExprNode | None:
     """Build a select expression from column configuration."""
     name = col_config.get("name")
