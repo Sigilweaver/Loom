@@ -33,6 +33,8 @@ interface NotificationState {
   expiresAt?: number; // timestamp when it should auto-hide
 }
 
+type LeftPaneTab = "tools" | "workflow";
+
 interface UIState {
   snapToGrid: boolean;
   minimapVisible: boolean;
@@ -41,6 +43,9 @@ interface UIState {
   positionMenuCoords: { x: number; y: number } | null;
   workflowViewerVisible: boolean;
   activeToolTab: ToolCategory;
+  leftPaneTab: LeftPaneTab;
+  favoriteTools: string[]; // Array of tool type names that are favorites
+  collapsedCategories: string[]; // Array of category IDs that are collapsed
   bottomPaneOpen: boolean;
   bottomPaneHeight: number;
   activeBottomTab: BottomPaneTab;
@@ -56,6 +61,11 @@ interface UIState {
   closePositionMenu: () => void;
   setWorkflowViewerVisible: (visible: boolean) => void;
   setActiveToolTab: (tab: ToolCategory) => void;
+  setLeftPaneTab: (tab: LeftPaneTab) => void;
+  toggleFavoriteTool: (toolType: string) => void;
+  isFavorite: (toolType: string) => boolean;
+  toggleCategory: (categoryId: string) => void;
+  isCategoryCollapsed: (categoryId: string) => boolean;
   setBottomPaneOpen: (open: boolean) => void;
   toggleBottomPane: () => void;
   setBottomPaneHeight: (height: number) => void;
@@ -82,7 +92,36 @@ const loadSnapToGrid = (): boolean => {
   return saved !== null ? saved === "true" : true; // Default: ON
 };
 
-export const useUIStore = create<UIState>()((set) => ({
+// Default favorite tools (used when no saved favorites exist)
+const DEFAULT_FAVORITES = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
+
+// Load persisted favorites (defaults to curated list)
+const loadFavoriteTools = (): string[] => {
+  const saved = localStorage.getItem("sigilweaver-favorite-tools");
+  if (saved !== null) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return DEFAULT_FAVORITES;
+    }
+  }
+  return DEFAULT_FAVORITES;
+};
+
+// Load persisted collapsed categories (default: none collapsed)
+const loadCollapsedCategories = (): string[] => {
+  const saved = localStorage.getItem("sigilweaver-collapsed-categories");
+  if (saved !== null) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+export const useUIStore = create<UIState>()((set, get) => ({
   snapToGrid: loadSnapToGrid(),
   toggleSnapToGrid: () =>
     set((s) => {
@@ -109,6 +148,33 @@ export const useUIStore = create<UIState>()((set) => ({
 
   activeToolTab: "favorites",
   setActiveToolTab: (tab) => set({ activeToolTab: tab }),
+
+  leftPaneTab: "tools",
+  setLeftPaneTab: (tab) => set({ leftPaneTab: tab }),
+
+  favoriteTools: loadFavoriteTools(),
+  toggleFavoriteTool: (toolType: string) =>
+    set((s) => {
+      const isFav = s.favoriteTools.includes(toolType);
+      const newFavorites = isFav
+        ? s.favoriteTools.filter((t) => t !== toolType)
+        : [...s.favoriteTools, toolType];
+      localStorage.setItem("sigilweaver-favorite-tools", JSON.stringify(newFavorites));
+      return { favoriteTools: newFavorites };
+    }),
+  isFavorite: (toolType: string) => get().favoriteTools.includes(toolType),
+
+  collapsedCategories: loadCollapsedCategories(),
+  toggleCategory: (categoryId: string) =>
+    set((s) => {
+      const isCollapsed = s.collapsedCategories.includes(categoryId);
+      const newCollapsed = isCollapsed
+        ? s.collapsedCategories.filter((c) => c !== categoryId)
+        : [...s.collapsedCategories, categoryId];
+      localStorage.setItem("sigilweaver-collapsed-categories", JSON.stringify(newCollapsed));
+      return { collapsedCategories: newCollapsed };
+    }),
+  isCategoryCollapsed: (categoryId: string) => get().collapsedCategories.includes(categoryId),
 
   bottomPaneOpen: false,
   bottomPaneHeight: 300,

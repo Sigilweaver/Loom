@@ -238,11 +238,17 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 
 export const EXPRESSION_DOCS_URL = `${DOCS_BASE_URL}/expressions/basics`;
 
-export const FAVORITES_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
+// Default favorite tools (used as initial set)
+export const DEFAULT_FAVORITE_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
 
-export const getToolsByCategory = (category: string) => {
+// Legacy export for backwards compatibility
+export const FAVORITES_TOOLS = DEFAULT_FAVORITE_TOOLS;
+
+export const getToolsByCategory = (category: string, favoriteTools?: string[]) => {
   if (category === 'favorites') {
-    return TOOL_DEFINITIONS.filter(tool => FAVORITES_TOOLS.includes(tool.type));
+    // Use provided favorites or default to the static list
+    const favorites = favoriteTools ?? DEFAULT_FAVORITE_TOOLS;
+    return TOOL_DEFINITIONS.filter(tool => favorites.includes(tool.type));
   }
   return TOOL_DEFINITIONS.filter(tool => tool.category === category);
 };

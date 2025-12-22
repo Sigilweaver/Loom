@@ -4,7 +4,7 @@
  * Maps tool types to their configuration panel components.
  * Mirrors the TOOL_DEFINITIONS pattern in tools.ts.
  *
- * This eliminates the large switch statement in ConfigurationPanel.tsx
+ * This eliminates the large switch statement in LeftPane.tsx
  * and makes adding new tools more modular - you just add an entry here.
  */
 
@@ -74,7 +74,7 @@ export type ToolConfigEntry = BaseToolConfigEntry | ContextToolConfigEntry;
 /**
  * Registry mapping tool types to their configuration components
  *
- * Note: Input and Output tools are handled specially in ConfigurationPanel
+ * Note: Input and Output tools are handled specially in LeftPane
  * because they have dynamic sub-types (csv, parquet, excel, etc.)
  * that each have their own configuration components.
  */

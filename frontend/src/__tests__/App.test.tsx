@@ -31,10 +31,6 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 // Mock all the components
-vi.mock("../components/shell/ToolPalette", () => ({
-  default: () => <div data-testid="tool-palette">Tool Palette</div>,
-}));
-
 vi.mock("../components/Canvas", () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { forwardRef } = require("react");
@@ -61,9 +57,9 @@ vi.mock("../components/shell/Notification", () => ({
   default: () => <div data-testid="notification">Notification</div>,
 }));
 
-vi.mock("../components/ConfigurationPanel", () => ({
+vi.mock("../components/LeftPane", () => ({
   default: () => (
-    <div data-testid="configuration-panel">Configuration Panel</div>
+    <div data-testid="left-pane">Left Pane</div>
   ),
 }));
 
@@ -88,8 +84,7 @@ describe("App Basic Rendering", () => {
 
     expect(screen.getByTestId("theme-provider")).toBeInTheDocument();
     expect(screen.getByTestId("header")).toBeInTheDocument();
-    expect(screen.getByTestId("tool-palette")).toBeInTheDocument();
-    expect(screen.getByTestId("configuration-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("left-pane")).toBeInTheDocument();
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
     expect(screen.getByTestId("react-flow-provider")).toBeInTheDocument();
   });

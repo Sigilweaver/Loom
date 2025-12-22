@@ -6,10 +6,9 @@ import { useSettingsStore } from "@state/settingsStore";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
-import ConfigurationPanel from "./components/ConfigurationPanel";
+import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
-import ToolPalette from "./components/shell/ToolPalette";
 import WorkflowViewer from "./components/workflow/WorkflowViewer";
 import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
@@ -295,11 +294,9 @@ function App() {
           onShowSettings={() => setShowSettings(true)}
         />
 
-        <ToolPalette />
-
         <div className="flex flex-1 overflow-hidden">
-          {/* Configuration Panel - Left Side */}
-          <ConfigurationPanel />
+          {/* Left Pane - Tool Palette and Configuration */}
+          <LeftPane />
 
           {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
           <ReactFlowProvider>
