@@ -92,6 +92,7 @@ interface TabState {
   setTabFilePath: (tabId: string, path: string) => void;
   markTabDirty: (tabId: string) => void;
   markTabClean: (tabId: string) => void;
+  reorderTab: (fromIndex: number, toIndex: number) => void;
 
   // State synchronization
   saveCurrentTab: () => void;
@@ -512,6 +513,23 @@ export const useTabStore = create<TabState>()(
             t.id === tabId ? { ...t, isDirty: false } : t
           ),
         }));
+      },
+
+      /**
+       * Reorder tabs by moving a tab from one position to another
+       *
+       * @param fromIndex - Current index of tab
+       * @param toIndex - Target index for tab
+       */
+      reorderTab: (fromIndex, toIndex) => {
+        set((state) => {
+          const newTabs = [...state.tabs];
+          const [movedTab] = newTabs.splice(fromIndex, 1);
+          if (movedTab) {
+            newTabs.splice(toIndex, 0, movedTab);
+          }
+          return { tabs: newTabs };
+        });
       },
 
       /**

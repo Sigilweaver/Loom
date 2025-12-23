@@ -18,6 +18,10 @@ interface TabProps {
   onSelect: () => void;
   onClose: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 export default function Tab({
@@ -26,6 +30,10 @@ export default function Tab({
   onSelect,
   onClose,
   onContextMenu,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: TabProps) {
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent tab selection when closing
@@ -34,6 +42,11 @@ export default function Tab({
 
   return (
     <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       className={`
         group relative flex items-center gap-2 px-4 py-2
         border-r border-theme-border-primary
