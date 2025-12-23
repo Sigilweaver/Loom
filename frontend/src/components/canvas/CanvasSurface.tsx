@@ -12,6 +12,8 @@ interface Props {
   onNodesDelete: OnNodesDelete;
   onEdgesDelete: OnEdgesDelete;
   onConnect: OnConnect;
+  onConnectStart?: (event: MouseEvent | TouchEvent, params: { nodeId: string | null; handleId: string | null; handleType: 'source' | 'target' | null }) => void;
+  onConnectEnd?: (event: MouseEvent | TouchEvent) => void;
   onNodeClick: (e: React.MouseEvent, node: Node) => void;
   onNodeContextMenu?: (e: MouseEvent | React.MouseEvent, node: Node) => void;
   onPaneClick: () => void;
