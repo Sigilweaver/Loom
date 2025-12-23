@@ -6,13 +6,14 @@
  * never stored in workflow files.
  * 
  * Connection ownership:
- * - owner='client': Credentials stored in Electron, resolved here before sending to backend
+ * - owner='client': Credentials stored locally, resolved here before sending to backend
  * - owner='server': Credentials stored on backend, resolved by executor during execution
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { Tool } from '../domain/workflow/entities/workflow';
 import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
+import { platform, hasSecureStorage } from '@platform';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ConnectionResolver');
@@ -106,9 +107,9 @@ export async function resolveWorkflowConnections(
   logger.debug('Client-owned connections:', clientTools.length);
   logger.debug('Server-owned connections:', serverTools.length);
 
-  // For client-owned connections, we need Electron API
-  if (clientTools.length > 0 && !window.electronAPI?.resolveConnection) {
-    logger.error('Electron API not available - client connections require the desktop app');
+  // For client-owned connections, we need secure storage
+  if (clientTools.length > 0 && !hasSecureStorage()) {
+    logger.error('Secure storage not available - client connections require the desktop app');
     throw new Error('Client database connections require the desktop app. Please run Sigilweaver as a desktop application to use client-managed database features.');
   }
 
@@ -118,7 +119,7 @@ export async function resolveWorkflowConnections(
       const connectionId = tool.config?.connectionId as string;
       logger.debug('Resolving client connection:', connectionId);
       try {
-        const resolved = await window.electronAPI!.resolveConnection(connectionId);
+        const resolved = await platform.credentials.resolve(connectionId);
         logger.debug('Resolved:', resolved ? 'success' : 'null');
         return { toolId: tool.id, resolved };
       } catch (error) {

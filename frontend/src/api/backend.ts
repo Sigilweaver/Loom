@@ -6,6 +6,7 @@
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
+import { platform } from '@platform';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 import { createLogger } from '../utils/logger';
 
@@ -25,24 +26,12 @@ let sessionToken: string | null = null;
 
 /**
  * Initialize authentication token.
- * Called once on app startup to retrieve the session token from Electron
- * or localStorage (for browser mode).
+ * Called once on app startup to retrieve the session token from the platform.
  */
 export async function initializeAuth(): Promise<void> {
-  // Try Electron IPC first (desktop mode)
-  if (window.electronAPI?.getSessionToken) {
-    sessionToken = await window.electronAPI.getSessionToken();
-    if (sessionToken) {
-      logger.info('Session token retrieved from Electron');
-      return;
-    }
-  }
-  
-  // Fallback to localStorage (browser mode / external server)
-  const storedToken = localStorage.getItem('sigilweaver-api-token');
-  if (storedToken) {
-    sessionToken = storedToken;
-    logger.info('Session token retrieved from localStorage');
+  sessionToken = await platform.auth.getSessionToken();
+  if (sessionToken) {
+    logger.info(`Session token retrieved from ${platform.name}`);
   }
 }
 
@@ -51,11 +40,7 @@ export async function initializeAuth(): Promise<void> {
  */
 export function setSessionToken(token: string | null): void {
   sessionToken = token;
-  if (token) {
-    localStorage.setItem('sigilweaver-api-token', token);
-  } else {
-    localStorage.removeItem('sigilweaver-api-token');
-  }
+  platform.auth.setSessionToken(token);
 }
 
 /**

@@ -6,6 +6,7 @@
  */
 
 import type { ConnectionInfo, DatabaseType } from '../types/connections';
+import { platform } from '@platform';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ServerConnections');
@@ -21,19 +22,7 @@ let sessionToken: string | null = null;
  * Initialize the session token (call once on app startup).
  */
 export async function initializeServerConnectionsAuth(): Promise<void> {
-  // Try Electron IPC first (desktop mode)
-  if (window.electronAPI?.getSessionToken) {
-    sessionToken = await window.electronAPI.getSessionToken();
-    if (sessionToken) {
-      return;
-    }
-  }
-  
-  // Fallback to localStorage (browser mode)
-  const storedToken = localStorage.getItem('sigilweaver-api-token');
-  if (storedToken) {
-    sessionToken = storedToken;
-  }
+  sessionToken = await platform.auth.getSessionToken();
 }
 
 /**

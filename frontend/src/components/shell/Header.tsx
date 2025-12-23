@@ -8,6 +8,7 @@ import { useWorkflowExecute } from "@api/hooks";
 import { previewAllTools, clearBackendWorkflowCache } from "@api/backend";
 import { resolveWorkflowConnections } from "@api/connectionResolver";
 import { cacheAllPreviews } from "@api/cache";
+import { platform, hasNativeDialogs } from "@platform";
 import { createLogger } from "@utils/logger";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import { useEffect, forwardRef, useImperativeHandle, useState, useRef, useCallback } from "react";
@@ -93,11 +94,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
     handleRunWorkflow,
   }));
 
-  // Listen for menu actions from Electron
+  // Listen for menu actions from platform
   useEffect(() => {
-    if (!window.electronAPI?.onMenuAction) return;
-
-    const cleanup = window.electronAPI.onMenuAction((action, data) => {
+    const cleanup = platform.menu.onMenuAction((action, data) => {
       switch (action) {
         case 'new-workflow':
           handleNewWorkflow();
@@ -137,10 +136,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
   const handleOpenWorkflowFromPath = async (filePath: string) => {
     try {
-      if (!window.electronAPI?.readFile) return;
-
-      // Read file content via IPC
-      const content = await window.electronAPI.readFile(filePath);
+      // Read file content via platform
+      const content = await platform.files.readFile(filePath);
 
       // Parse JSON workflow file
       const {
@@ -183,10 +180,10 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   };
 
   const handleImportWorkflow = async () => {
-    // Use Electron's native dialog if available
-    if (window.electronAPI?.showOpenDialog && window.electronAPI?.readFile) {
+    // Use native dialog if available
+    if (hasNativeDialogs()) {
       try {
-        const filePath = await window.electronAPI.showOpenDialog({
+        const filePath = await platform.files.showOpenDialog({
           filters: [
             { name: "Workflow Files", extensions: ["swwf"] },
             { name: "All Files", extensions: ["*"] },
@@ -196,8 +193,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
         if (!filePath) return;
 
-        // Read file content via IPC
-        const content = await window.electronAPI.readFile(filePath);
+        // Read file content via platform
+        const content = await platform.files.readFile(filePath);
 
         // Parse JSON workflow file
         const {
@@ -290,8 +287,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       try {
         const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
 
-        if (window.electronAPI?.saveFile) {
-          await window.electronAPI.saveFile(json, activeTab.filePath);
+        if (hasNativeDialogs()) {
+          await platform.files.writeFile(activeTab.filePath, json);
           markTabClean(activeTabId);
           showNotification("Workflow saved successfully!", "success");
         } else {
@@ -335,9 +332,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
       const baseName = buildSafeName(workflowMeta.name);
 
-      // Use Electron's native save dialog if available
-      if (window.electronAPI?.showSaveDialog && window.electronAPI?.saveFile) {
-        const filePath = await window.electronAPI.showSaveDialog({
+      // Use native save dialog if available
+      if (hasNativeDialogs()) {
+        const filePath = await platform.files.showSaveDialog({
           defaultPath: `${baseName}.swwf`,
           filters: [
             { name: "Workflow Files", extensions: ["swwf"] },
@@ -346,7 +343,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
         });
 
         if (filePath) {
-          await window.electronAPI.saveFile(json, filePath);
+          await platform.files.writeFile(filePath, json);
           setTabFilePath(activeTabId, filePath);
           markTabClean(activeTabId);
           showNotification("Workflow saved successfully!", "success");

@@ -1,6 +1,11 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSettingsStore } from "../settingsStore";
 import { DEFAULT_SETTINGS } from "../../types/settings";
+import {
+  mockPlatform,
+  mockPlatformCapabilities,
+  mockPlatformSettings,
+} from "../../test-setup";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -21,28 +26,21 @@ const localStorageMock = (() => {
 
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
-// Mock electronAPI - not present by default (browser mode)
-const originalElectronAPI = window.electronAPI;
-
 describe("SettingsStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.clear();
-    // Remove electronAPI for browser mode tests
-    // @ts-expect-error - intentionally setting to undefined for browser mode testing
-    window.electronAPI = undefined;
+    
+    // Default to browser mode for most tests
+    mockPlatform.name = 'web';
+    mockPlatformCapabilities.secureStorage = false;
+    mockPlatformCapabilities.nativeDialogs = false;
 
     // Reset the store state before each test
     useSettingsStore.setState({
       ...DEFAULT_SETTINGS,
       loaded: false,
     });
-  });
-
-  afterAll(() => {
-    // Restore original electronAPI
-    // @ts-expect-error - restoring potentially undefined value
-    window.electronAPI = originalElectronAPI;
   });
 
   describe("Initial State", () => {
@@ -342,34 +340,34 @@ describe("SettingsStore", () => {
   });
 
   describe("Electron Mode", () => {
-    it("uses electronAPI when available for loading", async () => {
-      const mockGetSettings = vi.fn().mockResolvedValue({
+    beforeEach(() => {
+      // Switch to desktop mode for these tests
+      mockPlatform.name = 'electron';
+      mockPlatformCapabilities.secureStorage = true;
+      mockPlatformCapabilities.nativeDialogs = true;
+    });
+
+    it("uses platform settings when in desktop mode for loading", async () => {
+      // Override the default localStorage-based mock with a direct value mock
+      mockPlatformSettings.getSettings.mockResolvedValueOnce({
         ...DEFAULT_SETTINGS,
         author: "Electron User",
       });
-      // @ts-expect-error - partial mock for testing
-      window.electronAPI = {
-        getSettings: mockGetSettings,
-      };
 
       await useSettingsStore.getState().loadSettings();
 
-      expect(mockGetSettings).toHaveBeenCalled();
+      expect(mockPlatformSettings.getSettings).toHaveBeenCalled();
       expect(useSettingsStore.getState().author).toBe("Electron User");
     });
 
-    it("uses electronAPI when available for saving", async () => {
-      const mockSetSettings = vi.fn().mockResolvedValue(undefined);
-      // @ts-expect-error - partial mock for testing
-      window.electronAPI = {
-        setSettings: mockSetSettings,
-      };
+    it("uses platform settings when in desktop mode for saving", async () => {
+      // Use a direct mock that doesn't go through localStorage
+      const setSettingsMock = vi.fn().mockResolvedValue(undefined);
+      mockPlatformSettings.setSettings.mockImplementationOnce(setSettingsMock);
 
       await useSettingsStore.getState().updateAuthor("Electron Author");
 
-      expect(mockSetSettings).toHaveBeenCalled();
-      // localStorage should NOT be called when electronAPI is available
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockPlatformSettings.setSettings).toHaveBeenCalled();
     });
   });
 });

@@ -2,6 +2,92 @@ import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import React from 'react';
+import { DEFAULT_SETTINGS } from './types/settings';
+
+/**
+ * Mock platform adapter for tests
+ * 
+ * Tests can configure this mock by importing and modifying:
+ *   import { mockPlatform, mockPlatformCapabilities } from '../../test-setup';
+ * 
+ * The mock defaults to simulating the Electron platform with all capabilities.
+ */
+export const mockPlatformCapabilities = {
+  secureStorage: true,
+  nativeDialogs: true,
+  nativeMenus: true,
+  autoUpdate: true,
+};
+
+export const mockPlatformCredentials = {
+  isAvailable: vi.fn().mockResolvedValue(true),
+  list: vi.fn().mockResolvedValue([]),
+  listByType: vi.fn().mockResolvedValue([]),
+  get: vi.fn().mockResolvedValue(null),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn().mockResolvedValue(undefined),
+  resolve: vi.fn().mockResolvedValue(null),
+  test: vi.fn().mockResolvedValue({ success: true, message: 'OK' }),
+};
+
+const SETTINGS_KEY = 'sigilweaver-settings';
+
+export const mockPlatformSettings = {
+  // Default implementation uses localStorage like the web platform
+  getSettings: vi.fn(async () => {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      try {
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+      } catch {
+        console.error('Failed to parse settings from localStorage');
+        return DEFAULT_SETTINGS;
+      }
+    }
+    return DEFAULT_SETTINGS;
+  }),
+  setSettings: vi.fn(async (settings: unknown) => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }),
+};
+
+export const mockPlatformAuth = {
+  getSessionToken: vi.fn().mockResolvedValue(null),
+  setSessionToken: vi.fn().mockResolvedValue(undefined),
+};
+
+export const mockPlatformFiles = {
+  readFile: vi.fn().mockResolvedValue(''),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  showOpenDialog: vi.fn().mockResolvedValue(null),
+  showSaveDialog: vi.fn().mockResolvedValue(null),
+};
+
+export const mockPlatformMenu = {
+  onMenuAction: vi.fn().mockReturnValue(() => {}),
+};
+
+export const mockPlatform = {
+  name: 'electron' as 'electron' | 'web' | 'tauri',
+  capabilities: mockPlatformCapabilities,
+  initialize: vi.fn().mockResolvedValue(undefined),
+  credentials: mockPlatformCredentials,
+  settings: mockPlatformSettings,
+  auth: mockPlatformAuth,
+  files: mockPlatformFiles,
+  menu: mockPlatformMenu,
+};
+
+// Mock the @platform module
+vi.mock('@platform', () => ({
+  platform: mockPlatform,
+  initializePlatform: vi.fn().mockResolvedValue(undefined),
+  isDesktop: vi.fn(() => mockPlatform.name === 'electron' || mockPlatform.name === 'tauri'),
+  isBrowser: vi.fn(() => mockPlatform.name === 'web'),
+  hasSecureStorage: vi.fn(() => mockPlatformCapabilities.secureStorage),
+  hasNativeDialogs: vi.fn(() => mockPlatformCapabilities.nativeDialogs),
+}));
 
 // Cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {

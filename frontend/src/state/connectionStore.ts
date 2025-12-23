@@ -2,11 +2,12 @@
  * Connection Store
  * 
  * Manages database connections with secure credential storage.
- * Credentials are stored encrypted in Electron via safeStorage.
- * This store handles the React side and communicates via IPC.
+ * Credentials are stored encrypted via platform-specific secure storage.
+ * This store handles the React side and communicates via platform adapter.
  */
 
 import { create } from 'zustand';
+import { platform, hasSecureStorage } from '@platform';
 import type { 
   ConnectionInfo, 
   CreateConnectionInput, 
@@ -55,16 +56,16 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
       // Initialize auth for server connections
       await initializeServerConnectionsAuth();
       
-      // Load client-managed connections from Electron
+      // Load client-managed connections from platform secure storage
       const clientConnections: ConnectionInfo[] = [];
       let encryptionAvailable = false;
       
-      if (window.electronAPI?.listConnections) {
-        const electronConns = await window.electronAPI.listConnections();
-        clientConnections.push(...electronConns);
-        encryptionAvailable = await window.electronAPI.isEncryptionAvailable?.() ?? false;
+      if (hasSecureStorage()) {
+        const platformConns = await platform.credentials.list();
+        clientConnections.push(...platformConns);
+        encryptionAvailable = await platform.credentials.isAvailable();
       } else {
-        console.warn('[ConnectionStore] Electron API not available - client connections unavailable');
+        console.warn('[ConnectionStore] Secure storage not available - client connections unavailable');
       }
       
       // Load server-managed connections from backend
@@ -93,13 +94,13 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   createConnection: async (input: CreateConnectionInput) => {
-    if (!window.electronAPI?.createConnection) {
-      throw new Error('Electron API not available');
+    if (!hasSecureStorage()) {
+      throw new Error('Secure storage not available');
     }
 
     set({ loading: true, error: null });
     try {
-      const connection = await window.electronAPI.createConnection(input);
+      const connection = await platform.credentials.create(input);
       set(state => ({
         connections: [...state.connections, connection],
         loading: false,
@@ -113,13 +114,13 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   updateConnection: async (id: string, input: UpdateConnectionInput) => {
-    if (!window.electronAPI?.updateConnection) {
-      throw new Error('Electron API not available');
+    if (!hasSecureStorage()) {
+      throw new Error('Secure storage not available');
     }
 
     set({ loading: true, error: null });
     try {
-      const connection = await window.electronAPI.updateConnection(id, input);
+      const connection = await platform.credentials.update(id, input);
       set(state => ({
         connections: state.connections.map(c => c.id === id ? connection : c),
         loading: false,
@@ -133,13 +134,13 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   deleteConnection: async (id: string) => {
-    if (!window.electronAPI?.deleteConnection) {
-      throw new Error('Electron API not available');
+    if (!hasSecureStorage()) {
+      throw new Error('Secure storage not available');
     }
 
     set({ loading: true, error: null });
     try {
-      await window.electronAPI.deleteConnection(id);
+      await platform.credentials.delete(id);
       set(state => ({
         connections: state.connections.filter(c => c.id !== id),
         loading: false,
@@ -152,12 +153,12 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   resolveConnection: async (id: string) => {
-    if (!window.electronAPI?.resolveConnection) {
-      throw new Error('Electron API not available');
+    if (!hasSecureStorage()) {
+      throw new Error('Secure storage not available');
     }
 
     try {
-      return await window.electronAPI.resolveConnection(id);
+      return await platform.credentials.resolve(id);
     } catch (error) {
       console.error('[ConnectionStore] Failed to resolve connection:', error);
       return null;
@@ -165,13 +166,13 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   testConnection: async (id: string) => {
-    if (!window.electronAPI?.testConnection) {
-      return { success: false, message: 'Electron API not available' };
+    if (!hasSecureStorage()) {
+      return { success: false, message: 'Secure storage not available' };
     }
 
     set({ loading: true, error: null });
     try {
-      const result = await window.electronAPI.testConnection(id);
+      const result = await platform.credentials.test(id);
       set({ loading: false });
       return result;
     } catch (error) {
@@ -182,10 +183,7 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   },
 
   checkEncryption: async () => {
-    if (!window.electronAPI?.isEncryptionAvailable) {
-      return false;
-    }
-    const available = await window.electronAPI.isEncryptionAvailable();
+    const available = await platform.credentials.isAvailable();
     set({ encryptionAvailable: available });
     return available;
   },
