@@ -36,6 +36,7 @@ import { useCanvasMouseTracking } from "./hooks/useCanvasMouseTracking";
 import { useCanvasNodes } from "./hooks/useCanvasNodes";
 import { useCanvasPaste } from "./hooks/useCanvasPaste";
 import { useCanvasSelection } from "./hooks/useCanvasSelection";
+import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useCanvasWheelHandler } from "./hooks/useCanvasWheelHandler";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
@@ -229,6 +230,9 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   // === Wheel handler ===
   const handleWheel = useCanvasWheelHandler();
 
+  // === Viewport synchronization ===
+  const { onMove } = useCanvasViewport();
+
   // === Focus and pointer management ===
   const { keyScopeRef, onMouseDown } = useCanvasFocus({ isPointerDownRef });
 
@@ -281,6 +285,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
             onNodeDragStop={onNodeDragStop}
             onWheel={handleWheel}
             onMouseMove={onMouseMove}
+            onMove={onMove}
             onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
           >

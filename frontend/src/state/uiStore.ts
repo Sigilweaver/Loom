@@ -35,6 +35,12 @@ interface NotificationState {
 
 type LeftPaneTab = "tools" | "workflow";
 
+export interface ViewportState {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
 interface UIState {
   snapToGrid: boolean;
   minimapVisible: boolean;
@@ -52,6 +58,7 @@ interface UIState {
   previewState: PreviewState | null;
   profileState: ProfileState | null;
   notification: NotificationState;
+  viewport: ViewportState | null; // Current canvas viewport state
   // Development/debug mode - bypass backend cache (ephemeral, not persisted)
   bypassCache: boolean;
   toggleSnapToGrid: () => void;
@@ -76,6 +83,7 @@ interface UIState {
   setProfileState: (state: ProfileState | null) => void;
   setProfileLoading: (loading: boolean) => void;
   setProfileError: (error: string | null) => void;
+  setViewport: (viewport: ViewportState | null) => void;
   setBypassCache: (bypass: boolean) => void;
   showNotification: (
     message: string,
@@ -198,6 +206,9 @@ export const useUIStore = create<UIState>()((set, get) => ({
     set((s) => (s.profileState ? { profileState: { ...s.profileState, loading } } : {})),
   setProfileError: (error) =>
     set((s) => (s.profileState ? { profileState: { ...s.profileState, error, loading: false } } : {})),
+
+  viewport: null,
+  setViewport: (viewport) => set({ viewport }),
 
   // Development/debug mode - bypass backend cache (ephemeral, not persisted)
   bypassCache: false,
