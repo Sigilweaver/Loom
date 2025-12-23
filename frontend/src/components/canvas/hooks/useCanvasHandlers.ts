@@ -81,8 +81,12 @@ export function useCanvasHandlers() {
       // Note: No snapshot for moves - too frequent. Snapshot saved on drag end.
       logger.debug("Moving tool:", id, "to", x, y);
       updateTool(id, { x, y });
+
+      if (activeTabId) {
+        markTabDirty(activeTabId);
+      }
     },
-    [updateTool]
+    [updateTool, activeTabId, markTabDirty]
   );
 
   const handleAddWire = useCallback(
