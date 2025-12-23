@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes } from '@xyflow/react';
+import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes, type Viewport } from '@xyflow/react';
 import { useSettingsStore } from '../../state/settingsStore';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   onNodesDelete: OnNodesDelete;
   onEdgesDelete: OnEdgesDelete;
   onConnect: OnConnect;
+  onConnectStart?: (event: MouseEvent | TouchEvent, params: { nodeId: string | null; handleId: string | null; handleType: 'source' | 'target' | null }) => void;
+  onConnectEnd?: (event: MouseEvent | TouchEvent) => void;
   onNodeClick: (e: React.MouseEvent, node: Node) => void;
   onNodeContextMenu?: (e: MouseEvent | React.MouseEvent, node: Node) => void;
   onPaneClick: () => void;
@@ -23,6 +25,7 @@ interface Props {
   onNodeDragStop: (e: React.MouseEvent, node: Node) => void;
   onWheel: (e: React.WheelEvent) => void;
   onMouseMove?: (e: React.MouseEvent) => void;
+  onMove?: (event: MouseEvent | TouchEvent | null, viewport: Viewport) => void;
   nodeTypes: NodeTypes;
   onSelectionChange?: (sel: { nodes: Node[]; edges: Edge[] }) => void;
   children?: React.ReactNode;

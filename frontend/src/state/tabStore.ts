@@ -62,11 +62,21 @@ export interface HistorySnapshot {
 }
 
 /**
- * Complete tab data (workflow + history)
+ * Viewport state for canvas position/zoom
+ */
+export interface ViewportState {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/**
+ * Complete tab data (workflow + history + viewport)
  */
 export interface TabData {
   workflow: WorkflowSnapshot;
   history: HistorySnapshot;
+  viewport?: ViewportState;
 }
 
 /**
@@ -92,6 +102,7 @@ interface TabState {
   setTabFilePath: (tabId: string, path: string) => void;
   markTabDirty: (tabId: string) => void;
   markTabClean: (tabId: string) => void;
+  reorderTab: (fromIndex: number, toIndex: number) => void;
 
   // State synchronization
   saveCurrentTab: () => void;
@@ -515,9 +526,26 @@ export const useTabStore = create<TabState>()(
       },
 
       /**
+       * Reorder tabs by moving a tab from one position to another
+       *
+       * @param fromIndex - Current index of tab
+       * @param toIndex - Target index for tab
+       */
+      reorderTab: (fromIndex, toIndex) => {
+        set((state) => {
+          const newTabs = [...state.tabs];
+          const [movedTab] = newTabs.splice(fromIndex, 1);
+          if (movedTab) {
+            newTabs.splice(toIndex, 0, movedTab);
+          }
+          return { tabs: newTabs };
+        });
+      },
+
+      /**
        * Save current active tab's state to tabData
        *
-       * Reads from workflowStore and historyStore and saves to tabData.
+       * Reads from workflowStore, historyStore, and uiStore (viewport) and saves to tabData.
        * Call this before switching tabs or closing the app.
        */
       saveCurrentTab: () => {
@@ -528,6 +556,7 @@ export const useTabStore = create<TabState>()(
 
         const workflowStore = useWorkflowStore.getState();
         const historyStore = useHistoryStore.getState();
+        const uiStore = useUIStore.getState();
 
         const snapshot: TabData = {
           workflow: {
@@ -539,6 +568,7 @@ export const useTabStore = create<TabState>()(
             past: deepClone(historyStore.past),
             future: deepClone(historyStore.future),
           },
+          ...(uiStore.viewport ? { viewport: deepClone(uiStore.viewport) } : {}),
         };
 
         set({
@@ -547,7 +577,7 @@ export const useTabStore = create<TabState>()(
       },
 
       /**
-       * Load a tab's state into workflowStore and historyStore
+       * Load a tab's state into workflowStore, historyStore, and uiStore (viewport)
        *
        * Also clears preview state since previews are tab-specific.
        *
@@ -578,6 +608,9 @@ export const useTabStore = create<TabState>()(
           past: deepClone(data.history.past),
           future: deepClone(data.history.future),
         });
+
+        // Load viewport state
+        useUIStore.getState().setViewport(data.viewport || null);
 
         // Sync tab name with workflow meta name
         const workflowName = data.workflow.workflowMeta.name;

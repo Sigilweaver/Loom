@@ -4,6 +4,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  type Connection,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -15,11 +16,13 @@ import { CanvasMenus } from "./CanvasMenus";
 import { CanvasMinimap } from "./CanvasMinimap";
 import { CanvasPositionMenu } from "./CanvasPositionMenu";
 import { CanvasSurface } from "./CanvasSurface";
+import { CanvasToolSelectionMenu } from "./CanvasToolSelectionMenu";
 import { useArrowKeyMovement } from "./hooks/useArrowKeyMovement";
 import { useBrowserDetection } from "./hooks/useBrowserDetection";
 import { useCanvasAlignment } from "./hooks/useCanvasAlignment";
 import { useCanvasClipboard } from "./hooks/useCanvasClipboard";
 import { useCanvasConnection } from "./hooks/useCanvasConnection";
+import { useCanvasConnectEnd } from "./hooks/useCanvasConnectEnd";
 import { useCanvasContextMenu } from "./hooks/useCanvasContextMenu";
 import { useCanvasDrag } from "./hooks/useCanvasDrag";
 import { useCanvasEdgeSync } from "./hooks/useCanvasEdgeSync";
@@ -36,6 +39,7 @@ import { useCanvasMouseTracking } from "./hooks/useCanvasMouseTracking";
 import { useCanvasNodes } from "./hooks/useCanvasNodes";
 import { useCanvasPaste } from "./hooks/useCanvasPaste";
 import { useCanvasSelection } from "./hooks/useCanvasSelection";
+import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useCanvasWheelHandler } from "./hooks/useCanvasWheelHandler";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
@@ -124,11 +128,26 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     edgeMenuEdge,
     onEdgeContextMenu,
     closeEdgeMenu,
+    toolSelectionOpen: contextMenuToolSelectionOpen,
+    toolSelectionCoords: contextMenuToolSelectionCoords,
+    closeToolSelectionMenu,
   } = useCanvasContextMenu({
     screenToFlowPosition,
     setNodes,
     setPasteAnchor,
   });
+
+  // Handler for tool selection from right-click menu
+  const handleToolSelectionFromContextMenu = useCallback((toolType: string) => {
+    // The paste anchor is set by the context menu handler
+    // We can get it from the clipboard hook's ref via the doPaste mechanism
+    // For now, we'll use the screenToFlowPosition at the menu coords
+    if (contextMenuToolSelectionCoords) {
+      const flowPos = screenToFlowPosition(contextMenuToolSelectionCoords);
+      handleAddTool(toolType, flowPos.x, flowPos.y);
+    }
+    closeToolSelectionMenu();
+  }, [contextMenuToolSelectionCoords, screenToFlowPosition, handleAddTool, closeToolSelectionMenu]);
 
   // === Minimap hook ===
   const {
@@ -156,12 +175,34 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   });
 
   // === Connection hook ===
-  const { onConnect, onEdgesDelete, onNodesDelete } = useCanvasConnection({
+  const { onConnect: baseOnConnect, onEdgesDelete, onNodesDelete } = useCanvasConnection({
     onAddWire: handleAddWire,
     onRemoveWire: handleRemoveWire,
     onRemoveTool: handleRemoveTool,
     onToolSelect: handleToolSelect,
   });
+
+  // === Connect end hook (tool selection menu on canvas drop) ===
+  const {
+    onConnectStart,
+    onConnectEnd,
+    onConnectionMade,
+    menuOpen: toolSelectionMenuOpen,
+    menuCoords: toolSelectionMenuCoords,
+    filterDirection: toolSelectionFilterDirection,
+    onToolSelect: handleToolSelectionFromMenu,
+    onMenuClose: handleToolSelectionMenuClose,
+  } = useCanvasConnectEnd({
+    tools,
+    onAddTool: handleAddTool,
+    onAddWire: handleAddWire,
+  });
+
+  // Wrap onConnect to notify when connection is made
+  const onConnect = useCallback((connection: Connection) => {
+    onConnectionMade();
+    baseOnConnect(connection);
+  }, [onConnectionMade, baseOnConnect]);
 
   // === Drag hook ===
   const { onNodeDragStart, onNodeDragStop } = useCanvasDrag({
@@ -229,6 +270,9 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   // === Wheel handler ===
   const handleWheel = useCanvasWheelHandler();
 
+  // === Viewport synchronization ===
+  const { onMove } = useCanvasViewport();
+
   // === Focus and pointer management ===
   const { keyScopeRef, onMouseDown } = useCanvasFocus({ isPointerDownRef });
 
@@ -270,6 +314,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
             onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
             onNodeClick={onNodeClick}
             onNodeContextMenu={onNodeContextMenu}
             onPaneClick={onPaneClick}
@@ -281,6 +327,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
             onNodeDragStop={onNodeDragStop}
             onWheel={handleWheel}
             onMouseMove={onMouseMove}
+            onMove={onMove}
             onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
           >
@@ -335,6 +382,19 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
           onRemoveWire={handleRemoveWire}
           onBeginTransaction={handleBeginTransaction}
           onCommitTransaction={handleCommitTransaction}
+        />
+        <CanvasToolSelectionMenu
+          open={toolSelectionMenuOpen}
+          coords={toolSelectionMenuCoords}
+          filterDirection={toolSelectionFilterDirection}
+          onSelectTool={handleToolSelectionFromMenu}
+          onClose={handleToolSelectionMenuClose}
+        />
+        <CanvasToolSelectionMenu
+          open={contextMenuToolSelectionOpen}
+          coords={contextMenuToolSelectionCoords}
+          onSelectTool={handleToolSelectionFromContextMenu}
+          onClose={closeToolSelectionMenu}
         />
       </CanvasDragAndDropLayer>
     </div>

@@ -1,4 +1,3 @@
-import { useClipboardStore } from "@state/clipboardStore";
 import type { Edge, Node, XYPosition } from "@xyflow/react";
 import { useCallback, useState } from "react";
 
@@ -39,6 +38,13 @@ export function useCanvasContextMenu({
     y: number;
   } | null>(null);
   const [edgeMenuEdge, setEdgeMenuEdge] = useState<Edge | null>(null);
+
+  // Tool selection menu state (for right-click on pane)
+  const [toolSelectionOpen, setToolSelectionOpen] = useState(false);
+  const [toolSelectionCoords, setToolSelectionCoords] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const openActionsMenuAt = useCallback(
     (coords: { x: number; y: number }) => {
@@ -82,11 +88,9 @@ export function useCanvasContextMenu({
         (e as MouseEvent).clientY ?? (e as React.MouseEvent).clientY;
       const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
       setPasteAnchor(flowPos.x, flowPos.y);
-      // Build a paste-only menu if clipboard exists
-      const hasClipboard = !!useClipboardStore.getState().clipboard;
-      if (!hasClipboard) return;
-      setActionsCoords({ x: clientX, y: clientY });
-      setActionsOpen(true);
+      // Show tool selection menu
+      setToolSelectionCoords({ x: clientX, y: clientY });
+      setToolSelectionOpen(true);
     },
     [screenToFlowPosition, setPasteAnchor]
   );
@@ -96,6 +100,11 @@ export function useCanvasContextMenu({
     setEdgeMenuEdge(edge);
     setEdgeMenuCoords({ x: e.clientX, y: e.clientY });
     setEdgeMenuOpen(true);
+  }, []);
+
+  const closeToolSelectionMenu = useCallback(() => {
+    setToolSelectionOpen(false);
+    setToolSelectionCoords(null);
   }, []);
 
   const closeEdgeMenu = useCallback(() => setEdgeMenuOpen(false), []);
@@ -114,5 +123,9 @@ export function useCanvasContextMenu({
     edgeMenuEdge,
     onEdgeContextMenu,
     closeEdgeMenu,
+    // Tool selection menu
+    toolSelectionOpen,
+    toolSelectionCoords,
+    closeToolSelectionMenu,
   } as const;
 }
