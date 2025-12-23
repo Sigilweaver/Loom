@@ -3,11 +3,11 @@ import { getToolDefinition } from '../data/tools';
 import { HelpLink } from './common/HelpLink';
 import { Settings } from 'lucide-react';
 
-interface ConfigurationHeaderProps {
+interface ToolHeaderProps {
   tool: Tool;
 }
 
-export default function ConfigurationHeader({ tool }: ConfigurationHeaderProps) {
+export default function ToolHeader({ tool }: ToolHeaderProps) {
   const toolDefinition = getToolDefinition(tool.type);
   
   // Category color logic

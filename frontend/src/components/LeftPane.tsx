@@ -30,22 +30,26 @@ import { IpcOutputConfiguration } from "./config/inout/IpcOutputConfiguration";
 import { JsonOutputConfiguration } from "./config/inout/JsonOutputConfiguration";
 import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfiguration";
 // Shell components
-import ConfigurationHeader from "./ConfigurationHeader";
+import ToolHeader from "./ToolHeader";
 import ResizablePanel from "./shell/ResizablePanel";
+import ToolPalette from "./shell/ToolPalette";
 // Workflow components
 import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
-import { Settings } from "lucide-react";
+import { Settings, LayoutGrid } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
+import { useUIStore } from "@state/uiStore";
 
-const logger = createLogger('ConfigurationPanel');
+const logger = createLogger('LeftPane');
 
-export default function ConfigurationPanel() {
+export default function LeftPane() {
   // Access stores directly
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   const updateWorkflowMeta = useWorkflowStore((s) => s.updateWorkflowMeta);
+  const leftPaneTab = useUIStore((s) => s.leftPaneTab);
+  const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const updateToolConfiguration = useWorkflowStore(
     (s) => s.updateToolConfiguration
   );
@@ -89,7 +93,14 @@ export default function ConfigurationPanel() {
 
   const toolCount = tools.length;
   const wireCount = wires.length;
-  // Show workflow configuration if no tool is selected
+  
+  // Left pane tabs configuration
+  const leftPaneTabs = [
+    { id: "tools" as const, name: "Tools", icon: LayoutGrid },
+    { id: "workflow" as const, name: "Workflow", icon: Settings },
+  ];
+
+  // Show tool palette / workflow configuration if no tool is selected
   if (!selectedTool) {
     return (
       <ResizablePanel
@@ -98,35 +109,68 @@ export default function ConfigurationPanel() {
         maxWidth={800}
         className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
       >
-        {/* Workflow Configuration Header */}
-        <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
-          <div className="flex items-center space-x-3">
-            <Settings className="w-6 h-6 text-theme-text-primary" />
-            <div>
-              <h2 className="text-lg font-semibold text-theme-text-primary">
-                Workflow Configuration
-              </h2>
-              <p className="text-sm text-theme-text-tertiary">
-                General workflow settings
-              </p>
-            </div>
+        {/* Modern Tab Selector */}
+        <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
+          <div
+            className="flex bg-theme-surface-panel rounded-lg p-1 gap-1"
+            role="tablist"
+            aria-label="Left pane tabs"
+          >
+            {leftPaneTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setLeftPaneTab(tab.id)}
+                role="tab"
+                aria-selected={leftPaneTab === tab.id}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
+                  leftPaneTab === tab.id
+                    ? "bg-theme-surface-elevated text-theme-text-primary shadow-sm"
+                    : "text-theme-text-tertiary hover:text-theme-text-secondary hover:bg-theme-surface-hover"
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.name}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Workflow Configuration Content */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          <WorkflowConfiguration
-            workflowMeta={workflowMeta}
-            toolCount={toolCount}
-            wireCount={wireCount}
-            onWorkflowMetaChange={handleWorkflowMetaChange}
-          />
-        </div>
+        {/* Tab Content */}
+        {leftPaneTab === "tools" ? (
+          <ToolPalette />
+        ) : (
+          <>
+            {/* Workflow Configuration Header */}
+            <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
+              <div className="flex items-center space-x-3">
+                <Settings className="w-6 h-6 text-theme-text-primary" />
+                <div>
+                  <h2 className="text-lg font-semibold text-theme-text-primary">
+                    Workflow Configuration
+                  </h2>
+                  <p className="text-sm text-theme-text-tertiary">
+                    General workflow settings
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow Configuration Content */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <WorkflowConfiguration
+                workflowMeta={workflowMeta}
+                toolCount={toolCount}
+                wireCount={wireCount}
+                onWorkflowMetaChange={handleWorkflowMetaChange}
+              />
+            </div>
+          </>
+        )}
       </ResizablePanel>
     );
   }
 
-  // Show basic placeholder for all tools except workflow configuration
+  // Show tool configuration when a tool is selected
   return (
     <ResizablePanel
       defaultWidth={450}
@@ -134,7 +178,7 @@ export default function ConfigurationPanel() {
       maxWidth={800}
       className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
     >
-      <ConfigurationHeader tool={selectedTool} />
+      <ToolHeader tool={selectedTool} />
 
       {/* Input tool configuration */}
       {selectedTool.type === "Input" ? (

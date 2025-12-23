@@ -323,7 +323,7 @@ function createWindow(): void {
     shell.openExternal(url);
   });
 
-  // Create menu
+  // Create menu - streamlined for essential functions
   const template: any = [
     {
       label: "File",
@@ -384,8 +384,12 @@ function createWindow(): void {
     {
       label: "View",
       submenu: [
-        { role: "reload" },
-        { role: "forceReload" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+        { type: "separator" },
         { 
           label: "Toggle Developer Tools",
           accelerator: "F12",
@@ -397,48 +401,18 @@ function createWindow(): void {
             }
           },
         },
-        { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
-        { type: "separator" },
-        { role: "togglefullscreen" },
+        { role: "reload" },
+        { role: "forceReload" },
       ],
     },
     {
-      label: "Workflow",
+      label: "Run",
       submenu: [
         {
           label: "Run Workflow",
           accelerator: "F5",
           click: () => {
             mainWindow.webContents.send("menu-action", "run-workflow");
-          },
-        },
-        {
-          label: "Validate Workflow",
-          accelerator: "CmdOrCtrl+T",
-          click: () => {
-            mainWindow.webContents.send("menu-action", "validate-workflow");
-          },
-        },
-      ],
-    },
-    {
-      label: "Developer",
-      submenu: [
-        {
-          label: "Show Workflow Viewer",
-          accelerator: "CmdOrCtrl+Alt+X",
-          click: () => {
-            mainWindow.webContents.send("menu-action", "show-workflow-viewer");
-          },
-        },
-        {
-          label: "Hide Workflow Viewer",
-          accelerator: "CmdOrCtrl+Alt+H",
-          click: () => {
-            mainWindow.webContents.send("menu-action", "hide-workflow-viewer");
           },
         },
       ],
