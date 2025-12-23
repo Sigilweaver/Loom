@@ -92,6 +92,46 @@ export function useCanvasHandlers() {
     ) => {
       logger.debug("Adding wire:", from, "->", to);
       const wire: Wire = { from, to };
+
+      // Find target tool and socket to check if it's a multiple socket
+      const targetTool = tools.find((t) => t.id === to.tool);
+      const targetSocket = targetTool?.sockets.find((s) => s.id === to.socket);
+
+      // Check if there's an existing wire to this input socket
+      const existingWire = wires.find(
+        (w) => w.to.tool === to.tool && w.to.socket === to.socket
+      );
+
+      // If socket doesn't support multiple connections and there's an existing wire,
+      // remove it first (separate undo step), then add the new wire (second undo step)
+      if (existingWire && targetSocket && !targetSocket.multiple) {
+        // Check this isn't the exact same wire (duplicate)
+        const isDuplicate =
+          existingWire.from.tool === from.tool &&
+          existingWire.from.socket === from.socket;
+        
+        if (!isDuplicate) {
+          logger.debug("Replacing existing wire:", existingWire, "with:", wire);
+          
+          // Step 1: Remove existing wire (first undo step)
+          pushState(tools, wires, workflowMeta);
+          removeWire(existingWire.from, existingWire.to);
+          
+          // Step 2: Add new wire (second undo step)
+          // Get fresh state after removal
+          const currentWires = useWorkflowStore.getState().wires;
+          const currentTools = useWorkflowStore.getState().tools;
+          pushState(currentTools, currentWires, workflowMeta);
+          addWire(wire);
+
+          if (activeTabId) {
+            markTabDirty(activeTabId);
+          }
+          return;
+        }
+      }
+
+      // Normal case: just add the wire
       pushState(tools, wires, workflowMeta);
       addWire(wire);
 
@@ -99,7 +139,7 @@ export function useCanvasHandlers() {
         markTabDirty(activeTabId);
       }
     },
-    [addWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
+    [addWire, removeWire, pushState, tools, wires, workflowMeta, activeTabId, markTabDirty]
   );
 
   const handleRemoveWire = useCallback(
