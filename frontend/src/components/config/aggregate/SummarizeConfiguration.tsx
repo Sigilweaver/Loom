@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import {
   ToolConfig,
   Tool,
@@ -10,6 +10,13 @@ import { ColumnSchema } from "@api/backend";
 import clsx from "clsx";
 import { isNumericPolarsType } from "@data/polarsTypes";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@components/ui/DropdownMenu";
+import { ChevronDown } from "lucide-react";
 
 /**
  * Aggregation action definitions
@@ -425,21 +432,6 @@ export function SummarizeConfiguration({
     [columnMap]
   );
 
-  // State for dropdown
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   if (!hasInput) {
     return (
       <div className="flex flex-col h-full">
@@ -563,46 +555,33 @@ export function SummarizeConfiguration({
         
         {/* Add Dropdown */}
         {validActions.length > 0 && selectedColumns.size > 0 && (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={clsx(
-                "px-3 py-1 text-xs font-medium rounded border flex items-center gap-1",
-                "bg-theme-surface-panel text-theme-text-primary border-theme-border-primary",
-                "hover:bg-theme-surface-hover hover:border-theme-text-secondary",
-                "focus:outline-none focus:ring-1 focus:ring-theme-text-secondary"
-              )}
-            >
-              Add
-              <svg 
-                className={clsx("w-3 h-3 transition-transform", isDropdownOpen && "rotate-180")} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={clsx(
+                  "px-3 py-1 text-xs font-medium rounded border flex items-center gap-1",
+                  "bg-theme-surface-panel text-theme-text-primary border-theme-border-primary",
+                  "hover:bg-theme-surface-hover hover:border-theme-text-secondary",
+                  "focus:outline-none focus:ring-1 focus:ring-theme-text-secondary"
+                )}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {isDropdownOpen && (
-              <div className="absolute left-0 z-50 w-40 py-1 mt-1 border rounded shadow-lg bg-theme-surface-panel border-theme-border-primary">
-                {validActions.map((action) => (
-                  <button
-                    key={action.value}
-                    type="button"
-                    onClick={() => {
-                      addColumnsWithAction(action.value);
-                      setIsDropdownOpen(false);
-                    }}
-                    className="w-full px-3 py-1.5 text-left text-xs text-theme-text-primary hover:bg-theme-surface-hover cursor-pointer"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                Add
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              {validActions.map((action) => (
+                <DropdownMenuItem
+                  key={action.value}
+                  onSelect={() => addColumnsWithAction(action.value)}
+                  className="text-xs"
+                >
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 

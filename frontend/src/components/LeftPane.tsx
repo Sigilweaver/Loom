@@ -38,6 +38,7 @@ import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
 import { Settings, LayoutGrid } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 import { useUIStore } from "@state/uiStore";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 
 const logger = createLogger('LeftPane');
 
@@ -93,12 +94,6 @@ export default function LeftPane() {
 
   const toolCount = tools.length;
   const wireCount = wires.length;
-  
-  // Left pane tabs configuration
-  const leftPaneTabs = [
-    { id: "tools" as const, name: "Tools", icon: LayoutGrid },
-    { id: "workflow" as const, name: "Workflow", icon: Settings },
-  ];
 
   // Show tool palette / workflow configuration if no tool is selected
   if (!selectedTool) {
@@ -109,37 +104,36 @@ export default function LeftPane() {
         maxWidth={800}
         className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
       >
-        {/* Modern Tab Selector */}
-        <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
-          <div
-            className="flex bg-theme-surface-panel rounded-lg p-1 gap-1"
-            role="tablist"
-            aria-label="Left pane tabs"
-          >
-            {leftPaneTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setLeftPaneTab(tab.id)}
-                role="tab"
-                aria-selected={leftPaneTab === tab.id}
-                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-                  leftPaneTab === tab.id
-                    ? "bg-theme-surface-elevated text-theme-text-primary shadow-sm"
-                    : "text-theme-text-tertiary hover:text-theme-text-secondary hover:bg-theme-surface-hover"
-                }`}
+        <Tabs
+          value={leftPaneTab}
+          onValueChange={(value) => setLeftPaneTab(value as "tools" | "workflow")}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          {/* Modern Tab Selector */}
+          <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
+            <TabsList className="w-full bg-theme-surface-panel rounded-lg p-1 gap-1">
+              <TabsTrigger
+                value="tools"
+                className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2"
               >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.name}</span>
-              </button>
-            ))}
+                <LayoutGrid className="w-4 h-4" />
+                <span>Tools</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="workflow"
+                className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Workflow</span>
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </div>
 
-        {/* Tab Content */}
-        {leftPaneTab === "tools" ? (
-          <ToolPalette />
-        ) : (
-          <>
+          {/* Tab Content */}
+          <TabsContent value="tools" className="flex-1 min-h-0 m-0">
+            <ToolPalette />
+          </TabsContent>
+          <TabsContent value="workflow" className="flex-1 min-h-0 m-0 flex flex-col">
             {/* Workflow Configuration Header */}
             <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
               <div className="flex items-center space-x-3">
@@ -164,8 +158,8 @@ export default function LeftPane() {
                 onWorkflowMetaChange={handleWorkflowMetaChange}
               />
             </div>
-          </>
-        )}
+          </TabsContent>
+        </Tabs>
       </ResizablePanel>
     );
   }

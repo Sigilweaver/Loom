@@ -2,6 +2,9 @@ import { EmissionMap } from "@domain/workflow/entities/workflow";
 import React, { ReactNode, useId } from "react";
 import { ConfigField } from "./ConfigField";
 import { calculateShouldEmit, usePrimitiveEmission } from "./hooks";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
+import clsx from "clsx";
 
 export interface ConfigBooleanProps {
   value: boolean | string | undefined; // Allow undefined for "not set" state
@@ -88,9 +91,11 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
   const inputId = useId();
   const descriptionId = description ? `${inputId}-description` : undefined;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    commit(newValue);
+  const handleCheckedChange = (checked: boolean | "indeterminate") => {
+    // Radix can return "indeterminate", but we only handle boolean
+    if (typeof checked === "boolean") {
+      commit(checked);
+    }
   };
 
   // Get the effective boolean value for display (use default if undefined)
@@ -111,15 +116,26 @@ export const ConfigBoolean: React.FC<ConfigBooleanProps> = ({
       required={required}
       contentClassName="flex items-center gap-3"
     >
-      <input
-        type="checkbox"
+      <CheckboxPrimitive.Root
         id={inputId}
         checked={effectiveValue}
-        onChange={handleChange}
+        onCheckedChange={handleCheckedChange}
         disabled={disabled}
         aria-describedby={descriptionId}
-        className="h-4 w-4 text-theme-interactive-accent rounded border-theme-border-primary focus:ring-1 focus:ring-theme-border-focus focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-      />
+        className={clsx(
+          "h-4 w-4 shrink-0 rounded border",
+          "border-theme-border-primary bg-theme-bg-input",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-border-focus",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          "data-[state=checked]:bg-theme-interactive-accent data-[state=checked]:border-theme-interactive-accent"
+        )}
+      >
+        <CheckboxPrimitive.Indicator
+          className="flex items-center justify-center text-theme-text-on-accent"
+        >
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </CheckboxPrimitive.Indicator>
+      </CheckboxPrimitive.Root>
     </ConfigField>
   );
 };
