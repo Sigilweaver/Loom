@@ -257,7 +257,7 @@ vi.mock('lucide-react', () => {
     'Calculator', 'Layers', 'Link', 'Sigma', 'Star', 'ArrowRightLeft', 
     'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle',
     'Fingerprint', 'CornerRightDown', 'CornerLeftUp', 'ChevronDown',
-    'ChevronRight', 'LayoutGrid'
+    'ChevronRight', 'LayoutGrid', 'X', 'Check', 'Minus', 'Circle'
   ];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

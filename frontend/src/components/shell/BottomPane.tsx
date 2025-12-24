@@ -5,6 +5,8 @@ import LogViewer from "@components/viewer/LogViewer";
 import RuntimeLogViewer from "@components/viewer/RuntimeLogViewer";
 import ProfileViewer from "@components/viewer/ProfileViewer";
 import SocketTabs from "@components/viewer/SocketTabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
+import { X } from "lucide-react";
 
 const BottomPane = () => {
   const {
@@ -63,77 +65,62 @@ const BottomPane = () => {
         }`}
       />
 
-      {/* Header with Tabs */}
-      <div className="flex items-center justify-between px-3 py-2 border-b bg-theme-surface-elevated border-theme-border-primary">
-        <div className="flex gap-2">
+      {/* Radix Tabs Container */}
+      <Tabs
+        value={activeBottomTab}
+        onValueChange={(value) => setActiveBottomTab(value as typeof activeBottomTab)}
+        className="flex flex-col flex-1 overflow-hidden"
+      >
+        {/* Header with Tabs */}
+        <div className="flex items-center justify-between px-3 py-2 border-b bg-theme-surface-elevated border-theme-border-primary">
+          <TabsList className="border-b-0 gap-1">
+            <TabsTrigger value="preview" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
+              Data Preview
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
+              Data Profile
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
+              Workflow Logs
+            </TabsTrigger>
+            <TabsTrigger value="network" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
+              Network Logs
+            </TabsTrigger>
+          </TabsList>
+
           <button
-            onClick={() => setActiveBottomTab("preview")}
-            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-              activeBottomTab === "preview"
-                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
-                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
-            }`}
+            onClick={toggleBottomPane}
+            className="p-1 rounded transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover"
+            title="Close panel"
           >
-            Data Preview
-          </button>
-          <button
-            onClick={() => setActiveBottomTab("profile")}
-            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-              activeBottomTab === "profile"
-                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
-                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
-            }`}
-          >
-            Data Profile
-          </button>
-          <button
-            onClick={() => setActiveBottomTab("logs")}
-            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-              activeBottomTab === "logs"
-                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
-                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
-            }`}
-          >
-            Workflow Logs
-          </button>
-          <button
-            onClick={() => setActiveBottomTab("network")}
-            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-              activeBottomTab === "network"
-                ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
-                : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
-            }`}
-          >
-            Network Logs
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <button
-          onClick={toggleBottomPane}
-          className="px-2 py-1 text-lg transition-colors text-theme-text-secondary hover:text-theme-text-primary"
-          title="Close panel"
-        >
-          ×
-        </button>
-      </div>
+        {/* Content Area */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Socket Tabs Sidebar - Visible in Data Preview and Profile modes */}
+          {(activeBottomTab === "preview" || activeBottomTab === "profile") && (
+            <div className="flex-shrink-0 w-30 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
+              <SocketTabs />
+            </div>
+          )}
 
-      {/* Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Socket Tabs Sidebar - Visible in Data Preview and Profile modes */}
-        {(activeBottomTab === "preview" || activeBottomTab === "profile") && (
-          <div className="flex-shrink-0 w-30 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
-            <SocketTabs />
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="flex-1 p-3 overflow-auto">
-          {activeBottomTab === "preview" && <DataTable />}
-          {activeBottomTab === "logs" && <LogViewer />}
-          {activeBottomTab === "network" && <RuntimeLogViewer />}
-          {activeBottomTab === "profile" && <ProfileViewer />}
+          {/* Main Content */}
+          <TabsContent value="preview" className="flex-1 p-3 overflow-auto m-0">
+            <DataTable />
+          </TabsContent>
+          <TabsContent value="profile" className="flex-1 p-3 overflow-auto m-0">
+            <ProfileViewer />
+          </TabsContent>
+          <TabsContent value="logs" className="flex-1 p-3 overflow-auto m-0">
+            <LogViewer />
+          </TabsContent>
+          <TabsContent value="network" className="flex-1 p-3 overflow-auto m-0">
+            <RuntimeLogViewer />
+          </TabsContent>
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 };

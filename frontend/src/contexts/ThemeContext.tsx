@@ -48,6 +48,18 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-border-focus", colors.borders.focus);
   root.style.setProperty("--color-border-divider", colors.borders.divider);
 
+  // Global backgrounds for UI primitives
+  root.style.setProperty("--color-bg-primary", colors.surfaces.panel);
+  root.style.setProperty("--color-bg-secondary", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-tertiary", colors.surfaces.page);
+  root.style.setProperty("--color-bg-hover", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-input", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-tooltip", colors.surfaces.elevated);
+  root.style.setProperty("--color-modal-overlay", colors.modals.overlay);
+  root.style.setProperty("--color-text-on-accent", colors.text.inverse);
+  root.style.setProperty("--color-interactive-accent", colors.borders.focus);
+  root.style.setProperty("--color-interactive-accent-hover", colors.borders.focus);
+
   // Header component
   root.style.setProperty("--color-header-bg", colors.header.background);
   root.style.setProperty("--color-header-logo-icon", colors.header.logo.icon);
