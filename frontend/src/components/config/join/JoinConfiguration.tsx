@@ -183,8 +183,8 @@ export function JoinConfiguration({
 
         {/* Connection Status */}
         {(!hasLeftInput || !hasRightInput) && (
-          <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
-            <p className="text-amber-500">
+          <div className="p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+            <p className="text-theme-status-warning-text">
               {!hasLeftInput && !hasRightInput
                 ? "Connect both inputs to configure join keys."
                 : !hasLeftInput
@@ -268,7 +268,7 @@ export function JoinConfiguration({
                     "text-theme-text-primary",
                     "focus:outline-none focus:ring-1 focus:ring-theme-accent",
                     !hasRightInput && "opacity-50 cursor-not-allowed",
-                    isRightSelectionIncompatible && "border-red-500"
+                    isRightSelectionIncompatible && "border-theme-status-error-border"
                   )}
                 >
                   <option value="">
@@ -293,7 +293,7 @@ export function JoinConfiguration({
                 {leftKeys[index] || rightKeys[index] ? (
                   <button
                     onClick={() => removeKeyPair(index)}
-                    className="flex items-center justify-center w-6 h-6 text-sm text-red-500 rounded hover:bg-red-500/10"
+                    className="flex items-center justify-center w-6 h-6 text-sm text-theme-status-error-text rounded hover:bg-theme-status-error-bg"
                     title="Remove key pair"
                   >
                     x
@@ -338,8 +338,8 @@ export function JoinConfiguration({
 
         {/* Key Validation Warning */}
         {leftKeys.length !== rightKeys.length && leftKeys.length > 0 && (
-          <div className="p-3 text-sm border rounded bg-red-500/10 border-red-500/30">
-            <p className="text-red-500">
+          <div className="p-3 text-sm border rounded bg-theme-status-error-bg border-theme-status-error-border">
+            <p className="text-theme-status-error-text">
               Left and right key columns must have the same count.
             </p>
           </div>
@@ -347,8 +347,8 @@ export function JoinConfiguration({
 
         {/* Empty Keys Warning */}
         {leftKeys.some((k) => !k) || rightKeys.some((k) => !k) ? (
-          <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
-            <p className="text-amber-500">
+          <div className="p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+            <p className="text-theme-status-warning-text">
               Select columns for all key pairs.
             </p>
           </div>
@@ -356,15 +356,15 @@ export function JoinConfiguration({
 
         {/* Cross Join Info Banner */}
         {isCrossJoin && (
-          <div className="p-3 text-sm border rounded bg-blue-500/10 border-blue-500/30">
-            <p className="font-medium text-blue-500 mb-1">
+          <div className="p-3 text-sm border rounded bg-theme-status-info-bg border-theme-status-info-border">
+            <p className="font-medium text-theme-status-info-text mb-1">
               Cross Join Mode
             </p>
-            <p className="text-blue-400 text-xs">
+            <p className="text-theme-status-info-text text-xs">
               No join keys selected. This will produce a Cartesian product of both datasets 
               (every row from left combined with every row from right).
             </p>
-            <p className="text-blue-400 text-xs mt-1">
+            <p className="text-theme-status-info-text text-xs mt-1">
               Select matching columns above to perform a standard join instead.
             </p>
           </div>

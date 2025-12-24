@@ -64,28 +64,28 @@ function QualityBar({
     <div className="flex w-full h-2 overflow-hidden rounded bg-theme-surface-panel">
       {okPercent > 0 && (
         <div 
-          className="h-full bg-green-500" 
+          className="h-full bg-theme-quality-ok" 
           style={{ width: `${okPercent}%` }}
           title={`OK: ${okCount.toLocaleString()} (${okPercent.toFixed(1)}%)`}
         />
       )}
       {blankPercent > 0 && (
         <div 
-          className="h-full bg-yellow-500" 
+          className="h-full bg-theme-quality-warning" 
           style={{ width: `${blankPercent}%` }}
           title={`Blank: ${blankCount.toLocaleString()} (${blankPercent.toFixed(1)}%)`}
         />
       )}
       {issuePercent > 0 && (
         <div 
-          className="h-full bg-red-500" 
+          className="h-full bg-theme-quality-issue" 
           style={{ width: `${issuePercent}%` }}
           title={`Issues: ${issueCount.toLocaleString()} (${issuePercent.toFixed(1)}%)`}
         />
       )}
       {nullPercent > 0 && (
         <div 
-          className="h-full bg-gray-400" 
+          className="h-full bg-theme-quality-null" 
           style={{ width: `${nullPercent}%` }}
           title={`Null: ${nullCount.toLocaleString()} (${nullPercent.toFixed(1)}%)`}
         />
@@ -193,29 +193,29 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
           <StatRow label="Total" value={count.toLocaleString()} />
           <StatRow label="Unique" value={(profile.unique_count ?? 0).toLocaleString()} />
           <div className="flex items-center gap-1.5 text-[10px]">
-            <div className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full" />
+            <div className="flex-shrink-0 w-2 h-2 bg-theme-quality-ok rounded-full" />
             <span className="text-theme-text-tertiary">OK</span>
             <span className="ml-auto font-mono text-theme-text-primary">{okCount.toLocaleString()}</span>
           </div>
           {issueCount > 0 && (
             <div className="flex items-center gap-1.5 text-[10px]">
-              <div className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full" />
+              <div className="flex-shrink-0 w-2 h-2 bg-theme-quality-issue rounded-full" />
               <span className="text-theme-text-tertiary">Issues</span>
-              <span className="ml-auto font-mono text-red-400">{issueCount.toLocaleString()}</span>
+              <span className="ml-auto font-mono text-theme-quality-issue">{issueCount.toLocaleString()}</span>
             </div>
           )}
           {emptyCount > 0 && (
             <div className="flex items-center gap-1.5 text-[10px]">
-              <div className="flex-shrink-0 w-2 h-2 bg-yellow-500 rounded-full" />
+              <div className="flex-shrink-0 w-2 h-2 bg-theme-quality-warning rounded-full" />
               <span className="text-theme-text-tertiary">Blank</span>
-              <span className="ml-auto font-mono text-yellow-500">{emptyCount.toLocaleString()}</span>
+              <span className="ml-auto font-mono text-theme-quality-warning">{emptyCount.toLocaleString()}</span>
             </div>
           )}
           {nullCount > 0 && (
             <div className="flex items-center gap-1.5 text-[10px]">
-              <div className="flex-shrink-0 w-2 h-2 bg-gray-400 rounded-full" />
+              <div className="flex-shrink-0 w-2 h-2 bg-theme-quality-null rounded-full" />
               <span className="text-theme-text-tertiary">Null</span>
-              <span className="ml-auto font-mono text-gray-400">{nullCount.toLocaleString()}</span>
+              <span className="ml-auto font-mono text-theme-quality-null">{nullCount.toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -278,18 +278,18 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
         {/* String quality issue details */}
         {isString && issueCount > 0 && (
           <div className="space-y-1">
-            <div className="text-[10px] font-medium text-red-400 tracking-wide">Issue Details</div>
+            <div className="text-[10px] font-medium text-theme-quality-issue tracking-wide">Issue Details</div>
             {(profile.whitespace_leading ?? 0) > 0 && (
-              <StatRow label="Leading WS" value={profile.whitespace_leading ?? 0} className="text-red-400" />
+              <StatRow label="Leading WS" value={profile.whitespace_leading ?? 0} className="text-theme-quality-issue" />
             )}
             {(profile.whitespace_trailing ?? 0) > 0 && (
-              <StatRow label="Trailing WS" value={profile.whitespace_trailing ?? 0} className="text-red-400" />
+              <StatRow label="Trailing WS" value={profile.whitespace_trailing ?? 0} className="text-theme-quality-issue" />
             )}
             {(profile.contains_linebreaks ?? 0) > 0 && (
-              <StatRow label="Linebreaks" value={profile.contains_linebreaks ?? 0} className="text-red-400" />
+              <StatRow label="Linebreaks" value={profile.contains_linebreaks ?? 0} className="text-theme-quality-issue" />
             )}
             {(profile.contains_non_ascii ?? 0) > 0 && (
-              <StatRow label="Non-ASCII" value={profile.contains_non_ascii ?? 0} className="text-red-400" />
+              <StatRow label="Non-ASCII" value={profile.contains_non_ascii ?? 0} className="text-theme-quality-issue" />
             )}
           </div>
         )}
@@ -403,19 +403,19 @@ const ProfileViewer = () => {
         {/* Quality legend */}
         <div className="flex items-center gap-3 text-xs text-theme-text-tertiary">
           <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded bg-green-500" />
+            <div className="w-2.5 h-2.5 rounded bg-theme-quality-ok" />
             <span>OK</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
+            <div className="w-2.5 h-2.5 rounded bg-theme-quality-warning" />
             <span>Blank</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded bg-red-400" />
+            <div className="w-2.5 h-2.5 rounded bg-theme-quality-issue" />
             <span>Issues</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded bg-gray-400" />
+            <div className="w-2.5 h-2.5 rounded bg-theme-quality-null" />
             <span>Null</span>
           </div>
         </div>

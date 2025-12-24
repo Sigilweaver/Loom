@@ -183,7 +183,7 @@ export function FilterConfiguration({
           </h4>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono bg-theme-surface-panel px-2 py-0.5 rounded text-green-500">
+              <span className="font-mono bg-theme-surface-panel px-2 py-0.5 rounded text-theme-log-success">
                 T
               </span>
               <span className="text-theme-text-secondary">
@@ -191,7 +191,7 @@ export function FilterConfiguration({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-mono bg-theme-surface-panel px-2 py-0.5 rounded text-red-500">
+              <span className="font-mono bg-theme-surface-panel px-2 py-0.5 rounded text-theme-status-error-text">
                 F
               </span>
               <span className="text-theme-text-secondary">

@@ -644,7 +644,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
                         text-theme-text-primary hover:bg-theme-panel-section-bg"
                     >
                       <span>Bypass Cache</span>
-                      <span className={`w-8 h-4 rounded-full relative transition-colors ${bypassCache ? 'bg-blue-500' : 'bg-gray-400'}`}>
+                      <span className={`w-8 h-4 rounded-full relative transition-colors ${bypassCache ? 'bg-theme-toggle-on' : 'bg-theme-toggle-off'}`}>
                         <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${bypassCache ? 'translate-x-4' : 'translate-x-0.5'}`} />
                       </span>
                     </button>

@@ -157,10 +157,10 @@ export function SampleConfiguration({
 
         {/* Blocking Warning */}
         {isBlocking && (
-          <div className="flex items-start gap-2 p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
-            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2 p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+            <AlertTriangle className="w-4 h-4 text-theme-status-warning-text mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-medium text-amber-200">Performance Note</p>
+              <p className="font-medium text-theme-status-warning-text">Performance Note</p>
               <p className="text-theme-text-secondary">
                 This mode requires scanning all data before producing output.
                 Results will be cached to avoid re-computation.

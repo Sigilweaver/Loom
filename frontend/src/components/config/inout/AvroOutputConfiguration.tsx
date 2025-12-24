@@ -70,7 +70,7 @@ export const AvroOutputConfiguration: React.FC<
           <div className="text-xs text-theme-text-secondary">
             {AVRO_OUTPUT_INFO.description}
           </div>
-          <div className="px-2 py-1 text-xs rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <div className="px-2 py-1 text-xs rounded bg-theme-status-warning-bg text-theme-status-warning-text">
             {AVRO_OUTPUT_INFO.note}
           </div>
         </div>

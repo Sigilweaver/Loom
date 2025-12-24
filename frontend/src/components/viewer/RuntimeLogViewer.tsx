@@ -12,11 +12,11 @@ import { useState } from "react";
  * Color classes for each log type
  */
 const typeColors: Record<RuntimeLogType, string> = {
-  request: "text-blue-400",
-  response: "text-green-400",
-  error: "text-red-400",
-  "cache-hit": "text-purple-400",
-  "cache-miss": "text-yellow-400",
+  request: "text-theme-log-request",
+  response: "text-theme-log-response",
+  error: "text-theme-log-error",
+  "cache-hit": "text-theme-log-cache-hit",
+  "cache-miss": "text-theme-log-cache-miss",
 };
 
 /**
@@ -149,7 +149,7 @@ const RuntimeLogViewer = () => {
                 <span
                   className={`w-10 shrink-0 ${
                     log.status && log.status >= 400
-                      ? "text-red-400"
+                      ? "text-theme-log-error"
                       : "text-theme-text-muted"
                   }`}
                 >

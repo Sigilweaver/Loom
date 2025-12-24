@@ -483,6 +483,45 @@ export default {
           "socket-input": "var(--color-socket-input)",
           "socket-output": "var(--color-socket-output)",
           "socket-border": "var(--color-socket-border)",
+
+          // Semantic status colors (for inline alerts, badges, indicators)
+          "status-success-bg": "var(--color-status-success-bg)",
+          "status-success-border": "var(--color-status-success-border)",
+          "status-success-text": "var(--color-status-success-text)",
+          "status-warning-bg": "var(--color-status-warning-bg)",
+          "status-warning-border": "var(--color-status-warning-border)",
+          "status-warning-text": "var(--color-status-warning-text)",
+          "status-error-bg": "var(--color-status-error-bg)",
+          "status-error-border": "var(--color-status-error-border)",
+          "status-error-text": "var(--color-status-error-text)",
+          "status-info-bg": "var(--color-status-info-bg)",
+          "status-info-border": "var(--color-status-info-border)",
+          "status-info-text": "var(--color-status-info-text)",
+
+          // Log viewer colors
+          "log-error": "var(--color-log-error)",
+          "log-warning": "var(--color-log-warning)",
+          "log-success": "var(--color-log-success)",
+          "log-info": "var(--color-log-info)",
+          "log-request": "var(--color-log-request)",
+          "log-response": "var(--color-log-response)",
+          "log-cache-hit": "var(--color-log-cache-hit)",
+          "log-cache-miss": "var(--color-log-cache-miss)",
+
+          // Quality indicator colors (for data profiling)
+          "quality-ok": "var(--color-quality-ok)",
+          "quality-warning": "var(--color-quality-warning)",
+          "quality-issue": "var(--color-quality-issue)",
+          "quality-null": "var(--color-quality-null)",
+
+          // Toggle and interactive colors
+          "toggle-on": "var(--color-toggle-on)",
+          "toggle-off": "var(--color-toggle-off)",
+          "favorites": "var(--color-favorites)",
+
+          // Badge colors for mode indicators
+          "badge-read": "var(--color-badge-read)",
+          "badge-write": "var(--color-badge-write)",
         },
       },
     },

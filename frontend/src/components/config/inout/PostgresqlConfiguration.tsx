@@ -196,8 +196,8 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
                   </div>
                   <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                     selectedConnection.owner === 'server' 
-                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                      : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                      ? 'bg-theme-status-info-bg text-theme-status-info-text border border-theme-status-info-border'
+                      : 'bg-theme-badge-write/10 text-theme-badge-write border border-theme-badge-write/20'
                   }`}>
                     {selectedConnection.owner === 'server' ? 'Server-Managed' : 'Local'}
                   </span>

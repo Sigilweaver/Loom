@@ -26,7 +26,7 @@ const CATEGORIES: { id: ToolCategory; name: string; icon: React.ElementType }[] 
 
 const getCategoryColor = (category: string) => {
   switch (category) {
-    case "favorites": return "#facc15"; // Yellow for favorites
+    case "favorites": return "var(--color-favorites)";
     case "inout": return "var(--color-tool-inout)";
     case "preparation": return "var(--color-tool-preparation)";
     case "join": return "var(--color-tool-join)";
@@ -107,8 +107,8 @@ export default function ToolPalette() {
                             onClick={(e) => handleToggleFavorite(e, tool.type)}
                             className={`absolute -top-1 -right-1 z-10 p-0.5 rounded-full transition-all ${
                               isFavorite 
-                                ? 'text-yellow-400 opacity-100' 
-                                : 'text-theme-text-tertiary opacity-0 group-hover:opacity-100 hover:text-yellow-400'
+                                ? 'text-theme-favorites opacity-100' 
+                                : 'text-theme-text-tertiary opacity-0 group-hover:opacity-100 hover:text-theme-favorites'
                             }`}
                             title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                             aria-label={isFavorite ? `Remove ${tool.name} from favorites` : `Add ${tool.name} to favorites`}

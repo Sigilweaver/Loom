@@ -228,7 +228,7 @@ const ActionRow = memo(function ActionRow({
       <button
         type="button"
         onClick={handleRemove}
-        className="flex justify-center p-1 text-xs text-theme-text-tertiary hover:text-red-400"
+        className="flex justify-center p-1 text-xs text-theme-text-tertiary hover:text-theme-status-error-text"
         title="Remove"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

@@ -208,7 +208,7 @@ export function UnpivotConfiguration({
             </div>
           </div>
           <p className="text-xs text-theme-text-tertiary">
-            Mark columns to <span className="text-blue-400">Unpivot</span> (become rows) or <span className="text-amber-400">Keep</span> (as identifiers).
+            Mark columns to <span className="text-theme-status-info-text">Unpivot</span> (become rows) or <span className="text-theme-status-warning-text">Keep</span> (as identifiers).
           </p>
 
           {!hasInput && (
@@ -257,7 +257,7 @@ export function UnpivotConfiguration({
                           type="checkbox"
                           checked={status === "on"}
                           onChange={() => toggleOnColumn(col.name)}
-                          className="w-4 h-4 rounded border-blue-500 bg-theme-surface text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                          className="w-4 h-4 rounded border-theme-status-info-text bg-theme-surface text-theme-status-info-text focus:ring-theme-status-info-border focus:ring-offset-0"
                         />
                       </div>
                       <div className="flex justify-center w-16">
@@ -265,7 +265,7 @@ export function UnpivotConfiguration({
                           type="checkbox"
                           checked={status === "index"}
                           onChange={() => toggleIndexColumn(col.name)}
-                          className="w-4 h-4 rounded border-amber-500 bg-theme-surface text-amber-500 focus:ring-amber-500 focus:ring-offset-0"
+                          className="w-4 h-4 rounded border-theme-status-warning-border bg-theme-surface text-theme-status-warning-text focus:ring-theme-status-warning-border focus:ring-offset-0"
                         />
                       </div>
                     </div>
@@ -285,17 +285,17 @@ export function UnpivotConfiguration({
             <p className="text-theme-text-secondary">
               {selectedIndex.length > 0 ? (
                 <>
-                  Keep <span className="text-amber-400">{selectedIndex.length}</span> identifier column{selectedIndex.length !== 1 ? "s" : ""}.{" "}
+                  Keep <span className="text-theme-status-warning-text">{selectedIndex.length}</span> identifier column{selectedIndex.length !== 1 ? "s" : ""}.{" "}
                 </>
               ) : null}
-              Transform <span className="text-blue-400">{selectedOn.length}</span> column{selectedOn.length !== 1 ? "s" : ""} into rows.
-              Each input row will produce <span className="text-blue-400">{selectedOn.length}</span> output row{selectedOn.length !== 1 ? "s" : ""}.
+              Transform <span className="text-theme-status-info-text">{selectedOn.length}</span> column{selectedOn.length !== 1 ? "s" : ""} into rows.
+              Each input row will produce <span className="text-theme-status-info-text">{selectedOn.length}</span> output row{selectedOn.length !== 1 ? "s" : ""}.
             </p>
           </div>
         )}
 
         {selectedOn.length === 0 && hasInput && !loading && inputColumns.length > 0 && (
-          <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30 text-amber-200">
+          <div className="p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border text-theme-status-warning-text">
             Select at least one column to unpivot.
           </div>
         )}
