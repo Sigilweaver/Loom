@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ToolConfig,
   Tool,
@@ -8,17 +9,22 @@ import {
 import { useToolConfiguration } from "@hooks/useToolConfiguration";
 import { ColumnSchema } from "@api/backend";
 import clsx from "clsx";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { POLARS_TYPES_MAP, CASTABLE_TYPES_BY_UI_GROUP } from "@data/polarsTypes";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
+import { ConfigColumnSelector, ColumnSelectorItemHandlers, ReorderButtonsProps } from "@components/primitives";
 
 // Re-export for local use with original name for minimal code changes
 const TYPE_INFO_MAP = POLARS_TYPES_MAP;
 
 /**
- * Configuration for a single column in the Select tool
+ * Configuration for a single column in the Select tool.
+ * `id` is required for ConfigColumnSelector constraint.
  * All optional fields use explicit undefined to work with exactOptionalPropertyTypes
  */
 interface ColumnConfig {
+  [key: string]: unknown; // Required for ColumnSelectorItem constraint
+  id: string; // Same as name, required for ConfigColumnSelector
   name: string;
   selected: boolean;
   rename: string | undefined;
@@ -31,6 +37,7 @@ interface ColumnConfig {
  */
 function createColumnConfig(name: string): ColumnConfig {
   return {
+    id: name,
     name,
     selected: true,
     rename: undefined,
@@ -49,8 +56,10 @@ function parseColumnConfigs(raw: unknown): ColumnConfig[] {
       return createColumnConfig("");
     }
     const obj = item as Record<string, unknown>;
+    const name = typeof obj.name === "string" ? obj.name : "";
     return {
-      name: typeof obj.name === "string" ? obj.name : "",
+      id: name,
+      name,
       selected: typeof obj.selected === "boolean" ? obj.selected : true,
       rename: typeof obj.rename === "string" ? obj.rename : undefined,
       targetType: typeof obj.targetType === "string" ? obj.targetType : undefined,
@@ -100,8 +109,10 @@ export function SelectConfiguration({
     onChange,
   });
 
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Ref for portal target (reorder buttons in toolbar)
+  const reorderButtonsRef = useRef<HTMLDivElement>(null);
 
   // Get input columns from metadata
   const inputColumns: ColumnSchema[] = columns;
@@ -280,48 +291,72 @@ export function SelectConfiguration({
     onChange(newConfig);
   }, [columnConfigs, config, onChange, searchQuery]);
 
-  // Handle drag and drop reordering
-  const handleDragStart = useCallback((index: number) => {
-    setDraggedIndex(index);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, _index: number) => {
-    e.preventDefault();
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, dropIndex: number) => {
-      e.preventDefault();
-      if (draggedIndex === null || draggedIndex === dropIndex) {
-        setDraggedIndex(null);
+  // Handle reordering from ConfigColumnSelector
+  const handleReorder = useCallback(
+    (newItems: ColumnConfig[]) => {
+      // Don't allow reordering while filtering - the UI is complex and
+      // reorder buttons are hidden anyway when searchQuery is active
+      if (searchQuery) {
         return;
       }
-
-      const newConfigs = [...columnConfigs];
-      const [removed] = newConfigs.splice(draggedIndex, 1);
-      if (!removed) {
-        setDraggedIndex(null);
-        return;
-      }
-      newConfigs.splice(dropIndex, 0, removed);
 
       const newConfig: ToolConfig = {
         ...config,
-        columnConfigs: serializeColumnConfigs(newConfigs),
+        columnConfigs: serializeColumnConfigs(newItems),
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
           columnConfigs: true,
         },
       };
       onChange(newConfig);
-      setDraggedIndex(null);
     },
-    [draggedIndex, columnConfigs, config, onChange]
+    [config, onChange, searchQuery]
   );
 
-  const handleDragEnd = useCallback(() => {
-    setDraggedIndex(null);
-  }, []);
+  // Render reorder buttons via portal into the toolbar
+  const renderReorderButtons = useCallback(
+    ({ onMoveUp, onMoveDown, canMoveUp, canMoveDown, disabled: isDisabled }: ReorderButtonsProps) => {
+      if (!reorderButtonsRef.current || searchQuery) {
+        return null;
+      }
+      return createPortal(
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={isDisabled || !canMoveUp}
+            className={clsx(
+              "p-1 rounded border border-theme-border-primary",
+              "text-theme-text-secondary hover:text-theme-text-primary",
+              "hover:bg-theme-surface-hover transition-colors",
+              "disabled:opacity-30 disabled:cursor-not-allowed"
+            )}
+            title="Move selection up (Arrow Up)"
+            aria-label="Move selection up"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={isDisabled || !canMoveDown}
+            className={clsx(
+              "p-1 rounded border border-theme-border-primary",
+              "text-theme-text-secondary hover:text-theme-text-primary",
+              "hover:bg-theme-surface-hover transition-colors",
+              "disabled:opacity-30 disabled:cursor-not-allowed"
+            )}
+            title="Move selection down (Arrow Down)"
+            aria-label="Move selection down"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>,
+        reorderButtonsRef.current
+      );
+    },
+    [searchQuery]
+  );
 
   // Count selected columns
   const selectedCount = columnConfigs.filter((c) => c.selected).length;
@@ -342,6 +377,165 @@ export function SelectConfiguration({
     filteredConfigs.length > 0 && filteredConfigs.every((c) => c.selected);
   const someSelected = filteredConfigs.some((c) => c.selected);
   const isIndeterminate = someSelected && !allSelected;
+
+  // Render each column row
+  const renderColumnItem = useCallback(
+    (col: ColumnConfig, _handlers: ColumnSelectorItemHandlers) => {
+      const originalType = getOriginalType(col.name);
+      const currentType = col.targetType || originalType;
+      const typeInfo = TYPE_INFO_MAP.get(currentType);
+      const showSize = isStringType(col.name, col.targetType);
+      const isModified = col.rename || col.targetType || col.size;
+
+      return (
+        <div
+          className={clsx(
+            "grid grid-cols-[auto_1fr_1fr_120px_80px_24px] gap-2 items-center w-full",
+            !col.selected && "opacity-60"
+          )}
+        >
+          {/* Checkbox */}
+          <div className="w-8 flex justify-center">
+            <input
+              type="checkbox"
+              checked={col.selected}
+              onChange={(e) => {
+                e.stopPropagation();
+                toggleSelectedByName(col.name);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 rounded border-theme-border-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
+            />
+          </div>
+
+          {/* Original Column Name */}
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium truncate text-theme-text-primary" title={col.name}>
+              {col.name}
+            </span>
+            <span className="text-xs text-theme-text-tertiary">
+              {originalType}
+            </span>
+          </div>
+
+          {/* Rename Input */}
+          <div>
+            <input
+              type="text"
+              value={col.rename || ""}
+              onChange={(e) =>
+                updateColumnByName(col.name, {
+                  rename: e.target.value || undefined,
+                })
+              }
+              onClick={(e) => e.stopPropagation()}
+              placeholder={col.name}
+              disabled={!col.selected}
+              className={clsx(
+                "w-full px-2 py-1 text-sm rounded border",
+                "bg-theme-surface-panel border-theme-border-primary",
+                "text-theme-text-primary placeholder-theme-text-disabled",
+                "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+            />
+          </div>
+
+          {/* Type Selector */}
+          <div className="relative">
+            <select
+              value={col.targetType || originalType}
+              onChange={(e) =>
+                updateColumnByName(col.name, {
+                  targetType:
+                    e.target.value === originalType
+                      ? undefined
+                      : e.target.value,
+                })
+              }
+              onClick={(e) => e.stopPropagation()}
+              disabled={!col.selected}
+              className={clsx(
+                "w-full px-2 py-1 text-sm rounded border appearance-none",
+                "bg-theme-surface-panel border-theme-border-primary",
+                "text-theme-text-primary",
+                "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                col.targetType && col.targetType !== originalType
+                  ? "border-theme-interactive-accent"
+                  : ""
+              )}
+              title={typeInfo?.description}
+            >
+              {Array.from(CASTABLE_TYPES_BY_UI_GROUP.entries()).map(([groupName, types]) => (
+                <optgroup key={groupName} label={groupName}>
+                  {types.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {/* Size column - shows size/range for fixed types, input for strings */}
+          <div>
+            {showSize ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={col.size || ""}
+                  onChange={(e) =>
+                    updateColumnByName(col.name, {
+                      size: e.target.value
+                        ? parseInt(e.target.value, 10)
+                        : undefined,
+                    })
+                  }
+                  onClick={(e) => e.stopPropagation()}
+                  placeholder="Max"
+                  min={1}
+                  disabled={!col.selected}
+                  className={clsx(
+                    "w-16 px-2 py-1 text-sm rounded border",
+                    "bg-theme-surface-panel border-theme-border-primary",
+                    "text-theme-text-primary placeholder-theme-text-disabled",
+                    "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                />
+                <span className="text-xs text-theme-text-tertiary">chars</span>
+              </div>
+            ) : (
+              <span className="text-xs text-theme-text-secondary">
+                {typeInfo?.sizeDisplay || "-"}
+              </span>
+            )}
+          </div>
+
+          {/* Reset Button */}
+          <div className="flex justify-center">
+            {isModified && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetColumn(col.name);
+                }}
+                className="text-theme-text-tertiary hover:text-theme-interactive-accent"
+                title="Reset to original"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    },
+    [getOriginalType, isStringType, toggleSelectedByName, updateColumnByName, resetColumn]
+  );
 
   if (!hasInput) {
     return (
@@ -381,8 +575,8 @@ export function SelectConfiguration({
               Select Tool
             </h3>
             <p className="text-theme-text-secondary">
-              Select, rename, reorder, and convert columns. Drag rows to
-              reorder. Unchecked columns will be excluded from output.
+              Select, rename, reorder, and convert columns. Use arrow keys to
+              reorder (shift+click to select multiple). Unchecked columns will be excluded from output.
             </p>
           </div>
         </div>
@@ -393,7 +587,9 @@ export function SelectConfiguration({
             <div className="text-sm text-theme-text-secondary">
               {selectedCount} of {columnConfigs.length} columns selected
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {/* Reorder buttons portal target */}
+              <div ref={reorderButtonsRef} className="flex items-center" />
               <button
                 type="button"
                 onClick={resetAll}
@@ -419,7 +615,9 @@ export function SelectConfiguration({
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-theme-text-tertiary hover:text-theme-text-primary"
               >
-                ✕
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
               </button>
             )}
           </div>
@@ -470,170 +668,16 @@ export function SelectConfiguration({
           </div>
         </div>
 
-        {/* Column List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredConfigs.length === 0 ? (
-            <div className="p-4 text-sm text-center text-theme-text-tertiary">
-              {searchQuery ? "No matching columns found" : "No columns available"}
-            </div>
-          ) : (
-            <div className="divide-y divide-theme-border-primary">
-              {filteredConfigs.map((col) => {
-                // Find the original index for drag and drop
-                const index = columnConfigs.findIndex(c => c.name === col.name);
-                const originalType = getOriginalType(col.name);
-                const currentType = col.targetType || originalType;
-                const typeInfo = TYPE_INFO_MAP.get(currentType);
-                const showSize = isStringType(col.name, col.targetType);
-                const isModified = col.rename || col.targetType || col.size;
-
-                return (
-                  <div
-                    key={col.name}
-                    draggable={!searchQuery} // Disable drag when filtering
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDrop={(e) => handleDrop(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={clsx(
-                      "px-4 py-2 grid grid-cols-[auto_1fr_1fr_120px_80px_24px] gap-2 items-center",
-                      "hover:bg-theme-surface-hover",
-                      !searchQuery && "cursor-move",
-                      draggedIndex === index && "opacity-50 bg-theme-surface-elevated",
-                      !col.selected && "opacity-60"
-                    )}
-                  >
-                    {/* Checkbox */}
-                    <div className="w-8 flex justify-center">
-                      <input
-                        type="checkbox"
-                        checked={col.selected}
-                        onChange={() => toggleSelectedByName(col.name)}
-                        className="w-4 h-4 rounded border-theme-border-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
-                      />
-                    </div>
-
-                    {/* Original Column Name */}
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium truncate text-theme-text-primary" title={col.name}>
-                        {col.name}
-                      </span>
-                      <span className="text-xs text-theme-text-tertiary">
-                        {originalType}
-                      </span>
-                    </div>
-
-                    {/* Rename Input */}
-                    <div>
-                      <input
-                        type="text"
-                        value={col.rename || ""}
-                        onChange={(e) =>
-                          updateColumnByName(col.name, {
-                            rename: e.target.value || undefined,
-                          })
-                        }
-                        placeholder={col.name}
-                        disabled={!col.selected}
-                        className={clsx(
-                          "w-full px-2 py-1 text-sm rounded border",
-                          "bg-theme-surface-panel border-theme-border-primary",
-                          "text-theme-text-primary placeholder-theme-text-disabled",
-                          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
-                          "disabled:opacity-50 disabled:cursor-not-allowed"
-                        )}
-                      />
-                    </div>
-
-                    {/* Type Selector */}
-                    <div className="relative">
-                      <select
-                        value={col.targetType || originalType}
-                        onChange={(e) =>
-                          updateColumnByName(col.name, {
-                            targetType:
-                              e.target.value === originalType
-                                ? undefined
-                                : e.target.value,
-                          })
-                        }
-                        disabled={!col.selected}
-                        className={clsx(
-                          "w-full px-2 py-1 text-sm rounded border appearance-none",
-                          "bg-theme-surface-panel border-theme-border-primary",
-                          "text-theme-text-primary",
-                          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
-                          "disabled:opacity-50 disabled:cursor-not-allowed",
-                          col.targetType && col.targetType !== originalType
-                            ? "border-theme-interactive-accent"
-                            : ""
-                        )}
-                        title={typeInfo?.description}
-                      >
-                        {Array.from(CASTABLE_TYPES_BY_UI_GROUP.entries()).map(([groupName, types]) => (
-                          <optgroup key={groupName} label={groupName}>
-                            {types.map((t) => (
-                              <option key={t.value} value={t.value}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Size column - shows size/range for fixed types, input for strings */}
-                    <div>
-                      {showSize ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            value={col.size || ""}
-                            onChange={(e) =>
-                              updateColumnByName(col.name, {
-                                size: e.target.value
-                                  ? parseInt(e.target.value, 10)
-                                  : undefined,
-                              })
-                            }
-                            placeholder="Max"
-                            min={1}
-                            disabled={!col.selected}
-                            className={clsx(
-                              "w-16 px-2 py-1 text-sm rounded border",
-                              "bg-theme-surface-panel border-theme-border-primary",
-                              "text-theme-text-primary placeholder-theme-text-disabled",
-                              "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
-                              "disabled:opacity-50 disabled:cursor-not-allowed"
-                            )}
-                          />
-                          <span className="text-xs text-theme-text-tertiary">chars</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-theme-text-secondary">
-                          {typeInfo?.sizeDisplay || "-"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Reset Button */}
-                    <div className="flex justify-center">
-                      {isModified && (
-                        <button
-                          onClick={() => resetColumn(col.name)}
-                          className="text-theme-text-tertiary hover:text-theme-interactive-accent"
-                          title="Reset to original"
-                        >
-                          ↺
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Column List using ConfigColumnSelector */}
+        <ConfigColumnSelector<ColumnConfig>
+          items={filteredConfigs}
+          onReorder={handleReorder}
+          itemRenderer={renderColumnItem}
+          emptyMessage={searchQuery ? "No matching columns found" : "No columns available"}
+          showReorderButtons={false}
+          {...(!searchQuery && filteredConfigs.length > 1 ? { renderReorderButtons } : {})}
+          className="flex-1 min-h-0"
+        />
       </div>
     </div>
   );

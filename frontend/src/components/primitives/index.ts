@@ -17,6 +17,13 @@ export {
   type ConfigColumnListProps,
   type ItemHandlers,
 } from "./ConfigColumnList";
+export {
+  ConfigColumnSelector,
+  type ColumnSelectorItem,
+  type ColumnSelectorItemHandlers,
+  type ConfigColumnSelectorProps,
+  type ReorderButtonsProps,
+} from "./ConfigColumnSelector";
 export { ConfigField, type ConfigFieldProps } from "./ConfigField";
 export {
   ConfigFile,

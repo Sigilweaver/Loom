@@ -527,6 +527,10 @@ export default {
           "toggle-off": "var(--color-toggle-off)",
           "favorites": "var(--color-favorites)",
 
+          // Selection highlight colors (for multi-select list items)
+          "selection-highlight-bg": "var(--color-selection-highlight-bg)",
+          "selection-highlight-border": "var(--color-selection-highlight-border)",
+
           // Badge colors for mode indicators
           "badge-read": "var(--color-badge-read)",
           "badge-write": "var(--color-badge-write)",

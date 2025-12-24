@@ -789,6 +789,10 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-toggle-off", colors.palette.gray[400]);
   root.style.setProperty("--color-favorites", colors.palette.tools.favorites[400]);
 
+  // Selection highlight colors (for multi-select list items)
+  root.style.setProperty("--color-selection-highlight-bg", colors.palette.brand.secondary[400] + "26"); // 15% opacity
+  root.style.setProperty("--color-selection-highlight-border", colors.palette.brand.secondary[400]);
+
   // Badge colors for mode indicators
   root.style.setProperty("--color-badge-read", colors.palette.semantic.info[400]);
   root.style.setProperty("--color-badge-write", colors.palette.semantic.success[400]);

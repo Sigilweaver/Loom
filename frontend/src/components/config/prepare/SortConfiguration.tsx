@@ -8,6 +8,7 @@ import {
 import { useToolConfiguration } from "@hooks/useToolConfiguration";
 import { ColumnSchema } from "@api/backend";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
+import { ConfigColumnSelector, ColumnSelectorItemHandlers } from "@components/primitives";
 
 /**
  * Sort options for dropdown
@@ -86,6 +87,19 @@ interface SortConfigurationProps {
   workflowMeta: WorkflowMeta;
 }
 
+/**
+ * Item type for the ConfigColumnSelector.
+ * Must have `id` to satisfy ColumnSelectorItem constraint.
+ */
+interface SortColumnItem {
+  [key: string]: unknown; // Required for ColumnSelectorItem constraint
+  id: string; // Use name as id
+  name: string;
+  dtype: string;
+  sortOption: SortOption;
+  position: number; // 1-based position for active sorts, 0 for inactive
+}
+
 export function SortConfiguration({
   config,
   onChange,
@@ -117,6 +131,43 @@ export function SortConfiguration({
     }
     return map;
   }, [config]);
+
+  // Build items for ConfigColumnSelector: active sorts first (in order), then inactive
+  const selectorItems = useMemo((): SortColumnItem[] => {
+    const activeSortColumns = parseSortColumns(config);
+    const activeColumnNames = new Set(activeSortColumns.map((c) => c.column));
+
+    // Get active columns in their sort order with position
+    const activeItems: SortColumnItem[] = activeSortColumns
+      .map((sc, index) => {
+        const col = inputColumns.find((ic) => ic.name === sc.column);
+        if (!col) return null;
+        return {
+          id: col.name,
+          name: col.name,
+          dtype: col.dtype || "Unknown",
+          sortOption: toSortOption(sc),
+          position: index + 1,
+        };
+      })
+      .filter((item): item is SortColumnItem => item !== null);
+
+    // Get inactive columns
+    const inactiveItems: SortColumnItem[] = inputColumns
+      .filter((c) => !activeColumnNames.has(c.name))
+      .map((col) => ({
+        id: col.name,
+        name: col.name,
+        dtype: col.dtype || "Unknown",
+        sortOption: "none" as SortOption,
+        position: 0,
+      }));
+
+    return [...activeItems, ...inactiveItems];
+  }, [inputColumns, config]);
+
+  // Count active sorts
+  const activeSortCount = sortColumnsMap.size;
 
   // Update sort option for a column
   const updateColumnSort = useCallback(
@@ -166,39 +217,21 @@ export function SortConfiguration({
     [config, onChange]
   );
 
-  // Get sort option for a column
-  const getColumnSortOption = useCallback(
-    (columnName: string): SortOption => {
-      return toSortOption(sortColumnsMap.get(columnName));
-    },
-    [sortColumnsMap]
-  );
-
-  // Get sort position (1-based) for display
-  const getSortPosition = useCallback(
-    (columnName: string): number => {
-      const sortColumns = parseSortColumns(config);
-      const index = sortColumns.findIndex((c) => c.column === columnName);
-      return index >= 0 ? index + 1 : 0;
-    },
-    [config]
-  );
-
-  // Move a sort column up or down
-  const moveSortColumn = useCallback(
-    (columnName: string, direction: "up" | "down") => {
-      const currentSortColumns = parseSortColumns(config);
-      const currentIndex = currentSortColumns.findIndex((c) => c.column === columnName);
-      if (currentIndex < 0) return;
-
-      const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      if (targetIndex < 0 || targetIndex >= currentSortColumns.length) return;
-
-      // Swap positions using splice
-      const newSortColumns = [...currentSortColumns];
-      const removed = newSortColumns.splice(currentIndex, 1)[0];
-      if (!removed) return;
-      newSortColumns.splice(targetIndex, 0, removed);
+  // Handle reorder from ConfigColumnSelector
+  const handleReorder = useCallback(
+    (newItems: SortColumnItem[]) => {
+      // Only the active sort columns can be reordered
+      // Extract just the active ones in their new order
+      const newSortColumns: SortColumn[] = newItems
+        .filter((item) => item.sortOption !== "none")
+        .map((item) => {
+          const settings = fromSortOption(item.sortOption);
+          return {
+            column: item.name,
+            direction: settings?.direction || "asc",
+            nullsFirst: settings?.nullsFirst || false,
+          };
+        });
 
       const newConfig = {
         ...config,
@@ -213,24 +246,75 @@ export function SortConfiguration({
     [config, onChange]
   );
 
-  // Count active sorts
-  const activeSortCount = sortColumnsMap.size;
+  // Only active sort columns can be reordered
+  const canReorderItem = useCallback(
+    (item: SortColumnItem) => item.sortOption !== "none",
+    []
+  );
 
-  // Sort columns: active sorts first (in sort order), then inactive columns
-  const sortedInputColumns = useMemo(() => {
-    const activeSortColumns = parseSortColumns(config);
-    const activeColumnNames = new Set(activeSortColumns.map((c) => c.column));
-    
-    // Get active columns in their sort order
-    const activeColumns = activeSortColumns
-      .map((sc) => inputColumns.find((ic) => ic.name === sc.column))
-      .filter((c): c is ColumnSchema => c !== undefined);
-    
-    // Get inactive columns in original order
-    const inactiveColumns = inputColumns.filter((c) => !activeColumnNames.has(c.name));
-    
-    return [...activeColumns, ...inactiveColumns];
-  }, [inputColumns, config]);
+  // Render each column row (content only - wrapper handles click/keyboard)
+  const renderColumnItem = useCallback(
+    (item: SortColumnItem, _handlers: ColumnSelectorItemHandlers) => {
+      const isActive = item.sortOption !== "none";
+
+      return (
+        <div className="flex items-center gap-2 w-full">
+          {/* Position indicator */}
+          <div className="w-5 text-center shrink-0">
+            {isActive && (
+              <span className="text-xs font-medium text-theme-interactive-accent">
+                {item.position}
+              </span>
+            )}
+          </div>
+
+          {/* Column info */}
+          <div className="flex-1 min-w-0">
+            <span
+              className={`text-sm truncate ${
+                isActive
+                  ? "text-theme-text-primary font-medium"
+                  : "text-theme-text-secondary"
+              }`}
+            >
+              {item.name}
+            </span>
+            <span className="ml-2 text-xs text-theme-text-tertiary">
+              {item.dtype}
+            </span>
+          </div>
+
+          {/* Sort option dropdown */}
+          <select
+            value={item.sortOption}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateColumnSort(item.name, e.target.value as SortOption);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={`px-2 py-1 text-xs rounded border cursor-pointer min-w-[160px] shrink-0
+              ${
+                isActive
+                  ? "bg-theme-surface-elevated border-theme-interactive-accent text-theme-text-primary"
+                  : "bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary"
+              }
+              focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent`}
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option
+                key={opt.value}
+                value={opt.value}
+                className="bg-theme-surface-panel text-theme-text-primary"
+              >
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    },
+    [updateColumnSort]
+  );
 
   if (!hasInput) {
     return (
@@ -261,117 +345,24 @@ export function SortConfiguration({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-        <span className="text-sm font-semibold text-theme-text-primary">Sort Columns</span>
-        {activeSortCount > 0 && (
-          <span className="ml-2 text-xs text-theme-text-tertiary">
-            ({activeSortCount} active)
-          </span>
-        )}
-      </div>
-
-      {/* Column List */}
-      <div className="flex-1 overflow-y-auto">
-        {sortedInputColumns.length === 0 ? (
-          <div className="p-4 text-sm text-center text-theme-text-tertiary">
-            No columns available
-          </div>
-        ) : (
-          <div className="divide-y divide-theme-border-primary">
-            {sortedInputColumns.map((col) => {
-              const currentOption = getColumnSortOption(col.name);
-              const isActive = currentOption !== "none";
-              const position = getSortPosition(col.name);
-
-              return (
-                <div
-                  key={col.name}
-                  className="flex items-center gap-2 px-4 py-2"
-                >
-                  {/* Reorder buttons - only for active sorts with multiple columns */}
-                  {isActive && activeSortCount > 1 ? (
-                    <div className="flex flex-col w-5">
-                      <button
-                        type="button"
-                        onClick={() => moveSortColumn(col.name, "up")}
-                        disabled={position === 1}
-                        className="p-0.5 text-theme-text-tertiary hover:text-theme-text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move up (higher priority)"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveSortColumn(col.name, "down")}
-                        disabled={position === activeSortCount}
-                        className="p-0.5 text-theme-text-tertiary hover:text-theme-text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move down (lower priority)"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-5 text-center">
-                      {isActive && (
-                        <span className="text-xs font-medium text-theme-interactive-accent">
-                          {position}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Column info */}
-                  <div className="flex-1 min-w-0">
-                    <span
-                      className={`text-sm truncate ${
-                        isActive
-                          ? "text-theme-text-primary font-medium"
-                          : "text-theme-text-secondary"
-                      }`}
-                    >
-                      {col.name}
-                    </span>
-                    <span className="ml-2 text-xs text-theme-text-tertiary">
-                      {col.dtype}
-                    </span>
-                  </div>
-
-                  {/* Sort option dropdown */}
-                  <select
-                    value={currentOption}
-                    onChange={(e) =>
-                      updateColumnSort(col.name, e.target.value as SortOption)
-                    }
-                    className={`px-2 py-1 text-xs rounded border cursor-pointer min-w-[160px]
-                      ${
-                        isActive
-                          ? "bg-theme-surface-elevated border-theme-interactive-accent text-theme-text-primary"
-                          : "bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary"
-                      }
-                      focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent`}
-                  >
-                    {SORT_OPTIONS.map((opt) => (
-                      <option 
-                        key={opt.value} 
-                        value={opt.value}
-                        className="bg-theme-surface-panel text-theme-text-primary"
-                      >
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+    <ConfigColumnSelector<SortColumnItem>
+      items={selectorItems}
+      onReorder={handleReorder}
+      canReorderItem={canReorderItem}
+      itemRenderer={renderColumnItem}
+      label={
+        <span>
+          Sort Columns
+          {activeSortCount > 0 && (
+            <span className="ml-2 text-xs font-normal text-theme-text-tertiary">
+              ({activeSortCount} active)
+            </span>
+          )}
+        </span>
+      }
+      emptyMessage="No columns available"
+      showReorderButtons={activeSortCount > 1}
+      className="h-full"
+    />
   );
 }

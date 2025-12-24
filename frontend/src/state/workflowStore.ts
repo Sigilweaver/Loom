@@ -221,6 +221,10 @@ export const useWorkflowStore = create<WorkflowState>()(
           const tool = state.tools.find((t) => t.id === toolId);
           if (tool) {
             tool.config = config;
+            // If this is the selected tool, update the reference so selectors detect the change
+            if (state.selectedTool?.id === toolId) {
+              state.selectedTool = tool;
+            }
           }
           get()._markDirty();
         });
