@@ -14,6 +14,7 @@ import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
 import SettingsDialog from "./components/shell/SettingsDialog";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { TooltipProvider } from "./components/ui/Tooltip";
 import { initializeAuth } from "./api/backend";
 import { closeAllWorkflowCaches } from "./api/cache";
 
@@ -288,48 +289,50 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="flex flex-col h-screen bg-theme-surface-page">
-        <Header 
-          ref={headerRef}
-          onShowSettings={() => setShowSettings(true)}
-        />
+      <TooltipProvider delayDuration={300}>
+        <div className="flex flex-col h-screen bg-theme-surface-page">
+          <Header 
+            ref={headerRef}
+            onShowSettings={() => setShowSettings(true)}
+          />
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Pane - Tool Palette and Configuration */}
-          <LeftPane />
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Pane - Tool Palette and Configuration */}
+            <LeftPane />
 
-          {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
-          <ReactFlowProvider>
-            <div className="flex flex-1 overflow-hidden">
-              {/* Canvas and Bottom Pane - with TabBar above */}
-              <div className="flex flex-1 flex-col overflow-hidden">
-                {/* Tab Bar - positioned above canvas, only spans canvas area */}
-                <TabBar />
-                
-                <Canvas ref={canvasRef} />
-                
-                {/* Bottom Pane for Preview/Logs */}
-                <BottomPane />
+            {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
+            <ReactFlowProvider>
+              <div className="flex flex-1 overflow-hidden">
+                {/* Canvas and Bottom Pane - with TabBar above */}
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  {/* Tab Bar - positioned above canvas, only spans canvas area */}
+                  <TabBar />
+                  
+                  <Canvas ref={canvasRef} />
+                  
+                  {/* Bottom Pane for Preview/Logs */}
+                  <BottomPane />
+                </div>
+
+                {/* Workflow Viewer Side Panel - computes JSON internally */}
+                {workflowViewerVisible && <WorkflowViewer />}
               </div>
+            </ReactFlowProvider>
+          </div>
 
-              {/* Workflow Viewer Side Panel - computes JSON internally */}
-              {workflowViewerVisible && <WorkflowViewer />}
-            </div>
-          </ReactFlowProvider>
+          {/* Notification System - uses uiStore internally */}
+          <Notification />
+          
+          <SettingsDialog 
+            isOpen={showSettings} 
+            onClose={() => {
+              setShowSettings(false);
+              setSettingsInitialTab('general'); // Reset to default for next open
+            }}
+            initialTab={settingsInitialTab}
+          />
         </div>
-
-        {/* Notification System - uses uiStore internally */}
-        <Notification />
-        
-        <SettingsDialog 
-          isOpen={showSettings} 
-          onClose={() => {
-            setShowSettings(false);
-            setSettingsInitialTab('general'); // Reset to default for next open
-          }}
-          initialTab={settingsInitialTab}
-        />
-      </div>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
