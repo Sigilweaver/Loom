@@ -16,7 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@components/ui/DropdownMenu";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   ConfigColumnSelector,
   ColumnSelectorItemHandlers,
@@ -671,22 +671,8 @@ export function SummarizeConfiguration({
           itemRenderer={renderActionItem}
           emptyMessage="No actions configured. Select columns above and click Add."
           showReorderButtons={actionItems.length > 1}
-          headerActions={
-            <button
-              type="button"
-              onClick={removeSelectedActions}
-              disabled={selectedActions.length === 0}
-              className={clsx(
-                "p-1 rounded border border-theme-border-primary transition-colors",
-                selectedActions.length > 0
-                  ? "text-theme-text-secondary hover:text-theme-status-error-text hover:bg-theme-surface-hover"
-                  : "text-theme-text-disabled opacity-30 cursor-not-allowed"
-              )}
-              title={selectedActions.length > 0 ? `Delete ${selectedActions.length} selected` : "Select actions to delete"}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          }
+          showDeleteButton
+          onDelete={removeSelectedActions}
           className="flex-1 min-h-0"
         />
       </div>

@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { useMultiSelection } from "./hooks/useMultiSelection";
 import { useListKeyboard } from "./hooks/useListKeyboard";
 
@@ -77,8 +77,10 @@ export interface ConfigColumnSelectorProps<T extends ColumnSelectorItem> {
   className?: string;
   /** Show reorder buttons in UI */
   showReorderButtons?: boolean;
-  /** Additional action buttons to render in the header next to reorder buttons */
-  headerActions?: ReactNode;
+  /** Show delete button in header (deletes selected items) */
+  showDeleteButton?: boolean;
+  /** Callback when delete button is clicked */
+  onDelete?: () => void;
   /** Render function to place reorder buttons externally (receives button handlers/state). Return value is rendered at component end. */
   renderReorderButtons?: (props: ReorderButtonsProps) => ReactNode;
   /** Accessible label for the list */
@@ -116,7 +118,10 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
   emptyMessage = "No items available",
   disabled = false,
   className,
-  showReorderButtons = true,  headerActions,  renderReorderButtons,
+  showReorderButtons = true,
+  showDeleteButton = false,
+  onDelete,
+  renderReorderButtons,
   ariaLabel,
 }: ConfigColumnSelectorProps<T>): React.ReactElement {
   const fieldId = useId();
@@ -306,7 +311,7 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
   return (
     <div className={clsx("flex flex-col", className)}>
       {/* Header */}
-      {(label || headerActions || (showReorderButtons && reorderableCount > 0)) && (
+      {(label || showDeleteButton || (showReorderButtons && reorderableCount > 0)) && (
         <div className="flex items-center justify-between px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
           <div className="flex items-center gap-2">
             {label && (
@@ -319,7 +324,23 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {headerActions}
+            {showDeleteButton && (
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={disabled || selectedCount === 0}
+                className={clsx(
+                  "p-1 rounded border border-theme-border-primary transition-colors",
+                  selectedCount > 0
+                    ? "text-theme-text-secondary hover:text-theme-status-error-text hover:bg-theme-surface-hover"
+                    : "text-theme-text-disabled opacity-30 cursor-not-allowed"
+                )}
+                title={selectedCount > 0 ? `Delete ${selectedCount} selected` : "Select items to delete"}
+                aria-label={selectedCount > 0 ? `Delete ${selectedCount} selected items` : "Delete selected items"}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             {showReorderButtons && reorderableCount > 1 && (
               <div className="flex items-center gap-1">
               <button

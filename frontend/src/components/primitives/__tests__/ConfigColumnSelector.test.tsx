@@ -361,4 +361,133 @@ describe("ConfigColumnSelector", () => {
     expect(positions[1]).toHaveTextContent("2");
     expect(positions[2]).toHaveTextContent("3");
   });
+
+  describe("delete button", () => {
+    it("shows delete button when showDeleteButton is true", () => {
+      const columns = createColumns(3);
+      const onReorder = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+          showDeleteButton
+          onDelete={onDelete}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    });
+
+    it("does not show delete button by default", () => {
+      const columns = createColumns(3);
+      const onReorder = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+        />
+      );
+
+      expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+    });
+
+    it("delete button is disabled when nothing is selected", () => {
+      const columns = createColumns(3);
+      const onReorder = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+          showDeleteButton
+          onDelete={onDelete}
+        />
+      );
+
+      const deleteButton = screen.getByRole("button", { name: /delete/i });
+      expect(deleteButton).toBeDisabled();
+    });
+
+    it("delete button is enabled when items are selected", async () => {
+      const user = userEvent.setup();
+      const columns = createColumns(3);
+      const onReorder = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+          showDeleteButton
+          onDelete={onDelete}
+        />
+      );
+
+      // Select an item
+      await user.click(screen.getByTestId("item-col-1"));
+
+      const deleteButton = screen.getByRole("button", { name: /delete 1 selected/i });
+      expect(deleteButton).not.toBeDisabled();
+    });
+
+    it("calls onDelete when delete button is clicked", async () => {
+      const user = userEvent.setup();
+      const columns = createColumns(3);
+      const onReorder = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+          showDeleteButton
+          onDelete={onDelete}
+        />
+      );
+
+      // Select an item
+      await user.click(screen.getByTestId("item-col-1"));
+
+      // Click delete button
+      const deleteButton = screen.getByRole("button", { name: /delete 1 selected/i });
+      await user.click(deleteButton);
+
+      expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows correct count in delete button title", async () => {
+      const user = userEvent.setup();
+      const columns = createColumns(5);
+      const onReorder = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <ConfigColumnSelector
+          items={columns}
+          onReorder={onReorder}
+          itemRenderer={defaultItemRenderer}
+          showDeleteButton
+          onDelete={onDelete}
+        />
+      );
+
+      // Select multiple items with shift+click
+      await user.click(screen.getByTestId("item-col-1"));
+      await user.keyboard("{Shift>}");
+      await user.click(screen.getByTestId("item-col-3"));
+      await user.keyboard("{/Shift}");
+
+      const deleteButton = screen.getByRole("button", { name: /delete 3 selected/i });
+      expect(deleteButton).toBeInTheDocument();
+    });
+  });
 });
