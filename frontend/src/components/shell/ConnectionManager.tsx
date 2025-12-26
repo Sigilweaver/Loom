@@ -304,12 +304,11 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
               {connection.name}
             </span>
             <span 
-              className="px-2 py-0.5 text-xs font-medium rounded"
-              style={{
-                backgroundColor: isServerManaged ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                color: isServerManaged ? 'rgb(96, 165, 250)' : 'rgb(74, 222, 128)',
-                border: isServerManaged ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(34, 197, 94, 0.2)',
-              }}
+              className={`px-2 py-0.5 text-xs font-medium rounded border ${
+                isServerManaged 
+                  ? 'bg-theme-status-info-bg text-theme-status-info-text border-theme-status-info-border'
+                  : 'bg-theme-status-success-bg text-theme-status-success-text border-theme-status-success-border'
+              }`}
             >
               {isServerManaged ? 'Server-Managed' : 'Local'}
             </span>

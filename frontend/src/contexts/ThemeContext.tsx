@@ -53,6 +53,7 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-bg-secondary", colors.surfaces.elevated);
   root.style.setProperty("--color-bg-tertiary", colors.surfaces.page);
   root.style.setProperty("--color-bg-hover", colors.surfaces.elevated);
+  root.style.setProperty("--color-surface-hover", colors.surfaces.elevated);
   root.style.setProperty("--color-bg-input", colors.surfaces.elevated);
   root.style.setProperty("--color-bg-tooltip", colors.surfaces.elevated);
   root.style.setProperty("--color-modal-overlay", colors.modals.overlay);

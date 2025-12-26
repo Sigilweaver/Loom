@@ -12,6 +12,7 @@ export default {
           "surface-elevated": "var(--color-surface-elevated)",
           "surface-overlay": "var(--color-surface-overlay)",
           "surface-canvas": "var(--color-surface-canvas)",
+          "surface-hover": "var(--color-surface-hover)",
 
           // Global text
           "text-primary": "var(--color-text-primary)",

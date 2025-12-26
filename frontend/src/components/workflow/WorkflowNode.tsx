@@ -149,7 +149,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             height: `${socketSize}px`,
             border: '2px solid var(--color-socket-input-border)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'var(--color-node-default-shadow)',
             cursor: 'pointer',
           }}
           title={`Input ${socket.id}${socket.type ? ` (${socket.type})` : ''}${socket.multiple ? ' - Multiple connections allowed' : ''} - Click to preview`}
@@ -235,7 +235,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
             height: `${socketSize}px`,
             border: '2px solid var(--color-socket-output-border)',
             borderRadius: '50%',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'var(--color-node-default-shadow)',
             cursor: 'pointer',
           }}
           title={`Output ${socket.id}${socket.type ? ` (${socket.type})` : ''} - Click to preview`}
