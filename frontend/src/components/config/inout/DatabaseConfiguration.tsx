@@ -174,7 +174,7 @@ export const DatabaseConfiguration: React.FC<DatabaseConfigurationProps> = ({
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'connections' } }));
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-3 text-xs rounded transition-colors bg-theme-interactive-accent text-white hover:opacity-90"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-3 text-xs rounded transition-colors bg-theme-interactive-accent text-theme-text-on-accent hover:opacity-90"
                 >
                   <Settings className="w-3 h-3" />
                   Open Settings

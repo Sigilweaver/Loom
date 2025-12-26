@@ -260,7 +260,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
           }
           ${
             isSelected
-              ? "border-theme-border-focus bg-theme-interactive-accent text-white shadow-md"
+              ? "border-theme-border-focus bg-theme-interactive-accent text-theme-text-on-accent shadow-md"
               : "border-theme-border-primary bg-theme-surface-panel hover:border-theme-border-focus"
           }
         `}
@@ -286,19 +286,19 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
                 if (fallback) fallback.style.display = "flex";
               }}
             />
-            <div className="items-center justify-center hidden w-6 h-6 text-xs font-bold text-white rounded bg-theme-text-tertiary">
+            <div className="items-center justify-center hidden w-6 h-6 text-xs font-bold text-theme-text-on-accent rounded bg-theme-text-tertiary">
               {dataSource.name.slice(0, 2).toUpperCase()}
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
             <div
-              className={`font-medium ${isSelected ? "text-white" : "text-theme-text-primary"}`}
+              className={`font-medium ${isSelected ? "text-theme-text-on-accent" : "text-theme-text-primary"}`}
             >
               {dataSource.name}
             </div>
             <div
-              className={`text-sm ${isSelected ? "text-white opacity-90" : "text-theme-text-secondary"}`}
+              className={`text-sm ${isSelected ? "text-theme-text-on-accent opacity-90" : "text-theme-text-secondary"}`}
             >
               {dataSource.description}
             </div>
