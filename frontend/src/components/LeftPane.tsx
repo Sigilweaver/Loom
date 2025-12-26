@@ -38,7 +38,6 @@ import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
 import { Settings, LayoutGrid } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 import { useUIStore } from "@state/uiStore";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 
 const logger = createLogger('LeftPane');
 
@@ -102,38 +101,43 @@ export default function LeftPane() {
         defaultWidth={450}
         minWidth={320}
         maxWidth={800}
-        className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
+        className="h-full flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
       >
-        <Tabs
-          value={leftPaneTab}
-          onValueChange={(value) => setLeftPaneTab(value as "tools" | "workflow")}
-          className="flex flex-col flex-1 min-h-0"
-        >
-          {/* Modern Tab Selector */}
-          <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
-            <TabsList className="w-full bg-theme-surface-panel rounded-lg p-1 gap-1">
-              <TabsTrigger
-                value="tools"
-                className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span>Tools</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="workflow"
-                className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Workflow</span>
-              </TabsTrigger>
-            </TabsList>
+        {/* Tab Selector */}
+        <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
+          <div className="w-full bg-theme-surface-panel rounded-lg p-1 gap-1 flex">
+            <button
+              onClick={() => setLeftPaneTab("tools")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "tools"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Tools</span>
+            </button>
+            <button
+              onClick={() => setLeftPaneTab("workflow")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "workflow"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Workflow</span>
+            </button>
           </div>
+        </div>
 
-          {/* Tab Content */}
-          <TabsContent value="tools" className="flex-1 min-h-0 m-0">
+        {/* Tab Content */}
+        {leftPaneTab === "tools" ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
             <ToolPalette />
-          </TabsContent>
-          <TabsContent value="workflow" className="flex-1 min-h-0 m-0 flex flex-col">
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
             {/* Workflow Configuration Header */}
             <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
               <div className="flex items-center space-x-3">
@@ -158,8 +162,8 @@ export default function LeftPane() {
                 onWorkflowMetaChange={handleWorkflowMetaChange}
               />
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </ResizablePanel>
     );
   }
@@ -170,7 +174,7 @@ export default function LeftPane() {
       defaultWidth={450}
       minWidth={320}
       maxWidth={800}
-      className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
+      className="h-full flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
     >
       <ToolHeader tool={selectedTool} />
 

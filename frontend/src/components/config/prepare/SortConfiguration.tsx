@@ -258,9 +258,9 @@ export function SortConfiguration({
       const isActive = item.sortOption !== "none";
 
       return (
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-3 w-full">
           {/* Position indicator */}
-          <div className="w-5 text-center shrink-0">
+          <div className="w-6 text-center flex-shrink-0">
             {isActive && (
               <span className="text-xs font-medium text-theme-interactive-accent">
                 {item.position}
@@ -268,10 +268,10 @@ export function SortConfiguration({
             )}
           </div>
 
-          {/* Column info */}
+          {/* Column name */}
           <div className="flex-1 min-w-0">
             <span
-              className={`text-sm truncate ${
+              className={`text-sm whitespace-nowrap ${
                 isActive
                   ? "text-theme-text-primary font-medium"
                   : "text-theme-text-secondary"
@@ -279,37 +279,41 @@ export function SortConfiguration({
             >
               {item.name}
             </span>
-            <span className="ml-2 text-xs text-theme-text-tertiary">
-              {item.dtype}
-            </span>
           </div>
 
           {/* Sort option dropdown */}
-          <select
-            value={item.sortOption}
-            onChange={(e) => {
-              e.stopPropagation();
-              updateColumnSort(item.name, e.target.value as SortOption);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className={`px-2 py-1 text-xs rounded border cursor-pointer min-w-[160px] shrink-0
-              ${
-                isActive
-                  ? "bg-theme-surface-elevated border-theme-interactive-accent text-theme-text-primary"
-                  : "bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary"
-              }
-              focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent`}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option
-                key={opt.value}
-                value={opt.value}
-                className="bg-theme-surface-panel text-theme-text-primary"
-              >
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <div className="w-[180px] flex-shrink-0">
+            <select
+              value={item.sortOption}
+              onChange={(e) => {
+                e.stopPropagation();
+                updateColumnSort(item.name, e.target.value as SortOption);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full px-2 py-1 text-xs rounded border cursor-pointer
+                ${
+                  isActive
+                    ? "bg-theme-surface-elevated border-theme-interactive-accent text-theme-text-primary"
+                    : "bg-theme-surface-panel border-theme-border-primary text-theme-text-secondary"
+                }
+                focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent`}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  className="bg-theme-surface-panel text-theme-text-primary"
+                >
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Type */}
+          <div className="w-20 flex-shrink-0 text-xs text-theme-text-tertiary">
+            {item.dtype}
+          </div>
         </div>
       );
     },
@@ -345,24 +349,36 @@ export function SortConfiguration({
   }
 
   return (
-    <ConfigColumnSelector<SortColumnItem>
-      items={selectorItems}
-      onReorder={handleReorder}
-      canReorderItem={canReorderItem}
-      itemRenderer={renderColumnItem}
-      label={
-        <span>
-          Sort Columns
-          {activeSortCount > 0 && (
-            <span className="ml-2 text-xs font-normal text-theme-text-tertiary">
-              ({activeSortCount} active)
-            </span>
-          )}
-        </span>
-      }
-      emptyMessage="No columns available"
-      showReorderButtons={activeSortCount > 1}
-      className="h-full"
-    />
+    <div className="flex flex-col h-full">
+      {/* Column Table Header */}
+      <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
+        <div className="flex items-center gap-3 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+          <div className="w-6 flex-shrink-0 text-center">#</div>
+          <div className="flex-1">Column</div>
+          <div className="w-[180px] flex-shrink-0">Sort</div>
+          <div className="w-20 flex-shrink-0">Type</div>
+        </div>
+      </div>
+
+      <ConfigColumnSelector<SortColumnItem>
+        items={selectorItems}
+        onReorder={handleReorder}
+        canReorderItem={canReorderItem}
+        itemRenderer={renderColumnItem}
+        label={
+          <span>
+            Sort Columns
+            {activeSortCount > 0 && (
+              <span className="ml-2 text-xs font-normal text-theme-text-tertiary">
+                ({activeSortCount} active)
+              </span>
+            )}
+          </span>
+        }
+        emptyMessage="No columns available"
+        showReorderButtons={activeSortCount > 1}
+        className="flex-1 min-h-0"
+      />
+    </div>
   );
 }

@@ -387,15 +387,22 @@ export function SelectConfiguration({
       const showSize = isStringType(col.name, col.targetType);
       const isModified = col.rename || col.targetType || col.size;
 
+      // Build tooltip with type and size info
+      const tooltipParts = [originalType];
+      if (typeInfo?.sizeDisplay) tooltipParts.push(typeInfo.sizeDisplay);
+      if (showSize && col.size) tooltipParts.push(`Max ${col.size} chars`);
+      if (typeInfo?.description) tooltipParts.push(typeInfo.description);
+      const tooltip = tooltipParts.join(' • ');
+
       return (
         <div
           className={clsx(
-            "grid grid-cols-[auto_1fr_1fr_120px_80px_24px] gap-2 items-center w-full",
+            "flex items-center gap-3 w-full",
             !col.selected && "opacity-60"
           )}
         >
           {/* Checkbox */}
-          <div className="w-8 flex justify-center">
+          <div className="w-4 flex-shrink-0">
             <input
               type="checkbox"
               checked={col.selected}
@@ -408,18 +415,15 @@ export function SelectConfiguration({
             />
           </div>
 
-          {/* Original Column Name */}
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium truncate text-theme-text-primary" title={col.name}>
+          {/* Column Name */}
+          <div className="w-[200px] flex-shrink-0">
+            <span className="text-sm font-medium text-theme-text-primary whitespace-nowrap" title={tooltip}>
               {col.name}
-            </span>
-            <span className="text-xs text-theme-text-tertiary">
-              {originalType}
             </span>
           </div>
 
           {/* Rename Input */}
-          <div>
+          <div className="w-[180px] flex-shrink-0">
             <input
               type="text"
               value={col.rename || ""}
@@ -441,8 +445,8 @@ export function SelectConfiguration({
             />
           </div>
 
-          {/* Type Selector */}
-          <div className="relative">
+          {/* Type Selector with inline size for strings */}
+          <div className="flex-1 flex items-center gap-2">
             <select
               value={col.targetType || originalType}
               onChange={(e) =>
@@ -456,7 +460,7 @@ export function SelectConfiguration({
               onClick={(e) => e.stopPropagation()}
               disabled={!col.selected}
               className={clsx(
-                "w-full px-2 py-1 text-sm rounded border appearance-none",
+                "w-[140px] px-2 py-1 text-sm rounded border appearance-none",
                 "bg-theme-surface-panel border-theme-border-primary",
                 "text-theme-text-primary",
                 "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
@@ -465,7 +469,7 @@ export function SelectConfiguration({
                   ? "border-theme-interactive-accent"
                   : ""
               )}
-              title={typeInfo?.description}
+              title={tooltip}
             >
               {Array.from(CASTABLE_TYPES_BY_UI_GROUP.entries()).map(([groupName, types]) => (
                 <optgroup key={groupName} label={groupName}>
@@ -477,11 +481,7 @@ export function SelectConfiguration({
                 </optgroup>
               ))}
             </select>
-          </div>
-
-          {/* Size column - shows size/range for fixed types, input for strings */}
-          <div>
-            {showSize ? (
+            {showSize && (
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -504,18 +504,15 @@ export function SelectConfiguration({
                     "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
+                  title="Maximum string length"
                 />
-                <span className="text-xs text-theme-text-tertiary">chars</span>
+                <span className="text-xs text-theme-text-tertiary whitespace-nowrap">ch</span>
               </div>
-            ) : (
-              <span className="text-xs text-theme-text-secondary">
-                {typeInfo?.sizeDisplay || "-"}
-              </span>
             )}
           </div>
 
           {/* Reset Button */}
-          <div className="flex justify-center">
+          <div className="w-4 flex-shrink-0">
             {isModified && (
               <button
                 onClick={(e) => {
@@ -623,61 +620,64 @@ export function SelectConfiguration({
           </div>
         </div>
 
-        {/* Column Table Header */}
-        <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <div className="grid grid-cols-[auto_1fr_1fr_120px_80px_24px] gap-2 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide items-center">
-            <div className="w-8 flex justify-center">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(input) => {
-                  if (input) input.indeterminate = isIndeterminate;
-                }}
-                onChange={() => selectAll(!allSelected)}
-                className="w-4 h-4 rounded border-theme-border-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
-                title={allSelected ? "Deselect All" : "Select All"}
-              />
-            </div>
-            <div>Column</div>
-            <div>Rename</div>
-            <div className="flex items-center gap-1">
-              Type
-              <a
-                href="https://docs.sigilweaver.app/user/data-types"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-theme-text-tertiary hover:text-theme-interactive-accent"
-                title="View Data Types Documentation"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-3.5 h-3.5"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
-                    clipRule="evenodd"
+        {/* Scrollable table container */}
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div>
+            {/* Column Table Header */}
+            <div className="border-b border-theme-border-primary bg-theme-surface-elevated sticky top-0 z-10">
+              <div className="px-4 py-2 flex items-center gap-3 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide">
+                <div className="w-4 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = isIndeterminate;
+                    }}
+                    onChange={() => selectAll(!allSelected)}
+                    className="w-4 h-4 rounded border-theme-border-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
+                    title={allSelected ? "Deselect All" : "Select All"}
                   />
-                </svg>
-              </a>
+                </div>
+                <div className="w-[200px] flex-shrink-0">Column</div>
+                <div className="w-[180px] flex-shrink-0">Rename</div>
+                <div className="flex-1 flex items-center gap-1">
+                  Type
+                  <a
+                    href="https://docs.sigilweaver.app/user/data-types"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-theme-text-tertiary hover:text-theme-interactive-accent"
+                    title="View Data Types Documentation"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-3.5 h-3.5"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </a>
+                </div>
+                <div className="w-4 flex-shrink-0"></div>
+              </div>
             </div>
-            <div>Size</div>
-            <div></div>
+
+            {/* Column List using ConfigColumnSelector */}
+            <ConfigColumnSelector<ColumnConfig>
+              items={filteredConfigs}
+              onReorder={handleReorder}
+              itemRenderer={renderColumnItem}
+              emptyMessage={searchQuery ? "No matching columns found" : "No columns available"}
+              showReorderButtons={false}
+              {...(!searchQuery && filteredConfigs.length > 1 ? { renderReorderButtons } : {})}
+            />
           </div>
         </div>
-
-        {/* Column List using ConfigColumnSelector */}
-        <ConfigColumnSelector<ColumnConfig>
-          items={filteredConfigs}
-          onReorder={handleReorder}
-          itemRenderer={renderColumnItem}
-          emptyMessage={searchQuery ? "No matching columns found" : "No columns available"}
-          showReorderButtons={false}
-          {...(!searchQuery && filteredConfigs.length > 1 ? { renderReorderButtons } : {})}
-          className="flex-1 min-h-0"
-        />
       </div>
     </div>
   );

@@ -61,7 +61,6 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={clsx(
-      'flex-1 overflow-auto',
       'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme-border-focus',
       className
     )}

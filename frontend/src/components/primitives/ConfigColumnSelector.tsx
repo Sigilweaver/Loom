@@ -63,6 +63,8 @@ export interface ConfigColumnSelectorProps<T extends ColumnSelectorItem> {
   itemRenderer: (item: T, handlers: ColumnSelectorItemHandlers) => ReactNode;
   /** Filter function: which items can be reordered */
   canReorderItem?: (item: T) => boolean;
+  /** Callback when selection changes (receives selected items) */
+  onSelectionChange?: (selectedItems: T[]) => void;
   /** Label for the list */
   label?: ReactNode;
   /** Description below the label */
@@ -75,6 +77,8 @@ export interface ConfigColumnSelectorProps<T extends ColumnSelectorItem> {
   className?: string;
   /** Show reorder buttons in UI */
   showReorderButtons?: boolean;
+  /** Additional action buttons to render in the header next to reorder buttons */
+  headerActions?: ReactNode;
   /** Render function to place reorder buttons externally (receives button handlers/state). Return value is rendered at component end. */
   renderReorderButtons?: (props: ReorderButtonsProps) => ReactNode;
   /** Accessible label for the list */
@@ -106,13 +110,13 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
   getItemKey = defaultGetItemKey,
   itemRenderer,
   canReorderItem,
+  onSelectionChange,
   label,
   description,
   emptyMessage = "No items available",
   disabled = false,
   className,
-  showReorderButtons = true,
-  renderReorderButtons,
+  showReorderButtons = true,  headerActions,  renderReorderButtons,
   ariaLabel,
 }: ConfigColumnSelectorProps<T>): React.ReactElement {
   const fieldId = useId();
@@ -130,6 +134,13 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
     getItemKey,
     items,
   });
+
+  // Notify parent when selection changes
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(getSelectedItems());
+    }
+  }, [selectedKeys, onSelectionChange, getSelectedItems]);
 
   // Keyboard navigation and reordering
   const { focusedIndex, handleKeyDown, setFocusedIndex } = useListKeyboard({
@@ -295,7 +306,7 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
   return (
     <div className={clsx("flex flex-col", className)}>
       {/* Header */}
-      {(label || (showReorderButtons && reorderableCount > 0)) && (
+      {(label || headerActions || (showReorderButtons && reorderableCount > 0)) && (
         <div className="flex items-center justify-between px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
           <div className="flex items-center gap-2">
             {label && (
@@ -307,8 +318,10 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
               </span>
             )}
           </div>
-          {showReorderButtons && reorderableCount > 1 && (
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {headerActions}
+            {showReorderButtons && reorderableCount > 1 && (
+              <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={handleMoveUp}
@@ -339,8 +352,9 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -348,7 +362,7 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
       {description && (
         <div
           id={`${fieldId}-description`}
-          className="px-4 py-2 text-xs text-theme-text-tertiary border-b border-theme-border-primary"
+          className="px-4 py-2 text-xs border-b text-theme-text-tertiary border-theme-border-primary"
         >
           {description}
         </div>

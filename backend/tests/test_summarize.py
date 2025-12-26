@@ -164,6 +164,74 @@ class TestSummarizeToolExecute:
         assert df.height == df.select("category").n_unique()
 
     @pytest.mark.asyncio
+    async def test_group_by_object_format_with_id(self, sample_df: pl.LazyFrame):
+        """Test group by columns in new object format with _id"""
+        tool = SummarizeTool()
+        config = {
+            "groupByColumns": [
+                {"_id": "action-123", "column": "category"},
+            ],
+            "aggregations": [
+                {"_id": "action-456", "column": "amount", "operation": "Sum", "outputName": "total_amount"}
+            ],
+        }
+        result = await tool.execute(config, {"input": sample_df})
+        df = result["output"].collect()
+
+        assert "category" in df.columns
+        assert "total_amount" in df.columns
+        assert len(df) == 2  # Two categories: A and B
+
+    @pytest.mark.asyncio
+    async def test_group_by_and_aggregate_same_column(self, sample_df: pl.LazyFrame):
+        """Test grouping by a column AND aggregating on the same column (Alteryx-style)"""
+        tool = SummarizeTool()
+        config = {
+            "groupByColumns": [
+                {"_id": "action-1", "column": "category"},
+            ],
+            "aggregations": [
+                {"_id": "action-2", "column": "category", "operation": "Count", "outputName": "Count_category"},
+                {"_id": "action-3", "column": "amount", "operation": "Sum", "outputName": "Sum_amount"},
+            ],
+        }
+        result = await tool.execute(config, {"input": sample_df})
+        df = result["output"].collect()
+
+        assert "category" in df.columns
+        assert "Count_category" in df.columns
+        assert "Sum_amount" in df.columns
+        assert len(df) == 2  # Two categories: A and B
+
+        # Check values - category A has 2 rows, category B has 3 rows
+        a_row = df.filter(pl.col("category") == "A")
+        b_row = df.filter(pl.col("category") == "B")
+        assert a_row["Count_category"][0] == 2
+        assert b_row["Count_category"][0] == 3
+        assert a_row["Sum_amount"][0] == 300  # 100 + 200
+        assert b_row["Sum_amount"][0] == 700  # 150 + 250 + 300
+
+    @pytest.mark.asyncio
+    async def test_mixed_format_group_by_columns(self, sample_df: pl.LazyFrame):
+        """Test mixing legacy string format and new object format for groupByColumns"""
+        tool = SummarizeTool()
+        config = {
+            "groupByColumns": [
+                "category",  # Legacy string format
+                {"_id": "action-1", "column": "subcategory"},  # New object format
+            ],
+            "aggregations": [
+                {"column": "amount", "operation": "Sum", "outputName": "total_amount"}
+            ],
+        }
+        result = await tool.execute(config, {"input": sample_df})
+        df = result["output"].collect()
+
+        assert "category" in df.columns
+        assert "subcategory" in df.columns
+        assert "total_amount" in df.columns
+
+    @pytest.mark.asyncio
     async def test_default_output_name(self, sample_df: pl.LazyFrame):
         """Test default output name when not specified"""
         tool = SummarizeTool()

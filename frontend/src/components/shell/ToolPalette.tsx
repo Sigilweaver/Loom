@@ -53,7 +53,12 @@ export default function ToolPalette() {
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto bg-theme-surface-panel">
+    <div className="h-full overflow-y-auto bg-theme-surface-panel">
+      {/* Drag hint */}
+      <div className="px-3 py-2 text-xs border-b text-theme-text-tertiary border-theme-border-primary bg-theme-surface-elevated">
+        Drag tools to the canvas to build your workflow
+      </div>
+      
       {CATEGORIES.map((category) => {
         const tools = category.id === 'favorites' 
           ? getToolsByCategory(category.id, favoriteTools)
@@ -67,7 +72,7 @@ export default function ToolPalette() {
             {/* Category Subheader - Clickable to collapse/expand */}
             <button
               onClick={() => toggleCategory(category.id)}
-              className="flex items-center gap-2 px-3 py-2 bg-theme-surface-elevated text-theme-text-secondary text-xs font-semibold uppercase tracking-wide w-full hover:bg-theme-surface-hover transition-colors"
+              className="flex items-center w-full gap-2 px-3 py-2 text-xs font-semibold tracking-wide uppercase transition-colors bg-theme-surface-elevated text-theme-text-secondary hover:bg-theme-surface-hover"
               style={{ borderLeftWidth: '3px', borderLeftColor: categoryColor }}
               aria-expanded={!isCollapsed}
               aria-controls={`category-${category.id}-content`}
@@ -79,20 +84,20 @@ export default function ToolPalette() {
               )}
               <category.icon className="w-3.5 h-3.5" style={{ color: categoryColor }} />
               <span>{category.name}</span>
-              <span className="text-theme-text-disabled font-normal">({tools.length})</span>
+              <span className="font-normal text-theme-text-disabled">({tools.length})</span>
             </button>
 
-            {/* Tools Flex Flow - Collapsible */}
+            {/* Tools Grid - Collapsible */}
             {!isCollapsed && (
               <div id={`category-${category.id}-content`} className="px-3 py-2">
                 {tools.length === 0 ? (
-                  <div className="text-xs text-theme-text-tertiary py-2 italic">
+                  <div className="py-2 text-xs italic text-theme-text-tertiary">
                     {category.id === 'favorites' 
                       ? 'Click the star on any tool to add it here.' 
                       : 'No tools in this category.'}
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))' }}>
                     {tools.map((tool) => {
                       const toolColor = getCategoryColor(tool.category);
                       const isFavorite = favoriteTools.includes(tool.type);
@@ -100,7 +105,7 @@ export default function ToolPalette() {
                       return (
                         <div
                           key={tool.type}
-                          className="flex flex-col items-center relative group"
+                          className="relative flex flex-col items-center group"
                         >
                           {/* Favorite star button */}
                           <button
@@ -123,7 +128,7 @@ export default function ToolPalette() {
                           <div
                             draggable
                             onDragStart={(e) => handleDragStart(e, tool.type)}
-                            className="border-2 rounded-lg p-2 bg-theme-node-default-bg shadow hover:shadow-lg transition-shadow select-none cursor-move flex items-center justify-center"
+                            className="flex items-center justify-center p-2 transition-shadow border-2 rounded-lg shadow cursor-move select-none bg-theme-node-default-bg hover:shadow-lg"
                             style={{
                               width: "44px",
                               height: "44px",
