@@ -576,6 +576,54 @@ describe("TabStore", () => {
       expect(tools2.length).toBe(1);
       expect(tools2[0]?.id).toBe("tool2");
     });
+
+    it("maintains isolated viewport state per tab", () => {
+      // Create tab1 with a specific viewport
+      const tab1Id = useTabStore.getState().createTab("Tab 1");
+      useUIStore.getState().setViewport({ x: 100, y: 200, zoom: 1.5 });
+
+      // Create tab2 with a different viewport
+      const tab2Id = useTabStore.getState().createTab("Tab 2");
+      useUIStore.getState().setViewport({ x: 500, y: 600, zoom: 0.8 });
+
+      // Switch back to tab1
+      useTabStore.getState().switchTab(tab1Id);
+
+      // Should have tab1's viewport
+      const viewport1 = useUIStore.getState().viewport;
+      expect(viewport1).toEqual({ x: 100, y: 200, zoom: 1.5 });
+
+      // Switch to tab2
+      useTabStore.getState().switchTab(tab2Id);
+
+      // Should have tab2's viewport
+      const viewport2 = useUIStore.getState().viewport;
+      expect(viewport2).toEqual({ x: 500, y: 600, zoom: 0.8 });
+    });
+
+    it("preserves null viewport for new tabs", () => {
+      // Create tab1 and set a viewport
+      const tab1Id = useTabStore.getState().createTab("Tab 1");
+      useUIStore.getState().setViewport({ x: 100, y: 200, zoom: 1.0 });
+
+      // Create tab2 (should have null viewport initially)
+      const tab2Id = useTabStore.getState().createTab("Tab 2");
+      
+      // Tab2 starts with null viewport
+      expect(useUIStore.getState().viewport).toBeNull();
+
+      // Switch back to tab1
+      useTabStore.getState().switchTab(tab1Id);
+
+      // Tab1 should have its viewport restored
+      expect(useUIStore.getState().viewport).toEqual({ x: 100, y: 200, zoom: 1.0 });
+
+      // Switch to tab2
+      useTabStore.getState().switchTab(tab2Id);
+
+      // Tab2 should still have null viewport
+      expect(useUIStore.getState().viewport).toBeNull();
+    });
   });
 
   describe("Edge Cases", () => {
