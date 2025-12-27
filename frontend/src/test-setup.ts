@@ -94,6 +94,18 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock pointer capture methods for Radix UI components
+// JSDOM doesn't implement these but Radix Select uses them
+if (typeof Element.prototype.setPointerCapture !== 'function') {
+  Element.prototype.setPointerCapture = vi.fn();
+}
+if (typeof Element.prototype.releasePointerCapture !== 'function') {
+  Element.prototype.releasePointerCapture = vi.fn();
+}
+if (typeof Element.prototype.hasPointerCapture !== 'function') {
+  Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+}
+
 // Mock IntersectionObserver (used by ReactFlow)
 global.IntersectionObserver = class {
   constructor() {}

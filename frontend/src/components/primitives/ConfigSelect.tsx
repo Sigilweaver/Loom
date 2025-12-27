@@ -1,15 +1,8 @@
 import { EmissionMap } from "@domain/workflow/entities/workflow";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import clsx from "clsx";
-import React, {
-  ChangeEvent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Check, ChevronDown } from "lucide-react";
+import React, { ReactNode, useCallback, useId, useMemo } from "react";
 import { ConfigField } from "./ConfigField";
 import { ConfigValidationMessage } from "./ConfigValidationMessage";
 import { usePrimitiveEmission } from "./hooks";
@@ -19,6 +12,7 @@ export interface ConfigSelectOption {
   label: ReactNode;
   description?: ReactNode;
   disabled?: boolean;
+  /** @deprecated Search functionality removed - keywords are ignored */
   keywords?: string[];
 }
 
@@ -38,30 +32,22 @@ export interface ConfigSelectProps {
   disabled?: boolean;
   required?: boolean;
   placeholder?: string;
+  /** @deprecated Search functionality removed - this prop is ignored */
   searchable?: boolean;
+  /** @deprecated Search functionality removed - this prop is ignored */
   searchPlaceholder?: string;
   emptyOptionLabel?: string;
   className?: string;
   selectClassName?: string;
+  /** @deprecated Search functionality removed - this prop is ignored */
   onSearchChange?: (term: string) => void;
   noOptionsMessage?: ReactNode;
+  /** @deprecated Search functionality removed - this prop is ignored */
   searchNoMatchMessage?: ReactNode;
 }
 
-const buildOptionSearchText = (option: ConfigSelectOption): string => {
-  const parts: string[] = [];
-  parts.push(option.value);
-  if (typeof option.label === "string") {
-    parts.push(option.label);
-  }
-  if (typeof option.description === "string") {
-    parts.push(option.description);
-  }
-  if (Array.isArray(option.keywords)) {
-    parts.push(option.keywords.join(" "));
-  }
-  return parts.join(" ").toLowerCase();
-};
+// Internal sentinel value for "use default" option
+const EMPTY_VALUE_SENTINEL = "__CONFIGSELECT_EMPTY__";
 
 export const ConfigSelect: React.FC<ConfigSelectProps> = ({
   value,
@@ -75,23 +61,12 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
   disabled = false,
   required = false,
   placeholder = "Choose an option",
-  searchable = false,
-  searchPlaceholder = "Search options...",
   emptyOptionLabel = "Use default",
   className,
-  onSearchChange,
   noOptionsMessage = "No options available.",
-  searchNoMatchMessage = "No options match your search.",
 }) => {
   const selectId = useId();
   const descriptionId = description ? `${selectId}-description` : undefined;
-  const listboxId = `${selectId}-listbox`;
-  const searchId = `${selectId}-search`;
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { shouldEmit, commit } = usePrimitiveEmission<string>({
     configKey,
@@ -100,117 +75,16 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
     onChange,
   });
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [searchTouched, setSearchTouched] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  const handleSearchChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const term = event.target.value;
-      setSearchTerm(term);
-      if (term.length > 0) {
-        setSearchTouched(true);
-      }
-      onSearchChange?.(term);
-    },
-    [onSearchChange]
-  );
-
-  const optionSearchIndex = useMemo(() => {
-    if (!searchable) {
-      return new Map<string, string>();
-    }
-    const index = new Map<string, string>();
-    for (const option of options) {
-      index.set(option.value, buildOptionSearchText(option));
-    }
-    return index;
-  }, [options, searchable]);
-
-  const filteredOptions = useMemo(() => {
-    if (!searchable) {
-      return options;
-    }
-
-    const term = searchTerm.trim().toLowerCase();
-    if (term.length === 0) {
-      return options;
-    }
-
-    return options.filter((option) => {
-      const indexValue = optionSearchIndex.get(option.value);
-      if (!indexValue) {
-        return false;
-      }
-      return indexValue.includes(term);
-    });
-  }, [options, searchable, optionSearchIndex, searchTerm]);
-
+  // Find the default option for display purposes
   const defaultOption = useMemo(
     () => options.find((option) => option.value === defaultValue) ?? null,
     [options, defaultValue]
   );
 
+  // The value shown in the select (actual value or default)
   const effectiveValue = value ?? defaultOption?.value ?? undefined;
 
-  const resolvedOptions = useMemo(() => {
-    const baseList = [...filteredOptions];
-    if (effectiveValue !== undefined) {
-      const hasSelected = baseList.some(
-        (option) => option.value === effectiveValue
-      );
-      if (!hasSelected) {
-        const current = options.find(
-          (option) => option.value === effectiveValue
-        );
-        if (current) {
-          baseList.unshift(current);
-        }
-      }
-    }
-    return baseList;
-  }, [filteredOptions, options, effectiveValue]);
-
-  const includePlaceholder = !required && searchTerm.trim().length === 0;
-
-  const listOptions = useMemo(() => {
-    const entries: Array<ConfigSelectOption & { synthetic?: boolean }> = [];
-    if (includePlaceholder) {
-      entries.push({
-        value: "",
-        label: placeholder ?? emptyOptionLabel,
-        synthetic: true,
-      });
-    }
-    for (const option of resolvedOptions) {
-      entries.push(option);
-    }
-    return entries;
-  }, [resolvedOptions, includePlaceholder, placeholder, emptyOptionLabel]);
-
-  const actionableOptions = useMemo(
-    () => listOptions.filter((option) => !option.disabled),
-    [listOptions]
-  );
-
-  const matchableOptions = useMemo(
-    () => listOptions.filter((option) => !option.disabled && !option.synthetic),
-    [listOptions]
-  );
-
-  const showSearchNoMatchMessage =
-    searchable &&
-    searchTouched &&
-    searchTerm.trim().length > 0 &&
-    matchableOptions.length === 0;
-  const showBaseEmptyMessage = options.length === 0;
-  const validationMessage = showSearchNoMatchMessage
-    ? searchNoMatchMessage
-    : showBaseEmptyMessage
-      ? noOptionsMessage
-      : null;
-
+  // Find currently selected option for display
   const selectedOption = useMemo(() => {
     if (effectiveValue === undefined) {
       return null;
@@ -218,264 +92,24 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
     return options.find((option) => option.value === effectiveValue) ?? null;
   }, [options, effectiveValue]);
 
-  const resetSearchState = useCallback(() => {
-    setSearchTerm("");
-    setSearchTouched(false);
-  }, []);
-
-  const closePanel = useCallback(() => {
-    setIsOpen(false);
-    resetSearchState();
-    setActiveIndex(null);
-    triggerRef.current?.focus();
-  }, [resetSearchState]);
-
-  const openPanel = useCallback(() => {
-    if (disabled) {
-      return;
-    }
-    setIsOpen(true);
-  }, [disabled]);
-
-  const commitSelection = useCallback(
-    (optionValue: string | undefined) => {
-      commit(optionValue);
-      closePanel();
-    },
-    [closePanel, commit]
-  );
-
-  const handleTriggerClick = useCallback(() => {
-    if (disabled) {
-      return;
-    }
-    setIsOpen((prev) => {
-      const next = !prev;
-      if (!next) {
-        resetSearchState();
-        setActiveIndex(null);
-      }
-      return next;
-    });
-  }, [disabled, resetSearchState]);
-
-  const handleTriggerKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (disabled) {
-        return;
-      }
-
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        if (!isOpen) {
-          openPanel();
-        }
-        setActiveIndex((current) => {
-          if (current != null) {
-            return current;
-          }
-          if (actionableOptions.length === 0) {
-            return null;
-          }
-          const initial = actionableOptions[0]!;
-          const index = listOptions.indexOf(initial);
-          return index >= 0 ? index : null;
-        });
-      } else if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        setIsOpen((prev) => !prev);
+  // Handle Radix value change - convert sentinel back to undefined
+  const handleValueChange = useCallback(
+    (newValue: string) => {
+      if (newValue === EMPTY_VALUE_SENTINEL) {
+        commit(undefined);
+      } else {
+        commit(newValue);
       }
     },
-    [disabled, actionableOptions, listOptions, isOpen, openPanel]
+    [commit]
   );
 
-  const findNextEnabled = useCallback(
-    (startIndex: number, direction: 1 | -1): number | null => {
-      const total = listOptions.length;
-      let index = startIndex;
-      while (index >= 0 && index < total) {
-        const option = listOptions[index];
-        if (option && !option.disabled) {
-          return index;
-        }
-        index += direction;
-      }
-      return null;
-    },
-    [listOptions]
-  );
+  const hasOptions = options.length > 0;
+  const hasInteractiveOptions = hasOptions || (value !== undefined && !required);
+  const showEmptyMessage = !hasOptions;
 
-  const handleListKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLUListElement>) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePanel();
-        return;
-      }
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setActiveIndex((current) => {
-          if (current == null) {
-            return findNextEnabled(0, 1);
-          }
-          const next = findNextEnabled(current + 1, 1);
-          return next ?? current;
-        });
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setActiveIndex((current) => {
-          if (current == null) {
-            return findNextEnabled(listOptions.length - 1, -1);
-          }
-          const next = findNextEnabled(current - 1, -1);
-          return next ?? current;
-        });
-        return;
-      }
-
-      if (event.key === "Enter") {
-        event.preventDefault();
-        if (activeIndex == null) {
-          return;
-        }
-        const option = listOptions[activeIndex];
-        if (!option || option.disabled) {
-          return;
-        }
-        const optionValue = option.synthetic ? undefined : option.value;
-        commitSelection(optionValue);
-      }
-    },
-    [activeIndex, listOptions, commitSelection, findNextEnabled, closePanel]
-  );
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current) {
-        return;
-      }
-      if (!containerRef.current.contains(event.target as Node)) {
-        closePanel();
-      }
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [isOpen, closePanel]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    if (searchable) {
-      searchInputRef.current?.focus();
-    } else {
-      listRef.current?.focus();
-    }
-
-    const valueToMatch = effectiveValue;
-    if (valueToMatch !== undefined) {
-      const index = listOptions.findIndex(
-        (option) => !option.synthetic && option.value === valueToMatch
-      );
-      if (index >= 0) {
-        setActiveIndex(index);
-        return;
-      }
-    }
-
-    const placeholderIndex = listOptions.findIndex(
-      (option) => option.synthetic
-    );
-    if (placeholderIndex >= 0) {
-      setActiveIndex(placeholderIndex);
-      return;
-    }
-
-    const firstEnabled = findNextEnabled(0, 1);
-    setActiveIndex(firstEnabled ?? null);
-  }, [isOpen, listOptions, searchable, effectiveValue, findNextEnabled]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    if (listRef.current && activeIndex != null) {
-      const optionId = `${selectId}-option-${activeIndex}`;
-      const activeEl = document.getElementById(optionId);
-      if (activeEl && typeof activeEl.scrollIntoView === "function") {
-        activeEl.scrollIntoView({ block: "nearest" });
-      }
-    }
-  }, [activeIndex, isOpen, selectId]);
-
-  const handleOptionSelect = useCallback(
-    (option: ConfigSelectOption & { synthetic?: boolean }) => {
-      if (option.disabled) {
-        return;
-      }
-      const optionValue = option.synthetic ? undefined : option.value;
-      commitSelection(optionValue);
-    },
-    [commitSelection]
-  );
-
-  const handleOptionMouseEnter = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
-
-  const handleSearchInput = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      handleSearchChange(event);
-      if (event.target.value.length === 0) {
-        setActiveIndex((current) => {
-          if (current != null) {
-            return current;
-          }
-          return findNextEnabled(0, 1);
-        });
-      }
-    },
-    [handleSearchChange, findNextEnabled]
-  );
-
-  const hasInteractiveOptions =
-    matchableOptions.length > 0 || (value !== undefined && !required);
-
-  const describedByIds = useMemo(() => {
-    const ids: string[] = [];
-    if (descriptionId) {
-      ids.push(descriptionId);
-    }
-    if (validationMessage) {
-      ids.push(`${selectId}-validation`);
-    }
-    return ids.length > 0 ? ids.join(" ") : undefined;
-  }, [descriptionId, validationMessage, selectId]);
-
-  const triggerLabel = selectedOption ? (
-    <span className="truncate text-theme-text-primary">
-      {selectedOption.label}
-    </span>
-  ) : (
-    <span className="truncate text-theme-text-tertiary">
-      {placeholder ?? emptyOptionLabel}
-    </span>
-  );
-
-  const listHasVisibleOptions = listOptions.length > 0;
-  const placeholderSelected = value === undefined && !defaultOption;
+  // For Radix, use sentinel value when value is undefined
+  const radixValue = effectiveValue ?? EMPTY_VALUE_SENTINEL;
 
   return (
     <ConfigField
@@ -489,124 +123,130 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
       className={className}
       contentClassName="space-y-2"
     >
-      <div ref={containerRef} className="relative">
-        <button
+      <SelectPrimitive.Root
+        value={radixValue}
+        onValueChange={handleValueChange}
+        disabled={disabled || !hasInteractiveOptions}
+      >
+        <SelectPrimitive.Trigger
           id={selectId}
-          ref={triggerRef}
-          type="button"
           className={clsx(
-            "flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-            "border-theme-border-primary bg-theme-surface-elevated text-left",
+            "flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 py-2",
+            "border-theme-border-primary bg-theme-surface-elevated text-sm",
+            "text-theme-text-primary placeholder:text-theme-text-tertiary",
             "focus:outline-none focus:ring-1 focus:ring-theme-border-focus focus:border-theme-border-focus",
-            disabled && "opacity-50 cursor-not-allowed"
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            "[&>span]:line-clamp-1"
           )}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          aria-controls={isOpen ? listboxId : undefined}
-          aria-describedby={describedByIds}
-          onClick={handleTriggerClick}
-          onKeyDown={handleTriggerKeyDown}
-          disabled={disabled || !hasInteractiveOptions}
+          aria-describedby={descriptionId}
         >
-          {triggerLabel}
-          <span
+          <SelectPrimitive.Value placeholder={placeholder}>
+            {selectedOption ? (
+              <span className="truncate">{selectedOption.label}</span>
+            ) : (
+              <span className="text-theme-text-tertiary">{placeholder}</span>
+            )}
+          </SelectPrimitive.Value>
+          <SelectPrimitive.Icon asChild>
+            <ChevronDown className="h-4 w-4 shrink-0 text-theme-text-tertiary" />
+          </SelectPrimitive.Icon>
+        </SelectPrimitive.Trigger>
+
+        <SelectPrimitive.Portal>
+          <SelectPrimitive.Content
             className={clsx(
-              "ml-auto text-theme-text-tertiary transition-transform",
-              isOpen && "rotate-180"
+              "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md",
+              "border border-theme-border-primary bg-theme-bg-secondary shadow-lg",
+              "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+              "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+              "data-[side=bottom]:slide-in-from-top-2",
+              "data-[side=top]:slide-in-from-bottom-2"
             )}
-            aria-hidden
+            position="popper"
+            sideOffset={4}
           >
-            ▾
-          </span>
-        </button>
+            <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1 text-theme-text-secondary">
+              <ChevronDown className="h-4 w-4 rotate-180" />
+            </SelectPrimitive.ScrollUpButton>
 
-        {isOpen && (
-          <div className="absolute left-0 right-0 z-20 mt-1 overflow-hidden border rounded-md shadow-xl border-theme-border-primary bg-theme-surface-panel">
-            {searchable && (
-              <div className="p-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-                <input
-                  ref={searchInputRef}
-                  id={searchId}
-                  type="search"
-                  value={searchTerm}
-                  onChange={handleSearchInput}
-                  placeholder={searchPlaceholder}
-                  className="w-full px-2 py-1 text-sm bg-transparent border rounded border-theme-border-primary text-theme-text-primary placeholder-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
-                  aria-label="Filter options"
-                />
-              </div>
-            )}
-
-            <ul
-              ref={listRef}
-              id={listboxId}
-              role="listbox"
-              tabIndex={-1}
-              aria-activedescendant={
-                activeIndex != null
-                  ? `${selectId}-option-${activeIndex}`
-                  : undefined
-              }
-              aria-labelledby={selectId}
-              onKeyDown={handleListKeyDown}
-              className="overflow-y-auto text-sm max-h-60 text-theme-text-primary focus:outline-none"
-            >
-              {listHasVisibleOptions ? (
-                listOptions.map((option, index) => {
-                  const isSelected = option.synthetic
-                    ? placeholderSelected
-                    : option.value === effectiveValue;
-                  const isActive = index === activeIndex;
-                  return (
-                    <li
-                      key={`${option.value}-${index}`}
-                      id={`${selectId}-option-${index}`}
-                      role="option"
-                      aria-selected={isSelected}
-                      className={clsx(
-                        "cursor-pointer px-3 py-2",
-                        isActive ? "bg-theme-surface-hover" : "bg-transparent",
-                        option.disabled && "cursor-not-allowed opacity-50",
-                        !option.disabled && "hover:bg-theme-surface-hover"
-                      )}
-                      onMouseEnter={() => handleOptionMouseEnter(index)}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleOptionSelect(option)}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-medium truncate">
-                          {option.label}
-                        </span>
-                        {isSelected && (
-                          <span className="text-xs text-theme-interactive-accent">
-                            Selected
-                          </span>
-                        )}
-                      </div>
-                      {option.description && (
-                        <div className="mt-1 text-xs text-theme-text-tertiary">
-                          {option.description}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })
-              ) : (
-                <li className="px-3 py-4 text-sm text-theme-text-tertiary">
-                  {searchable && searchTerm.trim().length > 0
-                    ? searchNoMatchMessage
-                    : noOptionsMessage}
-                </li>
+            <SelectPrimitive.Viewport
+              className={clsx(
+                "p-1",
+                "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
               )}
-            </ul>
-          </div>
-        )}
-      </div>
+            >
+              {/* Empty/default option when not required */}
+              {!required && (
+                <SelectPrimitive.Item
+                  value={EMPTY_VALUE_SENTINEL}
+                  className={clsx(
+                    "relative flex w-full cursor-default select-none items-center rounded py-1.5 pl-8 pr-2",
+                    "text-sm text-theme-text-secondary outline-none",
+                    "focus:bg-theme-bg-hover focus:text-theme-text-primary",
+                    "data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  )}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    <SelectPrimitive.ItemIndicator>
+                      <Check className="h-4 w-4" />
+                    </SelectPrimitive.ItemIndicator>
+                  </span>
+                  <SelectPrimitive.ItemText>
+                    {emptyOptionLabel}
+                  </SelectPrimitive.ItemText>
+                </SelectPrimitive.Item>
+              )}
+
+              {/* Actual options */}
+              {options.map((option) => (
+                <SelectPrimitive.Item
+                  key={option.value}
+                  value={option.value}
+                  disabled={option.disabled ?? false}
+                  className={clsx(
+                    "relative flex w-full cursor-default select-none items-start rounded py-1.5 pl-8 pr-2",
+                    "text-sm text-theme-text-primary outline-none",
+                    "focus:bg-theme-bg-hover focus:text-theme-text-primary",
+                    "data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  )}
+                >
+                  <span className="absolute left-2 top-1.5 flex h-3.5 w-3.5 items-center justify-center">
+                    <SelectPrimitive.ItemIndicator>
+                      <Check className="h-4 w-4" />
+                    </SelectPrimitive.ItemIndicator>
+                  </span>
+                  <div className="flex flex-col">
+                    <SelectPrimitive.ItemText>
+                      {option.label}
+                    </SelectPrimitive.ItemText>
+                    {option.description && (
+                      <span className="text-xs text-theme-text-tertiary mt-0.5">
+                        {option.description}
+                      </span>
+                    )}
+                  </div>
+                </SelectPrimitive.Item>
+              ))}
+
+              {/* Empty state message */}
+              {showEmptyMessage && (
+                <div className="px-3 py-4 text-sm text-theme-text-tertiary">
+                  {noOptionsMessage}
+                </div>
+              )}
+            </SelectPrimitive.Viewport>
+
+            <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1 text-theme-text-secondary">
+              <ChevronDown className="h-4 w-4" />
+            </SelectPrimitive.ScrollDownButton>
+          </SelectPrimitive.Content>
+        </SelectPrimitive.Portal>
+      </SelectPrimitive.Root>
 
       <ConfigValidationMessage
         id={`${selectId}-validation`}
         state="info"
-        message={validationMessage}
+        message={showEmptyMessage ? noOptionsMessage : null}
       />
     </ConfigField>
   );

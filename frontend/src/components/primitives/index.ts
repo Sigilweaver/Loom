@@ -35,10 +35,6 @@ export {
   type ConfigKeyValueListProps,
   type KeyValuePair,
 } from "./ConfigKeyValueList";
-export {
-  ConfigMultiSelect,
-  type ConfigMultiSelectProps,
-} from "./ConfigMultiSelect";
 export { ConfigNumber, type ConfigNumberProps } from "./ConfigNumber";
 export {
   ConfigNumberRange,
