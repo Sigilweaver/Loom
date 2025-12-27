@@ -7,13 +7,13 @@ import {
   ArrowUpDown, 
   Calculator, 
   Layers, 
-  Link, 
   Sigma,
   FlaskRound,
   Fingerprint,
   CornerRightDown,
   CornerLeftUp,
 } from 'lucide-react';
+import { SigilweaverIcon } from '../components/icons/SigilweaverIcon';
 import { CommonSockets, FilterSockets, JoinSockets, UnionSockets, UniqueSockets } from '../domain/workflow/constants/socketIds';
 
 const DOCS_BASE_URL = 'https://docs.sigilweaver.app/user';
@@ -160,7 +160,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Join',
     name: 'Join',
-    icon: Link,
+    icon: SigilweaverIcon,
     category: 'join',
     defaultConfig: {
       joinType: 'inner',
