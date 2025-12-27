@@ -1,7 +1,7 @@
 import { ToolDefinition } from '../domain/workflow/entities/workflow';
 import { 
   FileInput, 
-  FileOutput, 
+  FileDown, 
   Filter, 
   CheckSquare, 
   ArrowUpDown, 
@@ -36,7 +36,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Output',
     name: 'Output',
-    icon: FileOutput,
+    icon: FileDown,
     category: 'inout',
     defaultConfig: {
       placeholder: 'Configuration coming soon...',
