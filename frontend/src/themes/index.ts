@@ -1,23 +1,101 @@
-// Theme barrel & registry (cleaned)
+/**
+ * Theme System Barrel Export
+ * 
+ * Central export point for all themes and utilities.
+ * 
+ * Folder Structure:
+ *   themes/
+ *     core/           - Built-in themes (sigilweaver, dark, light, high-contrast)
+ *     extended/       - Additional themes (nord, dracula, github, etc.)
+ *     palettes/       - Color palettes for all themes
+ *     tokens/         - Token builders and shared constants
+ *     createTheme.ts  - Theme factory function
+ *     index.ts        - This file
+ */
+
 import { Theme } from '../types/theme';
 
+// Re-export palettes
 export * from './palettes';
-export * from './light';
-export * from './dark';
-export * from './highContrast';
-export * from './sigilweaver';
 
-import { lightTheme } from './light';
-import { darkTheme } from './dark';
-import { highContrastTheme } from './highContrast';
-import { sigilweaverTheme } from './sigilweaver';
+// Re-export core themes
+export * from './core';
 
-export const availableThemes: Theme[] = [
-  lightTheme,
-  darkTheme,
-  highContrastTheme,
+// Re-export extended themes
+export * from './extended';
+
+// Import core themes
+import {
   sigilweaverTheme,
+  darkTheme,
+  lightTheme,
+  highContrastTheme,
+} from './core';
+
+// Import extended themes
+import {
+  // Classics
+  nordTheme,
+  draculaTheme,
+  githubDarkTheme,
+  githubLightTheme,
+  gruvboxDarkTheme,
+  gruvboxLightTheme,
+  solarizedDarkTheme,
+  solarizedLightTheme,
+  // Standards
+  oneDarkTheme,
+  monokaiTheme,
+  materialPalenightTheme,
+  // Hype
+  catppuccinMochaTheme,
+  tokyoNightTheme,
+  rosePineTheme,
+  // Utility
+  nightOwlTheme,
+  ayuMirageTheme,
+  // Fun
+  cobalt2Theme,
+  synthwave84Theme,
+} from './extended';
+
+/**
+ * All available themes in display order
+ * 
+ * Organization:
+ * 1. Core themes (Sigilweaver, Dark, Light, High Contrast)
+ * 2. Extended themes ordered by popularity
+ */
+export const availableThemes: Theme[] = [
+  // === CORE ===
+  sigilweaverTheme,
+  darkTheme,
+  lightTheme,
+  highContrastTheme,
+  
+  // === EXTENDED (by popularity) ===
+  draculaTheme,
+  githubDarkTheme,
+  githubLightTheme,
+  oneDarkTheme,
+  nordTheme,
+  monokaiTheme,
+  gruvboxDarkTheme,
+  gruvboxLightTheme,
+  catppuccinMochaTheme,
+  tokyoNightTheme,
+  solarizedDarkTheme,
+  solarizedLightTheme,
+  materialPalenightTheme,
+  rosePineTheme,
+  nightOwlTheme,
+  ayuMirageTheme,
+  cobalt2Theme,
+  synthwave84Theme,
 ];
 
+/**
+ * Get a theme by ID, falling back to Sigilweaver theme
+ */
 export const getThemeById = (id: string): Theme =>
   availableThemes.find(t => t.id === id) || sigilweaverTheme;

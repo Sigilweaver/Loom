@@ -4,7 +4,7 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useSettingsStore } from "@state/settingsStore";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
@@ -12,7 +12,6 @@ import Notification from "./components/shell/Notification";
 import WorkflowViewer from "./components/workflow/WorkflowViewer";
 import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
-import SettingsDialog from "./components/shell/SettingsDialog";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import { initializeAuth } from "./api/backend";
@@ -20,10 +19,9 @@ import { closeAllWorkflowCaches } from "./api/cache";
 
 function App() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'general' | 'connections' | 'backend' | 'appearance' | 'about'>('general');
-  // Zustand stores - primary state
+  const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
+  // Zustand stores - primary state
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow);
 
   // Tab store
@@ -97,20 +95,17 @@ function App() {
   }, [saveCurrentTab]);
 
   // Listen for open-settings custom event (e.g., from PostgresqlConfiguration)
+  // Now just switches to the Settings tab in the left pane
   useEffect(() => {
-    const handleOpenSettings = (e: Event) => {
-      const customEvent = e as CustomEvent<{ tab?: string }>;
-      const tab = customEvent.detail?.tab;
-      if (tab && ['general', 'connections', 'backend', 'appearance', 'about'].includes(tab)) {
-        setSettingsInitialTab(tab as typeof settingsInitialTab);
-      } else {
-        setSettingsInitialTab('general');
-      }
-      setShowSettings(true);
+    const handleOpenSettings = () => {
+      // Deselect any tool to show the left pane tabs
+      setSelectedTool(null);
+      // Switch to settings tab
+      setLeftPaneTab('settings');
     };
     window.addEventListener('open-settings', handleOpenSettings);
     return () => window.removeEventListener('open-settings', handleOpenSettings);
-  }, []);
+  }, [setSelectedTool, setLeftPaneTab]);
 
   useEffect(() => {
     startNotificationAutoHide();
@@ -291,10 +286,7 @@ function App() {
     <ThemeProvider>
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-col h-screen bg-theme-surface-page">
-          <Header 
-            ref={headerRef}
-            onShowSettings={() => setShowSettings(true)}
-          />
+          <Header ref={headerRef} />
 
           <div className="flex flex-1 overflow-hidden">
             {/* Left Pane - Tool Palette and Configuration */}
@@ -322,15 +314,6 @@ function App() {
 
           {/* Notification System - uses uiStore internally */}
           <Notification />
-          
-          <SettingsDialog 
-            isOpen={showSettings} 
-            onClose={() => {
-              setShowSettings(false);
-              setSettingsInitialTab('general'); // Reset to default for next open
-            }}
-            initialTab={settingsInitialTab}
-          />
         </div>
       </TooltipProvider>
     </ThemeProvider>

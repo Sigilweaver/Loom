@@ -823,7 +823,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     currentTheme,
     availableThemes,
     setTheme,
-    isDark: currentTheme.id === "dark",
   };
 
   return (

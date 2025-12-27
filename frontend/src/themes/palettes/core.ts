@@ -1,6 +1,15 @@
-import { ColorPalette } from '../types/theme';
+/**
+ * Core Palettes
+ * 
+ * Color palettes for the built-in themes: light, dark, and sigilweaver.
+ */
 
-// Light theme color palette
+import { ColorPalette } from '../../types/theme';
+
+/**
+ * Light Theme Palette
+ * Clean and bright colors for daytime use
+ */
 export const lightPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 300: '#d1d5db', 400: '#9ca3af', 500: '#6b7280', 600: '#4b5563', 700: '#374151', 800: '#1f2937', 900: '#111827', 950: '#030712' },
@@ -23,7 +32,10 @@ export const lightPalette: ColorPalette = {
   },
 };
 
-// Dark theme color palette
+/**
+ * Dark Theme Palette
+ * Easy on the eyes for nighttime use
+ */
 export const darkPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#030712', 100: '#111827', 200: '#1f2937', 300: '#374151', 400: '#4b5563', 500: '#6b7280', 600: '#9ca3af', 700: '#d1d5db', 800: '#e5e7eb', 900: '#f3f4f6', 950: '#f9fafb' },
@@ -46,7 +58,10 @@ export const darkPalette: ColorPalette = {
   },
 };
 
-// Sigilweaver Color Palette
+/**
+ * Sigilweaver Theme Palette
+ * Mystical purple-tinted dark palette for the signature theme
+ */
 export const sigilweaverPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#1a0b2e', 100: '#2a1a3e', 200: '#3a2a52', 300: '#4a3a66', 400: '#6a5a86', 500: '#8a7aa6', 600: '#aaa0c6', 700: '#cac0e6', 800: '#eae0f6', 900: '#f5f0ff', 950: '#ffffff' },

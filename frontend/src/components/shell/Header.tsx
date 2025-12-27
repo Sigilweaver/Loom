@@ -24,10 +24,6 @@ import { useEffect, forwardRef, useImperativeHandle, useState, useCallback } fro
 
 const logger = createLogger('Header');
 
-interface HeaderProps {
-  onShowSettings: () => void;
-}
-
 export interface HeaderRef {
   handleSaveWorkflow: () => void;
   handleSaveAsWorkflow: () => void;
@@ -37,7 +33,7 @@ export interface HeaderRef {
   handleRunWorkflow: () => void;
 }
 
-const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
+const Header = forwardRef<HeaderRef, object>((_, ref) => {
   // Access stores directly
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
@@ -527,19 +523,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={onShowSettings}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-new-bg border border-theme-header-btn-new-border text-theme-header-btn-new-text
-                hover:bg-theme-header-btn-new-bg-hover hover:border-theme-header-btn-new-border-hover hover:text-theme-header-btn-new-text-hover
-                active:bg-theme-header-btn-new-bg-active active:border-theme-header-btn-new-border-active active:text-theme-header-btn-new-text-active"
-              title="Settings"
-            >
-              Settings
-            </button>
-
-            <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
-
             <button
               onClick={handleImportWorkflow}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors

@@ -33,7 +33,7 @@ interface NotificationState {
   expiresAt?: number; // timestamp when it should auto-hide
 }
 
-type LeftPaneTab = "tools" | "workflow";
+type LeftPaneTab = "tools" | "workflow" | "settings";
 
 export interface ViewportState {
   x: number;

@@ -33,9 +33,10 @@ import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfigur
 import ToolHeader from "./ToolHeader";
 import ResizablePanel from "./shell/ResizablePanel";
 import ToolPalette from "./shell/ToolPalette";
+import SettingsPane from "./shell/SettingsPane";
 // Workflow components
 import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
-import { Settings, LayoutGrid } from "lucide-react";
+import { Settings, LayoutGrid, Sliders } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 import { useUIStore } from "@state/uiStore";
 
@@ -128,6 +129,17 @@ export default function LeftPane() {
               <Settings className="w-4 h-4" />
               <span>Workflow</span>
             </button>
+            <button
+              onClick={() => setLeftPaneTab("settings")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "settings"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
           </div>
         </div>
 
@@ -135,6 +147,10 @@ export default function LeftPane() {
         {leftPaneTab === "tools" ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <ToolPalette />
+          </div>
+        ) : leftPaneTab === "settings" ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <SettingsPane />
           </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
