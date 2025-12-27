@@ -207,59 +207,40 @@ const SettingsPane: React.FC = () => {
               </label>
               
               <div className="border border-theme-border-primary rounded-lg overflow-hidden">
-                {/* Sigilweaver theme */}
+                {/* Sigilweaver family (Signature/Dark/Light) */}
                 {(() => {
-                  const t = availableThemes.find(th => th.id === 'sigilweaver')!;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => updateTheme(t.id)}
-                      className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${
-                        theme.id === t.id
-                          ? 'bg-theme-interactive-accent/10 text-theme-interactive-accent font-medium'
-                          : 'hover:bg-theme-bg-secondary text-theme-text-primary'
-                      }`}
-                    >
-                      <span>{t.name}</span>
-                      {theme.id === t.id && (
-                        <span className="ml-2 opacity-70">(active)</span>
-                      )}
-                    </button>
-                  );
-                })()}
-                
-                {/* Standard (Dark/Light) */}
-                {(() => {
-                  const isActiveFamily = theme.id === 'dark' || theme.id === 'light';
+                  const isActiveFamily = theme.id === 'sigilweaver' || theme.id === 'dark' || theme.id === 'light';
+                  const variants = [
+                    { id: 'sigilweaver', label: 'Signature' },
+                    { id: 'dark', label: 'Dark' },
+                    { id: 'light', label: 'Light' },
+                  ] as const;
                   return (
                     <div className="flex items-center px-3 py-2 border-b border-theme-border-secondary">
                       <button
-                        onClick={() => updateTheme('dark')}
+                        onClick={() => updateTheme('sigilweaver')}
                         className={`text-xs flex-1 text-left transition-colors ${
                           isActiveFamily
                             ? 'text-theme-interactive-accent font-medium'
                             : 'text-theme-text-primary hover:text-theme-interactive-accent'
                         }`}
                       >
-                        Standard
+                        Sigilweaver
                       </button>
                       <div className="flex gap-1">
-                        {(['dark', 'light'] as const).map((id) => {
-                          const variant = id === 'light' ? 'Light' : 'Dark';
-                          return (
-                            <button
-                              key={id}
-                              onClick={() => updateTheme(id)}
-                              className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                                theme.id === id
-                                  ? 'bg-theme-interactive-accent text-white font-medium'
-                                  : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
-                              }`}
-                            >
-                              {variant}
-                            </button>
-                          );
-                        })}
+                        {variants.map(({ id, label }) => (
+                          <button
+                            key={id}
+                            onClick={() => updateTheme(id)}
+                            className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                              theme.id === id
+                                ? 'bg-theme-interactive-accent text-white font-medium'
+                                : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   );
@@ -290,16 +271,16 @@ const SettingsPane: React.FC = () => {
                 {([
                   // Single themes and families mixed by popularity
                   { type: 'single' as const, id: 'dracula' },
-                  { type: 'family' as const, name: 'GitHub', ids: ['github-dark', 'github-light'], defaultId: 'github-dark' },
-                  { type: 'single' as const, id: 'one-dark' },
-                  { type: 'single' as const, id: 'nord' },
+                  { type: 'family' as const, name: 'GitHub', ids: ['github-dark', 'github-light'], defaultId: 'github-dark', labels: ['Dark', 'Light'] },
+                  { type: 'family' as const, name: 'One', ids: ['one-dark', 'one-light'], defaultId: 'one-dark', labels: ['Dark', 'Light'] },
+                  { type: 'family' as const, name: 'Nord', ids: ['nord', 'nord-light'], defaultId: 'nord', labels: ['Polar Night', 'Snow Storm'] },
                   { type: 'single' as const, id: 'monokai' },
-                  { type: 'family' as const, name: 'Gruvbox', ids: ['gruvbox-dark', 'gruvbox-light'], defaultId: 'gruvbox-dark' },
-                  { type: 'single' as const, id: 'catppuccin-mocha' },
-                  { type: 'single' as const, id: 'tokyo-night' },
-                  { type: 'family' as const, name: 'Solarized', ids: ['solarized-dark', 'solarized-light'], defaultId: 'solarized-dark' },
+                  { type: 'family' as const, name: 'Gruvbox', ids: ['gruvbox-dark', 'gruvbox-light'], defaultId: 'gruvbox-dark', labels: ['Dark', 'Light'] },
+                  { type: 'family' as const, name: 'Catppuccin', ids: ['catppuccin-mocha', 'catppuccin-latte'], defaultId: 'catppuccin-mocha', labels: ['Mocha', 'Latte'] },
+                  { type: 'family' as const, name: 'Tokyo Night', ids: ['tokyo-night', 'tokyo-night-light'], defaultId: 'tokyo-night', labels: ['Night', 'Day'] },
+                  { type: 'family' as const, name: 'Solarized', ids: ['solarized-dark', 'solarized-light'], defaultId: 'solarized-dark', labels: ['Dark', 'Light'] },
                   { type: 'single' as const, id: 'material-palenight' },
-                  { type: 'single' as const, id: 'rose-pine' },
+                  { type: 'family' as const, name: 'Rose Pine', ids: ['rose-pine', 'rose-pine-dawn'], defaultId: 'rose-pine', labels: ['Moon', 'Dawn'] },
                   { type: 'single' as const, id: 'night-owl' },
                   { type: 'single' as const, id: 'ayu-mirage' },
                   { type: 'single' as const, id: 'cobalt2' },
@@ -341,10 +322,10 @@ const SettingsPane: React.FC = () => {
                           {item.name}
                         </button>
                         <div className="flex gap-1">
-                          {item.ids.map((id) => {
+                          {item.ids.map((id, idx) => {
                             const t = availableThemes.find(th => th.id === id);
                             if (!t) return null;
-                            const variant = id.includes('light') ? 'Light' : 'Dark';
+                            const label = item.labels[idx];
                             return (
                               <button
                                 key={id}
@@ -355,7 +336,7 @@ const SettingsPane: React.FC = () => {
                                     : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
                                 }`}
                               >
-                                {variant}
+                                {label}
                               </button>
                             );
                           })}
