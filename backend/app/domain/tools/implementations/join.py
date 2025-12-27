@@ -5,6 +5,7 @@ from typing import Any
 import polars as pl
 
 from app.api.models.common import ColumnSchema, DataSchema
+from app.domain.execution.safety import check_cross_join_safety, raise_if_unsafe
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
@@ -56,6 +57,13 @@ class JoinTool(BaseTool):
         # Normalize inputs (might be list from multi-input socket, take first)
         left_lf = self._normalize_input(left_input)
         right_lf = self._normalize_input(right_input)
+
+        # Safety check: prevent cross join row explosion
+        left_keys = config.get("leftKeys", [])
+        right_keys = config.get("rightKeys", [])
+        is_cross_join = not left_keys or not right_keys
+        if is_cross_join and left_lf is not None and right_lf is not None:
+            raise_if_unsafe(check_cross_join_safety(left_lf, right_lf))
 
         op = self._build_operation(config)
         unmatched_left, matched, unmatched_right = op.execute(left_lf, right_lf)

@@ -5,6 +5,7 @@ from typing import Any
 import polars as pl
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.execution.safety import check_pivot_safety, raise_if_unsafe
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import PivotOperation
 from app.domain.tools.registry import register_tool
@@ -106,6 +107,9 @@ class PivotTool(BaseTool):
             raise ToolError("Pivot requires a column to pivot on")
         if not values:
             raise ToolError("Pivot requires a values column")
+
+        # Safety check: prevent creating too many columns
+        raise_if_unsafe(check_pivot_safety(lf, on))
 
         op = self._build_operation(config)
         result = op.execute(lf)
