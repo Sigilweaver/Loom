@@ -299,20 +299,9 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
       <div className="flex items-center gap-3 flex-1">
         <Database className="w-5 h-5" style={{ color: 'var(--color-modal-content-text)', opacity: 0.6 }} />
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
-              {connection.name}
-            </span>
-            <span 
-              className={`px-2 py-0.5 text-xs font-medium rounded border ${
-                isServerManaged 
-                  ? 'bg-theme-status-info-bg text-theme-status-info-text border-theme-status-info-border'
-                  : 'bg-theme-status-success-bg text-theme-status-success-text border-theme-status-success-border'
-              }`}
-            >
-              {isServerManaged ? 'Server-Managed' : 'Local'}
-            </span>
-          </div>
+          <span className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
+            {connection.name}
+          </span>
           <div className="text-xs opacity-60" style={{ color: 'var(--color-modal-content-text)' }}>
             {DATABASE_TYPE_NAMES[connection.type]} - {connection.host}:{connection.port}/{connection.database}
           </div>
@@ -342,7 +331,7 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
           </>
         ) : (
           <>
-            {!isServerManaged ? (
+            {!isServerManaged && (
               <>
                 <button
                   onClick={() => onEdit(connection)}
@@ -359,10 +348,6 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
                   <Trash2 className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
                 </button>
               </>
-            ) : (
-              <span className="text-xs px-2 py-1 opacity-50" style={{ color: 'var(--color-modal-content-text)' }}>
-                Read-only
-              </span>
             )}
           </>
         )}
