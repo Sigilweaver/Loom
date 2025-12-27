@@ -13,6 +13,11 @@ import type {
   ResolvedConnection,
   ConnectionTestResult,
 } from '../../types/connections';
+import {
+  mockPlatform,
+  mockPlatformCapabilities,
+  mockPlatformCredentials,
+} from '../../test-setup';
 
 // Mock the server connections API to prevent real backend calls during unit tests
 vi.mock('../../api/serverConnections', () => ({
@@ -23,21 +28,13 @@ vi.mock('../../api/serverConnections', () => ({
 }));
 
 describe('connectionStore', () => {
-  // Mock Electron API
-  const mockElectronAPI = {
-    listConnections: vi.fn(),
-    createConnection: vi.fn(),
-    updateConnection: vi.fn(),
-    deleteConnection: vi.fn(),
-    resolveConnection: vi.fn(),
-    testConnection: vi.fn(),
-    isEncryptionAvailable: vi.fn(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    // @ts-expect-error - mocking window.electronAPI
-    window.electronAPI = mockElectronAPI;
+    
+    // Reset platform mock to default desktop state
+    mockPlatformCapabilities.secureStorage = true;
+    mockPlatformCapabilities.nativeDialogs = true;
+    mockPlatform.name = 'electron';
     
     // Reset store state
     useConnectionStore.setState({
@@ -50,7 +47,7 @@ describe('connectionStore', () => {
   });
 
   describe('loadConnections', () => {
-    it('should load connections from Electron API', async () => {
+    it('should load connections from platform credentials API', async () => {
       const mockConnections: ConnectionInfo[] = [
         {
           id: 'conn-1',
@@ -65,8 +62,8 @@ describe('connectionStore', () => {
         },
       ];
 
-      mockElectronAPI.listConnections.mockResolvedValue(mockConnections);
-      mockElectronAPI.isEncryptionAvailable.mockResolvedValue(true);
+      mockPlatformCredentials.list.mockResolvedValue(mockConnections);
+      mockPlatformCredentials.isAvailable.mockResolvedValue(true);
 
       const { loadConnections } = useConnectionStore.getState();
       await loadConnections();
@@ -79,7 +76,7 @@ describe('connectionStore', () => {
     });
 
     it('should handle loading errors', async () => {
-      mockElectronAPI.listConnections.mockRejectedValue(new Error('Failed to load'));
+      mockPlatformCredentials.list.mockRejectedValue(new Error('Failed to load'));
 
       const { loadConnections } = useConnectionStore.getState();
       await loadConnections();
@@ -90,9 +87,9 @@ describe('connectionStore', () => {
       expect(state.loading).toBe(false);
     });
 
-    it('should handle missing Electron API gracefully', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should handle missing secure storage gracefully', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
 
       const { loadConnections } = useConnectionStore.getState();
       await loadConnections();
@@ -130,8 +127,8 @@ describe('connectionStore', () => {
         },
       ];
 
-      mockElectronAPI.listConnections.mockResolvedValue(mockConnections);
-      mockElectronAPI.isEncryptionAvailable.mockResolvedValue(true);
+      mockPlatformCredentials.list.mockResolvedValue(mockConnections);
+      mockPlatformCredentials.isAvailable.mockResolvedValue(true);
 
       const { loadConnections, getConnectionsByType } = useConnectionStore.getState();
       await loadConnections();
@@ -177,7 +174,7 @@ describe('connectionStore', () => {
         updatedAt: '2025-08-01',
       };
 
-      mockElectronAPI.createConnection.mockResolvedValue(mockCreated);
+      mockPlatformCredentials.create.mockResolvedValue(mockCreated);
 
       const { createConnection } = useConnectionStore.getState();
       const result = await createConnection(input);
@@ -199,7 +196,7 @@ describe('connectionStore', () => {
         password: 'pass',
       };
 
-      mockElectronAPI.createConnection.mockRejectedValue(new Error('Creation failed'));
+      mockPlatformCredentials.create.mockRejectedValue(new Error('Creation failed'));
 
       const { createConnection } = useConnectionStore.getState();
       
@@ -210,9 +207,9 @@ describe('connectionStore', () => {
       expect(state.loading).toBe(false);
     });
 
-    it('should throw when Electron API not available', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should throw when secure storage not available', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
 
       const input: CreateConnectionInput = {
         name: 'New DB',
@@ -225,7 +222,7 @@ describe('connectionStore', () => {
       };
 
       const { createConnection } = useConnectionStore.getState();
-      await expect(createConnection(input)).rejects.toThrow('Electron API not available');
+      await expect(createConnection(input)).rejects.toThrow('Secure storage not available');
     });
   });
 
@@ -257,7 +254,7 @@ describe('connectionStore', () => {
         updatedAt: '2024-01-02',
       };
 
-      mockElectronAPI.updateConnection.mockResolvedValue(mockUpdated);
+      mockPlatformCredentials.update.mockResolvedValue(mockUpdated);
 
       const { updateConnection } = useConnectionStore.getState();
       const result = await updateConnection('conn-1', update);
@@ -269,7 +266,7 @@ describe('connectionStore', () => {
     });
 
     it('should handle update errors', async () => {
-      mockElectronAPI.updateConnection.mockRejectedValue(new Error('Update failed'));
+      mockPlatformCredentials.update.mockRejectedValue(new Error('Update failed'));
 
       const { updateConnection } = useConnectionStore.getState();
       
@@ -310,7 +307,7 @@ describe('connectionStore', () => {
 
       useConnectionStore.setState({ connections });
 
-      mockElectronAPI.deleteConnection.mockResolvedValue(undefined);
+      mockPlatformCredentials.delete.mockResolvedValue(undefined);
 
       const { deleteConnection } = useConnectionStore.getState();
       await deleteConnection('conn-1');
@@ -322,7 +319,7 @@ describe('connectionStore', () => {
     });
 
     it('should handle deletion errors', async () => {
-      mockElectronAPI.deleteConnection.mockRejectedValue(new Error('Deletion failed'));
+      mockPlatformCredentials.delete.mockRejectedValue(new Error('Deletion failed'));
 
       const { deleteConnection } = useConnectionStore.getState();
       
@@ -350,17 +347,17 @@ describe('connectionStore', () => {
         updatedAt: '2025-08-01',
       };
 
-      mockElectronAPI.resolveConnection.mockResolvedValue(mockResolved);
+      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
 
       const { resolveConnection } = useConnectionStore.getState();
       const result = await resolveConnection('conn-1');
 
       expect(result).toEqual(mockResolved);
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
     });
 
     it('should return null when resolution fails', async () => {
-      mockElectronAPI.resolveConnection.mockResolvedValue(null);
+      mockPlatformCredentials.resolve.mockResolvedValue(null);
 
       const { resolveConnection } = useConnectionStore.getState();
       const result = await resolveConnection('invalid-id');
@@ -368,12 +365,12 @@ describe('connectionStore', () => {
       expect(result).toBeNull();
     });
 
-    it('should throw when Electron API not available', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should throw when secure storage not available', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
 
       const { resolveConnection } = useConnectionStore.getState();
-      await expect(resolveConnection('conn-1')).rejects.toThrow('Electron API not available');
+      await expect(resolveConnection('conn-1')).rejects.toThrow('Secure storage not available');
     });
   });
 
@@ -385,13 +382,13 @@ describe('connectionStore', () => {
         latencyMs: 42,
       };
 
-      mockElectronAPI.testConnection.mockResolvedValue(mockResult);
+      mockPlatformCredentials.test.mockResolvedValue(mockResult);
 
       const { testConnection } = useConnectionStore.getState();
       const result = await testConnection('conn-1');
 
       expect(result).toEqual(mockResult);
-      expect(mockElectronAPI.testConnection).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.test).toHaveBeenCalledWith('conn-1');
     });
 
     it('should handle test failures', async () => {
@@ -400,7 +397,7 @@ describe('connectionStore', () => {
         message: 'Connection refused',
       };
 
-      mockElectronAPI.testConnection.mockResolvedValue(mockResult);
+      mockPlatformCredentials.test.mockResolvedValue(mockResult);
 
       const { testConnection } = useConnectionStore.getState();
       const result = await testConnection('conn-1');
@@ -410,7 +407,7 @@ describe('connectionStore', () => {
     });
 
     it('should handle test errors', async () => {
-      mockElectronAPI.testConnection.mockRejectedValue(new Error('Test error'));
+      mockPlatformCredentials.test.mockRejectedValue(new Error('Test error'));
 
       const { testConnection } = useConnectionStore.getState();
       const result = await testConnection('conn-1');
@@ -419,21 +416,21 @@ describe('connectionStore', () => {
       expect(result.message).toBe('Test error');
     });
 
-    it('should return error when Electron API not available', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should return error when secure storage not available', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
 
       const { testConnection } = useConnectionStore.getState();
       const result = await testConnection('conn-1');
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Electron API not available');
+      expect(result.message).toContain('Secure storage not available');
     });
   });
 
   describe('checkEncryption', () => {
     it('should check if encryption is available', async () => {
-      mockElectronAPI.isEncryptionAvailable.mockResolvedValue(true);
+      mockPlatformCredentials.isAvailable.mockResolvedValue(true);
 
       const { checkEncryption } = useConnectionStore.getState();
       const result = await checkEncryption();
@@ -444,7 +441,7 @@ describe('connectionStore', () => {
     });
 
     it('should handle encryption unavailable', async () => {
-      mockElectronAPI.isEncryptionAvailable.mockResolvedValue(false);
+      mockPlatformCredentials.isAvailable.mockResolvedValue(false);
 
       const { checkEncryption } = useConnectionStore.getState();
       const result = await checkEncryption();
@@ -454,9 +451,10 @@ describe('connectionStore', () => {
       expect(state.encryptionAvailable).toBe(false);
     });
 
-    it('should return false when Electron API not available', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should return false when secure storage not available', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
+      mockPlatformCredentials.isAvailable.mockResolvedValue(false);
 
       const { checkEncryption } = useConnectionStore.getState();
       const result = await checkEncryption();

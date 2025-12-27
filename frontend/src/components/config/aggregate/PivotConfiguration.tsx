@@ -281,10 +281,10 @@ export function PivotConfiguration({
         </div>
 
         {/* Blocking Warning */}
-        <div className="flex items-start gap-2 p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
-          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-2 p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+          <AlertTriangle className="w-4 h-4 text-theme-status-warning-text mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-amber-200">Performance Note</p>
+            <p className="font-medium text-theme-status-warning-text">Performance Note</p>
             <p className="text-theme-text-secondary">
               This tool requires scanning all data to determine unique values.
               Results will be cached to avoid re-computation.
@@ -392,7 +392,7 @@ export function PivotConfiguration({
                 <p className="text-xs text-theme-text-tertiary">Loading column statistics...</p>
               )}
               {profileError && (
-                <div className="flex items-start gap-2 text-xs text-amber-400" title={profileError}>
+                <div className="flex items-start gap-2 text-xs text-theme-status-warning-text" title={profileError}>
                   <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                   <span className="truncate">Could not load statistics</span>
                 </div>
@@ -404,10 +404,10 @@ export function PivotConfiguration({
                 const safetyLevel = getUniqueSafetyLevel(uniqueCount);
                 if (safetyLevel === "danger") {
                   return (
-                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-red-500/10 border-red-500/30">
-                      <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-theme-status-error-bg border-theme-status-error-border">
+                      <AlertTriangle className="w-3 h-3 text-theme-status-error-text mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-red-300">High cardinality warning</p>
+                        <p className="font-medium text-theme-status-error-text">High cardinality warning</p>
                         <p className="text-theme-text-secondary">
                           This column has {uniqueCount?.toLocaleString()} unique values. 
                           Pivoting will create {uniqueCount?.toLocaleString()} new columns, 
@@ -418,10 +418,10 @@ export function PivotConfiguration({
                   );
                 } else if (safetyLevel === "warning") {
                   return (
-                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-amber-500/10 border-amber-500/30">
-                      <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2 p-2 text-xs border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+                      <AlertTriangle className="w-3 h-3 text-theme-status-warning-text mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-amber-300">Moderate cardinality</p>
+                        <p className="font-medium text-theme-status-warning-text">Moderate cardinality</p>
                         <p className="text-theme-text-secondary">
                           This column has {uniqueCount?.toLocaleString()} unique values. 
                           This will create {uniqueCount?.toLocaleString()} new columns.
@@ -479,7 +479,7 @@ export function PivotConfiguration({
 
             {/* Validation Messages */}
             {(!selectedOn || !selectedValues) && (
-              <div className="p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30 text-amber-200">
+              <div className="p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border text-theme-status-warning-text">
                 {!selectedOn && !selectedValues
                   ? "Select both a pivot column and a values column."
                   : !selectedOn

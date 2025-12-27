@@ -123,7 +123,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           disabled={loading}
         />
         {errors.name && (
-          <p className="mt-1 text-xs text-red-500">{errors.name}</p>
+          <p className="mt-1 text-xs text-theme-form-error-text">{errors.name}</p>
         )}
       </div>
 
@@ -161,7 +161,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               disabled={loading}
             />
             {errors.host && (
-              <p className="mt-1 text-xs text-red-500">{errors.host}</p>
+              <p className="mt-1 text-xs text-theme-form-error-text">{errors.host}</p>
             )}
           </div>
           <div>
@@ -179,7 +179,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               disabled={loading}
             />
             {errors.port && (
-              <p className="mt-1 text-xs text-red-500">{errors.port}</p>
+              <p className="mt-1 text-xs text-theme-form-error-text">{errors.port}</p>
             )}
           </div>
         </div>
@@ -199,7 +199,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           disabled={loading}
         />
         {errors.database && (
-          <p className="mt-1 text-xs text-red-500">{errors.database}</p>
+          <p className="mt-1 text-xs text-theme-form-error-text">{errors.database}</p>
         )}
       </div>
 
@@ -220,7 +220,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               disabled={loading}
             />
             {errors.username && (
-              <p className="mt-1 text-xs text-red-500">{errors.username}</p>
+              <p className="mt-1 text-xs text-theme-form-error-text">{errors.username}</p>
             )}
           </div>
           <div>
@@ -304,12 +304,11 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
               {connection.name}
             </span>
             <span 
-              className="px-2 py-0.5 text-xs font-medium rounded"
-              style={{
-                backgroundColor: isServerManaged ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                color: isServerManaged ? 'rgb(96, 165, 250)' : 'rgb(74, 222, 128)',
-                border: isServerManaged ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(34, 197, 94, 0.2)',
-              }}
+              className={`px-2 py-0.5 text-xs font-medium rounded border ${
+                isServerManaged 
+                  ? 'bg-theme-status-info-bg text-theme-status-info-text border-theme-status-info-border'
+                  : 'bg-theme-status-success-bg text-theme-status-success-text border-theme-status-success-border'
+              }`}
             >
               {isServerManaged ? 'Server-Managed' : 'Local'}
             </span>
@@ -328,7 +327,7 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
             </span>
             <button
               onClick={() => onDelete(connection)}
-              className="p-1.5 rounded hover:bg-red-600/20"
+              className="p-1.5 rounded hover:bg-theme-status-error-bg"
               title="Confirm delete"
             >
               <Check className="w-4 h-4" style={{ color: 'var(--color-notification-error-text)' }} />

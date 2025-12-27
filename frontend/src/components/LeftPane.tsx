@@ -33,9 +33,10 @@ import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfigur
 import ToolHeader from "./ToolHeader";
 import ResizablePanel from "./shell/ResizablePanel";
 import ToolPalette from "./shell/ToolPalette";
+import SettingsPane from "./shell/SettingsPane";
 // Workflow components
 import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
-import { Settings, LayoutGrid } from "lucide-react";
+import { Settings, LayoutGrid, Sliders } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 import { useUIStore } from "@state/uiStore";
 
@@ -93,12 +94,6 @@ export default function LeftPane() {
 
   const toolCount = tools.length;
   const wireCount = wires.length;
-  
-  // Left pane tabs configuration
-  const leftPaneTabs = [
-    { id: "tools" as const, name: "Tools", icon: LayoutGrid },
-    { id: "workflow" as const, name: "Workflow", icon: Settings },
-  ];
 
   // Show tool palette / workflow configuration if no tool is selected
   if (!selectedTool) {
@@ -107,39 +102,58 @@ export default function LeftPane() {
         defaultWidth={450}
         minWidth={320}
         maxWidth={800}
-        className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
+        className="h-full flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
       >
-        {/* Modern Tab Selector */}
+        {/* Tab Selector */}
         <div className="bg-theme-surface-elevated border-b border-theme-border-primary p-2">
-          <div
-            className="flex bg-theme-surface-panel rounded-lg p-1 gap-1"
-            role="tablist"
-            aria-label="Left pane tabs"
-          >
-            {leftPaneTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setLeftPaneTab(tab.id)}
-                role="tab"
-                aria-selected={leftPaneTab === tab.id}
-                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-                  leftPaneTab === tab.id
-                    ? "bg-theme-surface-elevated text-theme-text-primary shadow-sm"
-                    : "text-theme-text-tertiary hover:text-theme-text-secondary hover:bg-theme-surface-hover"
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.name}</span>
-              </button>
-            ))}
+          <div className="w-full bg-theme-surface-panel rounded-lg p-1 gap-1 flex">
+            <button
+              onClick={() => setLeftPaneTab("tools")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "tools"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Tools</span>
+            </button>
+            <button
+              onClick={() => setLeftPaneTab("workflow")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "workflow"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Workflow</span>
+            </button>
+            <button
+              onClick={() => setLeftPaneTab("settings")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+                leftPaneTab === "settings"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {leftPaneTab === "tools" ? (
-          <ToolPalette />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ToolPalette />
+          </div>
+        ) : leftPaneTab === "settings" ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <SettingsPane />
+          </div>
         ) : (
-          <>
+          <div className="flex-1 flex flex-col overflow-hidden">
             {/* Workflow Configuration Header */}
             <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
               <div className="flex items-center space-x-3">
@@ -164,7 +178,7 @@ export default function LeftPane() {
                 onWorkflowMetaChange={handleWorkflowMetaChange}
               />
             </div>
-          </>
+          </div>
         )}
       </ResizablePanel>
     );
@@ -176,7 +190,7 @@ export default function LeftPane() {
       defaultWidth={450}
       minWidth={320}
       maxWidth={800}
-      className="flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
+      className="h-full flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
     >
       <ToolHeader tool={selectedTool} />
 

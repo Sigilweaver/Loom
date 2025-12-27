@@ -23,11 +23,11 @@ const LogViewer = () => {
   const getLevelColor = (level: string) => {
     switch (level) {
       case "error":
-        return "text-red-400";
+        return "text-theme-log-error";
       case "warning":
-        return "text-yellow-400";
+        return "text-theme-log-warning";
       case "success":
-        return "text-green-400";
+        return "text-theme-log-success";
       default:
         return "text-theme-text-primary";
     }

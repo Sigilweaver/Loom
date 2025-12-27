@@ -478,5 +478,4 @@ export interface ThemeContextType {
   currentTheme: Theme;
   availableThemes: Theme[];
   setTheme: (themeId: string) => void;
-  isDark: boolean;
 }

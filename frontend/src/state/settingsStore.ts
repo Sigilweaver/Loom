@@ -1,11 +1,12 @@
 /**
  * Settings Store
  * 
- * Manages application settings with persistence via Electron Store.
- * Falls back to localStorage in browser mode.
+ * Manages application settings with persistence via platform adapter.
+ * Uses Electron Store in desktop mode, localStorage in browser mode.
  */
 
 import { create } from 'zustand';
+import { platform } from '@platform';
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_SETTINGS } from '../types/settings';
 
@@ -25,37 +26,17 @@ interface SettingsState extends AppSettings {
 }
 
 /**
- * Load settings from Electron Store or localStorage
+ * Load settings from platform storage
  */
 async function loadFromStorage(): Promise<AppSettings> {
-  if (window.electronAPI?.getSettings) {
-    return await window.electronAPI.getSettings();
-  }
-  
-  // Fallback to localStorage for browser mode
-  const stored = localStorage.getItem('sigilweaver-settings');
-  if (stored) {
-    try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-    } catch (error) {
-      console.error('Failed to parse settings from localStorage:', error);
-      return DEFAULT_SETTINGS;
-    }
-  }
-  
-  return DEFAULT_SETTINGS;
+  return platform.settings.getSettings();
 }
 
 /**
- * Save settings to Electron Store or localStorage
+ * Save settings to platform storage
  */
 async function saveToStorage(settings: AppSettings): Promise<void> {
-  if (window.electronAPI?.setSettings) {
-    await window.electronAPI.setSettings(settings);
-  } else {
-    // Fallback to localStorage for browser mode
-    localStorage.setItem('sigilweaver-settings', JSON.stringify(settings));
-  }
+  await platform.settings.setSettings(settings);
 }
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({

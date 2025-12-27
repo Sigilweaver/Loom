@@ -5,7 +5,7 @@
  * to actual connection URIs with credentials before workflow execution.
  * 
  * Connection ownership:
- * - owner='client': Resolved locally via Electron API
+ * - owner='client': Resolved locally via platform credentials API
  * - owner='server': Passed through to backend for resolution
  */
 
@@ -18,17 +18,20 @@ import {
 } from '../connectionResolver';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 import type { ResolvedConnection } from '../../types/connections';
+import {
+  mockPlatform,
+  mockPlatformCapabilities,
+  mockPlatformCredentials,
+} from '../../test-setup';
 
 describe('connectionResolver', () => {
-  // Mock Electron API
-  const mockElectronAPI = {
-    resolveConnection: vi.fn(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    // @ts-expect-error - mocking window.electronAPI
-    window.electronAPI = mockElectronAPI;
+    
+    // Default to desktop mode with secure storage
+    mockPlatform.name = 'electron';
+    mockPlatformCapabilities.secureStorage = true;
+    mockPlatformCapabilities.nativeDialogs = true;
   });
 
   describe('resolveWorkflowConnections', () => {
@@ -62,7 +65,7 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
       
       expect(result).toEqual(workflow);
-      expect(mockElectronAPI.resolveConnection).not.toHaveBeenCalled();
+      expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
     });
 
     it('should resolve database connection to URI', async () => {
@@ -80,7 +83,7 @@ describe('connectionResolver', () => {
         updatedAt: '2025-08-01',
       };
 
-      mockElectronAPI.resolveConnection.mockResolvedValue(mockResolved);
+      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -111,7 +114,7 @@ describe('connectionResolver', () => {
 
       const result = await resolveWorkflowConnections(workflow);
 
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');
       expect(tool0.config.source).toBe(
@@ -137,7 +140,7 @@ describe('connectionResolver', () => {
         updatedAt: '2025-08-01',
       };
 
-      mockElectronAPI.resolveConnection.mockResolvedValue(mockResolved);
+      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -176,7 +179,7 @@ describe('connectionResolver', () => {
     });
 
     it('should handle multiple database connections', async () => {
-      mockElectronAPI.resolveConnection
+      mockPlatformCredentials.resolve
         .mockResolvedValueOnce({
           id: 'conn-1',
           name: 'DB1',
@@ -246,7 +249,7 @@ describe('connectionResolver', () => {
 
       const result = await resolveWorkflowConnections(workflow);
 
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledTimes(2);
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledTimes(2);
       const tool0 = result.tools[0];
       const tool1 = result.tools[1];
       if (!tool0 || !tool0.config || !tool1 || !tool1.config) throw new Error('Tools not found');
@@ -255,7 +258,7 @@ describe('connectionResolver', () => {
     });
 
     it('should return original workflow if connection resolution fails', async () => {
-      mockElectronAPI.resolveConnection.mockResolvedValue(null);
+      mockPlatformCredentials.resolve.mockResolvedValue(null);
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -293,9 +296,9 @@ describe('connectionResolver', () => {
       expect(tool0.config.source).toBeUndefined();
     });
 
-    it('should throw error when Electron API not available', async () => {
-      // @ts-expect-error - intentionally removing API
-      window.electronAPI = undefined;
+    it('should throw error when secure storage not available', async () => {
+      // Simulate browser mode without secure storage
+      mockPlatformCapabilities.secureStorage = false;
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -330,7 +333,7 @@ describe('connectionResolver', () => {
     });
 
     it('should not modify non-database tools', async () => {
-      mockElectronAPI.resolveConnection.mockResolvedValue({
+      mockPlatformCredentials.resolve.mockResolvedValue({
         id: 'conn-1',
         name: 'DB',
         type: 'postgresql',
@@ -437,7 +440,7 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should NOT call Electron API for server connections
-      expect(mockElectronAPI.resolveConnection).not.toHaveBeenCalled();
+      expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
       
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');
@@ -449,7 +452,7 @@ describe('connectionResolver', () => {
     });
 
     it('should handle mixed client and server connections', async () => {
-      mockElectronAPI.resolveConnection.mockResolvedValue({
+      mockPlatformCredentials.resolve.mockResolvedValue({
         id: 'client-conn-1',
         name: 'Client DB',
         type: 'postgresql',
@@ -508,8 +511,8 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should only resolve client connection
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledTimes(1);
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('client-conn-1');
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledTimes(1);
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('client-conn-1');
       
       const tool0 = result.tools[0];
       const tool1 = result.tools[1];
@@ -526,7 +529,7 @@ describe('connectionResolver', () => {
     });
 
     it('should default to client owner when not specified', async () => {
-      mockElectronAPI.resolveConnection.mockResolvedValue({
+      mockPlatformCredentials.resolve.mockResolvedValue({
         id: 'conn-1',
         name: 'DB',
         type: 'postgresql',
@@ -571,7 +574,7 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should resolve as client connection
-      expect(mockElectronAPI.resolveConnection).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
       
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');

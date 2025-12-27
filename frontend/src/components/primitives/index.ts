@@ -17,6 +17,13 @@ export {
   type ConfigColumnListProps,
   type ItemHandlers,
 } from "./ConfigColumnList";
+export {
+  ConfigColumnSelector,
+  type ColumnSelectorItem,
+  type ColumnSelectorItemHandlers,
+  type ConfigColumnSelectorProps,
+  type ReorderButtonsProps,
+} from "./ConfigColumnSelector";
 export { ConfigField, type ConfigFieldProps } from "./ConfigField";
 export {
   ConfigFile,
@@ -28,10 +35,6 @@ export {
   type ConfigKeyValueListProps,
   type KeyValuePair,
 } from "./ConfigKeyValueList";
-export {
-  ConfigMultiSelect,
-  type ConfigMultiSelectProps,
-} from "./ConfigMultiSelect";
 export { ConfigNumber, type ConfigNumberProps } from "./ConfigNumber";
 export {
   ConfigNumberRange,

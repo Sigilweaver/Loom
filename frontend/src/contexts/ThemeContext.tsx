@@ -48,6 +48,19 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-border-focus", colors.borders.focus);
   root.style.setProperty("--color-border-divider", colors.borders.divider);
 
+  // Global backgrounds for UI primitives
+  root.style.setProperty("--color-bg-primary", colors.surfaces.panel);
+  root.style.setProperty("--color-bg-secondary", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-tertiary", colors.surfaces.page);
+  root.style.setProperty("--color-bg-hover", colors.surfaces.elevated);
+  root.style.setProperty("--color-surface-hover", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-input", colors.surfaces.elevated);
+  root.style.setProperty("--color-bg-tooltip", colors.surfaces.elevated);
+  root.style.setProperty("--color-modal-overlay", colors.modals.overlay);
+  root.style.setProperty("--color-text-on-accent", colors.text.inverse);
+  root.style.setProperty("--color-interactive-accent", colors.borders.focus);
+  root.style.setProperty("--color-interactive-accent-hover", colors.borders.focus);
+
   // Header component
   root.style.setProperty("--color-header-bg", colors.header.background);
   root.style.setProperty("--color-header-logo-icon", colors.header.logo.icon);
@@ -741,6 +754,50 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-socket-input-border", "#1e40af"); // Darker blue border for input sockets
   root.style.setProperty("--color-socket-output-border", "#047857"); // Darker green border for output sockets
 
+  // Semantic status colors (for inline alerts, badges, indicators)
+  // These reuse the notification semantic colors from the palette for consistency
+  root.style.setProperty("--color-status-success-bg", colors.notifications.success.background);
+  root.style.setProperty("--color-status-success-border", colors.notifications.success.border);
+  root.style.setProperty("--color-status-success-text", colors.notifications.success.text);
+  root.style.setProperty("--color-status-warning-bg", colors.notifications.warning.background);
+  root.style.setProperty("--color-status-warning-border", colors.notifications.warning.border);
+  root.style.setProperty("--color-status-warning-text", colors.notifications.warning.text);
+  root.style.setProperty("--color-status-error-bg", colors.notifications.error.background);
+  root.style.setProperty("--color-status-error-border", colors.notifications.error.border);
+  root.style.setProperty("--color-status-error-text", colors.notifications.error.text);
+  root.style.setProperty("--color-status-info-bg", colors.notifications.info.background);
+  root.style.setProperty("--color-status-info-border", colors.notifications.info.border);
+  root.style.setProperty("--color-status-info-text", colors.notifications.info.text);
+
+  // Log viewer colors - derived from semantic palette
+  root.style.setProperty("--color-log-error", colors.palette.semantic.error[400]);
+  root.style.setProperty("--color-log-warning", colors.palette.semantic.warning[400]);
+  root.style.setProperty("--color-log-success", colors.palette.semantic.success[400]);
+  root.style.setProperty("--color-log-info", colors.palette.semantic.info[400]);
+  root.style.setProperty("--color-log-request", colors.palette.semantic.info[400]);
+  root.style.setProperty("--color-log-response", colors.palette.semantic.success[400]);
+  root.style.setProperty("--color-log-cache-hit", colors.palette.brand.secondary[400]);
+  root.style.setProperty("--color-log-cache-miss", colors.palette.semantic.warning[400]);
+
+  // Quality indicator colors (for data profiling)
+  root.style.setProperty("--color-quality-ok", colors.palette.semantic.success[500]);
+  root.style.setProperty("--color-quality-warning", colors.palette.semantic.warning[500]);
+  root.style.setProperty("--color-quality-issue", colors.palette.semantic.error[500]);
+  root.style.setProperty("--color-quality-null", colors.palette.gray[400]);
+
+  // Toggle and interactive colors
+  root.style.setProperty("--color-toggle-on", colors.palette.semantic.info[500]);
+  root.style.setProperty("--color-toggle-off", colors.palette.gray[400]);
+  root.style.setProperty("--color-favorites", colors.palette.tools.favorites[400]);
+
+  // Selection highlight colors (for multi-select list items)
+  root.style.setProperty("--color-selection-highlight-bg", colors.palette.brand.secondary[400] + "26"); // 15% opacity
+  root.style.setProperty("--color-selection-highlight-border", colors.palette.brand.secondary[400]);
+
+  // Badge colors for mode indicators
+  root.style.setProperty("--color-badge-read", colors.palette.semantic.info[400]);
+  root.style.setProperty("--color-badge-write", colors.palette.semantic.success[400]);
+
   // Set theme attribute for CSS selectors
   root.setAttribute("data-theme", theme.id);
 };
@@ -766,7 +823,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     currentTheme,
     availableThemes,
     setTheme,
-    isDark: currentTheme.id === "dark",
   };
 
   return (

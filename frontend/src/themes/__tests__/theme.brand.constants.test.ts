@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lightTheme } from '../light';
-import { darkTheme } from '../dark';
-import { sigilweaverTheme } from '../sigilweaver';
-import { highContrastTheme } from '../highContrast';
+import { lightTheme, darkTheme, sigilweaverTheme, highContrastTheme } from '../core';
 import { HEADER_BACKGROUND, BRAND_EDGE, BRAND_EDGE_ANIMATED } from '../tokens/constants';
 
 describe('Brand constants are applied consistently', () => {

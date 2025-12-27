@@ -12,7 +12,7 @@ export interface ConfigValidationMessageProps {
 
 const STATE_STYLES: Record<ValidationState, string> = {
   error: "text-theme-form-error-text",
-  warning: "text-yellow-500",
+  warning: "text-theme-status-warning-text",
   success: "text-theme-form-success-text",
   info: "text-theme-text-tertiary",
 };

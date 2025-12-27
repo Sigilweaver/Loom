@@ -1,6 +1,15 @@
-import { ColorPalette } from '../types/theme';
+/**
+ * Core Palettes
+ * 
+ * Color palettes for the built-in themes: light, dark, and sigilweaver.
+ */
 
-// Light theme color palette
+import { ColorPalette } from '../../types/theme';
+
+/**
+ * Light Theme Palette
+ * Clean and bright colors for daytime use
+ */
 export const lightPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 300: '#d1d5db', 400: '#9ca3af', 500: '#6b7280', 600: '#4b5563', 700: '#374151', 800: '#1f2937', 900: '#111827', 950: '#030712' },
@@ -23,7 +32,10 @@ export const lightPalette: ColorPalette = {
   },
 };
 
-// Dark theme color palette
+/**
+ * Dark Theme Palette
+ * Easy on the eyes for nighttime use
+ */
 export const darkPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#030712', 100: '#111827', 200: '#1f2937', 300: '#374151', 400: '#4b5563', 500: '#6b7280', 600: '#9ca3af', 700: '#d1d5db', 800: '#e5e7eb', 900: '#f3f4f6', 950: '#f9fafb' },
@@ -46,7 +58,10 @@ export const darkPalette: ColorPalette = {
   },
 };
 
-// Sigilweaver Color Palette
+/**
+ * Sigilweaver Theme Palette
+ * Mystical purple-tinted dark palette for the signature theme
+ */
 export const sigilweaverPalette: ColorPalette = {
   foundation: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
   gray: { 50: '#1a0b2e', 100: '#2a1a3e', 200: '#3a2a52', 300: '#4a3a66', 400: '#6a5a86', 500: '#8a7aa6', 600: '#aaa0c6', 700: '#cac0e6', 800: '#eae0f6', 900: '#f5f0ff', 950: '#ffffff' },
@@ -65,6 +80,6 @@ export const sigilweaverPalette: ColorPalette = {
     preparation: { 50: '#1e3a8a', 100: '#1e40af', 200: '#1d4ed8', 300: '#2563eb', 400: '#3b82f6', 500: '#60a5fa', 600: '#93c5fd', 700: '#bfdbfe', 800: '#dbeafe', 900: '#eff6ff' },
     join: { 50: '#4c1d95', 100: '#5b21b6', 200: '#6d28d9', 300: '#7c3aed', 400: '#8b5cf6', 500: '#a78bfa', 600: '#c4b5fd', 700: '#ddd6fe', 800: '#ede9fe', 900: '#f5f3ff' },
     aggregate: { 50: '#78350f', 100: '#92400e', 200: '#b45309', 300: '#d97706', 400: '#f59e0b', 500: '#fbbf24', 600: '#fcd34d', 700: '#fde68a', 800: '#fef3c7', 900: '#fffbeb' },
-    favorites: { 50: '#1a0b2e', 100: '#2d1b42', 200: '#3d2852', 300: '#4c2a6b', 400: '#5c3a7b', 500: '#6b3fa0', 600: '#8b5cf6', 700: '#a78bfa', 800: '#c4b5fd', 900: '#ddd6fe' },
+    favorites: { 50: '#713f12', 100: '#854d0e', 200: '#a16207', 300: '#ca8a04', 400: '#eab308', 500: '#facc15', 600: '#fde047', 700: '#fef08a', 800: '#fef9c3', 900: '#fefce8' },
   },
 };

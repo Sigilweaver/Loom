@@ -1,5 +1,6 @@
 import { EmissionMap } from "@domain/workflow/entities/workflow";
 import React, { useId } from "react";
+import { platform } from "@platform";
 import { BrowserFileWarning } from "./BrowserFileWarning";
 import { ConfigField } from "./ConfigField";
 import { usePrimitiveEmission } from "./hooks";
@@ -84,8 +85,8 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   const handleBrowseClick = async () => {
     if (disabled) return;
 
-    // Use Electron's file dialog if available
-    if (mode === "save" && window.electronAPI?.showSaveDialog) {
+    // Use platform file dialogs if available
+    if (mode === "save" && platform.capabilities.nativeDialogs) {
       // Save dialog for output files (can create new files)
       try {
         const options: { filters: FileFilter[]; defaultPath?: string } = {
@@ -94,17 +95,17 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
         if (value) {
           options.defaultPath = value;
         }
-        const filePath = await window.electronAPI.showSaveDialog(options);
+        const filePath = await platform.files.showSaveDialog(options);
         if (filePath) {
           commit(filePath);
         }
       } catch (error) {
         console.error("Error opening save dialog:", error);
       }
-    } else if (mode === "open" && window.electronAPI?.showOpenDialog) {
+    } else if (mode === "open" && platform.capabilities.nativeDialogs) {
       // Open dialog for input files (must exist)
       try {
-        const filePath = await window.electronAPI.showOpenDialog({
+        const filePath = await platform.files.showOpenDialog({
           filters: filters,
         });
         if (filePath) {

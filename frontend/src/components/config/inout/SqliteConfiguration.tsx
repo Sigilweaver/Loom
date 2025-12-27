@@ -12,6 +12,7 @@ import {
 } from '@domain/workflow/entities/workflow';
 import { Database, AlertCircle, FolderOpen } from 'lucide-react';
 import { CodeEditor } from '@components/common/CodeEditor';
+import { platform } from '@platform';
 
 // Default values for SQLite tool
 const SQLITE_DEFAULTS = {
@@ -52,19 +53,18 @@ export const SqliteConfiguration: React.FC<SqliteConfigurationProps> = ({
   onChange,
 }) => {
   const handleFileSelect = useCallback(async () => {
-    // Use Electron's file dialog if available
-    if (window.electronAPI?.showOpenDialog) {
-      const result = await window.electronAPI.showOpenDialog({
+    // Use platform file dialog if available
+    if (platform.capabilities.nativeDialogs) {
+      const result = await platform.files.showOpenDialog({
         title: 'Select SQLite Database',
         filters: [
           { name: 'SQLite Database', extensions: ['db', 'sqlite', 'sqlite3', 'db3'] },
           { name: 'All Files', extensions: ['*'] },
         ],
-        properties: ['openFile'],
       });
       
-      if (result && result.length > 0) {
-        const filePath = result[0];
+      if (result) {
+        const filePath = result;
         // Build SQLite URI format: sqlite:///path/to/file.db
         const sqliteUri = `sqlite://${filePath}`;
         const newConfig: ToolConfig = {

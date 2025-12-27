@@ -4,6 +4,10 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ConfigBoolean } from "../ConfigBoolean";
 
+// Helper to check Radix checkbox state
+const isChecked = (element: HTMLElement) =>
+  element.getAttribute("data-state") === "checked";
+
 describe("ConfigBoolean", () => {
   it("commits emission state when toggled", async () => {
     const user = userEvent.setup();
@@ -27,12 +31,10 @@ describe("ConfigBoolean", () => {
 
     render(<Wrapper />);
 
-    const checkbox = screen.getByLabelText(
-      "Enable feature"
-    ) as HTMLInputElement;
+    const checkbox = screen.getByRole("checkbox", { name: "Enable feature" });
     const description = screen.getByText("Toggle to enable feature");
 
-    expect(checkbox.checked).toBe(false);
+    expect(isChecked(checkbox)).toBe(false);
     expect(checkbox.getAttribute("aria-describedby")).toBe(description.id);
 
     await user.click(checkbox);
@@ -42,7 +44,7 @@ describe("ConfigBoolean", () => {
       { options: { flag: true } },
       true
     );
-    expect(checkbox.checked).toBe(true);
+    expect(isChecked(checkbox)).toBe(true);
 
     handleChange.mockClear();
 
@@ -50,6 +52,6 @@ describe("ConfigBoolean", () => {
 
     // When returning to default (false), emission patch should be empty (not { flag: false })
     expect(handleChange).toHaveBeenLastCalledWith(undefined, {}, false);
-    expect(checkbox.checked).toBe(false);
+    expect(isChecked(checkbox)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ToolConfig,
   Tool,
@@ -10,6 +10,17 @@ import { ColumnSchema } from "@api/backend";
 import clsx from "clsx";
 import { isNumericPolarsType } from "@data/polarsTypes";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@components/ui/DropdownMenu";
+import { ChevronDown } from "lucide-react";
+import {
+  ConfigColumnSelector,
+  ColumnSelectorItemHandlers,
+} from "@components/primitives";
 
 /**
  * Aggregation action definitions
@@ -29,22 +40,18 @@ const ALL_ACTIONS: ActionInfo[] = [
   { value: "Min", label: "Min", numericOnly: false, stringOnly: false },
   { value: "Max", label: "Max", numericOnly: false, stringOnly: false },
   { value: "Count", label: "Count", numericOnly: false, stringOnly: false },
-  { value: "CountDistinct", label: "Count Distinct", numericOnly: false, stringOnly: false },
+  {
+    value: "CountDistinct",
+    label: "Count Distinct",
+    numericOnly: false,
+    stringOnly: false,
+  },
   { value: "First", label: "First", numericOnly: false, stringOnly: false },
   { value: "Last", label: "Last", numericOnly: false, stringOnly: false },
   { value: "Std", label: "Std Dev", numericOnly: true, stringOnly: false },
   { value: "Var", label: "Variance", numericOnly: true, stringOnly: false },
   { value: "Concat", label: "Concat", numericOnly: false, stringOnly: true },
 ];
-
-/**
- * Column action configuration (for the bottom panel)
- */
-interface ColumnAction {
-  column: string;
-  action: string;
-  outputName: string;
-}
 
 /**
  * Check if a dtype is string-like
@@ -54,9 +61,24 @@ function isStringDtype(dtype: string): boolean {
 }
 
 /**
- * Get valid actions for a set of column types
+ * Get valid actions for a column type
  */
-function getValidActions(columns: ColumnSchema[]): ActionInfo[] {
+function getValidActionsForDtype(dtype: string): ActionInfo[] {
+  const isNumeric = isNumericPolarsType(dtype);
+  const isString = isStringDtype(dtype);
+
+  return ALL_ACTIONS.filter((action) => {
+    if (action.numericOnly && !isNumeric) return false;
+    if (action.stringOnly && !isString) return false;
+    if (action.value === "Concat" && isNumeric) return false;
+    return true;
+  });
+}
+
+/**
+ * Get valid actions for multiple column types (intersection)
+ */
+function getValidActionsForColumns(columns: ColumnSchema[]): ActionInfo[] {
   if (columns.length === 0) return [];
 
   const allNumeric = columns.every((c) => isNumericPolarsType(c.dtype || ""));
@@ -64,11 +86,8 @@ function getValidActions(columns: ColumnSchema[]): ActionInfo[] {
   const anyNumeric = columns.some((c) => isNumericPolarsType(c.dtype || ""));
 
   return ALL_ACTIONS.filter((action) => {
-    // Numeric-only actions require all columns to be numeric
     if (action.numericOnly && !allNumeric) return false;
-    // String-only actions require all columns to be strings
     if (action.stringOnly && !allString) return false;
-    // Concat doesn't make sense for numeric columns
     if (action.value === "Concat" && anyNumeric) return false;
     return true;
   });
@@ -83,30 +102,91 @@ function getDefaultOutputName(column: string, action: string): string {
 }
 
 /**
- * Parse column actions from config
+ * Generate a unique ID for a new action
+ */
+let actionIdCounter = 0;
+function generateActionId(): string {
+  return `action-${Date.now()}-${actionIdCounter++}`;
+}
+
+/**
+ * Column action stored in config
+ */
+interface ColumnAction {
+  _id: string; // Stable unique ID for UI tracking
+  column: string;
+  action: string;
+  outputName: string;
+}
+
+/**
+ * Unified action stored in config.actions array
+ */
+interface ConfigAction {
+  _id: string;
+  column: string;
+  action: string; // "GroupBy" or aggregation operation
+  outputName: string;
+}
+
+/**
+ * Parse column actions from config.
+ * Reads from unified `actions` array if present, otherwise falls back to legacy format.
  */
 function parseColumnActions(config: ToolConfig): ColumnAction[] {
+  // New format: unified actions array that preserves order
+  const configActions = config.actions;
+  if (Array.isArray(configActions) && configActions.length > 0) {
+    const actions: ColumnAction[] = [];
+    for (const item of configActions) {
+      if (typeof item === "object" && item !== null) {
+        const configAction = item as Partial<ConfigAction>;
+        const _id = typeof configAction._id === "string" ? configAction._id : generateActionId();
+        const column = typeof configAction.column === "string" ? configAction.column : "";
+        const action = typeof configAction.action === "string" ? configAction.action : "Sum";
+        const outputName = typeof configAction.outputName === "string" ? configAction.outputName : getDefaultOutputName(column, action);
+        if (column) {
+          actions.push({ _id, column, action, outputName });
+        }
+      }
+    }
+    return actions;
+  }
+
+  // Legacy format: separate groupByColumns and aggregations arrays
   const actions: ColumnAction[] = [];
 
-  // Parse groupByColumns
-  const groupByColumns = Array.isArray(config.groupByColumns) ? config.groupByColumns : [];
+  const groupByColumns = Array.isArray(config.groupByColumns)
+    ? config.groupByColumns
+    : [];
   for (const col of groupByColumns) {
     if (typeof col === "string") {
-      actions.push({ column: col, action: "GroupBy", outputName: col });
+      actions.push({ _id: generateActionId(), column: col, action: "GroupBy", outputName: col });
+    } else if (typeof col === "object" && col !== null) {
+      const colObj = col as { _id?: string; column?: string };
+      const column = typeof colObj.column === "string" ? colObj.column : "";
+      const _id = typeof colObj._id === "string" ? colObj._id : generateActionId();
+      if (column) {
+        actions.push({ _id, column, action: "GroupBy", outputName: column });
+      }
     }
   }
 
-  // Parse aggregations
-  const aggregations = Array.isArray(config.aggregations) ? config.aggregations : [];
+  const aggregations = Array.isArray(config.aggregations)
+    ? config.aggregations
+    : [];
   for (const agg of aggregations) {
     if (typeof agg === "object" && agg !== null) {
       const column = typeof agg.column === "string" ? agg.column : "";
-      const operation = typeof agg.operation === "string" ? agg.operation : "Sum";
-      const outputName = typeof agg.outputName === "string" && agg.outputName
-        ? agg.outputName
-        : getDefaultOutputName(column, operation);
+      const operation =
+        typeof agg.operation === "string" ? agg.operation : "Sum";
+      const outputName =
+        typeof agg.outputName === "string" && agg.outputName
+          ? agg.outputName
+          : getDefaultOutputName(column, operation);
+      const _id = typeof agg._id === "string" ? agg._id : generateActionId();
       if (column) {
-        actions.push({ column, action: operation, outputName });
+        actions.push({ _id, column, action: operation, outputName });
       }
     }
   }
@@ -115,17 +195,37 @@ function parseColumnActions(config: ToolConfig): ColumnAction[] {
 }
 
 /**
- * Convert column actions back to config format
+ * Convert column actions back to config format.
+ * Returns unified `actions` array (preserves order) plus derived `groupByColumns` and `aggregations` (for backend).
  */
-function columnActionsToConfig(actions: ColumnAction[]): { groupByColumns: string[]; aggregations: Array<{ column: string; operation: string; outputName: string }> } {
-  const groupByColumns: string[] = [];
-  const aggregations: Array<{ column: string; operation: string; outputName: string }> = [];
+function columnActionsToConfig(actions: ColumnAction[]): {
+  actions: ConfigAction[];
+  groupByColumns: Array<{ _id: string; column: string }>;
+  aggregations: Array<{ _id: string; column: string; operation: string; outputName: string }>;
+} {
+  // Unified actions array preserving order
+  const configActions: ConfigAction[] = actions.map((a) => ({
+    _id: a._id,
+    column: a.column,
+    action: a.action,
+    outputName: a.outputName,
+  }));
+
+  // Derived arrays for backend compatibility
+  const groupByColumns: Array<{ _id: string; column: string }> = [];
+  const aggregations: Array<{
+    _id: string;
+    column: string;
+    operation: string;
+    outputName: string;
+  }> = [];
 
   for (const action of actions) {
     if (action.action === "GroupBy") {
-      groupByColumns.push(action.column);
+      groupByColumns.push({ _id: action._id, column: action.column });
     } else {
       aggregations.push({
+        _id: action._id,
         column: action.column,
         operation: action.action,
         outputName: action.outputName,
@@ -133,111 +233,33 @@ function columnActionsToConfig(actions: ColumnAction[]): { groupByColumns: strin
     }
   }
 
-  return { groupByColumns, aggregations };
+  return { actions: configActions, groupByColumns, aggregations };
 }
 
 /**
- * Props for the ActionRow component
+ * Item type for top panel ConfigColumnSelector (source columns).
  */
-interface ActionRowProps {
-  action: ColumnAction;
-  index: number;
+interface ColumnItem {
+  id: string;
+  name: string;
+  dtype: string;
+  aggCount: number; // Number of aggregations on this column
+  [key: string]: unknown;
+}
+
+/**
+ * Item type for bottom panel ConfigColumnSelector (actions).
+ */
+interface ActionItem {
+  id: string;
+  _id: string; // The stable unique ID from the config
+  column: string;
+  action: string;
+  outputName: string;
+  dtype: string;
   availableActions: ActionInfo[];
-  onUpdateAction: (index: number, updates: Partial<ColumnAction>) => void;
-  onRemoveAction: (index: number) => void;
+  [key: string]: unknown;
 }
-
-/**
- * Memoized row component with local state for output name input
- * This prevents cursor jumping by maintaining local state during typing
- */
-const ActionRow = memo(function ActionRow({
-  action,
-  index,
-  availableActions,
-  onUpdateAction,
-  onRemoveAction,
-}: ActionRowProps) {
-  const [localOutputName, setLocalOutputName] = useState(action.outputName);
-
-  // Sync local state when prop changes from outside (e.g., action type change)
-  useEffect(() => {
-    setLocalOutputName(action.outputName);
-  }, [action.outputName]);
-
-  const handleOutputNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalOutputName(e.target.value);
-  }, []);
-
-  const handleOutputNameBlur = useCallback(() => {
-    if (localOutputName !== action.outputName) {
-      onUpdateAction(index, { outputName: localOutputName });
-    }
-  }, [localOutputName, action.outputName, index, onUpdateAction]);
-
-  const handleActionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdateAction(index, { action: e.target.value });
-  }, [index, onUpdateAction]);
-
-  const handleRemove = useCallback(() => {
-    onRemoveAction(index);
-  }, [index, onRemoveAction]);
-
-  return (
-    <div
-      className="px-4 py-2 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 items-center hover:bg-theme-surface-hover"
-    >
-      {/* Column Name */}
-      <div className="text-sm truncate text-theme-text-primary" title={action.column}>
-        {action.column}
-      </div>
-
-      {/* Action Dropdown */}
-      <select
-        value={action.action}
-        onChange={handleActionChange}
-        className={clsx(
-          "w-full px-2 py-1 text-xs rounded border appearance-none",
-          "bg-theme-surface-panel border-theme-border-primary",
-          "text-theme-text-primary",
-          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
-        )}
-      >
-        {availableActions.map((a: ActionInfo) => (
-          <option key={a.value} value={a.value}>
-            {a.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Output Name Input */}
-      <input
-        type="text"
-        value={localOutputName}
-        onChange={handleOutputNameChange}
-        onBlur={handleOutputNameBlur}
-        className={clsx(
-          "w-full px-2 py-1 text-xs rounded border",
-          "bg-theme-surface-panel border-theme-border-primary",
-          "text-theme-text-primary",
-          "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
-        )}
-      />
-
-      {/* Remove Button */}
-      <button
-        type="button"
-        onClick={handleRemove}
-        className="flex justify-center p-1 text-xs text-theme-text-tertiary hover:text-red-400"
-        title="Remove"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
-      </button>
-    </div>
-  );
-});
 
 interface SummarizeConfigurationProps {
   config: ToolConfig;
@@ -256,7 +278,6 @@ export function SummarizeConfiguration({
   wires,
   workflowMeta,
 }: SummarizeConfigurationProps) {
-  // Unified configuration hook - handles metadata and connections
   const { columns, loading, hasInput } = useToolConfiguration({
     toolId,
     socketId: CommonSockets.INPUT,
@@ -267,9 +288,9 @@ export function SummarizeConfiguration({
     onChange,
   });
 
-  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
+  // Track selected columns from the top panel
+  const [selectedColumns, setSelectedColumns] = useState<ColumnItem[]>([]);
 
-  // Get input columns from metadata
   const inputColumns: ColumnSchema[] = columns;
 
   // Create column lookup by name
@@ -293,74 +314,91 @@ export function SummarizeConfiguration({
     return counts;
   }, [columnActions]);
 
-  // Get valid actions for currently selected columns
-  const validActions = useMemo(() => {
-    const selectedCols = Array.from(selectedColumns)
-      .map((name) => columnMap.get(name))
-      .filter((col): col is ColumnSchema => col !== undefined);
-    return getValidActions(selectedCols);
-  }, [selectedColumns, columnMap]);
+  // Build items for top panel (source columns)
+  const columnItems = useMemo((): ColumnItem[] => {
+    return inputColumns.map((col) => ({
+      id: col.name,
+      name: col.name,
+      dtype: col.dtype || "Unknown",
+      aggCount: columnAggCounts.get(col.name) || 0,
+    }));
+  }, [inputColumns, columnAggCounts]);
 
-  // Toggle column selection in top panel
-  const toggleColumnSelection = useCallback((columnName: string) => {
-    setSelectedColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(columnName)) {
-        next.delete(columnName);
-      } else {
-        next.add(columnName);
-      }
-      return next;
+  // Build items for bottom panel (actions)
+  // Use the stable _id from config for the selector's id, ensuring IDs persist across reorders
+  const actionItems = useMemo((): ActionItem[] => {
+    return columnActions.map((action) => {
+      const col = columnMap.get(action.column);
+      const dtype = col?.dtype || "Unknown";
+      
+      return {
+        id: action._id, // Use the stable _id from config
+        _id: action._id,
+        column: action.column,
+        action: action.action,
+        outputName: action.outputName,
+        dtype,
+        availableActions: getValidActionsForDtype(dtype),
+      };
     });
-  }, []);
+  }, [columnActions, columnMap]);
 
-  // Calculate selection state for header checkbox
-  const allSelected =
-    inputColumns.length > 0 && inputColumns.every((c) => selectedColumns.has(c.name));
-  const someSelected = inputColumns.some((c) => selectedColumns.has(c.name));
-  const isIndeterminate = someSelected && !allSelected;
-
-  // Toggle all columns
-  const toggleAll = useCallback((checked: boolean) => {
-    if (checked) {
-      setSelectedColumns(new Set(inputColumns.map((c) => c.name)));
-    } else {
-      setSelectedColumns(new Set());
-    }
-  }, [inputColumns]);
-
-  // Add selected columns with an action
-  const addColumnsWithAction = useCallback(
-    (action: string) => {
-      const newActions = [...columnActions];
-
-      for (const columnName of selectedColumns) {
-        newActions.push({
-          column: columnName,
-          action,
-          outputName: getDefaultOutputName(columnName, action),
-        });
-      }
-
-      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
-
+  // Helper to save config
+  const saveConfig = useCallback(
+    (actions: ColumnAction[]) => {
+      const { actions: configActions, groupByColumns, aggregations } = columnActionsToConfig(actions);
       const newConfig: ToolConfig = {
         ...config,
+        actions: configActions as unknown as ToolConfig["actions"],
         groupByColumns,
         aggregations,
         _emit: {
           ...(config._emit as Record<string, boolean> | undefined),
+          actions: true,
           groupByColumns: true,
           aggregations: true,
         },
       };
       onChange(newConfig);
-      setSelectedColumns(new Set());
     },
-    [columnActions, selectedColumns, config, onChange]
+    [config, onChange]
   );
 
-  // Update an action in the bottom panel
+  // Track selected actions from the bottom panel
+  const [selectedActions, setSelectedActions] = useState<ActionItem[]>([]);
+
+  // Handle action selection change from bottom panel
+  const handleActionSelectionChange = useCallback((items: ActionItem[]) => {
+    setSelectedActions(items);
+  }, []);
+
+  // Remove selected actions
+  const removeSelectedActions = useCallback(() => {
+    if (selectedActions.length === 0) return;
+    const selectedIds = new Set(selectedActions.map((a) => a._id));
+    const newActions = columnActions.filter((a) => !selectedIds.has(a._id));
+    saveConfig(newActions);
+    setSelectedActions([]);
+  }, [selectedActions, columnActions, saveConfig]);
+
+  // Add columns with a specific action (called from dropdown)
+  const addColumnsWithAction = useCallback(
+    (columnNames: string[], action: string) => {
+      const newActions = [...columnActions];
+      for (const columnName of columnNames) {
+        newActions.push({
+          _id: generateActionId(),
+          column: columnName,
+          action,
+          outputName: getDefaultOutputName(columnName, action),
+        });
+      }
+      saveConfig(newActions);
+    },
+    [columnActions, saveConfig]
+  );
+
+  // Update an action by index
   const updateAction = useCallback(
     (index: number, updates: Partial<ColumnAction>) => {
       const newActions = [...columnActions];
@@ -369,76 +407,154 @@ export function SummarizeConfiguration({
 
       // If action changed, update output name if it was the default
       if (updates.action && updates.action !== current.action) {
-        const wasDefault = current.outputName === getDefaultOutputName(current.column, current.action);
+        const wasDefault =
+          current.outputName ===
+          getDefaultOutputName(current.column, current.action);
         if (wasDefault) {
-          updates.outputName = getDefaultOutputName(current.column, updates.action);
+          updates.outputName = getDefaultOutputName(
+            current.column,
+            updates.action
+          );
         }
       }
 
       newActions[index] = { ...current, ...updates };
-
-      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
-
-      const newConfig: ToolConfig = {
-        ...config,
-        groupByColumns,
-        aggregations,
-        _emit: {
-          ...(config._emit as Record<string, boolean> | undefined),
-          groupByColumns: true,
-          aggregations: true,
-        },
-      };
-      onChange(newConfig);
+      saveConfig(newActions);
     },
-    [columnActions, config, onChange]
+    [columnActions, saveConfig]
   );
 
-  // Remove an action from the bottom panel
-  const removeAction = useCallback(
-    (index: number) => {
-      const newActions = columnActions.filter((_: ColumnAction, i: number) => i !== index);
-      const { groupByColumns, aggregations } = columnActionsToConfig(newActions);
-
-      const newConfig: ToolConfig = {
-        ...config,
-        groupByColumns,
-        aggregations,
-        _emit: {
-          ...(config._emit as Record<string, boolean> | undefined),
-          groupByColumns: true,
-          aggregations: true,
-        },
-      };
-      onChange(newConfig);
+  // Handle reorder of actions from ConfigColumnSelector
+  const handleActionsReorder = useCallback(
+    (items: ActionItem[]) => {
+      const newActions: ColumnAction[] = items.map((item) => ({
+        _id: item._id,
+        column: item.column,
+        action: item.action,
+        outputName: item.outputName,
+      }));
+      saveConfig(newActions);
     },
-    [columnActions, config, onChange]
+    [saveConfig]
   );
 
-  // Get valid actions for a specific column (for the dropdown in actions table)
-  const getActionsForColumn = useCallback(
-    (columnName: string): ActionInfo[] => {
-      const col = columnMap.get(columnName);
-      if (!col) return ALL_ACTIONS;
-      return getValidActions([col]);
-    },
-    [columnMap]
-  );
-
-  // State for dropdown
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+  // Handle reorder of columns - this is a no-op for columns
+  // ConfigColumnSelector requires onReorder but we don't persist column order
+  const handleColumnsReorder = useCallback((_items: ColumnItem[]) => {
+    // Columns are always shown in schema order, not persisted
   }, []);
+
+  // Handle column selection change from top panel
+  const handleColumnSelectionChange = useCallback((items: ColumnItem[]) => {
+    setSelectedColumns(items);
+  }, []);
+
+  // Get valid actions for the selected columns
+  const validActionsForSelected = useMemo(() => {
+    if (selectedColumns.length === 0) return [];
+    const selectedColSchemas = selectedColumns
+      .map((item) => columnMap.get(item.name))
+      .filter((col): col is ColumnSchema => col !== undefined);
+    return getValidActionsForColumns(selectedColSchemas);
+  }, [selectedColumns, columnMap]);
+
+  // Render a column row in the top panel
+  const renderColumnItem = useCallback(
+    (item: ColumnItem, handlers: ColumnSelectorItemHandlers) => {
+      return (
+        <div className="flex items-center w-full gap-3">
+          {/* Column name */}
+          <div className="flex items-center flex-1 min-w-0 gap-2">
+            <span
+              className={clsx(
+                "text-sm whitespace-nowrap",
+                handlers.isSelected
+                  ? "text-theme-text-primary font-medium"
+                  : "text-theme-text-secondary"
+              )}
+            >
+              {item.name}
+            </span>
+            {item.aggCount > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-theme-interactive-accent/30 text-theme-interactive-accent whitespace-nowrap">
+                {item.aggCount}
+              </span>
+            )}
+          </div>
+
+          {/* Type */}
+          <div className="flex-shrink-0 w-20 text-xs text-theme-text-tertiary">
+            {item.dtype}
+          </div>
+        </div>
+      );
+    },
+    []
+  );
+
+  // Render an action row in the bottom panel
+  const renderActionItem = useCallback(
+    (item: ActionItem, _handlers: ColumnSelectorItemHandlers) => {
+      // Find the index in columnActions by matching the stable _id
+      const index = columnActions.findIndex((a) => a._id === item._id);
+
+      return (
+        <div className="flex items-center w-full gap-3">
+          {/* Column name */}
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-theme-text-primary whitespace-nowrap">
+              {item.column}
+            </span>
+          </div>
+
+          {/* Action dropdown */}
+          <div className="flex-shrink-0 w-32">
+            <select
+              value={item.action}
+              onChange={(e) => {
+                e.stopPropagation();
+                updateAction(index, { action: e.target.value });
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={clsx(
+                "w-full px-2 py-1 text-xs rounded border appearance-none cursor-pointer",
+                "bg-theme-surface-panel border-theme-border-primary",
+                "text-theme-text-primary",
+                "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
+              )}
+            >
+              {item.availableActions.map((a) => (
+                <option key={a.value} value={a.value}>
+                  {a.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Output name input */}
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              value={item.outputName}
+              onChange={(e) => {
+                updateAction(index, { outputName: e.target.value });
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={clsx(
+                "w-full px-2 py-1 text-xs rounded border",
+                "bg-theme-surface-panel border-theme-border-primary",
+                "text-theme-text-primary",
+                "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
+              )}
+            />
+          </div>
+        </div>
+      );
+    },
+    [columnActions, updateAction]
+  );
 
   if (!hasInput) {
     return (
@@ -468,186 +584,97 @@ export function SummarizeConfiguration({
     );
   }
 
+
   return (
     <div className="flex flex-col h-full">
-      {/* Top Panel: Columns */}
-      <div className="flex flex-col border-b border-theme-border-primary" style={{ height: "45%" }}>
-        {/* Columns Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <span className="text-sm font-semibold text-theme-text-primary">Columns:</span>
-        </div>
-
-        {/* Columns Table Header */}
+      {/* Top Panel: Source Columns */}
+      <div
+        className="flex flex-col border-b border-theme-border-primary"
+        style={{ height: "45%" }}
+      >
+        {/* Column Table Header */}
         <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <div className="grid grid-cols-[32px_1fr_100px] gap-2 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide items-center">
-            <div className="flex items-center justify-center">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = isIndeterminate;
-                }}
-                onChange={(e) => toggleAll(e.target.checked)}
-                className="w-4 h-4 rounded border-theme-border-primary bg-theme-surface-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
-              />
-            </div>
-            <div>Column</div>
-            <div>Type</div>
+          <div className="flex items-center gap-3 text-xs font-semibold tracking-wide uppercase text-theme-text-secondary">
+            <div className="flex-1">Column</div>
+            <div className="flex-shrink-0 w-20">Type</div>
           </div>
         </div>
 
-        {/* Columns List */}
-        <div className="flex-1 overflow-y-auto">
-          {inputColumns.length === 0 ? (
-            <div className="p-4 text-sm text-center text-theme-text-tertiary">
-              No columns available
-            </div>
-          ) : (
-            <div className="divide-y divide-theme-border-primary">
-              {inputColumns.map((col) => {
-                const isSelected = selectedColumns.has(col.name);
-                const aggCount = columnAggCounts.get(col.name) || 0;
-
-                return (
-                  <div
-                    key={col.name}
-                    onClick={() => toggleColumnSelection(col.name)}
-                    className={clsx(
-                      "px-4 py-2 grid grid-cols-[32px_1fr_100px] gap-2 items-center cursor-pointer",
-                      isSelected && "bg-theme-interactive-accent/20",
-                      !isSelected && "hover:bg-theme-surface-hover"
-                    )}
-                  >
-                    <div className="flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleColumnSelection(col.name)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded border-theme-border-primary bg-theme-surface-primary text-theme-interactive-accent focus:ring-theme-interactive-accent"
-                      />
-                    </div>
-                    <div className="flex items-center min-w-0 gap-2">
-                      <span
-                        className={clsx(
-                          "text-sm truncate",
-                          isSelected ? "text-theme-text-primary font-medium" : "text-theme-text-secondary"
-                        )}
-                      >
-                        {col.name}
-                      </span>
-                      {aggCount > 0 && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-theme-interactive-accent/30 text-theme-interactive-accent">
-                          {aggCount}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-theme-text-tertiary">
-                      {col.dtype}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <ConfigColumnSelector<ColumnItem>
+          items={columnItems}
+          onReorder={handleColumnsReorder}
+          onSelectionChange={handleColumnSelectionChange}
+          itemRenderer={renderColumnItem}
+          emptyMessage="No columns available"
+          showReorderButtons={false}
+          className="flex-1 min-h-0"
+        />
       </div>
 
-      {/* Middle: Add Actions Bar */}
+      {/* Middle Bar: Add Actions */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
         <span className="text-xs text-theme-text-tertiary">
-          {selectedColumns.size > 0
-            ? `${selectedColumns.size} column${selectedColumns.size > 1 ? "s" : ""} selected`
-            : "Select columns above to add"}
+          {selectedColumns.length > 0
+            ? `${selectedColumns.length} column${selectedColumns.length > 1 ? "s" : ""} selected`
+            : "Select columns above, then add an action"}
         </span>
-        
-        {/* Add Dropdown */}
-        {validActions.length > 0 && selectedColumns.size > 0 && (
-          <div className="relative" ref={dropdownRef}>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
               type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              disabled={selectedColumns.length === 0}
               className={clsx(
                 "px-3 py-1 text-xs font-medium rounded border flex items-center gap-1",
                 "bg-theme-surface-panel text-theme-text-primary border-theme-border-primary",
                 "hover:bg-theme-surface-hover hover:border-theme-text-secondary",
-                "focus:outline-none focus:ring-1 focus:ring-theme-text-secondary"
+                "focus:outline-none focus:ring-1 focus:ring-theme-text-secondary",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
               Add
-              <svg 
-                className={clsx("w-3 h-3 transition-transform", isDropdownOpen && "rotate-180")} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className="w-3 h-3" />
             </button>
-            
-            {isDropdownOpen && (
-              <div className="absolute left-0 z-50 w-40 py-1 mt-1 border rounded shadow-lg bg-theme-surface-panel border-theme-border-primary">
-                {validActions.map((action) => (
-                  <button
-                    key={action.value}
-                    type="button"
-                    onClick={() => {
-                      addColumnsWithAction(action.value);
-                      setIsDropdownOpen(false);
-                    }}
-                    className="w-full px-3 py-1.5 text-left text-xs text-theme-text-primary hover:bg-theme-surface-hover cursor-pointer"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-40">
+            {validActionsForSelected.map((action) => (
+              <DropdownMenuItem
+                key={action.value}
+                onSelect={() => {
+                  const columnNames = selectedColumns.map((c) => c.name);
+                  addColumnsWithAction(columnNames, action.value);
+                }}
+                className="text-xs"
+              >
+                {action.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Bottom Panel: Actions */}
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Actions Header */}
-        <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <span className="text-sm font-semibold text-theme-text-primary">Actions:</span>
-        </div>
-
         {/* Actions Table Header */}
         <div className="px-4 py-2 border-b border-theme-border-primary bg-theme-surface-elevated">
-          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_24px] gap-2 text-xs font-semibold text-theme-text-secondary uppercase tracking-wide items-center">
-            <div>Column</div>
-            <div>Action</div>
-            <div>Output Name</div>
-            <div></div>
+          <div className="flex items-center gap-3 text-xs font-semibold tracking-wide uppercase text-theme-text-secondary">
+            <div className="flex-1">Column</div>
+            <div className="flex-shrink-0 w-32">Action</div>
+            <div className="flex-1">Output Name</div>
           </div>
         </div>
 
-        {/* Actions List */}
-        <div className="flex-1 overflow-y-auto">
-          {columnActions.length === 0 ? (
-            <div className="p-4 text-sm text-center text-theme-text-tertiary">
-              No actions configured. Select columns above and add them.
-            </div>
-          ) : (
-            <div className="divide-y divide-theme-border-primary">
-              {columnActions.map((action: ColumnAction, index: number) => {
-                const availableActions = getActionsForColumn(action.column);
-
-                return (
-                  <ActionRow
-                    key={`${action.column}-${index}`}
-                    action={action}
-                    index={index}
-                    availableActions={availableActions}
-                    onUpdateAction={updateAction}
-                    onRemoveAction={removeAction}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <ConfigColumnSelector<ActionItem>
+          items={actionItems}
+          onReorder={handleActionsReorder}
+          onSelectionChange={handleActionSelectionChange}
+          itemRenderer={renderActionItem}
+          emptyMessage="No actions configured. Select columns above and click Add."
+          showReorderButtons={actionItems.length > 1}
+          showDeleteButton
+          onDelete={removeSelectedActions}
+          className="flex-1 min-h-0"
+        />
       </div>
     </div>
   );

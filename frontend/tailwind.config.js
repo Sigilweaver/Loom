@@ -12,6 +12,7 @@ export default {
           "surface-elevated": "var(--color-surface-elevated)",
           "surface-overlay": "var(--color-surface-overlay)",
           "surface-canvas": "var(--color-surface-canvas)",
+          "surface-hover": "var(--color-surface-hover)",
 
           // Global text
           "text-primary": "var(--color-text-primary)",
@@ -19,6 +20,7 @@ export default {
           "text-tertiary": "var(--color-text-tertiary)",
           "text-inverse": "var(--color-text-inverse)",
           "text-disabled": "var(--color-text-disabled)",
+          "text-on-accent": "var(--color-text-on-accent)",
 
           // Global borders
           "border-primary": "var(--color-border-primary)",
@@ -26,17 +28,24 @@ export default {
           "border-focus": "var(--color-border-focus)",
           "border-divider": "var(--color-border-divider)",
 
+          // Global backgrounds (for UI primitives)
+          "bg-primary": "var(--color-bg-primary)",
+          "bg-secondary": "var(--color-bg-secondary)",
+          "bg-tertiary": "var(--color-bg-tertiary)",
+          "bg-hover": "var(--color-bg-hover)",
+          "bg-input": "var(--color-bg-input)",
+          "bg-tooltip": "var(--color-bg-tooltip)",
+          "modal-overlay": "var(--color-modal-overlay)",
+
           // Legacy compatibility classes (to be migrated)
           "bg-elevated": "var(--color-surface-elevated)",
-          "bg-secondary": "var(--color-surface-panel)",
           "workflow-canvas": "var(--color-surface-canvas)",
           "workflow-node-bg": "var(--color-surface-elevated)",
 
           // Additional missing classes for forms and semantic colors
           "text-muted": "var(--color-text-tertiary)",
-          "bg-tertiary": "var(--color-surface-panel)",
-          "interactive-accent": "var(--color-text-secondary)",
-          "interactive-accent-hover": "var(--color-text-primary)",
+          "interactive-accent": "var(--color-interactive-accent)",
+          "interactive-accent-hover": "var(--color-interactive-accent-hover)",
           "interactive-secondary": "var(--color-surface-panel)",
           "border-error": "var(--color-border-primary)", // Will be updated when semantic borders are added
           "syntax-declaration": "var(--color-text-primary)", // Will be updated when syntax highlighting is added
@@ -483,12 +492,131 @@ export default {
           "socket-input": "var(--color-socket-input)",
           "socket-output": "var(--color-socket-output)",
           "socket-border": "var(--color-socket-border)",
+
+          // Semantic status colors (for inline alerts, badges, indicators)
+          "status-success-bg": "var(--color-status-success-bg)",
+          "status-success-border": "var(--color-status-success-border)",
+          "status-success-text": "var(--color-status-success-text)",
+          "status-warning-bg": "var(--color-status-warning-bg)",
+          "status-warning-border": "var(--color-status-warning-border)",
+          "status-warning-text": "var(--color-status-warning-text)",
+          "status-error-bg": "var(--color-status-error-bg)",
+          "status-error-border": "var(--color-status-error-border)",
+          "status-error-text": "var(--color-status-error-text)",
+          "status-info-bg": "var(--color-status-info-bg)",
+          "status-info-border": "var(--color-status-info-border)",
+          "status-info-text": "var(--color-status-info-text)",
+
+          // Log viewer colors
+          "log-error": "var(--color-log-error)",
+          "log-warning": "var(--color-log-warning)",
+          "log-success": "var(--color-log-success)",
+          "log-info": "var(--color-log-info)",
+          "log-request": "var(--color-log-request)",
+          "log-response": "var(--color-log-response)",
+          "log-cache-hit": "var(--color-log-cache-hit)",
+          "log-cache-miss": "var(--color-log-cache-miss)",
+
+          // Quality indicator colors (for data profiling)
+          "quality-ok": "var(--color-quality-ok)",
+          "quality-warning": "var(--color-quality-warning)",
+          "quality-issue": "var(--color-quality-issue)",
+          "quality-null": "var(--color-quality-null)",
+
+          // Toggle and interactive colors
+          "toggle-on": "var(--color-toggle-on)",
+          "toggle-off": "var(--color-toggle-off)",
+          "favorites": "var(--color-favorites)",
+
+          // Selection highlight colors (for multi-select list items)
+          "selection-highlight-bg": "var(--color-selection-highlight-bg)",
+          "selection-highlight-border": "var(--color-selection-highlight-border)",
+
+          // Badge colors for mode indicators
+          "badge-read": "var(--color-badge-read)",
+          "badge-write": "var(--color-badge-write)",
         },
+      },
+      // Animation keyframes for Radix UI primitives
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "fade-out": {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        "zoom-in": {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "zoom-out": {
+          from: { opacity: "1", transform: "scale(1)" },
+          to: { opacity: "0", transform: "scale(0.95)" },
+        },
+        "slide-in-from-top": {
+          from: { transform: "translateY(-100%)" },
+          to: { transform: "translateY(0)" },
+        },
+        "slide-in-from-bottom": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+        "slide-in-from-left": {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "slide-in-from-right": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "slide-out-to-top": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(-100%)" },
+        },
+        "slide-out-to-bottom": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(100%)" },
+        },
+        "slide-out-to-left": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-100%)" },
+        },
+        "slide-out-to-right": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(100%)" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.15s ease-out",
+        "fade-out": "fade-out 0.15s ease-out",
+        "zoom-in": "zoom-in 0.15s ease-out",
+        "zoom-out": "zoom-out 0.15s ease-out",
+        "slide-in-from-top": "slide-in-from-top 0.15s ease-out",
+        "slide-in-from-bottom": "slide-in-from-bottom 0.15s ease-out",
+        "slide-in-from-left": "slide-in-from-left 0.15s ease-out",
+        "slide-in-from-right": "slide-in-from-right 0.15s ease-out",
+        "slide-out-to-top": "slide-out-to-top 0.15s ease-out",
+        "slide-out-to-bottom": "slide-out-to-bottom 0.15s ease-out",
+        "slide-out-to-left": "slide-out-to-left 0.15s ease-out",
+        "slide-out-to-right": "slide-out-to-right 0.15s ease-out",
       },
     },
   },
   plugins: [
     require("@tailwindcss/typography"),
+    require("tailwindcss-animate"),
     function ({ addUtilities }) {
       addUtilities({
         ".scrollbar-hide": {

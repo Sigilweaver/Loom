@@ -8,15 +8,21 @@ import { useWorkflowExecute } from "@api/hooks";
 import { previewAllTools, clearBackendWorkflowCache } from "@api/backend";
 import { resolveWorkflowConnections } from "@api/connectionResolver";
 import { cacheAllPreviews } from "@api/cache";
+import { platform, hasNativeDialogs } from "@platform";
 import { createLogger } from "@utils/logger";
 import SigilWeaverLogo from "./SigilWeaverLogo";
-import { useEffect, forwardRef, useImperativeHandle, useState, useRef, useCallback } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@components/ui/DropdownMenu";
+import { ChevronDown } from "lucide-react";
+import { useEffect, forwardRef, useImperativeHandle, useState, useCallback } from "react";
 
 const logger = createLogger('Header');
-
-interface HeaderProps {
-  onShowSettings: () => void;
-}
 
 export interface HeaderRef {
   handleSaveWorkflow: () => void;
@@ -27,7 +33,7 @@ export interface HeaderRef {
   handleRunWorkflow: () => void;
 }
 
-const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
+const Header = forwardRef<HeaderRef, object>((_, ref) => {
   // Access stores directly
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
@@ -65,23 +71,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   // Execution hook
   const { execute } = useWorkflowExecute();
 
-  // Local state for preview loading and dropdown
+  // Local state for preview loading
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [previewDropdownOpen, setPreviewDropdownOpen] = useState(false);
-  const previewDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (previewDropdownRef.current && !previewDropdownRef.current.contains(event.target as Node)) {
-        setPreviewDropdownOpen(false);
-      }
-    };
-    if (previewDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [previewDropdownOpen]);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -93,11 +84,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
     handleRunWorkflow,
   }));
 
-  // Listen for menu actions from Electron
+  // Listen for menu actions from platform
   useEffect(() => {
-    if (!window.electronAPI?.onMenuAction) return;
-
-    const cleanup = window.electronAPI.onMenuAction((action, data) => {
+    const cleanup = platform.menu.onMenuAction((action, data) => {
       switch (action) {
         case 'new-workflow':
           handleNewWorkflow();
@@ -137,10 +126,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
   const handleOpenWorkflowFromPath = async (filePath: string) => {
     try {
-      if (!window.electronAPI?.readFile) return;
-
-      // Read file content via IPC
-      const content = await window.electronAPI.readFile(filePath);
+      // Read file content via platform
+      const content = await platform.files.readFile(filePath);
 
       // Parse JSON workflow file
       const {
@@ -183,10 +170,10 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
   };
 
   const handleImportWorkflow = async () => {
-    // Use Electron's native dialog if available
-    if (window.electronAPI?.showOpenDialog && window.electronAPI?.readFile) {
+    // Use native dialog if available
+    if (hasNativeDialogs()) {
       try {
-        const filePath = await window.electronAPI.showOpenDialog({
+        const filePath = await platform.files.showOpenDialog({
           filters: [
             { name: "Workflow Files", extensions: ["swwf"] },
             { name: "All Files", extensions: ["*"] },
@@ -196,8 +183,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
         if (!filePath) return;
 
-        // Read file content via IPC
-        const content = await window.electronAPI.readFile(filePath);
+        // Read file content via platform
+        const content = await platform.files.readFile(filePath);
 
         // Parse JSON workflow file
         const {
@@ -290,8 +277,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
       try {
         const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
 
-        if (window.electronAPI?.saveFile) {
-          await window.electronAPI.saveFile(json, activeTab.filePath);
+        if (hasNativeDialogs()) {
+          await platform.files.writeFile(activeTab.filePath, json);
           markTabClean(activeTabId);
           showNotification("Workflow saved successfully!", "success");
         } else {
@@ -335,9 +322,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
       const baseName = buildSafeName(workflowMeta.name);
 
-      // Use Electron's native save dialog if available
-      if (window.electronAPI?.showSaveDialog && window.electronAPI?.saveFile) {
-        const filePath = await window.electronAPI.showSaveDialog({
+      // Use native save dialog if available
+      if (hasNativeDialogs()) {
+        const filePath = await platform.files.showSaveDialog({
           defaultPath: `${baseName}.swwf`,
           filters: [
             { name: "Workflow Files", extensions: ["swwf"] },
@@ -346,7 +333,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
         });
 
         if (filePath) {
-          await window.electronAPI.saveFile(json, filePath);
+          await platform.files.writeFile(filePath, json);
           setTabFilePath(activeTabId, filePath);
           markTabClean(activeTabId);
           showNotification("Workflow saved successfully!", "success");
@@ -433,7 +420,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
 
   const handleClearCache = useCallback(async () => {
     try {
-      setPreviewDropdownOpen(false);
       const result = await clearBackendWorkflowCache(workflowMeta.workflowId);
       if (result.status === "cleared") {
         showNotification("Backend cache cleared successfully", "success");
@@ -538,19 +524,6 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2">
             <button
-              onClick={onShowSettings}
-              className="px-3 py-1.5 rounded text-sm font-medium transition-colors
-                bg-theme-header-btn-new-bg border border-theme-header-btn-new-border text-theme-header-btn-new-text
-                hover:bg-theme-header-btn-new-bg-hover hover:border-theme-header-btn-new-border-hover hover:text-theme-header-btn-new-text-hover
-                active:bg-theme-header-btn-new-bg-active active:border-theme-header-btn-new-border-active active:text-theme-header-btn-new-text-active"
-              title="Settings"
-            >
-              Settings
-            </button>
-
-            <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
-
-            <button
               onClick={handleImportWorkflow}
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors
                 bg-theme-header-btn-import-bg border border-theme-header-btn-import-border text-theme-header-btn-import-text
@@ -603,68 +576,47 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({ onShowSettings }, ref) => {
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
 
             {/* Preview All with dropdown */}
-            <div className="relative" ref={previewDropdownRef}>
-              <div className="flex">
-                <button
-                  onClick={handlePreviewWorkflow}
-                  disabled={isPreviewLoading}
-                  className="px-3 py-1.5 rounded-l text-sm font-medium transition-colors
-                    bg-theme-header-btn-preview-bg border border-r-0 border-theme-header-btn-preview-border text-theme-header-btn-preview-text
-                    hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
-                    active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
-                    disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
-                  title={bypassCache ? "Preview All Tools - Cache Bypassed (Ctrl+P)" : "Preview All Tools (Ctrl+P)"}
-                >
-                  {isPreviewLoading ? "Loading..." : bypassCache ? "Preview All*" : "Preview All"}
-                </button>
-                <button
-                  onClick={() => setPreviewDropdownOpen(!previewDropdownOpen)}
-                  disabled={isPreviewLoading}
-                  className="px-1.5 py-1.5 rounded-r text-sm font-medium transition-colors
-                    bg-theme-header-btn-preview-bg border border-theme-header-btn-preview-border text-theme-header-btn-preview-text
-                    hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
-                    active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
-                    disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
-                  title="Preview options"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
-              
-              {/* Dropdown menu */}
-              {previewDropdownOpen && (
-                <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg z-50
-                  bg-theme-canvas-bg border border-theme-border-primary">
-                  <div className="py-1">
-                    {/* Bypass Cache toggle */}
-                    <button
-                      onClick={() => {
-                        setBypassCache(!bypassCache);
-                      }}
-                      className="w-full px-4 py-2 text-sm text-left flex items-center justify-between
-                        text-theme-text-primary hover:bg-theme-panel-section-bg"
-                    >
-                      <span>Bypass Cache</span>
-                      <span className={`w-8 h-4 rounded-full relative transition-colors ${bypassCache ? 'bg-blue-500' : 'bg-gray-400'}`}>
-                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${bypassCache ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </span>
-                    </button>
-                    
-                    <div className="border-t border-theme-border-primary my-1"></div>
-                    
-                    {/* Clear Cache action */}
-                    <button
-                      onClick={handleClearCache}
-                      className="w-full px-4 py-2 text-sm text-left
-                        text-theme-text-primary hover:bg-theme-panel-section-bg"
-                    >
-                      Clear Backend Cache
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="flex">
+              <button
+                onClick={handlePreviewWorkflow}
+                disabled={isPreviewLoading}
+                className="px-3 py-1.5 rounded-l text-sm font-medium transition-colors
+                  bg-theme-header-btn-preview-bg border border-r-0 border-theme-header-btn-preview-border text-theme-header-btn-preview-text
+                  hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
+                  active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
+                  disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
+                title={bypassCache ? "Preview All Tools - Cache Bypassed (Ctrl+P)" : "Preview All Tools (Ctrl+P)"}
+              >
+                {isPreviewLoading ? "Loading..." : bypassCache ? "Preview All*" : "Preview All"}
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={isPreviewLoading}
+                    className="px-1.5 py-1.5 rounded-r text-sm font-medium transition-colors
+                      bg-theme-header-btn-preview-bg border border-theme-header-btn-preview-border text-theme-header-btn-preview-text
+                      hover:bg-theme-header-btn-preview-bg-hover hover:border-theme-header-btn-preview-border-hover hover:text-theme-header-btn-preview-text-hover
+                      active:bg-theme-header-btn-preview-bg-active active:border-theme-header-btn-preview-border-active active:text-theme-header-btn-preview-text-active
+                      disabled:bg-theme-header-btn-preview-bg-disabled disabled:border-theme-header-btn-preview-border-disabled disabled:text-theme-header-btn-preview-text-disabled disabled:cursor-not-allowed"
+                    title="Preview options"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuCheckboxItem
+                    checked={bypassCache}
+                    onCheckedChange={(checked) => setBypassCache(checked)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    Bypass Cache
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleClearCache}>
+                    Clear Backend Cache
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <button

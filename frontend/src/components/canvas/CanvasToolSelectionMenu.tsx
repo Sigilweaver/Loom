@@ -30,7 +30,7 @@ const CATEGORY_ICONS: Record<ToolCategory, React.ElementType> = {
 };
 
 const CATEGORY_COLORS: Record<ToolCategory, string> = {
-  favorites: '#facc15', // Yellow
+  favorites: 'var(--color-favorites)',
   inout: 'var(--color-tool-inout)',
   preparation: 'var(--color-tool-preparation)',
   join: 'var(--color-tool-join)',

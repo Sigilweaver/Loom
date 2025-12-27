@@ -85,8 +85,20 @@ class SummarizeTool(BaseTool):
 
     def _build_operation(self, config: dict[str, Any]) -> SummarizeOperation:
         """Build the summarize operation from config."""
-        group_by_columns = config.get("groupByColumns", [])
+        group_by_config = config.get("groupByColumns", [])
         aggregations_config = config.get("aggregations", [])
+
+        # Parse group by columns - supports both legacy string format and new object format
+        group_by_columns = []
+        for item in group_by_config:
+            if isinstance(item, str):
+                # Legacy format: plain string
+                group_by_columns.append(item)
+            elif isinstance(item, dict):
+                # New format: object with _id and column
+                column = item.get("column")
+                if column:
+                    group_by_columns.append(column)
 
         aggregations = []
         for agg in aggregations_config:
@@ -122,8 +134,18 @@ class SummarizeTool(BaseTool):
             raise ToolError("Summarize tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
 
-        group_by_columns = config.get("groupByColumns", [])
+        group_by_config = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
+
+        # Parse group by columns for validation
+        group_by_columns = []
+        for item in group_by_config:
+            if isinstance(item, str):
+                group_by_columns.append(item)
+            elif isinstance(item, dict):
+                column = item.get("column")
+                if column:
+                    group_by_columns.append(column)
 
         # Handle no aggregations and no group by
         if not aggregations and not group_by_columns:
@@ -147,8 +169,18 @@ class SummarizeTool(BaseTool):
         if isinstance(input_data, list):
             raise ToolError("Summarize tool does not support multiple input schemas")
         input_schema: DataSchema = input_data
-        group_by_columns = config.get("groupByColumns", [])
+        group_by_config = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])
+
+        # Parse group by columns - supports both legacy string format and new object format
+        group_by_columns = []
+        for item in group_by_config:
+            if isinstance(item, str):
+                group_by_columns.append(item)
+            elif isinstance(item, dict):
+                column = item.get("column")
+                if column:
+                    group_by_columns.append(column)
 
         # Create lookup for input column schemas
         input_column_map = {col.name: col for col in input_schema.columns}
@@ -196,7 +228,17 @@ class SummarizeTool(BaseTool):
         errors = []
 
         aggregations = config.get("aggregations", [])
-        group_by_columns = config.get("groupByColumns", [])
+        group_by_config = config.get("groupByColumns", [])
+
+        # Parse group by columns - supports both legacy string format and new object format
+        group_by_columns = []
+        for item in group_by_config:
+            if isinstance(item, str):
+                group_by_columns.append(item)
+            elif isinstance(item, dict):
+                column = item.get("column")
+                if column:
+                    group_by_columns.append(column)
 
         # Allow empty aggregations if group by columns are provided (distinct values case)
         if not aggregations:

@@ -1,4 +1,5 @@
 import React from 'react';
+import { platform } from '@platform';
 
 export interface BrowserFileWarningProps {
   className?: string;
@@ -11,8 +12,8 @@ export interface BrowserFileWarningProps {
 export const BrowserFileWarning: React.FC<BrowserFileWarningProps> = ({ 
   className = "" 
 }) => {
-  // Only show if we're in browser mode (no Electron API)
-  if (window.electronAPI?.showOpenDialog) {
+  // Only show if we're in browser mode (no native file dialogs)
+  if (platform.capabilities.nativeDialogs) {
     return null;
   }
 

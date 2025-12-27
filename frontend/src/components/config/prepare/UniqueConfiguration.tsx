@@ -162,21 +162,21 @@ export function UniqueConfiguration({
           </p>
           <div className="mt-2 space-y-1 text-xs text-theme-text-tertiary">
             <div className="flex items-center gap-2">
-              <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 font-medium">U</span>
+              <span className="px-1.5 py-0.5 rounded bg-theme-log-success/20 text-theme-log-success font-medium">U</span>
               <span>Unique rows (based on mode)</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 font-medium">D</span>
+              <span className="px-1.5 py-0.5 rounded bg-theme-status-warning-bg text-theme-status-warning-text font-medium">D</span>
               <span>Duplicate rows</span>
             </div>
           </div>
         </div>
 
         {/* Blocking Warning */}
-        <div className="flex items-start gap-2 p-3 text-sm border rounded bg-amber-500/10 border-amber-500/30">
-          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-2 p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
+          <AlertTriangle className="w-4 h-4 text-theme-status-warning-text mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-amber-200">Performance Note</p>
+            <p className="font-medium text-theme-status-warning-text">Performance Note</p>
             <p className="text-theme-text-secondary">
               This tool requires scanning all data to identify duplicates.
               Results will be cached to avoid re-computation.
@@ -280,13 +280,13 @@ export function UniqueConfiguration({
           </h4>
           {currentMode === "First" ? (
             <p className="text-theme-text-secondary">
-              The <span className="text-green-400">Unique</span> output contains the first row for each distinct combination of values.
-              The <span className="text-orange-400">Duplicate</span> output contains all subsequent rows with the same values.
+              The <span className="text-theme-log-success">Unique</span> output contains the first row for each distinct combination of values.
+              The <span className="text-theme-status-warning-text">Duplicate</span> output contains all subsequent rows with the same values.
             </p>
           ) : (
             <p className="text-theme-text-secondary">
-              The <span className="text-green-400">Unique</span> output contains only rows where the value combination appears exactly once.
-              The <span className="text-orange-400">Duplicate</span> output contains all rows where the value appears more than once (including the first occurrence).
+              The <span className="text-theme-log-success">Unique</span> output contains only rows where the value combination appears exactly once.
+              The <span className="text-theme-status-warning-text">Duplicate</span> output contains all rows where the value appears more than once (including the first occurrence).
             </p>
           )}
         </div>

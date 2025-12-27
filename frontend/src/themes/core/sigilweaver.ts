@@ -1,7 +1,7 @@
-import { Theme } from '../types/theme';
-import { sigilweaverPalette } from './palettes';
-import { buildFieldStates, buildPrimaryButtonFromPalette, buildSecondaryButtonFromPalette, buildTertiaryButtonFromPalette, buildDangerButtonFromPalette } from './tokens/builders';
-import { HEADER_BACKGROUND, BRAND_EDGE, BRAND_EDGE_ANIMATED, BRAND_EDGE_ANIMATED_HOVER_DARK } from './tokens/constants';
+import { Theme } from '../../types/theme';
+import { sigilweaverPalette } from '../palettes';
+import { buildFieldStates, buildPrimaryButtonFromPalette, buildSecondaryButtonFromPalette, buildTertiaryButtonFromPalette, buildDangerButtonFromPalette } from '../tokens/builders';
+import { HEADER_BACKGROUND, BRAND_EDGE, BRAND_EDGE_ANIMATED, BRAND_EDGE_ANIMATED_HOVER_DARK } from '../tokens/constants';
 
 export const sigilweaverTheme: Theme = {
   id: 'sigilweaver',
@@ -44,4 +44,3 @@ export const sigilweaverTheme: Theme = {
   forms: { input: buildFieldStates({ bg: { base: sigilweaverPalette.gray[300], disabled: sigilweaverPalette.gray[200] }, border: { base: sigilweaverPalette.gray[400], hover: sigilweaverPalette.gray[500], active: sigilweaverPalette.brand.primary[500], disabled: sigilweaverPalette.gray[300] }, text: { base: sigilweaverPalette.gray[950], disabled: sigilweaverPalette.gray[500] } }), select: buildFieldStates({ bg: { base: sigilweaverPalette.gray[300], disabled: sigilweaverPalette.gray[200] }, border: { base: sigilweaverPalette.gray[400], hover: sigilweaverPalette.gray[500], active: sigilweaverPalette.brand.primary[500], disabled: sigilweaverPalette.gray[300] }, text: { base: sigilweaverPalette.gray[950], disabled: sigilweaverPalette.gray[500] } }), checkbox: buildFieldStates({ bg: { base: sigilweaverPalette.gray[300], hover: sigilweaverPalette.gray[400], active: sigilweaverPalette.brand.primary[500], disabled: sigilweaverPalette.gray[200] }, border: { base: sigilweaverPalette.gray[400], hover: sigilweaverPalette.gray[500], active: sigilweaverPalette.brand.primary[600], disabled: sigilweaverPalette.gray[300] }, text: { base: sigilweaverPalette.gray[950], active: sigilweaverPalette.foundation.white, disabled: sigilweaverPalette.gray[400] } }), radio: buildFieldStates({ bg: { base: sigilweaverPalette.gray[300], hover: sigilweaverPalette.gray[400], active: sigilweaverPalette.brand.primary[500], disabled: sigilweaverPalette.gray[200] }, border: { base: sigilweaverPalette.gray[400], hover: sigilweaverPalette.gray[500], active: sigilweaverPalette.brand.primary[600], disabled: sigilweaverPalette.gray[300] }, text: { base: sigilweaverPalette.gray[950], active: sigilweaverPalette.foundation.white, disabled: sigilweaverPalette.gray[400] } }), button: { primary: buildPrimaryButtonFromPalette(sigilweaverPalette), secondary: buildSecondaryButtonFromPalette(sigilweaverPalette), tertiary: buildTertiaryButtonFromPalette(sigilweaverPalette), danger: buildDangerButtonFromPalette(sigilweaverPalette) }, label: sigilweaverPalette.gray[950], helpText: sigilweaverPalette.gray[800], errorText: sigilweaverPalette.semantic.error[400], successText: sigilweaverPalette.semantic.success[500] },
   },
 };
-

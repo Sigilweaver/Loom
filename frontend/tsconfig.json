@@ -25,6 +25,8 @@
       "@data/*": ["./src/data/*"],
       "@domain/*": ["./src/domain/*"],
       "@hooks/*": ["./src/hooks/*"],
+      "@platform": ["./src/platform/index.ts"],
+      "@platform/*": ["./src/platform/*"],
       "@state/*": ["./src/state/*"],
       "@utils/*": ["./src/utils/*"]
     }

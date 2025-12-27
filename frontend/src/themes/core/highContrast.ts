@@ -1,6 +1,6 @@
-import { Theme } from '../types/theme';
-import { lightPalette } from './palettes';
-import { buildFieldStates, buildButtonStates } from './tokens/builders';
+import { Theme } from '../../types/theme';
+import { lightPalette } from '../palettes';
+import { buildFieldStates, buildButtonStates } from '../tokens/builders';
 
 export const highContrastTheme: Theme = {
   id: 'high-contrast',
