@@ -8,6 +8,7 @@
 // === THE CLASSICS ===
 // Well-established themes everyone knows
 export { nordTheme } from './nord';
+export { nordLightTheme } from './nord-light';
 export { draculaTheme } from './dracula';
 export { githubDarkTheme } from './github-dark';
 export { githubLightTheme } from './github-light';
@@ -19,14 +20,18 @@ export { solarizedLightTheme } from './solarized-light';
 // === THE STANDARDS ===
 // Editor staples that defined an era
 export { oneDarkTheme } from './one-dark';
+export { oneLightTheme } from './one-light';
 export { monokaiTheme } from './monokai';
 export { materialPalenightTheme } from './material-palenight';
 
 // === THE HYPE ===
 // Community favorites with passionate followings
 export { catppuccinMochaTheme } from './catppuccin-mocha';
+export { catppuccinLatteTheme } from './catppuccin-latte';
 export { tokyoNightTheme } from './tokyo-night';
+export { tokyoNightLightTheme } from './tokyo-night-light';
 export { rosePineTheme } from './rose-pine';
+export { rosePineDawnTheme } from './rose-pine-dawn';
 
 // === THE UTILITY ===
 // Optimized for readability and eye comfort
