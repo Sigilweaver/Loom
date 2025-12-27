@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { getToolsByCategory } from "@data/tools";
 import { ToolCategory } from "@domain/workflow/entities/workflow";
 import { useUIStore } from "@state/uiStore";
@@ -35,16 +35,85 @@ const getCategoryColor = (category: string) => {
   }
 };
 
+// Custom event for touch drag - dispatched when tool is dropped on canvas
+export const TOOL_TOUCH_DROP_EVENT = 'sigilweaver:tool-touch-drop';
+
+export interface ToolTouchDropDetail {
+  toolType: string;
+  clientX: number;
+  clientY: number;
+}
+
 export default function ToolPalette() {
   const favoriteTools = useUIStore((s) => s.favoriteTools);
   const toggleFavoriteTool = useUIStore((s) => s.toggleFavoriteTool);
   const collapsedCategories = useUIStore((s) => s.collapsedCategories);
   const toggleCategory = useUIStore((s) => s.toggleCategory);
 
+  // Touch drag state
+  const [touchDragTool, setTouchDragTool] = useState<string | null>(null);
+  const [touchPosition, setTouchPosition] = useState<{ x: number; y: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const dragThreshold = 10; // Pixels before drag starts
+
   const handleDragStart = (e: React.DragEvent, toolType: string) => {
     e.dataTransfer.setData("application/reactflow", toolType);
     e.dataTransfer.effectAllowed = "move";
   };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, _toolType: string) => {
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+      // Don't start drag immediately - wait for movement past threshold
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent, toolType: string) => {
+    const touch = e.touches[0];
+    if (!touch || !touchStartRef.current) return;
+
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Start drag after threshold
+    if (distance > dragThreshold) {
+      if (!touchDragTool) {
+        setTouchDragTool(toolType);
+      }
+      setTouchPosition({ x: touch.clientX, y: touch.clientY });
+      // Prevent scrolling while dragging
+      e.preventDefault();
+    }
+  }, [touchDragTool]);
+
+  const handleTouchEnd = useCallback((_e: React.TouchEvent) => {
+    if (touchDragTool && touchPosition) {
+      // Dispatch custom event for canvas to handle
+      const event = new CustomEvent(TOOL_TOUCH_DROP_EVENT, {
+        detail: {
+          toolType: touchDragTool,
+          clientX: touchPosition.x,
+          clientY: touchPosition.y,
+        } as ToolTouchDropDetail,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+    }
+    
+    // Reset state
+    setTouchDragTool(null);
+    setTouchPosition(null);
+    touchStartRef.current = null;
+  }, [touchDragTool, touchPosition]);
+
+  // Cancel drag on touchcancel
+  const handleTouchCancel = useCallback(() => {
+    setTouchDragTool(null);
+    setTouchPosition(null);
+    touchStartRef.current = null;
+  }, []);
 
   const handleToggleFavorite = (e: React.MouseEvent, toolType: string) => {
     e.stopPropagation();
@@ -128,7 +197,11 @@ export default function ToolPalette() {
                           <div
                             draggable
                             onDragStart={(e) => handleDragStart(e, tool.type)}
-                            className="flex items-center justify-center p-2 transition-shadow border-2 rounded-lg shadow cursor-move select-none bg-theme-node-default-bg hover:shadow-lg"
+                            onTouchStart={(e) => handleTouchStart(e, tool.type)}
+                            onTouchMove={(e) => handleTouchMove(e, tool.type)}
+                            onTouchEnd={handleTouchEnd}
+                            onTouchCancel={handleTouchCancel}
+                            className="flex items-center justify-center p-2 transition-shadow border-2 rounded-lg shadow cursor-move select-none bg-theme-node-default-bg hover:shadow-lg touch-none"
                             style={{
                               width: "44px",
                               height: "44px",
@@ -158,6 +231,32 @@ export default function ToolPalette() {
           </div>
         );
       })}
+
+      {/* Touch drag ghost indicator */}
+      {touchDragTool && touchPosition && (
+        <div
+          style={{
+            position: 'fixed',
+            left: touchPosition.x - 22,
+            top: touchPosition.y - 22,
+            width: 44,
+            height: 44,
+            pointerEvents: 'none',
+            zIndex: 10000,
+            opacity: 0.8,
+          }}
+          className="flex items-center justify-center p-2 border-2 rounded-lg shadow-lg bg-theme-node-default-bg border-theme-border-accent"
+        >
+          {(() => {
+            const tool = [...getToolsByCategory('inout'), ...getToolsByCategory('preparation'), ...getToolsByCategory('join'), ...getToolsByCategory('aggregate')].find(t => t.type === touchDragTool);
+            if (tool) {
+              const ToolIcon = tool.icon;
+              return <ToolIcon className="w-6 h-6" style={{ color: getCategoryColor(tool.category) }} />;
+            }
+            return null;
+          })()}
+        </div>
+      )}
     </div>
   );
 }

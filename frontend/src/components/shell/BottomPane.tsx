@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import DataTable from "@components/viewer/DataTable";
 import LogViewer from "@components/viewer/LogViewer";
@@ -25,28 +25,51 @@ const BottomPane = () => {
     e.preventDefault();
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const newHeight = window.innerHeight - e.clientY;
+    setBottomPaneHeight(newHeight);
+  }, [setBottomPaneHeight]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    const touch = e.touches[0];
+    if (touch) {
+      const newHeight = window.innerHeight - touch.clientY;
+      setBottomPaneHeight(newHeight);
+    }
+  }, [setBottomPaneHeight]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
   useEffect(() => {
     if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const newHeight = window.innerHeight - e.clientY;
-      setBottomPaneHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", handleTouchEnd);
+    document.addEventListener("touchcancel", handleTouchEnd);
     document.body.style.cursor = "row-resize";
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchcancel", handleTouchEnd);
       document.body.style.cursor = "";
     };
-  }, [isResizing, setBottomPaneHeight]);
+  }, [isResizing, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   if (!bottomPaneOpen) return null;
 
@@ -58,6 +81,7 @@ const BottomPane = () => {
       {/* Resize Handle */}
       <div
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         className={`h-1 cursor-row-resize transition-colors ${
           isResizing
             ? "bg-theme-border-accent"

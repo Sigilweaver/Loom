@@ -19,12 +19,14 @@ interface Props {
 export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose }) => {
   const [hoveredKey, setHoveredKey] = React.useState<string | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (!open) return;
-    const handlePointerDown = (e: MouseEvent) => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
       const el = containerRef.current;
       if (!el) return;
-      if (!el.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (!el.contains(target)) {
         onClose();
       }
     };
@@ -32,10 +34,12 @@ export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('mousedown', handlePointerDown, true);
+    document.addEventListener('touchstart', handlePointerDown, true);
     document.addEventListener('contextmenu', handlePointerDown, true);
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown, true);
+      document.removeEventListener('touchstart', handlePointerDown, true);
       document.removeEventListener('contextmenu', handlePointerDown, true);
       document.removeEventListener('keydown', handleKey);
     };
@@ -63,6 +67,11 @@ export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose
         <button
           key={it.key}
           onClick={() => { if (!it.disabled) { it.onClick(); } onClose(); }}
+          onTouchEnd={(e) => { 
+            e.preventDefault();
+            if (!it.disabled) { it.onClick(); } 
+            onClose(); 
+          }}
           disabled={it.disabled}
           onMouseEnter={() => setHoveredKey(it.key)}
           onMouseLeave={() => setHoveredKey(prev => (prev === it.key ? null : prev))}

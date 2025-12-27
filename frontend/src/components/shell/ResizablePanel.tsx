@@ -24,6 +24,11 @@ export default function ResizablePanel({
     setIsResizing(true);
   }, []);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
 
@@ -32,7 +37,22 @@ export default function ResizablePanel({
     setWidth(constrainedWidth);
   }, [isResizing, minWidth, maxWidth]);
 
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isResizing) return;
+
+    const touch = e.touches[0];
+    if (touch) {
+      const newWidth = touch.clientX;
+      const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      setWidth(constrainedWidth);
+    }
+  }, [isResizing, minWidth, maxWidth]);
+
   const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
     setIsResizing(false);
   }, []);
 
@@ -40,17 +60,23 @@ export default function ResizablePanel({
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener('touchcancel', handleTouchEnd);
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
 
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener('touchcancel', handleTouchEnd);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
       };
     }
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+  }, [isResizing, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   return (
     <div
@@ -66,6 +92,7 @@ export default function ResizablePanel({
           isResizing ? 'border-theme-border-primary' : 'border-theme-border-secondary'
         }`}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         title="Drag to resize panel"
       >
         {/* Visual indicator */}

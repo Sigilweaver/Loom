@@ -265,7 +265,7 @@ vi.mock('monaco-editor', () => ({
 // Mock lucide-react icons to avoid rendering issues in tests
 vi.mock('lucide-react', () => {
   const icons = [
-    'FileInput', 'FileOutput', 'Filter', 'CheckSquare', 'ArrowUpDown', 
+    'FileInput', 'FileOutput', 'FileDown', 'Filter', 'CheckSquare', 'ArrowUpDown', 
     'Calculator', 'Layers', 'Link', 'Sigma', 'Star', 'ArrowRightLeft', 
     'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle',
     'Fingerprint', 'CornerRightDown', 'CornerLeftUp', 'ChevronDown',
