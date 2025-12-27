@@ -274,7 +274,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
   const { onMove } = useCanvasViewport();
 
   // === Focus and pointer management ===
-  const { keyScopeRef, onMouseDown } = useCanvasFocus({ isPointerDownRef });
+  const { keyScopeRef, onMouseDown, onTouchStart } = useCanvasFocus({ isPointerDownRef });
 
   return (
     <div
@@ -283,6 +283,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
       onPaste={onPaste}
       onKeyDown={onKeyDown}
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       className="flex-1 h-full min-h-0"
       style={{ outline: "none" }}
     >

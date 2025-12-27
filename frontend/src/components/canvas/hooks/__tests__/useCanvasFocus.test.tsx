@@ -20,14 +20,18 @@ describe("useCanvasFocus", () => {
   afterEach(() => {
     // Clean up event listeners
     window.removeEventListener("mouseup", () => {});
+    window.removeEventListener("touchend", () => {});
+    window.removeEventListener("touchcancel", () => {});
   });
 
-  it("should return keyScopeRef and onMouseDown handler", () => {
+  it("should return keyScopeRef, onMouseDown, and onTouchStart handlers", () => {
     const { result } = renderHook(() => useCanvasFocus(params));
 
     expect(result.current).toHaveProperty("keyScopeRef");
     expect(result.current).toHaveProperty("onMouseDown");
+    expect(result.current).toHaveProperty("onTouchStart");
     expect(typeof result.current.onMouseDown).toBe("function");
+    expect(typeof result.current.onTouchStart).toBe("function");
   });
 
   it("should set pointer down on left click", () => {
@@ -121,5 +125,86 @@ describe("useCanvasFocus", () => {
         onMouseDown(mockEvent);
       });
     }).not.toThrow();
+  });
+
+  // Touch event tests
+  it("should set pointer down on touch start", () => {
+    const { result } = renderHook(() => useCanvasFocus(params));
+    const { onTouchStart } = result.current;
+
+    const mockEvent = {} as React.TouchEvent;
+
+    act(() => {
+      onTouchStart(mockEvent);
+    });
+
+    expect(isPointerDownRef.current).toBe(true);
+  });
+
+  it("should reset pointer down on touchend", async () => {
+    const { result } = renderHook(() => useCanvasFocus(params));
+    const { onTouchStart } = result.current;
+
+    const mockEvent = {} as React.TouchEvent;
+
+    act(() => {
+      onTouchStart(mockEvent);
+    });
+
+    expect(isPointerDownRef.current).toBe(true);
+
+    // Simulate touchend
+    act(() => {
+      window.dispatchEvent(new TouchEvent("touchend"));
+    });
+
+    // Wait for event to be processed
+    await vi.waitFor(() => {
+      expect(isPointerDownRef.current).toBe(false);
+    });
+  });
+
+  it("should reset pointer down on touchcancel", async () => {
+    const { result } = renderHook(() => useCanvasFocus(params));
+    const { onTouchStart } = result.current;
+
+    const mockEvent = {} as React.TouchEvent;
+
+    act(() => {
+      onTouchStart(mockEvent);
+    });
+
+    expect(isPointerDownRef.current).toBe(true);
+
+    // Simulate touchcancel
+    act(() => {
+      window.dispatchEvent(new TouchEvent("touchcancel"));
+    });
+
+    // Wait for event to be processed
+    await vi.waitFor(() => {
+      expect(isPointerDownRef.current).toBe(false);
+    });
+  });
+
+  it("should focus keyScopeRef element on touch start", () => {
+    const { result } = renderHook(() => useCanvasFocus(params));
+    const { keyScopeRef, onTouchStart } = result.current;
+
+    // Create a mock element with focus method
+    const mockElement = {
+      focus: vi.fn(),
+    } as unknown as HTMLDivElement;
+
+    // Set the ref
+    (keyScopeRef as React.MutableRefObject<HTMLDivElement | null>).current = mockElement;
+
+    const mockEvent = {} as React.TouchEvent;
+
+    act(() => {
+      onTouchStart(mockEvent);
+    });
+
+    expect(mockElement.focus).toHaveBeenCalled();
   });
 });

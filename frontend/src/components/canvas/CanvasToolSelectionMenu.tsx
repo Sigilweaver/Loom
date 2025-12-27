@@ -43,6 +43,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
   const favoriteTools = useUIStore((s) => s.favoriteTools);
   const [hoveredCategory, setHoveredCategory] = useState<ToolCategory | null>(null);
   const [submenuCoords, setSubmenuCoords] = useState<{ x: number; y: number } | null>(null);
+  const [activeCategory, setActiveCategory] = useState<ToolCategory | null>(null); // For touch tap support
   const containerRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<number | null>(null);
@@ -69,20 +70,23 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
       // Reset submenu state when menu closes
       setHoveredCategory(null);
       setSubmenuCoords(null);
+      setActiveCategory(null);
       return;
     }
 
     // Reset submenu state when menu opens
     setHoveredCategory(null);
     setSubmenuCoords(null);
+    setActiveCategory(null);
 
-    const handlePointerDown = (e: MouseEvent) => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
       const mainMenu = containerRef.current;
       const submenu = submenuRef.current;
       if (!mainMenu) return;
       
+      const target = e.target as Node;
       // Close if clicking outside both main menu and submenu
-      if (!mainMenu.contains(e.target as Node) && (!submenu || !submenu.contains(e.target as Node))) {
+      if (!mainMenu.contains(target) && (!submenu || !submenu.contains(target))) {
         onClose();
       }
     };
@@ -92,11 +96,13 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
     };
 
     document.addEventListener('mousedown', handlePointerDown, true);
+    document.addEventListener('touchstart', handlePointerDown, true);
     document.addEventListener('contextmenu', handlePointerDown, true);
     document.addEventListener('keydown', handleKey);
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown, true);
+      document.removeEventListener('touchstart', handlePointerDown, true);
       document.removeEventListener('contextmenu', handlePointerDown, true);
       document.removeEventListener('keydown', handleKey);
       clearHideTimeout();
@@ -106,6 +112,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
   const handleCategoryMouseEnter = (category: ToolCategory, e: React.MouseEvent<HTMLButtonElement>) => {
     clearHideTimeout();
     setHoveredCategory(category);
+    setActiveCategory(category);
     const rect = e.currentTarget.getBoundingClientRect();
     setSubmenuCoords({
       x: rect.right + 4,
@@ -120,6 +127,28 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
       setHoveredCategory(null);
       setSubmenuCoords(null);
     }, 150);
+  };
+
+  // Touch support: tap to toggle category submenu
+  const handleCategoryTouchEnd = (category: ToolCategory, e: React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    clearHideTimeout();
+    
+    if (activeCategory === category) {
+      // Tap again to close
+      setActiveCategory(null);
+      setHoveredCategory(null);
+      setSubmenuCoords(null);
+    } else {
+      // Open this category
+      setActiveCategory(category);
+      setHoveredCategory(category);
+      const rect = e.currentTarget.getBoundingClientRect();
+      setSubmenuCoords({
+        x: rect.right + 4,
+        y: rect.top,
+      });
+    }
   };
 
   const handleSubmenuMouseEnter = () => {
@@ -139,9 +168,16 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
     onClose();
   };
 
+  const handleToolTouchEnd = (toolType: string, e: React.TouchEvent) => {
+    e.preventDefault();
+    onSelectTool(toolType);
+    onClose();
+  };
+
   if (!open || !coords) return null;
 
-  const tools = hoveredCategory ? filterToolsByDirection(getToolsByCategory(hoveredCategory, favoriteTools)) : [];
+  const displayCategory = activeCategory || hoveredCategory;
+  const tools = displayCategory ? filterToolsByDirection(getToolsByCategory(displayCategory, favoriteTools)) : [];
 
   return createPortal(
     <>
@@ -167,17 +203,19 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
 
           const CategoryIcon = CATEGORY_ICONS[category];
           const categoryColor = CATEGORY_COLORS[category];
+          const isActive = displayCategory === category;
 
           return (
             <button
               key={category}
               onMouseEnter={(e) => handleCategoryMouseEnter(category, e)}
               onMouseLeave={handleCategoryMouseLeave}
+              onTouchEnd={(e) => handleCategoryTouchEnd(category, e)}
               style={{
                 width: '100%',
                 padding: '8px 12px',
                 border: 'none',
-                background: hoveredCategory === category ? 'var(--color-canvas-controls-btn-hover)' : 'transparent',
+                background: isActive ? 'var(--color-canvas-controls-btn-hover)' : 'transparent',
                 color: 'var(--color-canvas-controls-btn-text)',
                 textAlign: 'left',
                 cursor: 'pointer',
@@ -199,7 +237,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
       </div>
 
       {/* Submenu for tools */}
-      {hoveredCategory && submenuCoords && tools.length > 0 && (
+      {displayCategory && submenuCoords && tools.length > 0 && (
         <div
           ref={submenuRef}
           onMouseEnter={handleSubmenuMouseEnter}
@@ -225,6 +263,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
               <button
                 key={tool.type}
                 onClick={() => handleToolClick(tool.type)}
+                onTouchEnd={(e) => handleToolTouchEnd(tool.type, e)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
