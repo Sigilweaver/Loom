@@ -184,6 +184,8 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         env["HUB_URL"] = "http://localhost:58001"  # Hub backend port
         # Development server token - Server will auto-register with Hub on startup
         env["HUB_SERVER_TOKEN"] = "dev-server-token"
+        # Registration secret - must match Hub's SERVER_REGISTRATION_SECRET
+        env["HUB_REGISTRATION_SECRET"] = "dev-registration-secret"
         print_success("  Hub auth mode enabled (validating tokens with Hub)")
         print_success("  Server will auto-register with Hub on startup")
     else:
@@ -310,6 +312,9 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
     # Development encryption key for Hub connections (valid Fernet key)
     # In production, generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     env["CONNECTION_ENCRYPTION_KEY"] = "xFvKugJ1oWmzFdB_MaNc0M0MJZhcZ9IVcRWf76dm85c="
+    # Development registration secret - servers must provide this to register
+    # In production, generate a secure random string
+    env["SERVER_REGISTRATION_SECRET"] = "dev-registration-secret"
     
     try:
         hub_backend_process = subprocess.Popen(

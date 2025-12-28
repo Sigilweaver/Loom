@@ -137,6 +137,7 @@ class HubClient:
         self,
         name: str,
         endpoint_url: str,
+        registration_secret: str | None = None,
         timeout: float = 10.0,
     ) -> dict[str, Any] | None:
         """Register this server with Hub.
@@ -144,12 +145,18 @@ class HubClient:
         Args:
             name: Server name (e.g., "dev-server", "prod-server-1")
             endpoint_url: This server's API endpoint (e.g., "http://localhost:8000")
+            registration_secret: Shared secret for Hub registration (if required)
             timeout: Request timeout in seconds.
 
         Returns:
             Registration response dict if successful, None if failed.
         """
         try:
+            # Build headers
+            headers = {}
+            if registration_secret:
+                headers["X-Registration-Secret"] = registration_secret
+
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     f"{self.hub_url}/api/servers",
@@ -158,6 +165,7 @@ class HubClient:
                         "endpoint_url": endpoint_url,
                         "auth_token": self.server_token,
                     },
+                    headers=headers,
                 )
 
                 if response.status_code not in (200, 201):

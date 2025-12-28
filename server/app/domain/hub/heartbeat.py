@@ -103,6 +103,7 @@ class HeartbeatManager:
             result = await self.hub_client.register(
                 name=self.server_name,
                 endpoint_url=self.endpoint_url,
+                registration_secret=settings.hub_registration_secret or None,
             )
 
             if result:

@@ -51,5 +51,10 @@ class Settings(BaseSettings):
     #                print(Fernet.generate_key().decode())
     connection_encryption_key: str = ""
 
+    # Server Registration
+    # Shared secret that servers must provide to register with Hub
+    # If empty, server registration is open (insecure - dev only)
+    server_registration_secret: str = ""
+
 
 settings = Settings()

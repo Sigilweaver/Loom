@@ -2,13 +2,15 @@
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db.database import get_db
 from app.db.models import Server
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
@@ -106,14 +108,33 @@ async def list_servers(db: AsyncSession = Depends(get_db)) -> ServerListResponse
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
 async def register_server(
-    request: ServerCreate, db: AsyncSession = Depends(get_db)
+    request: ServerCreate,
+    db: AsyncSession = Depends(get_db),
+    x_registration_secret: Annotated[str | None, Header()] = None,
 ) -> ServerResponse:
     """Register a new server or update existing one (idempotent).
 
     If a server with the same auth_token already exists, updates it.
     This allows servers to re-register after restarts, even if their
     endpoint URL changes (e.g., different port).
+
+    Requires X-Registration-Secret header if server_registration_secret is configured.
     """
+    # Validate registration secret if configured
+    if settings.server_registration_secret:
+        if not x_registration_secret:
+            logger.warning("Server registration attempt without secret")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="X-Registration-Secret header required",
+            )
+        if x_registration_secret != settings.server_registration_secret:
+            logger.warning("Server registration attempt with invalid secret")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid registration secret",
+            )
+
     # Normalize endpoint URL
     endpoint_url = request.endpoint_url.rstrip("/")
 

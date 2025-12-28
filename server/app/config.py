@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     hub_url: str = ""
     # This server's auth token registered in Hub (used to authenticate to Hub)
     hub_server_token: str = ""
+    # Shared secret for registering with Hub (must match Hub's server_registration_secret)
+    hub_registration_secret: str = ""
 
     # Workflow Archive
     archive_enabled: bool = True
