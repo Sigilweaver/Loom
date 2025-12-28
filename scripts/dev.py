@@ -2,13 +2,13 @@
 """
 Sigilweaver Development Script
 
-Starts the Vite dev server for frontend development.
-Electron manages the backend automatically (required for token auth).
+Starts the Vite dev server for Studio development.
+Electron manages the Server automatically (required for token auth).
 
 Usage:
-    ./scripts/dev.py              # Start Vite (Electron manages backend)
-    ./scripts/dev.py --backend    # Backend only (for browser dev without Electron)
-    ./scripts/dev.py --frontend   # Frontend only (same as default)
+    ./scripts/dev.py              # Start Vite (Electron manages Server)
+    ./scripts/dev.py --server     # Server only (for browser dev without Electron)
+    ./scripts/dev.py --studio     # Studio only (same as default)
     ./scripts/dev.py --electron   # Also launch Electron after Vite starts
 """
 
@@ -30,8 +30,8 @@ YELLOW = "\033[1;33m"
 NC = "\033[0m"  # No Color
 
 # Global process references for cleanup
-backend_process: subprocess.Popen | None = None
-frontend_process: subprocess.Popen | None = None
+server_process: subprocess.Popen | None = None
+studio_process: subprocess.Popen | None = None
 electron_process: subprocess.Popen | None = None
 shutdown_requested = False
 
@@ -65,26 +65,26 @@ def print_success(message: str) -> None:
     print(f"{GREEN}{message}{NC}")
 
 
-def check_backend_setup(repo_root: Path) -> bool:
-    """Check if backend is set up with uv."""
-    lock_path = repo_root / "backend" / "uv.lock"
-    venv_path = repo_root / "backend" / ".venv"
+def check_server_setup(repo_root: Path) -> bool:
+    """Check if server is set up with uv."""
+    lock_path = repo_root / "server" / "uv.lock"
+    venv_path = repo_root / "server" / ".venv"
     if not lock_path.exists() or not venv_path.exists():
-        print_error("Backend not set up!")
-        print_warning("Please set up the backend first:")
-        print("  cd backend")
+        print_error("Server not set up!")
+        print_warning("Please set up the server first:")
+        print("  cd server")
         print("  uv sync --all-extras")
         return False
     return True
 
 
-def check_frontend_setup(repo_root: Path) -> bool:
-    """Check if frontend node_modules exists."""
-    node_modules = repo_root / "frontend" / "node_modules"
+def check_studio_setup(repo_root: Path) -> bool:
+    """Check if studio node_modules exists."""
+    node_modules = repo_root / "studio" / "node_modules"
     if not node_modules.exists():
-        print_error("Frontend dependencies not installed!")
-        print_warning("Please set up the frontend first:")
-        print("  cd frontend")
+        print_error("Studio dependencies not installed!")
+        print_warning("Please set up the studio first:")
+        print("  cd studio")
         print("  npm install")
         return False
     return True
@@ -92,7 +92,7 @@ def check_frontend_setup(repo_root: Path) -> bool:
 
 def get_python_executable(repo_root: Path) -> Path:
     """Get the Python executable path from the virtual environment."""
-    venv_path = repo_root / "backend" / ".venv"
+    venv_path = repo_root / "server" / ".venv"
     if sys.platform == "win32":
         return venv_path / "Scripts" / "python.exe"
     return venv_path / "bin" / "python"
@@ -121,13 +121,13 @@ def stream_output(process: subprocess.Popen, prefix: str) -> None:
         pass
 
 
-def start_backend(repo_root: Path) -> subprocess.Popen | None:
-    """Start the backend uvicorn server."""
-    global backend_process
+def start_server(repo_root: Path) -> subprocess.Popen | None:
+    """Start the server uvicorn server."""
+    global server_process
     
-    print_success("Starting Python backend...")
+    print_success("Starting Python server...")
     
-    backend_dir = repo_root / "backend"
+    server_dir = repo_root / "server"
     python_path = get_python_executable(repo_root)
     
     cmd = [
@@ -146,9 +146,9 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
     
     try:
         # Use shell=False for cross-platform compatibility
-        backend_process = subprocess.Popen(
+        server_process = subprocess.Popen(
             cmd,
-            cwd=backend_dir,
+            cwd=server_dir,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -159,30 +159,30 @@ def start_backend(repo_root: Path) -> subprocess.Popen | None:
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
-            args=(backend_process, "BACKEND"),
+            args=(server_process, "SERVER"),
             daemon=True
         )
         thread.start()
         
-        return backend_process
+        return server_process
     except Exception as e:
-        print_error(f"Failed to start backend: {e}")
+        print_error(f"Failed to start server: {e}")
         return None
 
 
-def start_frontend(repo_root: Path) -> subprocess.Popen | None:
+def start_studio(repo_root: Path) -> subprocess.Popen | None:
     """Start the Vite development server."""
-    global frontend_process
+    global studio_process
     
     print_success("Starting Vite dev server...")
     
-    frontend_dir = repo_root / "frontend"
+    studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
     
     try:
-        frontend_process = subprocess.Popen(
+        studio_process = subprocess.Popen(
             [npm_cmd, "run", "dev"],
-            cwd=frontend_dir,
+            cwd=studio_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -193,14 +193,14 @@ def start_frontend(repo_root: Path) -> subprocess.Popen | None:
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
-            args=(frontend_process, "FRONTEND"),
+            args=(studio_process, "STUDIO"),
             daemon=True
         )
         thread.start()
         
-        return frontend_process
+        return studio_process
     except Exception as e:
-        print_error(f"Failed to start frontend: {e}")
+        print_error(f"Failed to start studio: {e}")
         return None
 
 
@@ -210,13 +210,13 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
     
     print_success("Starting Electron...")
     
-    frontend_dir = repo_root / "frontend"
+    studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
     
     try:
         electron_process = subprocess.Popen(
             [npm_cmd, "run", "electron"],
-            cwd=frontend_dir,
+            cwd=studio_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -266,8 +266,8 @@ def cleanup() -> None:
     print_warning("Shutting down services...")
     
     terminate_process(electron_process, "Electron")
-    terminate_process(frontend_process, "Frontend")
-    terminate_process(backend_process, "Backend")
+    terminate_process(studio_process, "Studio")
+    terminate_process(server_process, "Server")
     
     print_success("All services stopped")
 
@@ -278,20 +278,20 @@ def signal_handler(signum: int, frame) -> None:
     sys.exit(0)
 
 
-def print_status(run_backend: bool, run_frontend: bool, run_electron: bool) -> None:
+def print_status(run_server: bool, run_studio: bool, run_electron: bool) -> None:
     """Print status information after services start."""
     print()
     print_success("Services started!")
     print(f"{BLUE}========================================{NC}")
-    if run_backend:
-        print(f"Backend API:    {GREEN}http://localhost:8000{NC}")
+    if run_server:
+        print(f"Server API:     {GREEN}http://localhost:8000{NC}")
         print(f"API Docs:       {GREEN}http://localhost:8000/docs{NC}")
-    if run_frontend:
-        print(f"Frontend:       {GREEN}http://localhost:5173{NC}")
+    if run_studio:
+        print(f"Studio:         {GREEN}http://localhost:5173{NC}")
     print(f"{BLUE}========================================{NC}")
-    if not run_electron and run_frontend:
+    if not run_electron and run_studio:
         print_warning("To launch Electron, run in another terminal:")
-        print("   cd frontend && npm run electron")
+        print("   cd studio && npm run electron")
         print()
         print("Or restart with: ./scripts/dev.py --electron")
     print()
@@ -306,45 +306,45 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    ./scripts/dev.py              # Start Vite (Electron manages backend)
-    ./scripts/dev.py --backend    # Backend only (for browser dev)
-    ./scripts/dev.py --frontend   # Frontend only (same as default)
+    ./scripts/dev.py              # Start Vite (Electron manages Server)
+    ./scripts/dev.py --server     # Server only (for browser dev)
+    ./scripts/dev.py --studio     # Studio only (same as default)
     ./scripts/dev.py --electron   # Also launch Electron explicitly
         """
     )
     parser.add_argument(
-        "--backend",
+        "--server",
         action="store_true",
-        help="Start backend only"
+        help="Start server only"
     )
     parser.add_argument(
-        "--frontend",
+        "--studio",
         action="store_true",
-        help="Start frontend only"
+        help="Start studio only"
     )
     parser.add_argument(
         "--electron",
         action="store_true",
-        help="Also launch Electron after frontend starts"
+        help="Also launch Electron after studio starts"
     )
     
     args = parser.parse_args()
     
     # Determine what to run
-    # By default, just run frontend (Vite auto-launches Electron which manages backend)
-    # Use --backend for browser-only development without Electron
-    if not args.backend and not args.frontend:
-        run_backend = False
-        run_frontend = True
+    # By default, just run studio (Vite auto-launches Electron which manages server)
+    # Use --server for browser-only development without Electron
+    if not args.server and not args.studio:
+        run_server = False
+        run_studio = True
     else:
-        run_backend = args.backend
-        run_frontend = args.frontend
+        run_server = args.server
+        run_studio = args.studio
     
     run_electron = args.electron
     
-    # If electron requested but not frontend, enable frontend too
-    if run_electron and not run_frontend:
-        run_frontend = True
+    # If electron requested but not studio, enable studio too
+    if run_electron and not run_studio:
+        run_studio = True
     
     # Get repo root
     repo_root = get_repo_root()
@@ -353,10 +353,10 @@ Examples:
     print_banner()
     
     # Check prerequisites
-    if run_backend and not check_backend_setup(repo_root):
+    if run_server and not check_server_setup(repo_root):
         return 1
     
-    if run_frontend and not check_frontend_setup(repo_root):
+    if run_studio and not check_studio_setup(repo_root):
         return 1
     
     # Register cleanup handlers
@@ -369,36 +369,36 @@ Examples:
         signal.signal(signal.SIGBREAK, signal_handler)
     
     # Start services
-    if run_backend:
-        if start_backend(repo_root) is None:
+    if run_server:
+        if start_server(repo_root) is None:
             return 1
-        # Give backend a moment to start
+        # Give server a moment to start
         time.sleep(2)
     
-    if run_frontend:
-        if start_frontend(repo_root) is None:
+    if run_studio:
+        if start_studio(repo_root) is None:
             return 1
         # Wait for Vite to start
         time.sleep(3)
     
     if run_electron:
-        # Wait a bit more for frontend to be ready
+        # Wait a bit more for studio to be ready
         time.sleep(2)
         if start_electron(repo_root) is None:
             print_warning("Electron failed to start, but other services are running")
     
     # Print status
-    print_status(run_backend, run_frontend, run_electron)
+    print_status(run_server, run_studio, run_electron)
     
     # Wait for processes to complete (they run until interrupted)
     try:
         while True:
             # Check if any required process has died
-            if run_backend and backend_process and backend_process.poll() is not None:
-                print_error("Backend process died unexpectedly!")
+            if run_server and server_process and server_process.poll() is not None:
+                print_error("Server process died unexpectedly!")
                 break
-            if run_frontend and frontend_process and frontend_process.poll() is not None:
-                print_error("Frontend process died unexpectedly!")
+            if run_studio and studio_process and studio_process.poll() is not None:
+                print_error("Studio process died unexpectedly!")
                 break
             if run_electron and electron_process and electron_process.poll() is not None:
                 # Electron closing is expected (user closed window)

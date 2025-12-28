@@ -43,24 +43,24 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
-  build-backend:
+  build-server:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
-    uses: ./.github/workflows/build-backend.yml
+    uses: ./.github/workflows/build-server.yml
     with:
       python-version: '3.13'
 
-  build-frontend-full:
+  build-studio-full:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
-    needs: [validate-tag-on-main, build-backend]
-    uses: ./.github/workflows/build-frontend-full.yml
+    needs: [validate-tag-on-main, build-server]
+    uses: ./.github/workflows/build-studio-full.yml
     with:
       node-version: '22'
 
-  build-frontend-client:
+  build-studio-client:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
-    uses: ./.github/workflows/build-frontend-client.yml
+    uses: ./.github/workflows/build-studio-client.yml
     with:
       node-version: '22'
 
@@ -76,9 +76,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - validate-tag-on-main
-      - build-backend
-      - build-frontend-full
-      - build-frontend-client
+      - build-server
+      - build-studio-full
+      - build-studio-client
       - build-web
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     permissions:

@@ -3,15 +3,15 @@
 Full verification suite for Sigilweaver.
 
 Runs all checks to ensure CI will pass:
-1. Backend: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
-2. Frontend: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
-3. Integration tests (requires backend running)
+1. Server: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
+2. Studio: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
+3. Integration tests (requires server running)
 
 Usage:
     ./scripts/test.py              # Run all checks, only show errors (recommended before PR)
     ./scripts/test.py -v           # Verbose mode - show all output
-    ./scripts/test.py --backend    # Backend checks only
-    ./scripts/test.py --frontend   # Frontend checks only
+    ./scripts/test.py --server     # Server checks only
+    ./scripts/test.py --studio     # Studio checks only
     ./scripts/test.py --integration # Integration tests only
     ./scripts/test.py --no-integration # Skip integration tests
     ./scripts/test.py --no-coverage # Skip coverage reports (faster)
@@ -64,7 +64,7 @@ class CheckResult:
 
 @dataclass
 class SuiteResult:
-    """Result of a test suite (backend, frontend, integration)."""
+    """Result of a test suite (server, studio, integration)."""
     name: str
     checks: list[CheckResult] = field(default_factory=list)
     
@@ -111,10 +111,10 @@ def print_separator() -> None:
     print("-" * 60)
 
 
-def get_python_path(backend_dir: Path) -> Path | None:
-    """Get the Python executable path from the backend venv (managed by uv)."""
-    lock_path = backend_dir / "uv.lock"
-    venv_path = backend_dir / ".venv"
+def get_python_path(server_dir: Path) -> Path | None:
+    """Get the Python executable path from the server venv (managed by uv)."""
+    lock_path = server_dir / "uv.lock"
+    venv_path = server_dir / ".venv"
     if not lock_path.exists() or not venv_path.exists():
         return None
     
@@ -176,16 +176,16 @@ def run_command(
         )
 
 
-def run_backend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
-    """Run ruff linter on backend code."""
-    print_subheader("Backend Lint (ruff)")
+def run_server_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ruff linter on server code."""
+    print_subheader("Server Lint (ruff)")
     
-    backend_dir = repo_root / "backend"
-    python_path = get_python_path(backend_dir)
+    server_dir = repo_root / "server"
+    python_path = get_python_path(server_dir)
     
     if python_path is None:
         return CheckResult(
-            name="Backend Lint",
+            name="Server Lint",
             passed=False,
             duration=0,
             error="Virtual environment not found"
@@ -196,19 +196,19 @@ def run_backend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
     if not strict:
         cmd.append("--exit-zero")
     
-    return run_command(cmd, backend_dir, "Backend Lint", fail_on_error=strict)
+    return run_command(cmd, server_dir, "Server Lint", fail_on_error=strict)
 
 
-def run_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
-    """Run mypy type checker on backend code."""
-    print_subheader("Backend Type Check (mypy)")
+def run_server_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run mypy type checker on server code."""
+    print_subheader("Server Type Check (mypy)")
     
-    backend_dir = repo_root / "backend"
-    python_path = get_python_path(backend_dir)
+    server_dir = repo_root / "server"
+    python_path = get_python_path(server_dir)
     
     if python_path is None:
         return CheckResult(
-            name="Backend Types",
+            name="Server Types",
             passed=False,
             duration=0,
             error="Virtual environment not found"
@@ -217,138 +217,138 @@ def run_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
     cmd = [str(python_path), "-m", "mypy", "app/"]
     
     # Match CI behavior: mypy issues are reported but don't fail unless strict
-    return run_command(cmd, backend_dir, "Backend Types", fail_on_error=strict)
+    return run_command(cmd, server_dir, "Server Types", fail_on_error=strict)
 
 
-def run_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
-    """Run backend pytest tests."""
-    print_subheader("Backend Tests (pytest)")
+def run_server_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+    """Run server pytest tests."""
+    print_subheader("Server Tests (pytest)")
     
-    backend_dir = repo_root / "backend"
-    python_path = get_python_path(backend_dir)
+    server_dir = repo_root / "server"
+    python_path = get_python_path(server_dir)
     
     if python_path is None:
         return CheckResult(
-            name="Backend Tests",
+            name="Server Tests",
             passed=False,
             duration=0,
-            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
+            error="Server not set up with uv. Run: cd server && uv sync --all-extras"
         )
     
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
     
-    result = run_command(cmd, backend_dir, "Backend Tests", fail_on_error=True)
+    result = run_command(cmd, server_dir, "Server Tests", fail_on_error=True)
     
     if coverage and result.passed and not _quiet_mode:
         print()
-        print(f"Coverage report: {backend_dir}/htmlcov/index.html")
+        print(f"Coverage report: {server_dir}/htmlcov/index.html")
     
     return result
 
 
-def run_backend_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
-    """Run all backend checks."""
-    print_header("Backend Verification")
+def run_server_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+    """Run all server checks."""
+    print_header("Server Verification")
     
-    backend_dir = repo_root / "backend"
-    venv_path = backend_dir / ".venv"
+    server_dir = repo_root / "server"
+    venv_path = server_dir / ".venv"
     
-    suite = SuiteResult(name="Backend")
+    suite = SuiteResult(name="Server")
     
-    lock_path = backend_dir / "uv.lock"
+    lock_path = server_dir / "uv.lock"
     if not lock_path.exists() or not venv_path.exists():
         suite.checks.append(CheckResult(
-            name="Backend Setup",
+            name="Server Setup",
             passed=False,
             duration=0,
-            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
+            error="Server not set up with uv. Run: cd server && uv sync --all-extras"
         ))
         return suite
     
     # Run lint, typecheck, and tests
-    suite.checks.append(run_backend_lint(repo_root, strict=strict))
-    suite.checks.append(run_backend_typecheck(repo_root, strict=strict))
-    suite.checks.append(run_backend_tests(repo_root, coverage=coverage))
+    suite.checks.append(run_server_lint(repo_root, strict=strict))
+    suite.checks.append(run_server_typecheck(repo_root, strict=strict))
+    suite.checks.append(run_server_tests(repo_root, coverage=coverage))
     
     return suite
 
 
-def run_frontend_typecheck(repo_root: Path) -> CheckResult:
+def run_studio_typecheck(repo_root: Path) -> CheckResult:
     """Run TypeScript type checker."""
-    print_subheader("Frontend Type Check (tsc)")
+    print_subheader("Studio Type Check (tsc)")
     
-    frontend_dir = repo_root / "frontend"
+    studio_dir = repo_root / "studio"
     
     return run_command(
         ["npm", "run", "type-check"],
-        frontend_dir,
-        "Frontend Types",
+        studio_dir,
+        "Studio Types",
         fail_on_error=True
     )
 
 
-def run_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
-    """Run ESLint on frontend code."""
-    print_subheader("Frontend Lint (eslint)")
+def run_studio_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ESLint on studio code."""
+    print_subheader("Studio Lint (eslint)")
     
-    frontend_dir = repo_root / "frontend"
+    studio_dir = repo_root / "studio"
     
     # Match CI behavior: lint issues are reported but don't fail unless strict
     return run_command(
         ["npm", "run", "lint"],
-        frontend_dir,
-        "Frontend Lint",
+        studio_dir,
+        "Studio Lint",
         fail_on_error=strict
     )
 
 
-def run_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
-    """Run frontend vitest tests."""
-    print_subheader("Frontend Tests (vitest)")
+def run_studio_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+    """Run studio vitest tests."""
+    print_subheader("Studio Tests (vitest)")
     
-    frontend_dir = repo_root / "frontend"
+    studio_dir = repo_root / "studio"
     
     cmd = ["npm", "run", "test:coverage" if coverage else "test:unit"]
     
-    result = run_command(cmd, frontend_dir, "Frontend Tests", fail_on_error=True)
+    result = run_command(cmd, studio_dir, "Studio Tests", fail_on_error=True)
     
     if coverage and result.passed and not _quiet_mode:
         print()
-        print(f"Coverage report: {frontend_dir}/coverage/index.html")
+        print(f"Coverage report: {studio_dir}/coverage/index.html")
     
     return result
 
 
-def run_frontend_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
-    """Run all frontend checks."""
-    print_header("Frontend Verification")
+def run_studio_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+    """Run all studio checks."""
+    print_header("Studio Verification")
     
-    frontend_dir = repo_root / "frontend"
-    node_modules = frontend_dir / "node_modules"
+    studio_dir = repo_root / "studio"
+    node_modules = studio_dir / "node_modules"
     
-    suite = SuiteResult(name="Frontend")
+    suite = SuiteResult(name="Studio")
     
     if not node_modules.exists():
         suite.checks.append(CheckResult(
-            name="Frontend Setup",
+            name="Studio Setup",
             passed=False,
             duration=0,
-            error="node_modules not found. Run: cd frontend && npm install"
+            error="node_modules not found. Run: cd studio && npm install"
         ))
         return suite
     
     # Run typecheck, lint, and tests
-    suite.checks.append(run_frontend_typecheck(repo_root))
-    suite.checks.append(run_frontend_lint(repo_root, strict=strict))
-    suite.checks.append(run_frontend_tests(repo_root, coverage=coverage))
+    suite.checks.append(run_studio_typecheck(repo_root))
+    suite.checks.append(run_studio_lint(repo_root, strict=strict))
+    suite.checks.append(run_studio_tests(repo_root, coverage=coverage))
     
     return suite
 
 
-def check_backend_running() -> bool:
-    """Check if backend is running on test port."""
+def check_server_running() -> bool:
+    """Check if server is running on test port."""
     try:
         import urllib.request
         urllib.request.urlopen("http://localhost:8001/api/health/", timeout=2)
@@ -357,31 +357,31 @@ def check_backend_running() -> bool:
         return False
 
 
-def start_backend(repo_root: Path) -> subprocess.Popen | None:
-    """Start the backend server."""
-    backend_dir = repo_root / "backend"
-    python_path = get_python_path(backend_dir)
+def start_server(repo_root: Path) -> subprocess.Popen | None:
+    """Start the server."""
+    server_dir = repo_root / "server"
+    python_path = get_python_path(server_dir)
     
     if python_path is None:
         return None
     
-    print("Starting backend server on port 8001 (test backend)...")
+    print("Starting server on port 8001 (test server)...")
     
     process = subprocess.Popen(
         [str(python_path), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001"],
-        cwd=backend_dir,
+        cwd=server_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
     
-    # Wait for backend to be ready
+    # Wait for server to be ready
     for _ in range(30):
-        if check_backend_running():
-            print("Backend ready!")
+        if check_server_running():
+            print("Server ready!")
             return process
         time.sleep(1)
     
-    print("ERROR: Backend failed to start")
+    print("ERROR: Server failed to start")
     process.terminate()
     return None
 
@@ -390,8 +390,8 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
     """Run integration tests."""
     print_header("Integration Tests")
     
-    frontend_dir = repo_root / "frontend"
-    node_modules = frontend_dir / "node_modules"
+    studio_dir = repo_root / "studio"
+    node_modules = studio_dir / "node_modules"
     
     suite = SuiteResult(name="Integration")
     
@@ -400,39 +400,39 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
             name="Integration Setup",
             passed=False,
             duration=0,
-            error="node_modules not found. Run: cd frontend && npm install"
+            error="node_modules not found. Run: cd studio && npm install"
         ))
         return suite
     
-    # Check if backend is running, start if needed
-    backend_process = None
-    if not check_backend_running():
-        print("Backend not detected, starting...")
-        backend_process = start_backend(repo_root)
-        if backend_process is None:
+    # Check if server is running, start if needed
+    server_process = None
+    if not check_server_running():
+        print("Server not detected, starting...")
+        server_process = start_server(repo_root)
+        if server_process is None:
             suite.checks.append(CheckResult(
                 name="Integration Setup",
                 passed=False,
                 duration=0,
-                error="Failed to start backend server"
+                error="Failed to start server"
             ))
             return suite
     else:
-        print("Backend already running")
+        print("Server already running")
     
     try:
         result = run_command(
             ["npm", "run", "test:integration"],
-            frontend_dir,
+            studio_dir,
             "Integration Tests",
             fail_on_error=True
         )
         suite.checks.append(result)
     finally:
-        if backend_process:
-            print("Stopping backend server...")
-            backend_process.terminate()
-            backend_process.wait()
+        if server_process:
+            print("Stopping server...")
+            server_process.terminate()
+            server_process.wait()
     
     return suite
 
@@ -488,21 +488,21 @@ def main() -> int:
 Examples:
   ./scripts/test.py              # Full verification, only show errors (recommended before PR)
   ./scripts/test.py -v           # Verbose mode - show all output
-  ./scripts/test.py --backend    # Backend only (ruff + mypy + pytest + coverage)
-  ./scripts/test.py --frontend   # Frontend only (tsc + eslint + vitest + coverage)
+  ./scripts/test.py --server     # Server only (ruff + mypy + pytest + coverage)
+  ./scripts/test.py --studio     # Studio only (tsc + eslint + vitest + coverage)
   ./scripts/test.py --no-coverage # Skip coverage reports (faster)
   ./scripts/test.py --strict     # Fail on lint/type warnings
 """
     )
     parser.add_argument(
-        "--backend",
+        "--server",
         action="store_true",
-        help="Run backend checks only (ruff + mypy + pytest)"
+        help="Run server checks only (ruff + mypy + pytest)"
     )
     parser.add_argument(
-        "--frontend",
+        "--studio",
         action="store_true",
-        help="Run frontend checks only (tsc + eslint + vitest)"
+        help="Run studio checks only (tsc + eslint + vitest)"
     )
     parser.add_argument(
         "--integration",
@@ -533,14 +533,14 @@ Examples:
     args = parser.parse_args()
     
     # Determine which tests to run
-    run_backend = True
-    run_frontend = True
+    run_server = True
+    run_studio = True
     run_integration = True
     
     # If specific tests requested, only run those
-    if args.backend or args.frontend or args.integration:
-        run_backend = args.backend
-        run_frontend = args.frontend
+    if args.server or args.studio or args.integration:
+        run_server = args.server
+        run_studio = args.studio
         run_integration = args.integration
     
     # Handle --no-integration
@@ -566,17 +566,17 @@ Examples:
         print(f"Coverage: {'enabled' if run_coverage else 'disabled'}")
     
     # Run checks
-    if run_backend:
-        results.append(run_backend_suite(repo_root, coverage=run_coverage, strict=args.strict))
+    if run_server:
+        results.append(run_server_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
-    if run_frontend:
-        results.append(run_frontend_suite(repo_root, coverage=run_coverage, strict=args.strict))
+    if run_studio:
+        results.append(run_studio_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Determine if this is a full run (all suites enabled, no exclusions)
-    is_full_run = run_backend and run_frontend and run_integration
+    is_full_run = run_server and run_studio and run_integration
     
     # Print summary
     print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run)

@@ -1,8 +1,8 @@
 # Sigilweaver
 
-**The visual data pipeline tool I always wished existed.**
+**The visual data pipeline tool we always wished existed.**
 
-Sigilweaver is a visual workflow designer for building and executing data processing pipelines through an intuitive drag-and-drop interface. Built as a cross-platform desktop application, it empowers users to create complex data transformations with minimal code.
+Sigilweaver is a visual workflow designer and platform for building data processing pipelines through an intuitive drag-and-drop interface. Whether you're working locally on your laptop or orchestrating workflows across a fleet of servers, Sigilweaver gives you the tools to design, execute, and manage complex data transformations.
 
 **Website**: [sigilweaver.app](https://sigilweaver.app/)  
 **Downloads**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)  
@@ -10,15 +10,15 @@ Sigilweaver is a visual workflow designer for building and executing data proces
 
 ## Why Sigilweaver?
 
-As a data scientist, I write transformation code all day professionally - complex joins, filters, aggregations, multi-way merges. The code works, but it's hard to **see** what's happening. Debugging a 2000-line pipeline means mentally reconstructing the flow. Onboarding teammates means walking through nested function calls.
+As data scientists, we write transformation code all day - complex joins, filters, aggregations, multi-way merges. The code works, but it's hard to **see** what's happening. Debugging a 2000-line pipeline means mentally reconstructing the flow. Onboarding teammates means walking through nested function calls.
 
-Sigilweaver gives you the best of both worlds:
+Sigilweaver is the best of both worlds:
 - **Visual clarity**: See your entire pipeline at a glance - branches, joins, transformations laid out spatially
 - **Full power**: Backed by [Polars](https://pola.rs) - lazy evaluation, blazing speed, production-ready performance
 - **Minimal code**: Write formulas when you need flexibility, drag-and-drop for structure
 - **Instant debugging**: Inspect data at any stage, trace errors visually, understand transformations intuitively
 
-This is the tool I always wanted: the cognitive clarity of visual design with the performance and flexibility of code.
+This is the tool we always wanted: the cognitive clarity of visual design with the performance and flexibility of code.
 
 ## Features
 
@@ -47,34 +47,87 @@ Download the latest release for your platform (Linux, macOS, or Windows) from th
 
 ## Repository Structure
 
-This is a **monorepo** containing both the frontend Electron app and the backend Python server:
+This repository contains three components that can be used independently or together:
 
 ```
-sigilweaver-app/
-├── .github/
-│   ├── scripts/            # Scripts used for the CI/CD process
-│   └── workflows/          # CI/CD: build, test, release automation
-├── backend/                # FastAPI + Polars
+app/
+├── server/                 # Sigilweaver Server (FastAPI + Polars)
 │   ├── app/                # API routes, domain logic, tool registry
-│   ├── tests/              # Pytest suite
-│   └── docs/               # Backend API and tool documentation
-└── frontend/               # Electron + React + TypeScript
-    ├── src/                # React components, stores, domain logic
-    ├── electron/           # Electron main process
-    ├── docs/               # Frontend integration documentation
-    ├── public/             # Static assets
-    └── scripts/            # Development utilities
-        ├── dev.py          # Start Vite dev server
-        ├── build.py        # Build standalone application
-        ├── test.py         # Run all tests
-        └── lint_repo.py    # Lint check
+│   └── tests/              # Pytest suite
+├── studio/                 # Sigilweaver Studio (Electron + React)
+│   ├── src/                # React components, stores, domain logic
+│   └── electron/           # Electron main process
+├── hub/                    # Sigilweaver Hub (Web Platform)
+│   ├── backend/            # Hub API (FastAPI + PostgreSQL)
+│   ├── frontend/           # Hub UI (React + Vite)
+│   └── scripts/            # Hub dev scripts
+└── scripts/                # Dev scripts
 ```
 
-**Key Technologies**:
-- **Frontend**: React, Zustand (state), Xyflow (canvas), Vite
-- **Backend**: FastAPI, Polars, Pydantic
-- **Desktop**: Electron, electron-builder
-- **CI/CD**: GitHub Actions, Backblaze B2 CDN
+## Components
+
+### Server
+
+The execution engine. Runs workflows and returns results.
+
+- Executes Polars-based data transformations
+- Exposes REST API for workflow execution
+- Manages data connections and caching
+- Can run standalone, with Studio, or orchestrated by Hub
+
+### Studio
+
+The desktop application. Design workflows visually.
+
+- Drag-and-drop workflow canvas
+- Real-time preview of transformations
+- Connects to a local or remote Server
+- Save/load workflows as `.swwf` files
+
+### Hub
+
+The orchestration platform. Manage workflows at scale.
+
+- Store and organize workflow files
+- Register and monitor multiple Servers
+- Schedule automated workflow runs
+- Web-based admin interface
+
+## How They Work Together
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      STUDIO (Desktop)                           │
+│              Design workflows, preview results                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                    connects to either
+                              │
+        ┌─────────────────────┴─────────────────────┐
+        ▼                                           ▼
+┌───────────────────┐                     ┌───────────────────────┐
+│  SERVER (Local)   │                     │    HUB (Central)      │
+│  Single instance  │                     │  Routes to Servers    │
+│  for development  │                     │  Stores workflows     │
+└───────────────────┘                     │  Manages schedules    │
+                                          └───────────────────────┘
+                                                    │
+                                          orchestrates multiple
+                                                    │
+                              ┌─────────────────────┼─────────────────────┐
+                              ▼                     ▼                     ▼
+                        ┌──────────┐          ┌──────────┐          ┌──────────┐
+                        │ SERVER 1 │          │ SERVER 2 │          │ SERVER N │
+                        │  (Dev)   │          │ (Staging)│          │  (Prod)  │
+                        └──────────┘          └──────────┘          └──────────┘
+```
+
+| Component | Description | Tech Stack |
+|-----------|-------------|------------|
+| **Server** | Data pipeline executor | FastAPI, Polars, Pydantic |
+| **Studio** | Visual workflow designer | React, Zustand, Xyflow, Electron |
+| **Hub Backend** | Workflow storage & orchestration | FastAPI, PostgreSQL, SQLAlchemy |
+| **Hub Frontend** | Admin UI | React, Vite, Tailwind |
 
 ## Contributing
 
