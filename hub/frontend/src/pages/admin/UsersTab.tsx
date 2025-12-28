@@ -15,9 +15,10 @@ import {
   AlertCircle,
   X,
   ChevronDown,
+  Edit,
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
-import { createUser, type CreateUserResponse } from "@api/client";
+import { createUser, updateUser, deleteUser, listUsers, type CreateUserResponse } from "@api/client";
 import type { UserRole } from "@state/authStore";
 
 interface UserInfo {
@@ -40,6 +41,7 @@ export function UsersTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserInfo | null>(null);
 
   // Fetch users on mount
   useEffect(() => {
@@ -50,16 +52,15 @@ export function UsersTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/auth/users", {
-        headers: {
-          Authorization: `Bearer ${useAuthStore.getState().token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const data = await response.json();
-      setUsers(data.users || []);
+      const response = await listUsers();
+      setUsers(
+        response.users.map((u) => ({
+          id: u.id,
+          username: u.username,
+          role: u.role as UserRole,
+          created_at: u.created_at,
+        }))
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
@@ -81,22 +82,18 @@ export function UsersTab() {
     setShowCreateDialog(false);
   };
 
+  const handleUserUpdated = (updatedUser: UserInfo) => {
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    setEditingUser(null);
+  };
+
   const handleDeleteUser = async (userId: string, username: string) => {
     if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/auth/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${useAuthStore.getState().token}`,
-        },
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Failed to delete user");
-      }
+      await deleteUser(userId);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete user");
@@ -212,13 +209,22 @@ export function UsersTab() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {canManage && (
-                      <button
-                        onClick={() => handleDeleteUser(user.id, user.username)}
-                        className="text-gray-400 hover:text-red-600 p-1"
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="text-gray-400 hover:text-brand-600 p-1"
+                          title="Edit user role"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.username)}
+                          className="text-gray-400 hover:text-red-600 p-1"
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -240,6 +246,16 @@ export function UsersTab() {
         <CreateUserDialog
           onClose={() => setShowCreateDialog(false)}
           onCreated={handleUserCreated}
+          currentUserRole={currentUser?.role || "user"}
+        />
+      )}
+
+      {/* Edit user dialog */}
+      {editingUser && (
+        <EditUserDialog
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdated={handleUserUpdated}
           currentUserRole={currentUser?.role || "user"}
         />
       )}
@@ -413,6 +429,188 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
                   <UserPlus className="h-4 w-4" />
                   Create User
                 </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface EditUserDialogProps {
+  user: UserInfo;
+  onClose: () => void;
+  onUpdated: (user: UserInfo) => void;
+  currentUserRole: UserRole;
+}
+
+function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserDialogProps) {
+  const [username, setUsername] = useState(user.username);
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>(user.role);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+
+  // Roles the current user can assign
+  const assignableRoles: UserRole[] =
+    currentUserRole === "owner" ? ["admin", "auditor", "user"] : ["auditor", "user"];
+
+  const hasChanges = username !== user.username || password.length > 0 || role !== user.role;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!hasChanges) {
+      onClose();
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const updates: { username?: string; password?: string; role?: string } = {};
+      if (username !== user.username) updates.username = username;
+      if (password.length > 0) updates.password = password;
+      if (role !== user.role) updates.role = role;
+
+      await updateUser(user.id, updates);
+      onUpdated({ ...user, username, role });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update user");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const selectedRoleConfig = roleConfig[role];
+  const SelectedIcon = selectedRoleConfig.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Dialog */}
+      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Edit User</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+              <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              placeholder="New password (min 8 characters)"
+            />
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <span className="flex items-center gap-2">
+                  <SelectedIcon className={`h-4 w-4 ${selectedRoleConfig.color}`} />
+                  <span className="text-sm">{selectedRoleConfig.label}</span>
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-400" />
+              </button>
+
+              {showRoleDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowRoleDropdown(false)}
+                  />
+                  <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
+                    {assignableRoles.map((r) => {
+                      const config = roleConfig[r];
+                      const Icon = config.icon;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            setRole(r);
+                            setShowRoleDropdown(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 ${
+                            role === r ? "bg-gray-50" : ""
+                          }`}
+                        >
+                          <Icon className={`h-4 w-4 ${config.color}`} />
+                          <span className="text-sm">{config.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !hasChanges}
+              className="flex-1 px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
               )}
             </button>
           </div>

@@ -41,6 +41,9 @@ class User(Base):
     sessions: Mapped[list["Session"]] = relationship(
         "Session", back_populates="user", cascade="all, delete-orphan"
     )
+    groups: Mapped[list["UserGroup"]] = relationship(
+        "UserGroup", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Workflow(Base):
@@ -231,6 +234,11 @@ class Connection(Base):
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
     )
 
+    # Relationships
+    groups: Mapped[list["ConnectionGroup"]] = relationship(
+        "ConnectionGroup", back_populates="connection", cascade="all, delete-orphan"
+    )
+
 
 class Session(Base):
     """User session for authentication
@@ -266,3 +274,89 @@ class Session(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="sessions")
+
+
+class Group(Base):
+    """Organizational group for access control.
+
+    Groups are created by admins to organize users and scope resource access.
+    Users belong to groups, and connections can be assigned to groups.
+    A user can only access connections that belong to groups they're a member of.
+    """
+
+    __tablename__ = "groups"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+
+    # Metadata
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
+
+    # Relationships
+    members: Mapped[list["UserGroup"]] = relationship(
+        "UserGroup", back_populates="group", cascade="all, delete-orphan"
+    )
+    connections: Mapped[list["ConnectionGroup"]] = relationship(
+        "ConnectionGroup", back_populates="group", cascade="all, delete-orphan"
+    )
+
+
+class UserGroup(Base):
+    """Join table for User <-> Group membership."""
+
+    __tablename__ = "user_groups"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # When the user was added to the group
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="groups")
+    group: Mapped["Group"] = relationship("Group", back_populates="members")
+
+
+class ConnectionGroup(Base):
+    """Join table for Connection <-> Group assignment."""
+
+    __tablename__ = "connection_groups"
+
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("connections.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # When the connection was assigned to the group
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    # Relationships
+    connection: Mapped["Connection"] = relationship("Connection", back_populates="groups")
+    group: Mapped["Group"] = relationship("Group", back_populates="connections")

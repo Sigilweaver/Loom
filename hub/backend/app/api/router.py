@@ -7,6 +7,7 @@ from app.api.routes import (
     capabilities,
     connections,
     executions,
+    groups,
     health,
     internal,
     schedules,
@@ -30,6 +31,9 @@ api_router.include_router(schedules.router, tags=["schedules"])
 
 # Connection management (admin only)
 api_router.include_router(connections.router, tags=["connections"])
+
+# Group management (admin only)
+api_router.include_router(groups.router, tags=["groups"])
 
 # Capability endpoints (user-facing)
 api_router.include_router(capabilities.router, tags=["capabilities"])

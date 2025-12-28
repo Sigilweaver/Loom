@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
 from app.db.database import get_db
-from app.db.models import Server
+from app.db.models import Connection, ConnectionGroup, Server, UserGroup
 from app.domain.capabilities import CapabilityIssuer, get_issuer
 
 router = APIRouter(prefix="/capabilities", tags=["capabilities"])
@@ -114,8 +114,11 @@ async def _validate_connection_access(
 ) -> None:
     """Validate user has access to the specified connections.
 
-    For Phase 2, we just check that the connections exist in Hub.
-    Future: implement per-user connection permissions.
+    Access is granted if:
+    1. User has admin or owner role (can access all connections), OR
+    2. User is a member of at least one group that the connection is assigned to
+
+    Connections with no group assignments are accessible by admins only.
 
     Args:
         user: Current authenticated user.
@@ -128,11 +131,62 @@ async def _validate_connection_access(
     if not connection_ids:
         return  # No hub connections to validate
 
-    # TODO: Phase 3 - query Connection table and validate access
-    # For now, we just log and allow (connections don't exist yet)
-    logger.debug(
-        f"Connection access check for user {user.username}: {connection_ids} (not yet implemented)"
+    # Admins/Owners can access all connections
+    if user.role in ("owner", "admin"):
+        logger.debug(f"Admin/owner {user.username} accessing connections: {connection_ids}")
+        return
+
+    # Get user's group memberships
+    user_groups_result = await db.execute(
+        select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
     )
+    user_group_ids = {row[0] for row in user_groups_result.fetchall()}
+
+    if not user_group_ids:
+        # User not in any groups - cannot access any connections
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of any groups and cannot access Hub connections",
+        )
+
+    # Check each connection
+    unauthorized = []
+    for conn_id_str in connection_ids:
+        try:
+            from uuid import UUID
+            conn_id = UUID(conn_id_str)
+        except ValueError:
+            unauthorized.append(conn_id_str)
+            continue
+
+        # Check if connection exists
+        conn_result = await db.execute(
+            select(Connection.id).where(Connection.id == conn_id)
+        )
+        if not conn_result.scalar_one_or_none():
+            unauthorized.append(conn_id_str)
+            continue
+
+        # Get groups this connection is assigned to
+        conn_groups_result = await db.execute(
+            select(ConnectionGroup.group_id).where(ConnectionGroup.connection_id == conn_id)
+        )
+        conn_group_ids = {row[0] for row in conn_groups_result.fetchall()}
+
+        if not conn_group_ids:
+            # Connection not assigned to any groups - only admins can access
+            unauthorized.append(conn_id_str)
+            continue
+
+        # Check if user shares at least one group with the connection
+        if not user_group_ids.intersection(conn_group_ids):
+            unauthorized.append(conn_id_str)
+
+    if unauthorized:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You do not have access to the following connections: {unauthorized}",
+        )
 
 
 @router.post("/execute", response_model=CapabilityResponse)

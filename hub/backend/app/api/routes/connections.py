@@ -260,7 +260,7 @@ def _test_connection_params(
     password: str,
 ) -> TestConnectionResponse:
     """Test connection with provided parameters.
-    
+
     Uses Polars with connectorx engine for consistency with the Server.
     """
     try:

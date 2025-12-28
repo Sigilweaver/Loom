@@ -550,3 +550,232 @@ export async function testConnectionPreCreate(data: {
   });
   return handleResponse(response);
 }
+
+// =============================================================================
+// Groups (Access Control)
+// =============================================================================
+
+export interface GroupResponse {
+  id: string;
+  name: string;
+  description: string;
+  member_count: number;
+  connection_count: number;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GroupListResponse {
+  groups: GroupResponse[];
+  total: number;
+}
+
+export interface GroupMemberResponse {
+  user_id: string;
+  username: string;
+  role: string;
+  joined_at: string;
+}
+
+export interface GroupMembersResponse {
+  group_id: string;
+  group_name: string;
+  members: GroupMemberResponse[];
+  total: number;
+}
+
+export interface GroupConnectionResponse {
+  connection_id: string;
+  name: string;
+  type: string;
+  assigned_at: string;
+}
+
+export interface GroupConnectionsResponse {
+  group_id: string;
+  group_name: string;
+  connections: GroupConnectionResponse[];
+  total: number;
+}
+
+export async function listGroups(): Promise<GroupListResponse> {
+  const response = await fetch(`${API_BASE}/groups`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createGroup(data: {
+  name: string;
+  description?: string;
+}): Promise<GroupResponse> {
+  const response = await fetch(`${API_BASE}/groups`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function getGroup(id: string): Promise<GroupResponse> {
+  const response = await fetch(`${API_BASE}/groups/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function updateGroup(
+  id: string,
+  data: { name?: string; description?: string }
+): Promise<GroupResponse> {
+  const response = await fetch(`${API_BASE}/groups/${id}`, {
+    method: "PATCH",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function deleteGroup(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/groups/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+export async function listGroupMembers(groupId: string): Promise<GroupMembersResponse> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/members`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function addGroupMember(
+  groupId: string,
+  userId: string
+): Promise<{ status: string; user_id: string; group_id: string }> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/members`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify({ user_id: userId }),
+  });
+  return handleResponse(response);
+}
+
+export async function removeGroupMember(groupId: string, userId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+export async function listGroupConnections(groupId: string): Promise<GroupConnectionsResponse> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/connections`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function addGroupConnection(
+  groupId: string,
+  connectionId: string
+): Promise<{ status: string; connection_id: string; group_id: string }> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/connections`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify({ connection_id: connectionId }),
+  });
+  return handleResponse(response);
+}
+
+export async function removeGroupConnection(groupId: string, connectionId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/connections/${connectionId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+// =============================================================================
+// Users (Admin management)
+// =============================================================================
+
+export interface UserListResponse {
+  users: UserResponse[];
+  total: number;
+}
+
+export async function listUsers(): Promise<UserListResponse> {
+  const response = await fetch(`${API_BASE}/auth/users`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getUser(userId: string): Promise<UserResponse> {
+  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function updateUser(
+  userId: string,
+  data: { username?: string; password?: string; role?: string }
+): Promise<UserResponse> {
+  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+    method: "PATCH",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+// =============================================================================
+// Profile (Self-service)
+// =============================================================================
+
+export interface UpdateProfileRequest {
+  current_password: string;
+  username?: string;
+  new_password?: string;
+}
+
+export async function updateProfile(data: UpdateProfileRequest): Promise<UserResponse> {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    method: "PATCH",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
