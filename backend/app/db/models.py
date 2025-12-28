@@ -1,7 +1,7 @@
 """SQLAlchemy models for Hub database"""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -28,7 +28,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="user")
     api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=datetime.utcnow
     )
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -59,12 +59,12 @@ class Workflow(Base):
     # Metadata
     uploaded_by: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=datetime.utcnow
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     # Relationships
@@ -96,7 +96,7 @@ class Server(Base):
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=datetime.utcnow
     )
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -135,7 +135,7 @@ class Execution(Base):
     # Status
     status: Mapped[str] = mapped_column(String(50), default="queued")
     queued_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=datetime.utcnow
     )
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -178,7 +178,7 @@ class Schedule(Base):
     # Metadata
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=datetime.utcnow
     )
     last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     next_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

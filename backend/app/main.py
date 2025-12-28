@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.router import api_router
 from app.config import settings
+from app.domain.servers.health_poller import health_poller
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +20,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
     logger.info("Sigilweaver Hub starting up...")
 
-    # TODO: Initialize database connection pool
-    # TODO: Start server polling scheduler
+    # Start server health polling
+    await health_poller.start()
 
     yield
 
     logger.info("Sigilweaver Hub shutting down...")
-    # TODO: Cleanup
+
+    # Stop health polling
+    await health_poller.stop()
 
 
 application = FastAPI(
