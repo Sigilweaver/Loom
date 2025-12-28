@@ -5,13 +5,15 @@ Full verification suite for Sigilweaver.
 Runs all checks to ensure CI will pass:
 1. Server: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
 2. Studio: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
-3. Integration tests (requires server running)
+3. Hub: Backend (ruff + mypy + pytest) + Frontend (tsc + eslint + vitest)
+4. Integration tests (requires server running)
 
 Usage:
     ./scripts/test.py              # Run all checks, only show errors (recommended before PR)
     ./scripts/test.py -v           # Verbose mode - show all output
     ./scripts/test.py --server     # Server checks only
     ./scripts/test.py --studio     # Studio checks only
+    ./scripts/test.py --hub        # Hub checks only
     ./scripts/test.py --integration # Integration tests only
     ./scripts/test.py --no-integration # Skip integration tests
     ./scripts/test.py --no-coverage # Skip coverage reports (faster)
@@ -347,6 +349,168 @@ def run_studio_suite(repo_root: Path, coverage: bool = False, strict: bool = Fal
     return suite
 
 
+# --- Hub checks ---
+
+
+def run_hub_backend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ruff linter on hub backend code."""
+    print_subheader("Hub Backend Lint (ruff)")
+    
+    hub_backend_dir = repo_root / "hub" / "backend"
+    python_path = get_python_path(hub_backend_dir)
+    
+    if python_path is None:
+        return CheckResult(
+            name="Hub Backend Lint",
+            passed=False,
+            duration=0,
+            error="Virtual environment not found"
+        )
+    
+    cmd = [str(python_path), "-m", "ruff", "check", "app/", "tests/"]
+    if not strict:
+        cmd.append("--exit-zero")
+    
+    return run_command(cmd, hub_backend_dir, "Hub Backend Lint", fail_on_error=strict)
+
+
+def run_hub_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run mypy type checker on hub backend code."""
+    print_subheader("Hub Backend Type Check (mypy)")
+    
+    hub_backend_dir = repo_root / "hub" / "backend"
+    python_path = get_python_path(hub_backend_dir)
+    
+    if python_path is None:
+        return CheckResult(
+            name="Hub Backend Types",
+            passed=False,
+            duration=0,
+            error="Virtual environment not found"
+        )
+    
+    cmd = [str(python_path), "-m", "mypy", "app/"]
+    
+    return run_command(cmd, hub_backend_dir, "Hub Backend Types", fail_on_error=strict)
+
+
+def run_hub_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+    """Run hub backend pytest tests."""
+    print_subheader("Hub Backend Tests (pytest)")
+    
+    hub_backend_dir = repo_root / "hub" / "backend"
+    python_path = get_python_path(hub_backend_dir)
+    
+    if python_path is None:
+        return CheckResult(
+            name="Hub Backend Tests",
+            passed=False,
+            duration=0,
+            error="Hub backend not set up with uv. Run: cd hub/backend && uv sync --all-extras"
+        )
+    
+    cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
+    if coverage:
+        cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
+    
+    result = run_command(cmd, hub_backend_dir, "Hub Backend Tests", fail_on_error=True)
+    
+    if coverage and result.passed and not _quiet_mode:
+        print()
+        print(f"Coverage report: {hub_backend_dir}/htmlcov/index.html")
+    
+    return result
+
+
+def run_hub_frontend_typecheck(repo_root: Path) -> CheckResult:
+    """Run TypeScript type checker on hub frontend."""
+    print_subheader("Hub Frontend Type Check (tsc)")
+    
+    hub_frontend_dir = repo_root / "hub" / "frontend"
+    
+    return run_command(
+        ["npm", "run", "type-check"],
+        hub_frontend_dir,
+        "Hub Frontend Types",
+        fail_on_error=True
+    )
+
+
+def run_hub_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
+    """Run ESLint on hub frontend code."""
+    print_subheader("Hub Frontend Lint (eslint)")
+    
+    hub_frontend_dir = repo_root / "hub" / "frontend"
+    
+    return run_command(
+        ["npm", "run", "lint"],
+        hub_frontend_dir,
+        "Hub Frontend Lint",
+        fail_on_error=strict
+    )
+
+
+def run_hub_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+    """Run hub frontend vitest tests."""
+    print_subheader("Hub Frontend Tests (vitest)")
+    
+    hub_frontend_dir = repo_root / "hub" / "frontend"
+    
+    cmd = ["npm", "run", "test:coverage" if coverage else "test"]
+    
+    result = run_command(cmd, hub_frontend_dir, "Hub Frontend Tests", fail_on_error=True)
+    
+    if coverage and result.passed and not _quiet_mode:
+        print()
+        print(f"Coverage report: {hub_frontend_dir}/coverage/index.html")
+    
+    return result
+
+
+def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+    """Run all hub checks (backend + frontend)."""
+    print_header("Hub Verification")
+    
+    hub_dir = repo_root / "hub"
+    hub_backend_dir = hub_dir / "backend"
+    hub_frontend_dir = hub_dir / "frontend"
+    
+    suite = SuiteResult(name="Hub")
+    
+    # Check backend setup
+    backend_venv = hub_backend_dir / ".venv"
+    backend_lock = hub_backend_dir / "uv.lock"
+    if not backend_lock.exists() or not backend_venv.exists():
+        suite.checks.append(CheckResult(
+            name="Hub Backend Setup",
+            passed=False,
+            duration=0,
+            error="Hub backend not set up with uv. Run: cd hub/backend && uv sync --all-extras"
+        ))
+    else:
+        # Run backend checks
+        suite.checks.append(run_hub_backend_lint(repo_root, strict=strict))
+        suite.checks.append(run_hub_backend_typecheck(repo_root, strict=strict))
+        suite.checks.append(run_hub_backend_tests(repo_root, coverage=coverage))
+    
+    # Check frontend setup
+    frontend_modules = hub_frontend_dir / "node_modules"
+    if not frontend_modules.exists():
+        suite.checks.append(CheckResult(
+            name="Hub Frontend Setup",
+            passed=False,
+            duration=0,
+            error="Hub frontend node_modules not found. Run: cd hub/frontend && npm install"
+        ))
+    else:
+        # Run frontend checks
+        suite.checks.append(run_hub_frontend_typecheck(repo_root))
+        suite.checks.append(run_hub_frontend_lint(repo_root, strict=strict))
+        suite.checks.append(run_hub_frontend_tests(repo_root, coverage=coverage))
+    
+    return suite
+
+
 def check_server_running() -> bool:
     """Check if server is running on test port."""
     try:
@@ -490,6 +654,7 @@ Examples:
   ./scripts/test.py -v           # Verbose mode - show all output
   ./scripts/test.py --server     # Server only (ruff + mypy + pytest + coverage)
   ./scripts/test.py --studio     # Studio only (tsc + eslint + vitest + coverage)
+  ./scripts/test.py --hub        # Hub only (backend + frontend checks)
   ./scripts/test.py --no-coverage # Skip coverage reports (faster)
   ./scripts/test.py --strict     # Fail on lint/type warnings
 """
@@ -503,6 +668,11 @@ Examples:
         "--studio",
         action="store_true",
         help="Run studio checks only (tsc + eslint + vitest)"
+    )
+    parser.add_argument(
+        "--hub",
+        action="store_true",
+        help="Run hub checks only (backend + frontend)"
     )
     parser.add_argument(
         "--integration",
@@ -535,12 +705,14 @@ Examples:
     # Determine which tests to run
     run_server = True
     run_studio = True
+    run_hub = True
     run_integration = True
     
     # If specific tests requested, only run those
-    if args.server or args.studio or args.integration:
+    if args.server or args.studio or args.hub or args.integration:
         run_server = args.server
         run_studio = args.studio
+        run_hub = args.hub
         run_integration = args.integration
     
     # Handle --no-integration
@@ -572,11 +744,14 @@ Examples:
     if run_studio:
         results.append(run_studio_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
+    if run_hub:
+        results.append(run_hub_suite(repo_root, coverage=run_coverage, strict=args.strict))
+    
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Determine if this is a full run (all suites enabled, no exclusions)
-    is_full_run = run_server and run_studio and run_integration
+    is_full_run = run_server and run_studio and run_hub and run_integration
     
     # Print summary
     print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run)
