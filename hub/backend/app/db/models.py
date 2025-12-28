@@ -9,20 +9,15 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
+def _utcnow() -> datetime:
+    """Get current UTC time as timezone-aware datetime."""
+    return datetime.now(UTC)
+
+
 class Base(DeclarativeBase):
     """Base class for all models"""
 
     pass
-
-
-def _utcnow() -> datetime:
-    """Get current UTC time as timezone-aware datetime.
-
-    Used as default factory for timestamp columns. Defined as a module-level
-    function rather than lambda because SQLAlchemy needs a callable it can
-    reference by name.
-    """
-    return datetime.now(UTC)
 
 
 class User(Base):
@@ -37,8 +32,10 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="user")
     api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
-    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     sessions: Mapped[list["Session"]] = relationship(
@@ -71,9 +68,11 @@ class Workflow(Base):
 
     # Metadata
     uploaded_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=_utcnow,
         onupdate=_utcnow,
     )
@@ -102,11 +101,13 @@ class Server(Base):
     # Status
     status: Mapped[str] = mapped_column(String(50), default="unknown")
     version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    last_poll: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    last_healthy: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_poll: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_healthy: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Relationships
@@ -143,9 +144,11 @@ class Execution(Base):
 
     # Status
     status: Mapped[str] = mapped_column(String(50), default="queued")
-    queued_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    queued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Results
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
@@ -184,9 +187,15 @@ class Schedule(Base):
 
     # Metadata
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
-    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    next_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_trigger_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="schedules")
@@ -218,9 +227,11 @@ class Session(Base):
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="sessions")

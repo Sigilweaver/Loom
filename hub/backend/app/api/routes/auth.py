@@ -1,57 +1,317 @@
 """Authentication routes"""
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from datetime import UTC, datetime
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.dependencies import CurrentUser, get_optional_user
+from app.db.database import get_db
+from app.db.models import User
+from app.domain.auth.password import hash_password, verify_password
+from app.domain.auth.roles import Role, can_assign_role
+from app.domain.auth.sessions import SessionInfo, SessionManager
 
 router = APIRouter(prefix="/auth")
 
 
+# Request/Response models
+
+
+class RegisterRequest(BaseModel):
+    """Registration request body"""
+
+    username: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
 class LoginRequest(BaseModel):
     """Login request body"""
+
     username: str
     password: str
 
 
 class LoginResponse(BaseModel):
     """Login response with access token"""
+
     access_token: str
     token_type: str = "bearer"
+    user: "UserResponse"
 
 
 class UserResponse(BaseModel):
-    """Current user info"""
+    """User info response"""
+
+    id: UUID
     username: str
     role: str
+    created_at: str
+
+
+class CreateUserRequest(BaseModel):
+    """Request to create a new user (admin only)"""
+
+    username: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    role: str = Field(default=Role.USER.value)
+
+
+class MessageResponse(BaseModel):
+    """Simple message response"""
+
+    message: str
+
+
+# Helper functions
+
+
+def _user_to_response(user: User) -> UserResponse:
+    """Convert User model to response"""
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        role=user.role,
+        created_at=user.created_at.isoformat() if user.created_at else "",
+    )
+
+
+async def _get_user_count(db: AsyncSession) -> int:
+    """Get total number of users in database"""
+    result = await db.execute(select(func.count()).select_from(User))
+    return result.scalar() or 0
+
+
+async def _get_user_by_username(db: AsyncSession, username: str) -> User | None:
+    """Get user by username"""
+    result = await db.execute(select(User).where(User.username == username))
+    return result.scalar_one_or_none()
+
+
+# Routes
+
+
+@router.post("/register", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    request: RegisterRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: SessionInfo | None = Depends(get_optional_user),
+) -> LoginResponse:
+    """Register a new user.
+
+    The first user to register becomes the owner with full control.
+    Subsequent registrations require an authenticated admin or owner.
+    """
+    # Check if this is the first user (will become owner)
+    user_count = await _get_user_count(db)
+    is_first_user = user_count == 0
+
+    if not is_first_user:
+        # Require authentication for subsequent registrations
+        if current_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to create new users",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Only owner and admin can create users
+        if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to create users",
+            )
+
+    # Check if username already exists
+    existing_user = await _get_user_by_username(db, request.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists",
+        )
+
+    # Determine role
+    role = Role.OWNER.value if is_first_user else Role.USER.value
+
+    # Create user
+    user = User(
+        username=request.username,
+        password_hash=hash_password(request.password),
+        role=role,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    # Create session for the new user
+    session_manager = SessionManager(db)
+    token = await session_manager.create_session(
+        user=user,
+        user_agent=http_request.headers.get("User-Agent"),
+        ip_address=http_request.client.host if http_request.client else None,
+    )
+
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user=_user_to_response(user),
+    )
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest) -> LoginResponse:
+async def login(
+    request: LoginRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
     """Authenticate user and return access token"""
-    # TODO: Implement actual authentication with database
-    # For now, accept any credentials for development
-    if request.username and request.password:
-        return LoginResponse(
-            access_token="development_token",
-            token_type="bearer",
+    # Find user
+    user = await _get_user_by_username(db, request.username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
         )
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials",
+
+    # Verify password
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    # Update last login
+    user.last_login = datetime.now(UTC)
+    await db.commit()
+
+    # Create session
+    session_manager = SessionManager(db)
+    token = await session_manager.create_session(
+        user=user,
+        user_agent=http_request.headers.get("User-Agent"),
+        ip_address=http_request.client.host if http_request.client else None,
+    )
+
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user=_user_to_response(user),
     )
 
 
-@router.post("/logout")
-async def logout() -> dict[str, str]:
-    """Logout current user"""
-    # Stateless JWT - client just discards token
-    return {"message": "Logged out"}
+@router.post("/logout", response_model=MessageResponse)
+async def logout(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """Logout current user by invalidating session"""
+    # Extract token from header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return MessageResponse(message="No session to invalidate")
+
+    parts = auth_header.split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return MessageResponse(message="No session to invalidate")
+
+    token = parts[1]
+
+    # Invalidate session
+    session_manager = SessionManager(db)
+    invalidated = await session_manager.invalidate_session(token)
+
+    if invalidated:
+        return MessageResponse(message="Logged out successfully")
+    return MessageResponse(message="Session not found or already expired")
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user() -> UserResponse:
+async def get_current_user_info(
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
     """Get current user info"""
-    # TODO: Implement with actual JWT validation
-    return UserResponse(
-        username="admin",
-        role="admin",
+    # Fetch full user from database for latest data
+    db_user = await _get_user_by_username(db, user.username)
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return _user_to_response(db_user)
+
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    request: CreateUserRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    """Create a new user with specified role (admin only).
+
+    This endpoint allows admins to create users with specific roles,
+    unlike /register which creates standard users.
+    """
+    # Validate actor can create users
+    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to create users",
+        )
+
+    # Validate actor can assign the requested role
+    if not can_assign_role(current_user.role, request.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Cannot assign role '{request.role}'",
+        )
+
+    # Validate role is valid
+    valid_roles = {r.value for r in Role}
+    if request.role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
+        )
+
+    # Check if username already exists
+    existing_user = await _get_user_by_username(db, request.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists",
+        )
+
+    # Create user
+    user = User(
+        username=request.username,
+        password_hash=hash_password(request.password),
+        role=request.role,
     )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return _user_to_response(user)
+
+
+@router.get("/status")
+async def auth_status(db: AsyncSession = Depends(get_db)) -> dict:
+    """Check authentication system status.
+
+    Returns whether the system has been initialized (has users)
+    and whether registration is open (first user not yet created).
+    """
+    user_count = await _get_user_count(db)
+
+    return {
+        "initialized": user_count > 0,
+        "registration_open": user_count == 0,
+        "user_count": user_count,
+    }
+
