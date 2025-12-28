@@ -427,3 +427,126 @@ export async function deleteSchedule(id: string): Promise<void> {
     throw new Error(error.detail);
   }
 }
+
+// =============================================================================
+// Connections (Database Connections)
+// =============================================================================
+
+export type DatabaseType = "postgresql" | "mysql" | "sqlite" | "mssql";
+
+export interface ConnectionResponse {
+  id: string;
+  name: string;
+  type: DatabaseType;
+  host: string;
+  port: number;
+  database: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConnectionsListResponse {
+  connections: ConnectionResponse[];
+  total: number;
+}
+
+export interface CreateConnectionRequest {
+  name: string;
+  type: DatabaseType;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+}
+
+export interface UpdateConnectionRequest {
+  name?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+  latency_ms?: number;
+}
+
+export async function listConnections(): Promise<ConnectionsListResponse> {
+  const response = await fetch(`${API_BASE}/connections`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getConnection(id: string): Promise<ConnectionResponse> {
+  const response = await fetch(`${API_BASE}/connections/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createConnection(
+  data: CreateConnectionRequest
+): Promise<ConnectionResponse> {
+  const response = await fetch(`${API_BASE}/connections`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function updateConnection(
+  id: string,
+  data: UpdateConnectionRequest
+): Promise<ConnectionResponse> {
+  const response = await fetch(`${API_BASE}/connections/${id}`, {
+    method: "PUT",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function deleteConnection(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/connections/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+export async function testConnection(
+  id: string
+): Promise<ConnectionTestResult> {
+  const response = await fetch(`${API_BASE}/connections/${id}/test`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function testConnectionPreCreate(data: {
+  type: DatabaseType;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+}): Promise<ConnectionTestResult> {
+  const response = await fetch(`${API_BASE}/connections/test`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}

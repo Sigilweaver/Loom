@@ -36,5 +36,20 @@ class Settings(BaseSettings):
     # Workflow storage
     workflow_storage_path: str = "./workflows"
 
+    # Server Token (Capability) Settings
+    # RSA private key in PEM format for signing server tokens
+    # Generate with: openssl genrsa -out private.pem 2048
+    # If empty, an ephemeral key is generated (tokens invalid after restart)
+    jwt_private_key: str = ""
+    jwt_issuer: str = "sigilweaver-hub"
+    # Server token lifetime in seconds (default 5 minutes)
+    server_token_ttl_seconds: int = 300
+
+    # Connection Storage
+    # Fernet encryption key for credentials
+    # Generate with: from cryptography.fernet import Fernet
+    #                print(Fernet.generate_key().decode())
+    connection_encryption_key: str = ""
+
 
 settings = Settings()

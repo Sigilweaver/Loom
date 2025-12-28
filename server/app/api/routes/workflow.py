@@ -1,18 +1,99 @@
 """Workflow execution API routes"""
 
-from typing import Any
+import logging
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api.models.workflow import Workflow
 from app.config import settings
 from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.hub import ValidationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
 from app.utils.errors import ExecutionError, ToolError, ValidationError
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/workflow", tags=["workflow"])
+
+
+# Hub mode authentication
+
+
+def _extract_bearer_token(authorization: str | None) -> str | None:
+    """Extract Bearer token from Authorization header."""
+    if not authorization:
+        return None
+    if not authorization.startswith("Bearer "):
+        return None
+    return authorization[7:]
+
+
+async def _validate_hub_token(
+    workflow: Workflow,
+    authorization: str | None,
+) -> ValidationResult | None:
+    """Validate Hub token if in hub auth mode.
+
+    Returns:
+        ValidationResult with hub-provided credentials, or None if not hub mode.
+
+    Raises:
+        HTTPException: If hub mode and validation fails.
+    """
+    if settings.auth_mode != "hub":
+        return None
+
+    hub_client = get_hub_client()
+    if not hub_client:
+        raise HTTPException(
+            status_code=500,
+            detail="Hub mode enabled but HubClient not configured",
+        )
+
+    token = _extract_bearer_token(authorization)
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header with Bearer token required",
+        )
+
+    # Extract hub connection IDs from workflow
+    hub_connection_ids = _extract_hub_connections(workflow)
+
+    # Validate with Hub
+    result = await hub_client.validate(
+        token=token,
+        workflow_json=workflow.model_dump(mode="json"),
+        connection_ids=hub_connection_ids,
+    )
+
+    if not result.valid:
+        logger.warning(f"Hub token validation failed: {result.error}")
+        raise HTTPException(
+            status_code=401,
+            detail=result.error or "Token validation failed",
+        )
+
+    return result
+
+
+def _extract_hub_connections(workflow: Workflow) -> list[str]:
+    """Extract hub-owned connection IDs from workflow."""
+    hub_connections: list[str] = []
+    for tool in workflow.tools:
+        if tool.type != "Input":
+            continue
+        if tool.config.get("category") != "database":
+            continue
+        if tool.config.get("owner") != "hub":
+            continue
+        connection_id = tool.config.get("connectionId")
+        if connection_id:
+            hub_connections.append(connection_id)
+    return hub_connections
 
 
 def _clamp_preview_limit(requested: int | None) -> int:
@@ -98,6 +179,7 @@ class ToolProfileRequest(BaseModel):
 @router.post("/execute")
 async def execute_workflow(
     request: ExecuteWorkflowRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -112,11 +194,18 @@ async def execute_workflow(
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
 
     Server connections are resolved before execution. Client connections must
-    have their source URI already populated.
+    have their source URI already populated. In hub mode, Bearer token is
+    required and hub connections are resolved from Hub.
     """
     try:
+        # Validate Hub token if in hub mode (returns hub-provided credentials)
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()
@@ -141,6 +230,7 @@ async def execute_workflow(
 @router.post("/tool/execute")
 async def execute_tool(
     request: ExecuteToolRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -153,10 +243,17 @@ async def execute_tool(
     Returns data for the specified socket only.
     The preview_limit is clamped to max_preview_rows from server config.
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
+    In hub mode, Bearer token is required.
     """
     try:
+        # Validate Hub token if in hub mode
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()
@@ -182,6 +279,7 @@ async def execute_tool(
 @router.post("/tool/schema")
 async def get_tool_schema(
     request: ToolSchemaRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -192,10 +290,17 @@ async def get_tool_schema(
 
     Useful for populating dropdowns with available columns from upstream tools.
     Returns schema for the specified socket only.
+    In hub mode, Bearer token is required.
     """
     try:
+        # Validate Hub token if in hub mode
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()
@@ -219,6 +324,7 @@ async def get_tool_schema(
 @router.post("/tool/metadata")
 async def get_tool_metadata(
     request: ToolMetadataRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -228,10 +334,17 @@ async def get_tool_metadata(
     Useful for Monaco editor autocomplete in Formula/Filter tools.
 
     This executes upstream tools to determine input columns.
+    In hub mode, Bearer token is required.
     """
     try:
+        # Validate Hub token if in hub mode
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()
@@ -255,6 +368,7 @@ async def get_tool_metadata(
 @router.post("/tool/profile")
 async def profile_tool_input(
     request: ToolProfileRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -278,10 +392,17 @@ async def profile_tool_input(
 
     The columns parameter allows profiling a subset of columns for
     faster response times when only specific columns are of interest.
+    In hub mode, Bearer token is required.
     """
     try:
+        # Validate Hub token if in hub mode
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()
@@ -319,6 +440,7 @@ class PreviewAllRequest(BaseModel):
 @router.post("/preview_all")
 async def preview_all_tools(
     request: PreviewAllRequest,
+    authorization: Annotated[str | None, Header()] = None,
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
@@ -331,10 +453,17 @@ async def preview_all_tools(
     Returns a dict mapping tool_id -> outputs for every tool in the workflow.
     The preview_limit is clamped to max_preview_rows from server config.
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
+    In hub mode, Bearer token is required.
     """
     try:
+        # Validate Hub token if in hub mode
+        hub_result = await _validate_hub_token(request.workflow, authorization)
+
         # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(request.workflow)
+        resolved_workflow = resolver.resolve_workflow_connections(
+            request.workflow,
+            hub_connections=hub_result.connections if hub_result else None,
+        )
         resolver.validate_client_connections(resolved_workflow)
 
         executor = WorkflowExecutor()

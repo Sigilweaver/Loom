@@ -19,6 +19,10 @@ dependencies = [
     "python-multipart>=0.0.6",
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
+    "pyjwt>=2.10.1",
+    "cryptography>=46.0.3",
+    "polars[connectorx]>=1.0.0",
+    "pyarrow>=22.0.0",
 ]
 
 [project.optional-dependencies]

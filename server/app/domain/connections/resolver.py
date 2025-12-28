@@ -1,15 +1,23 @@
 """
 Connection resolver for workflow execution.
 
-Resolves server-managed connection references in workflows before execution.
-This is the single point where connection IDs are converted to connection URIs.
+Resolves server-managed and hub-managed connection references in workflows
+before execution. This is the single point where connection IDs are converted
+to connection URIs.
+
+Connection ownership types:
+- server: Credentials stored locally on this Server instance
+- hub: Credentials managed by Hub, provided via token validation
+- client: Credentials managed by client (Studio), passed in request
 
 Future: Add RBAC checks here (can this user access this connection?).
 """
 
 import logging
+from urllib.parse import quote_plus
 
 from app.api.models.workflow import Tool, Workflow
+from app.domain.connections.models import ResolvedConnection
 from app.domain.connections.store import ConnectionStore, get_connection_store
 from app.utils.errors import ExecutionError
 
@@ -21,7 +29,10 @@ class ConnectionResolver:
     Resolves connection references in workflows.
 
     For server-owned connections (owner="server"), resolves connectionId to a
-    full connection URI with embedded credentials.
+    full connection URI with embedded credentials from local store.
+
+    For hub-owned connections (owner="hub"), uses credentials provided by Hub
+    via token validation.
 
     For client-owned connections (owner="client"), the client is expected to
     have already resolved the connection - this class validates that source
@@ -46,15 +57,20 @@ class ConnectionResolver:
             self._store = get_connection_store()
         return self._store
 
-    def resolve_workflow_connections(self, workflow: Workflow) -> Workflow:
+    def resolve_workflow_connections(
+        self,
+        workflow: Workflow,
+        hub_connections: dict[str, ResolvedConnection] | None = None,
+    ) -> Workflow:
         """
-        Resolve all server connections in a workflow.
+        Resolve all server and hub connections in a workflow.
 
-        Iterates through all tools and resolves server-owned database connections
-        by injecting the connection URI into the tool config.
+        Iterates through all tools and resolves database connections by
+        injecting the connection URI into the tool config.
 
         Args:
             workflow: The workflow to resolve connections for
+            hub_connections: Hub-provided credentials for hub-owned connections
 
         Returns:
             A new Workflow with resolved connections (tool configs modified)
@@ -62,15 +78,23 @@ class ConnectionResolver:
         Raises:
             ExecutionError: If a connection cannot be resolved or is unauthorized
         """
-        # Find all database tools that need server connection resolution
+        # Find all database tools that need connection resolution
         server_connections = self._find_server_connections(workflow)
+        hub_connection_refs = self._find_hub_connections(workflow)
 
-        if not server_connections:
-            # No server connections to resolve
+        if not server_connections and not hub_connection_refs:
+            # No connections to resolve
             return workflow
 
-        # Validate all connections exist before modifying anything (fail-fast)
-        self._validate_connections_exist(server_connections)
+        # Validate server connections exist (fail-fast)
+        if server_connections:
+            self._validate_connections_exist(server_connections)
+
+        # Validate hub connections are provided (fail-fast)
+        if hub_connection_refs:
+            self._validate_hub_connections_provided(
+                hub_connection_refs, hub_connections
+            )
 
         # Future: Add RBAC authorization check here
         # self._authorize_connections(server_connections, user)
@@ -80,6 +104,11 @@ class ConnectionResolver:
         for tool in workflow.tools:
             if tool.id in server_connections:
                 resolved_tool = self._resolve_tool_connection(tool)
+                resolved_tools.append(resolved_tool)
+            elif tool.id in hub_connection_refs:
+                connection_id = hub_connection_refs[tool.id]
+                hub_conn = hub_connections[connection_id]  # type: ignore
+                resolved_tool = self._resolve_hub_tool_connection(tool, hub_conn)
                 resolved_tools.append(resolved_tool)
             else:
                 resolved_tools.append(tool)
@@ -120,6 +149,128 @@ class ConnectionResolver:
         # Must be server-owned
         owner = tool.config.get("owner", "client")
         return owner == "server"
+
+    def _find_hub_connections(self, workflow: Workflow) -> dict[str, str]:
+        """
+        Find all tools with hub-owned connections.
+
+        Returns:
+            Dict of tool_id -> connection_id for hub-owned database tools
+        """
+        hub_connections: dict[str, str] = {}
+
+        for tool in workflow.tools:
+            if self._is_hub_database_tool(tool):
+                connection_id = tool.config.get("connectionId")
+                if connection_id:
+                    hub_connections[tool.id] = connection_id
+
+        return hub_connections
+
+    def _is_hub_database_tool(self, tool: Tool) -> bool:
+        """Check if a tool is a hub-owned database input."""
+        if tool.type != "Input":
+            return False
+        if tool.config.get("category") != "database":
+            return False
+        # Already has source URI - no resolution needed
+        if tool.config.get("source"):
+            return False
+        # Must be hub-owned
+        owner = tool.config.get("owner", "client")
+        return owner == "hub"
+
+    def _validate_hub_connections_provided(
+        self,
+        hub_connection_refs: dict[str, str],
+        hub_connections: dict[str, ResolvedConnection] | None,
+    ) -> None:
+        """
+        Validate that all hub connection credentials were provided.
+
+        Raises:
+            ExecutionError: If hub connections are needed but not provided
+        """
+        if not hub_connections:
+            raise ExecutionError(
+                "Workflow uses hub-owned connections but no hub credentials provided. "
+                "Ensure auth_mode='hub' and valid Bearer token is passed."
+            )
+
+        for tool_id, connection_id in hub_connection_refs.items():
+            if connection_id not in hub_connections:
+                raise ExecutionError(
+                    f"Tool {tool_id}: Hub connection '{connection_id}' not authorized. "
+                    "User may not have access to this connection."
+                )
+
+    def _resolve_hub_tool_connection(
+        self, tool: Tool, connection: ResolvedConnection
+    ) -> Tool:
+        """
+        Resolve a single tool's hub connection using provided credentials.
+
+        Args:
+            tool: The tool to resolve
+            connection: Resolved connection with decrypted credentials
+
+        Returns:
+            New Tool with resolved connection URI in config
+        """
+        uri = self._build_uri(connection)
+
+        # Create new config with source URI
+        new_config = dict(tool.config)
+        new_config["source"] = uri
+
+        logger.info(
+            f"Tool {tool.id}: Resolved hub connection '{connection.id}' ({connection.name})"
+        )
+
+        # Return new Tool with updated config
+        return Tool(
+            id=tool.id,
+            type=tool.type,
+            x=tool.x,
+            y=tool.y,
+            config=new_config,
+            sockets=tool.sockets,
+        )
+
+    def _build_uri(self, connection: ResolvedConnection) -> str:
+        """Build a database URI from a resolved connection."""
+        # URL-encode credentials
+        username = quote_plus(connection.username)
+        password = quote_plus(connection.password)
+
+        conn_type = connection.type
+        db_type = conn_type.value if hasattr(conn_type, "value") else str(conn_type)
+
+        # Build URI based on database type
+        if db_type == "postgresql":
+            return (
+                f"postgresql://{username}:{password}@"
+                f"{connection.host}:{connection.port}/{connection.database}"
+            )
+        elif db_type == "mysql":
+            return (
+                f"mysql://{username}:{password}@"
+                f"{connection.host}:{connection.port}/{connection.database}"
+            )
+        elif db_type == "mssql":
+            return (
+                f"mssql://{username}:{password}@"
+                f"{connection.host}:{connection.port}/{connection.database}"
+            )
+        elif db_type == "sqlite":
+            # SQLite doesn't use credentials
+            return f"sqlite:///{connection.database}"
+        else:
+            # Fallback to generic format
+            return (
+                f"{db_type}://{username}:{password}@"
+                f"{connection.host}:{connection.port}/{connection.database}"
+            )
 
     def _validate_connections_exist(self, server_connections: dict[str, str]) -> None:
         """

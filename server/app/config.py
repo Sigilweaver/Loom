@@ -28,7 +28,11 @@ class Settings(BaseSettings):
     restrict_file_access: bool = True
 
     # Security - Authentication
-    # Auth mode: "disabled" (no auth), "ephemeral" (Electron-generated token), "static" (env token)
+    # Auth mode options:
+    #  - "disabled": no auth
+    #  - "ephemeral": Electron-generated token
+    #  - "static": env token
+    #  - "hub": Hub-validated
     auth_mode: str = "disabled"
     # Session token for ephemeral/static modes (set by Electron or .env)
     session_token: str = ""
@@ -36,6 +40,12 @@ class Settings(BaseSettings):
     auth_protect_docs: bool = True
     # Protect /api/health endpoint (default: protected)
     auth_protect_health: bool = True
+
+    # Hub Integration (for auth_mode="hub")
+    # URL of the Hub server for token validation
+    hub_url: str = ""
+    # This server's auth token registered in Hub (used to authenticate to Hub)
+    hub_server_token: str = ""
 
     # Workflow Archive
     archive_enabled: bool = True
@@ -74,7 +84,7 @@ class Settings(BaseSettings):
 
     # Server Connection Store
     # Fernet encryption key for credentials
-    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Generate with: Fernet.generate_key().decode()
     connection_encryption_key: str = ""
     connection_store_path: str = "./connections.json"
 

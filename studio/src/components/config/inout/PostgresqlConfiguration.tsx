@@ -10,8 +10,7 @@ import {
   type EmissionMap,
   type ToolConfig,
 } from '@domain/workflow/entities/workflow';
-import { useConnectionStore } from '@state/connectionStore';
-import type { ConnectionInfo } from '../../../types/connections';
+import { useAllConnections, type UnifiedConnection } from '../../../hooks/useAllConnections';
 import { Database, AlertCircle, Settings } from 'lucide-react';
 import { CodeEditor } from '@components/common/CodeEditor';
 
@@ -64,35 +63,25 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
   config,
   onChange,
 }) => {
-  const {
-    connections,
-    loaded,
-    loadConnections,
-    getConnectionsByType,
-  } = useConnectionStore();
+  const { loaded, getByType } = useAllConnections();
   
-  const [postgresConnections, setPostgresConnections] = useState<ConnectionInfo[]>([]);
+  const [postgresConnections, setPostgresConnections] = useState<UnifiedConnection[]>([]);
 
-  // Load connections on mount
-  useEffect(() => {
-    if (!loaded) {
-      loadConnections();
-    }
-  }, [loaded, loadConnections]);
-
-  // Filter to PostgreSQL connections
+  // Filter to PostgreSQL connections when loaded
   useEffect(() => {
     if (loaded) {
-      const pgConnections = getConnectionsByType('postgresql');
+      const pgConnections = getByType('postgresql');
       setPostgresConnections(pgConnections);
     }
-  }, [loaded, connections, getConnectionsByType]);
+  }, [loaded, getByType]);
 
   const handleConnectionChange = useCallback(
     (connectionId: string) => {
       // Find the connection to get its owner
       const connection = postgresConnections.find(c => c.id === connectionId);
-      const owner = connection?.owner || 'client';
+      // Preserve owner as-is: 'client' for local, 'hub' for Hub-managed
+      // Backend expects owner='hub' to request credentials from Hub during token validation
+      const owner = connection?.owner ?? 'client';
       
       const newConfig: ToolConfig = {
         ...config,
@@ -175,7 +164,7 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
                   <option value="">Select a connection...</option>
                   {postgresConnections.map((conn) => (
                     <option key={conn.id} value={conn.id}>
-                      {conn.name} ({conn.host}:{conn.port}/{conn.database}) {conn.owner === 'server' ? '[Server]' : '[Local]'}
+                      {conn.name} ({conn.host}:{conn.port}/{conn.database}) {conn.owner === 'hub' ? '[Hub]' : '[Local]'}
                     </option>
                   ))}
                   <option value="__configure_new__" className="border-t border-theme-border-primary">
@@ -195,11 +184,11 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
                     </span>
                   </div>
                   <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                    selectedConnection.owner === 'server' 
+                    selectedConnection.owner === 'hub' 
                       ? 'bg-theme-status-info-bg text-theme-status-info-text border border-theme-status-info-border'
                       : 'bg-theme-badge-write/10 text-theme-badge-write border border-theme-badge-write/20'
                   }`}>
-                    {selectedConnection.owner === 'server' ? 'Server-Managed' : 'Local'}
+                    {selectedConnection.owner === 'hub' ? 'Hub-Managed' : 'Local'}
                   </span>
                 </div>
                 <div className="mt-1">

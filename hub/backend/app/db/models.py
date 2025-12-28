@@ -201,6 +201,37 @@ class Schedule(Base):
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="schedules")
 
 
+class Connection(Base):
+    """Hub-managed database connection credentials.
+
+    Credentials are stored encrypted using Fernet symmetric encryption.
+    The encryption key must be provided via environment variable.
+    """
+
+    __tablename__ = "connections"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql, mysql, etc.
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(Integer, nullable=False)
+    database: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Credentials stored as Fernet-encrypted JSON string (base64)
+    encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Metadata
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
+
+
 class Session(Base):
     """User session for authentication
 

@@ -2,22 +2,24 @@
  * Admin panel page
  *
  * Accessible only to owners and admins.
- * Provides management interfaces for users, servers, and settings.
+ * Provides management interfaces for users, servers, connections, and settings.
  */
 
 import { useState } from "react";
-import { LayoutDashboard, Users, Server, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Shield, Database } from "lucide-react";
 import { DashboardTab } from "./admin/DashboardTab";
 import { UsersTab } from "./admin/UsersTab";
 import { ServersTab } from "./admin/ServersTab";
+import { ConnectionsTab } from "./admin/ConnectionsTab";
 
-type AdminTab = "dashboard" | "settings" | "users" | "servers";
+type AdminTab = "dashboard" | "settings" | "users" | "servers" | "connections";
 
 const tabs: { id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "settings", label: "Settings", icon: Settings },
-  { id: "users", label: "Users", icon: Users },
+  { id: "connections", label: "Connections", icon: Database },
   { id: "servers", label: "Servers", icon: Server },
+  { id: "users", label: "Users", icon: Users },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminPage() {
@@ -32,7 +34,7 @@ export function AdminPage() {
         </div>
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Administration</h1>
-          <p className="text-sm text-gray-500">Manage users, servers, and system configuration</p>
+          <p className="text-sm text-gray-500">Manage users, servers, connections, and system configuration</p>
         </div>
       </div>
 
@@ -58,8 +60,9 @@ export function AdminPage() {
 
       {/* Tab content */}
       {activeTab === "dashboard" && <DashboardTab />}
-      {activeTab === "users" && <UsersTab />}
+      {activeTab === "connections" && <ConnectionsTab />}
       {activeTab === "servers" && <ServersTab />}
+      {activeTab === "users" && <UsersTab />}
       {activeTab === "settings" && <SettingsPlaceholder />}
     </div>
   );
