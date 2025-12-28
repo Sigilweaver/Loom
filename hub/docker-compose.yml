@@ -1,0 +1,39 @@
+# Sigilweaver Hub - Development Stack
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15
+    container_name: sigilweaver-hub-postgres
+    environment:
+      POSTGRES_USER: sigilweaver
+      POSTGRES_PASSWORD: sigilweaver
+      POSTGRES_DB: sigilweaver_hub
+    ports:
+      - "25802:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigilweaver -d sigilweaver_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Hub backend (for production-like local testing)
+  # Uncomment to use containerized backend instead of local dev
+  # hub-backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: sigilweaver-hub-backend
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://sigilweaver:sigilweaver@postgres:5432/sigilweaver_hub
+  #     SECRET_KEY: development-secret-key-change-in-production
+  #   ports:
+  #     - "58001:58001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
