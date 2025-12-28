@@ -13,8 +13,8 @@ import {
   type EmissionMap,
   type ToolConfig,
 } from '@domain/workflow/entities/workflow';
-import { useConnectionStore } from '@state/connectionStore';
-import type { ConnectionInfo, DatabaseType } from '../../../types/connections';
+import { useAllConnections, type UnifiedConnection } from '../../../hooks/useAllConnections';
+import type { DatabaseType } from '../../../types/connections';
 import { DATABASE_TYPE_NAMES } from '../../../types/connections';
 import { Database, AlertCircle, Settings } from 'lucide-react';
 import { CodeEditor } from '@components/common/CodeEditor';
@@ -67,36 +67,26 @@ export const DatabaseConfiguration: React.FC<DatabaseConfigurationProps> = ({
   onChange,
   databaseType,
 }) => {
-  const {
-    connections,
-    loaded,
-    loadConnections,
-    getConnectionsByType,
-  } = useConnectionStore();
+  const { loaded, getByType } = useAllConnections();
   
-  const [dbConnections, setDbConnections] = useState<ConnectionInfo[]>([]);
+  const [dbConnections, setDbConnections] = useState<UnifiedConnection[]>([]);
   const displayName = DATABASE_TYPE_NAMES[databaseType] || databaseType;
 
-  // Load connections on mount
-  useEffect(() => {
-    if (!loaded) {
-      loadConnections();
-    }
-  }, [loaded, loadConnections]);
-
-  // Filter to matching database type connections
+  // Filter to matching database type connections when loaded
   useEffect(() => {
     if (loaded) {
-      const filteredConnections = getConnectionsByType(databaseType);
+      const filteredConnections = getByType(databaseType);
       setDbConnections(filteredConnections);
     }
-  }, [loaded, connections, getConnectionsByType, databaseType]);
+  }, [loaded, getByType, databaseType]);
 
   const handleConnectionChange = useCallback(
     (connectionId: string) => {
       // Find the connection to get its owner
       const connection = dbConnections.find(c => c.id === connectionId);
-      const owner = connection?.owner || 'client';
+      // Preserve owner as-is: 'client' for local, 'hub' for Hub-managed
+      // Backend expects owner='hub' to request credentials from Hub during token validation
+      const owner = connection?.owner ?? 'client';
       
       const newConfig: ToolConfig = {
         ...config,
@@ -197,7 +187,7 @@ export const DatabaseConfiguration: React.FC<DatabaseConfigurationProps> = ({
                   <option value="">Select a connection...</option>
                   {dbConnections.map((conn) => (
                     <option key={conn.id} value={conn.id}>
-                      {conn.name} ({conn.host}:{conn.port}/{conn.database}) {conn.owner === 'server' ? '[Server]' : '[Local]'}
+                      {conn.name} ({conn.host}:{conn.port}/{conn.database}) {conn.owner === 'hub' ? '[Hub]' : '[Local]'}
                     </option>
                   ))}
                   <option value="__configure_new__" className="border-t border-theme-border-primary">
@@ -217,11 +207,11 @@ export const DatabaseConfiguration: React.FC<DatabaseConfigurationProps> = ({
                     </span>
                   </div>
                   <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                    selectedConnection.owner === 'server' 
+                    selectedConnection.owner === 'hub' 
                       ? 'bg-theme-status-info-bg text-theme-status-info-text border border-theme-status-info-border'
                       : 'bg-theme-badge-write/10 text-theme-badge-write border border-theme-badge-write/20'
                   }`}>
-                    {selectedConnection.owner === 'server' ? 'Server-Managed' : 'Local'}
+                    {selectedConnection.owner === 'hub' ? 'Hub-Managed' : 'Local'}
                   </span>
                 </div>
                 <div className="mt-1">

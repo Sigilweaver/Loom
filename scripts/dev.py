@@ -5,12 +5,12 @@ Sigilweaver Development Script
 Starts development servers for Studio, Server, and/or Hub.
 
 Usage:
-    ./scripts/dev.py              # Start Vite (Electron manages Server)
-    ./scripts/dev.py --server     # Server only (for browser dev without Electron)
-    ./scripts/dev.py --studio     # Studio only (same as default)
-    ./scripts/dev.py --electron   # Also launch Electron after Vite starts
+    ./scripts/dev.py              # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py --server     # Server only
+    ./scripts/dev.py --studio     # Studio only
     ./scripts/dev.py --hub        # Hub only (backend + frontend)
-    ./scripts/dev.py --all        # Start everything (Server, Studio, Hub)
+    ./scripts/dev.py --hub-auth   # All components with Hub authentication enabled
+    ./scripts/dev.py --electron   # All components + launch Electron
 """
 
 import argparse
@@ -156,7 +156,7 @@ def stream_output(process: subprocess.Popen, prefix: str) -> None:
         pass
 
 
-def start_server(repo_root: Path) -> subprocess.Popen | None:
+def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | None:
     """Start the server uvicorn server."""
     global server_process
     
@@ -177,7 +177,19 @@ def start_server(repo_root: Path) -> subprocess.Popen | None:
     # Set environment variables
     env = os.environ.copy()
     env["POLARS_VERBOSE"] = "1"
-    env["AUTH_MODE"] = "disabled"  # Disable auth for direct API access during development
+    env["PORT"] = "8000"  # Must match --port arg so settings.port is correct for Hub registration
+    
+    if hub_auth:
+        env["AUTH_MODE"] = "hub"
+        env["HUB_URL"] = "http://localhost:58001"  # Hub backend port
+        # Development server token - Server will auto-register with Hub on startup
+        env["HUB_SERVER_TOKEN"] = "dev-server-token"
+        # Registration secret - must match Hub's SERVER_REGISTRATION_SECRET
+        env["HUB_REGISTRATION_SECRET"] = "dev-registration-secret"
+        print_success("  Hub auth mode enabled (validating tokens with Hub)")
+        print_success("  Server will auto-register with Hub on startup")
+    else:
+        env["AUTH_MODE"] = "disabled"  # Disable auth for direct API access
     
     try:
         # Use shell=False for cross-platform compatibility
@@ -295,10 +307,20 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
         "--port", "58001"
     ]
     
+    # Set environment variables for Hub
+    env = os.environ.copy()
+    # Development encryption key for Hub connections (valid Fernet key)
+    # In production, generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    env["CONNECTION_ENCRYPTION_KEY"] = "xFvKugJ1oWmzFdB_MaNc0M0MJZhcZ9IVcRWf76dm85c="
+    # Development registration secret - servers must provide this to register
+    # In production, generate a secure random string
+    env["SERVER_REGISTRATION_SECRET"] = "dev-registration-secret"
+    
     try:
         hub_backend_process = subprocess.Popen(
             cmd,
             cwd=hub_backend_dir,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -425,12 +447,12 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    ./scripts/dev.py              # Start Vite (Electron manages Server)
-    ./scripts/dev.py --server     # Server only (for browser dev)
-    ./scripts/dev.py --studio     # Studio only (same as default)
-    ./scripts/dev.py --electron   # Also launch Electron explicitly
+    ./scripts/dev.py              # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py --server     # Server only
+    ./scripts/dev.py --studio     # Studio only
     ./scripts/dev.py --hub        # Hub only (backend + frontend)
-    ./scripts/dev.py --all        # Start everything
+    ./scripts/dev.py --hub-auth   # All components with Hub authentication enabled
+    ./scripts/dev.py --electron   # All components + launch Electron
         """
     )
     parser.add_argument(
@@ -454,35 +476,34 @@ Examples:
         help="Start hub (backend + frontend)"
     )
     parser.add_argument(
-        "--all",
+        "--hub-auth",
         action="store_true",
-        help="Start all services (server, studio, hub)"
+        help="Enable Hub authentication mode (Server validates tokens with Hub)"
     )
     
     args = parser.parse_args()
     
     # Determine what to run
-    # --all starts everything
-    if args.all:
-        run_server = True
-        run_studio = True
-        run_hub = True
     # If specific services requested, only run those
-    elif args.server or args.studio or args.hub:
+    if args.server or args.studio or args.hub:
         run_server = args.server
         run_studio = args.studio
         run_hub = args.hub
-    # Default: just run studio (Vite auto-launches Electron which manages server)
+    # Default: run all components
     else:
-        run_server = False
+        run_server = True
         run_studio = True
-        run_hub = False
+        run_hub = True
     
     run_electron = args.electron
     
     # If electron requested but not studio, enable studio too
     if run_electron and not run_studio:
         run_studio = True
+    
+    # If Hub is running, enable hub auth mode for the server automatically
+    # This ensures Hub connections work without requiring --hub-auth flag
+    hub_auth = args.hub_auth or run_hub
     
     # Get repo root
     repo_root = get_repo_root()
@@ -513,7 +534,7 @@ Examples:
     
     # Start services
     if run_server:
-        if start_server(repo_root) is None:
+        if start_server(repo_root, hub_auth=hub_auth) is None:
             return 1
         # Give server a moment to start
         time.sleep(2)

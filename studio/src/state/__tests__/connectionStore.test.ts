@@ -19,14 +19,6 @@ import {
   mockPlatformCredentials,
 } from '../../test-setup';
 
-// Mock the server connections API to prevent real backend calls during unit tests
-vi.mock('../../api/serverConnections', () => ({
-  initializeServerConnectionsAuth: vi.fn().mockResolvedValue(undefined),
-  listServerConnections: vi.fn().mockResolvedValue([]),
-  setServerConnectionsToken: vi.fn(),
-  getConnectionStoreStatus: vi.fn().mockResolvedValue({ enabled: false, connectionCount: 0 }),
-}));
-
 describe('connectionStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -19,6 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@api": ["./src/api/index.ts"],
       "@api/*": ["./src/api/*"],
       "@components/*": ["./src/components/*"],
       "@contexts/*": ["./src/contexts/*"],

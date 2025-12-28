@@ -4,12 +4,9 @@
 
 import { useState, useCallback } from 'react';
 import {
-  getToolSchema,
+  // Non-execution functions (don't need Hub routing)
   getToolMetadata,
   getPolarsFunctions,
-  previewTool,
-  previewAllTools,
-  executeWorkflow,
   previewCode,
   BackendError,
   type SchemaResponse,
@@ -20,6 +17,14 @@ import {
   type PreviewAllResponse,
   type ColumnSchema,
 } from './backend';
+import {
+  // Hub-aware execution functions
+  previewTool,
+  previewAllTools,
+  getToolSchema,
+  executeWorkflow,
+  needsHubLogin,
+} from './execution';
 import {
   getCachedSchema,
   cacheSchema,
@@ -182,18 +187,30 @@ export interface UseWorkflowExecuteResult {
 /**
  * Hook for executing complete workflow
  * 
+ * Automatically uses the correct execution path based on the current mode:
+ * - bundled/external: Direct backend connection
+ * - hub: Acquires server token from Hub first
+ * 
  * @example
- * const { result, loading, error, execute } = useWorkflowExecute();
+ * const { result, loading, error, execute, needsLogin } = useWorkflowExecute();
+ * 
+ * // Check if user needs to login to Hub first
+ * if (needsLogin) {
+ *   showHubLoginDialog();
+ *   return;
+ * }
  * 
  * // Execute workflow when user clicks run button
  * const handleRun = () => {
  *   execute(workflow);
  * };
  */
-export function useWorkflowExecute(): UseWorkflowExecuteResult {
+export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: boolean } {
   const [result, setResult] = useState<WorkflowExecuteResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const loginRequired = needsHubLogin();
 
   const execute = useCallback(
     async (workflow: WorkflowJSON, targetToolId?: string) => {
@@ -201,9 +218,12 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult {
       setError(null);
       
       try {
-        // Resolve database connections (replace connectionIds with URIs)
+        // Resolve database connections (replace connectionIds with URIs for client connections)
         const resolvedWorkflow = await resolveWorkflowConnections(workflow);
+        
+        // executeWorkflow from execution.ts handles Hub mode transparently
         const execResult = await executeWorkflow(resolvedWorkflow, targetToolId);
+        
         setResult(execResult);
       } catch (err) {
         const message = err instanceof BackendError 
@@ -220,7 +240,7 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult {
     []
   );
 
-  return { result, loading, error, execute };
+  return { result, loading, error, execute, needsLogin: loginRequired };
 }
 
 export interface UseCodePreviewResult {

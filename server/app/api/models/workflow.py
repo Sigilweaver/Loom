@@ -56,6 +56,7 @@ class Wire(BaseModel):
 class Workflow(BaseModel):
     """Complete workflow definition"""
 
+    version: str = "1.0"
     meta: WorkflowMeta
     tools: list[Tool]
     wires: list[Wire]

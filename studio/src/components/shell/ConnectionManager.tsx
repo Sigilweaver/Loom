@@ -14,7 +14,7 @@ import type {
   DatabaseType 
 } from '../../types/connections';
 import { DEFAULT_PORTS, DATABASE_TYPE_NAMES } from '../../types/connections';
-import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, HelpCircle, Info } from 'lucide-react';
+import { Database, Plus, Pencil, Trash2, AlertCircle, Check, Loader2, Info } from 'lucide-react';
 
 interface ConnectionFormData {
   name: string;
@@ -356,7 +356,7 @@ const ConnectionListItem: React.FC<ConnectionListItemProps> = ({
   );
 };
 
-export const ConnectionManager: React.FC = () => {
+export const ConnectionManager: React.FC<{ showHeader?: boolean }> = ({ showHeader = false }) => {
   const {
     connections,
     loaded,
@@ -495,35 +495,34 @@ export const ConnectionManager: React.FC = () => {
 
   // Show connection list
   return (
-    <div className="space-y-4">
-      {/* Header with Add button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium" style={{ color: 'var(--color-modal-content-text)' }}>
-            Database Connections ({connections.length})
-          </h3>
-          <a
-            href="https://docs.sigilweaver.app/user/interface/connections"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-50 hover:opacity-100 transition-opacity"
-            title="Connection documentation"
+    <div className="space-y-3">
+      {/* Header - only shown when Hub connections are displayed above */}
+      {showHeader && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-theme-text-primary">Local Connections</span>
+          <span
+            title={encryptionAvailable
+              ? "Stored locally with encrypted credentials"
+              : "Stored locally (secure storage not available)"}
           >
-            <HelpCircle className="w-4 h-4" style={{ color: 'var(--color-modal-content-text)' }} />
-          </a>
+            <Info className="w-3 h-3 opacity-40 hover:opacity-70 cursor-help" style={{ color: 'var(--color-modal-content-text)' }} />
+          </span>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-3 py-1.5 rounded flex items-center gap-1.5 transition-opacity hover:opacity-80"
-          style={{
-            backgroundColor: 'var(--color-modal-btn-primary-bg)',
-            color: 'var(--color-modal-btn-primary-text)',
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="text-sm">Add Local Connection</span>
-        </button>
-      </div>
+      )}
+
+      {/* Add button */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="w-full px-3 py-2 rounded flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80 text-sm"
+        style={{
+          backgroundColor: 'var(--color-modal-container-bg)',
+          border: '1px solid var(--color-modal-container-border)',
+          color: 'var(--color-modal-content-text)',
+        }}
+      >
+        <Plus className="w-4 h-4" />
+        Add Connection
+      </button>
 
       {/* Error message */}
       {error && (
@@ -567,68 +566,17 @@ export const ConnectionManager: React.FC = () => {
       )}
 
       {!loading && connections.length > 0 && (
-        <div className="space-y-4">
-          {/* Local Connections */}
-          {connections.some(c => c.owner === 'client') && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <h4 className="text-sm font-medium opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
-                  Local Connections
-                </h4>
-                <span 
-                  title={encryptionAvailable 
-                    ? "Stored locally. Credentials are encrypted using your operating system's secure storage." 
-                    : "Stored locally. Secure storage not available - credentials are encoded but not encrypted."}
-                >
-                  <Info 
-                    className="w-3.5 h-3.5 opacity-40 hover:opacity-70 cursor-help transition-opacity" 
-                    style={{ color: 'var(--color-modal-content-text)' }}
-                  />
-                </span>
-              </div>
-              <div className="space-y-2">
-                {connections
-                  .filter(c => c.owner === 'client')
-                  .map(connection => (
-                    <ConnectionListItem
-                      key={connection.id}
-                      connection={connection}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Server-Managed Connections */}
-          {connections.some(c => c.owner === 'server') && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <h4 className="text-sm font-medium opacity-70" style={{ color: 'var(--color-modal-content-text)' }}>
-                  Server-Managed Connections
-                </h4>
-                <span title="Managed by your administrator. Read-only and cannot be edited.">
-                  <Info 
-                    className="w-3.5 h-3.5 opacity-40 hover:opacity-70 cursor-help transition-opacity" 
-                    style={{ color: 'var(--color-modal-content-text)' }}
-                  />
-                </span>
-              </div>
-              <div className="space-y-2">
-                {connections
-                  .filter(c => c.owner === 'server')
-                  .map(connection => (
-                    <ConnectionListItem
-                      key={connection.id}
-                      connection={connection}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
+        <div className="space-y-2">
+          {connections
+            .filter(c => c.owner === 'client')
+            .map(connection => (
+              <ConnectionListItem
+                key={connection.id}
+                connection={connection}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
         </div>
       )}
 

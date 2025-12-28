@@ -2,13 +2,15 @@
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db.database import get_db
 from app.db.models import Server
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
@@ -106,34 +108,57 @@ async def list_servers(db: AsyncSession = Depends(get_db)) -> ServerListResponse
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
 async def register_server(
-    request: ServerCreate, db: AsyncSession = Depends(get_db)
+    request: ServerCreate,
+    db: AsyncSession = Depends(get_db),
+    x_registration_secret: Annotated[str | None, Header()] = None,
 ) -> ServerResponse:
-    """Register a new server"""
+    """Register a new server or update existing one (idempotent).
+
+    If a server with the same auth_token already exists, updates it.
+    This allows servers to re-register after restarts, even if their
+    endpoint URL changes (e.g., different port).
+
+    Requires X-Registration-Secret header if server_registration_secret is configured.
+    """
+    # Validate registration secret if configured
+    if settings.server_registration_secret:
+        if not x_registration_secret:
+            logger.warning("Server registration attempt without secret")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="X-Registration-Secret header required",
+            )
+        if x_registration_secret != settings.server_registration_secret:
+            logger.warning("Server registration attempt with invalid secret")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid registration secret",
+            )
+
     # Normalize endpoint URL
     endpoint_url = request.endpoint_url.rstrip("/")
 
-    # Check for duplicate endpoint
-    existing = await db.execute(select(Server).where(Server.endpoint_url == endpoint_url))
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Server with endpoint {endpoint_url} already registered",
+    # Check for existing server with same auth_token (identity is by token, not endpoint)
+    existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
+    server = existing.scalar_one_or_none()
+
+    if server:
+        # Update existing server (endpoint may have changed)
+        server.name = request.name
+        server.endpoint_url = endpoint_url
+        server.status = "unknown"  # Will be updated by health check below
+        logger.info("Re-registered existing server: %s (%s)", server.name, server.endpoint_url)
+    else:
+        # Create new server record
+        server = Server(
+            name=request.name,
+            endpoint_url=endpoint_url,
+            auth_token=request.auth_token,
+            status="unknown",
+            created_by="system",  # TODO: Use actual user from auth
         )
-
-    # Create server record
-    server = Server(
-        name=request.name,
-        endpoint_url=endpoint_url,
-        auth_token=request.auth_token,
-        status="unknown",
-        created_by="system",  # TODO: Use actual user from auth
-    )
-
-    db.add(server)
-    await db.commit()
-    await db.refresh(server)
-
-    logger.info("Registered server: %s (%s)", server.name, server.endpoint_url)
+        db.add(server)
+        logger.info("Registered new server: %s (%s)", server.name, server.endpoint_url)
 
     # Immediately poll the server to get initial status
     client = ServerClient(server.endpoint_url, server.auth_token)

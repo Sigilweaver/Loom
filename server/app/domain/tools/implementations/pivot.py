@@ -4,14 +4,13 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.execution.safety import check_pivot_safety, raise_if_unsafe
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import PivotOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
-
 
 # Valid aggregation functions for pivot with display labels
 PIVOT_AGGREGATIONS = {

@@ -9,7 +9,7 @@ Runs all checks to ensure CI will pass:
 4. Integration tests (requires server running)
 
 Usage:
-    ./scripts/test.py              # Run all checks, only show errors (recommended before PR)
+    ./scripts/test.py              # Run all checks (Server, Studio, Hub, Integration)
     ./scripts/test.py -v           # Verbose mode - show all output
     ./scripts/test.py --server     # Server checks only
     ./scripts/test.py --studio     # Studio checks only
@@ -650,7 +650,7 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./scripts/test.py              # Full verification, only show errors (recommended before PR)
+  ./scripts/test.py              # Run all checks (Server, Studio, Hub, Integration)
   ./scripts/test.py -v           # Verbose mode - show all output
   ./scripts/test.py --server     # Server only (ruff + mypy + pytest + coverage)
   ./scripts/test.py --studio     # Studio only (tsc + eslint + vitest + coverage)

@@ -14,9 +14,13 @@ interface SettingsState extends AppSettings {
   loaded: boolean;
   loadSettings: () => Promise<void>;
   updateAuthor: (author: string) => Promise<void>;
+  updateExecutionMode: (mode: AppSettings['executionMode']) => Promise<void>;
   updateBackendUrl: (url: string) => Promise<void>;
   updateBackendAutoStart: (autoStart: boolean) => Promise<void>;
   updateBackendPreviewRows: (previewRows: number) => Promise<void>;
+  updateHubUrl: (url: string) => Promise<void>;
+  updateHubRememberLogin: (rememberLogin: boolean) => Promise<void>;
+  updateHubSessionToken: (token: string | null) => Promise<void>;
   updateTheme: (themeId: string) => Promise<void>;
   updateSnapToGrid: (enabled: boolean) => Promise<void>;
   updateMinimapVisible: (visible: boolean) => Promise<void>;
@@ -39,6 +43,20 @@ async function saveToStorage(settings: AppSettings): Promise<void> {
   await platform.settings.setSettings(settings);
 }
 
+/**
+ * Build AppSettings object from current state
+ */
+function buildSettings(state: SettingsState): AppSettings {
+  return {
+    author: state.author,
+    executionMode: state.executionMode,
+    backend: state.backend,
+    hub: state.hub,
+    theme: state.theme,
+    ui: state.ui,
+  };
+}
+
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ...DEFAULT_SETTINGS,
   loaded: false,
@@ -50,79 +68,67 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   updateAuthor: async (author) => {
     set({ author });
-    const state = get();
-    const settings: AppSettings = {
-      author,
-      backend: state.backend,
-      theme: state.theme,
-      ui: state.ui,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateExecutionMode: async (executionMode) => {
+    set({ executionMode });
+    await saveToStorage(buildSettings(get()));
   },
 
   updateBackendUrl: async (url) => {
     const state = get();
     const newBackend = { ...state.backend, url };
     set({ backend: newBackend });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: newBackend,
-      theme: state.theme,
-      ui: state.ui,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
   },
 
   updateBackendAutoStart: async (autoStart) => {
     const state = get();
     const newBackend = { ...state.backend, autoStart };
     set({ backend: newBackend });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: newBackend,
-      theme: state.theme,
-      ui: state.ui,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
   },
 
   updateBackendPreviewRows: async (previewRows) => {
     const state = get();
     const newBackend = { ...state.backend, previewRows };
     set({ backend: newBackend });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: newBackend,
-      theme: state.theme,
-      ui: state.ui,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateHubUrl: async (url) => {
+    const state = get();
+    const newHub = { ...state.hub, url };
+    set({ hub: newHub });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateHubRememberLogin: async (rememberLogin) => {
+    const state = get();
+    const newHub = { ...state.hub, rememberLogin };
+    set({ hub: newHub });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateHubSessionToken: async (sessionToken) => {
+    const state = get();
+    const newHub = { ...state.hub, sessionToken };
+    set({ hub: newHub });
+    await saveToStorage(buildSettings(get()));
   },
 
   updateTheme: async (themeId) => {
-    const state = get();
     const newTheme = { id: themeId };
     set({ theme: newTheme });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: state.backend,
-      theme: newTheme,
-      ui: state.ui,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
   },
 
   updateSnapToGrid: async (snapToGrid) => {
     const state = get();
     const newUI = { ...state.ui, snapToGrid };
     set({ ui: newUI });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: state.backend,
-      theme: state.theme,
-      ui: newUI,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
     
     // Sync with uiStore
     const { useUIStore } = await import('./uiStore');
@@ -136,13 +142,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newUI = { ...state.ui, minimapVisible };
     set({ ui: newUI });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: state.backend,
-      theme: state.theme,
-      ui: newUI,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
     
     // Sync with uiStore
     const { useUIStore } = await import('./uiStore');
@@ -156,13 +156,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newUI = { ...state.ui, minimapPosition };
     set({ ui: newUI });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: state.backend,
-      theme: state.theme,
-      ui: newUI,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
     
     // Sync with uiStore
     const { useUIStore } = await import('./uiStore');
@@ -173,13 +167,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newUI = { ...state.ui, edgeStyle };
     set({ ui: newUI });
-    const settings: AppSettings = {
-      author: state.author,
-      backend: state.backend,
-      theme: state.theme,
-      ui: newUI,
-    };
-    await saveToStorage(settings);
+    await saveToStorage(buildSettings(get()));
     
     // Trigger edge resync to apply new style
     const { useWorkflowStore } = await import('./workflowStore');

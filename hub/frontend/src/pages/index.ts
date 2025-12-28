@@ -1,5 +1,5 @@
-export { DashboardPage } from "./DashboardPage";
+export { AdminPage } from "./AdminPage";
+export { LoginPage } from "./LoginPage";
 export { WorkflowsPage } from "./WorkflowsPage";
-export { ServersPage } from "./ServersPage";
 export { ExecutionsPage } from "./ExecutionsPage";
 export { SchedulesPage } from "./SchedulesPage";

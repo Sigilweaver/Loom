@@ -3,7 +3,12 @@
  * 
  * Manages database connections with secure credential storage.
  * Credentials are stored encrypted via platform-specific secure storage.
- * This store handles the React side and communicates via platform adapter.
+ * 
+ * Connection sources by execution mode:
+ * - Bundled/External: Client connections only (local secure storage)
+ * - Hub: Client connections (local) + Hub-managed connections (from Hub API)
+ * 
+ * Note: Server is purely an execution engine - it does NOT manage connections.
  */
 
 import { create } from 'zustand';
@@ -16,7 +21,6 @@ import type {
   ConnectionTestResult,
   DatabaseType 
 } from '../types/connections';
-import { initializeServerConnectionsAuth, listServerConnections } from '../api/serverConnections';
 
 interface ConnectionState {
   /** All connections (without credentials) */
@@ -53,9 +57,6 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
     set({ loading: true, error: null });
     
     try {
-      // Initialize auth for server connections
-      await initializeServerConnectionsAuth();
-      
       // Load client-managed connections from platform secure storage
       const clientConnections: ConnectionInfo[] = [];
       let encryptionAvailable = false;
@@ -68,20 +69,11 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
         console.warn('[ConnectionStore] Secure storage not available - client connections unavailable');
       }
       
-      // Load server-managed connections from backend
-      const serverConnections: ConnectionInfo[] = [];
-      try {
-        const backendConns = await listServerConnections();
-        serverConnections.push(...backendConns);
-        console.log(`[ConnectionStore] Loaded ${serverConnections.length} server connections`);
-      } catch (error) {
-        console.warn('[ConnectionStore] Failed to load server connections:', error);
-        // Don't fail the whole load - client connections still work
-      }
+      // Note: In Hub mode, Hub-managed connections are fetched separately
+      // via the Hub API when needed for execution. They are NOT mixed into
+      // this store to keep local and Hub connections clearly separated.
       
-      // Combine both sources
-      const allConnections = [...clientConnections, ...serverConnections];
-      set({ connections: allConnections, loaded: true, loading: false, encryptionAvailable });
+      set({ connections: clientConnections, loaded: true, loading: false, encryptionAvailable });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load connections';
       set({ error: message, loading: false, loaded: true });

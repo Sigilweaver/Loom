@@ -1,3 +1,9 @@
+/**
+ * Servers tab for Admin panel
+ *
+ * Manages server instances that Hub can dispatch workflows to.
+ */
+
 import { useState, useEffect } from "react";
 import {
   Plus,
@@ -17,7 +23,7 @@ import {
   refreshServer,
   testServerConnection,
   type ServerResponse,
-} from "@/api/client";
+} from "@api/client";
 
 type ServerStatus = "online" | "offline" | "unknown";
 
@@ -272,7 +278,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
   );
 }
 
-export function ServersPage() {
+export function ServersTab() {
   const [servers, setServers] = useState<ServerResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -333,16 +339,21 @@ export function ServersPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Servers</h1>
+    <div>
+      {/* Header with action button */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-sm text-gray-500">
+            Manage Sigilweaver Server instances that Hub can dispatch workflows to.
+          </p>
+        </div>
         <button
           onClick={() => setDialogOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
