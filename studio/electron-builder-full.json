@@ -13,8 +13,8 @@
   ],
   "extraResources": [
     {
-      "from": "resources/backend/",
-      "to": "backend/",
+      "from": "resources/server/",
+      "to": "server/",
       "filter": [
         "**/*"
       ]

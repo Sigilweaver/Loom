@@ -122,29 +122,29 @@ const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const version = packageJson.version;
 
 /**
- * Get the path to the backend executable
+ * Get the path to the server executable
  */
 function getBackendPath(): { command: string; args: string[]; cwd?: string } {
   if (isDev) {
     // Development: run Python from virtual environment
-    const backendDir = join(__dirname, "../../backend");
+    const serverDir = join(__dirname, "../../server");
     const venvPython = process.platform === "win32"
-      ? join(backendDir, ".venv", "Scripts", "python.exe")
-      : join(backendDir, ".venv", "bin", "python");
+      ? join(serverDir, ".venv", "Scripts", "python.exe")
+      : join(serverDir, ".venv", "bin", "python");
     
     return {
       command: venvPython,
       args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
-      cwd: backendDir,
+      cwd: serverDir,
     };
   }
 
   // Production: run bundled executable
   const ext = process.platform === "win32" ? ".exe" : "";
-  const backendExe = join(process.resourcesPath, "backend", `backend${ext}`);
+  const serverExe = join(process.resourcesPath, "server", `server${ext}`);
   
   return {
-    command: backendExe,
+    command: serverExe,
     args: [],
   };
 }

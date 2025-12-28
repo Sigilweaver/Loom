@@ -16,7 +16,7 @@ import type { Tool, Wire } from '../../domain/workflow/entities/workflow';
 
 // Path to test fixture created in backend (computed relative to this file)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEST_CSV = path.resolve(__dirname, '../../../../backend/tests/fixtures/sample.csv');
+const TEST_CSV = path.resolve(__dirname, '../../../../server/tests/fixtures/sample.csv');
 
 describe('Backend E2E Integration', () => {
   describe('Health Check', () => {
