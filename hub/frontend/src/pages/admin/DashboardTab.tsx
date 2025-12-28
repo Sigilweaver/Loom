@@ -1,16 +1,45 @@
+/**
+ * Dashboard tab for Admin panel
+ *
+ * Shows system overview: servers, workflows, executions, schedules.
+ */
+
+import { useState, useEffect } from "react";
 import { Server, FileCode2, Play, AlertCircle } from "lucide-react";
+import { listServers } from "@api/client";
 
-export function DashboardPage() {
+export function DashboardTab() {
+  const [serverCount, setServerCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await listServers();
+        setServerCount(response.total);
+        setOnlineCount(response.servers.filter((s) => s.status === "online").length);
+      } catch (error) {
+        console.error("Failed to fetch server stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-8">Dashboard</h1>
-
+    <div>
       {/* Stats grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Servers"
-          value="0"
-          subtitle="0 online"
+          value={loading ? "..." : serverCount.toString()}
+          subtitle={`${onlineCount} online`}
           icon={Server}
           iconColor="text-green-600"
           iconBg="bg-green-100"

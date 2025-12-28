@@ -33,9 +33,13 @@ def upgrade() -> None:
         sa.Column("token_hash", sa.String(255), nullable=False),
         sa.Column("user_agent", sa.String(512), nullable=True),
         sa.Column("ip_address", sa.String(45), nullable=True),
-        sa.Column("created_at", sa.DateTime, server_default=sa.func.now()),
-        sa.Column("expires_at", sa.DateTime, nullable=False),
-        sa.Column("last_used_at", sa.DateTime, nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+        ),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
     )
 
     # Index on token_hash for fast lookups

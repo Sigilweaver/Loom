@@ -1,22 +1,43 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@components/Layout";
-import { DashboardPage } from "@pages/DashboardPage";
+import { ProtectedRoute } from "@components/ProtectedRoute";
+import { LoginPage } from "@pages/LoginPage";
+import { AdminPage } from "@pages/AdminPage";
 import { WorkflowsPage } from "@pages/WorkflowsPage";
-import { ServersPage } from "@pages/ServersPage";
 import { ExecutionsPage } from "@pages/ExecutionsPage";
 import { SchedulesPage } from "@pages/SchedulesPage";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/workflows" replace />} />
         <Route path="workflows" element={<WorkflowsPage />} />
-        <Route path="servers" element={<ServersPage />} />
         <Route path="executions" element={<ExecutionsPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
+        <Route
+          path="admin"
+          element={
+            <ProtectedRoute minRole="admin">
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
+
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/workflows" replace />} />
     </Routes>
   );
 }

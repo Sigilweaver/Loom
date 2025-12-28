@@ -12,7 +12,7 @@ from app.api.dependencies import CurrentUser, get_optional_user
 from app.db.database import get_db
 from app.db.models import User
 from app.domain.auth.password import hash_password, verify_password
-from app.domain.auth.roles import Role, can_assign_role
+from app.domain.auth.roles import Role, can_assign_role, can_manage_role
 from app.domain.auth.sessions import SessionInfo, SessionManager
 
 router = APIRouter(prefix="/auth")
@@ -246,6 +246,28 @@ async def get_current_user_info(
     return _user_to_response(db_user)
 
 
+@router.get("/users")
+async def list_users(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """List all users (admin only)."""
+    # Only owner and admin can list users
+    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to list users",
+        )
+
+    result = await db.execute(select(User).order_by(User.created_at))
+    users = result.scalars().all()
+
+    return {
+        "users": [_user_to_response(u) for u in users],
+        "total": len(users),
+    }
+
+
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     request: CreateUserRequest,
@@ -298,6 +320,45 @@ async def create_user(
     await db.refresh(user)
 
     return _user_to_response(user)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: UUID,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Delete a user (admin only).
+
+    Users cannot delete themselves or users with equal/higher privileges.
+    """
+    # Find the user to delete
+    result = await db.execute(select(User).where(User.id == user_id))
+    target_user = result.scalar_one_or_none()
+
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    # Cannot delete yourself
+    if str(target_user.id) == current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account",
+        )
+
+    # Check permission to manage this user's role
+    if not can_manage_role(current_user.role, target_user.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to delete this user",
+        )
+
+    # Delete the user (sessions will cascade delete)
+    await db.delete(target_user)
+    await db.commit()
 
 
 @router.get("/status")

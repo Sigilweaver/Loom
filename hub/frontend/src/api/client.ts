@@ -2,6 +2,8 @@
  * Hub API client
  */
 
+import { getAuthToken } from "@state/authStore";
+
 const API_BASE = "/api";
 
 export interface ApiError {
@@ -16,6 +18,154 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new Error(error.detail);
   }
   return response.json();
+}
+
+/**
+ * Get headers for authenticated requests
+ */
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
+/**
+ * Get headers for authenticated JSON requests
+ */
+function getJsonAuthHeaders(): HeadersInit {
+  return {
+    ...getAuthHeaders(),
+    "Content-Type": "application/json",
+  };
+}
+
+// =============================================================================
+// Auth
+// =============================================================================
+
+export interface AuthStatusResponse {
+  initialized: boolean;
+  registration_open: boolean;
+  user_count: number;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserResponse {
+  id: string;
+  username: string;
+  role: string;
+  created_at: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: UserResponse;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+}
+
+// Register uses the same response format as login
+export type RegisterResponse = LoginResponse;
+
+export interface MeResponse {
+  id: string;
+  username: string;
+  role: string;
+  created_at: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  role?: string;
+}
+
+// Backend returns UserResponse for created user
+export interface CreateUserResponse {
+  id: string;
+  username: string;
+  role: string;
+  created_at: string;
+}
+
+/**
+ * Check if any users exist (for first-run detection)
+ */
+export async function getAuthStatus(): Promise<AuthStatusResponse> {
+  const response = await fetch(`${API_BASE}/auth/status`);
+  return handleResponse(response);
+}
+
+/**
+ * Login with username and password
+ */
+export async function login(data: LoginRequest): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * Register first user (becomes owner) or register with admin auth
+ */
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * Logout (invalidate session)
+ */
+export async function logout(): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/logout`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(error.detail);
+  }
+}
+
+/**
+ * Get current user info
+ */
+export async function getMe(): Promise<MeResponse> {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * Create a new user (admin/owner only)
+ */
+export async function createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
+  const response = await fetch(`${API_BASE}/auth/users`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
 }
 
 // Health
