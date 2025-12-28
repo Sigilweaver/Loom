@@ -2,14 +2,15 @@
 """
 Sigilweaver Development Script
 
-Starts the Vite dev server for Studio development.
-Electron manages the Server automatically (required for token auth).
+Starts development servers for Studio, Server, and/or Hub.
 
 Usage:
     ./scripts/dev.py              # Start Vite (Electron manages Server)
     ./scripts/dev.py --server     # Server only (for browser dev without Electron)
     ./scripts/dev.py --studio     # Studio only (same as default)
     ./scripts/dev.py --electron   # Also launch Electron after Vite starts
+    ./scripts/dev.py --hub        # Hub only (backend + frontend)
+    ./scripts/dev.py --all        # Start everything (Server, Studio, Hub)
 """
 
 import argparse
@@ -33,6 +34,8 @@ NC = "\033[0m"  # No Color
 server_process: subprocess.Popen | None = None
 studio_process: subprocess.Popen | None = None
 electron_process: subprocess.Popen | None = None
+hub_backend_process: subprocess.Popen | None = None
+hub_frontend_process: subprocess.Popen | None = None
 shutdown_requested = False
 
 
@@ -88,6 +91,38 @@ def check_studio_setup(repo_root: Path) -> bool:
         print("  npm install")
         return False
     return True
+
+
+def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
+    """Check if hub backend and frontend are set up.
+    
+    Returns:
+        Tuple of (backend_ready, frontend_ready)
+    """
+    hub_dir = repo_root / "hub"
+    backend_ready = True
+    frontend_ready = True
+    
+    # Check backend
+    backend_venv = hub_dir / "backend" / ".venv"
+    backend_lock = hub_dir / "backend" / "uv.lock"
+    if not backend_venv.exists() or not backend_lock.exists():
+        print_error("Hub backend not set up!")
+        print_warning("Please set up the hub backend first:")
+        print("  cd hub/backend")
+        print("  uv sync --all-extras")
+        backend_ready = False
+    
+    # Check frontend
+    frontend_modules = hub_dir / "frontend" / "node_modules"
+    if not frontend_modules.exists():
+        print_error("Hub frontend dependencies not installed!")
+        print_warning("Please set up the hub frontend first:")
+        print("  cd hub/frontend")
+        print("  npm install")
+        frontend_ready = False
+    
+    return backend_ready, frontend_ready
 
 
 def get_python_executable(repo_root: Path) -> Path:
@@ -238,6 +273,84 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
         return None
 
 
+def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
+    """Start the Hub backend (FastAPI)."""
+    global hub_backend_process
+    
+    print_success("Starting Hub backend...")
+    
+    hub_backend_dir = repo_root / "hub" / "backend"
+    venv_path = hub_backend_dir / ".venv"
+    if sys.platform == "win32":
+        python_path = venv_path / "Scripts" / "python.exe"
+    else:
+        python_path = venv_path / "bin" / "python"
+    
+    cmd = [
+        str(python_path),
+        "-m", "uvicorn",
+        "app.main:app",
+        "--reload",
+        "--host", "0.0.0.0",
+        "--port", "58001"
+    ]
+    
+    try:
+        hub_backend_process = subprocess.Popen(
+            cmd,
+            cwd=hub_backend_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        
+        thread = threading.Thread(
+            target=stream_output,
+            args=(hub_backend_process, "HUB-API"),
+            daemon=True
+        )
+        thread.start()
+        
+        return hub_backend_process
+    except Exception as e:
+        print_error(f"Failed to start Hub backend: {e}")
+        return None
+
+
+def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
+    """Start the Hub frontend (Vite)."""
+    global hub_frontend_process
+    
+    print_success("Starting Hub frontend...")
+    
+    hub_frontend_dir = repo_root / "hub" / "frontend"
+    npm_cmd = get_npm_command()
+    
+    try:
+        hub_frontend_process = subprocess.Popen(
+            [npm_cmd, "run", "dev"],
+            cwd=hub_frontend_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            shell=(sys.platform == "win32"),
+        )
+        
+        thread = threading.Thread(
+            target=stream_output,
+            args=(hub_frontend_process, "HUB-UI"),
+            daemon=True
+        )
+        thread.start()
+        
+        return hub_frontend_process
+    except Exception as e:
+        print_error(f"Failed to start Hub frontend: {e}")
+        return None
+
+
 def terminate_process(process: subprocess.Popen | None, name: str) -> None:
     """Gracefully terminate a process."""
     if process is None:
@@ -266,6 +379,8 @@ def cleanup() -> None:
     print_warning("Shutting down services...")
     
     terminate_process(electron_process, "Electron")
+    terminate_process(hub_frontend_process, "Hub Frontend")
+    terminate_process(hub_backend_process, "Hub Backend")
     terminate_process(studio_process, "Studio")
     terminate_process(server_process, "Server")
     
@@ -278,7 +393,7 @@ def signal_handler(signum: int, frame) -> None:
     sys.exit(0)
 
 
-def print_status(run_server: bool, run_studio: bool, run_electron: bool) -> None:
+def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub: bool) -> None:
     """Print status information after services start."""
     print()
     print_success("Services started!")
@@ -288,6 +403,10 @@ def print_status(run_server: bool, run_studio: bool, run_electron: bool) -> None
         print(f"API Docs:       {GREEN}http://localhost:8000/docs{NC}")
     if run_studio:
         print(f"Studio:         {GREEN}http://localhost:5173{NC}")
+    if run_hub:
+        print(f"Hub API:        {GREEN}http://localhost:58001{NC}")
+        print(f"Hub API Docs:   {GREEN}http://localhost:58001/docs{NC}")
+        print(f"Hub UI:         {GREEN}http://localhost:5174{NC}")
     print(f"{BLUE}========================================{NC}")
     if not run_electron and run_studio:
         print_warning("To launch Electron, run in another terminal:")
@@ -310,6 +429,8 @@ Examples:
     ./scripts/dev.py --server     # Server only (for browser dev)
     ./scripts/dev.py --studio     # Studio only (same as default)
     ./scripts/dev.py --electron   # Also launch Electron explicitly
+    ./scripts/dev.py --hub        # Hub only (backend + frontend)
+    ./scripts/dev.py --all        # Start everything
         """
     )
     parser.add_argument(
@@ -327,18 +448,35 @@ Examples:
         action="store_true",
         help="Also launch Electron after studio starts"
     )
+    parser.add_argument(
+        "--hub",
+        action="store_true",
+        help="Start hub (backend + frontend)"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Start all services (server, studio, hub)"
+    )
     
     args = parser.parse_args()
     
     # Determine what to run
-    # By default, just run studio (Vite auto-launches Electron which manages server)
-    # Use --server for browser-only development without Electron
-    if not args.server and not args.studio:
-        run_server = False
+    # --all starts everything
+    if args.all:
+        run_server = True
         run_studio = True
-    else:
+        run_hub = True
+    # If specific services requested, only run those
+    elif args.server or args.studio or args.hub:
         run_server = args.server
         run_studio = args.studio
+        run_hub = args.hub
+    # Default: just run studio (Vite auto-launches Electron which manages server)
+    else:
+        run_server = False
+        run_studio = True
+        run_hub = False
     
     run_electron = args.electron
     
@@ -358,6 +496,11 @@ Examples:
     
     if run_studio and not check_studio_setup(repo_root):
         return 1
+    
+    if run_hub:
+        hub_backend_ready, hub_frontend_ready = check_hub_setup(repo_root)
+        if not hub_backend_ready or not hub_frontend_ready:
+            return 1
     
     # Register cleanup handlers
     atexit.register(cleanup)
@@ -381,6 +524,14 @@ Examples:
         # Wait for Vite to start
         time.sleep(3)
     
+    if run_hub:
+        if start_hub_backend(repo_root) is None:
+            return 1
+        time.sleep(2)
+        if start_hub_frontend(repo_root) is None:
+            return 1
+        time.sleep(2)
+    
     if run_electron:
         # Wait a bit more for studio to be ready
         time.sleep(2)
@@ -388,7 +539,7 @@ Examples:
             print_warning("Electron failed to start, but other services are running")
     
     # Print status
-    print_status(run_server, run_studio, run_electron)
+    print_status(run_server, run_studio, run_electron, run_hub)
     
     # Wait for processes to complete (they run until interrupted)
     try:
@@ -400,6 +551,13 @@ Examples:
             if run_studio and studio_process and studio_process.poll() is not None:
                 print_error("Studio process died unexpectedly!")
                 break
+            if run_hub:
+                if hub_backend_process and hub_backend_process.poll() is not None:
+                    print_error("Hub backend process died unexpectedly!")
+                    break
+                if hub_frontend_process and hub_frontend_process.poll() is not None:
+                    print_error("Hub frontend process died unexpectedly!")
+                    break
             if run_electron and electron_process and electron_process.poll() is not None:
                 # Electron closing is expected (user closed window)
                 print_warning("Electron closed")
