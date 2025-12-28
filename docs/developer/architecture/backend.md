@@ -2,9 +2,9 @@
 sidebar_position: 3
 ---
 
-# Backend Architecture
+# Server Architecture
 
-The backend is a Python service that handles all data processing. It loads files, executes tool transformations, and returns results to the frontend. The frontend never touches actual data—it works with schemas and previews.
+The Server is a Python service that handles all data processing. It loads files, executes tool transformations, and returns results to the Studio. The Studio never touches actual data—it works with schemas and previews.
 
 ## Technology Stack
 
@@ -18,7 +18,7 @@ The backend is a Python service that handles all data processing. It loads files
 ## Directory Structure
 
 ```
-backend/app/
+server/app/
 ├── main.py              # FastAPI entrypoint
 ├── config.py            # Settings and configuration
 │
@@ -40,7 +40,7 @@ backend/app/
 │   │   ├── base.py      # BaseTool ABC
 │   │   ├── registry.py  # Tool registry + decorator
 │   │   ├── register.py  # Imports all tools
-│   │   ├── sockets.py   # Socket ID constants (shared with frontend)
+│   │   ├── sockets.py   # Socket ID constants (shared with Studio)
 │   │   └── implementations/
 │   │       ├── input.py
 │   │       ├── filter.py
@@ -73,13 +73,13 @@ backend/app/
 
 ## Tool System
 
-The heart of the backend. Every transformation (Filter, Select, Join, etc.) is a Tool.
+The heart of the Server. Every transformation (Filter, Select, Join, etc.) is a Tool.
 
 ### Socket ID Constants
 
-Tool inputs and outputs use named "sockets" to connect together. To prevent mismatches between frontend and backend, socket IDs are defined as constants in both layers:
+Tool inputs and outputs use named "sockets" to connect together. To prevent mismatches between Studio and Server, socket IDs are defined as constants in both layers:
 
-**Backend** (`app/domain/tools/sockets.py`):
+**Server** (`app/domain/tools/sockets.py`):
 ```python
 class CommonSockets:
     INPUT = "input"
@@ -98,7 +98,7 @@ class JoinSockets:
     OUTPUT_RIGHT = "output-right"
 ```
 
-**Frontend** (`src/domain/workflow/constants/socketIds.ts`):
+**Studio** (`src/domain/workflow/constants/socketIds.ts`):
 ```typescript
 export const CommonSockets = {
   INPUT: "input",
@@ -112,7 +112,7 @@ export const FilterSockets = {
 } as const;
 ```
 
-These constants are validated by type contract tests that ensure frontend and backend stay in sync.
+These constants are validated by type contract tests that ensure Studio and Server stay in sync.
 
 ### BaseTool Interface
 
@@ -155,10 +155,10 @@ Key design decisions:
 Tools self-register using a decorator:
 
 ```python
-# backend/app/domain/tools/implementations/filter.py
+# server/app/domain/tools/implementations/filter.py
 from app.domain.tools.registry import register_tool
 
-@register_tool("Filter")  # This string must match frontend tool type
+@register_tool("Filter")  # This string must match Studio tool type
 class FilterTool(BaseTool):
     async def execute(self, config, inputs):
         lf = inputs["input"]
@@ -185,7 +185,7 @@ class ToolRegistry:
 All tool implementations are imported in `register.py`, which triggers the decorators:
 
 ```python
-# backend/app/domain/tools/register.py
+# server/app/domain/tools/register.py
 from app.domain.tools.implementations import (
     input,
     output,
@@ -202,7 +202,7 @@ from app.domain.tools.implementations import (
 And `register.py` is imported in `main.py`:
 
 ```python
-# backend/app/main.py
+# server/app/main.py
 import app.domain.tools.register  # noqa: F401
 ```
 
@@ -314,7 +314,7 @@ class ExecutionGraph:
 
 This handles:
 - Determining which tools need to run for a given target
-- Detecting cycles (which should be caught by frontend, but we verify)
+- Detecting cycles (which should be caught by Studio, but we verify)
 - Computing dependency depth for parallel execution
 
 ### Execution Flow
@@ -362,7 +362,7 @@ async def execute_workflow(
 GET /api/health/
 ```
 
-Returns service status. Used by frontend to verify backend is running.
+Returns service status. Used by Studio to verify Server is running.
 
 ### Schema
 
@@ -457,7 +457,7 @@ Connections have two ownership modes:
 | `client` | Electron safeStorage (OS keychain) | Single user, single machine |
 | `server` | Fernet-encrypted JSON on server | All users with server access |
 
-The frontend handles client connections; the backend handles server connections.
+The Studio handles client connections; the Server handles server connections.
 
 ### ConnectionStore
 
@@ -519,14 +519,14 @@ These bubble up through the API layer and get converted to appropriate HTTP resp
 
 ## Testing
 
-Backend tests focus on:
+Server tests focus on:
 
 1. **Tool execution**: Each tool has tests verifying transformations
 2. **Schema propagation**: Verify output schemas are computed correctly
 3. **Execution order**: Graph building and topological sort
 4. **Edge cases**: Missing inputs, invalid config, type mismatches
 
-See [Backend Testing](../testing/backend) for details.
+See [Server Testing](../testing/backend) for details.
 
 ---
 

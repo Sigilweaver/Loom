@@ -25,23 +25,29 @@ I develop on Arch Linux. The venv + package-lock approach means everything shoul
 
 ## Quick Setup
 
+### Prerequisites
+
+- **Python 3.11+** with [uv](https://github.com/astral-sh/uv) package manager
+- **Node.js 18+** with npm
+- **Git**
+
+Install uv if you don't have it:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ### Linux
 
 ```bash
-# Install dependencies using your package manager
-# You'll need: python 3.11+, nodejs 18+, npm, git, and build tools
-
-# Clone and setup
+# Clone the repository
 git clone https://github.com/sigilweaver/sigilweaver-app.git
 cd sigilweaver-app
 
-# Backend
+# Backend setup (uses uv, not pip)
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --all-extras
 
-# Frontend
+# Frontend setup
 cd ../frontend
 npm install
 ```
@@ -52,7 +58,8 @@ Native Windows development is possible but frustrating. I recommend WSL2:
 
 ```bash
 # In WSL2 (Ubuntu)
-sudo apt update && sudo apt install python3 python3-venv nodejs npm git build-essential
+sudo apt update && sudo apt install python3 nodejs npm git build-essential
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Then follow Linux instructions above
 ```
@@ -67,6 +74,7 @@ If you must use native Windows:
 ```bash
 # Install dependencies
 brew install python node git
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Then follow Linux instructions above
 ```
@@ -76,17 +84,16 @@ brew install python node git
 The recommended approach:
 
 ```bash
-# From repo root - starts both backend and frontend
-python ./scripts/dev.py
+# From app/ directory - starts both backend and frontend
+./scripts/dev.py
 ```
 
 Or manually:
 
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Backend (using uv)
 cd backend
-source .venv/bin/activate
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --port 8000
 # Runs at http://localhost:8000
 
 # Terminal 2: Frontend
@@ -100,6 +107,37 @@ npm run electron
 ```
 
 The frontend dev server proxies API calls to the backend, so you need both running.
+
+## Hub Development
+
+Hub is the orchestration platform for managing workflows across multiple servers. It lives inside the app directory at `app/hub/`.
+
+### Hub Setup
+
+```bash
+# From app/hub/ directory
+
+# Start PostgreSQL (required for Hub)
+docker compose up -d
+
+# Backend setup
+cd backend
+uv sync --all-extras
+uv run alembic upgrade head  # Run database migrations
+
+# Frontend setup
+cd ../frontend
+npm install
+
+# Start Hub dev servers
+cd ..
+./scripts/dev.py
+```
+
+Hub will be available at:
+- Frontend: http://localhost:5174
+- Backend API: http://localhost:58001
+- API Docs: http://localhost:58001/docs
 
 ## Verifying Your Setup
 
@@ -117,11 +155,11 @@ Electron should have started, but you can also open http://localhost:5173 in you
 ### Run Tests
 
 ```bash
-# All tests
-python ./scripts/test.py
+# All tests (from app/ directory)
+./scripts/test.py
 
 # Or individually
-cd backend && pytest
+cd backend && uv run pytest tests/
 cd frontend && npm test
 ```
 
@@ -130,29 +168,33 @@ If tests pass, you're ready to contribute.
 ## Daily Workflow
 
 ```bash
-# Start development
-python ./scripts/dev.py
+# Start development (from app/)
+./scripts/dev.py
 
 # Run tests before committing
-python ./scripts/test.py
+./scripts/test.py
 
 # Build a release (when needed)
-python ./scripts/build.py
+./scripts/build.py
 ```
 
 ## Project Structure Overview
 
 ```
-sigilweaver-app/
-├── backend/           # Python (FastAPI + Polars)
+app/
+├── server/            # Python (FastAPI + Polars)
 │   ├── app/          # Application code
 │   │   ├── api/      # REST endpoints
 │   │   └── domain/   # Business logic, tools
 │   └── tests/        # pytest suite
-├── frontend/          # TypeScript (React + Electron)
+├── studio/            # TypeScript (React + Electron)
 │   ├── src/          # React application
 │   ├── electron/     # Electron main process
 │   └── tests/        # Vitest suite
+├── hub/               # Hub orchestration platform
+│   ├── backend/      # FastAPI + PostgreSQL
+│   ├── frontend/     # React admin UI
+│   └── scripts/      # Hub dev scripts
 ├── scripts/          # Build and dev utilities
 └── docs/             # Project documentation
 ```
@@ -161,16 +203,16 @@ For deeper understanding, see [Architecture Overview](./architecture/overview).
 
 ## Troubleshooting
 
-### "Module not found" in backend
+### "Module not found" in Server
 
-Make sure you activated the venv:
+Make sure you've run `uv sync`:
 ```bash
-source backend/.venv/bin/activate
+cd server && uv sync --all-extras
 ```
 
-### Frontend can't reach backend
+### Studio can't reach Server
 
-Check that the backend is actually running on port 8000. The Vite dev server proxies `/api/*` requests.
+Check that the Server is actually running on port 8000. The Vite dev server proxies `/api/*` requests.
 
 ### Electron window is blank
 

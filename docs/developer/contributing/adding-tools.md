@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Adding Tools
 
-Adding a new tool is the most common contribution to Sigilweaver. This guide walks through the complete process—both backend (where the transformation happens) and frontend (where the UI lives).
+Adding a new tool is the most common contribution to Sigilweaver. This guide walks through the complete process—both Server (where the transformation happens) and Studio (where the UI lives).
 
 ## Overview
 
@@ -12,17 +12,17 @@ A tool requires changes in two places:
 
 | Location | What | Why |
 |----------|------|-----|
-| Backend | `BaseTool` implementation | Actual data transformation |
-| Frontend | Tool definition + config panel | UI and user configuration |
+| Server | `BaseTool` implementation | Actual data transformation |
+| Studio | Tool definition + config panel | UI and user configuration |
 
-The `type` string must match exactly between them. If backend has `@register_tool("MyTool")`, frontend needs `type: 'MyTool'`.
+The `type` string must match exactly between them. If Server has `@register_tool("MyTool")`, Studio needs `type: 'MyTool'`.
 
-## Step 1: Backend Implementation
+## Step 1: Server Implementation
 
-Create a new file in `backend/app/domain/tools/implementations/`:
+Create a new file in `server/app/domain/tools/implementations/`:
 
 ```python
-# backend/app/domain/tools/implementations/my_tool.py
+# server/app/domain/tools/implementations/my_tool.py
 
 from typing import Any
 import polars as pl
@@ -69,7 +69,7 @@ class MyTool(BaseTool):
 
 ### Register the Tool
 
-Add an import to `backend/app/domain/tools/implementations/__init__.py`:
+Add an import to `server/app/domain/tools/implementations/__init__.py`:
 
 ```python
 from app.domain.tools.implementations.my_tool import MyTool
@@ -77,19 +77,19 @@ from app.domain.tools.implementations.my_tool import MyTool
 
 And add it to the `__all__` list in the same file. The import triggers the `@register_tool` decorator, adding it to the registry.
 
-### Key Backend Rules
+### Key Server Rules
 
 1. **Keep it lazy.** Never call `.collect()` in tools. The executor handles materialization.
 
-2. **Socket IDs are strings.** Match them exactly with the frontend definition.
+2. **Socket IDs are strings.** Match them exactly with the Studio definition.
 
 3. **Schema propagation matters.** `get_output_schema()` enables column dropdowns in the UI without running the whole pipeline.
 
 4. **Validate config.** Return helpful error messages for invalid configurations.
 
-## Step 2: Frontend Definition
+## Step 2: Studio Definition
 
-Add the tool to `frontend/src/data/tools.ts`:
+Add the tool to `studio/src/data/tools.ts`:
 
 ```typescript
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -115,7 +115,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 If your tool needs custom configuration UI, create a config panel:
 
 ```typescript
-// frontend/src/components/MyToolConfiguration.tsx
+// studio/src/components/MyToolConfiguration.tsx
 
 import { Tool } from '@/domain/workflow/entities/workflow';
 
@@ -154,9 +154,9 @@ For tools with simple config (just a text input or toggle), you may not need a c
 
 ## Step 3: Write Tests
 
-### Backend Tests
+### Server Tests
 
-Create `backend/tests/test_my_tool.py`:
+Create `server/tests/test_my_tool.py`:
 
 ```python
 import pytest
@@ -208,9 +208,9 @@ async def test_my_tool_validates_config():
     assert "negative" in errors[0]
 ```
 
-### Frontend Tests
+### Studio Tests
 
-Create `frontend/src/components/panels/config/__tests__/MyToolConfig.test.tsx`:
+Create `studio/src/components/panels/config/__tests__/MyToolConfig.test.tsx`:
 
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -245,17 +245,17 @@ describe('MyToolConfig', () => {
 ## Step 4: Verify Everything Works
 
 ```bash
-# Backend tests
-cd backend && pytest tests/test_my_tool.py -v
+# Server tests
+cd server && uv run pytest tests/test_my_tool.py -v
 
-# Frontend tests
-cd frontend && npm test MyToolConfig
+# Studio tests
+cd studio && npm test MyToolConfig
 
 # Full test suite
-./scripts/test.sh
+./scripts/test.py
 
 # Manual testing
-./scripts/dev.sh
+./scripts/dev.py
 # Then drag your tool onto the canvas and verify it works
 ```
 

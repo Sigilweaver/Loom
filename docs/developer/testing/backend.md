@@ -2,9 +2,9 @@
 sidebar_position: 2
 ---
 
-# Backend Testing
+# Server Testing
 
-Patterns and practices for testing the Python backend.
+Patterns and practices for testing the Python Server.
 
 ## Framework
 
@@ -15,34 +15,34 @@ Patterns and practices for testing the Python backend.
 ## Running Tests
 
 ```bash
-cd backend
+cd server
 
 # All tests
-pytest
+uv run pytest
 
 # Verbose output
-pytest -v
+uv run pytest -v
 
 # Specific file
-pytest tests/test_filter.py
+uv run pytest tests/test_filter.py
 
 # Specific test
-pytest tests/test_filter.py::test_filter_basic -v
+uv run pytest tests/test_filter.py::test_filter_basic -v
 
 # With coverage
-pytest --cov=app --cov-report=html
+uv run pytest --cov=app --cov-report=html
 
 # Stop on first failure
-pytest -x
+uv run pytest -x
 
 # Show print output
-pytest -s
+uv run pytest -s
 ```
 
 ## Test Organization
 
 ```
-backend/tests/
+server/tests/
 ├── conftest.py              # Shared fixtures
 ├── fixtures/
 │   └── sample.csv           # Test data files
@@ -50,7 +50,7 @@ backend/tests/
 ├── test_planner.py          # ExecutionPlanner tests
 ├── test_cache_manager.py    # CacheManager tests
 ├── test_parallel_execution.py # Parallel execution tests
-├── test_type_contracts.py   # Frontend/backend contract tests
+├── test_type_contracts.py   # Studio/Server contract tests
 ├── test_cache.py            # BlockingToolCache tests
 ├── test_formula.py          # Formula tool tests
 ├── test_filter.py           # Filter tool tests

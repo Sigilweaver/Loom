@@ -11,14 +11,14 @@ CI/CD pipeline and distribution workflow.
 ### 1. Version Bump
 
 Update version in:
-- `backend/app/__init__.py`
-- `frontend/package.json`
+- `server/app/__init__.py`
+- `studio/package.json`
 
 ```bash
-# backend/app/__init__.py
+# server/app/__init__.py
 __version__ = "0.3.0"
 
-# frontend/package.json
+# studio/package.json
 {
   "version": "0.3.0"
 }
@@ -77,15 +77,15 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Build Backend
+      - name: Build Server
         run: |
-          cd backend
+          cd server
           pip install -e ".[build]"
           pyinstaller sigilweaver.spec
       
-      - name: Build Frontend
+      - name: Build Studio
         run: |
-          cd frontend
+          cd studio
           npm ci
           npm run build
           npm run dist
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}
-          path: frontend/dist/
+          path: studio/dist/
   
   release:
     needs: build

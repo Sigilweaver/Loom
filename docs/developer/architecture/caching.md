@@ -85,11 +85,11 @@ Now if the user changes Select's config:
 
 | File | Purpose |
 |------|---------|
-| `app/backend/app/domain/execution/cache_manager.py` | `CacheManager` class - caching decisions and lineage |
-| `app/backend/app/domain/execution/cache.py` | `BlockingToolCache` class - disk storage |
-| `app/backend/app/domain/execution/executor.py` | Uses `CacheManager` in `_execute_tool_with_cache` |
-| `app/backend/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
-| `app/backend/app/config.py` | `cache_enabled` and `cache_path` settings |
+| `app/server/app/domain/execution/cache_manager.py` | `CacheManager` class - caching decisions and lineage |
+| `app/server/app/domain/execution/cache.py` | `BlockingToolCache` class - disk storage |
+| `app/server/app/domain/execution/executor.py` | Uses `CacheManager` in `_execute_tool_with_cache` |
+| `app/server/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
+| `app/server/app/config.py` | `cache_enabled` and `cache_path` settings |
 
 ## CacheManager
 
@@ -311,7 +311,7 @@ async def _execute_tool_with_cache(self, tool, inputs, cache_mgr, plan):
 ### Environment Variables / Settings
 
 ```python
-# app/backend/app/config.py
+# app/server/app/config.py
 cache_enabled: bool = True          # Enable/disable caching globally
 cache_path: str = "./cache"         # Root directory for all workflow caches
 ```
@@ -448,7 +448,7 @@ This means:
 
 ## Testing
 
-Cache behavior is tested in `app/backend/tests/test_cache.py`:
+Cache behavior is tested in `app/server/tests/test_cache.py`:
 
 ```bash
 cd app && ./scripts/test.py -k test_cache

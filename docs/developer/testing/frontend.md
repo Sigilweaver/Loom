@@ -2,9 +2,9 @@
 sidebar_position: 3
 ---
 
-# Frontend Testing
+# Studio Testing
 
-Patterns and practices for testing the TypeScript/React frontend.
+Patterns and practices for testing the TypeScript/React Studio.
 
 ## Framework
 
@@ -15,7 +15,7 @@ Patterns and practices for testing the TypeScript/React frontend.
 ## Running Tests
 
 ```bash
-cd frontend
+cd studio
 
 # All unit tests
 npm test
@@ -29,16 +29,16 @@ npm run test:coverage
 # Specific file
 npm test WorkflowSerializer
 
-# Integration tests (requires backend)
+# Integration tests (requires Server)
 npm run test:integration
 ```
 
 ## Test Organization
 
 ```
-frontend/src/
+studio/src/
 ├── __tests__/
-│   └── type-contracts.test.ts      # Frontend/backend contract tests
+│   └── type-contracts.test.ts      # Studio/Server contract tests
 ├── domain/
 │   └── workflow/
 │       └── services/

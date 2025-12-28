@@ -2,14 +2,14 @@
 sidebar_position: 4
 ---
 
-# Backend Patterns
+# Server Patterns
 
-Conventions and patterns for backend development. These emerged from real problems—follow them unless you have a good reason not to.
+Conventions and patterns for Server development. These emerged from real problems—follow them unless you have a good reason not to.
 
 ## Project Structure
 
 ```
-backend/app/
+server/app/
 ├── api/                  # HTTP layer only
 │   ├── routes/           # Endpoint handlers
 │   └── models/           # Pydantic schemas

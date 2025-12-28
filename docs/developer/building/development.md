@@ -11,8 +11,8 @@ Daily patterns for working on Sigilweaver.
 The recommended approach:
 
 ```bash
-# From repo root
-python ./scripts/dev.py
+# From app/ directory
+./scripts/dev.py
 ```
 
 This starts both backend and frontend in development mode with hot reload.
@@ -22,10 +22,9 @@ This starts both backend and frontend in development mode with hot reload.
 If you need more control:
 
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Backend (using uv)
 cd backend
-source .venv/bin/activate
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --port 8000
 # Runs at http://localhost:8000
 
 # Terminal 2: Frontend (Vite)
@@ -68,8 +67,7 @@ For API development:
 
 ```bash
 cd backend
-source .venv/bin/activate
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 Test with curl or the Swagger UI at http://localhost:8000/docs.
@@ -79,7 +77,7 @@ Test with curl or the Swagger UI at http://localhost:8000/docs.
 Both servers watch for changes:
 
 - **Backend**: uvicorn reloads on `.py` file changes
-- **Frontend**: Vite reloads on `.ts/.tsx/.css` file changes
+- **Studio**: Vite reloads on `.ts/.tsx/.css` file changes
 
 No manual restart needed for most changes.
 
@@ -87,15 +85,15 @@ No manual restart needed for most changes.
 
 ### Adding a Tool
 
-1. Create `backend/app/domain/tools/implementations/my_tool.py`
-2. Add import to `backend/app/domain/tools/implementations/__init__.py`
-3. Add definition to `frontend/src/data/tools.ts`
-4. Create config panel `frontend/src/components/MyToolConfiguration.tsx`
-5. Test with `python ./scripts/test.py`
+1. Create `server/app/domain/tools/implementations/my_tool.py`
+2. Add import to `server/app/domain/tools/implementations/__init__.py`
+3. Add definition to `studio/src/data/tools.ts`
+4. Create config panel `studio/src/components/MyToolConfiguration.tsx`
+5. Test with `./scripts/test.py`
 
 See [Adding Tools](../contributing/adding-tools) for details.
 
-### Debugging Backend
+### Debugging Server
 
 ```python
 # Add breakpoints in code
@@ -109,7 +107,7 @@ logger.debug(f"Value: {value}")
 
 View logs in the terminal where uvicorn is running.
 
-### Debugging Frontend
+### Debugging Studio
 
 - React DevTools for component inspection
 - Browser DevTools for network and console
@@ -126,34 +124,34 @@ console.log(useWorkflowStore.getState());
 ### Running Tests
 
 ```bash
-# All tests
-python ./scripts/test.py
+# All tests (from app/)
+./scripts/test.py
 
-# Backend only
-cd backend && pytest
+# Server only
+cd server && uv run pytest tests/
 
-# Frontend only  
-cd frontend && npm test
+# Studio only  
+cd studio && npm test
 
 # Specific test file
-cd backend && pytest tests/test_filter.py -v
-cd frontend && npm test FilterConfig
+cd server && uv run pytest tests/test_filter.py -v
+cd studio && npm test FilterConfig
 
-# Watch mode (frontend)
-cd frontend && npm run test:watch
+# Watch mode (Studio)
+cd studio && npm run test:watch
 ```
 
 ### Linting and Formatting
 
 ```bash
-# Backend
-cd backend
+# Server
+cd server
 ruff format app/
 ruff check --fix app/
 mypy app/
 
-# Frontend
-cd frontend
+# Studio
+cd studio
 npm run lint:fix
 npm run type-check
 ```
@@ -163,19 +161,19 @@ Run these before committing.
 ### Building a Release
 
 ```bash
-./scripts/build.sh
+./scripts/build.py
 ```
 
-Outputs to `frontend/dist/`. See [Packaging](./packaging) for details.
+Outputs to `studio/dist/`. See [Packaging](./packaging) for details.
 
 ## Project-Specific Quirks
 
-### Backend Virtual Environment
+### Server Virtual Environment
 
-Always activate the venv before running backend commands:
+Always activate the venv before running Server commands:
 
 ```bash
-cd backend
+cd server
 source .venv/bin/activate
 # Now pip, pytest, uvicorn work correctly
 ```

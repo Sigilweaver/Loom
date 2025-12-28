@@ -34,8 +34,8 @@ Sigilweaver is a desktop application with a clear separation between frontend (U
 Everything lives in one repository. This isn't arbitrary—it solves real problems.
 
 ```
-sigilweaver-app/
-├── backend/              # Python: FastAPI + Polars
+app/
+├── server/               # Python: FastAPI + Polars (Server)
 │   ├── app/
 │   │   ├── api/          # REST endpoints
 │   │   │   ├── routes/   # Route handlers
@@ -47,16 +47,28 @@ sigilweaver-app/
 │   │   └── utils/        # Shared utilities
 │   └── tests/            # pytest suite
 │
-├── frontend/             # TypeScript: React + Electron
+├── studio/               # TypeScript: React + Electron (Studio)
 │   ├── src/
 │   │   ├── components/   # React components
 │   │   ├── state/        # Zustand stores
 │   │   ├── domain/       # Pure TS business logic
-│   │   ├── api/          # Backend client
+│   │   ├── api/          # Server client
 │   │   ├── data/         # Tool definitions
 │   │   └── types/        # TypeScript interfaces
 │   ├── electron/         # Main process
 │   └── tests/            # Vitest suite
+│
+├── hub/                  # Hub orchestration platform
+│   ├── backend/          # Python: FastAPI + PostgreSQL
+│   │   ├── app/
+│   │   │   ├── api/      # REST endpoints
+│   │   │   ├── db/       # Models & migrations
+│   │   │   └── domain/   # Business logic
+│   │   └── tests/
+│   └── frontend/         # TypeScript: React + Vite
+│       └── src/
+│           ├── pages/    # Page components
+│           └── api/      # API client
 │
 ├── scripts/              # Build and dev utilities
 └── docs/                 # Project documentation

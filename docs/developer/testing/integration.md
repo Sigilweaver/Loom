@@ -4,32 +4,32 @@ sidebar_position: 4
 
 # Integration Testing
 
-Testing the frontend and backend working together.
+Testing the Studio and Server working together.
 
 ## What Integration Tests Cover
 
 Unit tests verify individual pieces work. Integration tests verify the pieces work together:
 
-- Frontend correctly sends requests to backend
-- Backend returns expected response format
+- Studio correctly sends requests to Server
+- Server returns expected response format
 - Workflow execution produces correct results
 - Error conditions are handled gracefully
 
 ## Running Integration Tests
 
 ```bash
-# From frontend/
+# From studio/
 npm run test:integration
 
 # Or from repo root
-python ./scripts/test.py --integration
+./scripts/test.py --integration
 ```
 
 This script:
-1. Starts the backend server
+1. Starts the Server
 2. Waits for health check
 3. Runs integration tests
-4. Shuts down the backend
+4. Shuts down the Server
 
 ## Test Structure
 

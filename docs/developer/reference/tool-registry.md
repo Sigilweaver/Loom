@@ -12,12 +12,12 @@ Tools are the core building blocks of Sigilweaver. Each tool:
 - Has a **type** (e.g., "Filter", "Join")
 - Has **sockets** (input/output connection points)
 - Has a **config** (settings specific to that tool)
-- Is implemented in both frontend (UI) and backend (execution)
+- Is implemented in both Studio (UI) and Server (execution)
 
 ## Architecture
 
 ```
-Frontend                              Backend
+Studio                                Server
 ─────────────────────────────────────────────────
 TOOL_DEFINITIONS     ──────────────►  ToolRegistry
 (data/tools.ts)                       (domain/tools/registry.py)
@@ -31,13 +31,13 @@ ConfigPanel          ──────────────►  Implementati
 
 ---
 
-## Frontend: ToolDefinition
+## Studio: ToolDefinition
 
-Every tool needs a frontend definition in `frontend/src/data/tools.ts`:
+Every tool needs a Studio definition in `studio/src/data/tools.ts`:
 
 ```typescript
 interface ToolDefinition {
-  type: string;           // Must match backend tool type
+  type: string;           // Must match Server tool type
   name: string;           // Display name in palette
   icon: string;           // Emoji for palette/node
   category: ToolCategory; // "inout" | "preparation" | "join" | "aggregate"
@@ -295,11 +295,11 @@ Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Va
 
 See [Adding Tools](../contributing/adding-tools) for a complete guide. The key steps:
 
-1. Add `ToolDefinition` to `frontend/src/data/tools.ts`
-2. Create config panel component in `frontend/src/components/tools/`
-3. Create implementation in `backend/app/domain/tools/implementations/`
+1. Add `ToolDefinition` to `studio/src/data/tools.ts`
+2. Create config panel component in `studio/src/components/tools/`
+3. Create implementation in `server/app/domain/tools/implementations/`
 4. Register with `@register_tool("YourTool")` decorator
-5. Import in `backend/app/domain/tools/register.py`
+5. Import in `server/app/domain/tools/register.py`
 6. Add tests
 
 ---
@@ -311,7 +311,7 @@ Socket types must match when connecting:
 - Typed socket → Same type: Allowed (e.g., "L" → "L")
 - Typed socket → Different type: Prevented by UI
 
-The frontend enforces type compatibility during drag-and-drop connections.
+The Studio enforces type compatibility during drag-and-drop connections.
 
 ---
 

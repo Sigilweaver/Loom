@@ -10,8 +10,8 @@ Building distributable releases of Sigilweaver.
 
 Sigilweaver is distributed as a standalone desktop application. The build process:
 
-1. **Backend**: PyInstaller bundles Python code + interpreter into a single executable
-2. **Frontend**: Vite builds the React app, Electron packages everything
+1. **Server**: PyInstaller bundles Python code + interpreter into a single executable
+2. **Studio**: Vite builds the React app, Electron packages everything
 
 The result is a single application with **zero external dependencies**. Users don't need Python or Node.js installed.
 
@@ -19,35 +19,35 @@ The result is a single application with **zero external dependencies**. Users do
 
 ```bash
 # From repo root
-./scripts/build.sh
+./scripts/build.py
 ```
 
-This builds for your current platform. Output goes to `frontend/dist/`.
+This builds for your current platform. Output goes to `studio/dist/`.
 
 ### Platform-Specific
 
 ```bash
 # Linux
-cd frontend && npm run build:linux
+cd studio && npm run build:linux
 
 # Windows
-cd frontend && npm run build:win
+cd studio && npm run build:win
 
 # macOS
-cd frontend && npm run build:mac
+cd studio && npm run build:mac
 ```
 
 **Note**: You can only build for your current platform. Cross-compilation is limited.
 
 ## Build Process Details
 
-### Step 1: Backend Executable
+### Step 1: Server Executable
 
 ```bash
-cd backend
+cd server
 source .venv/bin/activate
 pip install -e ".[build]"  # Includes PyInstaller
-../scripts/build_backend.sh
+../scripts/build_server.sh
 ```
 
 PyInstaller analyzes `app/main.py` and bundles:
@@ -56,20 +56,20 @@ PyInstaller analyzes `app/main.py` and bundles:
 - All dependencies (FastAPI, Uvicorn, Polars)
 - Native libraries
 
-Result: `backend/dist/backend` (~50-100MB)
+Result: `server/dist/server` (~50-100MB)
 
-### Step 2: Frontend + Electron
+### Step 2: Studio + Electron
 
 ```bash
-cd frontend
+cd studio
 npm run build
 npm run dist:linux  # or dist:win, dist:mac
 ```
 
 This:
-1. Vite builds the React app to `frontend/dist/`
+1. Vite builds the React app to `studio/dist/`
 2. electron-builder packages everything
-3. Includes the backend executable from `backend/dist/`
+3. Includes the Server executable from `server/dist/`
 
 ## Output Artifacts
 
@@ -100,8 +100,8 @@ This:
 
 Two build variants exist:
 
-- **Full**: Includes embedded backend (standalone)
-- **Client**: Frontend only (requires external backend)
+- **Full**: Includes embedded Server (standalone)
+- **Client**: Studio only (requires external Server)
 
 ```bash
 # Full version (default)
@@ -127,8 +127,8 @@ Configuration lives in `package.json` and `electron-builder*.json`:
     },
     "extraResources": [
       {
-        "from": "../backend/dist",
-        "to": "backend"
+        "from": "../server/dist",
+        "to": "server"
       }
     ],
     "linux": {
@@ -148,7 +148,7 @@ Configuration lives in `package.json` and `electron-builder*.json`:
 
 ### PyInstaller Spec
 
-Backend bundling is configured in `backend/sigilweaver.spec`:
+Server bundling is configured in `server/sigilweaver.spec`:
 
 ```python
 a = Analysis(
@@ -170,16 +170,16 @@ Hidden imports are manually specified because PyInstaller can't detect dynamic i
 
 1. User launches Sigilweaver
 2. Electron main process starts
-3. Spawns backend executable from `resources/backend/`
-4. Waits for backend health check (`/api/health/`)
-5. Opens main window pointing to bundled frontend
-6. On quit, terminates backend process
+3. Spawns Server executable from `resources/server/`
+4. Waits for Server health check (`/api/health/`)
+5. Opens main window pointing to bundled Studio
+6. On quit, terminates Server process
 
 ### Development Mode
 
-1. Developer runs `./scripts/dev.sh`
-2. Backend runs from Python source with hot reload
-3. Frontend runs from Vite dev server with hot reload
+1. Developer runs `./scripts/dev.py`
+2. Server runs from Python source with hot reload
+3. Studio runs from Vite dev server with hot reload
 4. Electron (optional) connects to dev server
 
 The app detects development mode and adjusts behavior automatically.
@@ -190,13 +190,13 @@ Typical sizes:
 
 | Component | Size |
 |-----------|------|
-| Backend executable | 50-100 MB |
-| Frontend bundle | 5-10 MB |
+| Server executable | 50-100 MB |
+| Studio bundle | 5-10 MB |
 | Electron runtime | 80-100 MB |
 | **Total (full)** | **~200 MB** |
 | **Total (client)** | **~100 MB** |
 
-The backend is large because it includes the entire Python runtime and Polars (which is written in Rust and fairly hefty).
+The Server is large because it includes the entire Python runtime and Polars (which is written in Rust and fairly hefty).
 
 ## Testing Builds
 
@@ -204,10 +204,10 @@ After building, test on a clean system:
 
 ```bash
 # Linux
-./frontend/dist/Sigilweaver-*.AppImage
+./studio/dist/Sigilweaver-*.AppImage
 
 # Or unpack and run
-./frontend/dist/linux-unpacked/sigilweaver
+./studio/dist/linux-unpacked/sigilweaver
 ```
 
 Verify:

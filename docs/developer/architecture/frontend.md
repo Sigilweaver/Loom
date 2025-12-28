@@ -2,9 +2,9 @@
 sidebar_position: 2
 ---
 
-# Frontend Architecture
+# Studio Architecture
 
-The frontend is a React application wrapped in Electron for desktop deployment. It handles all user interaction—the visual canvas, tool configuration, state management—while delegating actual data processing to the backend.
+The Studio is a React application wrapped in Electron for desktop deployment. It handles all user interaction—the visual canvas, tool configuration, state management—while delegating actual data processing to the Server.
 
 ## Technology Stack
 
@@ -21,7 +21,7 @@ The frontend is a React application wrapped in Electron for desktop deployment. 
 ## Directory Structure
 
 ```
-frontend/src/
+studio/src/
 ├── components/         # React components
 │   ├── Canvas.tsx      # Main workflow canvas (Xyflow wrapper)
 │   ├── ToolPalette.tsx # Drag-and-drop tool library
@@ -44,7 +44,7 @@ frontend/src/
 │       ├── entities/   # Type definitions (Tool, Wire, etc.)
 │       └── services/   # Serialization, validation, loop detection
 │
-├── api/                # Backend communication
+├── api/                # Server communication
 │   ├── backend.ts      # HTTP client
 │   ├── hooks.ts        # React hooks for API calls
 │   ├── cache.ts        # Request caching
