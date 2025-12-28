@@ -1,7 +1,7 @@
 """SQLAlchemy models for Hub database"""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -13,6 +13,16 @@ class Base(DeclarativeBase):
     """Base class for all models"""
 
     pass
+
+
+def _utcnow() -> datetime:
+    """Get current UTC time as timezone-aware datetime.
+
+    Used as default factory for timestamp columns. Defined as a module-level
+    function rather than lambda because SQLAlchemy needs a callable it can
+    reference by name.
+    """
+    return datetime.now(UTC)
 
 
 class User(Base):
@@ -27,10 +37,13 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="user")
     api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Relationships
+    sessions: Mapped[list["Session"]] = relationship(
+        "Session", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Workflow(Base):
@@ -58,13 +71,11 @@ class Workflow(Base):
 
     # Metadata
     uploaded_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=_utcnow,
+        onupdate=_utcnow,
     )
 
     # Relationships
@@ -95,9 +106,7 @@ class Server(Base):
     last_healthy: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Metadata
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Relationships
@@ -134,9 +143,7 @@ class Execution(Base):
 
     # Status
     status: Mapped[str] = mapped_column(String(50), default="queued")
-    queued_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )
+    queued_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -177,11 +184,43 @@ class Schedule(Base):
 
     # Metadata
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     next_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="schedules")
+
+
+class Session(Base):
+    """User session for authentication
+
+    Sessions are stored in the database to allow server-side invalidation
+    and session management (logout, view active sessions, etc.).
+    """
+
+    __tablename__ = "sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+
+    # Link to user
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Session token (hashed for security - we store hash, client gets plaintext)
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    # Client info for session management UI
+    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="sessions")

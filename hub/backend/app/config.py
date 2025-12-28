@@ -20,7 +20,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub"
 
-    # Authentication
+    # Authentication - Session
+    session_secret: str = "CHANGE_ME_IN_PRODUCTION"
+    session_lifetime_hours: int = 24
+
+    # Authentication - Legacy JWT (to be removed in Phase 2)
     secret_key: str = "CHANGE_ME_IN_PRODUCTION"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
