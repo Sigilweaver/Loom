@@ -2,8 +2,8 @@ import { useCallback } from "react";
 import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
-import { profileColumns } from "../api/backend";
-import { resolveWorkflowConnections } from "../api/connectionResolver";
+import { profileColumns } from "@api/execution";
+import { resolveWorkflowConnections } from "@api/connectionResolver";
 
 /**
  * Hook for handling socket profiling functionality

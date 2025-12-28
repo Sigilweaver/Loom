@@ -34,9 +34,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"Cache startup maintenance failed: {e}")
 
+    # Startup: Start Hub heartbeat if in hub auth mode
+    heartbeat_manager = None
+    if settings.auth_mode == "hub" and settings.hub_url:
+        from app.domain.hub.heartbeat import create_heartbeat_manager
+
+        heartbeat_manager = create_heartbeat_manager()
+        if heartbeat_manager:
+            await heartbeat_manager.start()
+
     yield
 
-    # Shutdown: Nothing special needed for now
+    # Shutdown: Stop Hub heartbeat
+    if heartbeat_manager:
+        await heartbeat_manager.stop()
 
 
 # Create FastAPI application

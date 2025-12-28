@@ -1,200 +1,283 @@
 /**
- * Execution Service
+ * Transparent Execution Layer
  *
- * Provides a unified interface for workflow execution across different modes:
- * - bundled: Direct connection to local bundled server
- * - external: Direct connection to external server
- * - hub: Connection through Hub with server token acquisition
+ * Provides Hub-aware execution functions with the same signatures as backend.ts.
+ * When in Hub mode, requests go through Hub to get Server Tokens first.
+ * When in bundled/external mode, requests go directly to the backend.
  *
- * This service abstracts the execution mode complexity from the rest of the app.
+ * This is the primary API for all workflow execution. Import from '@api' not '@api/backend'.
+ *
+ * Credential Flow (Hub mode):
+ * 1. Studio calls execution function
+ * 2. This layer gets Server Token from Hub (requestPreviewToken/requestExecuteToken)
+ * 3. Calls Server endpoint with Server Token in Authorization header
+ * 4. Server validates token with Hub, Hub returns credentials just-in-time
+ * 5. Server executes and returns result
  */
 
 import { createLogger } from '../utils/logger';
+import { useSettingsStore } from '../state/settingsStore';
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
-import type { ExecutionMode } from '../types/settings';
 import * as backend from './backend';
 import { getHubClient, hasHubClient, type ServerToken } from './hub';
 
 const logger = createLogger('ExecutionService');
 
-/**
- * Execution context containing the token and endpoint for a request
- */
-interface ExecutionContext {
-  /** Authorization token to send to the server */
-  token: string | null;
-  /** Server endpoint URL */
-  endpoint: string;
-  /** Whether the context is valid for execution */
-  valid: boolean;
-  /** Error message if not valid */
-  error?: string;
-}
+// =============================================================================
+// Server Token Management
+// =============================================================================
+
+// Note: Server tokens are NOT cached because:
+// 1. Each token is single-use (Hub tracks JTI to prevent replay)
+// 2. Tokens are bound to a specific workflow hash
+// 3. Any workflow change invalidates the token
 
 /**
- * Cached server token for hub mode
- */
-let cachedServerToken: ServerToken | null = null;
-let tokenExpiresAt: number = 0;
-
-/**
- * Check if the cached token is still valid (with 30s buffer)
- */
-function isTokenValid(): boolean {
-  if (!cachedServerToken) return false;
-  const now = Date.now();
-  const bufferMs = 30 * 1000; // 30 second buffer
-  return now < tokenExpiresAt - bufferMs;
-}
-
-/**
- * Clear the cached server token
+ * Clear any server token state (kept for API compatibility)
  */
 export function clearServerToken(): void {
-  cachedServerToken = null;
-  tokenExpiresAt = 0;
+  // No-op: tokens are not cached
 }
 
 /**
- * Get execution context for the current mode
- *
- * @param mode - Current execution mode
- * @param workflow - Workflow to execute (needed for hub mode token request)
- * @param backendUrl - Backend URL (for bundled/external modes)
- * @returns Execution context with token and endpoint
+ * Request a server token for the workflow
  */
-export async function getExecutionContext(
-  mode: ExecutionMode,
-  workflow: WorkflowJSON | null,
-  backendUrl: string
-): Promise<ExecutionContext> {
-  switch (mode) {
-    case 'bundled':
-    case 'external':
-      // Direct connection - use session token if available
-      return {
-        token: backend.getSessionToken(),
-        endpoint: backendUrl,
-        valid: true,
-      };
-
-    case 'hub':
-      return await getHubExecutionContext(workflow);
-
-    default:
-      return {
-        token: null,
-        endpoint: backendUrl,
-        valid: false,
-        error: `Unknown execution mode: ${mode}`,
-      };
-  }
-}
-
-/**
- * Get execution context for hub mode
- */
-async function getHubExecutionContext(
-  workflow: WorkflowJSON | null
-): Promise<ExecutionContext> {
+async function getServerToken(workflow: WorkflowJSON): Promise<ServerToken> {
   if (!hasHubClient()) {
-    return {
-      token: null,
-      endpoint: '',
-      valid: false,
-      error: 'Not connected to Hub. Please login.',
-    };
+    throw new Error('Not connected to Hub. Please login.');
   }
 
-  if (!workflow) {
-    return {
-      token: null,
-      endpoint: '',
-      valid: false,
-      error: 'Workflow required for Hub execution',
-    };
+  // Always request a fresh token since they're single-use and workflow-bound
+  const hubClient = getHubClient();
+  const serverToken = await hubClient.requestPreviewToken(workflow);
+
+  logger.debug(`Got server token, expires in ${serverToken.expires_in}s`);
+  return serverToken;
+}
+
+// =============================================================================
+// Hub Execution Helper
+// =============================================================================
+
+/**
+ * Execute a request through Hub's token flow
+ *
+ * @param workflow - Workflow for token request scope
+ * @param endpoint - API endpoint path (e.g., '/api/workflow/tool/execute')
+ * @param body - Request body
+ * @returns Response from server
+ */
+async function executeViaHub<T>(
+  workflow: WorkflowJSON,
+  endpoint: string,
+  body: unknown
+): Promise<T> {
+  const serverToken = await getServerToken(workflow);
+
+  const response = await fetch(`${serverToken.server_endpoint}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serverToken.token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Server error: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorMessage;
+    } catch {
+      // Use status text if not JSON
+    }
+
+    // If 401/403, clear the cached token so next request gets a fresh one
+    if (response.status === 401 || response.status === 403) {
+      clearServerToken();
+    }
+
+    throw new Error(errorMessage);
   }
 
-  // Check if we have a valid cached token
-  if (isTokenValid() && cachedServerToken) {
-    logger.debug('Using cached server token');
-    return {
-      token: cachedServerToken.token,
-      endpoint: cachedServerToken.server_endpoint,
-      valid: true,
-    };
-  }
-
-  // Request new token from Hub
-  try {
-    const hubClient = getHubClient();
-    const serverToken = await hubClient.requestExecuteToken(workflow);
-
-    // Cache the token
-    cachedServerToken = serverToken;
-    tokenExpiresAt = Date.now() + serverToken.expires_in * 1000;
-
-    logger.info(`Got new server token, expires in ${serverToken.expires_in}s`);
-
-    return {
-      token: serverToken.token,
-      endpoint: serverToken.server_endpoint,
-      valid: true,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to get server token: ${message}`);
-
-    return {
-      token: null,
-      endpoint: '',
-      valid: false,
-      error: `Failed to get server token: ${message}`,
-    };
-  }
+  return response.json();
 }
 
 /**
- * Execute a workflow in the current execution mode
+ * Check if we're in Hub mode
+ */
+function isHubMode(): boolean {
+  const { executionMode } = useSettingsStore.getState();
+  return executionMode === 'hub';
+}
+
+// =============================================================================
+// Transparent Execution Functions
+// =============================================================================
+
+/**
+ * Get the data schema for a tool's output socket
  *
- * This is a high-level wrapper that:
- * 1. Gets the appropriate execution context
- * 2. Sets the session token for the backend
- * 3. Calls the backend execute function
+ * Same signature as backend.getToolSchema - Hub routing is handled internally.
  *
- * @param mode - Current execution mode
- * @param workflow - Workflow to execute
- * @param backendUrl - Backend URL (for bundled/external modes)
- * @param targetToolId - Optional tool to execute up to
+ * @param toolId - The ID of the tool
+ * @param workflow - The complete workflow definition
+ * @param socketId - The socket ID to get schema for
+ * @param context - Optional request context for logging
+ * @returns Schema information for the specified socket
+ */
+export async function getToolSchema(
+  toolId: string,
+  workflow: WorkflowJSON,
+  socketId: string,
+  context?: backend.RequestContext
+): Promise<backend.SchemaResponse> {
+  if (isHubMode()) {
+    return executeViaHub(workflow, '/api/workflow/tool/schema', {
+      tool_id: toolId,
+      workflow,
+      socket_id: socketId,
+    });
+  }
+
+  return backend.getToolSchema(toolId, workflow, socketId, context);
+}
+
+/**
+ * Execute a single tool with dependencies and return preview data
+ *
+ * Same signature as backend.previewTool - Hub routing is handled internally.
+ *
+ * @param toolId - The ID of the tool to preview
+ * @param workflow - The complete workflow definition
+ * @param socketId - The socket ID to get data for
+ * @param previewLimit - Maximum number of rows to return (default: 100)
+ * @param forceRefresh - Clear cache before execution (default: false)
+ * @param context - Optional request context for logging
+ * @returns Preview data and schema for the specified socket
+ */
+export async function previewTool(
+  toolId: string,
+  workflow: WorkflowJSON,
+  socketId: string,
+  previewLimit = 100,
+  forceRefresh = false,
+  context?: backend.RequestContext
+): Promise<backend.ExecuteResponse> {
+  if (isHubMode()) {
+    return executeViaHub(workflow, '/api/workflow/tool/execute', {
+      tool_id: toolId,
+      workflow,
+      socket_id: socketId,
+      preview_limit: previewLimit,
+      force_refresh: forceRefresh,
+    });
+  }
+
+  return backend.previewTool(toolId, workflow, socketId, previewLimit, forceRefresh, context);
+}
+
+/**
+ * Execute a complete workflow
+ *
+ * Same signature as backend.executeWorkflow - Hub routing is handled internally.
+ *
+ * @param workflow - The complete workflow definition
+ * @param targetToolId - Optional tool ID to execute up to (default: all tools)
+ * @param forceRefresh - Clear cache before execution (default: false)
+ * @param context - Optional request context for logging
+ * @returns Output data from the target tool (or final tool if not specified)
  */
 export async function executeWorkflow(
-  mode: ExecutionMode,
   workflow: WorkflowJSON,
-  backendUrl: string,
-  targetToolId?: string
+  targetToolId?: string,
+  forceRefresh = false,
+  context?: backend.RequestContext
 ): Promise<backend.WorkflowExecuteResponse> {
-  const context = await getExecutionContext(mode, workflow, backendUrl);
-
-  if (!context.valid) {
-    throw new Error(context.error || 'Invalid execution context');
+  if (isHubMode()) {
+    // For full execution, we might want a different token scope
+    // For now, use the same preview token endpoint
+    return executeViaHub(workflow, '/api/workflow/execute', {
+      workflow,
+      target_tool_id: targetToolId,
+      force_refresh: forceRefresh,
+    });
   }
 
-  // Set the token for this request
-  backend.setSessionToken(context.token);
-
-  // For hub mode, we need to use the server endpoint from the token
-  // This requires temporarily changing the API base URL
-  // For now, we rely on the backend module's API_BASE which is set at startup
-  // TODO: Support dynamic endpoint switching for hub mode
-
-  return backend.executeWorkflow(workflow, targetToolId);
+  return backend.executeWorkflow(workflow, targetToolId, forceRefresh, context);
 }
+
+/**
+ * Profile columns for a tool's output
+ *
+ * Same signature as backend.profileColumns - Hub routing is handled internally.
+ *
+ * @param toolId - The ID of the tool
+ * @param workflow - The complete workflow definition
+ * @param socketId - The socket ID to profile
+ * @param columns - Optional specific columns to profile (null = all)
+ * @param metrics - Optional specific metrics to compute (null = all)
+ * @param context - Optional request context for logging
+ * @returns Column profiles with requested statistics
+ */
+export async function profileColumns(
+  toolId: string,
+  workflow: WorkflowJSON,
+  socketId: string,
+  columns?: string[],
+  metrics?: backend.ProfileMetric[],
+  context?: backend.RequestContext
+): Promise<backend.ProfileResponse> {
+  if (isHubMode()) {
+    return executeViaHub(workflow, '/api/workflow/tool/profile', {
+      tool_id: toolId,
+      workflow,
+      socket_id: socketId,
+      columns: columns ?? null,
+      metrics: metrics ?? null,
+    });
+  }
+
+  return backend.profileColumns(toolId, workflow, socketId, columns, metrics, context);
+}
+
+/**
+ * Preview all tools in a workflow at once
+ *
+ * Same signature as backend.previewAllTools - Hub routing is handled internally.
+ *
+ * @param workflow - The complete workflow definition
+ * @param previewLimit - Maximum number of rows to return per tool (default: 100)
+ * @param forceRefresh - Clear cache before execution (default: false)
+ * @param context - Optional request context for logging
+ * @returns Preview data for all tools in the workflow
+ */
+export async function previewAllTools(
+  workflow: WorkflowJSON,
+  previewLimit = 100,
+  forceRefresh = false,
+  context?: backend.RequestContext
+): Promise<backend.PreviewAllResponse> {
+  if (isHubMode()) {
+    return executeViaHub(workflow, '/api/workflow/preview_all', {
+      workflow,
+      preview_limit: previewLimit,
+      force_refresh: forceRefresh,
+    });
+  }
+
+  return backend.previewAllTools(workflow, previewLimit, forceRefresh, context);
+}
+
+// =============================================================================
+// Hub Session Utilities
+// =============================================================================
 
 /**
  * Check if we need to prompt for Hub login
  */
-export function needsHubLogin(mode: ExecutionMode): boolean {
-  if (mode !== 'hub') return false;
+export function needsHubLogin(): boolean {
+  if (!isHubMode()) return false;
   return !hasHubClient();
 }
 

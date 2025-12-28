@@ -6,7 +6,8 @@ import {
   WorkflowMeta,
 } from "@domain/workflow/entities/workflow";
 import { useToolConfiguration } from "@hooks/useToolConfiguration";
-import { ColumnSchema, profileColumns, ProfileResponse } from "@api/backend";
+import { profileColumns } from "@api/execution";
+import type { ColumnSchema, ProfileResponse } from "@api/backend";
 import { resolveWorkflowConnections } from "@api/connectionResolver";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
 import { AlertTriangle, Info } from "lucide-react";

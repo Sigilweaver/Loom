@@ -6,7 +6,7 @@ import { useWorkflowStore } from "../../state/workflowStore";
 import type { Tool } from "../../domain/workflow/entities/workflow";
 
 // Mock the API module
-vi.mock("../../api/backend", () => ({
+vi.mock("../../api/execution", () => ({
   profileColumns: vi.fn(),
 }));
 
@@ -59,7 +59,7 @@ describe("useSocketProfile", () => {
   });
 
   it("opens bottom pane and switches to profile tab when profiling", async () => {
-    const { profileColumns } = await import("../../api/backend");
+    const { profileColumns } = await import("../../api/execution");
     (profileColumns as ReturnType<typeof vi.fn>).mockResolvedValue({
       tool_id: "tool1",
       socket_id: "output",
@@ -112,7 +112,7 @@ describe("useSocketProfile", () => {
   });
 
   it("sets loading state during profile fetch", async () => {
-    const { profileColumns } = await import("../../api/backend");
+    const { profileColumns } = await import("../../api/execution");
     
     // Create a promise we can control
     let resolveProfile: (value: unknown) => void;
@@ -152,7 +152,7 @@ describe("useSocketProfile", () => {
   });
 
   it("handles API errors gracefully", async () => {
-    const { profileColumns } = await import("../../api/backend");
+    const { profileColumns } = await import("../../api/execution");
     (profileColumns as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("Network error")
     );

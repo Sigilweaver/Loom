@@ -14,9 +14,10 @@ export type DatabaseType = 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
 /**
  * Who manages the connection credentials
  * - 'client': Credentials stored in Electron (desktop app)
- * - 'server': Credentials stored on backend server
+ * - 'hub': Credentials managed by Hub (resolved by Server via Hub validation)
+ * - 'server': DEPRECATED - Use 'hub' instead
  */
-export type ConnectionOwner = 'client' | 'server';
+export type ConnectionOwner = 'client' | 'hub' | 'server';
 
 /**
  * Connection credentials (sensitive - never stored in plaintext)

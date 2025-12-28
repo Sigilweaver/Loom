@@ -108,32 +108,36 @@ async def list_servers(db: AsyncSession = Depends(get_db)) -> ServerListResponse
 async def register_server(
     request: ServerCreate, db: AsyncSession = Depends(get_db)
 ) -> ServerResponse:
-    """Register a new server"""
+    """Register a new server or update existing one (idempotent).
+
+    If a server with the same auth_token already exists, updates it.
+    This allows servers to re-register after restarts, even if their
+    endpoint URL changes (e.g., different port).
+    """
     # Normalize endpoint URL
     endpoint_url = request.endpoint_url.rstrip("/")
 
-    # Check for duplicate endpoint
-    existing = await db.execute(select(Server).where(Server.endpoint_url == endpoint_url))
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Server with endpoint {endpoint_url} already registered",
+    # Check for existing server with same auth_token (identity is by token, not endpoint)
+    existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
+    server = existing.scalar_one_or_none()
+
+    if server:
+        # Update existing server (endpoint may have changed)
+        server.name = request.name
+        server.endpoint_url = endpoint_url
+        server.status = "unknown"  # Will be updated by health check below
+        logger.info("Re-registered existing server: %s (%s)", server.name, server.endpoint_url)
+    else:
+        # Create new server record
+        server = Server(
+            name=request.name,
+            endpoint_url=endpoint_url,
+            auth_token=request.auth_token,
+            status="unknown",
+            created_by="system",  # TODO: Use actual user from auth
         )
-
-    # Create server record
-    server = Server(
-        name=request.name,
-        endpoint_url=endpoint_url,
-        auth_token=request.auth_token,
-        status="unknown",
-        created_by="system",  # TODO: Use actual user from auth
-    )
-
-    db.add(server)
-    await db.commit()
-    await db.refresh(server)
-
-    logger.info("Registered server: %s (%s)", server.name, server.endpoint_url)
+        db.add(server)
+        logger.info("Registered new server: %s (%s)", server.name, server.endpoint_url)
 
     # Immediately poll the server to get initial status
     client = ServerClient(server.endpoint_url, server.auth_token)

@@ -4,12 +4,9 @@
 
 import { useState, useCallback } from 'react';
 import {
-  getToolSchema,
+  // Non-execution functions (don't need Hub routing)
   getToolMetadata,
   getPolarsFunctions,
-  previewTool,
-  previewAllTools,
-  executeWorkflow as backendExecuteWorkflow,
   previewCode,
   BackendError,
   type SchemaResponse,
@@ -21,7 +18,11 @@ import {
   type ColumnSchema,
 } from './backend';
 import {
-  executeWorkflow as executionServiceExecute,
+  // Hub-aware execution functions
+  previewTool,
+  previewAllTools,
+  getToolSchema,
+  executeWorkflow,
   needsHubLogin,
 } from './execution';
 import {
@@ -34,7 +35,6 @@ import {
 } from './cache';
 import { resolveWorkflowConnections } from './connectionResolver';
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
-import { useSettingsStore } from '../state/settingsStore';
 
 export interface UseSchemaResult {
   schema: SchemaResponse | null;
@@ -210,8 +210,7 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: b
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { executionMode, backend, hub } = useSettingsStore();
-  const loginRequired = needsHubLogin(executionMode);
+  const loginRequired = needsHubLogin();
 
   const execute = useCallback(
     async (workflow: WorkflowJSON, targetToolId?: string) => {
@@ -219,23 +218,11 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: b
       setError(null);
       
       try {
-        // Resolve database connections (replace connectionIds with URIs)
+        // Resolve database connections (replace connectionIds with URIs for client connections)
         const resolvedWorkflow = await resolveWorkflowConnections(workflow);
         
-        let execResult: WorkflowExecuteResponse;
-        
-        if (executionMode === 'hub') {
-          // Hub mode: use execution service to get token and execute
-          execResult = await executionServiceExecute(
-            executionMode,
-            resolvedWorkflow,
-            hub.url || backend.url, // Fallback to backend.url if hub.url not set
-            targetToolId
-          );
-        } else {
-          // Bundled/External mode: direct backend call
-          execResult = await backendExecuteWorkflow(resolvedWorkflow, targetToolId);
-        }
+        // executeWorkflow from execution.ts handles Hub mode transparently
+        const execResult = await executeWorkflow(resolvedWorkflow, targetToolId);
         
         setResult(execResult);
       } catch (err) {
@@ -250,7 +237,7 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: b
         setLoading(false);
       }
     },
-    [executionMode, backend.url, hub.url]
+    []
   );
 
   return { result, loading, error, execute, needsLogin: loginRequired };

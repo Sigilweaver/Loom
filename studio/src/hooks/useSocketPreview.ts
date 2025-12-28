@@ -3,9 +3,9 @@ import { useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useSettingsStore } from "@state/settingsStore";
 import { WorkflowSerializer } from "@domain/workflow/services/WorkflowSerializer";
-import { previewTool } from "../api/backend";
-import { getCachedPreview, cachePreview } from "../api/cache";
-import { resolveWorkflowConnections } from "../api/connectionResolver";
+import { previewTool } from "@api/execution";
+import { getCachedPreview, cachePreview } from "@api/cache";
+import { resolveWorkflowConnections } from "@api/connectionResolver";
 
 /**
  * Hook for handling socket preview functionality

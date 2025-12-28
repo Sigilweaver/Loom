@@ -7,7 +7,8 @@
  * 
  * Connection ownership:
  * - owner='client': Credentials stored locally, resolved here before sending to backend
- * - owner='server': Credentials stored on backend, resolved by executor during execution
+ * - owner='hub': Credentials stored on Hub, resolved by Server during execution via Hub validation
+ * - owner='server': DEPRECATED - use 'hub' instead
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
@@ -96,16 +97,23 @@ export async function resolveWorkflowConnections(
     return workflow;
   }
 
-  // Separate client-owned and server-owned connections
+  // Separate by ownership: client (local), hub (Hub-managed), server (deprecated)
   const clientTools = databaseTools.filter(
-    (tool: Tool) => (tool.config?.owner as ConnectionOwner) !== 'server'
+    (tool: Tool) => {
+      const owner = tool.config?.owner as ConnectionOwner | undefined;
+      return !owner || owner === 'client';
+    }
+  );
+  const hubTools = databaseTools.filter(
+    (tool: Tool) => (tool.config?.owner as ConnectionOwner) === 'hub'
   );
   const serverTools = databaseTools.filter(
     (tool: Tool) => (tool.config?.owner as ConnectionOwner) === 'server'
   );
 
   logger.debug('Client-owned connections:', clientTools.length);
-  logger.debug('Server-owned connections:', serverTools.length);
+  logger.debug('Hub-owned connections:', hubTools.length);
+  logger.debug('Server-owned connections (deprecated):', serverTools.length);
 
   // For client-owned connections, we need secure storage
   if (clientTools.length > 0 && !hasSecureStorage()) {
@@ -146,7 +154,8 @@ export async function resolveWorkflowConnections(
 
   // Create a new workflow with:
   // - Client connections: resolved URI in source field, owner='client'
-  // - Server connections: connectionId passed through, owner='server' (no source)
+  // - Hub connections: pass through unchanged with owner='hub' (Server resolves via Hub)
+  // - Server connections (deprecated): pass connectionId through, owner='server'
   const resolvedWorkflow: WorkflowJSON = {
     ...workflow,
     tools: workflow.tools.map((tool: Tool) => {
@@ -157,10 +166,24 @@ export async function resolveWorkflowConnections(
 
       const owner = (tool.config?.owner as ConnectionOwner) || 'client';
       
+      if (owner === 'hub') {
+        // Hub-owned: pass through unchanged
+        // Server will validate with Hub and get credentials just-in-time
+        logger.debug(`Tool ${tool.id}: hub-owned, passing to server for Hub validation`);
+        return {
+          ...tool,
+          config: {
+            ...tool.config,
+            owner: 'hub',
+            // connectionId stays as-is, no source - Hub provides credentials
+          },
+        };
+      }
+
       if (owner === 'server') {
-        // Server-owned: pass connectionId and owner, no source
+        // Server-owned (deprecated): pass connectionId and owner, no source
         // Backend will resolve during execution
-        logger.debug(`Tool ${tool.id}: server-owned, passing connectionId to backend`);
+        logger.debug(`Tool ${tool.id}: server-owned (deprecated), passing connectionId to backend`);
         return {
           ...tool,
           config: {

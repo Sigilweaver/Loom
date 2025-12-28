@@ -191,7 +191,8 @@ class CapabilityIssuer:
             config = tool.get("config", {})
 
             # Check for database inputs (Input tools with database category)
-            if tool.get("tool_id") == "Input":
+            # Note: field is "type" not "tool_id"
+            if tool.get("type") == "Input":
                 if config.get("category") == "database":
                     owner = config.get("owner", "client")
                     if owner == "hub":

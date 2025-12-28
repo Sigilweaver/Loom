@@ -6,7 +6,7 @@
  * components that need to display connection selectors.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useConnectionStore } from '@state/connectionStore';
 import { useSettingsStore } from '@state/settingsStore';
 import { hasHubClient, getHubClient, type HubConnectionInfo } from '../api/hub';
@@ -100,7 +100,6 @@ export function useAllConnections(): UseAllConnectionsResult {
   // Determine if we should fetch Hub connections
   // Use hub.sessionToken from reactive store + hasHubClient() to ensure client is initialized
   const hubClientReady = hasHubClient();
-  const isHubMode = executionMode === 'hub' && !!hub.sessionToken && hubClientReady;
 
   // Load Hub connections
   const loadHubConnections = useCallback(async () => {
@@ -127,7 +126,7 @@ export function useAllConnections(): UseAllConnectionsResult {
     } finally {
       setHubLoading(false);
     }
-  }, [isHubMode]);
+  }, [executionMode, hub.sessionToken]); // Remove isHubMode, use direct dependencies
 
   // Subscribe to external refresh trigger (e.g., after Hub login)
   useEffect(() => {
@@ -140,13 +139,16 @@ export function useAllConnections(): UseAllConnectionsResult {
     };
   }, [loadHubConnections]);
 
-  // Load all connections on mount and when mode changes
+  // Load all connections on mount only (not on every dependency change)
+  // Use a ref to track if we've done the initial load
+  const didInitialLoad = useRef(false);
   useEffect(() => {
-    if (!localLoaded) {
+    if (!didInitialLoad.current) {
+      didInitialLoad.current = true;
       loadConnections();
+      loadHubConnections();
     }
-    loadHubConnections();
-  }, [localLoaded, loadConnections, loadHubConnections]);
+  }, [loadConnections, loadHubConnections]);
 
   // Retry loading Hub connections if we have a token but Hub client wasn't ready
   // This handles the race condition where component mounts before SettingsPane initializes Hub client
@@ -170,16 +172,21 @@ export function useAllConnections(): UseAllConnectionsResult {
     ]);
   }, [loadConnections, loadHubConnections]);
 
-  // Combine all connections
-  const allConnections: UnifiedConnection[] = [
+  // Combine all connections - memoize to prevent unnecessary recalculations
+  const allConnections: UnifiedConnection[] = useMemo(() => [
     ...hubConnections, // Hub connections first (if any)
     ...localConnections.map(toUnified),
-  ];
+  ], [hubConnections, localConnections]);
 
-  // Filter by type
+  // Filter by type - stable callback that reads from current allConnections
   const getByType = useCallback((type: DatabaseType): UnifiedConnection[] => {
-    return allConnections.filter(c => c.type === type);
-  }, [allConnections]);
+    // Combine inline to avoid dependency on allConnections array identity
+    const combined = [
+      ...hubConnections,
+      ...localConnections.map(toUnified),
+    ];
+    return combined.filter(c => c.type === type);
+  }, [hubConnections, localConnections]);
 
   return {
     connections: allConnections,

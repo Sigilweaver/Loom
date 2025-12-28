@@ -31,11 +31,39 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     return authorization[7:]
 
 
+def _parse_workflow(workflow_json: dict) -> Workflow:
+    """Parse raw workflow JSON into Pydantic model.
+
+    This is done AFTER hub validation to ensure the hash is computed
+    on the exact JSON that was sent, not a Pydantic-transformed version.
+
+    Args:
+        workflow_json: Raw workflow dict from request.
+
+    Returns:
+        Parsed Workflow model.
+
+    Raises:
+        HTTPException: If workflow JSON is invalid.
+    """
+    try:
+        return Workflow.model_validate(workflow_json)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid workflow format: {e}",
+        )
+
+
 async def _validate_hub_token(
-    workflow: Workflow,
+    workflow_json: dict,
     authorization: str | None,
 ) -> ValidationResult | None:
     """Validate Hub token if in hub auth mode.
+
+    IMPORTANT: This takes raw workflow JSON dict, NOT a Pydantic model.
+    This ensures the hash is computed on the exact JSON that Studio sent,
+    matching what Hub hashed when issuing the token.
 
     Returns:
         ValidationResult with hub-provided credentials, or None if not hub mode.
@@ -60,13 +88,13 @@ async def _validate_hub_token(
             detail="Authorization header with Bearer token required",
         )
 
-    # Extract hub connection IDs from workflow
-    hub_connection_ids = _extract_hub_connections(workflow)
+    # Extract hub connection IDs from raw workflow JSON
+    hub_connection_ids = _extract_hub_connections(workflow_json)
 
-    # Validate with Hub
+    # Validate with Hub - pass raw JSON directly, no Pydantic transformation
     result = await hub_client.validate(
         token=token,
-        workflow_json=workflow.model_dump(mode="json"),
+        workflow_json=workflow_json,
         connection_ids=hub_connection_ids,
     )
 
@@ -80,17 +108,18 @@ async def _validate_hub_token(
     return result
 
 
-def _extract_hub_connections(workflow: Workflow) -> list[str]:
-    """Extract hub-owned connection IDs from workflow."""
+def _extract_hub_connections(workflow_json: dict) -> list[str]:
+    """Extract hub-owned connection IDs from raw workflow JSON."""
     hub_connections: list[str] = []
-    for tool in workflow.tools:
-        if tool.type != "Input":
+    for tool in workflow_json.get("tools", []):
+        if tool.get("type") != "Input":
             continue
-        if tool.config.get("category") != "database":
+        config = tool.get("config", {})
+        if config.get("category") != "database":
             continue
-        if tool.config.get("owner") != "hub":
+        if config.get("owner") != "hub":
             continue
-        connection_id = tool.config.get("connectionId")
+        connection_id = config.get("connectionId")
         if connection_id:
             hub_connections.append(connection_id)
     return hub_connections
@@ -111,7 +140,7 @@ def _clamp_preview_limit(requested: int | None) -> int:
 class ExecuteWorkflowRequest(BaseModel):
     """Request to execute a workflow"""
 
-    workflow: Workflow
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     target_tool_id: str | None = Field(
         None, description="Optional: Execute up to this tool (null = execute all)"
     )
@@ -127,7 +156,7 @@ class ExecuteToolRequest(BaseModel):
     """Request to execute a single tool"""
 
     tool_id: str = Field(description="Tool ID to execute")
-    workflow: Workflow = Field(description="Full workflow for context")
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Output socket ID to return data for")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview"
@@ -141,7 +170,7 @@ class ToolSchemaRequest(BaseModel):
     """Request to get tool output schema"""
 
     tool_id: str = Field(description="Tool ID to get schema for")
-    workflow: Workflow = Field(description="Full workflow for context")
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Output socket ID to get schema for")
 
 
@@ -149,7 +178,7 @@ class ToolMetadataRequest(BaseModel):
     """Request to get tool metadata for autocomplete"""
 
     tool_id: str = Field(description="Tool ID to get metadata for")
-    workflow: Workflow = Field(description="Full workflow for context")
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str | None = Field(
         None, description="Optional: Specific input socket ID to get columns for"
     )
@@ -159,7 +188,7 @@ class ToolProfileRequest(BaseModel):
     """Request to profile columns for a tool's input data"""
 
     tool_id: str = Field(description="Tool ID to profile input for")
-    workflow: Workflow = Field(description="Full workflow for context")
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Input socket ID to profile")
     columns: list[str] | None = Field(
         None,
@@ -198,12 +227,15 @@ async def execute_workflow(
     required and hub connections are resolved from Hub.
     """
     try:
-        # Validate Hub token if in hub mode (returns hub-provided credentials)
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -246,12 +278,15 @@ async def execute_tool(
     In hub mode, Bearer token is required.
     """
     try:
-        # Validate Hub token if in hub mode
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -293,12 +328,15 @@ async def get_tool_schema(
     In hub mode, Bearer token is required.
     """
     try:
-        # Validate Hub token if in hub mode
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -337,12 +375,15 @@ async def get_tool_metadata(
     In hub mode, Bearer token is required.
     """
     try:
-        # Validate Hub token if in hub mode
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -395,12 +436,15 @@ async def profile_tool_input(
     In hub mode, Bearer token is required.
     """
     try:
-        # Validate Hub token if in hub mode
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -428,7 +472,7 @@ async def profile_tool_input(
 class PreviewAllRequest(BaseModel):
     """Request to preview all tools in one request"""
 
-    workflow: Workflow = Field(description="Full workflow to execute")
+    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview per tool"
     )
@@ -456,12 +500,15 @@ async def preview_all_tools(
     In hub mode, Bearer token is required.
     """
     try:
-        # Validate Hub token if in hub mode
+        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _validate_hub_token(request.workflow, authorization)
+
+        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+        workflow = _parse_workflow(request.workflow)
 
         # Resolve server connections and validate client connections
         resolved_workflow = resolver.resolve_workflow_connections(
-            request.workflow,
+            workflow,
             hub_connections=hub_result.connections if hub_result else None,
         )
         resolver.validate_client_connections(resolved_workflow)
@@ -487,7 +534,7 @@ async def preview_all_tools(
 class PreviewCodeRequest(BaseModel):
     """Request to generate Python code preview"""
 
-    workflow: Workflow = Field(description="Workflow to generate code for")
+    workflow: dict = Field(description="Workflow JSON to generate code for")
 
 
 class PreviewCodeResponse(BaseModel):
@@ -507,7 +554,8 @@ async def preview_code(request: PreviewCodeRequest) -> PreviewCodeResponse:
     The generated code uses Polars and can be run independently.
     """
     try:
-        generator = PythonCodeGenerator(request.workflow)
+        workflow = _parse_workflow(request.workflow)
+        generator = PythonCodeGenerator(workflow)
         code = generator.generate()
         return PreviewCodeResponse(code=code)
 

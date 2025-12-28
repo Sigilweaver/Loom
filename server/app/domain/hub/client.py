@@ -133,6 +133,53 @@ class HubClient:
             logger.exception(f"Unexpected error during Hub validation: {e}")
             return ValidationResult(valid=False, error=f"Hub validation error: {e}")
 
+    async def register(
+        self,
+        name: str,
+        endpoint_url: str,
+        timeout: float = 10.0,
+    ) -> dict[str, Any] | None:
+        """Register this server with Hub.
+
+        Args:
+            name: Server name (e.g., "dev-server", "prod-server-1")
+            endpoint_url: This server's API endpoint (e.g., "http://localhost:8000")
+            timeout: Request timeout in seconds.
+
+        Returns:
+            Registration response dict if successful, None if failed.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    f"{self.hub_url}/api/servers",
+                    json={
+                        "name": name,
+                        "endpoint_url": endpoint_url,
+                        "auth_token": self.server_token,
+                    },
+                )
+
+                if response.status_code not in (200, 201):
+                    logger.error(
+                        f"Hub registration failed with status {response.status_code}: {response.text}"
+                    )
+                    return None
+
+                data = response.json()
+                logger.info(f"Successfully registered with Hub: {endpoint_url}")
+                return data
+
+        except httpx.TimeoutException:
+            logger.warning(f"Hub registration timed out after {timeout}s")
+            return None
+        except httpx.ConnectError as e:
+            logger.warning(f"Cannot reach Hub for registration: {e}")
+            return None
+        except Exception as e:
+            logger.exception(f"Unexpected error during Hub registration: {e}")
+            return None
+
 
 # Factory function
 

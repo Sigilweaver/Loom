@@ -3,6 +3,7 @@ import { startNotificationAutoHide, useUIStore } from "@state/uiStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useSettingsStore } from "@state/settingsStore";
+import { useConnectionStore } from "@state/connectionStore";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
@@ -16,9 +17,12 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import { initializeAuth } from "./api/backend";
 import { closeAllWorkflowCaches } from "./api/cache";
+import { initHubClient, hasHubClient } from "./api/hub";
+import { triggerHubConnectionsRefresh } from "./hooks/useAllConnections";
 
 function App() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
+  const loadConnections = useConnectionStore(s => s.loadConnections);
   const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
   // Zustand stores - primary state
@@ -66,6 +70,19 @@ function App() {
         useUIStore.getState().setMinimapPosition(settings.ui.minimapPosition);
       }
       
+      // Initialize Hub client if we have a persisted session
+      // This ensures Hub connections are available immediately on app startup
+      if (settings.executionMode === 'hub' && settings.hub.sessionToken && settings.hub.url) {
+        if (!hasHubClient()) {
+          initHubClient({
+            url: settings.hub.url,
+            sessionToken: settings.hub.sessionToken,
+          });
+          // Trigger Hub connections refresh now that client is ready
+          triggerHubConnectionsRefresh();
+        }
+      }
+      
       // Create initial tab AFTER settings are loaded
       const tabs = useTabStore.getState().tabs;
       if (tabs.length === 0) {
@@ -75,6 +92,11 @@ function App() {
     
     initSettings();
   }, [loadSettings, createTab]);
+
+  // Load connections on mount (after auth is initialized)
+  useEffect(() => {
+    loadConnections();
+  }, [loadConnections]);
 
   // Save current tab and close all caches before unload
   useEffect(() => {

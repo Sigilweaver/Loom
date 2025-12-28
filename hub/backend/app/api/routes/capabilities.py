@@ -84,24 +84,24 @@ async def _select_healthy_server(
                 detail=f"Server {server_id} not found",
             )
 
-        if server.status != "healthy":
+        if server.status != "online":
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Server {server.name} is not healthy (status: {server.status})",
+                detail=f"Server {server.name} is not online (status: {server.status})",
             )
 
         return server
 
-    # Select any healthy server (TODO: implement proper load balancing)
+    # Select any online server (TODO: implement proper load balancing)
     result = await db.execute(
-        select(Server).where(Server.status == "healthy").order_by(Server.last_poll.desc())
+        select(Server).where(Server.status == "online").order_by(Server.last_poll.desc())
     )
     server = result.scalars().first()
 
     if not server:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No healthy servers available",
+            detail="No online servers available",
         )
 
     return server

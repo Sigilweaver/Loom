@@ -177,18 +177,15 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
     # Set environment variables
     env = os.environ.copy()
     env["POLARS_VERBOSE"] = "1"
+    env["PORT"] = "8000"  # Must match --port arg so settings.port is correct for Hub registration
     
     if hub_auth:
         env["AUTH_MODE"] = "hub"
-        env["HUB_URL"] = "http://localhost:8001"  # Hub backend port
-        # Development server token - must match a server registered in Hub
-        # To register a server in Hub with this token:
-        #   1. Login to Hub admin at http://localhost:5174
-        #   2. Go to Servers tab
-        #   3. Add server with URL http://localhost:8000 and auth_token "dev-server-token"
+        env["HUB_URL"] = "http://localhost:58001"  # Hub backend port
+        # Development server token - Server will auto-register with Hub on startup
         env["HUB_SERVER_TOKEN"] = "dev-server-token"
         print_success("  Hub auth mode enabled (validating tokens with Hub)")
-        print_warning("  NOTE: Server must be registered in Hub with auth_token 'dev-server-token'")
+        print_success("  Server will auto-register with Hub on startup")
     else:
         env["AUTH_MODE"] = "disabled"  # Disable auth for direct API access
     
