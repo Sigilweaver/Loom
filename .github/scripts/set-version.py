@@ -132,8 +132,8 @@ def main():
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent
     
-    package_json = project_root / 'frontend' / 'package.json'
-    pyproject_toml = project_root / 'backend' / 'pyproject.toml'
+    package_json = project_root / 'studio' / 'package.json'
+    pyproject_toml = project_root / 'server' / 'pyproject.toml'
     
     success = True
     

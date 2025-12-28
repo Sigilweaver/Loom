@@ -1,4 +1,4 @@
-name: Build Frontend Client
+name: Build Studio Full
 
 on:
   workflow_dispatch:
@@ -10,24 +10,24 @@ on:
         default: '22'
 
 jobs:
-  build-client:
+  build-full:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             platform: linux
-            artifact-name: linux-client-artifacts
+            artifact-name: linux-full-artifacts
           - os: windows-latest
             platform: win
-            artifact-name: windows-client-artifacts
+            artifact-name: windows-full-artifacts
           - os: macos-latest
             platform: mac
-            artifact-name: macos-client-artifacts
+            artifact-name: macos-full-artifacts
     
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: frontend
+        working-directory: studio
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
@@ -40,9 +40,9 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: studio/package-lock.json
       
-      - name: Install frontend dependencies
+      - name: Install studio dependencies
         run: npm ci
       
       - name: Set version from git tag
@@ -60,11 +60,21 @@ jobs:
             sudo apt-get install -y snapcraft || true
           fi
       
-      - name: Build client version
-        run: npm run build:${{ matrix.platform }}:client
+      - name: Download server artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: server-${{ matrix.platform }}
+          path: studio/resources/server
+      
+      - name: Make server executable (Unix)
+        if: matrix.platform != 'win'
+        run: chmod +x resources/server/server
+      
+      - name: Build full version
+        run: npm run build:${{ matrix.platform }}:full
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: frontend/dist/*
+          path: studio/dist/*

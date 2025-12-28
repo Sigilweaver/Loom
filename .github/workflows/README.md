@@ -12,8 +12,8 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 **Purpose**: Validates code quality and runs tests
 
 **Jobs**:
-- Backend tests (pytest, ruff, mypy)
-- Frontend tests (vitest, eslint, tsc)
+- Server tests (pytest, ruff, mypy)
+- Studio tests (vitest, eslint, tsc)
 - Web build verification
 
 **Usage**:
@@ -23,10 +23,10 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 
 ---
 
-#### 2. build-backend.yml - Backend Builds (Reusable)
+#### 2. build-server.yml - Server Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
-**Purpose**: Build Python backend executables for all platforms
+**Purpose**: Build Python server executables for all platforms
 
 **Matrix Strategy**: 
 - Linux (ubuntu-latest)
@@ -34,9 +34,9 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 - macOS (macos-latest)
 
 **Outputs**:
-- `backend-linux` artifact
-- `backend-windows` artifact
-- `backend-macos` artifact
+- `server-linux` artifact
+- `server-windows` artifact
+- `server-macos` artifact
 
 **Build Process**:
 1. Sets up Python environment
@@ -46,15 +46,15 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 
 **Can be tested standalone**:
 ```bash
-gh workflow run build-backend.yml
+gh workflow run build-server.yml
 ```
 
 ---
 
-#### 3. build-frontend-full.yml - Full Version Builds (Reusable)
+#### 3. build-studio-full.yml - Full Version Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
-**Purpose**: Build Electron apps with bundled backend
+**Purpose**: Build Electron apps with bundled server
 
 **Matrix Strategy**:
 - Linux (AppImage + Snap with classic confinement)
@@ -62,7 +62,7 @@ gh workflow run build-backend.yml
 - macOS (DMG)
 
 **Dependencies**:
-- Requires backend artifacts from build-backend.yml
+- Requires server artifacts from build-server.yml
 
 **Outputs**:
 - `linux-full-artifacts` (AppImage, Snap)
@@ -70,8 +70,8 @@ gh workflow run build-backend.yml
 - `macos-full-artifacts` (DMG)
 
 **Build Process**:
-1. Downloads backend-{platform} artifact
-2. Copies to frontend/resources/backend/
+1. Downloads server-{platform} artifact
+2. Copies to studio/resources/server/
 3. Makes executable (Linux/macOS)
 4. Runs npm run build:{platform}:full
 5. Uses electron-builder-full.json config
@@ -80,22 +80,22 @@ gh workflow run build-backend.yml
 
 **Can be tested standalone**:
 ```bash
-gh workflow run build-frontend-full.yml
+gh workflow run build-studio-full.yml
 ```
 
 ---
 
-#### 4. build-frontend-client.yml - Client Version Builds (Reusable)
+#### 4. build-studio-client.yml - Client Version Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
-**Purpose**: Build Electron apps without bundled backend
+**Purpose**: Build Electron apps without bundled server
 
 **Matrix Strategy**:
 - Linux (AppImage + Snap with strict confinement)
 - Windows (NSIS installer + Portable)
 - macOS (DMG)
 
-**Dependencies**: None (no backend required)
+**Dependencies**: None (no server required)
 
 **Outputs**:
 - `linux-client-artifacts` (AppImage, Snap)
@@ -111,7 +111,7 @@ gh workflow run build-frontend-full.yml
 
 **Can be tested standalone**:
 ```bash
-gh workflow run build-frontend-client.yml
+gh workflow run build-studio-client.yml
 ```
 
 ---
@@ -149,11 +149,11 @@ gh workflow run build-web.yml
 ```
 validate-tag-on-main
     |
-    +-- build-backend
+    +-- build-server
     |       |
-    |       +-- build-frontend-full (depends on backend)
+    |       +-- build-studio-full (depends on server)
     |
-    +-- build-frontend-client (parallel to full)
+    +-- build-studio-client (parallel to full)
     |
     +-- build-web (parallel)
     |
@@ -191,14 +191,14 @@ validate-tag-on-main
 Each reusable workflow has `workflow_dispatch` enabled for manual testing:
 
 ```bash
-# Test backend builds
-gh workflow run build-backend.yml
+# Test server builds
+gh workflow run build-server.yml
 
-# Test full frontend builds
-gh workflow run build-frontend-full.yml
+# Test full studio builds
+gh workflow run build-studio-full.yml
 
-# Test client frontend builds  
-gh workflow run build-frontend-client.yml
+# Test client studio builds  
+gh workflow run build-studio-client.yml
 
 # Test web build
 gh workflow run build-web.yml
@@ -267,9 +267,9 @@ gh release delete v0.0.1-test --yes
 **Purpose**: Pass build outputs between jobs
 
 **Artifacts**:
-- `backend-linux` (61MB)
-- `backend-windows` (70MB)
-- `backend-macos` (65MB)
+- `server-linux` (61MB)
+- `server-windows` (70MB)
+- `server-macos` (65MB)
 - `linux-full-artifacts` (~150-200MB)
 - `windows-full-artifacts` (~150-200MB)
 - `macos-full-artifacts` (~150-200MB)
@@ -297,8 +297,8 @@ gh release delete v0.0.1-test --yes
 - Test locally with `./scripts/build-{variant}.sh {platform}`
 - Verify electron-builder config for that platform
 
-**2. Backend artifact not found**:
-- Ensure build-backend.yml completed successfully
+**2. Server artifact not found**:
+- Ensure build-server.yml completed successfully
 - Check artifact name matches in download step
 - Verify needs: dependency in release.yml
 
@@ -335,8 +335,8 @@ env:
 
 Update in these files:
 - `.github/workflows/ci.yml` (setup-node)
-- `.github/workflows/build-frontend-full.yml` (input default)
-- `.github/workflows/build-frontend-client.yml` (input default)
+- `.github/workflows/build-studio-full.yml` (input default)
+- `.github/workflows/build-studio-client.yml` (input default)
 - `.github/workflows/build-web.yml` (input default)
 - `.github/workflows/release.yml` (workflow_call inputs)
 
@@ -344,13 +344,13 @@ Update in these files:
 
 Update in these files:
 - `.github/workflows/ci.yml` (setup-python)
-- `.github/workflows/build-backend.yml` (input default)
+- `.github/workflows/build-server.yml` (input default)
 - `.github/workflows/release.yml` (workflow_call inputs)
 
 ### Adding New Platforms
 
-1. Add to matrix in build-frontend-*.yml
-2. Update frontend/package.json with new build script
+1. Add to matrix in build-studio-*.yml
+2. Update studio/package.json with new build script
 3. Add platform-specific config to electron-builder-*.json
 4. Update release.yml asset preparation script
 
@@ -361,14 +361,14 @@ Update in these files:
 ### Typical Execution Times
 
 **CI (Pull Request)**:
-- Backend tests: ~2-3 minutes
-- Frontend tests: ~2-3 minutes
+- Server tests: ~2-3 minutes
+- Studio tests: ~2-3 minutes
 - Total: ~5-6 minutes (parallel)
 
 **Release Build**:
-- Backend builds (3 platforms): ~5-7 minutes (parallel)
-- Frontend full builds (3 platforms): ~15-20 minutes (parallel after backend)
-- Frontend client builds (3 platforms): ~10-15 minutes (parallel)
+- Server builds (3 platforms): ~5-7 minutes (parallel)
+- Studio full builds (3 platforms): ~15-20 minutes (parallel after server)
+- Studio client builds (3 platforms): ~10-15 minutes (parallel)
 - Web build: ~2-3 minutes (parallel)
 - Publish: ~1-2 minutes
 - **Total: ~25-30 minutes**

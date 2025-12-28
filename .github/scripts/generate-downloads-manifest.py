@@ -53,7 +53,7 @@ def main():
         'downloads': {
             'full': {
                 'name': 'Sigilweaver',
-                'description': 'Complete application with embedded backend',
+                'description': 'Complete application with embedded server',
                 'windows': list(filter(None, [
                     add_file('installer', 'Windows Installer', 'Sigilweaver-Setup.exe'),
                     add_file('portable', 'Windows Portable', 'Sigilweaver-Portable.exe'),
@@ -68,7 +68,7 @@ def main():
             },
             'client': {
                 'name': 'Sigilweaver Client',
-                'description': 'Frontend only (requires separate backend)',
+                'description': 'Studio only (requires separate server)',
                 'windows': list(filter(None, [
                     add_file('installer', 'Windows Installer', 'Sigilweaver-Client-Setup.exe'),
                     add_file('portable', 'Windows Portable', 'Sigilweaver-Client-Portable.exe'),

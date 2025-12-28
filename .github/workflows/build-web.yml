@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: studio
     
     steps:
       - name: Checkout
@@ -25,9 +25,9 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: studio/package-lock.json
       
-      - name: Install frontend dependencies
+      - name: Install studio dependencies
         run: npm ci
       
       - name: Set version from git tag
@@ -42,4 +42,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-dist-zip
-          path: frontend/dist-web.zip
+          path: studio/dist-web.zip

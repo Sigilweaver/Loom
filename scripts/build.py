@@ -3,17 +3,17 @@
 Cross-platform build script for Sigilweaver.
 
 Builds the complete application:
-1. Backend executable (PyInstaller)
-2. Copy backend to frontend resources
-3. Frontend + Electron app
+1. Server executable (PyInstaller)
+2. Copy server to studio resources
+3. Studio + Electron app
 
 Usage:
     ./scripts/build.py                # Build for current platform
     ./scripts/build.py --platform linux   # Build for Linux
     ./scripts/build.py --platform win     # Build for Windows
     ./scripts/build.py --platform mac     # Build for macOS
-    ./scripts/build.py --backend-only     # Build backend only
-    ./scripts/build.py --frontend-only    # Build frontend only (assumes backend exists)
+    ./scripts/build.py --server-only      # Build server only
+    ./scripts/build.py --studio-only      # Build studio only (assumes server exists)
     ./scripts/build.py --clean            # Clean build artifacts before building
 """
 
@@ -64,8 +64,8 @@ def detect_platform() -> str:
         return "linux"
 
 
-def get_backend_extension(platform: str) -> str:
-    """Get the backend executable extension for a platform."""
+def get_server_extension(platform: str) -> str:
+    """Get the server executable extension for a platform."""
     return ".exe" if platform == "win" else ""
 
 
@@ -73,16 +73,16 @@ def clean_build_artifacts(repo_root: Path) -> None:
     """Clean previous build artifacts."""
     print("Cleaning build artifacts...")
     
-    # Backend artifacts
-    backend_dir = repo_root / "backend"
-    for path in [backend_dir / "build", backend_dir / "dist"]:
+    # Server artifacts
+    server_dir = repo_root / "server"
+    for path in [server_dir / "build", server_dir / "dist"]:
         if path.exists():
             print(f"  Removing {path}")
             shutil.rmtree(path)
     
-    # Frontend artifacts
-    frontend_dir = repo_root / "frontend"
-    for path in [frontend_dir / "dist", frontend_dir / "resources" / "backend"]:
+    # Studio artifacts
+    studio_dir = repo_root / "studio"
+    for path in [studio_dir / "dist", studio_dir / "resources" / "server"]:
         if path.exists():
             print(f"  Removing {path}")
             shutil.rmtree(path)
@@ -90,20 +90,20 @@ def clean_build_artifacts(repo_root: Path) -> None:
     print("Clean complete")
 
 
-def build_backend(repo_root: Path, platform: str) -> BuildResult:
-    """Build the backend executable with PyInstaller."""
-    print_header("Step 1/3: Building Backend Executable")
+def build_server(repo_root: Path, platform: str) -> BuildResult:
+    """Build the server executable with PyInstaller."""
+    print_header("Step 1/3: Building Server Executable")
     
-    backend_dir = repo_root / "backend"
-    lock_path = backend_dir / "uv.lock"
-    venv_path = backend_dir / ".venv"
+    server_dir = repo_root / "server"
+    lock_path = server_dir / "uv.lock"
+    venv_path = server_dir / ".venv"
     
     if not lock_path.exists():
         return BuildResult(
-            name="Backend",
+            name="Server",
             success=False,
             duration=0,
-            error="Backend not set up with uv. Run: cd backend && uv sync --all-extras"
+            error="Server not set up with uv. Run: cd server && uv sync --all-extras"
         )
     
     # Determine the Python executable path
@@ -119,21 +119,21 @@ def build_backend(repo_root: Path, platform: str) -> BuildResult:
         print("Syncing dependencies with uv (including build extras)...")
         result = subprocess.run(
             ["uv", "sync", "--all-extras"],
-            cwd=backend_dir,
+            cwd=server_dir,
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
             return BuildResult(
-                name="Backend",
+                name="Server",
                 success=False,
                 duration=time.time() - start_time,
                 error=f"Failed to sync dependencies: {result.stderr}"
             )
         
         # Clean previous builds
-        print("Cleaning previous backend builds...")
-        for path in [backend_dir / "build", backend_dir / "dist"]:
+        print("Cleaning previous server builds...")
+        for path in [server_dir / "build", server_dir / "dist"]:
             if path.exists():
                 shutil.rmtree(path)
         
@@ -141,111 +141,111 @@ def build_backend(repo_root: Path, platform: str) -> BuildResult:
         print("Building executable with PyInstaller...")
         result = subprocess.run(
             [str(python_path), "-m", "PyInstaller", "sigilweaver.spec", "--clean"],
-            cwd=backend_dir,
+            cwd=server_dir,
             capture_output=False,
         )
         
         if result.returncode != 0:
             return BuildResult(
-                name="Backend",
+                name="Server",
                 success=False,
                 duration=time.time() - start_time,
                 error="PyInstaller build failed"
             )
         
         # Verify the build
-        ext = get_backend_extension(platform)
-        backend_exe = backend_dir / "dist" / f"backend{ext}"
+        ext = get_server_extension(platform)
+        server_exe = server_dir / "dist" / f"server{ext}"
         
-        if not backend_exe.exists():
+        if not server_exe.exists():
             return BuildResult(
-                name="Backend",
+                name="Server",
                 success=False,
                 duration=time.time() - start_time,
-                error=f"Backend executable not found at {backend_exe}"
+                error=f"Server executable not found at {server_exe}"
             )
         
         duration = time.time() - start_time
-        size_mb = backend_exe.stat().st_size / (1024 * 1024)
-        print(f"Backend built: {backend_exe} ({size_mb:.1f} MB)")
+        size_mb = server_exe.stat().st_size / (1024 * 1024)
+        print(f"Server built: {server_exe} ({size_mb:.1f} MB)")
         
         return BuildResult(
-            name="Backend",
+            name="Server",
             success=True,
             duration=duration,
         )
         
     except Exception as e:
         return BuildResult(
-            name="Backend",
+            name="Server",
             success=False,
             duration=time.time() - start_time,
             error=str(e),
         )
 
 
-def copy_backend_to_resources(repo_root: Path, platform: str) -> BuildResult:
-    """Copy the backend executable to frontend resources."""
-    print_header("Step 2/3: Copying Backend to Resources")
+def copy_server_to_resources(repo_root: Path, platform: str) -> BuildResult:
+    """Copy the server executable to studio resources."""
+    print_header("Step 2/3: Copying Server to Resources")
     
     start_time = time.time()
     
     try:
-        ext = get_backend_extension(platform)
-        backend_src = repo_root / "backend" / "dist" / f"backend{ext}"
-        resources_dir = repo_root / "frontend" / "resources" / "backend"
-        backend_dest = resources_dir / f"backend{ext}"
+        ext = get_server_extension(platform)
+        server_src = repo_root / "server" / "dist" / f"server{ext}"
+        resources_dir = repo_root / "studio" / "resources" / "server"
+        server_dest = resources_dir / f"server{ext}"
         
-        if not backend_src.exists():
+        if not server_src.exists():
             return BuildResult(
-                name="Copy Backend",
+                name="Copy Server",
                 success=False,
                 duration=time.time() - start_time,
-                error=f"Backend executable not found at {backend_src}"
+                error=f"Server executable not found at {server_src}"
             )
         
         # Create resources directory
         resources_dir.mkdir(parents=True, exist_ok=True)
         
         # Copy the executable
-        print(f"Copying {backend_src} -> {backend_dest}")
-        shutil.copy2(backend_src, backend_dest)
+        print(f"Copying {server_src} -> {server_dest}")
+        shutil.copy2(server_src, server_dest)
         
         # Make executable on Unix
         if platform != "win":
-            backend_dest.chmod(0o755)
+            server_dest.chmod(0o755)
         
-        size_mb = backend_dest.stat().st_size / (1024 * 1024)
-        print(f"Backend copied: {backend_dest} ({size_mb:.1f} MB)")
+        size_mb = server_dest.stat().st_size / (1024 * 1024)
+        print(f"Server copied: {server_dest} ({size_mb:.1f} MB)")
         
         return BuildResult(
-            name="Copy Backend",
+            name="Copy Server",
             success=True,
             duration=time.time() - start_time,
         )
         
     except Exception as e:
         return BuildResult(
-            name="Copy Backend",
+            name="Copy Server",
             success=False,
             duration=time.time() - start_time,
             error=str(e),
         )
 
 
-def build_frontend(repo_root: Path, platform: str) -> BuildResult:
-    """Build the frontend + Electron application."""
-    print_header("Step 3/3: Building Frontend + Electron")
+def build_studio(repo_root: Path, platform: str) -> BuildResult:
+    """Build the studio + Electron application."""
+    print_header("Step 3/3: Building Studio + Electron")
     
-    frontend_dir = repo_root / "frontend"
-    node_modules = frontend_dir / "node_modules"
+    studio_dir = repo_root / "studio"
+    node_modules = studio_dir / "node_modules"
     
     if not node_modules.exists():
         return BuildResult(
-            name="Frontend",
+            name="Studio",
             success=False,
             duration=0,
-            error="node_modules not found. Run: cd frontend && npm install"
+            error="node_modules not found. Run: cd studio && npm install"
         )
     
     # Map platform to npm script
@@ -257,7 +257,7 @@ def build_frontend(repo_root: Path, platform: str) -> BuildResult:
     
     if platform not in platform_scripts:
         return BuildResult(
-            name="Frontend",
+            name="Studio",
             success=False,
             duration=0,
             error=f"Unknown platform: {platform}. Use: linux, win, or mac"
@@ -270,7 +270,7 @@ def build_frontend(repo_root: Path, platform: str) -> BuildResult:
         print(f"Running npm run {npm_script}...")
         result = subprocess.run(
             ["npm", "run", npm_script],
-            cwd=frontend_dir,
+            cwd=studio_dir,
             capture_output=False,
         )
         
@@ -278,14 +278,14 @@ def build_frontend(repo_root: Path, platform: str) -> BuildResult:
         
         if result.returncode != 0:
             return BuildResult(
-                name="Frontend",
+                name="Studio",
                 success=False,
                 duration=duration,
-                error="Frontend build failed"
+                error="Studio build failed"
             )
         
         # List output files
-        dist_dir = frontend_dir / "dist"
+        dist_dir = studio_dir / "dist"
         if dist_dir.exists():
             print()
             print("Output files:")
@@ -295,14 +295,14 @@ def build_frontend(repo_root: Path, platform: str) -> BuildResult:
                     print(f"  {item.name} ({size_mb:.1f} MB)")
         
         return BuildResult(
-            name="Frontend",
+            name="Studio",
             success=True,
             duration=duration,
         )
         
     except Exception as e:
         return BuildResult(
-            name="Frontend",
+            name="Studio",
             success=False,
             duration=time.time() - start_time,
             error=str(e),
@@ -345,14 +345,14 @@ def main() -> int:
         help="Target platform (default: auto-detect)"
     )
     parser.add_argument(
-        "--backend-only",
+        "--server-only",
         action="store_true",
-        help="Build backend only"
+        help="Build server only"
     )
     parser.add_argument(
-        "--frontend-only",
+        "--studio-only",
         action="store_true",
-        help="Build frontend only (assumes backend already built)"
+        help="Build studio only (assumes server already built)"
     )
     parser.add_argument(
         "--clean",
@@ -366,15 +366,15 @@ def main() -> int:
     platform = args.platform or detect_platform()
     
     # Determine what to build
-    build_backend_step = True
-    copy_backend_step = True
-    build_frontend_step = True
+    build_server_step = True
+    copy_server_step = True
+    build_studio_step = True
     
-    if args.backend_only:
-        build_frontend_step = False
-        copy_backend_step = False
-    elif args.frontend_only:
-        build_backend_step = False
+    if args.server_only:
+        build_studio_step = False
+        copy_server_step = False
+    elif args.studio_only:
+        build_server_step = False
     
     repo_root = get_repo_root()
     results: list[BuildResult] = []
@@ -388,22 +388,22 @@ def main() -> int:
         clean_build_artifacts(repo_root)
     
     # Build steps
-    if build_backend_step:
-        result = build_backend(repo_root, platform)
+    if build_server_step:
+        result = build_server(repo_root, platform)
         results.append(result)
         if not result.success:
             print_summary(results)
             return 1
     
-    if copy_backend_step:
-        result = copy_backend_to_resources(repo_root, platform)
+    if copy_server_step:
+        result = copy_server_to_resources(repo_root, platform)
         results.append(result)
         if not result.success:
             print_summary(results)
             return 1
     
-    if build_frontend_step:
-        result = build_frontend(repo_root, platform)
+    if build_studio_step:
+        result = build_studio(repo_root, platform)
         results.append(result)
     
     # Print summary

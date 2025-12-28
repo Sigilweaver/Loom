@@ -25,12 +25,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-backend:
-    name: Backend - Test & Lint
+  test-server:
+    name: Server - Test & Lint
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: server
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,12 +39,12 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: 'backend/uv.lock'
+          cache-dependency-glob: 'server/uv.lock'
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version-file: 'backend/.python-version'
+          python-version-file: 'server/.python-version'
 
       - name: Install dependencies
         run: uv sync --all-extras
@@ -67,17 +67,17 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: backend-coverage
-          path: backend/coverage.xml
+          name: server-coverage
+          path: server/coverage.xml
           if-no-files-found: ignore
           retention-days: 7
 
-  test-frontend:
-    name: Frontend - Test, Lint & Build
+  test-studio:
+    name: Studio - Test, Lint & Build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: studio
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -87,7 +87,7 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: studio/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -107,8 +107,8 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-coverage
-          path: frontend/coverage/**
+          name: studio-coverage
+          path: studio/coverage/**
           if-no-files-found: ignore
           retention-days: 7
 
@@ -116,6 +116,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
-          path: frontend/dist/**
+          path: studio/dist/**
           if-no-files-found: warn
           retention-days: 7

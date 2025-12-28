@@ -96,8 +96,8 @@ hub/
 
 ## Related Projects
 
-- **Studio** (`../app/`): Desktop workflow designer
-- **Server**: Backend container for workflow execution (same as `../app/backend/`)
+- **Server** (`../server/`): Execution engine for workflow processing
+- **Studio** (`../studio/`): Desktop app for visual workflow design
 
 ## License
 
