@@ -104,6 +104,13 @@ export interface ServerListResponse {
   total: number;
 }
 
+export interface ServerTestResponse {
+  success: boolean;
+  status: string;
+  version: string | null;
+  message: string | null;
+}
+
 export async function listServers(): Promise<ServerListResponse> {
   const response = await fetch(`${API_BASE}/servers`);
   return handleResponse(response);
@@ -118,6 +125,26 @@ export async function registerServer(data: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function testServerConnection(data: {
+  name: string;
+  endpoint_url: string;
+  auth_token?: string;
+}): Promise<ServerTestResponse> {
+  const response = await fetch(`${API_BASE}/servers/test`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function refreshServer(id: string): Promise<ServerResponse> {
+  const response = await fetch(`${API_BASE}/servers/${id}/refresh`, {
+    method: "POST",
   });
   return handleResponse(response);
 }

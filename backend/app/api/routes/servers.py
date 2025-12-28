@@ -1,23 +1,25 @@
 """Server registry routes"""
 
+import logging
+from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.database import get_db
+from app.db.models import Server
+from app.domain.servers.client import HealthResponse, ServerClient, ServerError
 
 router = APIRouter(prefix="/servers")
-
-
-class ServerStatus(BaseModel):
-    """Server status from polling"""
-    status: str  # online, offline, error
-    version: str | None
-    last_poll: str
-    last_healthy: str | None
+logger = logging.getLogger(__name__)
 
 
 class ServerCreate(BaseModel):
     """Request to register a new server"""
+
     name: str
     endpoint_url: str
     auth_token: str | None = None
@@ -25,6 +27,7 @@ class ServerCreate(BaseModel):
 
 class ServerUpdate(BaseModel):
     """Request to update server config"""
+
     name: str | None = None
     endpoint_url: str | None = None
     auth_token: str | None = None
@@ -32,6 +35,7 @@ class ServerUpdate(BaseModel):
 
 class ServerResponse(BaseModel):
     """Server details"""
+
     id: UUID
     name: str
     endpoint_url: str
@@ -41,90 +45,267 @@ class ServerResponse(BaseModel):
     last_healthy: str | None
     created_at: str
 
+    model_config = {"from_attributes": True}
+
 
 class ServerListResponse(BaseModel):
     """List of servers"""
+
     servers: list[ServerResponse]
     total: int
 
 
 class ConnectionInfo(BaseModel):
     """Connection info from a server (read-only view)"""
+
     name: str
     type: str
 
 
 class ServerConnectionsResponse(BaseModel):
     """Connections available on a server"""
+
     server_id: UUID
     connections: list[ConnectionInfo]
 
 
+class ServerTestResponse(BaseModel):
+    """Response from testing server connection"""
+
+    success: bool
+    status: str
+    version: str | None
+    message: str | None
+
+
+def _server_to_response(server: Server) -> ServerResponse:
+    """Convert database model to response"""
+    return ServerResponse(
+        id=server.id,
+        name=server.name,
+        endpoint_url=server.endpoint_url,
+        status=server.status,
+        version=server.version,
+        last_poll=server.last_poll.isoformat() if server.last_poll else None,
+        last_healthy=server.last_healthy.isoformat() if server.last_healthy else None,
+        created_at=server.created_at.isoformat(),
+    )
+
+
 @router.get("", response_model=ServerListResponse)
-async def list_servers() -> ServerListResponse:
+async def list_servers(db: AsyncSession = Depends(get_db)) -> ServerListResponse:
     """List all registered servers"""
-    # TODO: Implement with database
+    result = await db.execute(select(Server).order_by(Server.name))
+    servers = result.scalars().all()
+
     return ServerListResponse(
-        servers=[],
-        total=0,
+        servers=[_server_to_response(s) for s in servers],
+        total=len(servers),
     )
 
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
-async def register_server(request: ServerCreate) -> ServerResponse:
+async def register_server(
+    request: ServerCreate, db: AsyncSession = Depends(get_db)
+) -> ServerResponse:
     """Register a new server"""
-    # TODO: Implement with database
-    # Immediately poll the server to check connectivity
-    from datetime import datetime
-    from uuid import uuid4
+    # Normalize endpoint URL
+    endpoint_url = request.endpoint_url.rstrip("/")
 
-    return ServerResponse(
-        id=uuid4(),
+    # Check for duplicate endpoint
+    existing = await db.execute(select(Server).where(Server.endpoint_url == endpoint_url))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Server with endpoint {endpoint_url} already registered",
+        )
+
+    # Create server record
+    server = Server(
         name=request.name,
-        endpoint_url=request.endpoint_url,
+        endpoint_url=endpoint_url,
+        auth_token=request.auth_token,
         status="unknown",
-        version=None,
-        last_poll=None,
-        last_healthy=None,
-        created_at=datetime.utcnow().isoformat(),
+        created_by="system",  # TODO: Use actual user from auth
     )
+
+    db.add(server)
+    await db.commit()
+    await db.refresh(server)
+
+    logger.info("Registered server: %s (%s)", server.name, server.endpoint_url)
+
+    # Immediately poll the server to get initial status
+    client = ServerClient(server.endpoint_url, server.auth_token)
+    result = await client.health()
+    now = datetime.utcnow()
+
+    server.last_poll = now
+    if isinstance(result, HealthResponse):
+        server.status = "online"
+        server.version = result.version
+        server.last_healthy = now
+    else:
+        server.status = "offline"
+
+    await db.commit()
+    await db.refresh(server)
+
+    return _server_to_response(server)
 
 
 @router.get("/{server_id}", response_model=ServerResponse)
-async def get_server(server_id: UUID) -> ServerResponse:
+async def get_server(server_id: UUID, db: AsyncSession = Depends(get_db)) -> ServerResponse:
     """Get server details"""
-    # TODO: Implement with database
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Server not found",
-    )
+    result = await db.execute(select(Server).where(Server.id == server_id))
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    return _server_to_response(server)
 
 
 @router.put("/{server_id}", response_model=ServerResponse)
-async def update_server(server_id: UUID, request: ServerUpdate) -> ServerResponse:
+async def update_server(
+    server_id: UUID, request: ServerUpdate, db: AsyncSession = Depends(get_db)
+) -> ServerResponse:
     """Update server configuration"""
-    # TODO: Implement with database
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Server not found",
-    )
+    result = await db.execute(select(Server).where(Server.id == server_id))
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    if request.name is not None:
+        server.name = request.name
+    if request.endpoint_url is not None:
+        server.endpoint_url = request.endpoint_url.rstrip("/")
+    if request.auth_token is not None:
+        server.auth_token = request.auth_token
+
+    await db.commit()
+    await db.refresh(server)
+
+    logger.info("Updated server: %s", server.name)
+
+    return _server_to_response(server)
 
 
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def unregister_server(server_id: UUID) -> None:
+async def unregister_server(server_id: UUID, db: AsyncSession = Depends(get_db)) -> None:
     """Remove a server from the registry"""
-    # TODO: Implement with database
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Server not found",
-    )
+    result = await db.execute(select(Server).where(Server.id == server_id))
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    server_name = server.name
+    await db.delete(server)
+    await db.commit()
+
+    logger.info("Unregistered server: %s", server_name)
+
+
+@router.post("/{server_id}/refresh", response_model=ServerResponse)
+async def refresh_server_status(
+    server_id: UUID, db: AsyncSession = Depends(get_db)
+) -> ServerResponse:
+    """Manually refresh server status by polling it now"""
+    result = await db.execute(select(Server).where(Server.id == server_id))
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    # Poll the server
+    client = ServerClient(server.endpoint_url, server.auth_token)
+    health_result = await client.health()
+    now = datetime.utcnow()
+
+    server.last_poll = now
+    if isinstance(health_result, HealthResponse):
+        server.status = "online"
+        server.version = health_result.version
+        server.last_healthy = now
+    else:
+        server.status = "offline"
+
+    await db.commit()
+    await db.refresh(server)
+
+    return _server_to_response(server)
+
+
+@router.post("/test", response_model=ServerTestResponse)
+async def test_server_connection(request: ServerCreate) -> ServerTestResponse:
+    """Test connection to a server before registering it"""
+    client = ServerClient(request.endpoint_url.rstrip("/"), request.auth_token)
+    result = await client.health()
+
+    if isinstance(result, HealthResponse):
+        return ServerTestResponse(
+            success=True,
+            status="online",
+            version=result.version,
+            message=None,
+        )
+    elif isinstance(result, ServerError):
+        return ServerTestResponse(
+            success=False,
+            status="offline",
+            version=None,
+            message=result.message,
+        )
+    else:
+        return ServerTestResponse(
+            success=False,
+            status="error",
+            version=None,
+            message="Unknown error",
+        )
 
 
 @router.get("/{server_id}/connections", response_model=ServerConnectionsResponse)
-async def get_server_connections(server_id: UUID) -> ServerConnectionsResponse:
+async def get_server_connections(
+    server_id: UUID, db: AsyncSession = Depends(get_db)
+) -> ServerConnectionsResponse:
     """Get connections available on a server (proxied from server's API)"""
-    # TODO: Implement - proxy to server's /api/connections endpoint
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Server not found",
+    result = await db.execute(select(Server).where(Server.id == server_id))
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    client = ServerClient(server.endpoint_url, server.auth_token)
+    connections_result = await client.get_connections()
+
+    if isinstance(connections_result, ServerError):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to get connections from server: {connections_result.message}",
+        )
+
+    return ServerConnectionsResponse(
+        server_id=server_id,
+        connections=[
+            ConnectionInfo(name=c.get("name", ""), type=c.get("type", ""))
+            for c in connections_result
+        ],
     )
