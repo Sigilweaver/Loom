@@ -186,12 +186,15 @@ class Schedule(Base):
 
     # Configuration
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    timeout_seconds: Mapped[int] = mapped_column(Integer, default=3600)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Metadata
-    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, onupdate=_utcnow
     )
     last_triggered_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -202,6 +205,7 @@ class Schedule(Base):
 
     # Relationships
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="schedules")
+    target_server: Mapped[Optional["Server"]] = relationship("Server")
 
 
 class Connection(Base):

@@ -7,15 +7,29 @@ import { getAuthToken } from "@state/authStore";
 const API_BASE = "/api";
 
 export interface ApiError {
-  detail: string;
+  detail: string | { loc: (string | number)[]; msg: string; type: string }[];
+}
+
+/**
+ * Extract error message from API error response
+ */
+function extractErrorMessage(error: ApiError, fallback: string): string {
+  if (Array.isArray(error.detail)) {
+    const messages = error.detail.map(
+      (e) => `${e.loc.join(".")}: ${e.msg}`
+    ).join("; ");
+    return messages || fallback;
+  }
+  return typeof error.detail === "string" ? error.detail : fallback;
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    const fallback = `HTTP ${response.status}: ${response.statusText}`;
     const error: ApiError = await response.json().catch(() => ({
-      detail: `HTTP ${response.status}: ${response.statusText}`,
+      detail: fallback,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, fallback));
   }
   return response.json();
 }
@@ -142,7 +156,7 @@ export async function logout(): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -277,7 +291,7 @@ export async function deleteWorkflow(id: string): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -355,7 +369,7 @@ export async function deleteServer(id: string): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -397,7 +411,9 @@ export async function listExecutions(params?: {
   if (params?.offset) searchParams.set("offset", String(params.offset));
 
   const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/executions${query ? `?${query}` : ""}`);
+  const response = await fetch(`${API_BASE}/executions${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
   return handleResponse(response);
 }
 
@@ -407,8 +423,23 @@ export async function triggerExecution(data: {
 }): Promise<ExecutionResponse> {
   const response = await fetch(`${API_BASE}/executions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function getExecution(id: string): Promise<ExecutionResponse> {
+  const response = await fetch(`${API_BASE}/executions/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function cancelExecution(id: string): Promise<ExecutionResponse> {
+  const response = await fetch(`${API_BASE}/executions/${id}/cancel`, {
+    method: "POST",
+    headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
@@ -417,15 +448,16 @@ export async function triggerExecution(data: {
 export interface ScheduleResponse {
   id: string;
   workflow_id: string;
-  workflow_name: string;
+  workflow_name: string | null;
   cron_expression: string;
   timezone: string;
   target_server_id: string | null;
   target_server_name: string | null;
-  timeout_seconds: number;
   enabled: boolean;
-  created_by: string;
+  description: string | null;
+  created_by: string | null;
   created_at: string;
+  updated_at: string | null;
   last_triggered_at: string | null;
   next_trigger_at: string | null;
 }
@@ -438,13 +470,26 @@ export interface ScheduleListResponse {
 export async function listSchedules(params?: {
   workflow_id?: string;
   enabled?: boolean;
+  limit?: number;
+  offset?: number;
 }): Promise<ScheduleListResponse> {
   const searchParams = new URLSearchParams();
   if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
   if (params?.enabled !== undefined) searchParams.set("enabled", String(params.enabled));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
 
   const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/schedules${query ? `?${query}` : ""}`);
+  const response = await fetch(`${API_BASE}/schedules${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getSchedule(id: string): Promise<ScheduleResponse> {
+  const response = await fetch(`${API_BASE}/schedules/${id}`, {
+    headers: getAuthHeaders(),
+  });
   return handleResponse(response);
 }
 
@@ -453,12 +498,30 @@ export async function createSchedule(data: {
   cron_expression: string;
   timezone?: string;
   target_server_id?: string;
-  timeout_seconds?: number;
   enabled?: boolean;
+  description?: string;
 }): Promise<ScheduleResponse> {
   const response = await fetch(`${API_BASE}/schedules`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function updateSchedule(
+  id: string,
+  data: {
+    cron_expression?: string;
+    timezone?: string;
+    target_server_id?: string | null;
+    enabled?: boolean;
+    description?: string | null;
+  }
+): Promise<ScheduleResponse> {
+  const response = await fetch(`${API_BASE}/schedules/${id}`, {
+    method: "PUT",
+    headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse(response);
@@ -467,13 +530,33 @@ export async function createSchedule(data: {
 export async function deleteSchedule(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/schedules/${id}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
+}
+
+export async function toggleSchedule(
+  id: string,
+  enabled: boolean
+): Promise<ScheduleResponse> {
+  const response = await fetch(`${API_BASE}/schedules/${id}/toggle?enabled=${enabled}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function triggerSchedule(id: string): Promise<ExecutionResponse> {
+  const response = await fetch(`${API_BASE}/schedules/${id}/trigger`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
 }
 
 // =============================================================================
@@ -569,7 +652,7 @@ export async function deleteConnection(id: string): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -693,7 +776,7 @@ export async function deleteGroup(id: string): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -725,7 +808,7 @@ export async function removeGroupMember(groupId: string, userId: string): Promis
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -757,7 +840,7 @@ export async function removeGroupConnection(groupId: string, connectionId: strin
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 
@@ -805,7 +888,7 @@ export async function deleteUser(userId: string): Promise<void> {
     const error: ApiError = await response.json().catch(() => ({
       detail: `HTTP ${response.status}`,
     }));
-    throw new Error(error.detail);
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
   }
 }
 

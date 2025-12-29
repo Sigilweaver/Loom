@@ -28,6 +28,9 @@ import {
   Clock,
   Eye,
   Info,
+  Play,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   listWorkflows,
@@ -36,6 +39,7 @@ import {
   updateWorkflowMetadata,
   getWorkflowDownloadUrl,
   getWorkflowContent,
+  triggerExecution,
   type WorkflowMetadata,
   type WorkflowContent,
 } from "@api/client";
@@ -1096,11 +1100,15 @@ interface WorkflowCardProps {
   onView: (workflow: WorkflowMetadata) => void;
   onEdit: (workflow: WorkflowMetadata) => void;
   onDelete: (id: string) => void;
+  onRun: (workflow: WorkflowMetadata) => Promise<void>;
 }
 
-function WorkflowCard({ workflow, onView, onEdit, onDelete }: WorkflowCardProps) {
+function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [runSuccess, setRunSuccess] = useState(false);
+  const [runError, setRunError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -1202,6 +1210,37 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete }: WorkflowCardProps)
 
           {menuOpen && (
             <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  setRunning(true);
+                  setRunError(false);
+                  try {
+                    await onRun(workflow);
+                    setRunSuccess(true);
+                    setTimeout(() => setRunSuccess(false), 2000);
+                  } catch {
+                    setRunError(true);
+                    setTimeout(() => setRunError(false), 3000);
+                  } finally {
+                    setRunning(false);
+                  }
+                }}
+                disabled={running}
+                className={`flex items-center gap-2 w-full px-4 py-2 text-sm ${runError ? "text-red-600 hover:bg-red-50" : "text-brand-600 hover:bg-brand-50"}`}
+              >
+                {running ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : runSuccess ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : runError ? (
+                  <XCircle className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                {running ? "Starting..." : runSuccess ? "Started!" : runError ? "Failed" : "Run Now"}
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1349,6 +1388,16 @@ export function WorkflowsPage() {
     }
   };
 
+  const handleRun = async (workflow: WorkflowMetadata) => {
+    try {
+      await triggerExecution({ workflow_id: workflow.id });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to trigger execution";
+      setError(`Failed to run "${workflow.name}": ${message}`);
+      throw err; // Re-throw so WorkflowCard knows it failed
+    }
+  };
+
   // Download handler for detail dialog
   const handleDownloadFromDetail = async () => {
     if (!viewingWorkflow) return;
@@ -1457,7 +1506,13 @@ export function WorkflowsPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-2 text-red-700">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            {error}
+            <span className="flex-1">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="p-1 hover:bg-red-100 rounded"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 
@@ -1506,6 +1561,7 @@ export function WorkflowsPage() {
                 onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onRun={handleRun}
               />
             ))}
           </div>
