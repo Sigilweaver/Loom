@@ -103,7 +103,9 @@ class HubClient:
 
                 # Convert connection credentials to ResolvedConnection objects
                 connections: dict[str, ResolvedConnection] = {}
-                for conn_id, creds in data.get("connections", {}).items():
+                # Handle both None and missing connections field
+                connections_data = data.get("connections") or {}
+                for conn_id, creds in connections_data.items():
                     connections[conn_id] = ResolvedConnection(
                         id=conn_id,
                         name=creds.get("name", conn_id),  # Use ID as name fallback

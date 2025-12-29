@@ -1,5 +1,6 @@
 """HTTP client for communicating with Sigilweaver Server instances"""
 
+import json
 import logging
 from dataclasses import dataclass
 
@@ -88,26 +89,40 @@ class ServerClient:
         """Execute a workflow on this server.
 
         Args:
-            workflow_content: Raw .swwf file content
+            workflow_content: Raw .swwf file content (JSON bytes)
 
         Returns:
             Execution result dict if successful, ServerError if failed
         """
         try:
+            # Parse workflow content and wrap in ExecuteWorkflowRequest format
+            workflow_dict = json.loads(workflow_content.decode("utf-8"))
+            request_body = {"workflow": workflow_dict}
+
             async with httpx.AsyncClient(timeout=settings.server_timeout_seconds * 10) as client:
                 response = await client.post(
                     f"{self.endpoint_url}/api/workflow/execute",
-                    headers=self._get_headers(),
-                    content=workflow_content,
+                    headers={**self._get_headers(), "Content-Type": "application/json"},
+                    json=request_body,
                 )
 
                 if response.status_code == 200:
                     return response.json()
                 else:
+                    # Include response body for better error messages
+                    try:
+                        error_detail = response.json()
+                        detail_str = error_detail.get("detail", str(error_detail))
+                    except Exception:
+                        detail_str = response.text[:500] if response.text else "No details"
+
                     return ServerError(
-                        message=f"Execution failed: {response.status_code}",
+                        message=f"Execution failed ({response.status_code}): {detail_str}",
                         status_code=response.status_code,
                     )
+
+        except json.JSONDecodeError as e:
+            return ServerError(message=f"Invalid workflow JSON: {e}")
 
         except httpx.TimeoutException:
             return ServerError(message="Execution timeout")

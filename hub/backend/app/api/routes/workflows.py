@@ -8,8 +8,20 @@ Provides CRUD operations for workflow files:
 - Delete workflows
 """
 
+from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
+
+
+def _to_iso_utc(dt: datetime) -> str:
+    """Convert datetime to ISO format with UTC timezone suffix.
+
+    Handles both naive and aware datetimes. Naive datetimes are assumed to be UTC.
+    """
+    if dt.tzinfo is None:
+        # Naive datetime - assume UTC and add timezone
+        dt = dt.replace(tzinfo=UTC)
+    return dt.isoformat()
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import Response
@@ -59,8 +71,8 @@ class WorkflowMetadata(BaseModel):
             tags=info.tags,
             checksum=info.checksum,
             uploaded_by=info.uploaded_by,
-            created_at=info.created_at.isoformat(),
-            updated_at=info.updated_at.isoformat(),
+            created_at=_to_iso_utc(info.created_at),
+            updated_at=_to_iso_utc(info.updated_at),
         )
 
 

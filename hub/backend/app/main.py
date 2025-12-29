@@ -15,6 +15,7 @@ from app.domain.auth.keys import init_key_manager
 from app.domain.auth.sessions import SessionManager
 from app.domain.auth.tokens import init_token_tracker
 from app.domain.capabilities import init_issuer
+from app.domain.schedules.scheduler import get_scheduler
 from app.domain.servers.health_poller import health_poller
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Start server health polling
     await health_poller.start()
 
+    # Start workflow scheduler
+    scheduler = get_scheduler()
+    await scheduler.start()
+
     # Start session cleanup background task
     session_cleanup_task = asyncio.create_task(_session_cleanup_loop())
 
@@ -77,6 +82,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Stop health polling
     await health_poller.stop()
+
+    # Stop scheduler
+    await scheduler.stop()
 
 
 application = FastAPI(
