@@ -1,7 +1,7 @@
 """Server registry routes"""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -163,7 +163,7 @@ async def register_server(
     # Immediately poll the server to get initial status
     client = ServerClient(server.endpoint_url, server.auth_token)
     result = await client.health()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     server.last_poll = now
     if isinstance(result, HealthResponse):
@@ -259,7 +259,7 @@ async def refresh_server_status(
     # Poll the server
     client = ServerClient(server.endpoint_url, server.auth_token)
     health_result = await client.health()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     server.last_poll = now
     if isinstance(health_result, HealthResponse):

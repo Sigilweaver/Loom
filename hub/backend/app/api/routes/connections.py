@@ -9,10 +9,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAdmin
 from app.db.database import get_db
+from app.db.models import ConnectionGroup, UserGroup
 from app.domain.auth.sessions import SessionInfo
 from app.domain.connections import (
     ConnectionInfo,
@@ -88,20 +90,56 @@ async def _get_store(db: AsyncSession) -> ConnectionStore:
 
 @router.get("", response_model=ConnectionListResponse)
 async def list_connections(
-    _user: CurrentUser,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConnectionListResponse:
-    """List all Hub connections.
+    """List Hub connections accessible to the current user.
 
-    Any authenticated user can list connections. Credentials are never returned.
-    Future: RBAC will control which connections each user can see.
+    Admins and owners see all connections.
+    Regular users only see connections assigned to groups they belong to.
+    Credentials are never returned.
     """
     store = await _get_store(db)
-    connections = await store.list_connections()
+
+    # Admins/Owners see all connections
+    if user.role in ("owner", "admin"):
+        connections = await store.list_connections()
+        return ConnectionListResponse(
+            connections=[_info_to_response(c) for c in connections],
+            total=len(connections),
+        )
+
+    # Get user's group memberships
+    user_groups_result = await db.execute(
+        select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
+    )
+    user_group_ids = {row[0] for row in user_groups_result.fetchall()}
+
+    if not user_group_ids:
+        # User not in any groups - no connections accessible
+        return ConnectionListResponse(connections=[], total=0)
+
+    # Get connections assigned to user's groups
+    accessible_conn_result = await db.execute(
+        select(ConnectionGroup.connection_id)
+        .where(ConnectionGroup.group_id.in_(user_group_ids))
+        .distinct()
+    )
+    accessible_conn_ids = {row[0] for row in accessible_conn_result.fetchall()}
+
+    if not accessible_conn_ids:
+        return ConnectionListResponse(connections=[], total=0)
+
+    # Filter connections to only those accessible
+    all_connections = await store.list_connections()
+    filtered = [
+        c for c in all_connections
+        if UUID(c.id) in accessible_conn_ids
+    ]
 
     return ConnectionListResponse(
-        connections=[_info_to_response(c) for c in connections],
-        total=len(connections),
+        connections=[_info_to_response(c) for c in filtered],
+        total=len(filtered),
     )
 
 

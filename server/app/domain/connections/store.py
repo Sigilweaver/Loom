@@ -7,7 +7,7 @@ Stores connections in a JSON file with credentials encrypted at rest.
 
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote as url_quote
 from uuid import uuid4
@@ -262,7 +262,7 @@ class ConnectionStore:
             raise DuplicateConnectionError(f"A connection named '{input.name}' already exists")
 
         conn_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         stored = StoredConnection(
             id=conn_id,
@@ -318,7 +318,7 @@ class ConnectionStore:
             )
             conn.encrypted_credentials = self._encrypt_credentials(new_username, new_password)
 
-        conn.updated_at = datetime.utcnow()
+        conn.updated_at = datetime.now(UTC)
         self._connections[connection_id] = conn
         self._save()
 

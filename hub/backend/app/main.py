@@ -10,7 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.router import api_router
 from app.config import settings
+from app.db.database import async_session_maker
 from app.domain.auth.keys import init_key_manager
+from app.domain.auth.sessions import SessionManager
 from app.domain.auth.tokens import init_token_tracker
 from app.domain.capabilities import init_issuer
 from app.domain.servers.health_poller import health_poller
@@ -18,9 +20,33 @@ from app.domain.servers.health_poller import health_poller
 logger = logging.getLogger(__name__)
 
 
+# Session cleanup interval (1 hour)
+SESSION_CLEANUP_INTERVAL = 3600
+
+
+async def _session_cleanup_loop() -> None:
+    """Background task to periodically clean up expired sessions."""
+    import asyncio
+
+    while True:
+        try:
+            await asyncio.sleep(SESSION_CLEANUP_INTERVAL)
+            async with async_session_maker() as db:
+                manager = SessionManager(db)
+                deleted = await manager.cleanup_expired_sessions()
+                if deleted > 0:
+                    logger.info(f"Cleaned up {deleted} expired sessions")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Session cleanup error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
+    import asyncio
+
     logger.info("Sigilweaver Hub starting up...")
 
     # Initialize server token infrastructure
@@ -32,9 +58,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Start server health polling
     await health_poller.start()
 
+    # Start session cleanup background task
+    session_cleanup_task = asyncio.create_task(_session_cleanup_loop())
+
     yield
 
     logger.info("Sigilweaver Hub shutting down...")
+
+    # Stop session cleanup
+    session_cleanup_task.cancel()
+    try:
+        await session_cleanup_task
+    except asyncio.CancelledError:
+        pass
 
     # Stop token tracker cleanup
     await token_tracker.stop()

@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,7 +92,7 @@ class HealthPoller:
 
         client = ServerClient(server.endpoint_url, server.auth_token)
         result = await client.health()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         old_status = server.status
         server.last_poll = now

@@ -1,6 +1,6 @@
 """Generate Python code from workflow"""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.api.models.workflow import Tool, Workflow
 from app.domain.execution.graph import ExecutionGraph
@@ -28,7 +28,7 @@ class PythonCodeGenerator:
         lines.append("#!/usr/bin/env python3")
         lines.append('"""')
         lines.append("Auto-generated Sigilweaver workflow")
-        lines.append(f"Generated: {datetime.utcnow().isoformat()}Z")
+        lines.append(f"Generated: {datetime.now(UTC).isoformat()}")
         lines.append('"""')
         lines.append("")
         lines.append("import polars as pl")
