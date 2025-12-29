@@ -184,8 +184,22 @@ export interface WorkflowMetadata {
   folder_path: string;
   tags: string[];
   checksum: string;
+  uploaded_by: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface WorkflowContent {
+  version: string;
+  meta: {
+    name: string;
+    description: string;
+    author: string;
+    workflowId: string;
+    created: string;
+  };
+  tools: Array<Record<string, unknown>>;
+  wires: Array<Record<string, unknown>>;
 }
 
 export interface WorkflowListResponse {
@@ -204,7 +218,23 @@ export async function listWorkflows(params?: {
   if (params?.search) searchParams.set("search", params.search);
 
   const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/workflows${query ? `?${query}` : ""}`);
+  const response = await fetch(`${API_BASE}/workflows${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getWorkflow(id: string): Promise<WorkflowMetadata> {
+  const response = await fetch(`${API_BASE}/workflows/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getWorkflowContent(id: string): Promise<WorkflowContent> {
+  const response = await fetch(`${API_BASE}/workflows/${id}/content`, {
+    headers: getAuthHeaders(),
+  });
   return handleResponse(response);
 }
 
@@ -220,7 +250,20 @@ export async function uploadWorkflow(
 
   const response = await fetch(`${API_BASE}/workflows`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData,
+  });
+  return handleResponse(response);
+}
+
+export async function updateWorkflowMetadata(
+  id: string,
+  data: { folder_path?: string; tags?: string[] }
+): Promise<WorkflowMetadata> {
+  const response = await fetch(`${API_BASE}/workflows/${id}`, {
+    method: "PATCH",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
   });
   return handleResponse(response);
 }
@@ -228,6 +271,7 @@ export async function uploadWorkflow(
 export async function deleteWorkflow(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/workflows/${id}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     const error: ApiError = await response.json().catch(() => ({
@@ -235,6 +279,10 @@ export async function deleteWorkflow(id: string): Promise<void> {
     }));
     throw new Error(error.detail);
   }
+}
+
+export function getWorkflowDownloadUrl(id: string): string {
+  return `${API_BASE}/workflows/${id}/download`;
 }
 
 // Servers
