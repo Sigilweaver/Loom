@@ -142,7 +142,9 @@ class Execution(Base):
     trigger_type: Mapped[str] = mapped_column(String(50), nullable=False)
     triggered_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     schedule_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("schedules.id"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("schedules.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # Status
@@ -161,6 +163,9 @@ class Execution(Base):
     # Relationships
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="executions")
     server: Mapped["Server"] = relationship("Server", back_populates="executions")
+    schedule: Mapped[Optional["Schedule"]] = relationship(
+        "Schedule", back_populates="executions"
+    )
 
 
 class Schedule(Base):
@@ -178,6 +183,9 @@ class Schedule(Base):
     # When
     cron_expression: Mapped[str] = mapped_column(String(255), nullable=False)
     timezone: Mapped[str] = mapped_column(String(100), default="UTC")
+    start_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )  # Don't trigger before this time
 
     # Where
     target_server_id: Mapped[Optional[uuid.UUID]] = mapped_column(
@@ -206,6 +214,9 @@ class Schedule(Base):
     # Relationships
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="schedules")
     target_server: Mapped[Optional["Server"]] = relationship("Server")
+    executions: Mapped[list["Execution"]] = relationship(
+        "Execution", back_populates="schedule", passive_deletes=True
+    )
 
 
 class Connection(Base):

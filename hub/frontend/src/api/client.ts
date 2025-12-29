@@ -455,6 +455,7 @@ export interface ScheduleResponse {
   target_server_name: string | null;
   enabled: boolean;
   description: string | null;
+  start_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string | null;
@@ -497,6 +498,7 @@ export async function createSchedule(data: {
   workflow_id: string;
   cron_expression: string;
   timezone?: string;
+  start_at?: string;
   target_server_id?: string;
   enabled?: boolean;
   description?: string;
@@ -514,6 +516,7 @@ export async function updateSchedule(
   data: {
     cron_expression?: string;
     timezone?: string;
+    start_at?: string | null;
     target_server_id?: string | null;
     enabled?: boolean;
     description?: string | null;

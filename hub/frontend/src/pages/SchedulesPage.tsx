@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { DateTimePicker } from "@components/DateTimePicker";
+import { ScheduleBuilder } from "@components/ScheduleBuilder";
 import {
   listSchedules,
   listWorkflows,
@@ -71,22 +73,11 @@ function formatNextRun(isoString: string | null): string {
   return date.toLocaleDateString();
 }
 
-// Common cron presets for easy selection
-const CRON_PRESETS = [
-  { label: "Every minute", value: "* * * * *" },
-  { label: "Every 5 minutes", value: "*/5 * * * *" },
-  { label: "Every 15 minutes", value: "*/15 * * * *" },
-  { label: "Every hour", value: "0 * * * *" },
-  { label: "Every day at midnight", value: "0 0 * * *" },
-  { label: "Every day at 6 AM", value: "0 6 * * *" },
-  { label: "Every Monday at 9 AM", value: "0 9 * * 1" },
-  { label: "First of every month", value: "0 0 1 * *" },
-];
-
 interface ScheduleFormData {
   workflow_id: string;
   cron_expression: string;
   timezone: string;
+  start_at: string;
   target_server_id: string;
   enabled: boolean;
   description: string;
@@ -96,6 +87,7 @@ const DEFAULT_FORM_DATA: ScheduleFormData = {
   workflow_id: "",
   cron_expression: "0 * * * *",
   timezone: "UTC",
+  start_at: "",
   target_server_id: "",
   enabled: true,
   description: "",
@@ -122,6 +114,7 @@ function ScheduleModal({
           workflow_id: schedule.workflow_id,
           cron_expression: schedule.cron_expression,
           timezone: schedule.timezone,
+          start_at: schedule.start_at || "",
           target_server_id: schedule.target_server_id || "",
           enabled: schedule.enabled,
           description: schedule.description || "",
@@ -192,45 +185,14 @@ function ScheduleModal({
             </select>
           </div>
 
-          {/* Cron Expression */}
+          {/* Schedule Builder */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Schedule (Cron Expression) *
-            </label>
-            <div className="space-y-2">
-              <select
-                value={
-                  CRON_PRESETS.find((p) => p.value === formData.cron_expression)
-                    ? formData.cron_expression
-                    : "custom"
-                }
-                onChange={(e) => {
-                  if (e.target.value !== "custom") {
-                    setFormData({ ...formData, cron_expression: e.target.value });
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              >
-                {CRON_PRESETS.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-                <option value="custom">Custom...</option>
-              </select>
-              <input
-                type="text"
-                value={formData.cron_expression}
-                onChange={(e) =>
-                  setFormData({ ...formData, cron_expression: e.target.value })
-                }
-                placeholder="* * * * * (min hour day month weekday)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm"
-              />
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Format: minute hour day month weekday (0-59 0-23 1-31 1-12 0-6)
-            </p>
+            <ScheduleBuilder
+              value={formData.cron_expression}
+              onChange={(value) =>
+                setFormData({ ...formData, cron_expression: value })
+              }
+            />
           </div>
 
           {/* Timezone */}
@@ -256,6 +218,21 @@ function ScheduleModal({
               <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
               <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
             </select>
+          </div>
+
+          {/* Start At (delayed start) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start At (Optional)
+            </label>
+            <DateTimePicker
+              value={formData.start_at}
+              onChange={(value) => setFormData({ ...formData, start_at: value })}
+              placeholder="Select start date and time"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Schedule won't trigger before this time. Leave empty to start immediately.
+            </p>
           </div>
 
           {/* Target Server */}
@@ -406,6 +383,7 @@ export function SchedulesPage() {
       await updateSchedule(editingSchedule.id, {
         cron_expression: data.cron_expression,
         timezone: data.timezone,
+        start_at: data.start_at || undefined,
         target_server_id: data.target_server_id || undefined,
         enabled: data.enabled,
         description: data.description || undefined,
@@ -415,6 +393,7 @@ export function SchedulesPage() {
         workflow_id: data.workflow_id,
         cron_expression: data.cron_expression,
         timezone: data.timezone,
+        start_at: data.start_at || undefined,
         target_server_id: data.target_server_id || undefined,
         enabled: data.enabled,
         description: data.description || undefined,

@@ -88,9 +88,19 @@ class Scheduler:
             return
 
         try:
-            trigger = CronTrigger.from_crontab(
-                schedule.cron_expression,
+            # Parse cron expression (5 fields: minute hour day month day_of_week)
+            parts = schedule.cron_expression.split()
+            if len(parts) != 5:
+                raise ValueError(f"Expected 5 fields, got {len(parts)}")
+
+            trigger = CronTrigger(
+                minute=parts[0],
+                hour=parts[1],
+                day=parts[2],
+                month=parts[3],
+                day_of_week=parts[4],
                 timezone=schedule.timezone,
+                start_date=schedule.start_at,
             )
         except ValueError as e:
             logger.error(

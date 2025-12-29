@@ -38,12 +38,23 @@ def _to_iso_utc(dt: datetime) -> str:
     return dt.isoformat()
 
 
+def _parse_iso_datetime(iso_str: str | None) -> datetime | None:
+    """Parse ISO datetime string to timezone-aware datetime."""
+    if not iso_str:
+        return None
+    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt
+
+
 class ScheduleCreate(BaseModel):
     """Request to create a schedule."""
 
     workflow_id: UUID
     cron_expression: str  # e.g., "0 6 * * *" (6 AM daily)
     timezone: str = "UTC"
+    start_at: str | None = None  # ISO datetime - don't trigger before this
     target_server_id: UUID | None = None  # None = round-robin
     enabled: bool = True
     description: str | None = None
@@ -54,6 +65,7 @@ class ScheduleUpdate(BaseModel):
 
     cron_expression: str | None = None
     timezone: str | None = None
+    start_at: str | None = None  # ISO datetime
     target_server_id: UUID | None = None
     enabled: bool | None = None
     description: str | None = None
@@ -67,6 +79,7 @@ class ScheduleResponse(BaseModel):
     workflow_name: str | None
     cron_expression: str
     timezone: str
+    start_at: str | None
     target_server_id: UUID | None
     target_server_name: str | None
     enabled: bool
@@ -103,6 +116,7 @@ def _info_to_response(info: ScheduleInfo) -> ScheduleResponse:
         workflow_name=info.workflow_name,
         cron_expression=info.cron_expression,
         timezone=info.timezone,
+        start_at=_to_iso_utc(info.start_at) if info.start_at else None,
         target_server_id=info.target_server_id,
         target_server_name=info.target_server_name,
         enabled=info.enabled,
@@ -180,6 +194,7 @@ async def create_schedule(
             target_server_id=request.target_server_id,
             cron_expression=request.cron_expression,
             timezone=request.timezone,
+            start_at=_parse_iso_datetime(request.start_at),
             enabled=request.enabled,
             description=request.description,
         )
@@ -231,6 +246,7 @@ async def update_schedule(
         input = UpdateScheduleInput(
             cron_expression=request.cron_expression,
             timezone=request.timezone,
+            start_at=_parse_iso_datetime(request.start_at),
             target_server_id=request.target_server_id,
             enabled=request.enabled,
             description=request.description,

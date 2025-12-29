@@ -14,6 +14,7 @@ class ScheduleInfo(BaseModel):
     workflow_name: str | None
     cron_expression: str
     timezone: str
+    start_at: datetime | None
     target_server_id: UUID | None
     target_server_name: str | None
     enabled: bool
@@ -35,6 +36,7 @@ class CreateScheduleInput(BaseModel):
         pattern=r"^[\d\*\-\,\/]+\s+[\d\*\-\,\/]+\s+[\d\*\-\,\/\?LW]+\s+[\d\*\-\,\/]+\s+[\d\*\-\,\/\?L#]+$",
     )
     timezone: str = "UTC"
+    start_at: datetime | None = None  # Don't trigger before this time
     target_server_id: UUID | None = None  # None = round-robin
     enabled: bool = True
     description: str | None = None
@@ -48,6 +50,7 @@ class UpdateScheduleInput(BaseModel):
         pattern=r"^[\d\*\-\,\/]+\s+[\d\*\-\,\/]+\s+[\d\*\-\,\/\?LW]+\s+[\d\*\-\,\/]+\s+[\d\*\-\,\/\?L#]+$",
     )
     timezone: str | None = None
+    start_at: datetime | None = None
     target_server_id: UUID | None = None
     enabled: bool | None = None
     description: str | None = None
