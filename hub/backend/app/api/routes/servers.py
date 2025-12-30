@@ -10,9 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import RequireAdmin, RequireAuditor
 from app.config import settings
 from app.db.database import get_db
 from app.db.models import Server
+from app.domain.auth.sessions import SessionInfo
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
 
 router = APIRouter(prefix="/servers")
@@ -95,8 +97,11 @@ def _server_to_response(server: Server) -> ServerResponse:
 
 
 @router.get("", response_model=ServerListResponse)
-async def list_servers(db: AsyncSession = Depends(get_db)) -> ServerListResponse:
-    """List all registered servers"""
+async def list_servers(
+    _user: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> ServerListResponse:
+    """List all registered servers. Requires auditor role or higher."""
     result = await db.execute(select(Server).order_by(Server.name))
     servers = result.scalars().all()
 
@@ -180,8 +185,12 @@ async def register_server(
 
 
 @router.get("/{server_id}", response_model=ServerResponse)
-async def get_server(server_id: UUID, db: AsyncSession = Depends(get_db)) -> ServerResponse:
-    """Get server details"""
+async def get_server(
+    server_id: UUID,
+    _user: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> ServerResponse:
+    """Get server details. Requires auditor role or higher."""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
 
@@ -196,9 +205,12 @@ async def get_server(server_id: UUID, db: AsyncSession = Depends(get_db)) -> Ser
 
 @router.put("/{server_id}", response_model=ServerResponse)
 async def update_server(
-    server_id: UUID, request: ServerUpdate, db: AsyncSession = Depends(get_db)
+    server_id: UUID,
+    request: ServerUpdate,
+    _admin: SessionInfo = RequireAdmin,
+    db: AsyncSession = Depends(get_db),
 ) -> ServerResponse:
-    """Update server configuration"""
+    """Update server configuration. Requires admin role."""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
 
@@ -224,8 +236,12 @@ async def update_server(
 
 
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def unregister_server(server_id: UUID, db: AsyncSession = Depends(get_db)) -> None:
-    """Remove a server from the registry"""
+async def unregister_server(
+    server_id: UUID,
+    _admin: SessionInfo = RequireAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Remove a server from the registry. Requires admin role."""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
 
@@ -244,9 +260,11 @@ async def unregister_server(server_id: UUID, db: AsyncSession = Depends(get_db))
 
 @router.post("/{server_id}/refresh", response_model=ServerResponse)
 async def refresh_server_status(
-    server_id: UUID, db: AsyncSession = Depends(get_db)
+    server_id: UUID,
+    _admin: SessionInfo = RequireAdmin,
+    db: AsyncSession = Depends(get_db),
 ) -> ServerResponse:
-    """Manually refresh server status by polling it now"""
+    """Manually refresh server status by polling it now. Requires admin role."""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
 
@@ -276,8 +294,11 @@ async def refresh_server_status(
 
 
 @router.post("/test", response_model=ServerTestResponse)
-async def test_server_connection(request: ServerCreate) -> ServerTestResponse:
-    """Test connection to a server before registering it"""
+async def test_server_connection(
+    request: ServerCreate,
+    _admin: SessionInfo = RequireAdmin,
+) -> ServerTestResponse:
+    """Test connection to a server before registering it. Requires admin role."""
     client = ServerClient(request.endpoint_url.rstrip("/"), request.auth_token)
     result = await client.health()
 
@@ -306,9 +327,11 @@ async def test_server_connection(request: ServerCreate) -> ServerTestResponse:
 
 @router.get("/{server_id}/connections", response_model=ServerConnectionsResponse)
 async def get_server_connections(
-    server_id: UUID, db: AsyncSession = Depends(get_db)
+    server_id: UUID,
+    _user: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
 ) -> ServerConnectionsResponse:
-    """Get connections available on a server (proxied from server's API)"""
+    """Get connections available on a server. Requires auditor role or higher."""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
 

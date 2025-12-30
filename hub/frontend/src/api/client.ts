@@ -349,7 +349,9 @@ export interface ServerTestResponse {
 }
 
 export async function listServers(): Promise<ServerListResponse> {
-  const response = await fetch(`${API_BASE}/servers`);
+  const response = await fetch(`${API_BASE}/servers`, {
+    headers: getAuthHeaders(),
+  });
   return handleResponse(response);
 }
 
@@ -360,7 +362,7 @@ export async function registerServer(data: {
 }): Promise<ServerResponse> {
   const response = await fetch(`${API_BASE}/servers`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse(response);
@@ -373,7 +375,7 @@ export async function testServerConnection(data: {
 }): Promise<ServerTestResponse> {
   const response = await fetch(`${API_BASE}/servers/test`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse(response);
@@ -382,6 +384,7 @@ export async function testServerConnection(data: {
 export async function refreshServer(id: string): Promise<ServerResponse> {
   const response = await fetch(`${API_BASE}/servers/${id}/refresh`, {
     method: "POST",
+    headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
@@ -389,6 +392,7 @@ export async function refreshServer(id: string): Promise<ServerResponse> {
 export async function deleteServer(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/servers/${id}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     const error: ApiError = await response.json().catch(() => ({

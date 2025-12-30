@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
+from app.api.dependencies import CurrentUser, RequireAdmin
 from app.db.database import get_db
 from app.db.models import ConnectionGroup, UserGroup
 from app.domain.auth.sessions import SessionInfo
@@ -173,12 +173,14 @@ async def create_connection(
 @router.get("/{connection_id}", response_model=ConnectionResponse)
 async def get_connection(
     connection_id: UUID,
-    _user: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConnectionResponse:
     """Get a connection by ID.
 
-    Requires auditor role or higher. Credentials are never returned.
+    Admins/auditors can view any connection.
+    Users can only view connections assigned to their groups.
+    Credentials are never returned.
     """
     store = await _get_store(db)
     conn = await store.get_connection(connection_id)
@@ -187,6 +189,34 @@ async def get_connection(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Connection {connection_id} not found",
+        )
+
+    # Admins/auditors can see any connection
+    if user.role in ("owner", "admin", "auditor"):
+        return _info_to_response(conn)
+
+    # Users can only see connections in their groups
+    user_groups_result = await db.execute(
+        select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
+    )
+    user_group_ids = {row[0] for row in user_groups_result.fetchall()}
+
+    if not user_group_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this connection",
+        )
+
+    # Check if connection is in any of user's groups
+    accessible = await db.execute(
+        select(ConnectionGroup.connection_id)
+        .where(ConnectionGroup.connection_id == connection_id)
+        .where(ConnectionGroup.group_id.in_(user_group_ids))
+    )
+    if not accessible.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this connection",
         )
 
     return _info_to_response(conn)

@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@components/Layout";
 import { ProtectedRoute } from "@components/ProtectedRoute";
+import { UserRoute } from "@components/UserRoute";
+import { RoleBasedRedirect } from "@components/RoleBasedRedirect";
 import { LoginPage } from "@pages/LoginPage";
 import { AdminPage } from "@pages/AdminPage";
 import { HomePage } from "@pages/HomePage";
@@ -23,10 +25,44 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<HomePage />} />
-        <Route path="workflows" element={<WorkflowsPage />} />
-        <Route path="executions" element={<ExecutionsPage />} />
-        <Route path="schedules" element={<SchedulesPage />} />
+        {/* Role-based redirect at root */}
+        <Route index element={<RoleBasedRedirect />} />
+
+        {/* User routes - only for regular users */}
+        <Route
+          path="home"
+          element={
+            <UserRoute>
+              <HomePage />
+            </UserRoute>
+          }
+        />
+        <Route
+          path="workflows"
+          element={
+            <UserRoute>
+              <WorkflowsPage />
+            </UserRoute>
+          }
+        />
+        <Route
+          path="executions"
+          element={
+            <UserRoute>
+              <ExecutionsPage />
+            </UserRoute>
+          }
+        />
+        <Route
+          path="schedules"
+          element={
+            <UserRoute>
+              <SchedulesPage />
+            </UserRoute>
+          }
+        />
+
+        {/* Admin routes - for admins, owners, and auditors */}
         <Route
           path="admin"
           element={

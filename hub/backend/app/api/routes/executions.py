@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAuditor
+from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
@@ -178,10 +178,10 @@ async def list_executions(
 @router.post("", response_model=ExecutionResponse, status_code=status.HTTP_201_CREATED)
 async def trigger_execution(
     request: ExecutionTrigger,
-    user: CurrentUser,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ExecutionResponse:
-    """Trigger a workflow execution.
+    """Trigger a workflow execution. Requires user role.
 
     Queues an execution and starts it asynchronously on the selected server.
     If no server_id is provided, an online server is selected automatically.
@@ -225,10 +225,10 @@ async def trigger_execution(
 @router.get("/{execution_id}", response_model=ExecutionResponse)
 async def get_execution(
     execution_id: UUID,
-    user: CurrentUser,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> ExecutionResponse:
-    """Get execution details by ID."""
+    """Get execution details by ID. Requires auditor role or higher."""
     service = _get_service(db)
 
     try:
@@ -244,20 +244,33 @@ async def get_execution(
 @router.post("/{execution_id}/cancel", response_model=ExecutionResponse)
 async def cancel_execution(
     execution_id: UUID,
-    user: CurrentUser,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ExecutionResponse:
-    """Cancel a queued or running execution."""
+    """Cancel a queued or running execution. Requires user role.
+
+    Users can only cancel their own executions.
+    """
     service = _get_service(db)
 
+    # Check ownership first
     try:
-        info = await service.cancel_execution(execution_id)
-        return _info_to_response(info)
+        existing = await service.get_execution(execution_id)
     except ExecutionNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Execution not found",
         )
+
+    if existing.triggered_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot cancel executions triggered by other users",
+        )
+
+    try:
+        info = await service.cancel_execution(execution_id)
+        return _info_to_response(info)
     except ExecutionServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
