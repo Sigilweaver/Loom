@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
             'user/interface/data-preview',
             'user/interface/keyboard-shortcuts',
             'user/interface/connections',
+            'user/interface/hub',
             'user/interface/caching',
           ],
         },
@@ -97,6 +98,22 @@ const sidebars: SidebarsConfig = {
             'user/crash-courses/excel',
           ],
         },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Administrator Guide',
+      link: {
+        type: 'doc',
+        id: 'admin/index',
+      },
+      items: [
+        'admin/roles',
+        'admin/users',
+        'admin/groups',
+        'admin/connections',
+        'admin/servers',
+        'admin/security',
       ],
     },
     {

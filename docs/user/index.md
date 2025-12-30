@@ -18,7 +18,7 @@ If you're switching from **Tableau Prep**, **Alteryx**, **Power Query**, **KNIME
 
 ### [Interface](./interface/canvas)
 
-Learn how to navigate the application:
+Learn how to navigate Studio:
 
 - **[Canvas](./interface/canvas)** - The main workspace where you build workflows
 - **[Tool Palette](./interface/tool-palette)** - Find and add tools to your workflow
@@ -27,12 +27,13 @@ Learn how to navigate the application:
 - **[Data Preview](./interface/data-preview)** - Inspect data at any point in your workflow
 - **[Keyboard Shortcuts](./interface/keyboard-shortcuts)** - Work faster with shortcuts
 - **[Managing Connections](./interface/connections)** - Set up database connections securely
+- **[Using Hub](./interface/hub)** - Connect to Hub for team features
 
 ### [Expressions](./expressions/basics)
 
-Master the expression language used in Filter and Formula tools:
+Master the expression language used in Filter and Formula tools. Don't worry - the editor has full autocomplete, so you don't need to memorize anything:
 
-- **[Basics](./expressions/basics)** - Column references, literals, and operators
+- **[Basics](./expressions/basics)** - Autocomplete, column references, and operators
 - **[Syntax Rules](./expressions/syntax-rules)** - Parentheses, multi-line expressions, and gotchas
 - **[Common Operations](./expressions/common-operations)** - String manipulation, dates, casting, and null handling
 
@@ -87,3 +88,14 @@ See the [Expressions](./expressions/basics) section for a complete guide.
 - [Polars User Guide](https://docs.pola.rs/user-guide/) - Full Polars documentation
 - [Polars Expression Reference](https://docs.pola.rs/user-guide/expressions/) - Complete expression API
 - [GitHub Repository](https://github.com/sigilweaver/sigilweaver-app) - Source code and issue tracker
+
+## For Administrators
+
+If you're managing a Sigilweaver Hub deployment for your team, see the [Administrator Guide](/admin/) for:
+
+- [Roles and Permissions](/admin/roles) - Understanding access control
+- [User Management](/admin/users) - Creating and managing user accounts
+- [Groups](/admin/groups) - Organizing users and controlling access
+- [Hub Connections](/admin/connections) - Providing secure database access
+- [Server Management](/admin/servers) - Managing execution infrastructure
+- [Security Model](/admin/security) - Zero-trust credential handling

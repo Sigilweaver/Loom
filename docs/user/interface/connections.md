@@ -20,19 +20,22 @@ Client connections store credentials locally on your machine using Electron's se
 - **Encrypted at rest** - Protected by your operating system's credential storage
 - **Ideal for** - Personal databases, development environments, individual work
 
-### Server Connections
+### Hub Connections
 
-Server connections are managed by your server administrator. The credentials are stored on the server using Fernet encryption. These connections are:
+Hub connections are managed by your organization's administrators through [Sigilweaver Hub](/admin/). The credentials are stored on the Hub server using Fernet encryption. These connections are:
 
-- **Shared across users** - Available to anyone with access to the server
+- **Managed centrally** - Administrators create and maintain connections
+- **Shared through groups** - Available to users who are members of assigned groups
 - **Opaque to users** - You can use the connection but cannot see the username/password
 - **Ideal for** - Team databases, production systems, controlled access environments
 
-:::note Server Connections
-Server connections appear in your connection list with a server suffix. You can use them in workflows but cannot edit or view their credentials.
+:::note Hub Connections
+Hub connections appear in your connection list when you're connected to a Hub server and are a member of groups with assigned connections. You can use them in workflows but cannot edit or view their credentials.
+
+See the [Administrator Guide](/admin/connections) for details on how Hub connections are managed.
 :::
 
-## Creating a Connection
+## Creating a Client Connection
 
 1. Click **Add Connection** in the Connection Manager
 2. Fill in the connection details:
@@ -46,7 +49,7 @@ Server connections appear in your connection list with a server suffix. You can 
 3. Click **Test Connection** to verify connectivity
 4. Click **Save** to store the connection
 
-## Editing a Connection
+## Editing a Client Connection
 
 1. Find the connection in the list
 2. Click the edit (pencil) icon
@@ -54,7 +57,11 @@ Server connections appear in your connection list with a server suffix. You can 
 4. Leave username/password blank to keep existing credentials
 5. Click **Save**
 
-## Deleting a Connection
+:::note Hub Connections
+You cannot edit Hub connections - they are managed by your administrator. Contact your admin if credentials need to be updated.
+:::
+
+## Deleting a Client Connection
 
 1. Find the connection in the list
 2. Click the delete (trash) icon
@@ -62,6 +69,8 @@ Server connections appear in your connection list with a server suffix. You can 
 
 :::warning
 Deleting a connection may break workflows that use it. Check your workflows before removing connections.
+
+Hub connections cannot be deleted by users - contact your administrator.
 :::
 
 ## Using Connections in Workflows
@@ -82,38 +91,40 @@ Sigilweaver is designed to protect your database credentials:
 - **Credentials never appear in workflow files** - Only connection IDs are saved
 - **Python code exports omit credentials** - Generated code uses placeholder comments
 - **JSON previews strip sensitive data** - Workflow JSON shows IDs, not passwords
-- **Server credentials stay on the server** - Users cannot extract server-managed passwords
+- **Hub credentials stay on Hub** - Users cannot extract Hub-managed passwords
 
 ### How It Works
 
 | Connection Type | Storage | Who Can Access | Sent to Server |
 |-----------------|---------|----------------|----------------|
 | Client | Electron safeStorage (OS keychain) | Only you, on this machine | **Yes** - when executing workflows |
-| Server | Fernet-encrypted JSON on server | Server administrators only | Already on server |
+| Hub | Fernet-encrypted on Hub server | Hub administrators only | No - Hub resolves internally |
 
 :::important Client Credentials Are Transmitted
-**Client connections** store credentials on your local machine, but they are **sent to the backend server** when you execute a workflow that queries a database. The server needs the credentials to connect to your database and run the query.
+**Client connections** store credentials on your local machine, but they are **sent to the Server** when you execute a workflow that queries a database. The Server needs the credentials to connect to your database and run the query.
 
 This means:
 - Your credentials are transmitted over the network (use HTTPS/localhost)
-- The backend server temporarily has access to your credentials during execution
-- For production or sensitive databases, use **server connections** instead
+- The Server temporarily has access to your credentials during execution
+- For production or sensitive databases, use **Hub connections** instead
 
-**Server connections** are different - the credentials are already stored on the server and never leave it. The backend resolves them internally without the client ever knowing the actual username/password.
+**Hub connections** are different - the credentials are stored on the Hub server and resolved internally. They are never transmitted to your machine and you cannot see the actual username/password. This is the recommended approach for team databases.
+
+See [Hub Security Model](/admin/security) for details on how Hub protects credentials.
 :::
 
 ### Workflow Portability
 
 When you share a workflow that uses database connections:
 
-- **Same machine**: Connections work automatically (your credentials are available)
+- **Same machine**: Client connections work automatically (your credentials are available)
 - **Different machine**: User must have matching connection IDs configured
-- **Server connections**: Work automatically if the recipient has server access
+- **Hub connections**: Work automatically for anyone with access to the same Hub and group membership
 
 :::tip Best Practice
-**For team workflows**, use **server connections** so all team members can run the workflow without configuring individual credentials.
+**For team workflows**, use **Hub connections** so all team members can run the workflow without configuring individual credentials.
 
-**For production databases**, always use **server connections** - this keeps credentials on the server and avoids transmitting them from client machines. Client connections are best for local development databases or personal data sources.
+**For production databases**, always use **Hub connections** - this keeps credentials centrally managed and avoids transmitting them from client machines. Client connections are best for local development databases or personal data sources.
 :::
 
 ## Troubleshooting
@@ -135,6 +146,11 @@ Check:
 - Does the user have permission to connect?
 - Are there firewall rules blocking the connection?
 
-### "Server connections unavailable"
+### "Hub connections unavailable"
 
-The server may not have server connections enabled. Server administrators need to configure a `CONNECTION_ENCRYPTION_KEY` environment variable to enable server-managed connections.
+You may not be connected to a Hub server, or you may not be in any groups with connections assigned.
+
+**Solutions:**
+- Connect to Hub from Studio settings
+- Ask your administrator to add you to groups with connections
+- See [Groups](/admin/groups) for how group membership works

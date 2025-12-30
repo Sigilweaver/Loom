@@ -4,7 +4,52 @@ sidebar_position: 1
 
 # Expression Basics
 
-Sigilweaver uses [Polars expressions](https://docs.pola.rs/user-guide/expressions/) for filtering data and creating calculated columns. This page covers the fundamentals.
+Sigilweaver uses [Polars expressions](https://docs.pola.rs/user-guide/expressions/) for filtering data and creating calculated columns. Don't worry if you've never written code - **the editor guides you with autocomplete**.
+
+## You Don't Need to Memorize Anything
+
+The expression editor has full autocomplete support. Press **Tab** at any point to see what's available.
+
+### Finding Columns
+
+Type `pl.col("` and press **Tab** to see all columns from your input data:
+
+```python
+pl.col("  # Press Tab → see your columns
+```
+
+Start typing to filter: `pl.col("win` → Tab → `pl.col("Winning Numbers")`
+
+### Finding Methods
+
+After a column reference, type `.` and press **Tab** to see available methods. The suggestions are **context-aware** based on data type:
+
+```python
+pl.col("email").       # Tab → .str.contains(), .str.to_lowercase(), etc.
+pl.col("created_at").  # Tab → .dt.year(), .dt.month(), etc.
+pl.col("price").       # Tab → .round(), .abs(), .clip(), etc.
+```
+
+Type a few letters to narrow down: `.str.con` → Tab → `.str.contains()`
+
+### Complete Example
+
+Building an expression to check if a name contains "Mrs":
+
+1. Type `pl.col("Na` → Tab → `pl.col("Name")`
+2. Type `.str.con` → Tab → `.str.contains("")`
+3. Type `Mrs` inside the quotes
+
+**Result**: `pl.col("Name").str.contains("Mrs")`
+
+The entire process uses Tab completion - no memorization required.
+
+:::tip Keyboard Shortcuts
+- **Tab** - Show completions / accept suggestion
+- **Ctrl+Space** (Cmd+Space on Mac) - Manually trigger autocomplete
+- **Arrow keys** - Navigate suggestions
+- **Enter** - Accept selected suggestion
+:::
 
 ## Column References
 
@@ -53,10 +98,6 @@ You **don't need** `pl.lit()` for comparisons - bare values work fine:
 pl.col("status") == "active"        # Works
 pl.col("age") > 18                   # Works
 pl.col("price") < 100.0              # Works
-
-# These also work but are unnecessarily verbose:
-pl.col("status") == pl.lit("active") # Unnecessary
-pl.col("age") > pl.lit(18)           # Unnecessary
 ```
 
 :::tip Rule of Thumb
@@ -116,82 +157,6 @@ pl.col("name").str.to_lowercase().str.strip_chars()
 pl.col("date").dt.year()
 pl.col("price").round(2).cast(pl.Float64)
 ```
-
-## Using the Expression Editor
-
-Sigilweaver's expression editor includes autocomplete that makes working with Polars expressions fast and approachable - **you don't need to memorize function names or column names**.
-
-### Tab Completion for Column Names
-
-When you type `pl.col("` and press Tab, you'll see a list of all available columns from your input data:
-
-```python
-pl.col("  # Press Tab here to see your columns
-```
-
-**Example workflow**:
-1. Type `pl.col("win` 
-2. Press Tab → auto-completes to `pl.col("Winning Numbers")`
-3. The editor handles spaces and special characters automatically
-
-You can also press Tab at any point while typing a column name to see matching suggestions.
-
-### Tab Completion for Methods
-
-After typing a column reference or any expression, press `.` followed by Tab to see available methods. **The suggestions are context-aware** - they show methods relevant to your column's data type.
-
-**For string columns**:
-```python
-pl.col("email").  # Press Tab to see .str.contains(), .str.to_lowercase(), etc.
-```
-
-**For date columns**:
-```python
-pl.col("created_at").  # Press Tab to see .dt.year(), .dt.month(), etc.
-```
-
-**For numeric columns**:
-```python
-pl.col("price").  # Press Tab to see .round(), .abs(), .clip(), etc.
-```
-
-### Type-Ahead Filtering
-
-You don't need to scroll through the full list - just start typing:
-
-```python
-pl.col("name").str.con  # Press Tab → completes to .str.contains()
-pl.col("date").dt.ye     # Press Tab → completes to .dt.year()
-```
-
-### Complete Example: Building an Expression Step-by-Step
-
-Let's create an expression to check if a passenger's name contains "Mrs" (to identify married women in the Titanic dataset):
-
-1. **Start with column**: Type `pl.col("Na` → Tab → `pl.col("Name")`
-2. **Add method**: Type `.str.con` → Tab → `.str.contains("")`
-3. **Fill in argument**: Move cursor inside quotes, type `Mrs`
-
-**Final expression**: `pl.col("Name").str.contains("Mrs")`
-
-The entire process uses Tab completion - **no memorization required**.
-
-### Tips for Using Autocomplete
-
-- Press **Tab** at any time to see completions
-- Press **Ctrl+Space** (or **Cmd+Space** on Mac) to manually trigger autocomplete
-- Use arrow keys to navigate suggestions, Enter to accept
-- Type a few characters to filter the suggestion list
-
-### Don't Be Intimidated by "Raw Polars"
-
-While the editor shows raw Polars expressions, the autocomplete system guides you through the syntax. You're not writing code from scratch - you're **selecting from available options** and filling in the details.
-
-**Common workflow pattern**:
-1. `pl.col("` + Tab = pick your column
-2. `.` + Tab = see what you can do with it
-3. Type a few letters + Tab = narrow down to the operation you want
-4. Fill in any arguments (strings, numbers, etc.)
 
 ## External Reference
 

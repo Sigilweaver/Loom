@@ -22,7 +22,7 @@ Create or replace calculated columns using Polars expressions.
 | Formula Expression | Yes | Polars expression defining the column value |
 
 :::tip Using the Expression Editor
-The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics#using-the-expression-editor) for a step-by-step guide.
+The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics) for a step-by-step guide.
 :::
 
 ## Creating a New Column

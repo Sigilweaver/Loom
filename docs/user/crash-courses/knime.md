@@ -135,9 +135,9 @@ See the [Expressions Guide](../expressions/basics) for complete documentation.
 ### 4. Lightweight and Fast
 
 KNIME is Java-based and can be resource-heavy. Sigilweaver is built with:
-- **Electron** for the UI (cross-platform desktop)
+- **Electron** for Studio (cross-platform desktop)
 - **Polars** (Rust) for data processing - extremely fast
-- **Python** backend for orchestration
+- **Python/FastAPI** Server for execution
 
 Sigilweaver is lighter, starts faster, and processes data efficiently.
 

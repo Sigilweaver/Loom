@@ -21,7 +21,7 @@ Split data into rows that match or don't match a condition.
 | Filter Expression | Yes | Polars expression that returns true/false for each row |
 
 :::tip Using the Expression Editor
-The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics#using-the-expression-editor) for a step-by-step guide.
+The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics) for a step-by-step guide.
 :::
 
 ## How It Works

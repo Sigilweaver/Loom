@@ -25,8 +25,17 @@ Sigilweaver uses Polars data types. Understanding these types helps you work wit
 
 | Type | Size | Precision | Use Case |
 |------|------|-----------|----------|
-| `Float32` | 4 bytes | ~7 digits | Memory-constrained, less precision needed |
-| `Float64` | 8 bytes | ~15 digits | Most decimal numbers, financial data |
+| `Float16` | 2 bytes | ~3 digits | Machine learning, memory-constrained |
+| `Float32` | 4 bytes | ~7 digits | Graphics, less precision needed |
+| `Float64` | 8 bytes | ~15 digits | Most decimal numbers, scientific data |
+
+### Decimal
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `Decimal` | Arbitrary precision decimal | Financial calculations, exact decimal math |
+
+`Decimal` avoids floating-point rounding errors. Use it when precision matters (money, accounting).
 
 ## Text Types
 
@@ -128,7 +137,8 @@ Choose the smallest type that fits your data:
 
 ### Precision
 
-For financial calculations, use `Float64` to minimize rounding errors.
+- For **financial calculations**, use `Decimal` to avoid rounding errors
+- For **scientific/general decimal**, use `Float64`
 
 ## Common Type Errors
 
