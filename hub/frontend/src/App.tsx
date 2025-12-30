@@ -3,6 +3,7 @@ import { Layout } from "@components/Layout";
 import { ProtectedRoute } from "@components/ProtectedRoute";
 import { LoginPage } from "@pages/LoginPage";
 import { AdminPage } from "@pages/AdminPage";
+import { HomePage } from "@pages/HomePage";
 import { WorkflowsPage } from "@pages/WorkflowsPage";
 import { ExecutionsPage } from "@pages/ExecutionsPage";
 import { SchedulesPage } from "@pages/SchedulesPage";
@@ -22,14 +23,14 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/workflows" replace />} />
+        <Route index element={<HomePage />} />
         <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="executions" element={<ExecutionsPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
         <Route
           path="admin"
           element={
-            <ProtectedRoute minRole="admin">
+            <ProtectedRoute minRole="auditor">
               <AdminPage />
             </ProtectedRoute>
           }
@@ -37,7 +38,7 @@ function App() {
       </Route>
 
       {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to="/workflows" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

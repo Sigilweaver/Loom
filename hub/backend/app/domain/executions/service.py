@@ -145,6 +145,7 @@ class ExecutionService:
         workflow_id: UUID | None = None,
         server_id: UUID | None = None,
         status: str | None = None,
+        triggered_by: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[ExecutionInfo], int]:
@@ -154,6 +155,7 @@ class ExecutionService:
             workflow_id: Filter by workflow.
             server_id: Filter by server.
             status: Filter by status.
+            triggered_by: Filter by triggering username.
             limit: Maximum results.
             offset: Pagination offset.
 
@@ -169,6 +171,8 @@ class ExecutionService:
             query = query.where(Execution.server_id == server_id)
         if status:
             query = query.where(Execution.status == status)
+        if triggered_by:
+            query = query.where(Execution.triggered_by == triggered_by)
 
         # Get total count (before pagination)
         count_result = await self.db.execute(

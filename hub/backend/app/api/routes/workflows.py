@@ -12,24 +12,14 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-
-def _to_iso_utc(dt: datetime) -> str:
-    """Convert datetime to ISO format with UTC timezone suffix.
-
-    Handles both naive and aware datetimes. Naive datetimes are assumed to be UTC.
-    """
-    if dt.tzinfo is None:
-        # Naive datetime - assume UTC and add timezone
-        dt = dt.replace(tzinfo=UTC)
-    return dt.isoformat()
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import CurrentUser, RequireAuditor
 from app.db.database import get_db
+from app.domain.auth.sessions import SessionInfo
 from app.domain.workflows import (
     CreateWorkflowInput,
     UpdateWorkflowInput,
@@ -41,6 +31,17 @@ from app.domain.workflows import (
 from app.domain.workflows.service import WorkflowParseError
 
 router = APIRouter(prefix="/workflows")
+
+
+def _to_iso_utc(dt: datetime) -> str:
+    """Convert datetime to ISO format with UTC timezone suffix.
+
+    Handles both naive and aware datetimes. Naive datetimes are assumed to be UTC.
+    """
+    if dt.tzinfo is None:
+        # Naive datetime - assume UTC and add timezone
+        dt = dt.replace(tzinfo=UTC)
+    return dt.isoformat()
 
 
 class WorkflowMetadata(BaseModel):
@@ -112,15 +113,20 @@ def _get_service(db: AsyncSession) -> WorkflowService:
     return WorkflowService(db)
 
 
-@router.get("", response_model=WorkflowListResponse)
-async def list_workflows(
+# =============================================================================
+# User's Workflows (self-service) - MUST be before other routes
+# =============================================================================
+
+
+@router.get("/my", response_model=WorkflowListResponse)
+async def list_my_workflows(
     user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     folder: str | None = None,
     tag: str | None = None,
     search: str | None = None,
 ) -> WorkflowListResponse:
-    """List all workflows, optionally filtered.
+    """List workflows uploaded by the current user.
 
     Query parameters:
     - folder: Filter by exact folder path
@@ -132,6 +138,42 @@ async def list_workflows(
         folder_path=folder,
         tag=tag,
         search=search,
+        uploaded_by=user.username,
+    )
+    return WorkflowListResponse(
+        workflows=[WorkflowMetadata.from_info(w) for w in workflows],
+        total=len(workflows),
+    )
+
+
+# =============================================================================
+# Admin/Auditor Workflows (all workflows)
+# =============================================================================
+
+
+@router.get("", response_model=WorkflowListResponse)
+async def list_workflows(
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+    folder: str | None = None,
+    tag: str | None = None,
+    search: str | None = None,
+    uploaded_by: str | None = None,
+) -> WorkflowListResponse:
+    """List all workflows, optionally filtered. Requires auditor role or higher.
+
+    Query parameters:
+    - folder: Filter by exact folder path
+    - tag: Filter by tag (partial match)
+    - search: Search in name and description
+    - uploaded_by: Filter by uploader username
+    """
+    service = _get_service(db)
+    workflows = await service.list_workflows(
+        folder_path=folder,
+        tag=tag,
+        search=search,
+        uploaded_by=uploaded_by,
     )
     return WorkflowListResponse(
         workflows=[WorkflowMetadata.from_info(w) for w in workflows],

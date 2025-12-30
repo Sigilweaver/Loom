@@ -41,6 +41,7 @@ class ScheduleService:
         self,
         workflow_id: UUID | None = None,
         enabled_only: bool = False,
+        created_by: str | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> tuple[list[ScheduleInfo], int]:
@@ -62,6 +63,10 @@ class ScheduleService:
         if enabled_only:
             query = query.where(Schedule.enabled == True)  # noqa: E712
             count_query = count_query.where(Schedule.enabled == True)  # noqa: E712
+
+        if created_by:
+            query = query.where(Schedule.created_by == created_by)
+            count_query = count_query.where(Schedule.created_by == created_by)
 
         # Get total count
         count_result = await self.db.execute(count_query)

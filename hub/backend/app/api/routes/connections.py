@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAdmin
+from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.db.database import get_db
 from app.db.models import ConnectionGroup, UserGroup
 from app.domain.auth.sessions import SessionInfo
@@ -43,6 +43,10 @@ class ConnectionResponse(BaseModel):
     host: str
     port: int
     database: str
+    status: str
+    last_checked: str | None
+    last_healthy: str | None
+    last_error: str | None
     created_by: str
     created_at: str
     updated_at: str
@@ -71,6 +75,10 @@ def _info_to_response(info: ConnectionInfo) -> ConnectionResponse:
         host=info.host,
         port=info.port,
         database=info.database,
+        status=info.status,
+        last_checked=info.last_checked.isoformat() if info.last_checked else None,
+        last_healthy=info.last_healthy.isoformat() if info.last_healthy else None,
+        last_error=info.last_error,
         created_by=info.created_by,
         created_at=info.created_at.isoformat(),
         updated_at=info.updated_at.isoformat(),
@@ -101,8 +109,8 @@ async def list_connections(
     """
     store = await _get_store(db)
 
-    # Admins/Owners see all connections
-    if user.role in ("owner", "admin"):
+    # Admins/Owners/Auditors see all connections
+    if user.role in ("owner", "admin", "auditor"):
         connections = await store.list_connections()
         return ConnectionListResponse(
             connections=[_info_to_response(c) for c in connections],
@@ -165,12 +173,12 @@ async def create_connection(
 @router.get("/{connection_id}", response_model=ConnectionResponse)
 async def get_connection(
     connection_id: UUID,
-    _user: SessionInfo = RequireAdmin,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> ConnectionResponse:
     """Get a connection by ID.
 
-    Requires admin role. Credentials are never returned.
+    Requires auditor role or higher. Credentials are never returned.
     """
     store = await _get_store(db)
     conn = await store.get_connection(connection_id)
@@ -228,6 +236,59 @@ async def delete_connection(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Connection {connection_id} not found",
         )
+
+
+class HealthCheckResponse(BaseModel):
+    """Response from health check operations."""
+
+    status: str
+    last_checked: str | None
+    last_healthy: str | None
+    last_error: str | None
+
+
+class HealthCheckAllResponse(BaseModel):
+    """Response from checking all connections."""
+
+    checked: int
+    healthy: int
+    unhealthy: int
+    error: int
+
+
+@router.post("/{connection_id}/check", response_model=HealthCheckResponse)
+async def check_connection_health(
+    connection_id: UUID,
+    _user: SessionInfo = RequireAdmin,
+) -> HealthCheckResponse:
+    """Manually trigger a health check for a connection.
+
+    Requires admin role. Tests the connection and updates its status.
+    """
+    from app.domain.connections.health_poller import connection_health_poller
+
+    try:
+        result = await connection_health_poller.check_single_connection(str(connection_id))
+        return HealthCheckResponse(**result)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
+@router.post("/check-all", response_model=HealthCheckAllResponse)
+async def check_all_connections_health(
+    _user: SessionInfo = RequireAdmin,
+) -> HealthCheckAllResponse:
+    """Manually trigger a health check for all connections.
+
+    Requires admin role. Tests all connections and updates their status.
+    """
+    from app.domain.connections.health_poller import connection_health_poller
+
+    result = await connection_health_poller.check_all_now()
+    return HealthCheckAllResponse(**result)
 
 
 @router.post("/{connection_id}/test", response_model=TestConnectionResponse)

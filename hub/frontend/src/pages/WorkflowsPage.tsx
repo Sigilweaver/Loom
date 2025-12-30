@@ -33,7 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  listWorkflows,
+  listMyWorkflows,
   uploadWorkflow,
   deleteWorkflow,
   updateWorkflowMetadata,
@@ -475,7 +475,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
       const result = await uploadWorkflow(file, folderPath, tags);
 
       // Fetch the full workflow metadata
-      const response = await listWorkflows();
+      const response = await listMyWorkflows();
       const uploaded = response.workflows.find((w) => w.id === result.id);
       if (uploaded) {
         onUpload(uploaded);
@@ -1346,7 +1346,7 @@ export function WorkflowsPage() {
   const fetchWorkflows = useCallback(async () => {
     try {
       setError(null);
-      const response = await listWorkflows();
+      const response = await listMyWorkflows();
       setWorkflows(response.workflows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load workflows");

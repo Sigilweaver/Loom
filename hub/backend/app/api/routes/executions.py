@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import CurrentUser, RequireAuditor
 from app.db.database import get_db
+from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
     ExecutionNotFoundError,
@@ -94,8 +95,13 @@ def _get_service(db: AsyncSession) -> ExecutionService:
     return ExecutionService(db)
 
 
-@router.get("", response_model=ExecutionListResponse)
-async def list_executions(
+# =============================================================================
+# User's Executions (self-service) - MUST be before /{id} routes
+# =============================================================================
+
+
+@router.get("/my", response_model=ExecutionListResponse)
+async def list_my_executions(
     user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     workflow_id: UUID | None = Query(None),
@@ -104,7 +110,7 @@ async def list_executions(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> ExecutionListResponse:
-    """List execution history, optionally filtered.
+    """List executions triggered by the current user.
 
     Query parameters:
     - workflow_id: Filter by workflow
@@ -118,6 +124,48 @@ async def list_executions(
         workflow_id=workflow_id,
         server_id=server_id,
         status=status,
+        triggered_by=user.username,
+        limit=limit,
+        offset=offset,
+    )
+    return ExecutionListResponse(
+        executions=[_info_to_response(e) for e in executions],
+        total=total,
+    )
+
+
+# =============================================================================
+# Admin/Auditor Executions (all executions)
+# =============================================================================
+
+
+@router.get("", response_model=ExecutionListResponse)
+async def list_executions(
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+    workflow_id: UUID | None = Query(None),
+    server_id: UUID | None = Query(None),
+    status: str | None = Query(None),
+    triggered_by: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+) -> ExecutionListResponse:
+    """List execution history, optionally filtered. Requires auditor role or higher.
+
+    Query parameters:
+    - workflow_id: Filter by workflow
+    - server_id: Filter by server
+    - status: Filter by status (queued, running, completed, failed, cancelled)
+    - triggered_by: Filter by triggering username
+    - limit: Maximum results (default 50, max 200)
+    - offset: Pagination offset
+    """
+    service = _get_service(db)
+    executions, total = await service.list_executions(
+        workflow_id=workflow_id,
+        server_id=server_id,
+        status=status,
+        triggered_by=triggered_by,
         limit=limit,
         offset=offset,
     )

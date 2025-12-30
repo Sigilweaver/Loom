@@ -221,7 +221,10 @@ export interface WorkflowListResponse {
   total: number;
 }
 
-export async function listWorkflows(params?: {
+/**
+ * List workflows uploaded by the current user
+ */
+export async function listMyWorkflows(params?: {
   folder?: string;
   tag?: string;
   search?: string;
@@ -230,6 +233,28 @@ export async function listWorkflows(params?: {
   if (params?.folder) searchParams.set("folder", params.folder);
   if (params?.tag) searchParams.set("tag", params.tag);
   if (params?.search) searchParams.set("search", params.search);
+
+  const query = searchParams.toString();
+  const response = await fetch(`${API_BASE}/workflows/my${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * List all workflows (requires auditor+ role)
+ */
+export async function listWorkflows(params?: {
+  folder?: string;
+  tag?: string;
+  search?: string;
+  uploadedBy?: string;
+}): Promise<WorkflowListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.folder) searchParams.set("folder", params.folder);
+  if (params?.tag) searchParams.set("tag", params.tag);
+  if (params?.search) searchParams.set("search", params.search);
+  if (params?.uploadedBy) searchParams.set("uploaded_by", params.uploadedBy);
 
   const query = searchParams.toString();
   const response = await fetch(`${API_BASE}/workflows${query ? `?${query}` : ""}`, {
@@ -396,7 +421,10 @@ export interface ExecutionListResponse {
   total: number;
 }
 
-export async function listExecutions(params?: {
+/**
+ * List executions triggered by the current user
+ */
+export async function listMyExecutions(params?: {
   workflow_id?: string;
   server_id?: string;
   status?: string;
@@ -407,6 +435,32 @@ export async function listExecutions(params?: {
   if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
   if (params?.server_id) searchParams.set("server_id", params.server_id);
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
+
+  const query = searchParams.toString();
+  const response = await fetch(`${API_BASE}/executions/my${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * List all executions (requires auditor+ role)
+ */
+export async function listExecutions(params?: {
+  workflow_id?: string;
+  server_id?: string;
+  status?: string;
+  triggeredBy?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ExecutionListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
+  if (params?.server_id) searchParams.set("server_id", params.server_id);
+  if (params?.status) searchParams.set("status", params.status);
+  if (params?.triggeredBy) searchParams.set("triggered_by", params.triggeredBy);
   if (params?.limit) searchParams.set("limit", String(params.limit));
   if (params?.offset) searchParams.set("offset", String(params.offset));
 
@@ -468,7 +522,10 @@ export interface ScheduleListResponse {
   total: number;
 }
 
-export async function listSchedules(params?: {
+/**
+ * List schedules created by the current user
+ */
+export async function listMySchedules(params?: {
   workflow_id?: string;
   enabled?: boolean;
   limit?: number;
@@ -477,6 +534,30 @@ export async function listSchedules(params?: {
   const searchParams = new URLSearchParams();
   if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
   if (params?.enabled !== undefined) searchParams.set("enabled", String(params.enabled));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
+
+  const query = searchParams.toString();
+  const response = await fetch(`${API_BASE}/schedules/my${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * List all schedules (requires auditor+ role)
+ */
+export async function listSchedules(params?: {
+  workflow_id?: string;
+  enabled?: boolean;
+  createdBy?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ScheduleListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
+  if (params?.enabled !== undefined) searchParams.set("enabled", String(params.enabled));
+  if (params?.createdBy) searchParams.set("created_by", params.createdBy);
   if (params?.limit) searchParams.set("limit", String(params.limit));
   if (params?.offset) searchParams.set("offset", String(params.offset));
 
@@ -568,6 +649,8 @@ export async function triggerSchedule(id: string): Promise<ExecutionResponse> {
 
 export type DatabaseType = "postgresql" | "mysql" | "sqlite" | "mssql";
 
+export type ConnectionStatus = "healthy" | "unhealthy" | "error" | "unknown";
+
 export interface ConnectionResponse {
   id: string;
   name: string;
@@ -575,6 +658,11 @@ export interface ConnectionResponse {
   host: string;
   port: number;
   database: string;
+  status: ConnectionStatus;
+  last_checked: string | null;
+  last_healthy: string | null;
+  last_error: string | null;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }
@@ -582,6 +670,20 @@ export interface ConnectionResponse {
 export interface ConnectionsListResponse {
   connections: ConnectionResponse[];
   total: number;
+}
+
+export interface HealthCheckResponse {
+  status: string;
+  last_checked: string | null;
+  last_healthy: string | null;
+  last_error: string | null;
+}
+
+export interface HealthCheckAllResponse {
+  checked: number;
+  healthy: number;
+  unhealthy: number;
+  error: number;
 }
 
 export interface CreateConnectionRequest {
@@ -663,6 +765,24 @@ export async function testConnection(
   id: string
 ): Promise<ConnectionTestResult> {
   const response = await fetch(`${API_BASE}/connections/${id}/test`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function checkConnectionHealth(
+  id: string
+): Promise<HealthCheckResponse> {
+  const response = await fetch(`${API_BASE}/connections/${id}/check`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function checkAllConnectionsHealth(): Promise<HealthCheckAllResponse> {
+  const response = await fetch(`${API_BASE}/connections/check-all`, {
     method: "POST",
     headers: getAuthHeaders(),
   });

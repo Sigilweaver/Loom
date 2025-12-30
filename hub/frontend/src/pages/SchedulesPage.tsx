@@ -25,8 +25,8 @@ import {
 import { DateTimePicker } from "@components/DateTimePicker";
 import { ScheduleBuilder } from "@components/ScheduleBuilder";
 import {
-  listSchedules,
-  listWorkflows,
+  listMySchedules,
+  listMyWorkflows,
   listServers,
   createSchedule,
   updateSchedule,
@@ -334,7 +334,7 @@ export function SchedulesPage() {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const result = await listSchedules({
+      const result = await listMySchedules({
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
@@ -349,7 +349,7 @@ export function SchedulesPage() {
   const fetchFilters = useCallback(async () => {
     try {
       const [workflowsRes, serversRes] = await Promise.all([
-        listWorkflows(),
+        listMyWorkflows(),
         listServers(),
       ]);
       setWorkflows(workflowsRes.workflows);

@@ -240,6 +240,16 @@ class Connection(Base):
     # Credentials stored as Fernet-encrypted JSON string (base64)
     encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # Health status
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="unknown")
+    last_checked: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_healthy: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     # Metadata
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -27,8 +27,10 @@ import {
   deleteConnection,
   testConnection,
   testConnectionPreCreate,
+  checkAllConnectionsHealth,
   type ConnectionResponse,
   type DatabaseType,
+  type ConnectionStatus,
 } from "@api/client";
 
 const DATABASE_TYPES: { value: DatabaseType; label: string; defaultPort: number }[] = [
@@ -67,6 +69,37 @@ function DatabaseTypeBadge({ type }: { type: DatabaseType }) {
     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${color}`}>
       {label}
     </span>
+  );
+}
+
+function HealthStatusBadge({ status, lastChecked, lastError }: { status: ConnectionStatus; lastChecked: string | null; lastError: string | null }) {
+  const config: Record<ConnectionStatus, { color: string; label: string; icon: typeof CheckCircle }> = {
+    healthy: { color: "text-green-600", label: "Healthy", icon: CheckCircle },
+    unhealthy: { color: "text-red-600", label: "Unhealthy", icon: XCircle },
+    error: { color: "text-red-600", label: "Error", icon: XCircle },
+    unknown: { color: "text-gray-400", label: "Unknown", icon: RefreshCw },
+  };
+
+  const statusConfig = config[status] ?? config.unknown;
+  const { color, label, icon: Icon } = statusConfig;
+
+  return (
+    <div className="flex flex-col">
+      <span className={`inline-flex items-center gap-1.5 text-sm ${color}`}>
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+      {lastChecked && (
+        <span className="text-xs text-gray-400">
+          Checked {formatRelativeTime(lastChecked)}
+        </span>
+      )}
+      {lastError && status !== "healthy" && (
+        <span className="text-xs text-red-500 truncate max-w-[200px]" title={lastError}>
+          {lastError}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -432,6 +465,7 @@ export function ConnectionsTab() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [checkingAll, setCheckingAll] = useState(false);
 
   const fetchConnections = async () => {
     setLoading(true);
@@ -504,6 +538,20 @@ export function ConnectionsTab() {
     }
   };
 
+  const handleCheckAll = async () => {
+    setCheckingAll(true);
+    setError(null);
+    try {
+      await checkAllConnectionsHealth();
+      // Refresh connections to get updated health status
+      await fetchConnections();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to check connections");
+    } finally {
+      setCheckingAll(false);
+    }
+  };
+
   if (loading && connections.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -519,10 +567,19 @@ export function ConnectionsTab() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Database Connections</h2>
           <p className="text-sm text-gray-500">
-            Manage database connections. Credentials are encrypted at rest.
+            Manage database connections. Credentials are encrypted at rest. Health is checked automatically every hour.
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleCheckAll}
+            disabled={checkingAll || connections.length === 0}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            title="Check health of all connections"
+          >
+            <CheckCircle className={`h-4 w-4 ${checkingAll ? "animate-pulse" : ""}`} />
+            {checkingAll ? "Checking..." : "Check All"}
+          </button>
           <button
             onClick={fetchConnections}
             disabled={loading}
@@ -621,7 +678,7 @@ export function ConnectionsTab() {
                   </td>
                   <td className="px-6 py-4">
                     {(() => {
-                      const result = testResults[connection.id];
+                      const testResult = testResults[connection.id];
                       if (testingId === connection.id) {
                         return (
                           <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
@@ -630,23 +687,29 @@ export function ConnectionsTab() {
                           </span>
                         );
                       }
-                      if (result) {
+                      if (testResult) {
                         return (
                           <span
                             className={`inline-flex items-center gap-1.5 text-sm ${
-                              result.success ? "text-green-600" : "text-red-600"
+                              testResult.success ? "text-green-600" : "text-red-600"
                             }`}
                           >
-                            {result.success ? (
+                            {testResult.success ? (
                               <CheckCircle className="h-4 w-4" />
                             ) : (
                               <XCircle className="h-4 w-4" />
                             )}
-                            {result.success ? "Connected" : "Failed"}
+                            {testResult.success ? "Connected" : "Failed"}
                           </span>
                         );
                       }
-                      return <span className="text-sm text-gray-400">-</span>;
+                      return (
+                        <HealthStatusBadge
+                          status={connection.status}
+                          lastChecked={connection.last_checked}
+                          lastError={connection.last_error}
+                        />
+                      );
                     })()}
                   </td>
                   <td className="px-6 py-4">
