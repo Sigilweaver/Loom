@@ -5,7 +5,6 @@ import {
   FileCode2,
   Play,
   Clock,
-  Shield,
   LogOut,
   ChevronDown,
   ChevronLeft,
@@ -14,6 +13,13 @@ import {
   X,
   Loader2,
   AlertCircle,
+  LayoutDashboard,
+  Activity,
+  Server,
+  Database,
+  UsersRound,
+  Users,
+  Settings,
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
 import { logout, updateProfile } from "@api/client";
@@ -26,7 +32,13 @@ const userNavItems = [
 ];
 
 const adminNavItems = [
-  { to: "/admin", label: "Admin", icon: Shield },
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/activity", label: "Activity", icon: Activity },
+  { to: "/admin/servers", label: "Servers", icon: Server },
+  { to: "/admin/connections", label: "Connections", icon: Database },
+  { to: "/admin/groups", label: "Groups", icon: UsersRound },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 const roleLabels: Record<string, string> = {

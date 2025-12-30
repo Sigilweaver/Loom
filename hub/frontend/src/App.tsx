@@ -3,12 +3,20 @@ import { Layout } from "@components/Layout";
 import { ProtectedRoute } from "@components/ProtectedRoute";
 import { UserRoute } from "@components/UserRoute";
 import { RoleBasedRedirect } from "@components/RoleBasedRedirect";
+import { AdminPageWrapper } from "@components/AdminPageWrapper";
 import { LoginPage } from "@pages/LoginPage";
-import { AdminPage } from "@pages/AdminPage";
 import { HomePage } from "@pages/HomePage";
 import { WorkflowsPage } from "@pages/WorkflowsPage";
 import { ExecutionsPage } from "@pages/ExecutionsPage";
 import { SchedulesPage } from "@pages/SchedulesPage";
+// Admin pages
+import { DashboardTab } from "@pages/admin/DashboardTab";
+import { ActivityTab } from "@pages/admin/ActivityTab";
+import { ServersTab } from "@pages/admin/ServersTab";
+import { ConnectionsTab } from "@pages/admin/ConnectionsTab";
+import { GroupsTab } from "@pages/admin/GroupsTab";
+import { UsersTab } from "@pages/admin/UsersTab";
+import { SettingsPage } from "@pages/admin/SettingsPage";
 
 function App() {
   return (
@@ -67,7 +75,67 @@ function App() {
           path="admin"
           element={
             <ProtectedRoute minRole="auditor">
-              <AdminPage />
+              <AdminPageWrapper>
+                <DashboardTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/activity"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <ActivityTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/servers"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <ServersTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/connections"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <ConnectionsTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/groups"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <GroupsTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <UsersTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

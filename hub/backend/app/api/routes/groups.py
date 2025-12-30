@@ -16,10 +16,14 @@ from sqlalchemy.orm import selectinload
 from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.db.database import get_db
 from app.db.models import Connection, ConnectionGroup, Group, User, UserGroup
+from app.domain.auth.roles import Role
 from app.domain.auth.sessions import SessionInfo
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 logger = logging.getLogger(__name__)
+
+# Roles that cannot be added to groups (admin-level users)
+ADMIN_ROLES = {Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value}
 
 
 # =============================================================================
@@ -178,7 +182,16 @@ async def create_group(
 
     logger.info(f"Created group '{group.name}' by {admin.username}")
 
-    return _group_to_response(group)
+    # New groups have no members or connections, return counts as 0
+    return GroupResponse(
+        id=group.id,
+        name=group.name,
+        description=group.description,
+        member_count=0,
+        connection_count=0,
+        created_by=group.created_by,
+        created_at=group.created_at.isoformat(),
+    )
 
 
 # =============================================================================
@@ -350,7 +363,11 @@ async def add_group_member(
     _admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Add a user to a group. Requires admin role."""
+    """Add a user to a group. Requires admin role.
+    
+    Only regular users can be added to groups. Admin-level users
+    (owner, admin, auditor) cannot be group members.
+    """
     # Check group exists
     result = await db.execute(select(Group).where(Group.id == group_id))
     group = result.scalar_one_or_none()
@@ -369,6 +386,13 @@ async def add_group_member(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {request.user_id} not found",
+        )
+
+    # Admin-level users cannot be added to groups
+    if user.role in ADMIN_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Admin-level users ({user.role}) cannot be added to groups",
         )
 
     # Check if already a member

@@ -1,4 +1,3 @@
-export { AdminPage } from "./AdminPage";
 export { HomePage } from "./HomePage";
 export { LoginPage } from "./LoginPage";
 export { WorkflowsPage } from "./WorkflowsPage";
