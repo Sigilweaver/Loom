@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAuditor
+from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
@@ -224,10 +224,10 @@ async def list_schedules(
 @router.post("", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
 async def create_schedule(
     request: ScheduleCreate,
-    user: CurrentUser,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ScheduleResponse:
-    """Create a new schedule.
+    """Create a new schedule. Requires user role.
 
     The schedule will be registered with the scheduler and will start
     triggering executions according to the cron expression.
@@ -258,10 +258,10 @@ async def create_schedule(
 @router.get("/{schedule_id}", response_model=ScheduleResponse)
 async def get_schedule(
     schedule_id: UUID,
-    user: CurrentUser,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> ScheduleResponse:
-    """Get schedule details."""
+    """Get schedule details. Requires auditor role or higher."""
     service = ScheduleService(db)
 
     try:
@@ -279,14 +279,30 @@ async def get_schedule(
 async def update_schedule(
     schedule_id: UUID,
     request: ScheduleUpdate,
-    user: CurrentUser,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ScheduleResponse:
-    """Update a schedule.
+    """Update a schedule. Requires user role.
 
     The scheduler will be updated with the new configuration.
+    Users can only update their own schedules.
     """
     service = ScheduleService(db)
+
+    # Check ownership first
+    try:
+        existing = await service.get_schedule(schedule_id)
+    except ScheduleNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Schedule {schedule_id} not found",
+        )
+
+    if existing.created_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot update schedules created by other users",
+        )
 
     try:
         input = UpdateScheduleInput(
@@ -298,11 +314,6 @@ async def update_schedule(
             description=request.description,
         )
         schedule = await service.update_schedule(schedule_id, input)
-    except ScheduleNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Schedule {schedule_id} not found",
-        )
     except ServerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
@@ -320,48 +331,68 @@ async def delete_schedule(
     """Delete a schedule.
 
     The schedule will be removed from the scheduler.
+    Users can delete their own schedules.
+    Admins/owners can delete any schedule.
     """
     service = ScheduleService(db)
 
     try:
-        await service.delete_schedule(schedule_id)
+        schedule = await service.get_schedule(schedule_id)
     except ScheduleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Schedule {schedule_id} not found",
         )
+
+    # Users can only delete their own schedules
+    if user.role == "user" and schedule.created_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete schedules created by other users",
+        )
+
+    await service.delete_schedule(schedule_id)
 
 
 @router.post("/{schedule_id}/toggle", response_model=ScheduleResponse)
 async def toggle_schedule(
     schedule_id: UUID,
     enabled: bool = Query(...),
-    user: CurrentUser = None,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ScheduleResponse:
-    """Enable or disable a schedule."""
+    """Enable or disable a schedule. Requires user role."""
     service = ScheduleService(db)
 
+    # Check ownership first
     try:
-        schedule = await service.toggle_schedule(schedule_id, enabled)
+        existing = await service.get_schedule(schedule_id)
     except ScheduleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Schedule {schedule_id} not found",
         )
 
+    if existing.created_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify schedules created by other users",
+        )
+
+    schedule = await service.toggle_schedule(schedule_id, enabled)
     return _info_to_response(schedule)
 
 
 @router.post("/{schedule_id}/trigger", response_model=ExecutionResponse)
 async def trigger_schedule(
     schedule_id: UUID,
-    user: CurrentUser,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> ExecutionResponse:
-    """Manually trigger a schedule immediately.
+    """Manually trigger a schedule immediately. Requires user role.
 
     Creates an execution with trigger_type=manual for this schedule's workflow.
+    Users can only trigger their own schedules.
     """
     schedule_service = ScheduleService(db)
     execution_service = ExecutionService(db)
@@ -372,6 +403,13 @@ async def trigger_schedule(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Schedule {schedule_id} not found",
+        )
+
+    # Check ownership
+    if schedule.created_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot trigger schedules created by other users",
         )
 
     try:

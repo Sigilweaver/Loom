@@ -17,7 +17,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAuditor
+from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
 from app.domain.auth.sessions import SessionInfo
 from app.domain.workflows import (
@@ -187,13 +187,13 @@ async def list_workflows(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_workflow(
-    user: CurrentUser,
-    file: Annotated[UploadFile, File(description="The .swwf workflow file")],
+    user: SessionInfo = RequireUser,
+    file: Annotated[UploadFile, File(description="The .swwf workflow file")] = None,
     db: AsyncSession = Depends(get_db),
     folder_path: str = Form(default="/"),
     tags: str = Form(default=""),  # Comma-separated
 ) -> WorkflowUploadResponse:
-    """Upload a new workflow file.
+    """Upload a new workflow file. Requires user role.
 
     The file must be a valid .swwf workflow file. Metadata (name, description,
     author) is automatically extracted from the file.
@@ -249,10 +249,10 @@ async def upload_workflow(
 @router.get("/{workflow_id}", response_model=WorkflowMetadata)
 async def get_workflow(
     workflow_id: UUID,
-    user: CurrentUser,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowMetadata:
-    """Get workflow metadata by ID."""
+    """Get workflow metadata by ID. Requires auditor role or higher."""
     service = _get_service(db)
 
     try:
@@ -269,10 +269,10 @@ async def get_workflow(
 @router.get("/{workflow_id}/content", response_model=WorkflowContentResponse)
 async def get_workflow_content(
     workflow_id: UUID,
-    user: CurrentUser,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowContentResponse:
-    """Get parsed workflow content (tools and wires)."""
+    """Get parsed workflow content (tools and wires). Requires auditor role or higher."""
     service = _get_service(db)
 
     try:
@@ -299,10 +299,10 @@ async def get_workflow_content(
 @router.get("/{workflow_id}/download")
 async def download_workflow(
     workflow_id: UUID,
-    user: CurrentUser,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Download the original .swwf file."""
+    """Download the original .swwf file. Requires auditor role or higher."""
     service = _get_service(db)
 
     # Get metadata first for filename
@@ -329,13 +329,14 @@ async def download_workflow(
 @router.put("/{workflow_id}", response_model=WorkflowMetadata)
 async def update_workflow_file(
     workflow_id: UUID,
-    user: CurrentUser,
-    file: Annotated[UploadFile, File(description="The updated .swwf workflow file")],
+    user: SessionInfo = RequireUser,
+    file: Annotated[UploadFile, File(description="The updated .swwf workflow file")] = None,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowMetadata:
-    """Replace a workflow file.
+    """Replace a workflow file. Requires user role.
 
     Uploads a new file version, updating metadata from the new file.
+    Users can only update their own workflows.
     """
     if not file.filename or not file.filename.endswith(".swwf"):
         raise HTTPException(
@@ -353,15 +354,25 @@ async def update_workflow_file(
 
     service = _get_service(db)
 
+    # Check ownership first
     try:
-        info = await service.update_workflow(
-            workflow_id=workflow_id,
-            content=content,
-        )
+        existing = await service.get_workflow(workflow_id)
     except WorkflowNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workflow not found",
+        )
+
+    if existing.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot update workflows uploaded by other users",
+        )
+
+    try:
+        info = await service.update_workflow(
+            workflow_id=workflow_id,
+            content=content,
         )
     except WorkflowParseError as e:
         raise HTTPException(
@@ -380,12 +391,27 @@ async def update_workflow_file(
 @router.patch("/{workflow_id}", response_model=WorkflowMetadata)
 async def update_workflow_metadata(
     workflow_id: UUID,
-    user: CurrentUser,
     body: WorkflowUpdateMetadataRequest,
+    user: SessionInfo = RequireUser,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowMetadata:
-    """Update workflow metadata (folder, tags) without replacing the file."""
+    """Update workflow metadata (folder, tags) without replacing the file. Requires user role."""
     service = _get_service(db)
+
+    # Check ownership first
+    try:
+        existing = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    if existing.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot update workflows uploaded by other users",
+        )
 
     try:
         input = UpdateWorkflowInput(
@@ -416,13 +442,27 @@ async def delete_workflow(
     user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Delete a workflow and its file."""
+    """Delete a workflow and its file.
+
+    Users can delete their own workflows.
+    Admins/owners can delete any workflow.
+    """
     service = _get_service(db)
 
+    # Check if workflow exists and get info for ownership check
     try:
-        await service.delete_workflow(workflow_id)
+        info = await service.get_workflow(workflow_id)
     except WorkflowNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workflow not found",
         )
+
+    # Users can only delete their own workflows
+    if user.role == "user" and info.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete workflows uploaded by other users",
+        )
+
+    await service.delete_workflow(workflow_id)

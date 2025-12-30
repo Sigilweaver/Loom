@@ -18,8 +18,8 @@ import {
 import { useAuthStore } from "@state/authStore";
 import { logout, updateProfile } from "@api/client";
 
-const navItems = [
-  { to: "/", label: "Home", icon: Home },
+const userNavItems = [
+  { to: "/home", label: "Home", icon: Home },
   { to: "/workflows", label: "Workflows", icon: FileCode2 },
   { to: "/executions", label: "Executions", icon: Play },
   { to: "/schedules", label: "Schedules", icon: Clock },
@@ -98,7 +98,8 @@ export function Layout() {
 
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1">
-          {navItems.map((item) => (
+          {/* User nav - only for regular users */}
+          {!isAdminOrAuditor && userNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -117,12 +118,9 @@ export function Layout() {
             </NavLink>
           ))}
 
-          {/* Admin section - visible to admins, owners, and auditors */}
+          {/* Admin nav - only for admins, owners, and auditors */}
           {isAdminOrAuditor && (
             <>
-              <div className="pt-4 pb-2">
-                <div className="h-px bg-gray-200" />
-              </div>
               {adminNavItems.map((item) => (
                 <NavLink
                   key={item.to}
