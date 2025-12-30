@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sigilweaver.app/sitemap.xml
+
+# Block access to development files
+Disallow: /css/
+Disallow: /js/
+Disallow: /*.css$
+Disallow: /*.js$
+
+# Allow important assets
+Allow: /assets/icons/
+Allow: /favicon.ico
+Allow: /manifest.json
