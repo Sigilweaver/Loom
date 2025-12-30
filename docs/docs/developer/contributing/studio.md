@@ -2,9 +2,9 @@
 sidebar_position: 3
 ---
 
-# Frontend Patterns
+# Studio Patterns
 
-Conventions and patterns for frontend development. These aren't arbitrary rules—they solve real problems encountered during development.
+Conventions and patterns for Studio development. These aren't arbitrary rules. They solve real problems encountered during development.
 
 ## Component Structure
 
@@ -341,4 +341,4 @@ This logic is testable without React, usable in workers, and easy to reason abou
 
 ---
 
-Next: [Backend Patterns](./backend) or [Testing Philosophy](../testing/philosophy).
+Next: [Server Patterns](./server) or [Testing Philosophy](../testing/philosophy).

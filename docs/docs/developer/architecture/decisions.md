@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Architectural Decisions
 
-This page documents the major architectural decisions behind Sigilweaver—the "why" behind the "what." I'm not claiming these are the objectively correct choices, just that they're deliberate tradeoffs made with specific goals in mind.
+This page documents the major architectural decisions behind Sigilweaver: the "why" behind the "what." I'm not claiming these are the objectively correct choices, just that they're deliberate tradeoffs made with specific goals in mind.
 
 ## Why Monorepo?
 
@@ -16,7 +16,7 @@ This page documents the major architectural decisions behind Sigilweaver—the "
 - CI/CD has to coordinate across repos
 - Contributors have to clone multiple repos and keep them in sync
 
-**Tradeoff**: The monorepo is larger and mixes languages. Some tooling (like language servers) can get confused. But packaging a desktop app requires both halves anyway—a single repo means a single commit = a single release = a known-good pairing.
+**Tradeoff**: The monorepo is larger and mixes languages. Some tooling (like language servers) can get confused. But packaging a desktop app requires both halves anyway. A single repo means a single commit = a single release = a known-good pairing.
 
 **Result**: One repo, one clone, one version. `git checkout v1.0.0` gives you everything you need.
 
@@ -26,7 +26,7 @@ This page documents the major architectural decisions behind Sigilweaver—the "
 
 **Decision**: Use Electron for the desktop shell.
 
-**Context**: Electron gets a lot of hate—it's resource-heavy, ships a whole Chromium instance, and has security quirks. Alternatives like Tauri are lighter, and native frameworks (Qt, GTK) are even leaner.
+**Context**: Electron gets a lot of hate. It's resource-heavy, ships a whole Chromium instance, and has security quirks. Alternatives like Tauri are lighter, and native frameworks (Qt, GTK) are even leaner.
 
 **But here's my perspective**:
 - **Cross-platform is hard.** Qt requires C++, GTK is Linux-first, native Swift/WinUI means three codebases.
@@ -44,7 +44,7 @@ This page documents the major architectural decisions behind Sigilweaver—the "
 
 **Context**: Go, Rust, and C++ would technically be faster. But:
 - **Python is my strongest language.** Shipping beats optimizing.
-- **Python has excellent data tooling.** Polars, Pandas, FastAPI, Pydantic—the ecosystem is unmatched.
+- **Python has excellent data tooling.** Polars, Pandas, FastAPI, Pydantic. The ecosystem is unmatched.
 - **PyInstaller works.** Bundling Python into a standalone executable is solved.
 - **Iteration speed matters.** Pre-v1.0, I'm changing the backend constantly. Python's dynamic typing helps here (and hurts later, yes).
 
@@ -124,7 +124,7 @@ This page documents the major architectural decisions behind Sigilweaver—the "
 
 **Decision**: Use Xyflow (React Flow) for the visual canvas.
 
-**Context**: Xyflow is purpose-built for node-based editors. It's React-native (nodes are just components), has good defaults for panning/zooming/selection, and is actively maintained. There wasn't really a close second choice here—Xyflow is the obvious tool for this job.
+**Context**: Xyflow is purpose-built for node-based editors. It's React-native (nodes are just components), has good defaults for panning/zooming/selection, and is actively maintained. There wasn't really a close second choice here. Xyflow is the obvious tool for this job.
 
 **Tradeoff**: Commercial license for some features. Open source version is sufficient for Sigilweaver.
 
@@ -134,11 +134,11 @@ This page documents the major architectural decisions behind Sigilweaver—the "
 
 **Decision**: Workflows are saved as `.swwf` JSON files.
 
-**Context**: I actually started building this with XML. It seemed like the "proper" format for structured documents. That was a mistake—I spent more time fighting XML parsing and schema validation than building features. Switching to JSON meant I could just use `JSON.stringify()` and `JSON.parse()`, leverage Zustand's state directly, and move on.
+**Context**: I actually started building this with XML. It seemed like the "proper" format for structured documents. That was a mistake. I spent more time fighting XML parsing and schema validation than building features. Switching to JSON meant I could just use `JSON.stringify()` and `JSON.parse()`, leverage Zustand's state directly, and move on.
 
 The switch paid off immediately: files are human-readable (debug by opening in a text editor), diffable (Git shows what changed), and require zero serialization libraries.
 
-The `.swwf` extension is arbitrary branding—it's just JSON with a custom extension so the OS associates it with Sigilweaver.
+The `.swwf` extension is arbitrary branding. It's just JSON with a custom extension so the OS associates it with Sigilweaver.
 
 **Tradeoff**: Larger file sizes than binary, no built-in compression. For workflows (kilobytes), this is irrelevant.
 
@@ -151,7 +151,7 @@ The `.swwf` extension is arbitrary branding—it's just JSON with a custom exten
 **Context**: Web apps are easier to deploy, update automatically, work on any device. Why build a desktop app?
 
 **Reasons**:
-- **File access.** Data science means local files—CSVs, Parquets, databases. Web apps struggle here.
+- **File access.** Data science means local files: CSVs, Parquets, databases. Web apps struggle here.
 - **Performance.** Native file dialogs, native process spawning, no browser sandboxing.
 - **Privacy.** Your data stays on your machine. No cloud services required.
 - **Offline.** Works without internet.

@@ -2,15 +2,18 @@
 """
 Sigilweaver Development Script
 
-Starts development servers for Studio, Server, and/or Hub.
+Starts development servers for Studio, Server, Hub, Docs, and/or Site.
 
 Usage:
-    ./scripts/dev.py              # Start all components (Server, Studio, Hub)
-    ./scripts/dev.py --server     # Server only
-    ./scripts/dev.py --studio     # Studio only
-    ./scripts/dev.py --hub        # Hub only (backend + frontend)
-    ./scripts/dev.py --hub-auth   # All components with Hub authentication enabled
-    ./scripts/dev.py --electron   # All components + launch Electron
+    ./scripts/dev.py                    # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py --server           # Server only
+    ./scripts/dev.py --studio           # Studio only  
+    ./scripts/dev.py --hub              # Hub only (backend + frontend)
+    ./scripts/dev.py --docs             # Documentation site only (Docusaurus)
+    ./scripts/dev.py --site             # Marketing website only (Vite)
+    ./scripts/dev.py --studio --server  # Multiple components
+    ./scripts/dev.py --hub-auth         # All components with Hub authentication enabled
+    ./scripts/dev.py --electron         # All components + launch Electron
 """
 
 import argparse
@@ -36,6 +39,8 @@ studio_process: subprocess.Popen | None = None
 electron_process: subprocess.Popen | None = None
 hub_backend_process: subprocess.Popen | None = None
 hub_frontend_process: subprocess.Popen | None = None
+docs_process: subprocess.Popen | None = None
+site_process: subprocess.Popen | None = None
 shutdown_requested = False
 
 
@@ -123,6 +128,30 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
         frontend_ready = False
     
     return backend_ready, frontend_ready
+
+
+def check_docs_setup(repo_root: Path) -> bool:
+    """Check if docs node_modules exists."""
+    node_modules = repo_root / "docs" / "node_modules"
+    if not node_modules.exists():
+        print_error("Docs dependencies not installed!")
+        print_warning("Please set up the docs first:")
+        print("  cd docs")
+        print("  npm install")
+        return False
+    return True
+
+
+def check_site_setup(repo_root: Path) -> bool:
+    """Check if site node_modules exists."""
+    node_modules = repo_root / "site" / "node_modules"
+    if not node_modules.exists():
+        print_error("Site dependencies not installed!")
+        print_warning("Please set up the site first:")
+        print("  cd site")
+        print("  npm install")
+        return False
+    return True
 
 
 def get_python_executable(repo_root: Path) -> Path:
@@ -373,6 +402,72 @@ def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
         return None
 
 
+def start_docs(repo_root: Path) -> subprocess.Popen | None:
+    """Start the documentation site (Docusaurus)."""
+    global docs_process
+    
+    print_success("Starting Docs dev server...")
+    
+    docs_dir = repo_root / "docs"
+    npm_cmd = get_npm_command()
+    
+    try:
+        docs_process = subprocess.Popen(
+            [npm_cmd, "run", "start"],
+            cwd=docs_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            shell=(sys.platform == "win32"),
+        )
+        
+        thread = threading.Thread(
+            target=stream_output,
+            args=(docs_process, "DOCS"),
+            daemon=True
+        )
+        thread.start()
+        
+        return docs_process
+    except Exception as e:
+        print_error(f"Failed to start Docs: {e}")
+        return None
+
+
+def start_site(repo_root: Path) -> subprocess.Popen | None:
+    """Start the marketing website (Vite)."""
+    global site_process
+    
+    print_success("Starting Site dev server...")
+    
+    site_dir = repo_root / "site"
+    npm_cmd = get_npm_command()
+    
+    try:
+        site_process = subprocess.Popen(
+            [npm_cmd, "run", "dev"],
+            cwd=site_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            shell=(sys.platform == "win32"),
+        )
+        
+        thread = threading.Thread(
+            target=stream_output,
+            args=(site_process, "SITE"),
+            daemon=True
+        )
+        thread.start()
+        
+        return site_process
+    except Exception as e:
+        print_error(f"Failed to start Site: {e}")
+        return None
+
+
 def terminate_process(process: subprocess.Popen | None, name: str) -> None:
     """Gracefully terminate a process."""
     if process is None:
@@ -401,6 +496,8 @@ def cleanup() -> None:
     print_warning("Shutting down services...")
     
     terminate_process(electron_process, "Electron")
+    terminate_process(site_process, "Site")
+    terminate_process(docs_process, "Docs")
     terminate_process(hub_frontend_process, "Hub Frontend")
     terminate_process(hub_backend_process, "Hub Backend")
     terminate_process(studio_process, "Studio")
@@ -415,7 +512,7 @@ def signal_handler(signum: int, frame) -> None:
     sys.exit(0)
 
 
-def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub: bool) -> None:
+def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub: bool, run_docs: bool = False, run_site: bool = False) -> None:
     """Print status information after services start."""
     print()
     print_success("Services started!")
@@ -429,6 +526,10 @@ def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub
         print(f"Hub API:        {GREEN}http://localhost:58001{NC}")
         print(f"Hub API Docs:   {GREEN}http://localhost:58001/docs{NC}")
         print(f"Hub UI:         {GREEN}http://localhost:5174{NC}")
+    if run_docs:
+        print(f"Docs:           {GREEN}http://localhost:3000{NC}")
+    if run_site:
+        print(f"Site:           {GREEN}http://localhost:27530{NC}")
     print(f"{BLUE}========================================{NC}")
     if not run_electron and run_studio:
         print_warning("To launch Electron, run in another terminal:")
@@ -447,23 +548,26 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    ./scripts/dev.py              # Start all components (Server, Studio, Hub)
-    ./scripts/dev.py --server     # Server only
-    ./scripts/dev.py --studio     # Studio only
-    ./scripts/dev.py --hub        # Hub only (backend + frontend)
-    ./scripts/dev.py --hub-auth   # All components with Hub authentication enabled
-    ./scripts/dev.py --electron   # All components + launch Electron
+    ./scripts/dev.py                    # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py --server           # Server only
+    ./scripts/dev.py --studio           # Studio only
+    ./scripts/dev.py --hub              # Hub only (backend + frontend)
+    ./scripts/dev.py --docs             # Docs only (Docusaurus)
+    ./scripts/dev.py --site             # Site only (marketing website)
+    ./scripts/dev.py --studio --server  # Multiple components
+    ./scripts/dev.py --hub-auth         # All components with Hub authentication enabled
+    ./scripts/dev.py --electron         # All components + launch Electron
         """
     )
     parser.add_argument(
         "--server",
         action="store_true",
-        help="Start server only"
+        help="Start server"
     )
     parser.add_argument(
         "--studio",
         action="store_true",
-        help="Start studio only"
+        help="Start studio"
     )
     parser.add_argument(
         "--electron",
@@ -480,20 +584,36 @@ Examples:
         action="store_true",
         help="Enable Hub authentication mode (Server validates tokens with Hub)"
     )
+    parser.add_argument(
+        "--docs",
+        action="store_true",
+        help="Start documentation site (Docusaurus)"
+    )
+    parser.add_argument(
+        "--site",
+        action="store_true",
+        help="Start marketing website (Vite)"
+    )
     
     args = parser.parse_args()
     
     # Determine what to run
-    # If specific services requested, only run those
-    if args.server or args.studio or args.hub:
+    # If any specific services requested, only run those
+    any_specific = args.server or args.studio or args.hub or args.docs or args.site
+    
+    if any_specific:
         run_server = args.server
         run_studio = args.studio
         run_hub = args.hub
-    # Default: run all components
+        run_docs = args.docs
+        run_site = args.site
+    # Default: run core components (Server, Studio, Hub) but not docs/site
     else:
         run_server = True
         run_studio = True
         run_hub = True
+        run_docs = False
+        run_site = False
     
     run_electron = args.electron
     
@@ -522,6 +642,12 @@ Examples:
         hub_backend_ready, hub_frontend_ready = check_hub_setup(repo_root)
         if not hub_backend_ready or not hub_frontend_ready:
             return 1
+    
+    if run_docs and not check_docs_setup(repo_root):
+        return 1
+    
+    if run_site and not check_site_setup(repo_root):
+        return 1
     
     # Register cleanup handlers
     atexit.register(cleanup)
@@ -553,6 +679,16 @@ Examples:
             return 1
         time.sleep(2)
     
+    if run_docs:
+        if start_docs(repo_root) is None:
+            return 1
+        time.sleep(2)
+    
+    if run_site:
+        if start_site(repo_root) is None:
+            return 1
+        time.sleep(2)
+    
     if run_electron:
         # Wait a bit more for studio to be ready
         time.sleep(2)
@@ -560,7 +696,7 @@ Examples:
             print_warning("Electron failed to start, but other services are running")
     
     # Print status
-    print_status(run_server, run_studio, run_electron, run_hub)
+    print_status(run_server, run_studio, run_electron, run_hub, run_docs, run_site)
     
     # Wait for processes to complete (they run until interrupted)
     try:
@@ -579,6 +715,12 @@ Examples:
                 if hub_frontend_process and hub_frontend_process.poll() is not None:
                     print_error("Hub frontend process died unexpectedly!")
                     break
+            if run_docs and docs_process and docs_process.poll() is not None:
+                print_error("Docs process died unexpectedly!")
+                break
+            if run_site and site_process and site_process.poll() is not None:
+                print_error("Site process died unexpectedly!")
+                break
             if run_electron and electron_process and electron_process.poll() is not None:
                 # Electron closing is expected (user closed window)
                 print_warning("Electron closed")

@@ -169,7 +169,7 @@ Generate Python code for a workflow.
 }
 ```
 
-The generated code is standalone Python using Polars—users can copy it and run it without Sigilweaver.
+The generated code is standalone Python using Polars. Users can copy it and run it without Sigilweaver.
 
 ---
 

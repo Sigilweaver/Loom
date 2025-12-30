@@ -4,8 +4,6 @@ sidebar_position: 1
 
 # Developer Guide
 
-Welcome to the Sigilweaver developer documentation.
-
 ## Who This Is For
 
 If you're reading this, you're probably:
@@ -13,7 +11,7 @@ If you're reading this, you're probably:
 - Someone evaluating the codebase before deciding to contribute
 - Me, six months from now, trying to remember why I made certain decisions
 
-This guide assumes you're comfortable with Python and/or TypeScript. You don't need to be an expert in React, FastAPI, or Polars—but you should know your way around a terminal and a debugger.
+This guide assumes you're comfortable with Python and/or TypeScript. You don't need to be an expert in React, FastAPI, or Polars - but you should know your way around a terminal and a debugger.
 
 ## Honest State of the Project
 
@@ -50,9 +48,9 @@ A few honest reasons:
 
 ## Communication
 
-- **Bug reports**: [GitHub Issues](https://github.com/sigilweaver/sigilweaver-app/issues)
-- **Feature discussions**: [GitHub Discussions](https://github.com/sigilweaver/sigilweaver-app/discussions)
-- **Questions**: Open an issue or discussion—I prefer public channels so answers help others
+- **Bug reports**: [GitHub Issues](https://github.com/sigilweaver/sigilweaver/issues)
+- **Feature discussions**: [GitHub Discussions](https://github.com/sigilweaver/sigilweaver/discussions)
+- **Questions**: Open an issue or discussion. I prefer public channels so answers help others
 
 ## Guiding Principles
 

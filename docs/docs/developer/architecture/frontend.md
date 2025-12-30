@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Studio Architecture
 
-The Studio is a React application wrapped in Electron for desktop deployment. It handles all user interaction—the visual canvas, tool configuration, state management—while delegating actual data processing to the Server.
+The Studio is a React application wrapped in Electron for desktop deployment. It handles all user interaction: the visual canvas, tool configuration, state management. All actual data processing is delegated to the Server.
 
 ## Technology Stack
 
@@ -83,7 +83,7 @@ interface WorkflowState {
 }
 ```
 
-Tools and wires are the domain model. Edges are the Xyflow representation—derived from wires, kept in sync automatically.
+Tools and wires are the domain model. Edges are the Xyflow representation. They're derived from wires, kept in sync automatically.
 
 ### historyStore
 
@@ -323,7 +323,7 @@ panels/
 └── ...
 ```
 
-These are pure UI—they render form fields and emit config changes. The workflowStore handles persistence.
+These are pure UI. They render form fields and emit config changes. The workflowStore handles persistence.
 
 ## Tool Definitions
 

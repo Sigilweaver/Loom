@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Server Architecture
 
-The Server is a Python service that handles all data processing. It loads files, executes tool transformations, and returns results to the Studio. The Studio never touches actual data—it works with schemas and previews.
+The Server is a Python service that handles all data processing. It loads files, executes tool transformations, and returns results to the Studio. The Studio never touches actual data. It works with schemas and previews.
 
 ## Technology Stack
 

@@ -76,7 +76,7 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 **Many-to-many join performance**
 
 - **Issue**: Joining two large tables on non-unique keys can explode row count
-- **Notes**: This is how joins work, not a bug—but the UI doesn't warn you
+- **Notes**: This is how joins work, not a bug, but the UI doesn't warn you
 - **Future**: Add row count estimates before execution
 
 ### Input Tool
@@ -152,7 +152,7 @@ Good bug reports get fixed faster.
 - **Reality**: Formula and Filter tools evaluate Polars expressions on the backend
 - **Implication**: A malicious workflow file could execute arbitrary Python
 - **Mitigation**: Only open workflow files you trust (same as any script)
-- **Notes**: This is inherent to the design—the tool is for technical users who understand the risk
+- **Notes**: This is inherent to the design. The tool is for technical users who understand the risk
 
 **Data stays local**
 

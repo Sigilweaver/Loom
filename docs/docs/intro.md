@@ -5,27 +5,44 @@ slug: /
 
 # Welcome to Sigilweaver
 
-**The visual data pipeline tool you always wished existed.**
+**The visual data pipeline platform you always wished existed.**
 
-Sigilweaver is a visual workflow designer for building and executing data processing pipelines through an intuitive drag-and-drop interface. Built as a cross-platform desktop application, it empowers you to create complex data transformations with minimal code.
+Sigilweaver is both a **desktop application** for building visual data workflows and a **self-hostable platform** for collaboration and organization. Design pipelines by dragging tools onto an infinite canvas, wire them together, and watch your data flow.
 
 :::warning Pre-Release Software
-Sigilweaver is currently in active development. The software and source code are pre-release, but binaries are available for download. Expect rough edges, breaking changes between versions, and evolving APIs. See the [Roadmap](/developer/roadmap) for current priorities and upcoming features.
+Sigilweaver is in active development. Binaries are available for download, but expect rough edges, breaking changes, and evolving APIs. See the [Roadmap](/developer/roadmap) for what's coming.
 :::
+
+## The Platform
+
+| Component | What It Does |
+|-----------|--------------|
+| **Studio** | Desktop app for visual workflow design |
+| **Server** | Execution engine powered by Polars |
+| **Hub** | Orchestration platform for teams and automation |
+
+Use **Studio + Server** for single-user local development. Add **Hub** when you need centralized storage, scheduling, or team collaboration.
 
 ## Why Sigilweaver?
 
-- **Visual clarity**: See your entire pipeline at a glance—branches, joins, transformations laid out spatially
-- **Full power**: Backed by [Polars](https://pola.rs)—lazy evaluation, blazing speed, production-ready performance  
-- **Minimal code**: Write formulas when you need flexibility, drag-and-drop for structure
-- **Instant debugging**: Inspect data at any stage, trace errors visually, understand transformations intuitively
+- **Visual clarity**: See your entire pipeline at a glance - branches, joins, transformations laid out spatially
+- **Full power**: Backed by [Polars](https://pola.rs) - lazy evaluation, blazing speed, production-ready performance
+- **No row limits**: Process what your hardware can handle, not what a SaaS vendor allows
+- **Self-hosting first**: Your data never leaves your infrastructure
 
-## Get Started
+## Find What You Need
 
-- **Download**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)
-- **Website**: [sigilweaver.app](https://sigilweaver.app)
-- **GitHub**: [github.com/sigilweaver/sigilweaver-app](https://github.com/sigilweaver/sigilweaver-app)
+| I want to... | Go here |
+|--------------|---------|
+| Download and start using Sigilweaver | [Downloads](https://sigilweaver.app/downloads) |
+| Learn how to build workflows | [User Guide](/user) |
+| Understand the architecture | [Architecture](/developer/architecture/overview) |
+| Contribute to the project | [Contributing](/developer/contributing/workflow) |
+| Coming from Alteryx or KNIME? | [Crash Courses](/user/crash-courses) |
 
 ## Open Source
 
-Sigilweaver is **AGPL-3.0 licensed**—always free, always open. No SaaS, no cloud lock-in. You control your data and infrastructure.
+Sigilweaver is **AGPL-3.0 licensed**. Always free, always open. No SaaS, no cloud lock-in. You control your data and infrastructure.
+
+- **Website**: [sigilweaver.app](https://sigilweaver.app)
+- **GitHub**: [github.com/sigilweaver/sigilweaver](https://github.com/sigilweaver/sigilweaver)

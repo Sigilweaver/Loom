@@ -1,210 +1,169 @@
-# sigilweaver.app Website
+# Sigilweaver Website
 
-A mystical landing page for the Sigilweaver data pipeline tool, featuring an interactive frontend demo and modern web design.
+[![CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 
-## Features
+The public marketing website for Sigilweaver, built with Vite and Tailwind CSS.
 
-- **Responsive Design**: Modern, mobile-first design with Tailwind CSS
-- **Interactive Frontend Demo**: Drag-and-drop workflow builder with XML export (UI-only, no server backend)
-- **Mystical Theme**: Deep purples, blues, and gold accents with enchanting animations
-- **Performance Optimized**: Vanilla JavaScript with GSAP animations
-- **Accessibility**: Keyboard navigation and screen reader support
-- **SEO Ready**: Semantic HTML and meta tags
-
-## Tech Stack
-
-- **HTML5**: Semantic structure and accessibility
-- **Tailwind CSS**: Utility-first styling and responsive design
-- **Vanilla JavaScript**: Lightweight interactions and animations
-- **GSAP**: Advanced animations and effects
-- **Prism.js**: Code syntax highlighting
-- **Nginx**: Web server configuration
-
-## File Structure
-
-```
-/srv/swag/www/sigilweaver.app/
-├── index.html          # Main landing page
-├── demo.html           # Interactive demo page
-├── demo.js             # Demo functionality
-├── 404.html            # Error page
-├── css/
-│   └── style.css       # Custom styles and animations
-├── js/
-│   └── script.js       # Main site interactions
-├── nginx.conf          # Nginx configuration
-└── README.md           # This file
-```
-
-## Sections
-
-### Hero Section
-- Compelling tagline: "Weave Data Magic Into Reality"
-- Animated background with floating nodes
-- Clear call-to-action buttons
-
-### Core Value Props
-- Ultimate Flexibility (desktop, web, cloud)
-- Wicked Fast Performance (Polars-powered)
-- Enterprise-Grade Security (compliance ready)
-
-### Interactive Frontend Demo
-- Drag-and-drop workflow builder
-- Node-based canvas interaction
-- Real-time XML workflow generation
-- Properties panel for node configuration
-
-**Note**: This is a frontend-only demonstration showing the user interface. No server backend is connected - all functionality is simulated in the browser for UI preview purposes.
-
-### Technical Features
-- Frontend: React + Vite + Electron
-- Backend: Python orchestrator with Polars
-- Enterprise: Zero vendor lock-in, compliance ready
-
-### Open Source
-- FOSS with permissive license
-- Community-driven development
-- GitHub integration
-
-## Setup Instructions
-
-### Local Development
-
-1. **Clone/Copy Files**:
-   ```bash
-   # Files are already in /srv/swag/www/sigilweaver.app/
-   cd /srv/swag/www/sigilweaver.app
-   ```
-
-2. **Serve Locally** (for development):
-   ```bash
-   # Using Python
-   python3 -m http.server 8000
-   
-   # Using Node.js
-   npx serve .
-   
-   # Using PHP
-   php -S localhost:8000
-   ```
-
-3. **Access the Site**:
-   - Main site: http://localhost:8000
-   - Demo: http://localhost:8000/demo.html
-
-### Production Deployment
-
-1. **Nginx Configuration**:
-   ```bash
-   # Copy nginx config to sites-available
-   sudo cp nginx.conf /etc/nginx/sites-available/sigilweaver.app
-   
-   # Enable the site
-   sudo ln -s /etc/nginx/sites-available/sigilweaver.app /etc/nginx/sites-enabled/
-   
-   # Test configuration
-   sudo nginx -t
-   
-   # Reload nginx
-   sudo systemctl reload nginx
-   ```
-
-2. **SSL Setup** (recommended):
-   ```bash
-   # Using Certbot for Let's Encrypt
-   sudo certbot --nginx -d sigilweaver.app -d www.sigilweaver.app
-   ```
-
-3. **DNS Configuration**:
-   - Point A record for `sigilweaver.app` to your server IP
-   - Point CNAME record for `www.sigilweaver.app` to `sigilweaver.app`
-
-## Interactive Frontend Demo Features
-
-The demo page (`/demo.html`) includes:
-
-**Note**: This is a UI-only demonstration without server backend connectivity.
-
-- **Node Templates**: Drag from sidebar to canvas
-- **Visual Workflow**: Connect nodes with automatic line drawing
-- **Properties Panel**: Configure node settings
-- **XML Export**: Generate workflow XML with download option
-- **Responsive Design**: Works on desktop, tablet, and mobile
-
-### Demo Node Types
-
-- **Data Source** (📊): CSV, database, API inputs
-- **Transform** (⚙️): Data manipulation and mapping
-- **Filter** (🔍): Conditional data filtering
-- **Join** (🔗): Combine multiple data sources
-- **Aggregate** (📈): Group and summarize data
-- **Output** (💾): Save to file, database, or API
-
-### Demo Controls
-
-- **Drag & Drop**: Create nodes from templates
-- **Click to Select**: Configure node properties
-- **Mouse Drag**: Move nodes around canvas
-- **Delete Key**: Remove selected node
-- **Export Button**: Generate XML workflow
-- **Clear Canvas**: Reset workspace
-
-## Customization
-
-### Color Scheme
-The mystical color palette is defined in Tailwind config:
-- `mystic-900` to `mystic-100`: Deep purple gradients
-- `gold-300` to `gold-500`: Accent colors
-
-### Animations
-- CSS animations for floating elements
-- GSAP for complex scroll-triggered animations
-- Intersection Observer for performance
-
-### Content
-- All text content is in HTML for easy editing
-- Node templates and properties are configurable in JavaScript
-- XML generation is customizable in demo.js
-
-## Browser Support
-
-- **Modern Browsers**: Chrome 80+, Firefox 80+, Safari 14+, Edge 80+
-- **Features Used**: CSS Grid, Flexbox, ES6+, Intersection Observer
-- **Fallbacks**: Graceful degradation for older browsers
-
-## Performance
-
-- **Optimized Loading**: CDN resources with fallbacks
-- **Minimal JavaScript**: Vanilla JS with targeted libraries
-- **Efficient CSS**: Tailwind with custom optimizations
-- **Image Optimization**: SVG icons and minimal graphics
-
-## Accessibility
-
-- **Semantic HTML**: Proper heading structure and landmarks
-- **Keyboard Navigation**: Full keyboard support
-- **Screen Readers**: ARIA labels and descriptions
-- **Color Contrast**: WCAG AA compliant contrast ratios
-- **Reduced Motion**: Respects user motion preferences
-
-## SEO Features
-
-- **Meta Tags**: Title, description, and Open Graph
-- **Structured Data**: JSON-LD for rich snippets
-- **Semantic HTML**: Proper heading hierarchy
-- **Fast Loading**: Optimized for Core Web Vitals
-
-## Contact
-
-- **Website**: sigilweaver.app
-- **Email**: 
-- **Support**: 
-- **GitHub**: github.com/sigilweaver/sigilweaver
+**Live site**: [sigilweaver.app](https://sigilweaver.app)
 
 ## License
 
-This website template is open source. The Sigilweaver project itself uses a semi-permissive FOSS license.
+This website content is licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**.
+
+You are free to:
+- **Share** - Copy and redistribute the material in any medium or format
+- **Adapt** - Remix, transform, and build upon the material for any purpose, even commercially
+
+Under the following terms:
+- **Attribution** - You must give appropriate credit and indicate if changes were made
+- **ShareAlike** - If you remix or transform the material, you must distribute your contributions under the same license
+
+See [LICENSE](LICENSE) for the full text.
+
+## Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| **Vite** | Build tooling |
+| **TypeScript** | Type safety |
+| **Tailwind CSS** | Styling |
+| **PostCSS** | CSS processing |
+
+## Structure
+
+```
+site/
+├── src/
+│   ├── components/           # Reusable UI components
+│   ├── lib/                  # Utility libraries
+│   ├── pages/                # Page-specific scripts
+│   ├── styles/               # CSS files
+│   └── main.ts               # Entry point
+├── public/                   # Static assets
+├── index.html                # Homepage
+├── downloads.html            # Downloads page
+├── contributing.html         # How to contribute
+├── privacy.html              # Privacy policy
+├── terms.html                # Terms of service
+├── verify-downloads.html     # Download verification
+├── 403.html, 404.html, etc.  # Error pages
+├── vite.config.ts            # Vite configuration
+├── tailwind.config.ts        # Tailwind configuration
+└── postcss.config.js         # PostCSS configuration
+```
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+cd site
+npm install
+```
+
+### Local Development
+
+```bash
+npm run dev
+```
+
+Starts a development server at `http://localhost:27530` with hot module replacement.
+
+### Build
+
+```bash
+npm run build
+```
+
+Generates optimized static files in the `dist/` directory.
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+Serves the production build locally for testing.
+
+## Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Homepage | `/` | Product overview and value proposition |
+| Downloads | `/downloads` | Platform-specific download links |
+| Privacy | `/privacy` | Privacy policy |
+| Terms | `/terms` | Terms of service |
+| Contributing | `/contributing` | How to contribute to the project |
+
+## Deployment
+
+The site is automatically deployed when changes are pushed to the main branch.
+
+### Manual Deployment
+
+The built `dist/` directory can be deployed to any static hosting service:
+
+- Cloudflare Pages
+- Vercel
+- Netlify
+- GitHub Pages
+- Any web server
+
+## Adding New Pages
+
+1. Create the HTML file in the root directory:
+
+```html
+<!-- newpage.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Page - Sigilweaver</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <!-- Content -->
+</body>
+</html>
+```
+
+2. Update navigation links in other pages as needed.
+
+3. Add to `vite.config.ts` if using multi-page setup:
+
+```typescript
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        newpage: resolve(__dirname, 'newpage.html'),
+      },
+    },
+  },
+});
+```
+
+## Contributing
+
+We welcome contributions! Please:
+
+1. Follow the existing design patterns
+2. Test on multiple screen sizes
+3. Ensure accessibility (proper alt text, keyboard navigation)
+4. Optimize images before adding
 
 ---
 
-*Sigilweaver is a passion project developed with genuine care for the data community.*
+<p align="center">
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/">
+    <img src="https://licensebuttons.net/l/by-sa/4.0/88x31.png" alt="CC BY-SA 4.0" />
+  </a>
+</p>

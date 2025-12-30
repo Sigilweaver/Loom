@@ -1,137 +1,98 @@
 # Sigilweaver
 
-**The visual data pipeline tool we always wished existed.**
+**The visual data pipeline platform you always wished existed.**
 
-Sigilweaver is a visual workflow designer and platform for building data processing pipelines through an intuitive drag-and-drop interface. Whether you're working locally on your laptop or orchestrating workflows across a fleet of servers, Sigilweaver gives you the tools to design, execute, and manage complex data transformations.
+Enterprise-grade power, accessible to everyone.
 
-**Website**: [sigilweaver.app](https://sigilweaver.app/)  
-**Downloads**: [sigilweaver.app/downloads](https://sigilweaver.app/downloads)  
-**Documentation**: [docs.sigilweaver.app](https://docs.sigilweaver.app/)  
+[Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/downloads) | [Documentation](https://docs.sigilweaver.app)
+
+---
+
+## What is Sigilweaver?
+
+Sigilweaver is more than a workflow designer - it's a complete data pipeline platform.
+
+**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation. **Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with enterprise-grade security.
+
+Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing enterprise-scale ETL, Sigilweaver meets you where you are.
+
+No row limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
 ## Why Sigilweaver?
 
-As data scientists, we write transformation code all day - complex joins, filters, aggregations, multi-way merges. The code works, but it's hard to **see** what's happening. Debugging a 2000-line pipeline means mentally reconstructing the flow. Onboarding teammates means walking through nested function calls.
+### Zero Trust, Zero Compromise
 
-Sigilweaver is the best of both worlds:
-- **Visual clarity**: See your entire pipeline at a glance - branches, joins, transformations laid out spatially
-- **Full power**: Backed by [Polars](https://pola.rs) - lazy evaluation, blazing speed, production-ready performance
-- **Minimal code**: Write formulas when you need flexibility, drag-and-drop for structure
-- **Instant debugging**: Inspect data at any stage, trace errors visually, understand transformations intuitively
+Your data never leaves your infrastructure. Sigilweaver is designed for **self-hosting from day one**. Run it on your laptop, your homelab, or your enterprise Kubernetes cluster. The architecture is the same - only the scale changes.
 
-This is the tool we always wanted: the cognitive clarity of visual design with the performance and flexibility of code.
+### Lazy Evaluation
 
-## Features
+Powered by [Polars](https://pola.rs), Sigilweaver builds optimized query plans rather than executing transformations immediately. This means you can design pipelines on a 10 billion row dataset without loading it all into memory.
 
-- **Visual Workflow Designer**: Drag and drop tools onto an infinite canvas to build data pipelines
-- **Smart Connection Validation**: Real-time cycle detection prevents invalid workflow structures
-- **Polars-Powered Execution**: Lazy dataframe evaluation for speed and memory efficiency
-- **Workflow Persistence**: Save and share workflows as portable `.swwf` JSON files
-- **Undo/Redo System**: Full history tracking for confident workflow editing
-- **Organized Tool Library**: Browse tools by category (In/Out, Preparation, Join, and more)
-- **Modern Desktop Experience**: Native desktop application with traditional menu bar and keyboard shortcuts
-- **Extensible Architecture**: Domain-driven design makes adding new tools and capabilities straightforward
+### No Row Limits
+
+Unlike SaaS tools that throttle you at 10,000 rows, Sigilweaver processes what your hardware can handle. If it fits on your machine, it runs on your machine.
+
+### Visual Clarity, Full Power
+
+See your entire pipeline at a glance - branches, joins, transformations laid out spatially. Inspect data at any node. Debug visually. Understand intuitively.
+
+## Our Philosophy
+
+**"Enterprise Grade" does not mean "Enterprise Only."**
+
+We build Sigilweaver with the security, reliability, and scalability that enterprises demand. But we believe those same qualities belong to everyone:
+
+- **Self-Hosting First**: We actively encourage individuals to run their own Hub. Your personal data pipeline infrastructure should be as robust as a Fortune 500's.
+- **No Artificial Limits**: The same codebase powers a hobbyist's Raspberry Pi and a company's server farm.
+- **Community Ownership**: The AGPL license ensures Sigilweaver remains open forever. No rug-pulls. No sudden "premium tiers."
+
+Enterprise grade means "it works when you need it." That's a promise we make to every user, whether you're processing CSV exports or financial transactions.
+
+## The Platform
+
+| Component | What It Does |
+|-----------|--------------|
+| **Studio** | Desktop app for visual workflow design (React + Electron) |
+| **Server** | Execution engine that runs workflows (FastAPI + Polars) |
+| **Hub** | Orchestration platform for teams and automation (Full stack) |
+
+Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
+
+See individual component READMEs for more details: [server/](server/README.md), [studio/](studio/README.md), [hub/](hub/README.md)
 
 ## Installation
 
-Download the latest release for your platform (Linux, macOS, or Windows) from the **[Downloads Page](https://sigilweaver.app/downloads)**.
+Download the latest release for your platform from the **[Downloads Page](https://sigilweaver.app/downloads)**.
+
+For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
 | Audience | Link |
 |----------|------|
-| **Users** | [docs.sigilweaver.app/user](https://docs.sigilweaver.app/user/) |
-| **Coming from other tools?** | [Crash Courses](https://docs.sigilweaver.app/user/crash-courses/) |
-| **Developers / Contributors** | [docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer/) |
-| **Architectural Decisions** | [Architecture Decisions](https://docs.sigilweaver.app/developer/architecture/decisions) |
-| **Code of Conduct** | [Code of Conduct](https://docs.sigilweaver.app/code-of-conduct) |
+| **Getting Started** | [docs.sigilweaver.app/user](https://docs.sigilweaver.app/user) |
+| **Coming from Alteryx/KNIME?** | [Crash Courses](https://docs.sigilweaver.app/user/crash-courses) |
+| **Developers** | [docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer) |
+| **Architecture Decisions** | [ADRs](https://docs.sigilweaver.app/developer/architecture/decisions) |
 
-## Repository Structure
+## License
 
-This repository contains three components that can be used independently or together:
+Sigilweaver is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
 
-```
-app/
-├── server/                 # Sigilweaver Server (FastAPI + Polars)
-│   ├── app/                # API routes, domain logic, tool registry
-│   └── tests/              # Pytest suite
-├── studio/                 # Sigilweaver Studio (Electron + React)
-│   ├── src/                # React components, stores, domain logic
-│   └── electron/           # Electron main process
-├── hub/                    # Sigilweaver Hub (Web Platform)
-│   ├── backend/            # Hub API (FastAPI + PostgreSQL)
-│   ├── frontend/           # Hub UI (React + Vite)
-│   └── scripts/            # Hub dev scripts
-└── scripts/                # Dev scripts
-```
+- **Free forever**: Use, modify, and distribute without restriction.
+- **Copyleft**: If you run a modified version as a network service, you must release your changes under AGPL.
+- **Protection**: Large corporations cannot absorb this project without contributing back.
 
-## Components
+### Sustainability and the CLA
 
-### Server
+Open source needs to be sustainable. Sigilweaver requires contributors to sign a Contributor License Agreement (CLA). This allows the project maintainer to offer commercial licensing options to organizations that need them, which funds continued development.
 
-The execution engine. Runs workflows and returns results.
+**What this means for you:**
+- The project stays AGPLv3 forever - no one can close the source
+- Development remains funded without relying on donations or sponsorships
+- You can always use, fork, and modify Sigilweaver under the AGPL
 
-- Executes Polars-based data transformations
-- Exposes REST API for workflow execution
-- Manages data connections and caching
-- Can run standalone, with Studio, or orchestrated by Hub
-
-### Studio
-
-The desktop application. Design workflows visually.
-
-- Drag-and-drop workflow canvas
-- Real-time preview of transformations
-- Connects to a local or remote Server
-- Save/load workflows as `.swwf` files
-
-### Hub
-
-The orchestration platform. Manage workflows at scale.
-
-- Store and organize workflow files
-- Register and monitor multiple Servers
-- Schedule automated workflow runs
-- Web-based admin interface
-
-## How They Work Together
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      STUDIO (Desktop)                           │
-│              Design workflows, preview results                  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    connects to either
-                              │
-        ┌─────────────────────┴─────────────────────┐
-        ▼                                           ▼
-┌───────────────────┐                     ┌───────────────────────┐
-│  SERVER (Local)   │                     │    HUB (Central)      │
-│  Single instance  │                     │  Routes to Servers    │
-│  for development  │                     │  Stores workflows     │
-└───────────────────┘                     │  Manages schedules    │
-                                          └───────────────────────┘
-                                                    │
-                                          orchestrates multiple
-                                                    │
-                              ┌─────────────────────┼─────────────────────┐
-                              ▼                     ▼                     ▼
-                        ┌──────────┐          ┌──────────┐          ┌──────────┐
-                        │ SERVER 1 │          │ SERVER 2 │          │ SERVER N │
-                        │  (Dev)   │          │ (Staging)│          │  (Prod)  │
-                        └──────────┘          └──────────┘          └──────────┘
-```
-
-| Component | Description | Tech Stack |
-|-----------|-------------|------------|
-| **Server** | Data pipeline executor | FastAPI, Polars, Pydantic |
-| **Studio** | Visual workflow designer | React, Zustand, Xyflow, Electron |
-| **Hub Backend** | Workflow storage & orchestration | FastAPI, PostgreSQL, SQLAlchemy |
-| **Hub Frontend** | Admin UI | React, Vite, Tailwind |
-
-## Contributing
-
-Contributions are welcome! Please read our [Code of Conduct](https://docs.sigilweaver.app/code-of-conduct) and check the [Developer Documentation](https://docs.sigilweaver.app/developer/) before getting started.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE) for the full AGPL text.
 
 ## Team
 
@@ -140,10 +101,8 @@ Contributions are welcome! Please read our [Code of Conduct](https://docs.sigilw
 | **Lead Developer** | [Nathan Riley](https://github.com/Nathan-D-R) |
 | **Community Manager** | [Madalyn Riley](https://github.com/mads040205) |
 
-## License
+---
 
-Sigilweaver is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
-
-This means you're free to use, modify, and distribute Sigilweaver, but if you run a modified version as a network service, you must release your source code under the same license. This protects the project from being absorbed by large corporations without contributing back.
-
-See [LICENSE](LICENSE) for the full text.
+<p align="center">
+  <strong>Built for the community. Sustained by the community.</strong>
+</p>

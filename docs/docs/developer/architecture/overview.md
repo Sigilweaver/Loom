@@ -31,7 +31,7 @@ Sigilweaver is a desktop application with a clear separation between frontend (U
 
 ## Monorepo Structure
 
-Everything lives in one repository. This isn't arbitrary—it solves real problems.
+Everything lives in one repository. This isn't arbitrary. It solves real problems.
 
 ```
 app/
@@ -101,7 +101,7 @@ The frontend and backend talk over HTTP:
 3. **User requests preview** → Frontend sends workflow + tool ID → Backend executes upstream tools, returns sample rows
 4. **User runs workflow** → Frontend sends complete workflow → Backend executes everything, writes output
 
-All requests are synchronous from the user's perspective—they click, something happens. Under the hood, Polars' lazy evaluation means we only compute what's actually needed.
+All requests are synchronous from the user's perspective. They click, something happens. Under the hood, Polars' lazy evaluation means we only compute what's actually needed.
 
 ## Frontend Architecture
 
@@ -153,7 +153,7 @@ class CommonSockets:
     OUTPUT = "output"
 ```
 
-This makes adding new tools straightforward—implement the interface, register it, done.
+This makes adding new tools straightforward. Implement the interface, register it, done.
 
 ## Data Flow Example
 
@@ -171,7 +171,7 @@ Here's what happens when a user connects an Input tool to a Filter tool:
 10. Backend executes Input → Filter lazily, collects 100 rows, returns preview data
 11. Frontend displays preview in data grid
 
-All of this happens in milliseconds for reasonable-sized data because Polars is lazy—it only reads enough of the CSV to return the preview.
+All of this happens in milliseconds for reasonable-sized data because Polars is lazy. It only reads enough of the CSV to return the preview.
 
 ## Key Design Decisions
 

@@ -8,13 +8,13 @@ Where we're going and why.
 
 ## Development Timeline
 
-Sigilweaver has been in active development since **August 1, 2025**, with 4-8 hours of daily work. This isn't a weekend project or an AI-generated app thrown together in an afternoon—it's a serious, sustained effort to build something genuinely useful.
+Sigilweaver has been in active development since **August 1, 2025**, with 4-8 hours of daily work. This isn't a weekend project or an AI-generated app thrown together in an afternoon. It's a serious, sustained effort to build something genuinely useful.
 
 **Target v1.0 release: June 1, 2026**
 
 ## Current State
 
-Sigilweaver is in **active development**, pre-v1.0. The core is functional but has rough UI/UX. The focus right now is building out the foundation—not polish.
+Sigilweaver is in **active development**, pre-v1.0. The core is functional but has rough UI/UX. The focus right now is building out the foundation, not polish.
 
 ### What Works
 
@@ -37,13 +37,13 @@ Sigilweaver is in **active development**, pre-v1.0. The core is functional but h
 
 ## Project Philosophy
 
-**Open Source:** AGPL-3.0 licensed—always free, always open. The AGPL was chosen specifically to prevent large companies from taking this work, wrapping it in proprietary code, and profiting without contributing back. If you use Sigilweaver, you share your improvements. That's the deal.
+**Open Source:** AGPL-3.0 licensed. Always free, always open. The AGPL was chosen specifically to prevent large companies from taking this work, wrapping it in proprietary code, and profiting without contributing back. If you use Sigilweaver, you share your improvements. That's the deal.
 
 **Desktop-Only:** No SaaS. You control your data and your infrastructure. The app runs locally, processes locally, saves locally.
 
 **Core Value:** Visual layout for complex data flows. Even if you're writing Polars expressions in the tools, *seeing* the pipeline structure makes complex joins/merges/splits comprehensible.
 
-**Target Audience:** Anyone who is data-minded. You don't need prior Python or Polars experience—the expression engine is designed to be intuitive, and the documentation includes a crash course in Polars expressions. If you've used other visual data tools, you'll find Sigilweaver easier to pick up than you might expect.
+**Target Audience:** Anyone who is data-minded. You don't need prior Python or Polars experience. The expression engine is designed to be intuitive, and the documentation includes a crash course in Polars expressions. If you've used other visual data tools, you'll find Sigilweaver easier to pick up than you might expect.
 
 ---
 
@@ -65,7 +65,7 @@ Build out the core feature set until the software is genuinely usable. Source co
 - Marketing materials
 - Documentation polish
 
-**Done when:** The software reaches Minimum Competitive Product—can handle real workflows end-to-end without friction.
+**Done when:** The software reaches Minimum Competitive Product. It can handle real workflows end-to-end without friction.
 
 ### Phase 2: Early Testers
 
@@ -210,7 +210,7 @@ The roadmap isn't fixed. It evolves based on what real users actually need.
 
 Contributions to Sigilweaver require signing a Contributor License Agreement. This grants the project maintainer rights to your contributions while you retain ownership of your work.
 
-**Why a CLA?** To preserve flexibility for the project's long-term sustainability. We may offer dual licensing in the future—AGPL for open source users, commercial licenses for enterprises who need different terms. A CLA makes this possible without needing to track down every contributor for permission.
+**Why a CLA?** To preserve flexibility for the project's long-term sustainability. We may offer dual licensing in the future: AGPL for open source users, commercial licenses for enterprises who need different terms. A CLA makes this possible without needing to track down every contributor for permission.
 
 **Transparency:** The project is and will remain AGPL-3.0 (or license in similar spirit). Any commercial licensing would be *in addition to*, not *instead of*, the open source version. The CLA exists to keep options open, not to take them away from the community.
 
@@ -231,7 +231,7 @@ Things Sigilweaver intentionally won't do:
 
 ### Workflow JSON Format
 
-The JSON workflow format is designed to be **verbose and explicit** for data operations. This verbosity is intentional—it makes the format resilient to change.
+The JSON workflow format is designed to be **verbose and explicit** for data operations. This verbosity is intentional. It makes the format resilient to change.
 
 **Our commitment:**
 - Workflows saved in v1.0 will remain loadable in future versions
@@ -248,7 +248,7 @@ Sigilweaver is deeply integrated with [Polars](https://pola.rs). Our roadmap is 
 - Polars breaking changes may require Sigilweaver updates
 - We track Polars releases and test compatibility
 
-This dependency is a feature, not a bug—Polars is excellent, and tight integration means you get its full power.
+This dependency is a feature, not a bug. Polars is excellent, and tight integration means you get its full power.
 
 ---
 
