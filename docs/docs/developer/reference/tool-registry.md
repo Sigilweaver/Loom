@@ -1,0 +1,318 @@
+---
+sidebar_position: 2
+---
+
+# Tool Registry
+
+Tool types, interfaces, and how they connect.
+
+## Overview
+
+Tools are the core building blocks of Sigilweaver. Each tool:
+- Has a **type** (e.g., "Filter", "Join")
+- Has **sockets** (input/output connection points)
+- Has a **config** (settings specific to that tool)
+- Is implemented in both Studio (UI) and Server (execution)
+
+## Architecture
+
+```
+Studio                                Server
+─────────────────────────────────────────────────
+TOOL_DEFINITIONS     ──────────────►  ToolRegistry
+(data/tools.ts)                       (domain/tools/registry.py)
+                                           │
+ToolDefinition       ──────────────►  BaseTool
+(UI/layout/sockets)                   (execute/schema/validate)
+                                           │
+ConfigPanel          ──────────────►  Implementation
+(component)                           (filter.py, join.py, etc.)
+```
+
+---
+
+## Studio: ToolDefinition
+
+Every tool needs a Studio definition in `studio/src/data/tools.ts`:
+
+```typescript
+interface ToolDefinition {
+  type: string;           // Must match Server tool type
+  name: string;           // Display name in palette
+  icon: string;           // Emoji for palette/node
+  category: ToolCategory; // "inout" | "preparation" | "join" | "aggregate"
+  defaultConfig: ToolConfig;
+  sockets: Socket[];
+}
+```
+
+### Socket Definition
+
+```typescript
+interface Socket {
+  id: string;          // Unique within tool (e.g., "input", "output-true")
+  direction: "input" | "output";
+  type?: string;       // Optional label (e.g., "L", "R", "T", "F")
+  multiple?: boolean;  // Allow multiple connections (Union tool)
+}
+```
+
+### Example: Filter Tool
+
+```typescript
+{
+  type: 'Filter',
+  name: 'Filter',
+  icon: '🔍',
+  category: 'preparation',
+  defaultConfig: {
+    expression: '',
+    mode: 'Custom',
+  },
+  sockets: [
+    { id: 'input', direction: 'input' },
+    { id: 'output-true', direction: 'output', type: 'T' },
+    { id: 'output-false', direction: 'output', type: 'F' }
+  ]
+}
+```
+
+The Filter has:
+- One input socket
+- Two output sockets: rows that match (T) and rows that don't (F)
+- Config for the filter expression and mode
+
+---
+
+## Backend: BaseTool
+
+All tools inherit from `BaseTool`:
+
+```python
+from abc import ABC, abstractmethod
+import polars as pl
+
+class BaseTool(ABC):
+    @abstractmethod
+    async def execute(
+        self, 
+        config: dict[str, Any], 
+        inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
+    ) -> dict[str, pl.LazyFrame]:
+        """Execute tool logic. Keep it lazy!"""
+        pass
+
+    @abstractmethod
+    async def get_output_schema(
+        self, 
+        config: dict[str, Any], 
+        input_schemas: dict[str, DataSchema | list[DataSchema]]
+    ) -> dict[str, DataSchema]:
+        """Get output schema without execution."""
+        pass
+
+    async def validate_config(self, config: dict[str, Any]) -> list[str]:
+        """Return list of validation errors."""
+        return []
+
+    def to_python_code(
+        self,
+        tool_id: str,
+        config: dict[str, Any],
+        input_vars: dict[str, str],
+    ) -> tuple[list[str], dict[str, str]]:
+        """Generate Python code for this tool."""
+        pass
+```
+
+### Key Principles
+
+1. **Lazy Execution**: Use `LazyFrame` throughout. Never call `.collect()` unless absolutely necessary.
+2. **Schema Inference**: `get_output_schema` must work without executing upstream tools.
+3. **Validation**: Catch config errors before execution.
+4. **Code Generation**: Support exporting workflows to standalone Python.
+
+---
+
+## Backend: Registry Pattern
+
+Tools register themselves via decorator:
+
+```python
+from app.domain.tools.registry import register_tool
+from app.domain.tools.base import BaseTool
+
+@register_tool("Filter")
+class FilterTool(BaseTool):
+    async def execute(self, config, inputs):
+        # Implementation
+        pass
+```
+
+The registry is populated when `app.domain.tools.register` is imported (which happens at app startup).
+
+### Getting a Tool
+
+```python
+from app.domain.tools.registry import ToolRegistry
+
+tool = ToolRegistry.get("Filter")  # Returns FilterTool instance
+result = await tool.execute(config, inputs)
+```
+
+---
+
+## Available Tools
+
+### In/Out
+
+| Type | Description | Sockets |
+|------|-------------|---------|
+| **Input** | Load data from file | `output` |
+| **Output** | Export data to file | `input` |
+
+### Preparation
+
+| Type | Description | Sockets |
+|------|-------------|---------|
+| **Filter** | Filter rows by expression | `input` → `output-true`, `output-false` |
+| **Select** | Select/rename/reorder columns | `input` → `output` |
+| **Sort** | Sort rows by columns | `input` → `output` |
+| **Formula** | Add calculated column | `input` → `output` |
+
+### Join
+
+| Type | Description | Sockets |
+|------|-------------|---------|
+| **Union** | Combine multiple tables vertically | `input` (multiple) → `output` |
+| **Join** | Join two tables on keys | `input-left`, `input-right` → `output-left`, `output-match`, `output-right` |
+
+### Aggregate
+
+| Type | Description | Sockets |
+|------|-------------|---------|
+| **Summarize** | Group by and aggregate | `input` → `output` |
+
+---
+
+## Config Schemas
+
+Each tool has its own config shape. Here are the key ones:
+
+### Input
+
+```json
+{
+  "source": "/path/to/file.csv",
+  "delimiter": ",",
+  "hasHeader": true,
+  "encoding": "utf-8"
+}
+```
+
+### Filter
+
+```json
+{
+  "expression": "pl.col('value') > 100",
+  "mode": "Custom"
+}
+```
+
+The expression is raw Polars syntax evaluated on the backend.
+
+### Select
+
+```json
+{
+  "columnConfigs": [
+    { "name": "id", "enabled": true, "alias": null },
+    { "name": "value", "enabled": true, "alias": "amount" }
+  ]
+}
+```
+
+### Sort
+
+```json
+{
+  "sortColumns": [
+    { "column": "created_at", "ascending": false },
+    { "column": "id", "ascending": true }
+  ]
+}
+```
+
+### Formula
+
+```json
+{
+  "column_name": "total",
+  "expression": "pl.col('price') * pl.col('quantity')"
+}
+```
+
+### Union
+
+```json
+{
+  "mode": "ByName"
+}
+```
+
+Modes: `ByName` (match by column name), `ByPosition` (match by column order).
+
+### Join
+
+```json
+{
+  "joinType": "inner",
+  "leftKeys": ["id"],
+  "rightKeys": ["user_id"]
+}
+```
+
+Join types: `inner`, `left`, `right`, `outer`, `cross`.
+
+### Summarize
+
+```json
+{
+  "groupByColumns": ["category"],
+  "aggregations": [
+    { "column": "value", "operation": "Sum", "outputName": "total_value" },
+    { "column": "id", "operation": "Count", "outputName": "count" }
+  ],
+  "includeNulls": false
+}
+```
+
+Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Var`.
+
+---
+
+## Adding a New Tool
+
+See [Adding Tools](../contributing/adding-tools) for a complete guide. The key steps:
+
+1. Add `ToolDefinition` to `studio/src/data/tools.ts`
+2. Create config panel component in `studio/src/components/tools/`
+3. Create implementation in `server/app/domain/tools/implementations/`
+4. Register with `@register_tool("YourTool")` decorator
+5. Import in `server/app/domain/tools/register.py`
+6. Add tests
+
+---
+
+## Type Matching
+
+Socket types must match when connecting:
+- Standard output → Standard input: Always allowed
+- Typed socket → Same type: Allowed (e.g., "L" → "L")
+- Typed socket → Different type: Prevented by UI
+
+The Studio enforces type compatibility during drag-and-drop connections.
+
+---
+
+Next: [Roadmap](../roadmap) for project direction and priorities.
