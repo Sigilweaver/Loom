@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.dependencies import CurrentUser, RequireAdmin
+from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.db.database import get_db
 from app.db.models import Connection, ConnectionGroup, Group, User, UserGroup
 from app.domain.auth.sessions import SessionInfo
@@ -135,10 +135,10 @@ def _group_to_response(group: Group) -> GroupResponse:
 
 @router.get("", response_model=GroupListResponse)
 async def list_groups(
-    _admin: SessionInfo = RequireAdmin,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> GroupListResponse:
-    """List all groups. Requires admin role."""
+    """List all groups. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
         .options(selectinload(Group.members), selectinload(Group.connections))
@@ -215,10 +215,10 @@ async def list_my_groups(
 @router.get("/{group_id}", response_model=GroupResponse)
 async def get_group(
     group_id: UUID,
-    _admin: SessionInfo = RequireAdmin,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> GroupResponse:
-    """Get group details. Requires admin role."""
+    """Get group details. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
         .options(selectinload(Group.members), selectinload(Group.connections))
@@ -308,10 +308,10 @@ async def delete_group(
 @router.get("/{group_id}/members", response_model=GroupMembersResponse)
 async def list_group_members(
     group_id: UUID,
-    _admin: SessionInfo = RequireAdmin,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> GroupMembersResponse:
-    """List members of a group. Requires admin role."""
+    """List members of a group. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
         .options(selectinload(Group.members).selectinload(UserGroup.user))
@@ -430,10 +430,10 @@ async def remove_group_member(
 @router.get("/{group_id}/connections", response_model=GroupConnectionsResponse)
 async def list_group_connections(
     group_id: UUID,
-    _admin: SessionInfo = RequireAdmin,
+    _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
 ) -> GroupConnectionsResponse:
-    """List connections assigned to a group. Requires admin role."""
+    """List connections assigned to a group. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
         .options(selectinload(Group.connections).selectinload(ConnectionGroup.connection))

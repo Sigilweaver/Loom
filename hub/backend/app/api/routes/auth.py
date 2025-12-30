@@ -323,9 +323,9 @@ async def list_users(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """List all users (admin only)."""
-    # Only owner and admin can list users
-    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
+    """List all users (auditor or higher)."""
+    # Owner, admin, and auditor can list users
+    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to list users",
@@ -346,9 +346,9 @@ async def get_user(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """Get a single user by ID (admin only)."""
-    # Only owner and admin can view users
-    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
+    """Get a single user by ID (auditor or higher)."""
+    # Owner, admin, and auditor can view users
+    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to view user",

@@ -15,6 +15,7 @@ from app.domain.auth.keys import init_key_manager
 from app.domain.auth.sessions import SessionManager
 from app.domain.auth.tokens import init_token_tracker
 from app.domain.capabilities import init_issuer
+from app.domain.connections.health_poller import connection_health_poller
 from app.domain.schedules.scheduler import get_scheduler
 from app.domain.servers.health_poller import health_poller
 
@@ -59,6 +60,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Start server health polling
     await health_poller.start()
 
+    # Start connection health polling
+    await connection_health_poller.start()
+
     # Start workflow scheduler
     scheduler = get_scheduler()
     await scheduler.start()
@@ -82,6 +86,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Stop health polling
     await health_poller.stop()
+
+    # Stop connection health polling
+    await connection_health_poller.stop()
 
     # Stop scheduler
     await scheduler.stop()

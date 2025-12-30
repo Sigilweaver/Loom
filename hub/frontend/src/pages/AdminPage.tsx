@@ -6,20 +6,22 @@
  */
 
 import { useState } from "react";
-import { LayoutDashboard, Users, Server, Settings, Shield, Database, UsersRound } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Shield, Database, UsersRound, Activity } from "lucide-react";
 import { DashboardTab } from "./admin/DashboardTab";
 import { UsersTab } from "./admin/UsersTab";
 import { ServersTab } from "./admin/ServersTab";
 import { ConnectionsTab } from "./admin/ConnectionsTab";
 import { GroupsTab } from "./admin/GroupsTab";
+import { ActivityTab } from "./admin/ActivityTab";
 
-type AdminTab = "dashboard" | "settings" | "users" | "groups" | "servers" | "connections";
+type AdminTab = "dashboard" | "activity" | "settings" | "users" | "groups" | "servers" | "connections";
 
 const tabs: { id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "activity", label: "Activity", icon: Activity },
+  { id: "servers", label: "Servers", icon: Server },
   { id: "connections", label: "Connections", icon: Database },
   { id: "groups", label: "Groups", icon: UsersRound },
-  { id: "servers", label: "Servers", icon: Server },
   { id: "users", label: "Users", icon: Users },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -62,6 +64,7 @@ export function AdminPage() {
 
       {/* Tab content */}
       {activeTab === "dashboard" && <DashboardTab />}
+      {activeTab === "activity" && <ActivityTab />}
       {activeTab === "connections" && <ConnectionsTab />}
       {activeTab === "groups" && <GroupsTab />}
       {activeTab === "servers" && <ServersTab />}

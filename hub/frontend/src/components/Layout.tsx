@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
+  Home,
   FileCode2,
   Play,
   Clock,
   Shield,
   LogOut,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   UserCog,
   X,
   Loader2,
@@ -16,6 +19,7 @@ import { useAuthStore } from "@state/authStore";
 import { logout, updateProfile } from "@api/client";
 
 const navItems = [
+  { to: "/", label: "Home", icon: Home },
   { to: "/workflows", label: "Workflows", icon: FileCode2 },
   { to: "/executions", label: "Executions", icon: Play },
   { to: "/schedules", label: "Schedules", icon: Clock },
@@ -38,8 +42,9 @@ export function Layout() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const isAdmin = user?.role === "admin" || user?.role === "owner";
+  const isAdminOrAuditor = user?.role === "admin" || user?.role === "owner" || user?.role === "auditor";
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -59,35 +64,61 @@ export function Layout() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <aside
+        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${
+          sidebarCollapsed ? "w-16" : "w-64"
+        }`}
+      >
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <span className="text-xl font-semibold text-gray-900">
-            Sigilweaver Hub
-          </span>
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+          <div className="flex items-center min-w-0 gap-2">
+            <img
+              src="/sigilweaver-logo.svg"
+              alt="Sigilweaver"
+              className="flex-shrink-0 w-8 h-8"
+            />
+            {!sidebarCollapsed && (
+              <span className="text-lg font-semibold text-gray-900 truncate">
+                Sigilweaver Hub
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-2 space-y-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === "/"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-brand-50 text-brand-700"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`
+                } ${sidebarCollapsed ? "justify-center" : ""}`
               }
+              title={sidebarCollapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5" />
-              {item.label}
+              <item.icon className="flex-shrink-0 w-5 h-5" />
+              {!sidebarCollapsed && item.label}
             </NavLink>
           ))}
 
-          {/* Admin section - only visible to admins and owners */}
-          {isAdmin && (
+          {/* Admin section - visible to admins, owners, and auditors */}
+          {isAdminOrAuditor && (
             <>
               <div className="pt-4 pb-2">
                 <div className="h-px bg-gray-200" />
@@ -101,11 +132,12 @@ export function Layout() {
                       isActive
                         ? "bg-brand-50 text-brand-700"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`
+                    } ${sidebarCollapsed ? "justify-center" : ""}`
                   }
+                  title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
+                  <item.icon className="flex-shrink-0 w-5 h-5" />
+                  {!sidebarCollapsed && item.label}
                 </NavLink>
               ))}
             </>
@@ -113,27 +145,34 @@ export function Layout() {
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t border-gray-200 relative">
+        <div className="relative p-2 border-t border-gray-200">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="w-full flex items-center gap-3 hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors"
+            className={`w-full flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors ${
+              sidebarCollapsed ? "justify-center" : ""
+            }`}
+            title={sidebarCollapsed ? user?.username : undefined}
           >
-            <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-brand-100">
               <span className="text-sm font-medium text-brand-700">
                 {userInitial}
               </span>
             </div>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.username || "Unknown"}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{roleLabel}</p>
-            </div>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-400 transition-transform ${
-                showUserMenu ? "rotate-180" : ""
-              }`}
-            />
+            {!sidebarCollapsed && (
+              <>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user?.username || "Unknown"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">{roleLabel}</p>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-gray-400 transition-transform ${
+                    showUserMenu ? "rotate-180" : ""
+                  }`}
+                />
+              </>
+            )}
           </button>
 
           {/* User dropdown menu */}
@@ -145,7 +184,11 @@ export function Layout() {
                 onClick={() => setShowUserMenu(false)}
               />
               {/* Menu */}
-              <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-lg border border-gray-200 shadow-lg z-20 overflow-hidden">
+              <div
+                className={`absolute bottom-full mb-2 bg-white rounded-lg border border-gray-200 shadow-lg z-20 overflow-hidden ${
+                  sidebarCollapsed ? "left-2 w-48" : "left-2 right-2"
+                }`}
+              >
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
@@ -153,7 +196,7 @@ export function Layout() {
                   }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  <UserCog className="h-4 w-4" />
+                  <UserCog className="w-4 h-4" />
                   Edit Profile
                 </button>
                 <div className="h-px bg-gray-200" />
@@ -162,7 +205,7 @@ export function Layout() {
                   disabled={isLoggingOut}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="w-4 h-4" />
                   {isLoggingOut ? "Signing out..." : "Sign out"}
                 </button>
               </div>
@@ -253,25 +296,25 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Edit Profile</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
+            <div className="flex items-start gap-2 p-3 border border-red-200 rounded-lg bg-red-50">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <div className="p-3 border rounded-lg bg-amber-50 border-amber-200">
             <p className="text-sm text-amber-700">
               Enter your current password to confirm your identity before making changes.
             </p>
@@ -279,7 +322,7 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
 
           {/* Current Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block mb-1 text-sm font-medium text-gray-700">
               Current Password <span className="text-red-500">*</span>
             </label>
             <input
@@ -293,11 +336,11 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
             />
           </div>
 
-          <div className="h-px bg-gray-200 my-4" />
+          <div className="h-px my-4 bg-gray-200" />
 
           {/* New Username */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Username</label>
             <input
               type="text"
               value={newUsername}
@@ -310,9 +353,9 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
 
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block mb-1 text-sm font-medium text-gray-700">
               New Password
-              <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>
+              <span className="ml-1 font-normal text-gray-400">(leave blank to keep current)</span>
             </label>
             <input
               type="password"
@@ -326,7 +369,7 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
           {/* Confirm Password */}
           {newPassword && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block mb-1 text-sm font-medium text-gray-700">
                 Confirm New Password
               </label>
               <input
@@ -344,18 +387,18 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !currentPassword || !hasChanges}
-              className="flex-1 px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex items-center justify-center flex-1 gap-2 px-4 py-2 font-medium text-white rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
                 </>
               ) : (

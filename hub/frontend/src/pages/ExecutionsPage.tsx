@@ -20,8 +20,8 @@ import {
   FileText,
 } from "lucide-react";
 import {
-  listExecutions,
-  listWorkflows,
+  listMyExecutions,
+  listMyWorkflows,
   listServers,
   cancelExecution,
   type ExecutionResponse,
@@ -143,7 +143,7 @@ export function ExecutionsPage() {
 
   const fetchExecutions = useCallback(async () => {
     try {
-      const result = await listExecutions({
+      const result = await listMyExecutions({
         workflow_id: selectedWorkflow || undefined,
         server_id: selectedServer || undefined,
         status: selectedStatus || undefined,
@@ -161,7 +161,7 @@ export function ExecutionsPage() {
   const fetchFilters = useCallback(async () => {
     try {
       const [workflowsRes, serversRes] = await Promise.all([
-        listWorkflows(),
+        listMyWorkflows(),
         listServers(),
       ]);
       setWorkflows(workflowsRes.workflows);

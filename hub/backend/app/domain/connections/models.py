@@ -31,6 +31,10 @@ class ConnectionInfo(BaseModel):
     host: str
     port: int
     database: str
+    status: str
+    last_checked: datetime | None
+    last_healthy: datetime | None
+    last_error: str | None
     created_by: str
     created_at: datetime
     updated_at: datetime

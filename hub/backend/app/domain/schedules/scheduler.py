@@ -147,6 +147,14 @@ class Scheduler:
 
             schedule.last_triggered_at = datetime.now(UTC)
 
+            # Update next_trigger_at from APScheduler
+            if self._scheduler:
+                job = self._scheduler.get_job(str(schedule_id))
+                if job and job.next_run_time:
+                    schedule.next_trigger_at = job.next_run_time
+                else:
+                    schedule.next_trigger_at = None
+
             # Trigger execution
             service = ExecutionService(db)
             try:

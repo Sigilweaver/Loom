@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import CurrentUser, RequireAuditor
 from app.db.database import get_db
+from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
     ExecutionService,
@@ -144,8 +145,13 @@ def _execution_to_response(info: ExecutionInfo) -> ExecutionResponse:
     )
 
 
-@router.get("", response_model=ScheduleListResponse)
-async def list_schedules(
+# =============================================================================
+# User's Schedules (self-service) - MUST be before /{id} routes
+# =============================================================================
+
+
+@router.get("/my", response_model=ScheduleListResponse)
+async def list_my_schedules(
     user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     workflow_id: UUID | None = Query(None),
@@ -153,7 +159,7 @@ async def list_schedules(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> ScheduleListResponse:
-    """List all schedules, optionally filtered.
+    """List schedules created by the current user.
 
     Query parameters:
     - workflow_id: Filter by workflow
@@ -165,6 +171,46 @@ async def list_schedules(
     schedules, total = await service.list_schedules(
         workflow_id=workflow_id,
         enabled_only=enabled if enabled else False,
+        created_by=user.username,
+        skip=offset,
+        limit=limit,
+    )
+
+    return ScheduleListResponse(
+        schedules=[_info_to_response(s) for s in schedules],
+        total=total,
+    )
+
+
+# =============================================================================
+# Admin/Auditor Schedules (all schedules)
+# =============================================================================
+
+
+@router.get("", response_model=ScheduleListResponse)
+async def list_schedules(
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+    workflow_id: UUID | None = Query(None),
+    enabled: bool | None = Query(None),
+    created_by: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+) -> ScheduleListResponse:
+    """List all schedules, optionally filtered. Requires auditor role or higher.
+
+    Query parameters:
+    - workflow_id: Filter by workflow
+    - enabled: Filter by enabled status
+    - created_by: Filter by creator username
+    - limit: Maximum results (default 50)
+    - offset: Skip results for pagination
+    """
+    service = ScheduleService(db)
+    schedules, total = await service.list_schedules(
+        workflow_id=workflow_id,
+        enabled_only=enabled if enabled else False,
+        created_by=created_by,
         skip=offset,
         limit=limit,
     )
