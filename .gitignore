@@ -1,7 +1,4 @@
 # Github
-## Copilot files
-.github/copilot
-.github/copilot-instructions.md
 
 ## Actions
 .github/.pytest_cache/
