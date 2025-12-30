@@ -4,8 +4,6 @@ sidebar_position: 2
 
 # Getting Started
 
-This is the single source of truth for setting up a Sigilweaver development environment.
-
 ## Prerequisites
 
 You'll need:
@@ -40,8 +38,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/sigilweaver/sigilweaver-app.git
-cd sigilweaver-app
+git clone https://github.com/sigilweaver/sigilweaver.git
+cd sigilweaver
 
 # Backend setup (uses uv, not pip)
 cd backend
@@ -67,7 +65,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 If you must use native Windows:
 - Use PowerShell, not cmd
 - Watch for CRLF line endings (configure Git: `git config --global core.autocrlf input`)
-- Paths use backslashes—let Node's `path` module and Python's `pathlib` handle it
+- Paths use backslashes. Let Node's `path` module and Python's `pathlib` handle it
 
 ### macOS
 

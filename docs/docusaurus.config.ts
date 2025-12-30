@@ -86,7 +86,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/sigilweaver/sigilweaver-app',
+          href: 'https://github.com/sigilweaver/sigilweaver',
           label: 'GitHub',
           position: 'right',
         },
@@ -100,11 +100,11 @@ const config: Config = {
           items: [
             {
               label: 'GitHub Discussions',
-              href: 'https://github.com/sigilweaver/sigilweaver-app/discussions',
+              href: 'https://github.com/sigilweaver/sigilweaver/discussions',
             },
             {
               label: 'GitHub Issues',
-              href: 'https://github.com/sigilweaver/sigilweaver-app/issues',
+              href: 'https://github.com/sigilweaver/sigilweaver/issues',
             },
           ],
         },
@@ -121,7 +121,7 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/sigilweaver/sigilweaver-app',
+              href: 'https://github.com/sigilweaver/sigilweaver',
             },
           ],
         },

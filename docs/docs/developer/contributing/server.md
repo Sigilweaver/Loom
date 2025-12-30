@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Server Patterns
 
-Conventions and patterns for Server development. These emerged from real problems—follow them unless you have a good reason not to.
+Conventions and patterns for Server development. These emerged from real problems. Follow them unless you have a good reason not to.
 
 ## Project Structure
 

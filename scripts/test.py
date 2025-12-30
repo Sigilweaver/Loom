@@ -6,18 +6,23 @@ Runs all checks to ensure CI will pass:
 1. Server: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
 2. Studio: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
 3. Hub: Backend (ruff + mypy + pytest) + Frontend (tsc + eslint + vitest)
-4. Integration tests (requires server running)
+4. Docs: Build check (validates broken links)
+5. Site: Build check + Type check
+6. Integration tests (requires server running)
 
 Usage:
-    ./scripts/test.py              # Run all checks (Server, Studio, Hub, Integration)
-    ./scripts/test.py -v           # Verbose mode - show all output
-    ./scripts/test.py --server     # Server checks only
-    ./scripts/test.py --studio     # Studio checks only
-    ./scripts/test.py --hub        # Hub checks only
-    ./scripts/test.py --integration # Integration tests only
-    ./scripts/test.py --no-integration # Skip integration tests
-    ./scripts/test.py --no-coverage # Skip coverage reports (faster)
-    ./scripts/test.py --strict     # Fail on lint warnings (stricter than CI)
+    ./scripts/test.py                   # Run all checks (Server, Studio, Hub, Integration)
+    ./scripts/test.py -v                 # Verbose mode - show all output
+    ./scripts/test.py --server           # Server checks only
+    ./scripts/test.py --studio           # Studio checks only
+    ./scripts/test.py --hub              # Hub checks only
+    ./scripts/test.py --docs             # Docs build check only
+    ./scripts/test.py --site             # Site build check only
+    ./scripts/test.py --studio --server  # Multiple components
+    ./scripts/test.py --integration      # Integration tests only
+    ./scripts/test.py --no-integration   # Skip integration tests
+    ./scripts/test.py --no-coverage      # Skip coverage reports (faster)
+    ./scripts/test.py --strict           # Fail on lint warnings (stricter than CI)
 """
 
 import argparse
@@ -511,6 +516,103 @@ def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False)
     return suite
 
 
+# --- Docs checks ---
+
+
+def run_docs_build(repo_root: Path) -> CheckResult:
+    """Run docs build check (validates broken links)."""
+    print_subheader("Docs Build Check")
+    
+    docs_dir = repo_root / "docs"
+    
+    return run_command(
+        ["npm", "run", "build"],
+        docs_dir,
+        "Docs Build",
+        fail_on_error=True
+    )
+
+
+def run_docs_suite(repo_root: Path) -> SuiteResult:
+    """Run docs verification (build check validates links)."""
+    print_header("Docs Verification")
+    
+    docs_dir = repo_root / "docs"
+    node_modules = docs_dir / "node_modules"
+    
+    suite = SuiteResult(name="Docs")
+    
+    if not node_modules.exists():
+        suite.checks.append(CheckResult(
+            name="Docs Setup",
+            passed=False,
+            duration=0,
+            error="node_modules not found. Run: cd docs && npm install"
+        ))
+        return suite
+    
+    # Build check validates broken links via Docusaurus
+    suite.checks.append(run_docs_build(repo_root))
+    
+    return suite
+
+
+# --- Site checks ---
+
+
+def run_site_typecheck(repo_root: Path) -> CheckResult:
+    """Run TypeScript type checker on site."""
+    print_subheader("Site Type Check (tsc)")
+    
+    site_dir = repo_root / "site"
+    
+    # Site doesn't have a typecheck script, so run tsc directly
+    return run_command(
+        ["npx", "tsc", "--noEmit"],
+        site_dir,
+        "Site Types",
+        fail_on_error=True
+    )
+
+
+def run_site_build(repo_root: Path) -> CheckResult:
+    """Run site build check."""
+    print_subheader("Site Build Check")
+    
+    site_dir = repo_root / "site"
+    
+    return run_command(
+        ["npm", "run", "build"],
+        site_dir,
+        "Site Build",
+        fail_on_error=True
+    )
+
+
+def run_site_suite(repo_root: Path) -> SuiteResult:
+    """Run site verification (typecheck + build)."""
+    print_header("Site Verification")
+    
+    site_dir = repo_root / "site"
+    node_modules = site_dir / "node_modules"
+    
+    suite = SuiteResult(name="Site")
+    
+    if not node_modules.exists():
+        suite.checks.append(CheckResult(
+            name="Site Setup",
+            passed=False,
+            duration=0,
+            error="node_modules not found. Run: cd site && npm install"
+        ))
+        return suite
+    
+    suite.checks.append(run_site_typecheck(repo_root))
+    suite.checks.append(run_site_build(repo_root))
+    
+    return suite
+
+
 def check_server_running() -> bool:
     """Check if server is running on test port."""
     try:
@@ -650,29 +752,42 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./scripts/test.py              # Run all checks (Server, Studio, Hub, Integration)
-  ./scripts/test.py -v           # Verbose mode - show all output
-  ./scripts/test.py --server     # Server only (ruff + mypy + pytest + coverage)
-  ./scripts/test.py --studio     # Studio only (tsc + eslint + vitest + coverage)
-  ./scripts/test.py --hub        # Hub only (backend + frontend checks)
-  ./scripts/test.py --no-coverage # Skip coverage reports (faster)
-  ./scripts/test.py --strict     # Fail on lint/type warnings
+  ./scripts/test.py                   # Run all checks (Server, Studio, Hub, Integration)
+  ./scripts/test.py -v                # Verbose mode - show all output
+  ./scripts/test.py --server          # Server only (ruff + mypy + pytest + coverage)
+  ./scripts/test.py --studio          # Studio only (tsc + eslint + vitest + coverage)
+  ./scripts/test.py --hub             # Hub only (backend + frontend checks)
+  ./scripts/test.py --docs            # Docs only (build + link check)
+  ./scripts/test.py --site            # Site only (typecheck + build)
+  ./scripts/test.py --studio --server # Multiple components
+  ./scripts/test.py --no-coverage     # Skip coverage reports (faster)
+  ./scripts/test.py --strict          # Fail on lint/type warnings
 """
     )
     parser.add_argument(
         "--server",
         action="store_true",
-        help="Run server checks only (ruff + mypy + pytest)"
+        help="Run server checks (ruff + mypy + pytest)"
     )
     parser.add_argument(
         "--studio",
         action="store_true",
-        help="Run studio checks only (tsc + eslint + vitest)"
+        help="Run studio checks (tsc + eslint + vitest)"
     )
     parser.add_argument(
         "--hub",
         action="store_true",
-        help="Run hub checks only (backend + frontend)"
+        help="Run hub checks (backend + frontend)"
+    )
+    parser.add_argument(
+        "--docs",
+        action="store_true",
+        help="Run docs checks (build + link validation)"
+    )
+    parser.add_argument(
+        "--site",
+        action="store_true",
+        help="Run site checks (typecheck + build)"
     )
     parser.add_argument(
         "--integration",
@@ -706,13 +821,19 @@ Examples:
     run_server = True
     run_studio = True
     run_hub = True
+    run_docs = True
+    run_site = True
     run_integration = True
     
-    # If specific tests requested, only run those
-    if args.server or args.studio or args.hub or args.integration:
+    # If any specific tests requested, only run those
+    any_specific = args.server or args.studio or args.hub or args.docs or args.site or args.integration
+    
+    if any_specific:
         run_server = args.server
         run_studio = args.studio
         run_hub = args.hub
+        run_docs = args.docs
+        run_site = args.site
         run_integration = args.integration
     
     # Handle --no-integration
@@ -747,11 +868,17 @@ Examples:
     if run_hub:
         results.append(run_hub_suite(repo_root, coverage=run_coverage, strict=args.strict))
     
+    if run_docs:
+        results.append(run_docs_suite(repo_root))
+    
+    if run_site:
+        results.append(run_site_suite(repo_root))
+    
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Determine if this is a full run (all suites enabled, no exclusions)
-    is_full_run = run_server and run_studio and run_hub and run_integration
+    is_full_run = run_server and run_studio and run_hub and run_docs and run_site and run_integration
     
     # Print summary
     print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run)

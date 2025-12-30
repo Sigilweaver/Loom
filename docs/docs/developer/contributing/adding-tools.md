@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Adding Tools
 
-Adding a new tool is the most common contribution to Sigilweaver. This guide walks through the complete process—both Server (where the transformation happens) and Studio (where the UI lives).
+Adding a new tool is the most common contribution to Sigilweaver. This guide walks through the complete process: Server (where the transformation happens) and Studio (where the UI lives).
 
 ## Overview
 
@@ -323,11 +323,11 @@ Before submitting a PR for a new tool:
 - [ ] Registered in `register.py`
 - [ ] Frontend definition in `tools.ts`
 - [ ] Config panel (if needed)
-- [ ] Backend tests
-- [ ] Frontend tests (if config panel)
+- [ ] Server tests
+- [ ] Studio tests (if config panel)
 - [ ] Manual testing via UI
 - [ ] All existing tests still pass
 
 ---
 
-Next: [Frontend Patterns](./frontend) or [Backend Patterns](./backend) for more detailed conventions.
+Next: [Studio Patterns](./studio) or [Server Patterns](./server) for more detailed conventions.

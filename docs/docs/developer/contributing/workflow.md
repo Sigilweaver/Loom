@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # Contributing Workflow
@@ -14,14 +14,24 @@ How to go from "I want to help" to "my code is merged."
 
 ## The Process
 
-### 1. Fork and Clone
+### 1. Fork the Repository
+
+Go to [github.com/sigilweaver/sigilweaver](https://github.com/sigilweaver/sigilweaver) and click **Fork** in the top-right corner. This creates your own copy of the repository under your GitHub account.
+
+### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sigilweaver-app.git
-cd sigilweaver-app
+git clone https://github.com/YOUR_USERNAME/sigilweaver.git
+cd sigilweaver
 ```
 
-### 2. Create a Branch
+Optionally, add the upstream remote so you can pull updates:
+
+```bash
+git remote add upstream https://github.com/sigilweaver/sigilweaver.git
+```
+
+### 3. Create a Branch
 
 ```bash
 git checkout -b feature/your-feature-name
@@ -35,26 +45,26 @@ Branch naming convention:
 - `docs/` for documentation
 - `refactor/` for code cleanup
 
-### 3. Make Your Changes
+### 4. Make Your Changes
 
 - Follow the [code style guide](./code-style)
 - Write tests for new functionality
 - Update documentation if needed
 
-### 4. Test Locally
+### 5. Test Locally
 
 ```bash
 # Run all tests
 python ./scripts/test.py
 
 # Or test individually
-cd backend && pytest
-cd frontend && npm test
+cd server && uv run pytest
+cd studio && npm test
 ```
 
 Don't submit a PR with failing tests. If tests fail for unrelated reasons, note that in the PR.
 
-### 5. Commit
+### 6. Commit
 
 Write meaningful commit messages:
 
@@ -68,7 +78,7 @@ fix stuff
 
 For multi-commit PRs, each commit should be independently meaningful. Squash WIP commits before submitting.
 
-### 6. Push and Open PR
+### 7. Push and Open PR
 
 ```bash
 git push origin feature/your-feature-name
@@ -79,7 +89,7 @@ Then open a PR on GitHub. Fill out the template:
 - Why is it needed?
 - How was it tested?
 
-### 7. Code Review
+### 8. Code Review
 
 I'll review PRs as time allows. Expect:
 - Questions about design choices
@@ -88,22 +98,34 @@ I'll review PRs as time allows. Expect:
 
 Don't take feedback personally. The goal is a better codebase, not criticism of you.
 
-### 8. Merge
+### 9. Merge
 
 Once approved, I'll merge. Typically squash-merge to keep history clean.
+
+## Your PR Doesn't Have to Be Perfect
+
+I want to be clear about this: **I don't expect polished, merge-ready PRs.**
+
+If you put in genuine effort and I can understand what you're trying to accomplish, that's enough. If something isn't quite right, I'm happy to take it the rest of the way. I'll explain what I changed and why, so you learn for next time.
+
+What matters is:
+- You tried
+- The intent is clear
+- The general direction makes sense
+
+Don't let perfectionism stop you from contributing. Submit what you have.
 
 ## What Makes a Good PR
 
 **Good PRs**:
 - Solve one problem
-- Include tests
+- Include tests (when reasonable)
 - Have clear commit messages
 - Follow existing patterns
 - Update docs if user-facing
 
 **Problematic PRs**:
 - Mix unrelated changes
-- Lack tests
 - Introduce new patterns without discussion
 - Break existing tests
 
@@ -121,7 +143,7 @@ Tools are the most common contribution. See [Adding Tools](./adding-tools) for t
 
 ### UI Improvements
 
-Coordinate first—UI changes can conflict with ongoing work. Open an issue or discussion.
+Coordinate first. UI changes can conflict with ongoing work. Open an issue or discussion.
 
 ### Documentation
 
@@ -136,7 +158,6 @@ Discuss first. Refactoring for its own sake can churn code without adding value.
 - Features that complicate the core without clear benefit
 - Breaking changes to the workflow format without migration path
 - Dependencies with problematic licenses
-- Code without tests (for anything non-trivial)
 - Stylistic changes that just move code around
 
 ## Questions?

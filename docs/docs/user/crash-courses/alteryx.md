@@ -155,7 +155,7 @@ Let's build a common Alteryx pattern: load transaction data, filter for complete
 
 ## Performance Note
 
-Alteryx is fast. Sigilweaver is also fast—it's built on **Polars**, a Rust-based dataframe library designed for performance. For most workloads, performance is comparable. The lazy evaluation model can actually be faster for complex workflows since Sigilweaver optimizes the entire pipeline before executing.
+Alteryx is fast. Sigilweaver is also fast. It's built on **Polars**, a Rust-based dataframe library designed for performance. For most workloads, performance is comparable. The lazy evaluation model can actually be faster for complex workflows since Sigilweaver optimizes the entire pipeline before executing.
 
 ## Next Steps
 

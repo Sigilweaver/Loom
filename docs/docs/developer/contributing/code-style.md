@@ -4,7 +4,7 @@ sidebar_position: 5
 
 # Code Style
 
-Formatting and style conventions. Most of these are enforced by tooling—follow the tools rather than memorizing rules.
+Formatting and style conventions. Most of these are enforced by tooling. Follow the tools rather than memorizing rules.
 
 ## Automated Formatting
 

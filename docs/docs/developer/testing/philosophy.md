@@ -8,9 +8,9 @@ Sigilweaver's testing philosophy: **test the bones, not the skin.**
 
 ## What This Means
 
-The "bones" are the core business logic—data transformations, workflow execution, state management, serialization. These must be correct; bugs here are hard to find in production.
+The "bones" are the core business logic: data transformations, workflow execution, state management, serialization. These must be correct; bugs here are hard to find in production.
 
-The "skin" is the UI presentation—button colors, layout, CSS classes. This changes frequently during development and is easy to verify manually.
+The "skin" is the UI presentation: button colors, layout, CSS classes. This changes frequently during development and is easy to verify manually.
 
 We test the bones heavily. We test the skin lightly.
 
