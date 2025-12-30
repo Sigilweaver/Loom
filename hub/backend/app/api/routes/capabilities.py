@@ -14,7 +14,7 @@ The flow:
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import CurrentUser
 from app.db.database import get_db
 from app.db.models import Connection, ConnectionGroup, Server, UserGroup
+from app.domain.audit import AuditService
 from app.domain.capabilities import CapabilityIssuer, get_issuer
 
 router = APIRouter(prefix="/capabilities", tags=["capabilities"])
@@ -193,6 +194,7 @@ async def _validate_connection_access(
 async def request_execute_capability(
     request: ExecuteCapabilityRequest,
     current_user: CurrentUser,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
     issuer: CapabilityIssuer = Depends(get_issuer),
 ) -> CapabilityResponse:
@@ -219,6 +221,48 @@ async def request_execute_capability(
         workflow_json=request.workflow,
     )
 
+    # Log audit events
+    audit_service = AuditService(db)
+    workflow_id = request.workflow.get("workflowId")
+
+    # Get client IP
+    client_ip = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+
+    # Log execution.requested
+    await audit_service.log_event(
+        event_type="execution.requested",
+        actor_type="user",
+        actor_identity=current_user.username,
+        actor_id=current_user.user_id,
+        workflow_id=UUID(workflow_id) if workflow_id else None,
+        server_id=server.id,
+        auth_method="session",
+        client_ip=client_ip,
+        user_agent=user_agent,
+        details={
+            "workflow_name": request.workflow.get("name"),
+            "connection_ids": connection_ids,
+            "server_name": server.name,
+        },
+    )
+
+    # Log execution.token_issued
+    await audit_service.log_event(
+        event_type="execution.token_issued",
+        actor_type="system",
+        actor_identity="hub",
+        workflow_id=UUID(workflow_id) if workflow_id else None,
+        server_id=server.id,
+        details={
+            "scope": "execute",
+            "expires_in": capability.expires_in,
+            "target_server": server.name,
+        },
+    )
+
+    await db.commit()
+
     logger.info(
         f"Issued execute capability for user {current_user.username} "
         f"on server {server.name}"
@@ -235,6 +279,7 @@ async def request_execute_capability(
 async def request_preview_capability(
     request: PreviewCapabilityRequest,
     current_user: CurrentUser,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
     issuer: CapabilityIssuer = Depends(get_issuer),
 ) -> CapabilityResponse:
@@ -256,6 +301,49 @@ async def request_preview_capability(
         server=server,
         workflow_json=request.workflow,
     )
+
+    # Log audit events
+    audit_service = AuditService(db)
+    workflow_id = request.workflow.get("workflowId")
+
+    # Get client IP
+    client_ip = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+
+    # Log execution.requested for preview
+    await audit_service.log_event(
+        event_type="execution.requested",
+        actor_type="user",
+        actor_identity=current_user.username,
+        actor_id=current_user.user_id,
+        workflow_id=UUID(workflow_id) if workflow_id else None,
+        server_id=server.id,
+        auth_method="session",
+        client_ip=client_ip,
+        user_agent=user_agent,
+        details={
+            "workflow_name": request.workflow.get("name"),
+            "connection_ids": connection_ids,
+            "server_name": server.name,
+            "scope": "preview",
+        },
+    )
+
+    # Log execution.token_issued
+    await audit_service.log_event(
+        event_type="execution.token_issued",
+        actor_type="system",
+        actor_identity="hub",
+        workflow_id=UUID(workflow_id) if workflow_id else None,
+        server_id=server.id,
+        details={
+            "scope": "preview",
+            "expires_in": capability.expires_in,
+            "target_server": server.name,
+        },
+    )
+
+    await db.commit()
 
     logger.info(
         f"Issued preview capability for user {current_user.username} "

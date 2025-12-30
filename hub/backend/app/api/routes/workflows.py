@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
+from app.domain.auth.roles import get_role_level, Role
 from app.domain.auth.sessions import SessionInfo
 from app.domain.workflows import (
     CreateWorkflowInput,
@@ -146,6 +147,73 @@ async def list_my_workflows(
     )
 
 
+@router.get("/my/{workflow_id}", response_model=WorkflowMetadata)
+async def get_my_workflow(
+    workflow_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> WorkflowMetadata:
+    """Get metadata for a workflow the current user uploaded."""
+    service = _get_service(db)
+
+    try:
+        info = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    # Check ownership
+    if info.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view workflows you uploaded",
+        )
+
+    return WorkflowMetadata.from_info(info)
+
+
+@router.get("/my/{workflow_id}/content", response_model=WorkflowContentResponse)
+async def get_my_workflow_content(
+    workflow_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> WorkflowContentResponse:
+    """Get parsed content for a workflow the current user uploaded."""
+    service = _get_service(db)
+
+    try:
+        info = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    # Check ownership
+    if info.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view workflows you uploaded",
+        )
+
+    try:
+        content = await service.get_content(workflow_id)
+    except WorkflowParseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Stored file corrupted: {e}",
+        )
+
+    return WorkflowContentResponse(
+        version=content.version,
+        meta=content.meta,
+        tools=content.tools,
+        wires=content.wires,
+    )
+
+
 # =============================================================================
 # Admin/Auditor Workflows (all workflows)
 # =============================================================================
@@ -246,13 +314,33 @@ async def upload_workflow(
     )
 
 
+def _can_access_workflow(user: SessionInfo, workflow_info: WorkflowInfo) -> bool:
+    """Check if user can access a workflow.
+
+    Access is granted if:
+    1. User uploaded the workflow (owner), OR
+    2. User has auditor role or higher (admin, owner)
+    """
+    # Auditor level (includes admin and owner roles) can access all
+    auditor_level = get_role_level(Role.AUDITOR)
+    user_level = get_role_level(user.role)
+    if user_level <= auditor_level:
+        return True
+
+    # Otherwise, must be the uploader
+    return workflow_info.uploaded_by == user.username
+
+
 @router.get("/{workflow_id}", response_model=WorkflowMetadata)
 async def get_workflow(
     workflow_id: UUID,
-    _user: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowMetadata:
-    """Get workflow metadata by ID. Requires auditor role or higher."""
+    """Get workflow metadata by ID.
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
     service = _get_service(db)
 
     try:
@@ -263,25 +351,43 @@ async def get_workflow(
             detail="Workflow not found",
         )
 
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
     return WorkflowMetadata.from_info(info)
 
 
 @router.get("/{workflow_id}/content", response_model=WorkflowContentResponse)
 async def get_workflow_content(
     workflow_id: UUID,
-    _user: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowContentResponse:
-    """Get parsed workflow content (tools and wires). Requires auditor role or higher."""
+    """Get parsed workflow content (tools and wires).
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
     service = _get_service(db)
 
     try:
-        content = await service.get_content(workflow_id)
+        info = await service.get_workflow(workflow_id)
     except WorkflowNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workflow not found",
         )
+
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
+    try:
+        content = await service.get_content(workflow_id)
     except WorkflowParseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -299,21 +405,31 @@ async def get_workflow_content(
 @router.get("/{workflow_id}/download")
 async def download_workflow(
     workflow_id: UUID,
-    _user: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Download the original .swwf file. Requires auditor role or higher."""
+    """Download the original .swwf file.
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
     service = _get_service(db)
 
-    # Get metadata first for filename
+    # Get metadata first for filename and access check
     try:
         info = await service.get_workflow(workflow_id)
-        content = service.get_file_bytes(workflow_id)
     except WorkflowNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workflow not found",
         )
+
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
+    content = service.get_file_bytes(workflow_id)
 
     # Return as downloadable file
     filename = f"{info.name}.swwf"
@@ -446,6 +562,7 @@ async def delete_workflow(
 
     Users can delete their own workflows.
     Admins/owners can delete any workflow.
+    Auditors cannot delete workflows.
     """
     service = _get_service(db)
 
@@ -456,6 +573,13 @@ async def delete_workflow(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workflow not found",
+        )
+
+    # Auditors cannot delete workflows (read-only)
+    if user.role == "auditor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Auditors cannot delete workflows",
         )
 
     # Users can only delete their own workflows

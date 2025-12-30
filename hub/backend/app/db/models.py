@@ -4,8 +4,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -116,6 +116,9 @@ class Server(Base):
     # Relationships
     executions: Mapped[list["Execution"]] = relationship(
         "Execution", back_populates="server"
+    )
+    groups: Mapped[list["ServerGroup"]] = relationship(
+        "ServerGroup", back_populates="server", cascade="all, delete-orphan"
     )
 
 
@@ -333,6 +336,9 @@ class Group(Base):
     connections: Mapped[list["ConnectionGroup"]] = relationship(
         "ConnectionGroup", back_populates="group", cascade="all, delete-orphan"
     )
+    servers: Mapped[list["ServerGroup"]] = relationship(
+        "ServerGroup", back_populates="group", cascade="all, delete-orphan"
+    )
 
 
 class UserGroup(Base):
@@ -385,3 +391,138 @@ class ConnectionGroup(Base):
     # Relationships
     connection: Mapped["Connection"] = relationship("Connection", back_populates="groups")
     group: Mapped["Group"] = relationship("Group", back_populates="connections")
+
+
+class ServerGroup(Base):
+    """Join table for Server <-> Group assignment.
+
+    Servers assigned to groups become available to users in those groups
+    for schedule targeting and execution.
+    """
+
+    __tablename__ = "server_groups"
+
+    server_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("servers.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # When the server was assigned to the group
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    # Who assigned it
+    assigned_by: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Relationships
+    server: Mapped["Server"] = relationship("Server", back_populates="groups")
+    group: Mapped["Group"] = relationship("Group", back_populates="servers")
+
+
+class AuditEvent(Base):
+    """Immutable audit log entry.
+
+    Append-only - no updates or deletes permitted (enforced by database trigger).
+    Hash-chained for tamper evidence.
+    """
+
+    __tablename__ = "audit_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    # What happened
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Context
+    execution_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
+    workflow_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
+    schedule_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+
+    # Who ("user" | "schedule" | "system")
+    actor_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
+    # Snapshot of username/schedule name
+    actor_identity: Mapped[str] = mapped_column(String(255), nullable=False)
+    auth_method: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    # Where
+    client_ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    server_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+
+    # Event-specific data (small - IDs and outcomes only)
+    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    # Integrity
+    event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
+
+class ExecutionRecord(Base):
+    """Complete execution record with rich details.
+
+    Single row per execution with JSONB for detailed data.
+    Columns for searchable/filterable fields.
+    """
+
+    __tablename__ = "execution_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("executions.id"), unique=True, index=True
+    )
+
+    # === Searchable columns ===
+
+    # Status ("completed" | "failed" | "cancelled")
+    status: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    # Timing
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Output summary
+    output_rows: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    output_columns: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    output_bytes: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+
+    # Error summary (for filtering)
+    error_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    # Connections used (for filtering: "show me all executions using connection X")
+    connection_ids: Mapped[list] = mapped_column(JSONB, default=list)
+
+    # === Rich JSONB details ===
+    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    # Relationships
+    execution: Mapped["Execution"] = relationship("Execution")

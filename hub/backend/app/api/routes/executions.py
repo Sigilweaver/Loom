@@ -8,10 +8,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
+from app.db.models import ExecutionRecord
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
@@ -23,6 +25,10 @@ from app.domain.executions import (
     TriggerExecutionInput,
     TriggerType,
     WorkflowNotFoundError,
+)
+from app.domain.executions.schemas import (
+    ExecutionRecordResponse,
+    ExecutionRecordSummary,
 )
 
 router = APIRouter(prefix="/executions", tags=["executions"])
@@ -276,3 +282,161 @@ async def cancel_execution(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+
+# =============================================================================
+# Execution Record Endpoints (Rich Details)
+# =============================================================================
+
+
+def _record_to_response(record: ExecutionRecord) -> ExecutionRecordResponse:
+    """Convert ExecutionRecord model to full response."""
+    return ExecutionRecordResponse(
+        id=record.id,
+        execution_id=record.execution_id,
+        status=record.status,
+        success=record.success,
+        started_at=record.started_at,
+        completed_at=record.completed_at,
+        duration_ms=record.duration_ms,
+        output_rows=record.output_rows,
+        output_columns=record.output_columns,
+        output_bytes=record.output_bytes,
+        error_type=record.error_type,
+        connection_ids=[str(c) for c in record.connection_ids] if record.connection_ids else [],
+        details=record.details,
+    )
+
+
+def _record_to_summary(record: ExecutionRecord) -> ExecutionRecordSummary:
+    """Convert ExecutionRecord model to summary (without full details)."""
+    return ExecutionRecordSummary(
+        id=record.id,
+        execution_id=record.execution_id,
+        status=record.status,
+        success=record.success,
+        started_at=record.started_at,
+        duration_ms=record.duration_ms,
+        output_rows=record.output_rows,
+        error_type=record.error_type,
+    )
+
+
+@router.get("/{execution_id}/record", response_model=ExecutionRecordResponse)
+async def get_execution_record(
+    execution_id: UUID,
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> ExecutionRecordResponse:
+    """Get full execution record including rich details.
+
+    Requires auditor role or higher.
+    """
+    result = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution record not found",
+        )
+
+    return _record_to_response(record)
+
+
+@router.get("/{execution_id}/code")
+async def get_execution_code(
+    execution_id: UUID,
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get generated code for an execution.
+
+    Requires auditor role or higher.
+    """
+    result = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution record not found",
+        )
+
+    return {"generated_code": record.details.get("generated_code")}
+
+
+@router.get("/{execution_id}/plans")
+async def get_execution_plans(
+    execution_id: UUID,
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get query plans for an execution.
+
+    Requires auditor role or higher.
+    """
+    result = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution record not found",
+        )
+
+    return {"plans": record.details.get("plans", {})}
+
+
+@router.get("/{execution_id}/connections")
+async def get_execution_connections(
+    execution_id: UUID,
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get connection operations for an execution.
+
+    Requires auditor role or higher.
+    """
+    result = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution record not found",
+        )
+
+    return {"connections": record.details.get("connections", [])}
+
+
+@router.get("/{execution_id}/logs")
+async def get_execution_logs(
+    execution_id: UUID,
+    _auditor: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get logs for an execution.
+
+    Requires auditor role or higher.
+    """
+    result = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution record not found",
+        )
+
+    return {"logs": record.details.get("logs", [])}

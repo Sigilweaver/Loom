@@ -22,7 +22,7 @@ import {
 import {
   listMyExecutions,
   listMyWorkflows,
-  listServers,
+  listMyServers,
   cancelExecution,
   type ExecutionResponse,
   type WorkflowMetadata,
@@ -159,15 +159,20 @@ export function ExecutionsPage() {
   }, [selectedWorkflow, selectedServer, selectedStatus, page]);
 
   const fetchFilters = useCallback(async () => {
+    // Fetch workflows and servers independently
     try {
-      const [workflowsRes, serversRes] = await Promise.all([
-        listMyWorkflows(),
-        listServers(),
-      ]);
+      const workflowsRes = await listMyWorkflows();
       setWorkflows(workflowsRes.workflows);
+    } catch (err) {
+      console.error("Failed to load workflows:", err);
+    }
+
+    try {
+      const serversRes = await listMyServers();
       setServers(serversRes.servers);
     } catch (err) {
-      console.error("Failed to load filter options:", err);
+      // Users with no group assignments will have no servers - that's OK
+      console.debug("No servers available for user");
     }
   }, []);
 

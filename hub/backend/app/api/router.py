@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    audit,
     auth,
     capabilities,
     connections,
@@ -34,6 +35,9 @@ api_router.include_router(connections.router, tags=["connections"])
 
 # Group management (admin only)
 api_router.include_router(groups.router, tags=["groups"])
+
+# Audit log (auditor and above)
+api_router.include_router(audit.router, tags=["audit"])
 
 # Capability endpoints (user-facing)
 api_router.include_router(capabilities.router, tags=["capabilities"])

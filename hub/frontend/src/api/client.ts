@@ -348,8 +348,21 @@ export interface ServerTestResponse {
   message: string | null;
 }
 
+/**
+ * List all servers (requires auditor+ role)
+ */
 export async function listServers(): Promise<ServerListResponse> {
   const response = await fetch(`${API_BASE}/servers`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * List servers available to the current user via group membership
+ */
+export async function listMyServers(): Promise<ServerListResponse> {
+  const response = await fetch(`${API_BASE}/servers/my`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);

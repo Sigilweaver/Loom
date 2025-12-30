@@ -23,9 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.database import get_db
-from app.db.models import Server
+from app.db.models import Execution, ExecutionRecord, Server
+from app.domain.audit import AuditService
 from app.domain.auth.keys import get_key_manager
 from app.domain.auth.tokens import get_token_tracker
+from app.domain.executions.schemas import ExecutionReportSchema
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 logger = logging.getLogger(__name__)
@@ -213,9 +215,40 @@ async def validate_server_token(
                 logger.error(f"Connection store not available: {e}")
                 # Continue without credentials if store not configured
 
-        # 6. Log audit
+        # 6. Log audit events
         user_id = claims.get("sub", "unknown")
         scope = claims.get("scope", "unknown")
+
+        audit_service = AuditService(db)
+
+        # Log token validated
+        await audit_service.log_event(
+            event_type="execution.token_validated",
+            actor_type="system",
+            actor_identity=f"server:{server.server_name}",
+            server_id=server.server_id,
+            details={
+                "user_id": user_id,
+                "scope": scope,
+                "server_name": server.server_name,
+            },
+        )
+
+        # Log credentials provided (if any)
+        if request.connection_ids:
+            await audit_service.log_event(
+                event_type="execution.credentials_provided",
+                actor_type="system",
+                actor_identity="hub",
+                server_id=server.server_id,
+                details={
+                    "connection_ids": request.connection_ids,
+                    "connection_count": len(request.connection_ids),
+                },
+            )
+
+        await db.commit()
+
         logger.info(
             f"Token validated: user={user_id[:8]}..., server={server.server_name}, "
             f"scope={scope}, connections={len(request.connection_ids)}"
@@ -257,3 +290,116 @@ def _compute_workflow_hash(workflow: dict) -> str:
     canonical = json.dumps(workflow, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode()).hexdigest()
     return f"sha256:{digest}"
+
+
+@router.post("/executions/{execution_id}/report")
+async def receive_execution_report(
+    execution_id: UUID,
+    report: ExecutionReportSchema,
+    server: ServerIdentity = Depends(get_server_identity),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Receive execution report from Server.
+
+    Called by Server after execution completes (success or failure).
+    Creates ExecutionRecord and final AuditEvent.
+
+    Args:
+        execution_id: The execution ID.
+        report: Full execution report with details.
+        server: Authenticated server identity.
+        db: Database session.
+
+    Returns:
+        Confirmation of receipt.
+    """
+    # Verify execution exists
+    result = await db.execute(
+        select(Execution).where(Execution.id == execution_id)
+    )
+    execution = result.scalar_one_or_none()
+
+    if not execution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+        )
+
+    # Verify server matches
+    if execution.server_id != server.server_id:
+        logger.warning(
+            f"Server {server.server_name} attempted to report for execution "
+            f"{execution_id} but it was assigned to server {execution.server_id}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Execution not assigned to this server",
+        )
+
+    # Check if record already exists (prevent duplicate reports)
+    existing_record = await db.execute(
+        select(ExecutionRecord).where(ExecutionRecord.execution_id == execution_id)
+    )
+    if existing_record.scalar_one_or_none():
+        logger.warning(f"Duplicate report received for execution {execution_id}")
+        return {"status": "already_received"}
+
+    # Create execution record
+    connection_ids_list = [UUID(c) if isinstance(c, str) else c for c in report.connection_ids]
+
+    record = ExecutionRecord(
+        execution_id=execution_id,
+        status=report.status,
+        success=report.success,
+        started_at=report.started_at,
+        completed_at=report.completed_at,
+        duration_ms=report.duration_ms,
+        output_rows=report.output_rows,
+        output_columns=report.output_columns,
+        output_bytes=report.output_bytes,
+        error_type=report.error_type,
+        connection_ids=connection_ids_list,
+        details=report.details,
+    )
+    db.add(record)
+
+    # Update execution status
+    execution.status = report.status
+    execution.success = report.success
+    execution.started_at = report.started_at
+    execution.completed_at = report.completed_at
+    if report.duration_ms:
+        execution.duration_seconds = report.duration_ms / 1000.0
+    if not report.success and report.details.get("error"):
+        execution.error_message = report.details["error"].get("message")
+
+    # Log audit event
+    audit_service = AuditService(db)
+    event_type = "execution.completed" if report.success else "execution.failed"
+
+    await audit_service.log_event(
+        event_type=event_type,
+        actor_type="system",
+        actor_identity=f"server:{server.server_name}",
+        execution_id=execution_id,
+        workflow_id=execution.workflow_id,
+        schedule_id=execution.schedule_id,
+        server_id=server.server_id,
+        details={
+            "success": report.success,
+            "status": report.status,
+            "duration_ms": report.duration_ms,
+            "output_rows": report.output_rows,
+            "error_type": report.error_type,
+        },
+    )
+
+    await db.commit()
+
+    logger.info(
+        f"Execution report received: {execution_id} "
+        f"status={report.status} success={report.success} "
+        f"from server {server.server_name}"
+    )
+
+    return {"status": "received"}
