@@ -9,11 +9,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.api.dependencies import RequireAdmin, RequireAuditor
+from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.config import settings
 from app.db.database import get_db
-from app.db.models import Server
+from app.db.models import Group, Server, ServerGroup, UserGroup
 from app.domain.auth.sessions import SessionInfo
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
 
@@ -82,6 +83,24 @@ class ServerTestResponse(BaseModel):
     message: str | None
 
 
+class ServerGroupResponse(BaseModel):
+    """Group assigned to a server."""
+
+    group_id: UUID
+    group_name: str
+    assigned_at: str
+    assigned_by: str
+
+
+class ServerGroupsResponse(BaseModel):
+    """Groups assigned to a server."""
+
+    server_id: UUID
+    server_name: str
+    groups: list[ServerGroupResponse]
+    total: int
+
+
 def _server_to_response(server: Server) -> ServerResponse:
     """Convert database model to response"""
     return ServerResponse(
@@ -109,6 +128,44 @@ async def list_servers(
         servers=[_server_to_response(s) for s in servers],
         total=len(servers),
     )
+
+
+# =============================================================================
+# User's Servers (via group membership) - MUST be before /{server_id} routes
+# =============================================================================
+
+
+@router.get("/my", response_model=ServerListResponse)
+async def list_my_servers(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ServerListResponse:
+    """List servers available to the current user via group membership.
+
+    Returns servers assigned to any group the user belongs to.
+    Users can only see and target these servers for executions.
+    """
+    # Get servers via: User -> UserGroup -> Group -> ServerGroup -> Server
+    result = await db.execute(
+        select(Server)
+        .join(ServerGroup, Server.id == ServerGroup.server_id)
+        .join(Group, ServerGroup.group_id == Group.id)
+        .join(UserGroup, Group.id == UserGroup.group_id)
+        .where(UserGroup.user_id == current_user.user_id)
+        .order_by(Server.name)
+        .distinct()
+    )
+    servers = result.scalars().all()
+
+    return ServerListResponse(
+        servers=[_server_to_response(s) for s in servers],
+        total=len(servers),
+    )
+
+
+# =============================================================================
+# Server CRUD (by ID)
+# =============================================================================
 
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
@@ -356,4 +413,181 @@ async def get_server_connections(
             ConnectionInfo(name=c.get("name", ""), type=c.get("type", ""))
             for c in connections_result
         ],
+    )
+
+
+# =============================================================================
+# Server-Group Assignment (Admin only)
+# =============================================================================
+
+
+@router.get("/{server_id}/groups", response_model=ServerGroupsResponse)
+async def list_server_groups(
+    server_id: UUID,
+    _user: SessionInfo = RequireAuditor,
+    db: AsyncSession = Depends(get_db),
+) -> ServerGroupsResponse:
+    """List groups assigned to a server. Requires auditor role or higher."""
+    result = await db.execute(
+        select(Server)
+        .options(selectinload(Server.groups).selectinload(ServerGroup.group))
+        .where(Server.id == server_id)
+    )
+    server = result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    return ServerGroupsResponse(
+        server_id=server.id,
+        server_name=server.name,
+        groups=[
+            ServerGroupResponse(
+                group_id=sg.group.id,
+                group_name=sg.group.name,
+                assigned_at=sg.assigned_at.isoformat(),
+                assigned_by=sg.assigned_by,
+            )
+            for sg in server.groups
+        ],
+        total=len(server.groups),
+    )
+
+
+@router.post(
+    "/{server_id}/groups/{group_id}",
+    status_code=status.HTTP_201_CREATED,
+)
+async def assign_server_to_group(
+    server_id: UUID,
+    group_id: UUID,
+    admin: SessionInfo = RequireAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> ServerGroupsResponse:
+    """Assign a server to a group. Requires admin role.
+
+    Users in the group will be able to see and target this server for executions.
+    """
+    # Verify server exists
+    server_result = await db.execute(
+        select(Server)
+        .options(selectinload(Server.groups).selectinload(ServerGroup.group))
+        .where(Server.id == server_id)
+    )
+    server = server_result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    # Verify group exists
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found",
+        )
+
+    # Check if already assigned
+    existing = await db.execute(
+        select(ServerGroup).where(
+            ServerGroup.server_id == server_id,
+            ServerGroup.group_id == group_id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Server '{server.name}' is already assigned to group '{group.name}'",
+        )
+
+    # Create assignment
+    assignment = ServerGroup(
+        server_id=server_id,
+        group_id=group_id,
+        assigned_by=admin.username,
+    )
+    db.add(assignment)
+    await db.commit()
+
+    logger.info(
+        f"Assigned server '{server.name}' to group '{group.name}' by {admin.username}"
+    )
+
+    # Refresh and return updated groups
+    await db.refresh(server)
+    result = await db.execute(
+        select(Server)
+        .options(selectinload(Server.groups).selectinload(ServerGroup.group))
+        .where(Server.id == server_id)
+    )
+    server = result.scalar_one()
+
+    return ServerGroupsResponse(
+        server_id=server.id,
+        server_name=server.name,
+        groups=[
+            ServerGroupResponse(
+                group_id=sg.group.id,
+                group_name=sg.group.name,
+                assigned_at=sg.assigned_at.isoformat(),
+                assigned_by=sg.assigned_by,
+            )
+            for sg in server.groups
+        ],
+        total=len(server.groups),
+    )
+
+
+@router.delete(
+    "/{server_id}/groups/{group_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_server_from_group(
+    server_id: UUID,
+    group_id: UUID,
+    admin: SessionInfo = RequireAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Remove a server from a group. Requires admin role.
+
+    Users in the group will no longer be able to see or target this server.
+    """
+    # Verify server exists
+    server_result = await db.execute(select(Server).where(Server.id == server_id))
+    server = server_result.scalar_one_or_none()
+
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server not found",
+        )
+
+    # Find the assignment
+    result = await db.execute(
+        select(ServerGroup).where(
+            ServerGroup.server_id == server_id,
+            ServerGroup.group_id == group_id,
+        )
+    )
+    assignment = result.scalar_one_or_none()
+
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Server is not assigned to this group",
+        )
+
+    await db.delete(assignment)
+    await db.commit()
+
+    logger.info(
+        f"Removed server '{server.name}' from group {group_id} by {admin.username}"
     )

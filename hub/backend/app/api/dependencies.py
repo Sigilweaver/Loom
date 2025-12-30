@@ -157,4 +157,4 @@ def require_min_role(min_role: Role | str):
 RequireOwner = Depends(require_role(Role.OWNER))
 RequireAdmin = Depends(require_min_role(Role.ADMIN))  # Owner or Admin
 RequireAuditor = Depends(require_min_role(Role.AUDITOR))  # Owner, Admin, or Auditor
-RequireUser = Depends(require_role(Role.USER))  # Regular users only (not admins)
+RequireUser = Depends(require_role(Role.USER))  # Exactly user role (not admin/owner)
