@@ -305,14 +305,14 @@ async def update_schedule(
         )
 
     try:
-        input = UpdateScheduleInput(
-            cron_expression=request.cron_expression,
-            timezone=request.timezone,
-            start_at=_parse_iso_datetime(request.start_at),
-            target_server_id=request.target_server_id,
-            enabled=request.enabled,
-            description=request.description,
-        )
+        # Only include fields that were actually provided in the request
+        request_data = request.model_dump(exclude_unset=True)
+        
+        # Parse start_at if provided
+        if "start_at" in request_data:
+            request_data["start_at"] = _parse_iso_datetime(request_data["start_at"])
+        
+        input = UpdateScheduleInput(**request_data)
         schedule = await service.update_schedule(schedule_id, input)
     except ServerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -333,6 +333,7 @@ async def delete_schedule(
     The schedule will be removed from the scheduler.
     Users can delete their own schedules.
     Admins/owners can delete any schedule.
+    Auditors cannot delete schedules.
     """
     service = ScheduleService(db)
 
@@ -344,7 +345,13 @@ async def delete_schedule(
             detail=f"Schedule {schedule_id} not found",
         )
 
-    # Users can only delete their own schedules
+    # Only owner/admin can delete any schedule; users can only delete their own
+    # Auditors cannot delete schedules at all
+    if user.role == "auditor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Auditors cannot delete schedules",
+        )
     if user.role == "user" and schedule.created_by != user.username:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
