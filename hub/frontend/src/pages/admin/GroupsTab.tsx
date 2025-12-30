@@ -665,13 +665,20 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Admin-level roles that cannot be added to groups
+  const adminRoles = new Set(["owner", "admin", "auditor"]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await listUsers();
-        // Filter out users already in the group
+        // Filter out users already in the group and admin-level users
         const existingIds = new Set(existingMembers.map((m) => m.user_id));
-        setUsers(response.users.filter((u) => !existingIds.has(u.id)));
+        setUsers(
+          response.users.filter(
+            (u) => !existingIds.has(u.id) && !adminRoles.has(u.role)
+          )
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load users");
       } finally {
