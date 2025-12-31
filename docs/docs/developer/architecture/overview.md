@@ -8,25 +8,23 @@ Sigilweaver is a desktop application with a clear separation between frontend (U
 
 ## The Big Picture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Electron Shell                          │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                     React Frontend                        │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐   │  │
-│  │  │   Canvas    │  │    State     │  │   Config Panels │   │  │
-│  │  │  (Xyflow)   │  │  (Zustand)   │  │    (React)      │   │  │
-│  │  └─────────────┘  └──────────────┘  └─────────────────┘   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │ HTTP                             │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                   Python Backend                          │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐   │  │
-│  │  │  FastAPI    │  │  Tool        │  │   Polars        │   │  │
-│  │  │  Routes     │  │  Registry    │  │   Execution     │   │  │
-│  │  └─────────────┘  └──────────────┘  └─────────────────┘   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Electron["Electron Shell"]
+        subgraph Frontend["React Frontend"]
+            Canvas["Canvas<br/>(Xyflow)"]
+            State["State<br/>(Zustand)"]
+            Config["Config Panels<br/>(React)"]
+        end
+        
+        Frontend -->|HTTP| Backend
+        
+        subgraph Backend["Python Backend"]
+            FastAPI["FastAPI<br/>Routes"]
+            Registry["Tool<br/>Registry"]
+            Polars["Polars<br/>Execution"]
+        end
+    end
 ```
 
 ## Monorepo Structure

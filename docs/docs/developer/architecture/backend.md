@@ -286,13 +286,23 @@ max_parallel_tools: int = 4
 
 When `execution_mode="parallel"`, the executor uses `get_execution_levels()` to identify tools that can run concurrently:
 
-```
-Example workflow: A -> B -> D, A -> C -> D
-
-Execution levels:
-  Level 0: [A]        # Run first
-  Level 1: [B, C]     # Run in parallel (both depend only on A)
-  Level 2: [D]        # Run after B and C complete
+```mermaid
+flowchart LR
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+    
+    subgraph "Level 0"
+        A
+    end
+    subgraph "Level 1 (parallel)"
+        B
+        C
+    end
+    subgraph "Level 2"
+        D
+    end
 ```
 
 Tools within a level have no dependencies on each other and execute concurrently using `asyncio.gather()` with semaphore limiting.
