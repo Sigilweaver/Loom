@@ -8,18 +8,6 @@
 .act-artifacts/
 .actrc
 
-## Copilot (local customizations)
-.github/copilot-instructions.md
-.github/copilot-prompts/
-
-# DevContainer (local machine-specific config)
-.devcontainer/
-
-# Data files (large/sensitive)
-data/
-workflows/
-obsidian/
-
 # Untracked Testing Directory
 .untracked
 

@@ -52,5 +52,6 @@ Thumbs.db
 *.log
 logs/
 
-# Hub specific
-workflows/
+# Hub specific - workflow data storage (not Python modules)
+/backend/workflows/
+/workflows/
