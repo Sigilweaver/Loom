@@ -25,12 +25,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-server:
-    name: Server - Test & Lint
+  test:
+    name: Test & Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,45 +36,90 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: 'server/uv.lock'
+          cache-dependency-glob: |
+            server/uv.lock
+            hub/backend/uv.lock
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version-file: 'server/.python-version'
 
-      - name: Install dependencies
-        run: uv sync --all-extras
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            studio/package-lock.json
+            hub/frontend/package-lock.json
 
-      - name: Lint with ruff (style-only; non-fatal)
+      - name: Install Server dependencies
+        run: cd server && uv sync --all-extras
+
+      - name: Install Studio dependencies
+        run: cd studio && npm ci
+
+      - name: Install Hub Backend dependencies
+        run: cd hub/backend && uv sync --all-extras
+
+      - name: Install Hub Frontend dependencies
+        run: cd hub/frontend && npm ci
+
+      - name: Start Hub Database
+        run: cd hub && docker compose up -d
+        
+      - name: Wait for database
         run: |
-          # Run ruff but don't fail the job for non-critical/style-only issues
-          # (E501, W29*, etc. will be reported but won't stop CI)
-          uv run ruff check app/ tests/ --exit-zero
-          echo "Ruff completed (style issues won't fail CI)."
+          for i in {1..30}; do
+            if docker exec sigilweaver-hub-postgres pg_isready -U sigilweaver -d sigilweaver_hub; then
+              echo "Database ready"
+              exit 0
+            fi
+            echo "Waiting for database..."
+            sleep 1
+          done
+          echo "Database not ready after 30s"
+          exit 1
 
-      - name: Type check with mypy
-        run: |
-          uv run mypy app/ || echo "Mypy check completed with issues"
+      - name: Run all tests
+        run: python scripts/test.py --full --ci --server --studio --hub -p
 
-      - name: Run tests
-        run: |
-          uv run pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+      - name: Stop Hub Database
+        if: always()
+        run: cd hub && docker compose down
 
-      - name: Upload coverage
+      - name: Upload Server coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: server-coverage
           path: server/coverage.xml
           if-no-files-found: ignore
           retention-days: 7
 
-  test-studio:
-    name: Studio - Test, Lint & Build
+      - name: Upload Studio coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-coverage
+          path: studio/coverage/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Hub coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hub-coverage
+          path: hub/backend/coverage.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-studio:
+    name: Build Studio Web
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: studio
+    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,27 +132,10 @@ jobs:
           cache-dependency-path: studio/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Type-check
-        run: npm run type-check
-
-      - name: Lint (non-fatal)
-        run: npm run lint || true
-
-      - name: Unit tests with coverage
-        run: npm run test:coverage
+        run: cd studio && npm ci
 
       - name: Build web
-        run: npm run build:web
-
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: studio-coverage
-          path: studio/coverage/**
-          if-no-files-found: ignore
-          retention-days: 7
+        run: cd studio && npm run build:web
 
       - name: Upload web build
         uses: actions/upload-artifact@v4
@@ -119,3 +144,4 @@ jobs:
           path: studio/dist/**
           if-no-files-found: warn
           retention-days: 7
+

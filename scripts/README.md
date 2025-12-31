@@ -6,27 +6,33 @@ Utility scripts for building, testing, and running Sigilweaver.
 
 ```bash
 # Development
-./scripts/dev.py                    # Start Vite (Electron manages backend)
-./scripts/dev.py --backend          # Backend only (for browser dev)
-./scripts/dev.py --frontend         # Frontend only (same as default)
-./scripts/dev.py --electron         # Also launch Electron explicitly
+./scripts/dev.py                    # Start all dev servers (Server, Studio, Hub)
+./scripts/dev.py --server           # Server only
+./scripts/dev.py --studio           # Studio only  
+./scripts/dev.py --hub              # Hub (backend + frontend)
+./scripts/dev.py --electron         # All + launch Electron
 
 # Testing
-./scripts/test.py                   # Run all tests (backend + frontend + integration)
-./scripts/test.py --backend         # Backend tests only
-./scripts/test.py --frontend        # Frontend tests only
-./scripts/test.py --integration     # Integration tests (requires backend)
-./scripts/test.py --no-integration  # Skip integration tests
-./scripts/test.py --coverage        # Include coverage reports
+./scripts/test.py                   # Smart mode: only test changed components
+./scripts/test.py --full            # Run ALL tests (CI mode)
+./scripts/test.py --server          # Server tests only
+./scripts/test.py --studio          # Studio tests only
+./scripts/test.py --hub             # Hub tests only
+./scripts/test.py --ci              # CI mode (XML coverage output)
+./scripts/test.py -p                # Parallel execution (faster)
+./scripts/test.py --dry-run         # Show what would run
+
+# CI/CD Workflow Testing (Local)
+./scripts/workflow.py               # List available workflows
+./scripts/workflow.py ci --dry-run  # Preview CI workflow
+./scripts/workflow.py ci            # Run CI workflow locally
+./scripts/workflow.py ci --job test # Run specific job
 
 # Building
-./scripts/build.py                  # Build for current platform (cross-platform)
+./scripts/build.py                  # Build for current platform
 ./scripts/build.py --platform linux # Build for Linux
 ./scripts/build.py --platform win   # Build for Windows
 ./scripts/build.py --platform mac   # Build for macOS
-./scripts/build.py --backend-only   # Build backend only
-./scripts/build.py --frontend-only  # Build frontend only
-./scripts/build.py --clean          # Clean before building
 ```
 
 ---
@@ -34,90 +40,138 @@ Utility scripts for building, testing, and running Sigilweaver.
 ## Development Scripts
 
 ### `dev.py`
-**Purpose**: Start Vite dev server; Electron manages backend (cross-platform)
+**Purpose**: Start development servers for all components
 
 **Usage**:
 ```bash
-./scripts/dev.py                    # Start Vite (Electron manages backend)
-./scripts/dev.py --backend          # Backend only (for browser dev)
-./scripts/dev.py --frontend         # Frontend only (same as default)
-./scripts/dev.py --electron         # Also launch Electron explicitly
+./scripts/dev.py                    # Start all (Server, Studio, Hub)
+./scripts/dev.py --server           # Server only
+./scripts/dev.py --studio           # Studio only
+./scripts/dev.py --hub              # Hub (backend + frontend)
+./scripts/dev.py --docs             # Documentation site (Docusaurus)
+./scripts/dev.py --site             # Marketing website (Vite)
+./scripts/dev.py --electron         # All + launch Electron
+./scripts/dev.py --hub-auth         # All with Hub authentication enabled
 ```
 
-**Flags**:
-| Flag | Description |
-|------|-------------|
-| `--backend` | Start backend only (for browser dev without Electron) |
-| `--frontend` | Start frontend only (same as default) |
-| `--electron` | Also launch Electron (implies frontend) |
-
-**What it does**:
-- By default: Starts Vite dev server only
-- Electron (when launched) manages the backend automatically
-- Use `--backend` for browser-based development without Electron
-- Logs are prefixed with [BACKEND], [FRONTEND], and [ELECTRON]
-- Cross-platform: works on Linux, macOS, and Windows
-
 **Ports**:
-- Frontend: http://localhost:5173
-- Backend (managed by Electron): http://localhost:8000
-- Backend API Docs: http://localhost:8000/docs
+| Service | Port |
+|---------|------|
+| Server | http://localhost:38080 |
+| Studio | http://localhost:5173 |
+| Hub Backend | http://localhost:58001 |
+| Hub Frontend | http://localhost:5174 |
+| Docs | http://localhost:3000 |
+| Site | http://localhost:5175 |
 
 Press `Ctrl+C` to stop all services.
-
-### `dev.sh` (deprecated)
-**Note**: Use `dev.py` instead for cross-platform compatibility. This bash script is kept for backwards compatibility but may be removed in a future release.
 
 ---
 
 ## Testing Scripts
 
-### `test-full.py`
-**Purpose**: Unified test runner for all test suites
+### `test.py`
+**Purpose**: Unified test runner for all components with smart change detection
 
 **Usage**:
 ```bash
-# Run all tests
-./scripts/test-full.py
+# Smart mode (default): only test changed components
+./scripts/test.py
 
-# Run specific test suites
-./scripts/test-full.py --backend      # Backend tests only
-./scripts/test-full.py --frontend     # Frontend tests only
-./scripts/test-full.py --integration  # Integration tests only
+# Full mode: run all tests
+./scripts/test.py --full
 
-# Common combinations
-./scripts/test-full.py --no-integration  # Backend + frontend (fast)
-./scripts/test-full.py --backend --coverage  # Backend with coverage report
+# Specific components
+./scripts/test.py --server          # Server tests only
+./scripts/test.py --studio          # Studio tests only
+./scripts/test.py --hub             # Hub tests only
+./scripts/test.py --docs            # Docs build check
+./scripts/test.py --site            # Site build check
+./scripts/test.py --integration     # Integration tests only
 
-# Multiple flags
-./scripts/test-full.py --backend --frontend  # Backend + frontend only
+# CI mode (for GitHub Actions)
+./scripts/test.py --ci              # Full tests with XML coverage
+
+# Performance options
+./scripts/test.py -p                # Parallel execution (faster)
+./scripts/test.py --no-coverage     # Skip coverage (even faster)
+./scripts/test.py -v                # Verbose output
+./scripts/test.py --dry-run         # Preview what would run
 ```
 
 **Flags**:
 | Flag | Description |
 |------|-------------|
-| `--backend` | Run backend tests (pytest) |
-| `--frontend` | Run frontend tests (vitest) |
-| `--integration` | Run integration tests (requires backend) |
+| `--full` | Run full test suite (bypass smart mode) |
+| `--ci` | CI mode: XML coverage, optimized for GitHub Actions |
+| `--server` | Run server checks (ruff + mypy + pytest) |
+| `--studio` | Run studio checks (tsc + eslint + vitest) |
+| `--hub` | Run hub checks (backend + frontend) |
+| `--docs` | Run docs build check |
+| `--site` | Run site build check |
+| `--integration` | Run integration tests only |
 | `--no-integration` | Skip integration tests |
-| `--coverage` | Generate HTML coverage report for backend |
+| `--no-coverage` | Skip coverage reports (faster) |
+| `--strict` | Fail on lint/type warnings |
+| `-p, --parallel` | Run test suites in parallel |
+| `-v, --verbose` | Show all output |
+| `--dry-run` | Show what would run without running |
 
-**What it does**:
-- Runs pytest for backend tests
-- Runs vitest for frontend unit tests
-- Runs integration tests against live backend API
-- Auto-starts backend for integration tests if not running
-- Reports summary with pass/fail status and duration
-- Generates coverage report at `backend/htmlcov/index.html` (with `--coverage`)
+**Smart Mode**:
+By default, `test.py` uses git to detect changed files and only runs tests for affected components. Use `--full` for complete validation before merging.
 
-**Exit code**: 0 if all pass, 1 if any fail
+---
+
+## CI/CD Workflow Testing
+
+### `workflow.py`
+**Purpose**: Test GitHub Actions workflows locally using `act`
+
+**Usage**:
+```bash
+# List available workflows
+./scripts/workflow.py
+
+# Dry run (validate YAML, preview steps)
+./scripts/workflow.py ci --dry-run
+./scripts/workflow.py release --dry-run
+
+# Run workflows locally
+./scripts/workflow.py ci                    # Run CI workflow
+./scripts/workflow.py ci --job test         # Run specific job
+./scripts/workflow.py build-server          # Run server build
+
+# Setup
+./scripts/workflow.py --init-secrets        # Create secrets template
+```
+
+**Flags**:
+| Flag | Description |
+|------|-------------|
+| `--dry-run, -n` | Preview without execution |
+| `--job, -j` | Run specific job within workflow |
+| `--verbose, -v` | Verbose output |
+| `--event, -e` | Event type to simulate (push, pull_request) |
+| `--init-secrets` | Create `.act.secrets` template |
+
+**Requirements**:
+- Docker must be running
+- `act` is installed automatically if not present
+
+**Secrets**:
+Create `.act.secrets` (gitignored) with your secrets for local testing:
+```
+GITHUB_TOKEN=ghp_xxxx
+B2_APPLICATION_KEY_ID=xxx
+B2_APPLICATION_KEY=xxx
+```
 
 ---
 
 ## Build Scripts
 
 ### `build.py`
-**Purpose**: Build complete standalone application for distribution (cross-platform)
+**Purpose**: Build complete standalone application for distribution
 
 **Usage**:
 ```bash
@@ -126,28 +180,9 @@ Press `Ctrl+C` to stop all services.
 ./scripts/build.py --platform win       # Build for Windows
 ./scripts/build.py --platform mac       # Build for macOS
 ./scripts/build.py --backend-only       # Build backend only
-./scripts/build.py --frontend-only      # Build frontend only (assumes backend exists)
+./scripts/build.py --frontend-only      # Build frontend only
 ./scripts/build.py --clean              # Clean artifacts before building
 ```
-
-**Flags**:
-| Flag | Description |
-|------|-------------|
-| `--platform` | Target platform: `linux`, `win`, or `mac` (auto-detects if omitted) |
-| `--backend-only` | Build backend executable only |
-| `--frontend-only` | Build frontend only (assumes backend already built) |
-| `--clean` | Clean build artifacts before building |
-
-**What it does**:
-1. Builds backend executable with PyInstaller
-2. Copies backend to frontend resources
-3. Builds frontend web assets
-4. Packages everything with Electron Builder
-5. Creates distribution-ready installers
-
-**Output locations**:
-- Backend executable: `backend/dist/backend`
-- Frontend resources: `frontend/resources/backend/backend`
 - Final packages: `frontend/dist/` (AppImage, DMG, exe, etc.)
 
 **Examples**:
@@ -213,19 +248,35 @@ Manage B2 bucket: list contents and download files via CDN.
 ### Development Cycle
 ```bash
 # 1. Start dev servers
-./scripts/dev.sh
+./scripts/dev.py
 
-# 2. Make changes, then test
-./scripts/test-full.py --no-integration
+# 2. Make changes, then test (smart mode auto-detects changes)
+./scripts/test.py
 
-# 3. Test integration if touching API
-./scripts/test-full.py --integration
+# 3. Run full tests before PR
+./scripts/test.py --full
 ```
 
 ### Pre-Commit Validation
 ```bash
-# Run all tests before committing
-./scripts/test-full.py
+# Run smart tests (fast)
+./scripts/test.py
+
+# Or full validation
+./scripts/test.py --full -p
+```
+
+### CI Workflow Development
+```bash
+# 1. Make changes to .github/workflows/ci.yml
+# 2. Validate YAML and preview
+./scripts/workflow.py ci --dry-run
+
+# 3. Test locally before pushing
+./scripts/workflow.py ci
+
+# 4. Push when ready
+git push
 ```
 
 ### Production Build
@@ -235,12 +286,3 @@ Manage B2 bucket: list contents and download files via CDN.
 
 # Clean build
 ./scripts/build.py --clean
-
-### Fast Backend Testing
-```bash
-# Only rebuild backend
-./scripts/build.py --backend-only
-
-# Test it quickly
-cd backend && source .venv/bin/activate && ./dist/backend
-```

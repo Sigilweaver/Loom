@@ -56,7 +56,17 @@ _TEST_PASSWORD_HASH = _fast_hasher.hash("password123")
 # Database Configuration
 # =============================================================================
 
+# Connection URL to the main database (used for creating test database)
+ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub"
 TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub_test"
+
+# Admin engine for database creation (connects to main db)
+admin_engine = create_async_engine(
+    ADMIN_DATABASE_URL,
+    echo=False,
+    isolation_level="AUTOCOMMIT",  # Required for CREATE DATABASE
+    poolclass=NullPool,
+)
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
@@ -103,7 +113,24 @@ def event_loop_policy():
 
 
 @pytest.fixture(scope="session")
-async def _create_tables():
+async def _ensure_test_db():
+    """Create the test database if it doesn't exist."""
+    async with admin_engine.connect() as conn:
+        # Check if database exists
+        result = await conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = 'sigilweaver_hub_test'")
+        )
+        exists = result.scalar() is not None
+        
+        if not exists:
+            await conn.execute(text("CREATE DATABASE sigilweaver_hub_test"))
+    
+    await admin_engine.dispose()
+    yield
+
+
+@pytest.fixture(scope="session")
+async def _create_tables(_ensure_test_db):
     """Create all tables once at the start of the test session."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

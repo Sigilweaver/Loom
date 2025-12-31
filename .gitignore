@@ -3,6 +3,11 @@
 ## Actions
 .github/.pytest_cache/
 
+## Act (local workflow testing)
+.act.secrets
+.act-artifacts/
+.actrc
+
 ## Copilot (local customizations)
 .github/copilot-instructions.md
 .github/copilot-prompts/
