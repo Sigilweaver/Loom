@@ -82,16 +82,12 @@ Domain logic is more stable. The tool interface won't change much. Invest in tes
 
 ## Testing Hierarchy
 
-```
-                    ┌─────────────────┐
-                    │   Manual QA     │  ← Visual, integration
-                    ├─────────────────┤
-                    │  Integration    │  ← Frontend + backend together
-                    ├─────────────────┤
-                    │  Unit Tests     │  ← Individual functions/classes
-                    ├─────────────────┤
-                    │  Type Checking  │  ← TypeScript, mypy
-                    └─────────────────┘
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#6366f1', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4f46e5', 'lineColor': '#6b7280', 'secondaryColor': '#8b5cf6', 'tertiaryColor': '#a78bfa'}}}%%
+flowchart TB
+    A["🔍 Manual QA<br/>Visual, integration"] --> B["🔗 Integration<br/>Frontend + backend together"]
+    B --> C["🧪 Unit Tests<br/>Individual functions/classes"]
+    C --> D["📝 Type Checking<br/>TypeScript, mypy"]
 ```
 
 Most bugs are caught by type checking. Unit tests catch logic errors. Integration tests catch communication issues. Manual QA catches visual problems.

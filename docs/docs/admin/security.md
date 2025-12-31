@@ -10,28 +10,28 @@ Hub implements a zero-trust security model. The core principle: **users never se
 
 When a user executes a workflow:
 
-```
-┌─────────┐       ┌─────────┐       ┌─────────┐       ┌──────────┐
-│ Studio  │─────▶│   Hub   │─────▶│ Server  │─────▶│ Database │
-└─────────┘       └─────────┘       └─────────┘       └──────────┘
-     │                  │                │
-     │  1. Login        │                │
-     │───────────────▶│                 │
-     │◀── Hub Token ──│                 │
-     │                 │                 │
-     │  2. Execute     │                 │
-     │   (workflow)    │                 │
-     │───────────────▶│                 │
-     │◀─ Server Token─│                 │
-     │   + endpoint    │                 │
-     │                 │                 │
-     │  3. Execute ────────────────────▶│
-     │   (workflow)    │                 │
-     │                 │◀── Validate ───│
-     │                 │    (token)      │
-     │                 │── Credentials ▶│
-     │                                   │───▶ Query
-     │◀────────────── Results ──────────│◀─── Data
+```mermaid
+sequenceDiagram
+    participant Studio
+    participant Hub
+    participant Server
+    participant Database
+
+    Note over Studio,Database: 1. Login
+    Studio->>Hub: Authenticate
+    Hub-->>Studio: Hub Token (24h)
+
+    Note over Studio,Database: 2. Dispatch
+    Studio->>Hub: Execute (workflow)
+    Hub-->>Studio: Server Token (5min) + endpoint
+
+    Note over Studio,Database: 3. Execute
+    Studio->>Server: Execute (workflow)
+    Server->>Hub: Validate (token)
+    Hub-->>Server: Credentials
+    Server->>Database: Query
+    Database-->>Server: Data
+    Server-->>Studio: Results
 ```
 
 1. **Login** - User authenticates, receives Hub Token (24h)

@@ -1,4 +1,4 @@
-import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 /**
  * Sigilweaver Documentation Sidebar
@@ -132,6 +132,7 @@ const sidebars: SidebarsConfig = {
             'developer/architecture/overview',
             'developer/architecture/frontend',
             'developer/architecture/backend',
+            'developer/architecture/caching',
             'developer/architecture/decisions',
           ],
         },

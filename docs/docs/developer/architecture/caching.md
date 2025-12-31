@@ -63,22 +63,12 @@ Now if the user changes Select's config:
 
 ### Components
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      WorkflowExecutor                           │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │              CacheManager                                 │  │
-│  │  ┌───────────────┐    ┌────────────────────┐              │  │
-│  │  │ lineage_hashes│    │ BlockingToolCache  │              │  │
-│  │  │ dict[str,str] │    │  ┌──────────────┐  │              │  │
-│  │  │               │    │  │ cache_root/  │  │              │  │
-│  │  │ tool-1: abc.. │    │  │ workflow-id/ │  │              │  │
-│  │  │ tool-2: def.. │    │  │  ├─ *.parquet│  │              │  │
-│  │  │ tool-3: ghi.. │    │  │  └─ *.parquet│  │              │  │
-│  │  └───────────────┘    │  └──────────────┘  │              │  │
-│  │                       └────────────────────┘              │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    Executor["WorkflowExecutor"] --> CM["CacheManager"]
+    CM --> LH["lineage_hashes<br/>dict[str, str]"]
+    CM --> BTC["BlockingToolCache"]
+    BTC --> Disk[("cache/<br/>workflow-id/<br/>*.parquet")]
 ```
 
 ### Key Files
