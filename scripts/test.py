@@ -69,8 +69,9 @@ if not sys.stdout.isatty():
     Colors.disable()
 
 
-# Global quiet mode flag
+# Global mode flags
 _quiet_mode = False
+_ci_mode = False  # CI mode: XML coverage, stricter output
 
 
 @dataclass
@@ -387,11 +388,16 @@ def run_server_tests(repo_root: Path, coverage: bool = False, parallel: bool = F
         cmd.extend(["-n", "auto"])
     
     if coverage:
-        cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
+        cmd.extend(["--cov=app", "--cov-report=term"])
+        if _ci_mode:
+            # CI mode: generate XML for coverage upload
+            cmd.extend(["--cov-report=xml"])
+        else:
+            cmd.extend(["--cov-report=html"])
     
     result = run_command(cmd, server_dir, "Server Tests", fail_on_error=True)
     
-    if coverage and result.passed and not _quiet_mode:
+    if coverage and result.passed and not _quiet_mode and not _ci_mode:
         print()
         print(f"Coverage report: {server_dir}/htmlcov/index.html")
     
@@ -464,7 +470,7 @@ def run_studio_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     
     result = run_command(cmd, studio_dir, "Studio Tests", fail_on_error=True)
     
-    if coverage and result.passed and not _quiet_mode:
+    if coverage and result.passed and not _quiet_mode and not _ci_mode:
         print()
         print(f"Coverage report: {studio_dir}/coverage/index.html")
     
@@ -567,11 +573,15 @@ def run_hub_backend_tests(repo_root: Path, coverage: bool = False, parallel: boo
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
     
     if coverage:
-        cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
+        cmd.extend(["--cov=app", "--cov-report=term"])
+        if _ci_mode:
+            cmd.extend(["--cov-report=xml"])
+        else:
+            cmd.extend(["--cov-report=html"])
     
     result = run_command(cmd, hub_backend_dir, "Hub Backend Tests", fail_on_error=True)
     
-    if coverage and result.passed and not _quiet_mode:
+    if coverage and result.passed and not _quiet_mode and not _ci_mode:
         print()
         print(f"Coverage report: {hub_backend_dir}/htmlcov/index.html")
     
@@ -616,7 +626,7 @@ def run_hub_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResu
     
     result = run_command(cmd, hub_frontend_dir, "Hub Frontend Tests", fail_on_error=True)
     
-    if coverage and result.passed and not _quiet_mode:
+    if coverage and result.passed and not _quiet_mode and not _ci_mode:
         print()
         print(f"Coverage report: {hub_frontend_dir}/coverage/index.html")
     
@@ -987,10 +997,24 @@ Examples:
         action="store_true",
         help="Show what would be tested without actually running tests"
     )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI mode: XML coverage output, optimized for GitHub Actions"
+    )
     
     args = parser.parse_args()
     
     repo_root = get_repo_root()
+    
+    # Set global mode flags
+    global _quiet_mode, _ci_mode
+    _quiet_mode = not args.verbose
+    _ci_mode = args.ci
+    
+    # CI mode implies full mode and coverage
+    if args.ci:
+        args.full = True
     
     # Determine which tests to run
     run_server = True
@@ -1075,9 +1099,12 @@ Examples:
     # Coverage is enabled by default, disable with --no-coverage
     run_coverage = not args.no_coverage
     
+    # CI mode always runs with coverage
+    if _ci_mode:
+        run_coverage = True
+    
     # Quiet mode is default, use --verbose to show all output
-    global _quiet_mode
-    _quiet_mode = not args.verbose
+    # (Note: _quiet_mode already set above, just update for parallel)
     
     # Parallel mode requires quiet mode for clean output
     run_parallel = args.parallel
