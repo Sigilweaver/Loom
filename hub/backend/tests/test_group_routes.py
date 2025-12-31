@@ -1,63 +1,15 @@
 """Tests for group management routes"""
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from httpx import AsyncClient
 
-from app.db.database import get_db
-from app.db.models import Base
-from app.main import app
-
-# Test database URL - use a separate test database
-TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub_test"
-
-# Create test engine with NullPool for testing
-test_engine = create_async_engine(
-    TEST_DATABASE_URL,
-    echo=False,
-    poolclass=NullPool,
-)
-TestSessionLocal = async_sessionmaker(
-    test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-
-async def override_get_db():
-    """Override database dependency for tests"""
-    async with TestSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
-
-# Apply dependency override
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="function")
-async def setup_database():
-    """Create tables before each test and clean up after"""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-
-    yield
-
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+from tests.conftest import new_client, setup_database  # noqa: F401 - fixtures
 
 
 @pytest.fixture
 def client(setup_database):
-    """Create test client with database setup"""
-    return AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    )
+    """Create test client - uses shared setup_database from conftest."""
+    return new_client()
 
 
 async def create_owner(client: AsyncClient) -> tuple[str, dict]:
