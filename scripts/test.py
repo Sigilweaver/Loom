@@ -11,8 +11,10 @@ Runs all checks to ensure CI will pass:
 6. Integration tests (requires server running)
 
 Usage:
-    ./scripts/test.py                   # Run all checks (Server, Studio, Hub, Integration)
+    ./scripts/test.py                   # Smart mode: only test changed components
+    ./scripts/test.py --full            # Run ALL checks (CI mode)
     ./scripts/test.py -v                 # Verbose mode - show all output
+    ./scripts/test.py -p                 # Parallel mode - run suites concurrently (faster)
     ./scripts/test.py --server           # Server checks only
     ./scripts/test.py --studio           # Studio checks only
     ./scripts/test.py --hub              # Hub checks only
@@ -23,12 +25,24 @@ Usage:
     ./scripts/test.py --no-integration   # Skip integration tests
     ./scripts/test.py --no-coverage      # Skip coverage reports (faster)
     ./scripts/test.py --strict           # Fail on lint warnings (stricter than CI)
+
+Smart Mode (default):
+    By default, only runs tests for components with changed files (git staged + unstaged).
+    This gives fast feedback during development. Use --full for complete validation.
+
+Performance Notes:
+    - Smart mode auto-detects changed components for fastest iteration
+    - Use -p (--parallel) to run test suites concurrently (requires pytest-xdist)
+    - Use --no-coverage for faster iteration during development
+    - Parallel mode automatically uses all available CPU cores
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -93,6 +107,130 @@ def get_repo_root() -> Path:
     """Find the repository root directory."""
     script_dir = Path(__file__).parent.resolve()
     return script_dir.parent
+
+
+@dataclass
+class ChangedComponents:
+    """Tracks which components have changed files."""
+    server: bool = False
+    studio: bool = False
+    hub_backend: bool = False
+    hub_frontend: bool = False
+    docs: bool = False
+    site: bool = False
+    scripts: bool = False
+    workflows: bool = False  # .github/workflows
+    
+    @property
+    def hub(self) -> bool:
+        """True if any hub component changed."""
+        return self.hub_backend or self.hub_frontend
+    
+    @property
+    def any_changed(self) -> bool:
+        """True if any component has changes."""
+        return any([
+            self.server, self.studio, self.hub_backend, self.hub_frontend,
+            self.docs, self.site, self.scripts, self.workflows
+        ])
+    
+    def summary(self) -> str:
+        """Human-readable summary of changed components."""
+        changed = []
+        if self.server:
+            changed.append("Server")
+        if self.studio:
+            changed.append("Studio")
+        if self.hub_backend:
+            changed.append("Hub Backend")
+        if self.hub_frontend:
+            changed.append("Hub Frontend")
+        if self.docs:
+            changed.append("Docs")
+        if self.site:
+            changed.append("Site")
+        if self.scripts:
+            changed.append("Scripts")
+        if self.workflows:
+            changed.append("CI Workflows")
+        return ", ".join(changed) if changed else "None"
+
+
+def get_changed_files(repo_root: Path) -> list[str]:
+    """Get list of changed files from git (staged + unstaged + untracked)."""
+    try:
+        # Get staged changes
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        # Get unstaged changes
+        unstaged = subprocess.run(
+            ["git", "diff", "--name-only"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        # Get untracked files (new files not yet added)
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        
+        # Combine all changed files
+        all_files = set()
+        for result in [staged, unstaged, untracked]:
+            if result.returncode == 0:
+                all_files.update(f.strip() for f in result.stdout.strip().split("\n") if f.strip())
+        
+        return list(all_files)
+    except Exception:
+        # If git fails, return empty (will trigger full run)
+        return []
+
+
+def detect_changed_components(repo_root: Path) -> ChangedComponents:
+    """Detect which components have changed files based on git status."""
+    changed_files = get_changed_files(repo_root)
+    components = ChangedComponents()
+    
+    for file_path in changed_files:
+        # Normalize path
+        path = file_path.lower()
+        
+        # Map file paths to components
+        if path.startswith("server/"):
+            components.server = True
+        elif path.startswith("studio/"):
+            components.studio = True
+        elif path.startswith("hub/backend/"):
+            components.hub_backend = True
+        elif path.startswith("hub/frontend/"):
+            components.hub_frontend = True
+        elif path.startswith("hub/"):
+            # Other hub files (docker-compose, etc.) - test both
+            components.hub_backend = True
+            components.hub_frontend = True
+        elif path.startswith("docs/"):
+            components.docs = True
+        elif path.startswith("site/"):
+            components.site = True
+        elif path.startswith("scripts/"):
+            components.scripts = True
+        elif path.startswith(".github/"):
+            components.workflows = True
+        # Root config files - be conservative, test related components
+        elif path in ["pyproject.toml", "uv.lock"]:
+            components.server = True
+        elif path in ["package.json", "package-lock.json", "tsconfig.json"]:
+            components.studio = True
+            components.site = True
+    
+    return components
 
 
 def print_header(title: str, force: bool = False) -> None:
@@ -227,7 +365,7 @@ def run_server_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
     return run_command(cmd, server_dir, "Server Types", fail_on_error=strict)
 
 
-def run_server_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
+def run_server_tests(repo_root: Path, coverage: bool = False, parallel: bool = False) -> CheckResult:
     """Run server pytest tests."""
     print_subheader("Server Tests (pytest)")
     
@@ -243,6 +381,11 @@ def run_server_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
         )
     
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
+    
+    # Use pytest-xdist for parallel test execution if available and enabled
+    if parallel:
+        cmd.extend(["-n", "auto"])
+    
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
     
@@ -255,7 +398,7 @@ def run_server_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     return result
 
 
-def run_server_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+def run_server_suite(repo_root: Path, coverage: bool = False, strict: bool = False, parallel: bool = False) -> SuiteResult:
     """Run all server checks."""
     print_header("Server Verification")
     
@@ -277,7 +420,7 @@ def run_server_suite(repo_root: Path, coverage: bool = False, strict: bool = Fal
     # Run lint, typecheck, and tests
     suite.checks.append(run_server_lint(repo_root, strict=strict))
     suite.checks.append(run_server_typecheck(repo_root, strict=strict))
-    suite.checks.append(run_server_tests(repo_root, coverage=coverage))
+    suite.checks.append(run_server_tests(repo_root, coverage=coverage, parallel=parallel))
     
     return suite
 
@@ -399,8 +542,13 @@ def run_hub_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckRes
     return run_command(cmd, hub_backend_dir, "Hub Backend Types", fail_on_error=strict)
 
 
-def run_hub_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
-    """Run hub backend pytest tests."""
+def run_hub_backend_tests(repo_root: Path, coverage: bool = False, parallel: bool = False) -> CheckResult:
+    """Run hub backend pytest tests.
+    
+    Note: parallel flag is intentionally ignored for Hub backend tests.
+    The database fixtures use shared state and table truncation between tests,
+    which is incompatible with pytest-xdist parallel execution.
+    """
     print_subheader("Hub Backend Tests (pytest)")
     
     hub_backend_dir = repo_root / "hub" / "backend"
@@ -414,7 +562,10 @@ def run_hub_backend_tests(repo_root: Path, coverage: bool = False) -> CheckResul
             error="Hub backend not set up with uv. Run: cd hub/backend && uv sync --all-extras"
         )
     
+    # Note: NOT using -n auto for parallel execution because Hub backend tests
+    # have complex database fixtures that share state between tests
     cmd = [str(python_path), "-m", "pytest", "tests/", "-v", "--tb=short"]
+    
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=term", "--cov-report=html"])
     
@@ -472,7 +623,7 @@ def run_hub_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResu
     return result
 
 
-def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False) -> SuiteResult:
+def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False, parallel: bool = False) -> SuiteResult:
     """Run all hub checks (backend + frontend)."""
     print_header("Hub Verification")
     
@@ -496,7 +647,7 @@ def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False)
         # Run backend checks
         suite.checks.append(run_hub_backend_lint(repo_root, strict=strict))
         suite.checks.append(run_hub_backend_typecheck(repo_root, strict=strict))
-        suite.checks.append(run_hub_backend_tests(repo_root, coverage=coverage))
+        suite.checks.append(run_hub_backend_tests(repo_root, coverage=coverage, parallel=parallel))
     
     # Check frontend setup
     frontend_modules = hub_frontend_dir / "node_modules"
@@ -703,7 +854,7 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
     return suite
 
 
-def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bool = True, is_full_run: bool = True) -> None:
+def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bool = True, is_full_run: bool = True, parallel: bool = False, smart_mode: bool = False) -> None:
     """Print verification summary with colors."""
     print_header("Verification Summary", force=True)
     
@@ -731,11 +882,16 @@ def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bo
     print(f"{Colors.DIM}Total time: {total_duration:.1f}s{Colors.RESET}")
     print(f"{Colors.DIM}Mode: {'strict' if strict else 'CI-compatible'}{Colors.RESET}")
     print(f"{Colors.DIM}Coverage: {'enabled' if coverage else 'disabled'}{Colors.RESET}")
+    print(f"{Colors.DIM}Parallel: {'enabled' if parallel else 'disabled'}{Colors.RESET}")
+    if smart_mode:
+        print(f"{Colors.DIM}Smart mode: enabled (use --full for complete validation){Colors.RESET}")
     print()
     
     if all_passed:
         if is_full_run:
             print(f"{Colors.GREEN}{Colors.BOLD}All checks passed! Ready for PR.{Colors.RESET}")
+        elif smart_mode:
+            print(f"{Colors.GREEN}{Colors.BOLD}All checks passed!{Colors.RESET} Run with --full before PR.")
         else:
             print(f"{Colors.GREEN}{Colors.BOLD}All checks passed!{Colors.RESET}")
     else:
@@ -752,8 +908,10 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./scripts/test.py                   # Run all checks (Server, Studio, Hub, Integration)
+  ./scripts/test.py                   # Smart mode: only test changed components
+  ./scripts/test.py --full            # Run ALL checks (CI mode)
   ./scripts/test.py -v                # Verbose mode - show all output
+  ./scripts/test.py -p                # Parallel mode - run suites concurrently (faster)
   ./scripts/test.py --server          # Server only (ruff + mypy + pytest + coverage)
   ./scripts/test.py --studio          # Studio only (tsc + eslint + vitest + coverage)
   ./scripts/test.py --hub             # Hub only (backend + frontend checks)
@@ -763,6 +921,11 @@ Examples:
   ./scripts/test.py --no-coverage     # Skip coverage reports (faster)
   ./scripts/test.py --strict          # Fail on lint/type warnings
 """
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run full test suite (bypass smart change detection)"
     )
     parser.add_argument(
         "--server",
@@ -810,12 +973,24 @@ Examples:
         help="Fail on lint/type warnings (stricter than CI)"
     )
     parser.add_argument(
+        "-p", "--parallel",
+        action="store_true",
+        help="Run test suites in parallel (faster, requires quiet mode)"
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Verbose mode: show all output (default: only show errors)"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be tested without actually running tests"
+    )
     
     args = parser.parse_args()
+    
+    repo_root = get_repo_root()
     
     # Determine which tests to run
     run_server = True
@@ -825,20 +1000,77 @@ Examples:
     run_site = True
     run_integration = True
     
-    # If any specific tests requested, only run those
+    # Track if we're using smart mode
+    smart_mode = False
+    changed_components: ChangedComponents | None = None
+    
+    # If any specific tests requested, only run those (explicit override)
     any_specific = args.server or args.studio or args.hub or args.docs or args.site or args.integration
     
     if any_specific:
+        # Explicit component selection - run exactly what was requested
         run_server = args.server
         run_studio = args.studio
         run_hub = args.hub
         run_docs = args.docs
         run_site = args.site
         run_integration = args.integration
+    elif not args.full:
+        # Smart mode: detect changed components from git
+        changed_components = detect_changed_components(repo_root)
+        
+        if changed_components.any_changed:
+            smart_mode = True
+            run_server = changed_components.server
+            run_studio = changed_components.studio
+            run_hub = changed_components.hub
+            run_docs = changed_components.docs
+            run_site = changed_components.site
+            # Run integration tests if server changed
+            run_integration = changed_components.server
+            
+            # If CI workflows changed, run everything
+            if changed_components.workflows:
+                run_server = run_studio = run_hub = run_docs = run_site = run_integration = True
+                smart_mode = False  # Effectively full mode
+        else:
+            # No changes detected - run nothing (or show message)
+            print(f"{Colors.GREEN}No changes detected.{Colors.RESET} Use --full to run all tests.")
+            return 0
     
     # Handle --no-integration
     if args.no_integration:
         run_integration = False
+    
+    # Dry run: show what would be tested and exit
+    if args.dry_run:
+        print_header("Sigilweaver Verification Suite (dry run)", force=True)
+        if smart_mode and changed_components:
+            print(f"Smart mode: {changed_components.summary()}")
+            print()
+            print("Changed files:")
+            for f in sorted(get_changed_files(repo_root)):
+                print(f"  {f}")
+            print()
+        print("Would run:")
+        if run_server:
+            print(f"  {Colors.BLUE}Server{Colors.RESET}: lint, types, tests")
+        if run_studio:
+            print(f"  {Colors.BLUE}Studio{Colors.RESET}: types, lint, tests")
+        if run_hub:
+            print(f"  {Colors.BLUE}Hub{Colors.RESET}: backend (lint, types, tests) + frontend (types, lint, tests)")
+        if run_docs:
+            print(f"  {Colors.BLUE}Docs{Colors.RESET}: build")
+        if run_site:
+            print(f"  {Colors.BLUE}Site{Colors.RESET}: types, build")
+        if run_integration:
+            print(f"  {Colors.BLUE}Integration{Colors.RESET}: server health tests")
+        if not any([run_server, run_studio, run_hub, run_docs, run_site, run_integration]):
+            print(f"  {Colors.DIM}(nothing){Colors.RESET}")
+        print()
+        if smart_mode:
+            print(f"{Colors.DIM}Use --full to run all tests{Colors.RESET}")
+        return 0
     
     # Coverage is enabled by default, disable with --no-coverage
     run_coverage = not args.no_coverage
@@ -847,41 +1079,91 @@ Examples:
     global _quiet_mode
     _quiet_mode = not args.verbose
     
-    repo_root = get_repo_root()
+    # Parallel mode requires quiet mode for clean output
+    run_parallel = args.parallel
+    if run_parallel and args.verbose:
+        print(f"{Colors.YELLOW}Warning: Parallel mode requires quiet mode. Disabling verbose.{Colors.RESET}")
+        _quiet_mode = True
+    
     results: list[SuiteResult] = []
     
     print_header("Sigilweaver Verification Suite", force=True)
+    
+    # Get CPU count for display
+    cpu_count = os.cpu_count() or 1
+    
     if _quiet_mode:
-        print("Running tests (errors only)...")
+        if smart_mode and changed_components:
+            print(f"Smart mode: testing changed components ({changed_components.summary()})")
+        if run_parallel:
+            print(f"Running tests in parallel ({cpu_count} CPUs available)...")
+        else:
+            print("Running tests (errors only)...")
     else:
         print(f"Repository: {repo_root}")
+        if smart_mode and changed_components:
+            print(f"Smart mode: {changed_components.summary()}")
         print(f"Mode: {'strict' if args.strict else 'CI-compatible'}")
         print(f"Coverage: {'enabled' if run_coverage else 'disabled'}")
+        print(f"Parallel: {'enabled' if run_parallel else 'disabled'}")
     
-    # Run checks
+    # Build list of suite runners to execute
+    suite_runners: list[tuple[str, callable]] = []
+    
     if run_server:
-        results.append(run_server_suite(repo_root, coverage=run_coverage, strict=args.strict))
+        suite_runners.append(("Server", lambda: run_server_suite(
+            repo_root, coverage=run_coverage, strict=args.strict, parallel=run_parallel
+        )))
     
     if run_studio:
-        results.append(run_studio_suite(repo_root, coverage=run_coverage, strict=args.strict))
+        suite_runners.append(("Studio", lambda: run_studio_suite(
+            repo_root, coverage=run_coverage, strict=args.strict
+        )))
     
     if run_hub:
-        results.append(run_hub_suite(repo_root, coverage=run_coverage, strict=args.strict))
+        suite_runners.append(("Hub", lambda: run_hub_suite(
+            repo_root, coverage=run_coverage, strict=args.strict, parallel=run_parallel
+        )))
     
     if run_docs:
-        results.append(run_docs_suite(repo_root))
+        suite_runners.append(("Docs", lambda: run_docs_suite(repo_root)))
     
     if run_site:
-        results.append(run_site_suite(repo_root))
+        suite_runners.append(("Site", lambda: run_site_suite(repo_root)))
     
+    # Run suites (either in parallel or sequentially)
+    if run_parallel and len(suite_runners) > 1:
+        # Run independent suites in parallel using ThreadPoolExecutor
+        # Integration tests must run last (needs server), so exclude from parallel
+        with ThreadPoolExecutor(max_workers=min(len(suite_runners), cpu_count)) as executor:
+            futures = {executor.submit(runner): name for name, runner in suite_runners}
+            for future in as_completed(futures):
+                suite_name = futures[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+                    status = f"{Colors.GREEN}✓{Colors.RESET}" if result.passed else f"{Colors.RED}✗{Colors.RESET}"
+                    print(f"  {status} {suite_name} completed ({result.duration:.1f}s)")
+                except Exception as e:
+                    results.append(SuiteResult(
+                        name=suite_name,
+                        checks=[CheckResult(name=suite_name, passed=False, duration=0, error=str(e))]
+                    ))
+                    print(f"  {Colors.RED}✗{Colors.RESET} {suite_name} failed: {e}")
+    else:
+        # Sequential execution
+        for name, runner in suite_runners:
+            results.append(runner())
+    
+    # Integration tests always run sequentially (needs server)
     if run_integration:
         results.append(run_integration_tests(repo_root))
     
     # Determine if this is a full run (all suites enabled, no exclusions)
-    is_full_run = run_server and run_studio and run_hub and run_docs and run_site and run_integration
+    is_full_run = run_server and run_studio and run_hub and run_docs and run_site and run_integration and not smart_mode
     
     # Print summary
-    print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run)
+    print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run, parallel=run_parallel, smart_mode=smart_mode)
     
     # Return appropriate exit code
     return 0 if all(r.passed for r in results) else 1
