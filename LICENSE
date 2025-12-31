@@ -1,4 +1,34 @@
-# Sigilweaver Application License
+SIGILWEAVER LICENSING INFORMATION
+================================================================================
+
+The Sigilweaver project is a monorepo containing multiple components, each governed 
+by specific licensing terms. 
+
+1. SOFTWARE (CODE)
+   The core software components (Studio, Server, Hub, and Scripts) are licensed 
+   under the GNU Affero General Public License v3.0 (AGPLv3).
+
+2. DOCUMENTATION & ASSETS
+   The documentation, website content, and media assets are licensed under the 
+   Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0).
+
+LICENSE MAP
+-----------
+| Component | Directory | License      |
+|-----------|-----------|--------------|
+| Studio    | /studio   | GNU AGPLv3   |
+| Server    | /server   | GNU AGPLv3   |
+| Hub       | /hub      | GNU AGPLv3   |
+| Scripts   | /scripts  | GNU AGPLv3   |
+| Website   | /site     | CC BY-SA 4.0 |
+| Docs      | /docs     | CC BY-SA 4.0 |
+
+Specific license files are included in the /site and /docs subdirectories for clarity.
+For the core software, the full text of the AGPLv3 is provided below.
+
+================================================================================
+SIGILWEAVER SOFTWARE LICENSE (AGPLv3)
+================================================================================
 
 Copyright (C) 2025 Nathan Riley
 

@@ -8,46 +8,47 @@ Before your first pull request can be merged, you must sign our **IP Assignment 
 
 ## Why IP Assignment?
 
-I'll be direct: **I need to eat.**
+Sigilweaver is built to be a permanent, sustainable alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, a single entity needs to be capable of offering commercial licenses to enterprises.
 
-When you contribute code, you assign the intellectual property to Sigilweaver Holdings LLC. This allows me to offer commercial licensing options to organizations that need them, which funds continued development of Sigilweaver.
+However, assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
-I know IP assignment CLAs can feel uncomfortable. Here's why I believe this one is different.
+## The "Poison Pill" Defense
 
-## Contractual Safeguards
+This CLA contains a specialized legal structure designed to safeguard the community. It acts as a "Dead Man's Switch" (or Poison Pill) to ensure the project can never be "captured" or closed-sourced by a third party.
 
-These aren't just promises. They're legally binding constraints in the holding company's operating charter:
+**The Agreement acts as a two-way street:**
 
-| Constraint | What It Means |
-|------------|---------------|
-| **OSI-Approved Relicensing Only** | Any relicensing of Sigilweaver must be to an [OSI-approved open source license](https://opensource.org/licenses). The code can never be made proprietary. |
-| **Nonprofit Transfer Only** | If ownership of the IP is ever transferred, it must go to a 501(c)(3) nonprofit organization, not a corporation. |
+1. **You give rights to Sigilweaver Holdings LLC:** This allows the project to offer commercial licenses, which funds development and keeps Sigilweaver independent.
+2. **Sigilweaver Holdings LLC gives a binding Covenant to you:**
+   * The project **must** remain available under an OSI-approved Open Source license.
+   * The IP **cannot** be transferred to a for-profit third party (via sale, hostile takeover, or lawsuit judgment).
+
+**The "Teeth" (Reversion Clause):**
+
+If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
+
+This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the commercial entity ever fails its mission.
 
 ## What This Means in Practice
 
-✅ **The project stays open source forever.** It cannot be closed.  
-✅ **You can always fork, use, and modify Sigilweaver under the AGPL.**  
-✅ **Commercial licensing funds development** without relying on donations.  
-✅ **If the project changes hands**, it goes to a nonprofit, not a corporation.  
-
-## What This Does NOT Mean
-
-❌ Your code won't be stolen and locked away. It's always open.  
-❌ I cannot sell the IP to a company that would close-source it.  
-❌ Your contributions are not invalidated by the assignment.  
+* **The project stays open source forever** - No one can close the source  
+* **You can always fork, use, and modify Sigilweaver under the AGPL**  
+* **Development remains funded** without relying on donations or sponsorships  
+* **If the project changes hands**, it goes to a nonprofit, not a corporation  
+* **If anything goes wrong**, ownership reverts to contributors  
 
 ## Not Comfortable With This?
 
-**That's completely okay.** 
+**That's completely valid.** 
 
-If IP assignment doesn't sit right with you, you're under no obligation to contribute. Sigilweaver is AGPL-licensed, which means you can:
+If IP assignment doesn't align with your values, you're under no obligation to contribute code. Sigilweaver is AGPL-licensed, which means you can:
 
 - **Fork the project** and maintain your own version
 - **Use Sigilweaver** for any purpose without restriction
 - **Report bugs and suggest features** without signing anything
 - **Write about Sigilweaver**, create tutorials, or help others in the community
 
-Contributing code is just one way to be part of open source. Your comfort matters more than any single pull request.
+Contributing code is just one way to participate in open source.
 
 ## How to Sign
 
@@ -55,6 +56,6 @@ The CLA will be presented automatically when you open your first pull request. T
 
 If you have questions about the CLA before contributing, please [open a discussion](https://github.com/sigilweaver/sigilweaver/discussions).
 
-## Commercial Licensing
+---
 
-We are not yet offering commercial licenses.
+You can read the full legal text of the agreement at **[CLA.md](https://github.com/sigilweaver/sigilweaver/blob/main/CLA.md)**.

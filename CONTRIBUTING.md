@@ -10,29 +10,28 @@ Sigilweaver requires all contributors to sign an **IP Assignment CLA** before we
 
 ### Why an IP Assignment?
 
-I'll be direct: **I need to eat.**
+Sigilweaver is built to be a permanent, sustainable alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity capable of offering commercial licenses to enterprises.
 
-When you contribute code, you assign the intellectual property to Sigilweaver Holdings LLC. This allows me to offer commercial licensing options to organizations that need them—which funds continued development of Sigilweaver.
+However, I know that assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
-I know IP assignment CLAs can feel uncomfortable. Here's why I believe this one is different:
+### The "Poison Pill" Defense
 
-**Contractual safeguards in the operating charter:**
-- Any relicensing of Sigilweaver **must be to an OSI-approved license**
-- Any transfer of IP ownership **must be to a 501(c)(3) nonprofit organization**
+This CLA contains a specialized legal structure designed to safeguard the community. It acts as a "Dead Man's Switch" (or Poison Pill) to ensure the project can never be "captured" or closed-sourced by a third party.
 
-These aren't just promises—they're legally binding constraints on the holding company.
+**The Agreement acts as a two-way street:**
+1.  **You give rights to Sigilweaver Holdings LLC:** This allows the project to offer commercial licenses, which funds development and keeps Sigilweaver independent.
+2.  **Sigilweaver Holdings LLC gives a binding Covenant to you:**
+    * The project **must** remain available under an OSI-approved Open Source license.
+    * The IP **cannot** be transferred to a for-profit third party (via sale, hostile takeover, or lawsuit judgment).
 
-**What this means in practice:**
-- The project stays open source forever—it cannot be closed
-- You can always fork, use, and modify Sigilweaver under the AGPL
-- Commercial licensing funds development without relying on donations
-- If the project changes hands, it goes to a nonprofit, not a corporation
+**The "Teeth" (Reversion Clause):**
+If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
-**What this does NOT mean:**
-- Your code won't be "stolen" and locked away—it's always AGPL
-- I cannot sell the IP to a company that would close-source it
+This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the commercial entity ever fails its mission.
 
-The CLA will be presented when you open your first pull request.
+You can read the full legal text of the agreement at **[CLA.md](./CLA.md)**.
+
+The CLA will be presented automatically when you open your first pull request.
 
 ---
 
@@ -92,7 +91,9 @@ For detailed workflow documentation, see [Contributing Workflow](https://docs.si
 
 ## License
 
-Sigilweaver is licensed under AGPLv3. By contributing, you agree that your contributions will be licensed under the same license, and you agree to the terms of the CLA.
+Sigilweaver is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for documentation and the website.
+
+By contributing, you agree that your contributions will be licensed under these licenses, and you agree to the terms of the CLA.
 
 See [LICENSE](LICENSE) for details.
 
