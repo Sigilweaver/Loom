@@ -22,7 +22,7 @@ export interface AppSettings {
 
   /** Backend server configuration (for bundled/external modes) */
   backend: {
-    /** Backend URL (default: http://localhost:8000) */
+    /** Backend URL (default: http://localhost:25811) */
     url: string;
     /** Whether to auto-start bundled backend (full mode only) */
     autoStart: boolean;
@@ -68,7 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   author: 'User', // Will be replaced by system username in Electron, or user can change it
   executionMode: 'bundled', // Default to bundled for desktop
   backend: {
-    url: 'http://localhost:8000',
+    url: 'http://localhost:25811',
     autoStart: true,
     previewRows: 100,
   },

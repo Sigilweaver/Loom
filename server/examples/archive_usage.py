@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import requests
 
 # Backend URL (adjust if needed)
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:25811/api"
 
 
 def check_archive_status():
@@ -181,7 +181,7 @@ def main():
 
     except requests.exceptions.ConnectionError:
         print("ERROR: Could not connect to backend server.")
-        print("Make sure the backend is running on http://localhost:8000")
+        print("Make sure the backend is running on http://localhost:25811")
     except Exception as e:
         print(f"ERROR: {e}")
 

@@ -33,7 +33,7 @@ class HeartbeatManager:
 
         Args:
             server_name: Name for this server in Hub (e.g., "dev-server")
-            endpoint_url: This server's API endpoint (e.g., "http://localhost:8000")
+            endpoint_url: This server's API endpoint (e.g., "http://localhost:25811")
             interval_seconds: How often to heartbeat (default: 30s)
         """
         self.server_name = server_name

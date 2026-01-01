@@ -61,7 +61,7 @@ Server is configured via environment variables (case-insensitive):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | 58000 | HTTP server port (dev script uses 8000) |
+| `PORT` | 25811 | HTTP server port |
 | `HOST` | 0.0.0.0 | Server bind address |
 | `LOG_LEVEL` | info | Logging verbosity |
 | `AUTH_MODE` | disabled | Authentication mode: `disabled`, `ephemeral`, `static`, `hub` |

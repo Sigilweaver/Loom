@@ -30,7 +30,7 @@ describe("SettingsStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.clear();
-    
+
     // Default to browser mode for most tests
     mockPlatform.name = 'web';
     mockPlatformCapabilities.secureStorage = false;
@@ -56,7 +56,7 @@ describe("SettingsStore", () => {
 
     it("default settings have expected structure", () => {
       expect(DEFAULT_SETTINGS.author).toBe("User");
-      expect(DEFAULT_SETTINGS.backend.url).toBe("http://localhost:8000");
+      expect(DEFAULT_SETTINGS.backend.url).toBe("http://localhost:25811");
       expect(DEFAULT_SETTINGS.backend.autoStart).toBe(true);
       expect(DEFAULT_SETTINGS.theme.id).toBe("sigilweaver");
       expect(DEFAULT_SETTINGS.ui.snapToGrid).toBe(true);

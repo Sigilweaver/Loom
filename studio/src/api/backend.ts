@@ -15,7 +15,7 @@ export type { RequestContext } from '../state/runtimeLogStore';
 
 const logger = createLogger('API');
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:25811/api';
 
 /**
  * Session token for backend authentication.
@@ -140,11 +140,11 @@ async function apiRequest<T>(
   const url = `${API_BASE}${endpoint}`;
   const method = options.method || 'GET';
   const { logRequest, logResponse, logError } = getRuntimeLogActions();
-  
+
   // Log the outgoing request
   const requestId = logRequest(endpoint, method, context);
   const startTime = performance.now();
-  
+
   // Build headers with optional auth token
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ async function apiRequest<T>(
   if (sessionToken) {
     headers['Authorization'] = `Bearer ${sessionToken}`;
   }
-  
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -189,7 +189,7 @@ async function apiRequest<T>(
     if (error instanceof BackendError) {
       throw error;
     }
-    
+
     // Network or other errors
     const duration = performance.now() - startTime;
     const errorMessage = `Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}`;
@@ -660,7 +660,7 @@ export async function closeWorkflowCachesBatchOnBackend(
   if (workflowIds.length === 0) {
     return;
   }
-  
+
   try {
     const response = await apiRequest<BatchClearCacheResponse>('/cache/close/batch', {
       method: 'POST',

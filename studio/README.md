@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Studio runs at `http://localhost:5173` in dev mode. You'll need a Server running at `localhost:8000` to execute workflows.
+Studio runs at `http://localhost:25810` in dev mode. You'll need a Server running at `localhost:25811` to execute workflows.
 
 ### With Electron
 

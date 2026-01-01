@@ -53,7 +53,7 @@ describe('Backend API Client', () => {
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/health/',
+        'http://localhost:25811/api/health/',
         expect.objectContaining({
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ describe('Backend API Client', () => {
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/workflow/tool/schema',
+        'http://localhost:25811/api/workflow/tool/schema',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -172,7 +172,7 @@ describe('Backend API Client', () => {
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/workflow/tool/execute',
+        'http://localhost:25811/api/workflow/tool/execute',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -216,7 +216,7 @@ describe('Backend API Client', () => {
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/workflow/execute',
+        'http://localhost:25811/api/workflow/execute',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -250,7 +250,7 @@ describe('Backend API Client', () => {
 
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/workflow/execute',
+        'http://localhost:25811/api/workflow/execute',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -279,7 +279,7 @@ describe('Backend API Client', () => {
       expect(result).toEqual(mockResponse);
       expect(result.code).toContain('import polars as pl');
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/workflow/preview_code',
+        'http://localhost:25811/api/workflow/preview_code',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({

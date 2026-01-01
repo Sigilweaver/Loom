@@ -10,15 +10,14 @@ services:
       POSTGRES_PASSWORD: sigilweaver
       POSTGRES_DB: sigilweaver_hub
     ports:
-      - "25802:5432"
+      - "25801:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sigilweaver -d sigilweaver_hub"]
+      test: [ "CMD-SHELL", "pg_isready -U sigilweaver -d sigilweaver_hub" ]
       interval: 5s
       timeout: 5s
       retries: 5
-
   # Hub backend (for production-like local testing)
   # Uncomment to use containerized backend instead of local dev
   # hub-backend:
@@ -30,7 +29,7 @@ services:
   #     DATABASE_URL: postgresql+asyncpg://sigilweaver:sigilweaver@postgres:5432/sigilweaver_hub
   #     SECRET_KEY: development-secret-key-change-in-production
   #   ports:
-  #     - "58001:58001"
+  #     - "25802:25802"
   #   depends_on:
   #     postgres:
   #       condition: service_healthy

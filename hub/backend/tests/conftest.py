@@ -57,8 +57,8 @@ _TEST_PASSWORD_HASH = _fast_hasher.hash("password123")
 # =============================================================================
 
 # Connection URL to the main database (used for creating test database)
-ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub"
-TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub_test"
+ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
+TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub_test"
 
 # Admin engine for database creation (connects to main db)
 admin_engine = create_async_engine(
@@ -379,7 +379,7 @@ async def test_server(setup_database) -> dict:
                 "/api/servers",
                 json={
                     "name": "Test Server",
-                    "endpoint_url": "http://localhost:58000",
+                    "endpoint_url": "http://localhost:25811",
                     "auth_token": "test-token",
                 },
             )

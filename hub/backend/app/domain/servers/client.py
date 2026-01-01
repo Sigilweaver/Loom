@@ -34,7 +34,7 @@ class ServerClient:
         """Initialize client for a server.
 
         Args:
-            endpoint_url: Base URL of the server (e.g., "http://server:58000")
+            endpoint_url: Base URL of the server (e.g., "http://server:25811")
             auth_token: Optional auth token for the server
         """
         self.endpoint_url = endpoint_url.rstrip("/")

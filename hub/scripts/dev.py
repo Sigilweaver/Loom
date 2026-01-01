@@ -90,7 +90,7 @@ def start_backend(repo_root: Path) -> subprocess.Popen:
             "--host",
             "0.0.0.0",
             "--port",
-            "58001",
+            "25802",
             "--reload",
         ],
         cwd=backend_dir,
@@ -177,10 +177,10 @@ def main() -> int:
         print(f"{GREEN}Development servers started!{NC}")
         print()
         if start_backend_flag:
-            print(f"  Backend API:  {BLUE}http://localhost:58001{NC}")
-            print(f"  API Docs:     {BLUE}http://localhost:58001/docs{NC}")
+            print(f"  Backend API:  {BLUE}http://localhost:25802{NC}")
+            print(f"  API Docs:     {BLUE}http://localhost:25802/docs{NC}")
         if start_frontend_flag:
-            print(f"  Frontend:     {BLUE}http://localhost:5174{NC}")
+            print(f"  Frontend:     {BLUE}http://localhost:25803{NC}")
         print()
         print(f"{YELLOW}Press Ctrl+C to stop{NC}")
 

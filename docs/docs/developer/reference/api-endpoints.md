@@ -6,7 +6,7 @@ sidebar_position: 1
 
 REST API reference for the backend.
 
-The backend runs on `http://127.0.0.1:8000` by default. All API routes are prefixed with `/api`.
+The backend runs on `http://127.0.0.1:25811` by default. All API routes are prefixed with `/api`.
 
 ## Health
 
@@ -539,8 +539,8 @@ All endpoints return consistent error responses:
 
 The backend includes auto-generated API documentation:
 
-- **Swagger UI**: `http://127.0.0.1:8000/docs`
-- **ReDoc**: `http://127.0.0.1:8000/redoc`
+- **Swagger UI**: `http://127.0.0.1:25811/docs`
+- **ReDoc**: `http://127.0.0.1:25811/redoc`
 
 These are useful for exploring the API interactively during development.
 

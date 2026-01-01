@@ -335,7 +335,7 @@ class TestCORSPreflightOrdering:
 
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["http://localhost:5173"],
+            allow_origins=["http://localhost:25810"],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -345,7 +345,7 @@ class TestCORSPreflightOrdering:
 
         # Simulate CORS preflight request (OPTIONS with Origin and Access-Control-Request-Method)
         headers = {
-            "Origin": "http://localhost:5173",
+            "Origin": "http://localhost:25810",
             "Access-Control-Request-Method": "GET",
             "Access-Control-Request-Headers": "Authorization",
         }

@@ -72,7 +72,7 @@ npm install
 npm run dev
 ```
 
-Starts a development server at `http://localhost:27530` with hot module replacement.
+Starts a development server at `http://localhost:25808` with hot module replacement.
 
 ### Build
 

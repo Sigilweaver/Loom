@@ -54,7 +54,7 @@ uv sync --all-extras
 uv run alembic upgrade head
 
 # Start dev server
-uv run uvicorn app.main:app --reload --port 58001
+uv run uvicorn app.main:app --reload --port 25802
 ```
 
 ### Frontend
@@ -212,7 +212,7 @@ npm run test:watch
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VITE_API_URL` | No | `http://localhost:58001` | Backend API URL |
+| `VITE_API_URL` | No | `http://localhost:25802` | Backend API URL |
 
 ## Common Pitfalls
 

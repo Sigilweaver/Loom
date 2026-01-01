@@ -57,12 +57,12 @@ Utility scripts for building, testing, and running Sigilweaver.
 **Ports**:
 | Service | Port |
 |---------|------|
-| Server | http://localhost:38080 |
-| Studio | http://localhost:5173 |
-| Hub Backend | http://localhost:58001 |
-| Hub Frontend | http://localhost:5174 |
-| Docs | http://localhost:3000 |
-| Site | http://localhost:5175 |
+| Server | http://localhost:25811 |
+| Studio | http://localhost:25810 |
+| Hub Backend | http://localhost:25802 |
+| Hub Frontend | http://localhost:25803 |
+| Docs | http://localhost:25809 |
+| Site | http://localhost:25808 |
 
 Press `Ctrl+C` to stop all services.
 
