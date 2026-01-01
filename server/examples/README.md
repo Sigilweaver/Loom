@@ -1,6 +1,6 @@
 # Backend Examples
 
-This directory contains example scripts demonstrating how to use the SigilWeaver backend API.
+This directory contains example scripts demonstrating how to use the Sigilweaver backend API.
 
 ## Archive Usage Example
 

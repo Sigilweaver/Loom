@@ -11,7 +11,7 @@ import { resolveWorkflowConnections } from "@api/connectionResolver";
 import { cacheAllPreviews } from "@api/cache";
 import { platform, hasNativeDialogs } from "@platform";
 import { createLogger } from "@utils/logger";
-import SigilWeaverLogo from "./SigilWeaverLogo";
+import SigilweaverLogo from "./SigilweaverLogo";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -272,7 +272,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     if (!activeTabId) return;
 
     const activeTab = getTabById(activeTabId);
-    
+
     // If tab already has a file path, save to that file
     if (activeTab?.filePath) {
       try {
@@ -408,7 +408,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
         }
       }
       cacheAllPreviews(workflow, previewRows, previewsForCache);
-      
+
       setIsPreviewLoading(false);
       showNotification("Previews loaded for all tools!", "success");
 
@@ -485,7 +485,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      
+
       addLog({
         level: "error",
         message: `Execution failed: ${message}`,
@@ -507,7 +507,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
           {/* Left side - App title and workflow info */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <SigilWeaverLogo
+              <SigilweaverLogo
                 className="opacity-75 text-theme-header-logo-icon"
                 size="md"
               />

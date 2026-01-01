@@ -1,7 +1,7 @@
 /**
  * Backend API Client
  * 
- * Connects to the SigilWeaver backend for workflow execution,
+ * Connects to the Sigilweaver backend for workflow execution,
  * schema inference, and data preview functionality.
  */
 

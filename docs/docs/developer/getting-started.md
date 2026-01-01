@@ -143,7 +143,7 @@ Hub will be available at:
 
 ```bash
 curl http://localhost:25811/api/health/
-# Should return: {"status":"healthy","version":"0.0.0-dev","message":"SigilWeaver Backend is running"}
+# Should return: {"status":"healthy","version":"0.0.0-dev","message":"Sigilweaver Backend is running"}
 ```
 
 ### Frontend

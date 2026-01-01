@@ -1,11 +1,11 @@
 import logoSvg from '/assets/sigilweaver-logo.svg';
 
-interface SigilWeaverLogoProps {
+interface SigilweaverLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export default function SigilWeaverLogo({ className = '', size = 'md' }: SigilWeaverLogoProps) {
+export default function SigilweaverLogo({ className = '', size = 'md' }: SigilweaverLogoProps) {
   const sizeClasses = {
     sm: 'w-6 h-6',
     md: 'w-8 h-8',
@@ -14,9 +14,9 @@ export default function SigilWeaverLogo({ className = '', size = 'md' }: SigilWe
 
   return (
     <div className={`${sizeClasses[size]} ${className} flex items-center justify-center`}>
-      <img 
+      <img
         src={logoSvg}
-        alt="SigilWeaver Logo"
+        alt="Sigilweaver Logo"
         className="w-full h-full"
       />
     </div>

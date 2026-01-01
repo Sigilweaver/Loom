@@ -365,7 +365,7 @@ ipcMain.handle('get-settings', async () => {
 
   // If author is still a default value, use OS username instead
   // This gives us the hierarchy: persisted custom value > OS username > 'User'
-  if (settings.author === 'User' || settings.author === 'SigilWeaver User') {
+  if (settings.author === 'User' || settings.author === 'Sigilweaver User') {
     return { ...settings, author: getSystemUsername() };
   }
 

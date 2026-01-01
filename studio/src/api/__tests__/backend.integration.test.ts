@@ -22,11 +22,11 @@ describe('Backend E2E Integration', () => {
   describe('Health Check', () => {
     it('should connect to running backend', async () => {
       const result = await healthCheck();
-      
+
       expect(result).toEqual(expect.objectContaining({
         status: 'healthy',
         version: '0.0.0-dev',
-        message: 'SigilWeaver Backend is running',
+        message: 'Sigilweaver Backend is running',
       }));
     }, { timeout: 5000 });
   });
@@ -65,14 +65,14 @@ describe('Backend E2E Integration', () => {
 
       expect(result.tool_id).toBe('input1');
       expect(result.socket_id).toBe('output');
-      
+
       const schema = result.data_schema;
       expect(schema).toBeDefined();
       expect(schema?.columns).toHaveLength(4);
-      
+
       const columnNames = schema?.columns.map(c => c.name);
       expect(columnNames).toEqual(['id', 'name', 'age', 'city']);
-      
+
       const columnTypes = schema?.columns.map(c => c.dtype);
       expect(columnTypes).toEqual(['Int64', 'String', 'Int64', 'String']);
     }, { timeout: 5000 });
@@ -99,7 +99,7 @@ describe('Backend E2E Integration', () => {
       expect(result.socket_id).toBe('output');
       expect(result.data).toBeDefined();
       expect(result.data).toHaveLength(3);
-      
+
       // Check first row
       const firstRow = result.data?.[0];
       expect(firstRow).toEqual({
@@ -157,15 +157,15 @@ describe('Backend E2E Integration', () => {
 
       // Test preview with filtered data
       const result = await previewTool('filter1', workflow, 'output-true', 10);
-      
+
       expect(result.socket_id).toBe('output-true');
-      
+
       const matchedData = result.data;
       expect(matchedData).toBeDefined();
-      
+
       // Should have 3 rows with age > 28: Alice (30), Charlie (35), Eve (32)
       expect(matchedData?.length).toBe(3);
-      
+
       // All ages should be > 28
       const ages = matchedData?.map(row => row.age as number) ?? [];
       expect(ages.every(age => age > 28)).toBe(true);
@@ -214,14 +214,14 @@ describe('Backend E2E Integration', () => {
       );
 
       const result = await previewTool('select1', workflow, 'output', 5);
-      
+
       expect(result.socket_id).toBe('output');
-      
+
       const schema = result.data_schema;
       expect(schema).toBeDefined();
       expect(schema?.columns).toHaveLength(2);
       expect(schema?.columns.map(c => c.name)).toEqual(['name', 'city']);
-      
+
       const data = result.data;
       expect(data).toBeDefined();
       expect(data?.[0]).toHaveProperty('name');
@@ -291,24 +291,24 @@ describe('Backend E2E Integration', () => {
       );
 
       const result = await executeWorkflow(workflow, 'select1');
-      
+
       // Should return final tool output
       expect(result.tool_id).toBe('select1');
-      
+
       const output = result.outputs['output'];
       expect(output).toBeDefined();
-      
+
       const data = output?.data;
       expect(data).toBeDefined();
-      
+
       // Should have 3 rows: Alice (30), Charlie (35), Eve (32)
       expect(data?.length).toBe(3);
-      
+
       // Should only have name and age columns
       if (data && data[0]) {
         expect(Object.keys(data[0])).toEqual(['name', 'age']);
       }
-      
+
       // Verify data
       const names = data?.map(row => row.name) ?? [];
       expect(names).toContain('Alice');

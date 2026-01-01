@@ -19,7 +19,7 @@ Health check endpoint.
 {
   "status": "healthy",
   "version": "0.3.0",
-  "message": "SigilWeaver Backend is running",
+  "message": "Sigilweaver Backend is running",
   "python_version": "3.11.5",
   "platform": "Linux 6.5.0",
   "polars_version": "0.20.10",

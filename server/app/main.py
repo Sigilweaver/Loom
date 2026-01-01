@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 # Create FastAPI application
 # Note: Named 'application' to avoid shadowing the 'app' module import
 application = FastAPI(
-    title="SigilWeaver Backend",
+    title="Sigilweaver Backend",
     description="Data transformation workflow execution engine",
     version=__version__,
     docs_url="/docs",
@@ -94,7 +94,7 @@ application.include_router(api_router, prefix="/api")
 async def root() -> dict[str, str]:
     """Root endpoint - basic service information"""
     return {
-        "message": "SigilWeaver Backend API",
+        "message": "Sigilweaver Backend API",
         "version": __version__,
         "docs": "/docs",
     }
