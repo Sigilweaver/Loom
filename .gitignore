@@ -1,72 +1,113 @@
-# Github
+# ═══════════════════════════════════════════════════════════════════════════════
+# Sigilweaver Project .gitignore
+# ═══════════════════════════════════════════════════════════════════════════════
 
-## Actions
+# GitHub Actions
 .github/.pytest_cache/
 
-## Act (local workflow testing)
+# Act (local workflow testing)
 .act.secrets
 .act-artifacts/
 .actrc
 
-# Untracked Testing Directory
-.untracked
-
-# Local environment variables
-.env
-.env.*
-!.env.example
-
+# ───────────────────────────────────────────────────────────────────────────────
 # Python
-## Cache files
+# ───────────────────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 
-## Virtual environments
+# Virtual environments
 .venv/
 venv/
 ENV/
 
-## Testing/Coverage
+# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
 .tox/
 .nox/
 
-## Type checking
+# Type checking
 .mypy_cache/
 .pytype/
+.ruff_cache/
 
-## Distribution
+# Distribution
 dist/
 build/
 *.egg-info/
 *.egg
 
+# ───────────────────────────────────────────────────────────────────────────────
 # Node.js
+# ───────────────────────────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .npm
+*.tgz
 
-# IDE/Editor
+# Build outputs
+dist-electron/
+.docusaurus/
+.cache-loader/
+
+# Caches
+*.tsbuildinfo
+.eslintcache
+*.local
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Environment & Secrets
+# ───────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ───────────────────────────────────────────────────────────────────────────────
+# IDE & Editors
+# ───────────────────────────────────────────────────────────────────────────────
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
 
-# Logs
+# ───────────────────────────────────────────────────────────────────────────────
+# OS Files
+# ───────────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Logs & Temp
+# ───────────────────────────────────────────────────────────────────────────────
 *.log
 logs/
-
-# Temporary files
 tmp/
 temp/
 *.tmp
 *.temp
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Testing
+# ───────────────────────────────────────────────────────────────────────────────
+.untracked/
+coverage/
+*.lcov
+.nyc_output/

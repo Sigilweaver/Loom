@@ -1,57 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
-ENV/
-*.egg-info/
-dist/
-build/
-.eggs/
+# Hub-specific (common patterns in root .gitignore)
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Build outputs
-dist/
-*.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-coverage/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Database
+# Database files
 *.db
 *.sqlite
 
-# Logs
-*.log
-logs/
-
-# Hub specific - workflow data storage (not Python modules)
+# Workflow data storage
 /backend/workflows/
 /workflows/

@@ -1,31 +1,4 @@
-# Dependencies
-node_modules/
-package-lock.json
-
-# Build output
-dist/
-
-# Vite cache
-*.local
-
-# Editor
-.vscode/*
-!.vscode/extensions.json
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-# TypeScript
-*.tsbuildinfo
+# Site-specific (common patterns in root .gitignore)
 
 # Backup folder from migration
 .backup/
