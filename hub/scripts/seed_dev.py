@@ -4,7 +4,7 @@ Seed development data for Hub.
 
 Creates:
 - A test user for development (test@example.com / testpass)
-- A development server registration (localhost:8000 with token 'dev-server-token')
+- A development server registration (localhost:25811 with token 'dev-server-token')
 
 Run this after starting Hub for the first time:
     cd hub/backend && uv run python ../scripts/seed_dev.py
@@ -63,13 +63,13 @@ async def seed_dev_data() -> None:
             server = Server(
                 id=uuid4(),
                 name="Local Dev Server",
-                endpoint_url="http://localhost:8000",
+                endpoint_url="http://localhost:25811",
                 auth_token="dev-server-token",
                 status="unknown",
                 created_by="seed_dev",
             )
             session.add(server)
-            print("Created dev server: http://localhost:8000 (token: dev-server-token)")
+            print("Created dev server: http://localhost:25811 (token: dev-server-token)")
         else:
             print(f"Dev server already exists: {server.endpoint_url}")
         

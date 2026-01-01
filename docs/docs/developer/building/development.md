@@ -24,13 +24,13 @@ If you need more control:
 ```bash
 # Terminal 1: Backend (using uv)
 cd backend
-uv run uvicorn app.main:app --reload --port 8000
-# Runs at http://localhost:8000
+uv run uvicorn app.main:app --reload --port 25811
+# Runs at http://localhost:25811
 
 # Terminal 2: Frontend (Vite)
 cd frontend
 npm run dev
-# Runs at http://localhost:5173
+# Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional)
 cd frontend
@@ -48,7 +48,7 @@ For pure frontend work, just use the Vite dev server:
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser. Faster iteration than Electron, easier to debug.
+Open http://localhost:25810 in your browser. Faster iteration than Electron, easier to debug.
 
 ### Electron Development
 
@@ -70,7 +70,7 @@ cd backend
 uv run uvicorn app.main:app --reload
 ```
 
-Test with curl or the Swagger UI at http://localhost:8000/docs.
+Test with curl or the Swagger UI at http://localhost:25811/docs.
 
 ## File Watching
 

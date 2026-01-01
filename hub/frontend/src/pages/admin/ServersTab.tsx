@@ -203,7 +203,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
               type="url"
               value={endpointUrl}
               onChange={(e) => setEndpointUrl(e.target.value)}
-              placeholder="http://localhost:58000"
+              placeholder="http://localhost:25811"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
@@ -229,11 +229,10 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
 
           {testResult && (
             <div
-              className={`p-3 rounded-lg text-sm ${
-                testResult.success
+              className={`p-3 rounded-lg text-sm ${testResult.success
                   ? "bg-green-50 text-green-700"
                   : "bg-red-50 text-red-700"
-              }`}
+                }`}
             >
               {testResult.message}
             </div>

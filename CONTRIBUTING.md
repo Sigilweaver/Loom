@@ -52,8 +52,8 @@ That's it. The dev script handles dependency installation, database setup, and l
 
 ```bash
 ./scripts/dev.py --server    # Server only (port 8000)
-./scripts/dev.py --studio    # Studio only (port 5173)
-./scripts/dev.py --hub       # Hub only (backend: 58001, frontend: 5174)
+./scripts/dev.py --studio    # Studio only (port 25810)
+./scripts/dev.py --hub       # Hub only (backend: 25802, frontend: 25803)
 ./scripts/dev.py --electron  # Full stack + Electron desktop app
 ```
 

@@ -43,6 +43,53 @@ docs_process: subprocess.Popen | None = None
 site_process: subprocess.Popen | None = None
 shutdown_requested = False
 
+# Patterns for noisy log lines to filter out (case-insensitive matching)
+# These are routine/health-check type messages that clutter the output
+NOISE_PATTERNS = [
+    # HTTP 200/304 responses (successful, not interesting in dev)
+    '" 200 ',
+    '" 304 ',
+    # Health check endpoints
+    '/health',
+    '/api/health',
+    # Vite HMR noise
+    'hmr update',
+    'hmr connection',
+    'page reload',
+    # Routine polling
+    'http proxy error',  # Vite proxy errors when backend not ready yet
+]
+
+# Patterns that should ALWAYS be shown regardless of noise filtering
+IMPORTANT_PATTERNS = [
+    'error',
+    'exception',
+    'traceback',
+    'failed',
+    'warning',
+    'started',
+    'ready',
+    'listening',
+    'running on',
+    'startup complete',
+    'application startup',
+    'cannot reach',  # Keep for visibility, but we'll fix the root cause
+    'unauthorized',  # Auth issues are important
+    '" 4',  # 4xx errors
+    '" 5',  # 5xx errors
+]
+
+# Ports used by dev services (258xx scheme based on founding date 2025-08-01)
+DEV_PORTS = {
+    25801: "PostgreSQL",
+    25802: "Hub API",
+    25803: "Hub UI",
+    25808: "Site",
+    25809: "Docs",
+    25810: "Studio",
+    25811: "Server",
+}
+
 
 def get_repo_root() -> Path:
     """Find the repository root directory."""
@@ -73,6 +120,69 @@ def print_success(message: str) -> None:
     print(f"{GREEN}{message}{NC}")
 
 
+def kill_process_on_port(port: int) -> bool:
+    """Kill any process using a specific port.
+    
+    Returns:
+        True if a process was killed, False if port was free.
+    """
+    if sys.platform == "win32":
+        # Windows: use netstat + taskkill
+        try:
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    pid = parts[-1]
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                    return True
+        except Exception:
+            pass
+    else:
+        # Unix: use lsof
+        try:
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        os.kill(int(pid), signal.SIGKILL)
+                    except (ProcessLookupError, ValueError):
+                        pass
+                return True
+        except FileNotFoundError:
+            # lsof not available, try fuser
+            try:
+                subprocess.run(
+                    ["fuser", "-k", f"{port}/tcp"],
+                    capture_output=True,
+                )
+            except FileNotFoundError:
+                pass
+    return False
+
+
+def cleanup_stale_processes(ports: list[int]) -> None:
+    """Kill any stale processes on the ports we need."""
+    killed_any = False
+    for port in ports:
+        if kill_process_on_port(port):
+            service_name = DEV_PORTS.get(port, f"port {port}")
+            print_warning(f"  Killed stale process on {service_name} (port {port})")
+            killed_any = True
+    
+    if killed_any:
+        time.sleep(1)  # Give OS time to release ports
+
+
 def check_server_setup(repo_root: Path) -> bool:
     """Check if server is set up with uv."""
     lock_path = repo_root / "server" / "uv.lock"
@@ -98,6 +208,160 @@ def check_studio_setup(repo_root: Path) -> bool:
     return True
 
 
+def is_display_available() -> bool:
+    """Check if a display server is available for GUI applications."""
+    # Check for X11 display and verify it's actually accessible
+    display = os.environ.get("DISPLAY")
+    if display:
+        try:
+            # Try to connect to X server
+            result = subprocess.run(
+                ["xdpyinfo"],
+                capture_output=True,
+                timeout=2,
+            )
+            if result.returncode == 0:
+                return True
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+    
+    # Check for Wayland - harder to verify, but check if socket exists
+    wayland_display = os.environ.get("WAYLAND_DISPLAY")
+    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "/run/user/1000")
+    if wayland_display:
+        socket_path = Path(xdg_runtime) / wayland_display
+        if socket_path.exists():
+            return True
+    
+    return False
+
+
+def check_postgres_running(port: int = 25801) -> bool:
+    """Check if PostgreSQL is running on the expected port."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            s.connect(("localhost", port))
+            return True
+    except (ConnectionRefusedError, socket.timeout, OSError):
+        return False
+
+
+def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
+    """Ensure PostgreSQL is running, starting it if needed.
+    
+    Returns:
+        True if PostgreSQL is running, False if it failed to start.
+    """
+    if check_postgres_running():
+        return True
+    
+    print_warning("PostgreSQL not running, starting it...")
+    hub_dir = repo_root / "hub"
+    
+    try:
+        # Start PostgreSQL via docker compose
+        result = subprocess.run(
+            ["docker", "compose", "up", "-d", "postgres"],
+            cwd=hub_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            print_error(f"Failed to start PostgreSQL: {result.stderr}")
+            return False
+        
+        # Wait for PostgreSQL to be ready
+        print("  Waiting for PostgreSQL to be ready...")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if check_postgres_running():
+                print_success("  PostgreSQL is ready!")
+                return True
+            time.sleep(1)
+        
+        print_error("PostgreSQL failed to start within timeout")
+        return False
+        
+    except subprocess.TimeoutExpired:
+        print_error("Timed out starting PostgreSQL")
+        return False
+    except Exception as e:
+        print_error(f"Failed to start PostgreSQL: {e}")
+        return False
+
+
+def wait_for_hub_healthy(timeout: int = 30) -> bool:
+    """Wait for Hub backend to be healthy.
+    
+    Returns:
+        True if Hub is healthy, False if timeout.
+    """
+    import urllib.request
+    import urllib.error
+    
+    print("  Waiting for Hub API to be ready...")
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        try:
+            req = urllib.request.Request("http://localhost:25802/api/health")
+            with urllib.request.urlopen(req, timeout=2) as response:
+                if response.status == 200:
+                    print_success("  Hub API is ready!")
+                    return True
+        except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+            pass
+        time.sleep(0.5)
+    
+    print_warning("  Hub API not responding yet (Server may retry registration)")
+    return False
+
+
+def run_hub_migrations(repo_root: Path) -> bool:
+    """Run database migrations for the Hub backend.
+    
+    Returns:
+        True if migrations succeeded, False otherwise.
+    """
+    hub_backend_dir = repo_root / "hub" / "backend"
+    venv_python = hub_backend_dir / ".venv" / "bin" / "python"
+    
+    if not venv_python.exists():
+        print_error("Hub backend venv not found, skipping migrations")
+        return False
+    
+    print("  Running database migrations...")
+    try:
+        result = subprocess.run(
+            [str(venv_python), "-m", "alembic", "upgrade", "head"],
+            cwd=hub_backend_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            # Check if it's just "already at head"
+            if "already at head" in result.stdout.lower() or result.returncode == 0:
+                print_success("  Database is up to date!")
+                return True
+            print_error(f"Migration failed: {result.stderr}")
+            print(result.stdout)
+            return False
+        
+        print_success("  Migrations complete!")
+        return True
+        
+    except subprocess.TimeoutExpired:
+        print_error("Migrations timed out")
+        return False
+    except Exception as e:
+        print_error(f"Migration failed: {e}")
+        return False
+
+
 def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
     """Check if hub backend and frontend are set up.
     
@@ -117,6 +381,14 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
         print("  cd hub/backend")
         print("  uv sync --all-extras")
         backend_ready = False
+    
+    # Ensure PostgreSQL is running (auto-start if needed)
+    if not ensure_postgres_running(repo_root):
+        backend_ready = False
+    elif backend_ready:
+        # Run migrations if PostgreSQL is running and backend is set up
+        if not run_hub_migrations(repo_root):
+            print_warning("Migrations failed, Hub may not work correctly")
     
     # Check frontend
     frontend_modules = hub_dir / "frontend" / "node_modules"
@@ -170,7 +442,7 @@ def get_npm_command() -> str:
 
 
 def stream_output(process: subprocess.Popen, prefix: str) -> None:
-    """Stream process output with a prefix."""
+    """Stream process output with a prefix, filtering out noise."""
     if process.stdout is None:
         return
     
@@ -179,6 +451,17 @@ def stream_output(process: subprocess.Popen, prefix: str) -> None:
             if shutdown_requested:
                 break
             if line:
+                line_lower = line.lower()
+                
+                # Always show important messages
+                is_important = any(pattern in line_lower for pattern in IMPORTANT_PATTERNS)
+                
+                # Filter out noise unless it's important
+                if not is_important:
+                    is_noise = any(pattern in line_lower for pattern in NOISE_PATTERNS)
+                    if is_noise:
+                        continue
+                
                 print(f"[{prefix}] {line}", end="", flush=True)
     except (ValueError, OSError):
         # Process closed or pipe broken
@@ -200,17 +483,17 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         "app.main:app",
         "--reload",
         "--host", "0.0.0.0",
-        "--port", "8000"
+        "--port", "25811"
     ]
     
     # Set environment variables
     env = os.environ.copy()
     env["POLARS_VERBOSE"] = "1"
-    env["PORT"] = "8000"  # Must match --port arg so settings.port is correct for Hub registration
+    env["PORT"] = "25811"  # Must match --port arg so settings.port is correct for Hub registration
     
     if hub_auth:
         env["AUTH_MODE"] = "hub"
-        env["HUB_URL"] = "http://localhost:58001"  # Hub backend port
+        env["HUB_URL"] = "http://localhost:25802"  # Hub backend port
         # Development server token - Server will auto-register with Hub on startup
         env["HUB_SERVER_TOKEN"] = "dev-server-token"
         # Registration secret - must match Hub's SERVER_REGISTRATION_SECRET
@@ -284,6 +567,12 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
     """Start Electron (optional)."""
     global electron_process
     
+    # Check for display in headless environments
+    if not is_display_available():
+        print_warning("No display available (headless environment)")
+        print_warning("Skipping Electron - use Studio web UI at http://localhost:25810")
+        return None
+    
     print_success("Starting Electron...")
     
     studio_dir = repo_root / "studio"
@@ -333,7 +622,7 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
         "app.main:app",
         "--reload",
         "--host", "0.0.0.0",
-        "--port", "58001"
+        "--port", "25802"
     ]
     
     # Set environment variables for Hub
@@ -518,18 +807,18 @@ def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub
     print_success("Services started!")
     print(f"{BLUE}========================================{NC}")
     if run_server:
-        print(f"Server API:     {GREEN}http://localhost:8000{NC}")
-        print(f"API Docs:       {GREEN}http://localhost:8000/docs{NC}")
+        print(f"Server API:     {GREEN}http://localhost:25811{NC}")
+        print(f"API Docs:       {GREEN}http://localhost:25811/docs{NC}")
     if run_studio:
-        print(f"Studio:         {GREEN}http://localhost:5173{NC}")
+        print(f"Studio:         {GREEN}http://localhost:25810{NC}")
     if run_hub:
-        print(f"Hub API:        {GREEN}http://localhost:58001{NC}")
-        print(f"Hub API Docs:   {GREEN}http://localhost:58001/docs{NC}")
-        print(f"Hub UI:         {GREEN}http://localhost:5174{NC}")
+        print(f"Hub API:        {GREEN}http://localhost:25802{NC}")
+        print(f"Hub API Docs:   {GREEN}http://localhost:25802/docs{NC}")
+        print(f"Hub UI:         {GREEN}http://localhost:25803{NC}")
     if run_docs:
-        print(f"Docs:           {GREEN}http://localhost:3000{NC}")
+        print(f"Docs:           {GREEN}http://localhost:25809{NC}")
     if run_site:
-        print(f"Site:           {GREEN}http://localhost:27530{NC}")
+        print(f"Site:           {GREEN}http://localhost:25808{NC}")
     print(f"{BLUE}========================================{NC}")
     if not run_electron and run_studio:
         print_warning("To launch Electron, run in another terminal:")
@@ -658,7 +947,33 @@ Examples:
     if sys.platform == "win32":
         signal.signal(signal.SIGBREAK, signal_handler)
     
-    # Start services
+    # Clean up any stale processes from previous runs
+    ports_to_clean = []
+    if run_server:
+        ports_to_clean.append(25811)
+    if run_studio:
+        ports_to_clean.append(25810)
+    if run_hub:
+        ports_to_clean.extend([25802, 25803])
+    if run_docs:
+        ports_to_clean.append(25809)
+    if run_site:
+        ports_to_clean.append(25808)
+    
+    cleanup_stale_processes(list(set(ports_to_clean)))
+    
+    # Start services in dependency order:
+    # 1. Hub backend (if needed) - Server depends on Hub for registration
+    # 2. Server - needs Hub to be ready for registration
+    # 3. Studio/Hub frontend - can start in parallel with Server
+    # 4. Docs/Site - independent
+    
+    if run_hub:
+        if start_hub_backend(repo_root) is None:
+            return 1
+        # Wait for Hub to be healthy before starting Server
+        wait_for_hub_healthy(timeout=15)
+    
     if run_server:
         if start_server(repo_root, hub_auth=hub_auth) is None:
             return 1
@@ -672,9 +987,7 @@ Examples:
         time.sleep(3)
     
     if run_hub:
-        if start_hub_backend(repo_root) is None:
-            return 1
-        time.sleep(2)
+        # Hub backend already started above, now start frontend
         if start_hub_frontend(repo_root) is None:
             return 1
         time.sleep(2)

@@ -5,7 +5,7 @@
  * - /api/workflow/tool/metadata - Column metadata for autocomplete
  * - /api/polars/functions - Polars function metadata for autocomplete
  * 
- * Requires backend running on http://localhost:8000
+ * Requires backend running on http://localhost:25811
  * Run with: npm run test:integration
  */
 
@@ -435,7 +435,7 @@ describe('Metadata and Functions Integration', () => {
       expect(allMethodNames.length).toBeGreaterThan(0);
 
       // Common methods that should be available
-      const hasCommonMethods = allMethodNames.some(name => 
+      const hasCommonMethods = allMethodNames.some(name =>
         name.includes('is_null') || name.includes('cast')
       );
       expect(hasCommonMethods).toBe(true);
@@ -459,9 +459,9 @@ describe('Metadata and Functions Integration', () => {
       expect(numericMethodNames.length).toBeGreaterThan(0);
 
       // Numeric methods should include mathematical operations
-      const hasMathMethods = numericMethodNames.some(name => 
-        name.includes('abs') || 
-        name.includes('round') || 
+      const hasMathMethods = numericMethodNames.some(name =>
+        name.includes('abs') ||
+        name.includes('round') ||
         name.includes('sqrt') ||
         name.includes('floor') ||
         name.includes('ceil')
@@ -683,7 +683,7 @@ describe('Metadata and Functions Integration', () => {
       expect(columnNames).toContain('name');
 
       // Should have functions for mathematical operations
-      const hasMathFunctions = functions.table_level.some(f => 
+      const hasMathFunctions = functions.table_level.some(f =>
         f.name === 'pl.col' || f.name === 'pl.lit'
       );
       expect(hasMathFunctions).toBe(true);
@@ -1052,7 +1052,7 @@ describe('Metadata and Functions Integration', () => {
 
       // Should have socket_id set
       expect(result.socket_id).toBe('input-left');
-      
+
       // Should have columns array with just the left socket's columns
       expect(result.columns).toBeDefined();
       expect(result.columns).not.toBeNull();
@@ -1103,10 +1103,10 @@ describe('Metadata and Functions Integration', () => {
 
       // socket_id should be null when not specified
       expect(result.socket_id).toBeNull();
-      
+
       // columns should be null (use inputs instead)
       expect(result.columns).toBeNull();
-      
+
       // inputs should have all sockets
       expect(result.inputs).toHaveProperty('input');
       expect(result.inputs['input']?.length).toBe(4);

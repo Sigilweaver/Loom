@@ -49,7 +49,7 @@ workflow = {
 
 # Test metadata endpoint
 response = requests.post(
-    "http://localhost:8000/api/workflow/tool/metadata",
+    "http://localhost:25811/api/workflow/tool/metadata",
     json={"tool_id": "filter1", "workflow": workflow},
 )
 

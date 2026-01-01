@@ -29,7 +29,7 @@ interface SectionProps {
 
 const Section: React.FC<SectionProps> = ({ id, title, icon: Icon, children, openSections, toggleSection }) => {
   const isOpen = openSections.includes(id);
-  
+
   return (
     <div className="border-b border-theme-border-primary last:border-b-0">
       <button
@@ -59,10 +59,10 @@ const SettingsPane: React.FC = () => {
   const [hubUser, setHubUser] = useState<{ username: string } | null>(null);
   const [hubConnections, setHubConnections] = useState<Array<{ id: string; name: string; type: string }>>([]);
   const [hubConnectionsLoading, setHubConnectionsLoading] = useState(false);
-  
+
   const toggleSection = (id: string) => {
-    setOpenSections(prev => 
-      prev.includes(id) 
+    setOpenSections(prev =>
+      prev.includes(id)
         ? prev.filter(s => s !== id)
         : [...prev, id]
     );
@@ -103,7 +103,7 @@ const SettingsPane: React.FC = () => {
             sessionToken: hub.sessionToken,
           });
         }
-        
+
         // Check if we're logged in
         if (hasHubClient()) {
           try {
@@ -222,11 +222,10 @@ const SettingsPane: React.FC = () => {
                   <button
                     key={id}
                     onClick={() => updateExecutionMode(id as ExecutionMode)}
-                    className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
-                      executionMode === id
+                    className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${executionMode === id
                         ? 'bg-theme-interactive-accent text-white'
                         : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
-                    }`}
+                      }`}
                   >
                     {label}
                   </button>
@@ -310,7 +309,7 @@ const SettingsPane: React.FC = () => {
                     value={backend.url}
                     onChange={(e) => updateBackendUrl(e.target.value)}
                     className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary"
-                    placeholder="http://localhost:8000"
+                    placeholder="http://localhost:25811"
                   />
                   <p className="mt-1 text-xs text-theme-text-tertiary">
                     Restart required after change
@@ -410,10 +409,10 @@ const SettingsPane: React.FC = () => {
               )}
             </div>
           )}
-          
+
           {/* Local Connections */}
           <ConnectionManager showHeader={executionMode === 'hub' && !!hubUser} />
-          
+
           {executionMode === 'hub' && !hubUser && (
             <p className="mt-3 text-xs text-theme-text-tertiary">
               Login to Hub to access Hub-managed connections.
@@ -435,7 +434,7 @@ const SettingsPane: React.FC = () => {
               <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
                 Theme
               </label>
-              
+
               <div className="overflow-hidden border rounded-lg border-theme-border-primary">
                 {/* Sigilweaver family (Signature/Dark/Light) */}
                 {(() => {
@@ -449,11 +448,10 @@ const SettingsPane: React.FC = () => {
                     <div className="flex items-center px-3 py-2 border-b border-theme-border-secondary">
                       <button
                         onClick={() => updateTheme('sigilweaver')}
-                        className={`text-xs flex-1 text-left transition-colors ${
-                          isActiveFamily
+                        className={`text-xs flex-1 text-left transition-colors ${isActiveFamily
                             ? 'text-theme-interactive-accent font-medium'
                             : 'text-theme-text-primary hover:text-theme-interactive-accent'
-                        }`}
+                          }`}
                       >
                         Sigilweaver
                       </button>
@@ -462,11 +460,10 @@ const SettingsPane: React.FC = () => {
                           <button
                             key={id}
                             onClick={() => updateTheme(id)}
-                            className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                              theme.id === id
+                            className={`px-2 py-0.5 text-xs rounded transition-colors ${theme.id === id
                                 ? 'bg-theme-interactive-accent text-white font-medium'
                                 : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
-                            }`}
+                              }`}
                           >
                             {label}
                           </button>
@@ -475,7 +472,7 @@ const SettingsPane: React.FC = () => {
                     </div>
                   );
                 })()}
-                
+
                 {/* High Contrast */}
                 {(() => {
                   const t = availableThemes.find(th => th.id === 'high-contrast')!;
@@ -483,11 +480,10 @@ const SettingsPane: React.FC = () => {
                     <button
                       key={t.id}
                       onClick={() => updateTheme(t.id)}
-                      className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${
-                        theme.id === t.id
+                      className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${theme.id === t.id
                           ? 'bg-theme-interactive-accent/10 text-theme-interactive-accent font-medium'
                           : 'hover:bg-theme-bg-secondary text-theme-text-primary'
-                      }`}
+                        }`}
                     >
                       <span>{t.name}</span>
                       {theme.id === t.id && (
@@ -496,7 +492,7 @@ const SettingsPane: React.FC = () => {
                     </button>
                   );
                 })()}
-                
+
                 {/* Extended themes (ordered by popularity) */}
                 {([
                   // Single themes and families mixed by popularity
@@ -522,11 +518,10 @@ const SettingsPane: React.FC = () => {
                       <button
                         key={item.id}
                         onClick={() => updateTheme(item.id)}
-                        className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${
-                          theme.id === t.id
+                        className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${theme.id === t.id
                             ? 'bg-theme-interactive-accent/10 text-theme-interactive-accent font-medium'
                             : 'hover:bg-theme-bg-secondary text-theme-text-primary'
-                        }`}
+                          }`}
                       >
                         <span>{t.name}</span>
                         {theme.id === t.id && (
@@ -543,11 +538,10 @@ const SettingsPane: React.FC = () => {
                       >
                         <button
                           onClick={() => updateTheme(item.defaultId)}
-                          className={`text-xs flex-1 text-left transition-colors ${
-                            isActiveFamily
+                          className={`text-xs flex-1 text-left transition-colors ${isActiveFamily
                               ? 'text-theme-interactive-accent font-medium'
                               : 'text-theme-text-primary hover:text-theme-interactive-accent'
-                          }`}
+                            }`}
                         >
                           {item.name}
                         </button>
@@ -560,11 +554,10 @@ const SettingsPane: React.FC = () => {
                               <button
                                 key={id}
                                 onClick={() => updateTheme(id)}
-                                className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                                  theme.id === id
+                                className={`px-2 py-0.5 text-xs rounded transition-colors ${theme.id === id
                                     ? 'bg-theme-interactive-accent text-white font-medium'
                                     : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
-                                }`}
+                                  }`}
                               >
                                 {label}
                               </button>

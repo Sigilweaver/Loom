@@ -30,7 +30,7 @@ cd hub
 docker compose up -d
 
 # Start the backend
-cd backend && uv sync && uv run uvicorn app.main:app --port 58001
+cd backend && uv sync && uv run uvicorn app.main:app --port 25802
 
 # Start the frontend (in another terminal)
 cd frontend && npm install && npm run dev
@@ -42,7 +42,7 @@ Or use the unified dev script from the repository root:
 ./scripts/dev.py --hub
 ```
 
-Hub backend runs at `http://localhost:58001`, frontend at `http://localhost:5174`.
+Hub backend runs at `http://localhost:25802`, frontend at `http://localhost:25803`.
 
 ## Security Model
 
@@ -103,7 +103,7 @@ services:
   hub:
     image: sigilweaver/hub:latest
     ports:
-      - "8080:58001"
+      - "8080:25802"
     volumes:
       - hub_data:/app/data
     environment:

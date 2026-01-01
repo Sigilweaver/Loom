@@ -181,7 +181,7 @@ SERVER_REGISTRATION_SECRET={server_secret}
 # Development Settings
 RELOAD=true
 LOG_LEVEL=debug
-CORS_ORIGINS=["http://localhost:5174"]
+CORS_ORIGINS=["http://localhost:25803"]
 '''
 
     env_path.write_text(env_content)

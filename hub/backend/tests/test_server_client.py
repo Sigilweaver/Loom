@@ -10,30 +10,30 @@ class TestServerClient:
 
     def test_init(self):
         """Client initializes with endpoint URL"""
-        client = ServerClient("http://localhost:58000")
-        assert client.endpoint_url == "http://localhost:58000"
+        client = ServerClient("http://localhost:25811")
+        assert client.endpoint_url == "http://localhost:25811"
         assert client.auth_token is None
 
     def test_init_with_trailing_slash(self):
         """Client strips trailing slash from URL"""
-        client = ServerClient("http://localhost:58000/")
-        assert client.endpoint_url == "http://localhost:58000"
+        client = ServerClient("http://localhost:25811/")
+        assert client.endpoint_url == "http://localhost:25811"
 
     def test_init_with_auth_token(self):
         """Client stores auth token"""
-        client = ServerClient("http://localhost:58000", "my-token")
+        client = ServerClient("http://localhost:25811", "my-token")
         assert client.auth_token == "my-token"
 
     def test_get_headers_without_auth(self):
         """Headers without auth token"""
-        client = ServerClient("http://localhost:58000")
+        client = ServerClient("http://localhost:25811")
         headers = client._get_headers()
         assert "Accept" in headers
         assert "Authorization" not in headers
 
     def test_get_headers_with_auth(self):
         """Headers include auth token when provided"""
-        client = ServerClient("http://localhost:58000", "my-token")
+        client = ServerClient("http://localhost:25811", "my-token")
         headers = client._get_headers()
         assert headers["Authorization"] == "Bearer my-token"
 

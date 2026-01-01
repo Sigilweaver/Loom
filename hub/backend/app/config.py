@@ -10,15 +10,15 @@ class Settings(BaseSettings):
 
     # Server
     host: str = "0.0.0.0"
-    port: int = 58001
+    port: int = 25802
     reload: bool = False
     log_level: str = "info"
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:5174"]
+    cors_origins: list[str] = ["http://localhost:25803"]
 
     # Database
-    database_url: str = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25802/sigilweaver_hub"
+    database_url: str = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
 
     # Authentication - Session
     session_secret: str = "CHANGE_ME_IN_PRODUCTION"

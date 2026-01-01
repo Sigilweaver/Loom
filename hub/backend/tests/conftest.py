@@ -379,7 +379,7 @@ async def test_server(setup_database) -> dict:
                 "/api/servers",
                 json={
                     "name": "Test Server",
-                    "endpoint_url": "http://localhost:58000",
+                    "endpoint_url": "http://localhost:25811",
                     "auth_token": "test-token",
                 },
             )

@@ -14,7 +14,7 @@ cd hub && docker compose up -d
 cd hub/backend
 uv sync --all-extras
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --port 58001
+uv run uvicorn app.main:app --reload --port 25802
 
 # Frontend (separate terminal)
 cd hub/frontend

@@ -16,7 +16,7 @@ const isDev =
 // Settings store with base defaults
 const DEFAULT_SETTINGS = {
   author: 'User',
-  backend: { url: 'http://localhost:8000', autoStart: true },
+  backend: { url: 'http://localhost:25811', autoStart: true },
   theme: { id: 'sigilweaver' },
   ui: { snapToGrid: true, minimapVisible: true, minimapPosition: 'bottom-right' as const },
 };
@@ -131,7 +131,7 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
     const venvPython = process.platform === "win32"
       ? join(serverDir, ".venv", "Scripts", "python.exe")
       : join(serverDir, ".venv", "bin", "python");
-    
+
     return {
       command: venvPython,
       args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
@@ -142,7 +142,7 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
   // Production: run bundled executable
   const ext = process.platform === "win32" ? ".exe" : "";
   const serverExe = join(process.resourcesPath, "server", `server${ext}`);
-  
+
   return {
     command: serverExe,
     args: [],
@@ -168,11 +168,11 @@ async function startBackend(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     const { command, args, cwd } = getBackendPath();
-    
+
     // Generate ephemeral session token for this launch
     sessionToken = randomUUID();
     console.log("[Backend] Generated ephemeral session token");
-    
+
     console.log(`[Backend] Starting: ${command} ${args.join(" ")}`);
     if (cwd) console.log(`[Backend] Working directory: ${cwd}`);
 
@@ -275,7 +275,7 @@ function createWindow(): void {
   });
 
   if (isDev) {
-    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.loadURL("http://localhost:25810");
   } else {
     mainWindow.loadFile(join(__dirname, "../dist/index.html"));
   }
@@ -315,7 +315,7 @@ function createWindow(): void {
   // Handle navigation to external URLs
   mainWindow.webContents.on('will-navigate', (event, url) => {
     // Allow navigation within the app (dev server or local files)
-    if (url.startsWith('http://localhost:5173') || url.startsWith('file://')) {
+    if (url.startsWith('http://localhost:25810') || url.startsWith('file://')) {
       return;
     }
     // Open external URLs in default browser
@@ -362,13 +362,13 @@ app.on("before-quit", () => {
 // Settings IPC handlers
 ipcMain.handle('get-settings', async () => {
   const settings = store.get('settings', DEFAULT_SETTINGS);
-  
+
   // If author is still a default value, use OS username instead
   // This gives us the hierarchy: persisted custom value > OS username > 'User'
   if (settings.author === 'User' || settings.author === 'SigilWeaver User') {
     return { ...settings, author: getSystemUsername() };
   }
-  
+
   return settings;
 });
 
@@ -422,16 +422,16 @@ ipcMain.handle('connection:create', async (_event, input: {
   password: string;
 }) => {
   const connections = connectionStore.get('connections', {});
-  
+
   // Check for duplicate names
   const existingNames = Object.values(connections).map(c => c.name.toLowerCase());
   if (existingNames.includes(input.name.toLowerCase())) {
     throw new Error(`A connection named "${input.name}" already exists`);
   }
-  
+
   const id = randomUUID();
   const now = new Date().toISOString();
-  
+
   const stored: StoredConnection = {
     id,
     name: input.name,
@@ -446,10 +446,10 @@ ipcMain.handle('connection:create', async (_event, input: {
     createdAt: now,
     updatedAt: now,
   };
-  
+
   connections[id] = stored;
   connectionStore.set('connections', connections);
-  
+
   console.log(`[Connections] Created connection: ${input.name} (${id})`);
   return toConnectionInfo(stored);
 });
@@ -465,11 +465,11 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
 }) => {
   const connections = connectionStore.get('connections', {});
   const existing = connections[id];
-  
+
   if (!existing) {
     throw new Error(`Connection ${id} not found`);
   }
-  
+
   // Check for duplicate names (excluding current connection)
   if (input.name) {
     const existingNames = Object.values(connections)
@@ -479,13 +479,13 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
       throw new Error(`A connection named "${input.name}" already exists`);
     }
   }
-  
+
   // Update non-credential fields
   if (input.name !== undefined) existing.name = input.name;
   if (input.host !== undefined) existing.host = input.host;
   if (input.port !== undefined) existing.port = input.port;
   if (input.database !== undefined) existing.database = input.database;
-  
+
   // Update credentials if provided
   if (input.username !== undefined || input.password !== undefined) {
     const currentCreds = decryptCredentials(existing.encryptedCredentials);
@@ -494,11 +494,11 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
       password: input.password ?? currentCreds.password,
     });
   }
-  
+
   existing.updatedAt = new Date().toISOString();
   connections[id] = existing;
   connectionStore.set('connections', connections);
-  
+
   console.log(`[Connections] Updated connection: ${existing.name} (${id})`);
   return toConnectionInfo(existing);
 });
@@ -507,14 +507,14 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
 ipcMain.handle('connection:delete', async (_event, id: string) => {
   const connections = connectionStore.get('connections', {});
   const existing = connections[id];
-  
+
   if (!existing) {
     throw new Error(`Connection ${id} not found`);
   }
-  
+
   delete connections[id];
   connectionStore.set('connections', connections);
-  
+
   console.log(`[Connections] Deleted connection: ${existing.name} (${id})`);
 });
 
@@ -523,15 +523,15 @@ ipcMain.handle('connection:resolve', async (_event, id: string) => {
   console.log(`[Connections] Resolving connection: ${id}`);
   const connections = connectionStore.get('connections', {});
   const connection = connections[id];
-  
+
   if (!connection) {
     console.log(`[Connections] Connection not found: ${id}`);
     return null;
   }
-  
+
   const credentials = decryptCredentials(connection.encryptedCredentials);
   console.log(`[Connections] Resolved connection: ${connection.name}`);
-  
+
   return {
     ...toConnectionInfo(connection),
     username: credentials.username,
@@ -543,15 +543,15 @@ ipcMain.handle('connection:resolve', async (_event, id: string) => {
 ipcMain.handle('connection:test', async (_event, id: string) => {
   const connections = connectionStore.get('connections', {});
   const connection = connections[id];
-  
+
   if (!connection) {
     return { success: false, message: 'Connection not found' };
   }
-  
+
   // For now, just return success - actual testing will be done via backend
   // In future, could use native Node.js pg/mysql drivers here
-  return { 
-    success: true, 
+  return {
+    success: true,
     message: 'Connection configured (test via backend pending)',
   };
 });
@@ -596,7 +596,7 @@ ipcMain.handle("show-save-dialog", async (event, options?: { defaultPath?: strin
   if (parentWindow.isMinimized()) {
     parentWindow.restore();
   }
-  
+
   // Simple approach: just ensure window is visible and focused
   parentWindow.show();
   parentWindow.focus();
@@ -624,7 +624,7 @@ ipcMain.handle("show-open-dialog", async (event, options?: any) => {
   if (parentWindow.isMinimized()) {
     parentWindow.restore();
   }
-  
+
   // Simple approach: just ensure window is visible and focused
   parentWindow.show();
   parentWindow.focus();

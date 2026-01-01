@@ -46,7 +46,7 @@ describe('Backend Integration', () => {
   
   describe('Health Check', () => {
     it('returns healthy status', async () => {
-      const response = await fetch('http://localhost:8000/api/health/');
+      const response = await fetch('http://localhost:25811/api/health/');
       const data = await response.json();
       
       expect(response.ok).toBe(true);
@@ -58,7 +58,7 @@ describe('Backend Integration', () => {
     it('returns schema for connected tool', async () => {
       const workflow = createTestWorkflow();
       
-      const response = await fetch('http://localhost:8000/api/workflow/tool/schema', {
+      const response = await fetch('http://localhost:25811/api/workflow/tool/schema', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,7 +79,7 @@ describe('Backend Integration', () => {
     it('executes and returns preview data', async () => {
       const workflow = createWorkflowWithData();
       
-      const response = await fetch('http://localhost:8000/api/workflow/tool/execute', {
+      const response = await fetch('http://localhost:25811/api/workflow/tool/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +99,7 @@ describe('Backend Integration', () => {
   
   describe('Error Handling', () => {
     it('returns error for invalid workflow', async () => {
-      const response = await fetch('http://localhost:8000/api/workflow/execute', {
+      const response = await fetch('http://localhost:25811/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -119,7 +119,7 @@ describe('Backend Integration', () => {
 ```typescript
 // test-utils/integration.ts
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = 'http://localhost:25811';
 
 export async function waitForBackend(
   timeout = 30000,

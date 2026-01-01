@@ -73,7 +73,7 @@ export default defineConfig({
     renderer(),
   ],
   server: {
-    port: 5173,
+    port: 25810,
   },
   build: {
     outDir: "dist",

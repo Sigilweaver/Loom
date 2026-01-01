@@ -91,13 +91,13 @@ Or manually:
 ```bash
 # Terminal 1: Backend (using uv)
 cd backend
-uv run uvicorn app.main:app --reload --port 8000
-# Runs at http://localhost:8000
+uv run uvicorn app.main:app --reload --port 25811
+# Runs at http://localhost:25811
 
 # Terminal 2: Frontend
 cd frontend
 npm run dev
-# Runs at http://localhost:5173
+# Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional, for desktop app testing)
 cd frontend
@@ -133,22 +133,22 @@ cd ..
 ```
 
 Hub will be available at:
-- Frontend: http://localhost:5174
-- Backend API: http://localhost:58001
-- API Docs: http://localhost:58001/docs
+- Frontend: http://localhost:25803
+- Backend API: http://localhost:25802
+- API Docs: http://localhost:25802/docs
 
 ## Verifying Your Setup
 
 ### Backend Health Check
 
 ```bash
-curl http://localhost:8000/api/health/
+curl http://localhost:25811/api/health/
 # Should return: {"status":"healthy","version":"0.0.0-dev","message":"SigilWeaver Backend is running"}
 ```
 
 ### Frontend
 
-Electron should have started, but you can also open http://localhost:5173 in your browser. You should see the Sigilweaver canvas.
+Electron should have started, but you can also open http://localhost:25810 in your browser. You should see the Sigilweaver canvas.
 
 ### Run Tests
 

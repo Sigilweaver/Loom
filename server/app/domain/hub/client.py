@@ -146,7 +146,7 @@ class HubClient:
 
         Args:
             name: Server name (e.g., "dev-server", "prod-server-1")
-            endpoint_url: This server's API endpoint (e.g., "http://localhost:8000")
+            endpoint_url: This server's API endpoint (e.g., "http://localhost:25811")
             registration_secret: Shared secret for Hub registration (if required)
             timeout: Request timeout in seconds.
 
