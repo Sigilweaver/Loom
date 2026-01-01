@@ -1,6 +1,7 @@
 # Server-specific (common patterns in root .gitignore)
 
-# Runtime data
+# Legacy runtime paths (now use ../.working/server/)
 audit/
 cache/
+workflow_archives/
 connections.json

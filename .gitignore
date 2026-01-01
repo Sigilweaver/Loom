@@ -2,6 +2,9 @@
 # Sigilweaver Project .gitignore
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Working directory (runtime data: cache, audit logs, archives)
+.working/
+
 # GitHub Actions
 .github/.pytest_cache/
 

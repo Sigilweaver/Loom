@@ -51,18 +51,18 @@ class Settings(BaseSettings):
 
     # Workflow Archive
     archive_enabled: bool = True
-    archive_path: str = "./workflow_archives"
+    archive_path: str = "../.working/server/archives"
     archive_retention_days: int = 30  # 0 = keep forever
 
     # Audit Logging
     audit_enabled: bool = True
-    audit_path: str = "./audit/logs"
+    audit_path: str = "../.working/server/audit"
     audit_retention_days: int = 30  # 0 = keep forever
 
     # Blocking Tool Cache
     # Cache outputs of blocking operations (sort, summarize, join) and database inputs
     cache_enabled: bool = True
-    cache_path: str = "./cache"
+    cache_path: str = "../.working/server/cache"
     # Cache retention: delete cache files older than this many days (0 = keep forever)
     cache_retention_days: int = 7
     # Cache quota: maximum total cache size in GB (0 = unlimited)
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     # Fernet encryption key for credentials
     # Generate with: Fernet.generate_key().decode()
     connection_encryption_key: str = ""
-    connection_store_path: str = "./connections.json"
+    connection_store_path: str = "../.working/server/connections.json"
 
 
 settings = Settings()
