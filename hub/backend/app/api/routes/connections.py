@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAdmin
 from app.db.database import get_db
-from app.db.models import ConnectionGroup, UserGroup
+from app.db.models import ConnectionGroup, GrantGroupConnection, UserGroup, UserGroupGrantGroup
 from app.domain.auth.sessions import SessionInfo
 from app.domain.connections import (
     ConnectionInfo,
@@ -127,13 +127,34 @@ async def list_connections(
         # User not in any groups - no connections accessible
         return ConnectionListResponse(connections=[], total=0)
 
-    # Get connections assigned to user's groups
-    accessible_conn_result = await db.execute(
+    # Get connections via legacy path: User -> UserGroup -> ConnectionGroup -> Connection
+    legacy_conn_result = await db.execute(
         select(ConnectionGroup.connection_id)
         .where(ConnectionGroup.group_id.in_(user_group_ids))
         .distinct()
     )
-    accessible_conn_ids = {row[0] for row in accessible_conn_result.fetchall()}
+    legacy_conn_ids = {row[0] for row in legacy_conn_result.fetchall()}
+
+    # Get connections via grant group path: User -> UserGroup -> GrantGroup -> Connection
+    # First, find grant groups assigned to user's groups
+    grant_groups_result = await db.execute(
+        select(UserGroupGrantGroup.grant_group_id)
+        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
+        .distinct()
+    )
+    grant_group_ids = {row[0] for row in grant_groups_result.fetchall()}
+
+    grant_conn_ids: set[UUID] = set()
+    if grant_group_ids:
+        grant_conn_result = await db.execute(
+            select(GrantGroupConnection.connection_id)
+            .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
+            .distinct()
+        )
+        grant_conn_ids = {row[0] for row in grant_conn_result.fetchall()}
+
+    # Combine both paths (union)
+    accessible_conn_ids = legacy_conn_ids | grant_conn_ids
 
     if not accessible_conn_ids:
         return ConnectionListResponse(connections=[], total=0)
@@ -179,7 +200,7 @@ async def get_connection(
     """Get a connection by ID.
 
     Admins/auditors can view any connection.
-    Users can only view connections assigned to their groups.
+    Users can only view connections assigned to their groups via grant groups.
     Credentials are never returned.
     """
     store = await _get_store(db)
@@ -195,7 +216,7 @@ async def get_connection(
     if user.role in ("owner", "admin", "auditor"):
         return _info_to_response(conn)
 
-    # Users can only see connections in their groups
+    # Users can only see connections via grant groups they have access to
     user_groups_result = await db.execute(
         select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
     )
@@ -207,11 +228,25 @@ async def get_connection(
             detail="You do not have access to this connection",
         )
 
-    # Check if connection is in any of user's groups
+    # Get grant groups assigned to user's groups
+    grant_groups_result = await db.execute(
+        select(UserGroupGrantGroup.grant_group_id)
+        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
+        .distinct()
+    )
+    grant_group_ids = {row[0] for row in grant_groups_result.fetchall()}
+
+    if not grant_group_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this connection",
+        )
+
+    # Check if connection is in any of the grant groups
     accessible = await db.execute(
-        select(ConnectionGroup.connection_id)
-        .where(ConnectionGroup.connection_id == connection_id)
-        .where(ConnectionGroup.group_id.in_(user_group_ids))
+        select(GrantGroupConnection.connection_id)
+        .where(GrantGroupConnection.connection_id == connection_id)
+        .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
     )
     if not accessible.scalar_one_or_none():
         raise HTTPException(

@@ -21,7 +21,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
 from app.db.database import get_db
-from app.db.models import Connection, ConnectionGroup, Server, UserGroup
+from app.db.models import (
+    Connection,
+    ConnectionGroup,
+    GrantGroup,
+    GrantGroupConnection,
+    Server,
+    UserGroup,
+    UserGroupGrantGroup,
+)
 from app.domain.audit import AuditService
 from app.domain.capabilities import CapabilityIssuer, get_issuer
 
@@ -117,9 +125,10 @@ async def _validate_connection_access(
 
     Access is granted if:
     1. User has admin or owner role (can access all connections), OR
-    2. User is a member of at least one group that the connection is assigned to
+    2. User is a member of a group that references a grant group containing the connection, OR
+    3. (Legacy) User is a member of a group that the connection is directly assigned to
 
-    Connections with no group assignments are accessible by admins only.
+    Connections with no assignments are accessible by admins only.
 
     Args:
         user: Current authenticated user.
@@ -150,6 +159,29 @@ async def _validate_connection_access(
             detail="You are not a member of any groups and cannot access Hub connections",
         )
 
+    # Get connections accessible via grant groups (new path)
+    # User -> UserGroup -> UserGroupGrantGroup -> GrantGroup -> GrantGroupConnection -> Connection
+    grant_group_conn_result = await db.execute(
+        select(GrantGroupConnection.connection_id)
+        .join(GrantGroup, GrantGroupConnection.grant_group_id == GrantGroup.id)
+        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroup.id)
+        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
+        .distinct()
+    )
+    grant_group_conn_ids = {row[0] for row in grant_group_conn_result.fetchall()}
+
+    # Get connections accessible via direct group assignment (legacy path)
+    # User -> UserGroup -> ConnectionGroup -> Connection
+    direct_conn_result = await db.execute(
+        select(ConnectionGroup.connection_id)
+        .where(ConnectionGroup.group_id.in_(user_group_ids))
+        .distinct()
+    )
+    direct_conn_ids = {row[0] for row in direct_conn_result.fetchall()}
+
+    # Combine both paths
+    accessible_conn_ids = grant_group_conn_ids | direct_conn_ids
+
     # Check each connection
     unauthorized = []
     for conn_id_str in connection_ids:
@@ -168,19 +200,8 @@ async def _validate_connection_access(
             unauthorized.append(conn_id_str)
             continue
 
-        # Get groups this connection is assigned to
-        conn_groups_result = await db.execute(
-            select(ConnectionGroup.group_id).where(ConnectionGroup.connection_id == conn_id)
-        )
-        conn_group_ids = {row[0] for row in conn_groups_result.fetchall()}
-
-        if not conn_group_ids:
-            # Connection not assigned to any groups - only admins can access
-            unauthorized.append(conn_id_str)
-            continue
-
-        # Check if user shares at least one group with the connection
-        if not user_group_ids.intersection(conn_group_ids):
+        # Check if user has access to this connection (via grant groups or direct assignment)
+        if conn_id not in accessible_conn_ids:
             unauthorized.append(conn_id_str)
 
     if unauthorized:

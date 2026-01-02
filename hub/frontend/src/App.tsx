@@ -15,6 +15,7 @@ import { ActivityTab } from "@pages/admin/ActivityTab";
 import { ServersTab } from "@pages/admin/ServersTab";
 import { ConnectionsTab } from "@pages/admin/ConnectionsTab";
 import { GroupsTab } from "@pages/admin/GroupsTab";
+import { GrantGroupsTab } from "@pages/admin/GrantGroupsTab";
 import { UsersTab } from "@pages/admin/UsersTab";
 import { SettingsPage } from "@pages/admin/SettingsPage";
 
@@ -117,6 +118,16 @@ function App() {
             <ProtectedRoute minRole="auditor">
               <AdminPageWrapper>
                 <GroupsTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/grant-groups"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <GrantGroupsTab />
               </AdminPageWrapper>
             </ProtectedRoute>
           }
