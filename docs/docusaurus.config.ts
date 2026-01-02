@@ -54,7 +54,19 @@ const config: Config = {
           editUrl:
             'https://github.com/sigilweaver/sigilweaver-docs/tree/main/',
         },
-        blog: false, // Disable blog for now
+        blog: {
+          showReadingTime: true,
+          feedOptions: {
+            type: ['rss', 'atom'],
+            xslt: true,
+          },
+          editUrl:
+            'https://github.com/sigilweaver/sigilweaver-docs/tree/main/',
+          blogTitle: 'Sigilweaver Blog',
+          blogDescription: 'Insights on building sustainable open source, data engineering, and workflow automation',
+          blogSidebarTitle: 'Recent posts',
+          blogSidebarCount: 10,
+        },
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -85,6 +97,11 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Documentation',
+        },
+        {
+          to: '/blog',
+          label: 'Blog',
+          position: 'left',
         },
         {
           href: 'https://sigilweaver.app',
