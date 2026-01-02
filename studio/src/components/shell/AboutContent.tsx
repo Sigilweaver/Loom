@@ -26,7 +26,7 @@ const AboutContent: React.FC = () => {
           The visual data pipeline tool you always wished existed.
         </p>
         <p className="text-sm text-theme-text-tertiary mt-2">
-          A visual workflow designer for building and executing data processing pipelines 
+          A visual workflow designer for building and executing data processing pipelines
           through an intuitive drag-and-drop interface.
         </p>
       </div>
@@ -142,19 +142,37 @@ const AboutContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Author */}
+      {/* Team & Community */}
       <div className="space-y-2">
-        <h3 className="text-base font-semibold text-theme-text-primary">Author</h3>
-        <p className="text-sm text-theme-text-secondary">
-          Created by Nathan Riley
-        </p>
+        <h3 className="text-base font-semibold text-theme-text-primary">Team</h3>
+        <ul className="text-sm text-theme-text-secondary space-y-1">
+          <li>
+            <span className="font-medium text-theme-text-primary">Lead Developer:</span> Nathan Riley
+          </li>
+          <li>
+            <span className="font-medium text-theme-text-primary">Community Manager:</span> Madalyn Riley
+          </li>
+          <li className="pt-1 text-theme-text-tertiary">
+            <a
+              href="https://github.com/sigilweaver/sigilweaver/graphs/contributors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-theme-primary transition-colors"
+            >
+              And the Sigilweaver Community &rarr;
+            </a>
+          </li>
+        </ul>
       </div>
 
       {/* Attribution */}
       <div className="pt-4 border-t border-theme-border-primary">
         <p className="text-sm text-theme-text-tertiary">
-          Sigilweaver uses open source software. See package.json and requirements.txt 
-          for full dependency lists and their respective licenses.
+          Sigilweaver is open source software. See package.json and requirements.txt
+          for full dependency lists.
+        </p>
+        <p className="text-xs text-theme-text-tertiary mt-2">
+          &copy; {new Date().getFullYear()} Sigilweaver Holdings LLC.
         </p>
       </div>
     </div>

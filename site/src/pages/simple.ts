@@ -8,7 +8,7 @@ import { initializeLayout } from '@lib/layout';
 import { initializeAccessibility } from '@lib/accessibility';
 import { initializeNavigation } from '@lib/navigation';
 import { simpleNavConfig } from '@lib/config';
-import { createIcons, Clipboard } from 'lucide';
+import { createIcons, Clipboard, Heart } from 'lucide';
 
 // Initialize the page with simple navigation
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,14 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
     header: { config: simpleNavConfig, showAccessibilityToggle: true },
     floatingElements: false, // No background animations for simple pages
   });
-  
+
   initializeAccessibility();
   initializeNavigation();
-  
-  // Initialize icons
+
+  // Initialize icons (including Heart for footer)
   createIcons({
     icons: {
-      Clipboard
+      Clipboard,
+      Heart
     }
   });
 });
