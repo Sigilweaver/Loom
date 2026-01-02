@@ -7,6 +7,7 @@ import { useConnectionStore } from "@state/connectionStore";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
+import ErrorBoundary from "./components/ErrorBoundary";
 import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
@@ -52,13 +53,13 @@ function App() {
     const initSettings = async () => {
       // Initialize auth token before any API calls
       await initializeAuth();
-      
+
       await loadSettings();
-      
+
       // Sync settings with uiStore on load
       const settings = useSettingsStore.getState();
       const { snapToGrid, minimapVisible, minimapPosition } = useUIStore.getState();
-      
+
       // Only toggle if different to avoid unnecessary updates
       if (settings.ui.snapToGrid !== snapToGrid) {
         useUIStore.getState().toggleSnapToGrid();
@@ -69,7 +70,7 @@ function App() {
       if (settings.ui.minimapPosition !== minimapPosition) {
         useUIStore.getState().setMinimapPosition(settings.ui.minimapPosition);
       }
-      
+
       // Initialize Hub client if we have a persisted session
       // This ensures Hub connections are available immediately on app startup
       if (settings.executionMode === 'hub' && settings.hub.sessionToken && settings.hub.url) {
@@ -82,14 +83,14 @@ function App() {
           triggerHubConnectionsRefresh();
         }
       }
-      
+
       // Create initial tab AFTER settings are loaded
       const tabs = useTabStore.getState().tabs;
       if (tabs.length === 0) {
         createTab("Untitled Workflow");
       }
     };
-    
+
     initSettings();
   }, [loadSettings, createTab]);
 
@@ -103,13 +104,13 @@ function App() {
     const handleBeforeUnload = () => {
       // Save current tab state
       saveCurrentTab();
-      
+
       // Close all workflow caches on the backend
       const { tabs, tabData } = useTabStore.getState();
       const workflowIds = tabs
         .map((t) => tabData[t.id]?.workflow?.workflowMeta?.workflowId)
         .filter((id): id is string => !!id);
-      
+
       closeAllWorkflowCaches(workflowIds);
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -305,40 +306,42 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={300}>
-        <div className="flex flex-col h-screen bg-theme-surface-page">
-          <Header ref={headerRef} />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex flex-col h-screen bg-theme-surface-page">
+            <Header ref={headerRef} />
 
-          <div className="flex flex-1 overflow-hidden">
-            {/* Left Pane - Tool Palette and Configuration */}
-            <LeftPane />
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left Pane - Tool Palette and Configuration */}
+              <LeftPane />
 
-            {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
-            <ReactFlowProvider>
-              <div className="flex flex-1 overflow-hidden">
-                {/* Canvas and Bottom Pane - with TabBar above */}
-                <div className="flex flex-1 flex-col overflow-hidden">
-                  {/* Tab Bar - positioned above canvas, only spans canvas area */}
-                  <TabBar />
-                  
-                  <Canvas ref={canvasRef} />
-                  
-                  {/* Bottom Pane for Preview/Logs */}
-                  <BottomPane />
+              {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
+              <ReactFlowProvider>
+                <div className="flex flex-1 overflow-hidden">
+                  {/* Canvas and Bottom Pane - with TabBar above */}
+                  <div className="flex flex-1 flex-col overflow-hidden">
+                    {/* Tab Bar - positioned above canvas, only spans canvas area */}
+                    <TabBar />
+
+                    <Canvas ref={canvasRef} />
+
+                    {/* Bottom Pane for Preview/Logs */}
+                    <BottomPane />
+                  </div>
+
+                  {/* Workflow Viewer Side Panel - computes JSON internally */}
+                  {workflowViewerVisible && <WorkflowViewer />}
                 </div>
+              </ReactFlowProvider>
+            </div>
 
-                {/* Workflow Viewer Side Panel - computes JSON internally */}
-                {workflowViewerVisible && <WorkflowViewer />}
-              </div>
-            </ReactFlowProvider>
+            {/* Notification System - uses uiStore internally */}
+            <Notification />
           </div>
-
-          {/* Notification System - uses uiStore internally */}
-          <Notification />
-        </div>
-      </TooltipProvider>
-    </ThemeProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

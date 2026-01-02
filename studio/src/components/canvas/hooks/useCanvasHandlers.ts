@@ -44,13 +44,14 @@ export function useCanvasHandlers() {
     ) => {
       logger.debug("Adding tool:", type, "at", x, y);
 
+      const toolDef = getToolDefinition(type);
       const newTool: Tool = {
         id: idOverride || generateUniqueId(new Set(tools.map((t) => t.id))),
         type,
         x,
         y,
-        config: configOverride ?? {},
-        sockets: socketsOverride ?? getToolDefinition(type)?.sockets ?? [],
+        config: configOverride ?? toolDef?.defaultConfig ?? {},
+        sockets: socketsOverride ?? toolDef?.sockets ?? [],
       };
 
       pushState(tools, wires, workflowMeta);
@@ -113,14 +114,14 @@ export function useCanvasHandlers() {
         const isDuplicate =
           existingWire.from.tool === from.tool &&
           existingWire.from.socket === from.socket;
-        
+
         if (!isDuplicate) {
           logger.debug("Replacing existing wire:", existingWire, "with:", wire);
-          
+
           // Step 1: Remove existing wire (first undo step)
           pushState(tools, wires, workflowMeta);
           removeWire(existingWire.from, existingWire.to);
-          
+
           // Step 2: Add new wire (second undo step)
           // Get fresh state after removal
           const currentWires = useWorkflowStore.getState().wires;

@@ -46,8 +46,19 @@ export interface ConfigSelectProps {
   searchNoMatchMessage?: ReactNode;
 }
 
-// Internal sentinel value for "use default" option
+// Internal sentinel value for "use default" option (when value is undefined)
 const EMPTY_VALUE_SENTINEL = "__CONFIGSELECT_EMPTY__";
+// Internal sentinel value for options with empty string values
+// Radix UI Select doesn't allow empty string as item value since it's reserved for clearing
+const EMPTY_STRING_SENTINEL = "__CONFIGSELECT_EMPTY_STRING__";
+
+// Convert option value for Radix (empty string -> sentinel)
+const toRadixValue = (value: string): string =>
+  value === "" ? EMPTY_STRING_SENTINEL : value;
+
+// Convert Radix value back to actual value (sentinel -> empty string)
+const fromRadixValue = (value: string): string =>
+  value === EMPTY_STRING_SENTINEL ? "" : value;
 
 export const ConfigSelect: React.FC<ConfigSelectProps> = ({
   value,
@@ -92,13 +103,13 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
     return options.find((option) => option.value === effectiveValue) ?? null;
   }, [options, effectiveValue]);
 
-  // Handle Radix value change - convert sentinel back to undefined
+  // Handle Radix value change - convert sentinels back to actual values
   const handleValueChange = useCallback(
     (newValue: string) => {
       if (newValue === EMPTY_VALUE_SENTINEL) {
         commit(undefined);
       } else {
-        commit(newValue);
+        commit(fromRadixValue(newValue));
       }
     },
     [commit]
@@ -108,8 +119,10 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
   const hasInteractiveOptions = hasOptions || (value !== undefined && !required);
   const showEmptyMessage = !hasOptions;
 
-  // For Radix, use sentinel value when value is undefined
-  const radixValue = effectiveValue ?? EMPTY_VALUE_SENTINEL;
+  // For Radix, use sentinel value when value is undefined, and convert empty strings
+  const radixValue = effectiveValue === undefined
+    ? EMPTY_VALUE_SENTINEL
+    : toRadixValue(effectiveValue);
 
   return (
     <ConfigField
@@ -200,8 +213,8 @@ export const ConfigSelect: React.FC<ConfigSelectProps> = ({
               {/* Actual options */}
               {options.map((option) => (
                 <SelectPrimitive.Item
-                  key={option.value}
-                  value={option.value}
+                  key={option.value || EMPTY_STRING_SENTINEL}
+                  value={toRadixValue(option.value)}
                   disabled={option.disabled ?? false}
                   className={clsx(
                     "relative flex w-full cursor-default select-none items-start rounded py-1.5 pl-8 pr-2",
