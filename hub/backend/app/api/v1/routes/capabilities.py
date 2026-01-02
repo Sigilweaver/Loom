@@ -23,7 +23,6 @@ from app.api.dependencies import CurrentUser
 from app.db.database import get_db
 from app.db.models import (
     Connection,
-    ConnectionGroup,
     GrantGroup,
     GrantGroupConnection,
     Server,
@@ -159,7 +158,7 @@ async def _validate_connection_access(
             detail="You are not a member of any groups and cannot access Hub connections",
         )
 
-    # Get connections accessible via grant groups (new path)
+    # Get connections accessible via grant groups
     # User -> UserGroup -> UserGroupGrantGroup -> GrantGroup -> GrantGroupConnection -> Connection
     grant_group_conn_result = await db.execute(
         select(GrantGroupConnection.connection_id)
@@ -168,25 +167,12 @@ async def _validate_connection_access(
         .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
         .distinct()
     )
-    grant_group_conn_ids = {row[0] for row in grant_group_conn_result.fetchall()}
-
-    # Get connections accessible via direct group assignment (legacy path)
-    # User -> UserGroup -> ConnectionGroup -> Connection
-    direct_conn_result = await db.execute(
-        select(ConnectionGroup.connection_id)
-        .where(ConnectionGroup.group_id.in_(user_group_ids))
-        .distinct()
-    )
-    direct_conn_ids = {row[0] for row in direct_conn_result.fetchall()}
-
-    # Combine both paths
-    accessible_conn_ids = grant_group_conn_ids | direct_conn_ids
+    accessible_conn_ids = {row[0] for row in grant_group_conn_result.fetchall()}
 
     # Check each connection
     unauthorized = []
     for conn_id_str in connection_ids:
         try:
-            from uuid import UUID
             conn_id = UUID(conn_id_str)
         except ValueError:
             unauthorized.append(conn_id_str)
@@ -200,7 +186,7 @@ async def _validate_connection_access(
             unauthorized.append(conn_id_str)
             continue
 
-        # Check if user has access to this connection (via grant groups or direct assignment)
+        # Check if user has access to this connection via grant groups
         if conn_id not in accessible_conn_ids:
             unauthorized.append(conn_id_str)
 

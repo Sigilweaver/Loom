@@ -16,7 +16,7 @@ class TestAdminCanManageServers:
     async def test_admin_can_list_all_servers(self, admin_headers, test_server):
         """Admin can list all servers."""
         async with new_client() as client:
-            response = await client.get("/api/servers", headers=admin_headers)
+            response = await client.get("/api/v1/servers", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -29,7 +29,7 @@ class TestAdminCanManageServers:
         """Admin can get server details."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=admin_headers,
             )
 
@@ -41,7 +41,7 @@ class TestAdminCanManageServers:
         """Admin can update server configuration."""
         async with new_client() as client:
             response = await client.put(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=admin_headers,
                 json={"name": "Updated Server Name"},
             )
@@ -54,7 +54,7 @@ class TestAdminCanManageServers:
         """Admin can delete servers."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=admin_headers,
             )
 
@@ -71,7 +71,7 @@ class TestAdminCanManageServerGroups:
         """Admin can assign a server to a group."""
         async with new_client() as client:
             response = await client.post(
-                f"/api/servers/{test_server['id']}/groups/{test_group['id']}",
+                f"/api/v1/servers/{test_server['id']}/groups/{test_group['id']}",
                 headers=admin_headers,
             )
 
@@ -87,7 +87,7 @@ class TestAdminCanManageServerGroups:
         """Admin can list groups assigned to a server."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/servers/{server_in_group['server_id']}/groups",
+                f"/api/v1/servers/{server_in_group['server_id']}/groups",
                 headers=admin_headers,
             )
 
@@ -102,7 +102,7 @@ class TestAdminCanManageServerGroups:
         """Admin can remove a server from a group."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
+                f"/api/v1/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
                 headers=admin_headers,
             )
 
@@ -117,7 +117,7 @@ class TestAdminCanManageServerGroups:
 
         async with new_client() as client:
             response = await client.post(
-                f"/api/servers/{test_server['id']}/groups/{uuid.uuid4()}",
+                f"/api/v1/servers/{test_server['id']}/groups/{uuid.uuid4()}",
                 headers=admin_headers,
             )
 
@@ -130,7 +130,7 @@ class TestAdminCanManageServerGroups:
         """Admin gets 409 when server already assigned to group."""
         async with new_client() as client:
             response = await client.post(
-                f"/api/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
+                f"/api/v1/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
                 headers=admin_headers,
             )
 
@@ -145,12 +145,12 @@ class TestOwnerHasSamePermissionsAsAdmin:
         """Owner can list, update, and delete servers."""
         async with new_client() as client:
             # List
-            response = await client.get("/api/servers", headers=owner_headers)
+            response = await client.get("/api/v1/servers", headers=owner_headers)
             assert response.status_code == 200
 
             # Update
             response = await client.put(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=owner_headers,
                 json={"name": "Owner Updated"},
             )
@@ -164,14 +164,14 @@ class TestOwnerHasSamePermissionsAsAdmin:
         async with new_client() as client:
             # Assign
             response = await client.post(
-                f"/api/servers/{test_server['id']}/groups/{test_group['id']}",
+                f"/api/v1/servers/{test_server['id']}/groups/{test_group['id']}",
                 headers=owner_headers,
             )
             assert response.status_code == 201
 
             # Remove
             response = await client.delete(
-                f"/api/servers/{test_server['id']}/groups/{test_group['id']}",
+                f"/api/v1/servers/{test_server['id']}/groups/{test_group['id']}",
                 headers=owner_headers,
             )
             assert response.status_code == 204

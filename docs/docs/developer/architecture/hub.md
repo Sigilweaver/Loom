@@ -76,10 +76,10 @@ flowchart LR
 |-------|---------|
 | `users` | User accounts with roles |
 | `groups` | User groups for organizing users |
-| `user_group` | Junction: users ↔ groups |
+| `user_groups` | Junction: users ↔ groups |
 | `grant_groups` | Permission bundles containing connections |
-| `user_group_grant_group` | Junction: groups ↔ grant groups |
-| `grant_group_connection` | Junction: grant groups ↔ connections |
+| `user_group_grant_groups` | Junction: groups ↔ grant groups |
+| `grant_group_connections` | Junction: grant groups ↔ connections |
 
 ### Why This Design?
 

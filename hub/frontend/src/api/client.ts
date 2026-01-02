@@ -4,7 +4,7 @@
 
 import { getAuthToken } from "@state/authStore";
 
-const API_BASE = "/api";
+const API_BASE = "/api/v1";
 
 export interface ApiError {
   detail: string | { loc: (string | number)[]; msg: string; type: string }[];
@@ -174,7 +174,7 @@ export async function getMe(): Promise<MeResponse> {
  * Create a new user (admin/owner only)
  */
 export async function createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
-  const response = await fetch(`${API_BASE}/auth/users`, {
+  const response = await fetch(`${API_BASE}/users`, {
     method: "POST",
     headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
@@ -222,27 +222,7 @@ export interface WorkflowListResponse {
 }
 
 /**
- * List workflows uploaded by the current user
- */
-export async function listMyWorkflows(params?: {
-  folder?: string;
-  tag?: string;
-  search?: string;
-}): Promise<WorkflowListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.folder) searchParams.set("folder", params.folder);
-  if (params?.tag) searchParams.set("tag", params.tag);
-  if (params?.search) searchParams.set("search", params.search);
-
-  const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/workflows/my${query ? `?${query}` : ""}`, {
-    headers: getAuthHeaders(),
-  });
-  return handleResponse(response);
-}
-
-/**
- * List all workflows (requires auditor+ role)
+ * List workflows (auto-filtered by ownership for regular users)
  */
 export async function listWorkflows(params?: {
   folder?: string;
@@ -349,20 +329,10 @@ export interface ServerTestResponse {
 }
 
 /**
- * List all servers (requires auditor+ role)
+ * List servers (auto-filtered by group membership for regular users)
  */
 export async function listServers(): Promise<ServerListResponse> {
   const response = await fetch(`${API_BASE}/servers`, {
-    headers: getAuthHeaders(),
-  });
-  return handleResponse(response);
-}
-
-/**
- * List servers available to the current user via group membership
- */
-export async function listMyServers(): Promise<ServerListResponse> {
-  const response = await fetch(`${API_BASE}/servers/my`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
@@ -439,31 +409,7 @@ export interface ExecutionListResponse {
 }
 
 /**
- * List executions triggered by the current user
- */
-export async function listMyExecutions(params?: {
-  workflow_id?: string;
-  server_id?: string;
-  status?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<ExecutionListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
-  if (params?.server_id) searchParams.set("server_id", params.server_id);
-  if (params?.status) searchParams.set("status", params.status);
-  if (params?.limit) searchParams.set("limit", String(params.limit));
-  if (params?.offset) searchParams.set("offset", String(params.offset));
-
-  const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/executions/my${query ? `?${query}` : ""}`, {
-    headers: getAuthHeaders(),
-  });
-  return handleResponse(response);
-}
-
-/**
- * List all executions (requires auditor+ role)
+ * List executions (auto-filtered by ownership for regular users)
  */
 export async function listExecutions(params?: {
   workflow_id?: string;
@@ -540,29 +486,7 @@ export interface ScheduleListResponse {
 }
 
 /**
- * List schedules created by the current user
- */
-export async function listMySchedules(params?: {
-  workflow_id?: string;
-  enabled?: boolean;
-  limit?: number;
-  offset?: number;
-}): Promise<ScheduleListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
-  if (params?.enabled !== undefined) searchParams.set("enabled", String(params.enabled));
-  if (params?.limit) searchParams.set("limit", String(params.limit));
-  if (params?.offset) searchParams.set("offset", String(params.offset));
-
-  const query = searchParams.toString();
-  const response = await fetch(`${API_BASE}/schedules/my${query ? `?${query}` : ""}`, {
-    headers: getAuthHeaders(),
-  });
-  return handleResponse(response);
-}
-
-/**
- * List all schedules (requires auditor+ role)
+ * List schedules (auto-filtered by ownership for regular users)
  */
 export async function listSchedules(params?: {
   workflow_id?: string;
@@ -916,17 +840,16 @@ export async function listGroupMembers(groupId: string): Promise<GroupMembersRes
 export async function addGroupMember(
   groupId: string,
   userId: string
-): Promise<{ status: string; user_id: string; group_id: string }> {
-  const response = await fetch(`${API_BASE}/groups/${groupId}/members`, {
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/users/${userId}/groups/${groupId}`, {
     method: "POST",
-    headers: getJsonAuthHeaders(),
-    body: JSON.stringify({ user_id: userId }),
+    headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
 
 export async function removeGroupMember(groupId: string, userId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}`, {
+  const response = await fetch(`${API_BASE}/users/${userId}/groups/${groupId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
@@ -1114,14 +1037,14 @@ export interface UserListResponse {
 }
 
 export async function listUsers(): Promise<UserListResponse> {
-  const response = await fetch(`${API_BASE}/auth/users`, {
+  const response = await fetch(`${API_BASE}/users`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
 
 export async function getUser(userId: string): Promise<UserResponse> {
-  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+  const response = await fetch(`${API_BASE}/users/${userId}`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
@@ -1131,7 +1054,7 @@ export async function updateUser(
   userId: string,
   data: { username?: string; password?: string; role?: string }
 ): Promise<UserResponse> {
-  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+  const response = await fetch(`${API_BASE}/users/${userId}`, {
     method: "PATCH",
     headers: getJsonAuthHeaders(),
     body: JSON.stringify(data),
@@ -1140,7 +1063,7 @@ export async function updateUser(
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/auth/users/${userId}`, {
+  const response = await fetch(`${API_BASE}/users/${userId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });

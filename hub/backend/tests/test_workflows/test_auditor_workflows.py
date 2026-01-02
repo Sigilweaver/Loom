@@ -20,7 +20,7 @@ class TestAuditorCanReadAllWorkflows:
         async with new_client() as client:
             # User creates a workflow
             await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -29,7 +29,7 @@ class TestAuditorCanReadAllWorkflows:
             )
 
             # Auditor lists all
-            response = await client.get("/api/workflows", headers=auditor_headers)
+            response = await client.get("/api/v1/workflows", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -42,7 +42,7 @@ class TestAuditorCanReadAllWorkflows:
         """Auditor can get details of any workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -52,7 +52,7 @@ class TestAuditorCanReadAllWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.get(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=auditor_headers,
             )
 
@@ -66,7 +66,7 @@ class TestAuditorCanReadAllWorkflows:
         """Auditor can get content of any workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -76,7 +76,7 @@ class TestAuditorCanReadAllWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.get(
-                f"/api/workflows/{workflow_id}/content",
+                f"/api/v1/workflows/{workflow_id}/content",
                 headers=auditor_headers,
             )
 
@@ -89,7 +89,7 @@ class TestAuditorCanReadAllWorkflows:
         """Auditor can download any workflow file."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -99,7 +99,7 @@ class TestAuditorCanReadAllWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.get(
-                f"/api/workflows/{workflow_id}/download",
+                f"/api/v1/workflows/{workflow_id}/download",
                 headers=auditor_headers,
             )
 
@@ -115,7 +115,7 @@ class TestAuditorCannotModifyWorkflows:
         """Auditor cannot upload workflows (User role only)."""
         async with new_client() as client:
             response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=auditor_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -132,7 +132,7 @@ class TestAuditorCannotModifyWorkflows:
         """Auditor cannot update workflows."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -143,7 +143,7 @@ class TestAuditorCannotModifyWorkflows:
 
             # Try to update metadata
             response = await client.patch(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=auditor_headers,
                 json={"folder_path": "/audited"},
             )
@@ -157,7 +157,7 @@ class TestAuditorCannotModifyWorkflows:
         """Auditor cannot delete workflows."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -167,7 +167,7 @@ class TestAuditorCannotModifyWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.delete(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=auditor_headers,
             )
 

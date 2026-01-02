@@ -150,7 +150,6 @@ _TABLE_NAMES = [
     "workflows", 
     "server_groups",
     "servers",
-    "connection_groups",
     "grant_group_connections",
     "user_group_grant_groups",
     "grant_groups",
@@ -320,7 +319,7 @@ async def second_user_headers(setup_database) -> dict[str, str]:
 async def second_user_info(setup_database, second_user_headers) -> dict:
     """Get info for the second user including their ID."""
     async with new_client() as client:
-        response = await client.get("/api/auth/me", headers=second_user_headers)
+        response = await client.get("/api/v1/auth/me", headers=second_user_headers)
         assert response.status_code == 200
         return response.json()
 
@@ -335,7 +334,7 @@ async def test_group(setup_database, owner_headers) -> dict:
     """Create a test group and return its data."""
     async with new_client() as client:
         response = await client.post(
-            "/api/groups",
+            "/api/v1/groups",
             headers=owner_headers,
             json={"name": "Test Group", "description": "A test group"},
         )
@@ -351,15 +350,14 @@ async def user_in_group(setup_database, owner_headers, user_headers, test_group)
     """
     async with new_client() as client:
         # Get user ID from /me endpoint
-        response = await client.get("/api/auth/me", headers=user_headers)
+        response = await client.get("/api/v1/auth/me", headers=user_headers)
         user_data = response.json()
         user_id = user_data["id"]
 
-        # Add user to group
+        # Add user to group via /users/{id}/groups endpoint
         response = await client.post(
-            f"/api/groups/{test_group['id']}/members",
+            f"/api/v1/users/{user_id}/groups/{test_group['id']}",
             headers=owner_headers,
-            json={"user_id": user_id},
         )
         assert response.status_code == 201, f"Failed to add user to group: {response.text}"
 
@@ -379,7 +377,7 @@ async def test_server(setup_database) -> dict:
     try:
         async with new_client() as client:
             response = await client.post(
-                "/api/servers",
+                "/api/v1/servers",
                 json={
                     "name": "Test Server",
                     "endpoint_url": "http://localhost:25811",
@@ -397,7 +395,7 @@ async def server_in_group(setup_database, owner_headers, test_server, test_group
     """Assign the test server to the test group."""
     async with new_client() as client:
         response = await client.post(
-            f"/api/servers/{test_server['id']}/groups/{test_group['id']}",
+            f"/api/v1/servers/{test_server['id']}/groups/{test_group['id']}",
             headers=owner_headers,
         )
         assert response.status_code == 201

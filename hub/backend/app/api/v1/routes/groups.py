@@ -1,7 +1,9 @@
-"""Groups management routes.
+"""Groups management routes (API v1).
 
 Groups are organizational units for access control. Admins create groups
 to organize users and scope resource access (connections, workflows, etc.).
+
+Note: Member management (adding/removing users) is handled via /users/{id}/groups
 """
 
 import logging
@@ -22,14 +24,11 @@ from app.db.models import (
     UserGroup,
     UserGroupGrantGroup,
 )
-from app.domain.auth.roles import Role
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 logger = logging.getLogger(__name__)
-
-# Roles that cannot be added to groups (admin-level users)
-ADMIN_ROLES = {Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value}
 
 
 # =============================================================================
@@ -58,7 +57,7 @@ class GroupResponse(BaseModel):
     name: str
     description: str
     member_count: int
-    connection_count: int
+    grant_group_count: int
     created_by: str
     created_at: str
 
@@ -90,12 +89,6 @@ class GroupMembersResponse(BaseModel):
     total: int
 
 
-class AddMemberRequest(BaseModel):
-    """Request to add a user to a group."""
-
-    user_id: UUID = Field(..., description="User ID to add")
-
-
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -108,7 +101,7 @@ def _group_to_response(group: Group) -> GroupResponse:
         name=group.name,
         description=group.description,
         member_count=len(group.members) if group.members else 0,
-        connection_count=len(group.connections) if group.connections else 0,
+        grant_group_count=len(group.grant_groups) if group.grant_groups else 0,
         created_by=group.created_by,
         created_at=group.created_at.isoformat(),
     )
@@ -121,15 +114,34 @@ def _group_to_response(group: Group) -> GroupResponse:
 
 @router.get("", response_model=GroupListResponse)
 async def list_groups(
-    _user: SessionInfo = RequireAuditor,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> GroupListResponse:
-    """List all groups. Requires auditor role or higher."""
-    result = await db.execute(
-        select(Group)
-        .options(selectinload(Group.members), selectinload(Group.connections))
-        .order_by(Group.name)
-    )
+    """List groups.
+
+    For regular users: Returns groups the user belongs to.
+    For Auditor+: Returns all groups.
+    """
+    auditor_level = get_role_level(Role.AUDITOR)
+    user_level = get_role_level(current_user.role)
+
+    if user_level > auditor_level:
+        # Regular users: filter by membership
+        result = await db.execute(
+            select(Group)
+            .join(UserGroup)
+            .options(selectinload(Group.members), selectinload(Group.grant_groups))
+            .where(UserGroup.user_id == current_user.user_id)
+            .order_by(Group.name)
+        )
+    else:
+        # Auditor+: see all groups
+        result = await db.execute(
+            select(Group)
+            .options(selectinload(Group.members), selectinload(Group.grant_groups))
+            .order_by(Group.name)
+        )
+
     groups = result.scalars().all()
 
     return GroupListResponse(
@@ -164,47 +176,16 @@ async def create_group(
 
     logger.info(f"Created group '{group.name}' by {admin.username}")
 
-    # New groups have no members or connections, return counts as 0
+    # New groups have no members or grant groups, return counts as 0
     return GroupResponse(
         id=group.id,
         name=group.name,
         description=group.description,
         member_count=0,
-        connection_count=0,
+        grant_group_count=0,
         created_by=group.created_by,
         created_at=group.created_at.isoformat(),
     )
-
-
-# =============================================================================
-# User's Groups (self-service) - MUST be before /{group_id} routes
-# =============================================================================
-
-
-@router.get("/my", response_model=GroupListResponse)
-async def list_my_groups(
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> GroupListResponse:
-    """List groups the current user belongs to."""
-    result = await db.execute(
-        select(Group)
-        .join(UserGroup)
-        .options(selectinload(Group.members), selectinload(Group.connections))
-        .where(UserGroup.user_id == current_user.user_id)
-        .order_by(Group.name)
-    )
-    groups = result.scalars().all()
-
-    return GroupListResponse(
-        groups=[_group_to_response(g) for g in groups],
-        total=len(groups),
-    )
-
-
-# =============================================================================
-# Group CRUD (by ID)
-# =============================================================================
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
@@ -216,7 +197,7 @@ async def get_group(
     """Get group details. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
-        .options(selectinload(Group.members), selectinload(Group.connections))
+        .options(selectinload(Group.members), selectinload(Group.grant_groups))
         .where(Group.id == group_id)
     )
     group = result.scalar_one_or_none()
@@ -240,7 +221,7 @@ async def update_group(
     """Update a group. Requires admin role."""
     result = await db.execute(
         select(Group)
-        .options(selectinload(Group.members), selectinload(Group.connections))
+        .options(selectinload(Group.members), selectinload(Group.grant_groups))
         .where(Group.id == group_id)
     )
     group = result.scalar_one_or_none()
@@ -296,7 +277,7 @@ async def delete_group(
 
 
 # =============================================================================
-# Group Members Routes
+# Group Members Routes (read-only, write via /users/{id}/groups)
 # =============================================================================
 
 
@@ -336,96 +317,6 @@ async def list_group_members(
         members=members,
         total=len(members),
     )
-
-
-@router.post("/{group_id}/members", status_code=status.HTTP_201_CREATED)
-async def add_group_member(
-    group_id: UUID,
-    request: AddMemberRequest,
-    _admin: SessionInfo = RequireAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    """Add a user to a group. Requires admin role.
-    
-    Only regular users can be added to groups. Admin-level users
-    (owner, admin, auditor) cannot be group members.
-    """
-    # Check group exists
-    result = await db.execute(select(Group).where(Group.id == group_id))
-    group = result.scalar_one_or_none()
-
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Group {group_id} not found",
-        )
-
-    # Check user exists
-    result = await db.execute(select(User).where(User.id == request.user_id))
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {request.user_id} not found",
-        )
-
-    # Admin-level users cannot be added to groups
-    if user.role in ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Admin-level users ({user.role}) cannot be added to groups",
-        )
-
-    # Check if already a member
-    result = await db.execute(
-        select(UserGroup).where(
-            UserGroup.user_id == request.user_id,
-            UserGroup.group_id == group_id,
-        )
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"User {user.username} is already a member of {group.name}",
-        )
-
-    # Add membership
-    membership = UserGroup(user_id=request.user_id, group_id=group_id)
-    db.add(membership)
-    await db.commit()
-
-    logger.info(f"Added user '{user.username}' to group '{group.name}'")
-
-    return {"status": "added", "user_id": str(request.user_id), "group_id": str(group_id)}
-
-
-@router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_group_member(
-    group_id: UUID,
-    user_id: UUID,
-    _admin: SessionInfo = RequireAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    """Remove a user from a group. Requires admin role."""
-    result = await db.execute(
-        select(UserGroup).where(
-            UserGroup.user_id == user_id,
-            UserGroup.group_id == group_id,
-        )
-    )
-    membership = result.scalar_one_or_none()
-
-    if not membership:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {user_id} is not a member of group {group_id}",
-        )
-
-    await db.delete(membership)
-    await db.commit()
-
-    logger.info(f"Removed user {user_id} from group {group_id}")
 
 
 # =============================================================================

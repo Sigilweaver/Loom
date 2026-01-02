@@ -21,7 +21,7 @@ class TestAdminCanReadAllWorkflows:
         async with new_client() as client:
             # User creates a workflow
             await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -30,7 +30,7 @@ class TestAdminCanReadAllWorkflows:
             )
 
             # Admin lists all
-            response = await client.get("/api/workflows", headers=admin_headers)
+            response = await client.get("/api/v1/workflows", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -43,7 +43,7 @@ class TestAdminCanReadAllWorkflows:
         """Admin can get details of any workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -53,7 +53,7 @@ class TestAdminCanReadAllWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.get(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=admin_headers,
             )
 
@@ -70,7 +70,7 @@ class TestAdminCanDeleteAnyWorkflow:
         """Admin can delete a user's workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -80,7 +80,7 @@ class TestAdminCanDeleteAnyWorkflow:
             workflow_id = upload_response.json()["id"]
 
             response = await client.delete(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=admin_headers,
             )
 
@@ -95,7 +95,7 @@ class TestAdminCannotCreateOrUpdateWorkflows:
         """Admin cannot upload workflows."""
         async with new_client() as client:
             response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=admin_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -112,7 +112,7 @@ class TestAdminCannotCreateOrUpdateWorkflows:
         """Admin cannot update workflows (even via PUT or PATCH)."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -123,7 +123,7 @@ class TestAdminCannotCreateOrUpdateWorkflows:
 
             # Try PATCH
             response = await client.patch(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=admin_headers,
                 json={"folder_path": "/admin-moved"},
             )
@@ -137,7 +137,7 @@ class TestAdminCannotCreateOrUpdateWorkflows:
         """Admin cannot replace a workflow file."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -148,7 +148,7 @@ class TestAdminCannotCreateOrUpdateWorkflows:
 
             # Try PUT
             response = await client.put(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=admin_headers,
                 files={
                     "file": (
@@ -172,7 +172,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
         """Owner can list all workflows."""
         async with new_client() as client:
             await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -180,7 +180,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
                 data={"folder_path": "/", "tags": ""},
             )
 
-            response = await client.get("/api/workflows", headers=owner_headers)
+            response = await client.get("/api/v1/workflows", headers=owner_headers)
 
         assert response.status_code == 200
         assert response.json()["total"] == 1
@@ -192,7 +192,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
         """Owner can delete any workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -202,7 +202,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
             workflow_id = upload_response.json()["id"]
 
             response = await client.delete(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=owner_headers,
             )
 
@@ -213,7 +213,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
         """Owner cannot upload workflows."""
         async with new_client() as client:
             response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=owner_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")

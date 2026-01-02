@@ -26,9 +26,9 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
 import {
-  listMyWorkflows,
-  listMyExecutions,
-  listMySchedules,
+  listWorkflows,
+  listExecutions,
+  listSchedules,
   listServers,
   type WorkflowMetadata,
   type ExecutionResponse,
@@ -76,9 +76,8 @@ function StatCard({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
   return (
     <Wrapper
       onClick={onClick}
-      className={`bg-white rounded-lg border border-gray-200 p-5 text-left ${
-        onClick ? "hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer" : ""
-      }`}
+      className={`bg-white rounded-lg border border-gray-200 p-5 text-left ${onClick ? "hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer" : ""
+        }`}
     >
       <div className="flex items-start justify-between">
         <div className={`p-2.5 rounded-lg ${iconBg}`}>
@@ -141,9 +140,9 @@ export function HomePage() {
 
     try {
       const [workflowsRes, executionsRes, schedulesRes, serversRes] = await Promise.all([
-        listMyWorkflows(),
-        listMyExecutions({ limit: 10 }),
-        listMySchedules({ enabled: true, limit: 20 }),
+        listWorkflows(),
+        listExecutions({ limit: 10 }),
+        listSchedules({ enabled: true, limit: 20 }),
         listServers(),
       ]);
 

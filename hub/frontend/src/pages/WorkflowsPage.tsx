@@ -33,7 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  listMyWorkflows,
+  listWorkflows,
   uploadWorkflow,
   deleteWorkflow,
   updateWorkflowMetadata,
@@ -73,68 +73,68 @@ function formatRelativeTime(isoString: string): string {
 function fuzzyMatch(query: string, target: string): number {
   const q = query.toLowerCase();
   const t = target.toLowerCase();
-  
+
   if (q.length === 0) return 1;
   if (q.length > t.length) return 0;
-  
+
   // Exact match is best
   if (t === q) return 100;
-  
+
   // Prefix match is very good
   if (t.startsWith(q)) return 90;
-  
+
   // Contains as substring is good
   if (t.includes(q)) {
     // Bonus for word boundary match
     const wordBoundary = new RegExp(`\\b${q}`).test(t);
     return wordBoundary ? 75 : 60;
   }
-  
+
   // Subsequence match - letters appear in order
   let qIdx = 0;
   let score = 0;
   let consecutiveBonus = 0;
   let lastMatchIdx = -2;
-  
+
   for (let tIdx = 0; tIdx < t.length && qIdx < q.length; tIdx++) {
     if (t[tIdx] === q[qIdx]) {
       // Base points for each match
       score += 10;
-      
+
       // Bonus for consecutive matches (rewards "fltr" in "filter")
       if (tIdx === lastMatchIdx + 1) {
         consecutiveBonus += 5;
       }
-      
+
       // Bonus for matching at word boundaries or after separators
       const prevChar = t[tIdx - 1];
       if (tIdx === 0 || (prevChar && /[\s_\-./]/.test(prevChar))) {
         score += 8;
       }
-      
+
       // Bonus for matching uppercase in camelCase
       const currChar = t[tIdx];
       const prevTargetChar = target[tIdx - 1];
       if (tIdx > 0 && currChar && currChar === currChar.toUpperCase() && prevTargetChar && /[a-z]/.test(prevTargetChar)) {
         score += 5;
       }
-      
+
       lastMatchIdx = tIdx;
       qIdx++;
     }
   }
-  
+
   // All query chars must be found
   if (qIdx < q.length) return 0;
-  
+
   // Add consecutive bonus and normalize
   score += consecutiveBonus;
-  
+
   // Penalize if match is spread out (prefer compact matches)
   const spread = lastMatchIdx - (lastMatchIdx - qIdx + 1);
   const compactness = Math.max(0, 20 - spread);
   score += compactness;
-  
+
   // Normalize to 0-50 range for subsequence matches (below substring matches)
   return Math.min(50, score * 0.5);
 }
@@ -146,46 +146,46 @@ function fuzzyMatch(query: string, target: string): number {
  */
 function fuzzyScore(workflow: WorkflowMetadata, query: string): number {
   if (!query) return 1; // No query = everything matches
-  
+
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  
+
   let totalScore = 0;
-  
+
   for (const term of terms) {
     let termScore = 0;
-    
+
     // Name matches (highest weight)
     const nameScore = fuzzyMatch(term, workflow.name);
     termScore = Math.max(termScore, nameScore * 1.5);
-    
+
     // Description matches (medium weight)
     if (workflow.description) {
       const descScore = fuzzyMatch(term, workflow.description);
       termScore = Math.max(termScore, descScore * 0.6);
     }
-    
+
     // Author matches (medium weight)
     if (workflow.author) {
       const authorScore = fuzzyMatch(term, workflow.author);
       termScore = Math.max(termScore, authorScore * 0.8);
     }
-    
+
     // Tag matches (high weight - tags are important)
     for (const tag of workflow.tags) {
       const tagScore = fuzzyMatch(term, tag);
       termScore = Math.max(termScore, tagScore * 1.2);
     }
-    
+
     // Folder path matches (lower weight)
     const folderScore = fuzzyMatch(term, workflow.folder_path);
     termScore = Math.max(termScore, folderScore * 0.4);
-    
+
     // If any term doesn't match at all, exclude the workflow
     if (termScore === 0) return 0;
-    
+
     totalScore += termScore;
   }
-  
+
   return totalScore;
 }
 
@@ -199,24 +199,24 @@ interface FolderNode {
 
 function buildFolderTree(workflows: WorkflowMetadata[]): FolderNode {
   const root: FolderNode = { name: "All Workflows", path: "", children: [], count: workflows.length };
-  
+
   // Count workflows per folder
   const folderCounts = new Map<string, number>();
   for (const w of workflows) {
     const path = w.folder_path;
     folderCounts.set(path, (folderCounts.get(path) || 0) + 1);
   }
-  
+
   // Build tree structure
   const folders = Array.from(new Set(workflows.map((w) => w.folder_path))).sort();
-  
+
   for (const folderPath of folders) {
     if (folderPath === "/") continue; // Root is handled separately
-    
+
     const parts = folderPath.split("/").filter(Boolean);
     let current = root;
     let currentPath = "";
-    
+
     for (const part of parts) {
       currentPath += "/" + part;
       let child = current.children.find((c) => c.name === part);
@@ -228,7 +228,7 @@ function buildFolderTree(workflows: WorkflowMetadata[]): FolderNode {
     }
     current.count = folderCounts.get(folderPath) || 0;
   }
-  
+
   return root;
 }
 
@@ -245,7 +245,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Filter suggestions based on input
   const filteredSuggestions = useMemo(() => {
     if (!inputValue.trim()) return suggestions.filter((s) => !value.includes(s)).slice(0, 8);
@@ -253,7 +253,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
       .filter((s) => s.toLowerCase().includes(inputValue.toLowerCase()) && !value.includes(s))
       .slice(0, 8);
   }, [inputValue, suggestions, value]);
-  
+
   const addTag = (tag: string) => {
     const trimmed = tag.trim().toLowerCase();
     if (trimmed && !value.includes(trimmed)) {
@@ -262,11 +262,11 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
     setInputValue("");
     inputRef.current?.focus();
   };
-  
+
   const removeTag = (tag: string) => {
     onChange(value.filter((t) => t !== tag));
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
@@ -278,7 +278,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
       if (lastTag) removeTag(lastTag);
     }
   };
-  
+
   // Close suggestions on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -289,7 +289,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  
+
   return (
     <div ref={containerRef} className="relative">
       <div className="flex flex-wrap gap-1.5 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent bg-white min-h-[42px]">
@@ -319,7 +319,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
           className="flex-1 min-w-[120px] outline-none text-sm"
         />
       </div>
-      
+
       {/* Suggestions dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -356,7 +356,7 @@ interface FolderSelectorProps {
 function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -367,11 +367,11 @@ function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProp
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  
+
   const sortedFolders = useMemo(() => {
     return ["/", ...existingFolders.filter((f) => f !== "/")].sort();
   }, [existingFolders]);
-  
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -385,7 +385,7 @@ function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProp
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         />
       </div>
-      
+
       {showDropdown && sortedFolders.length > 0 && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
           <div className="px-3 py-1.5 text-xs text-gray-500 border-b border-gray-100">
@@ -399,9 +399,8 @@ function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProp
                 onChange(folder);
                 setShowDropdown(false);
               }}
-              className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                value === folder ? "bg-brand-50 text-brand-700" : ""
-              }`}
+              className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-50 ${value === folder ? "bg-brand-50 text-brand-700" : ""
+                }`}
             >
               <Folder className="h-3 w-3 text-gray-400" />
               {folder}
@@ -475,7 +474,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
       const result = await uploadWorkflow(file, folderPath, tags);
 
       // Fetch the full workflow metadata
-      const response = await listMyWorkflows();
+      const response = await listWorkflows();
       const uploaded = response.workflows.find((w) => w.id === result.id);
       if (uploaded) {
         onUpload(uploaded);
@@ -512,11 +511,10 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
               Workflow File
             </label>
             <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                file
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file
                   ? "border-brand-500 bg-brand-50"
                   : "border-gray-300 hover:border-gray-400"
-              }`}
+                }`}
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -745,10 +743,10 @@ function EditDialog({ workflow, open, onClose, onSave, existingFolders, existing
 /** Simple markdown-like renderer for workflow descriptions */
 function renderDescription(text: string): React.ReactNode {
   if (!text) return null;
-  
+
   // Split into paragraphs
   const paragraphs = text.split(/\n\n+/);
-  
+
   return paragraphs.map((para, i) => {
     // Handle headers
     if (para.startsWith("### ")) {
@@ -760,7 +758,7 @@ function renderDescription(text: string): React.ReactNode {
     if (para.startsWith("# ")) {
       return <h2 key={i} className="text-lg font-bold text-gray-900 mt-4 mb-2">{para.slice(2)}</h2>;
     }
-    
+
     // Handle bullet lists
     if (para.match(/^[-*] /m)) {
       const items = para.split(/\n/).filter(Boolean);
@@ -772,7 +770,7 @@ function renderDescription(text: string): React.ReactNode {
         </ul>
       );
     }
-    
+
     // Handle numbered lists
     if (para.match(/^\d+\. /m)) {
       const items = para.split(/\n/).filter(Boolean);
@@ -784,26 +782,26 @@ function renderDescription(text: string): React.ReactNode {
         </ol>
       );
     }
-    
+
     // Regular paragraph - handle inline formatting
     let content: React.ReactNode = para;
-    
+
     // Bold
     const boldParts = para.split(/\*\*(.+?)\*\*/g);
     if (boldParts.length > 1) {
-      content = boldParts.map((part, j) => 
+      content = boldParts.map((part, j) =>
         j % 2 === 1 ? <strong key={j} className="font-semibold">{part}</strong> : part
       );
     }
-    
+
     // Code
     const codeParts = para.split(/`(.+?)`/g);
     if (codeParts.length > 1) {
-      content = codeParts.map((part, j) => 
+      content = codeParts.map((part, j) =>
         j % 2 === 1 ? <code key={j} className="px-1 py-0.5 bg-gray-100 rounded text-sm font-mono">{part}</code> : part
       );
     }
-    
+
     return <p key={i} className="text-sm text-gray-600 my-2">{content}</p>;
   });
 }
@@ -824,10 +822,10 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
 
   useEffect(() => {
     if (!open) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     getWorkflowContent(workflow.id)
       .then(setContent)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
@@ -1051,11 +1049,10 @@ function FolderTreeItem({ node, selectedPath, onSelect, depth = 0 }: FolderTreeI
     <div>
       <button
         onClick={handleSelect}
-        className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg transition-colors ${
-          isSelected
+        className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg transition-colors ${isSelected
             ? "bg-brand-100 text-brand-700"
             : "text-gray-700 hover:bg-gray-100"
-        }`}
+          }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {hasChildren ? (
@@ -1171,7 +1168,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
   };
 
   return (
-    <div 
+    <div
       className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => onView(workflow)}
     >
@@ -1346,7 +1343,7 @@ export function WorkflowsPage() {
   const fetchWorkflows = useCallback(async () => {
     try {
       setError(null);
-      const response = await listMyWorkflows();
+      const response = await listWorkflows();
       setWorkflows(response.workflows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load workflows");
@@ -1401,7 +1398,7 @@ export function WorkflowsPage() {
   // Download handler for detail dialog
   const handleDownloadFromDetail = async () => {
     if (!viewingWorkflow) return;
-    
+
     const token = getAuthToken();
     const url = getWorkflowDownloadUrl(viewingWorkflow.id);
 
@@ -1429,12 +1426,12 @@ export function WorkflowsPage() {
   // Client-side filtering: folder + fuzzy search
   const filteredWorkflows = useMemo(() => {
     let results = workflows;
-    
+
     // Filter by folder first
     if (selectedFolder) {
       results = results.filter((w) => w.folder_path.startsWith(selectedFolder));
     }
-    
+
     // Apply fuzzy search
     if (searchQuery.trim()) {
       const scored = results
@@ -1443,7 +1440,7 @@ export function WorkflowsPage() {
         .sort((a, b) => b.score - a.score);
       results = scored.map((item) => item.workflow);
     }
-    
+
     return results;
   }, [workflows, selectedFolder, searchQuery]);
 

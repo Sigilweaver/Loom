@@ -17,7 +17,7 @@ class TestAdminCanManageConnections:
         """Admin can create connections."""
         async with new_client() as client:
             response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Admin Connection",
@@ -45,7 +45,7 @@ class TestAdminCanManageConnections:
         async with new_client() as client:
             # Create a connection first
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -61,7 +61,7 @@ class TestAdminCanManageConnections:
                 pytest.skip("Connection creation requires encryption key")
 
             # List all connections
-            response = await client.get("/api/connections", headers=admin_headers)
+            response = await client.get("/api/v1/connections", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -73,7 +73,7 @@ class TestAdminCanManageConnections:
         async with new_client() as client:
             # Create a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -92,7 +92,7 @@ class TestAdminCanManageConnections:
 
             # Get connection details
             response = await client.get(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=admin_headers,
             )
 
@@ -105,7 +105,7 @@ class TestAdminCanManageConnections:
         async with new_client() as client:
             # Create a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -124,7 +124,7 @@ class TestAdminCanManageConnections:
 
             # Update the connection
             response = await client.put(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=admin_headers,
                 json={"name": "Updated Connection Name"},
             )
@@ -138,7 +138,7 @@ class TestAdminCanManageConnections:
         async with new_client() as client:
             # Create a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -157,7 +157,7 @@ class TestAdminCanManageConnections:
 
             # Delete the connection
             response = await client.delete(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=admin_headers,
             )
 
@@ -172,7 +172,7 @@ class TestAdminCanManageGrantGroups:
         """Admin can create grant groups."""
         async with new_client() as client:
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Admin Grant Group", "description": "Test grant group"},
             )
@@ -188,7 +188,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -207,7 +207,7 @@ class TestAdminCanManageGrantGroups:
 
             # Create grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -215,7 +215,7 @@ class TestAdminCanManageGrantGroups:
 
             # Add connection to grant group
             response = await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=admin_headers,
             )
 
@@ -229,7 +229,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -237,7 +237,7 @@ class TestAdminCanManageGrantGroups:
 
             # Assign to user group
             response = await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=admin_headers,
             )
 
@@ -249,7 +249,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -268,20 +268,20 @@ class TestAdminCanManageGrantGroups:
 
             # Create grant group and add connection
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
             grant_group_id = grant_group_response.json()["id"]
 
             await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=admin_headers,
             )
 
             # Remove connection from grant group
             response = await client.delete(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=admin_headers,
             )
 
@@ -295,7 +295,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -303,13 +303,13 @@ class TestAdminCanManageGrantGroups:
 
             # Assign grant group to user group
             await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=admin_headers,
             )
 
             # Remove grant group from user group
             response = await client.delete(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=admin_headers,
             )
 
@@ -321,7 +321,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -340,7 +340,7 @@ class TestAdminCanManageGrantGroups:
 
             # Create grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -348,14 +348,14 @@ class TestAdminCanManageGrantGroups:
 
             # First assignment
             response = await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=admin_headers,
             )
             assert response.status_code == 201
 
             # Second assignment - should fail
             response = await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=admin_headers,
             )
 
@@ -369,7 +369,7 @@ class TestAdminCanManageGrantGroups:
         async with new_client() as client:
             # Create grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -377,14 +377,14 @@ class TestAdminCanManageGrantGroups:
 
             # First assignment
             response = await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=admin_headers,
             )
             assert response.status_code == 201
 
             # Second assignment - should fail
             response = await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=admin_headers,
             )
 

@@ -262,10 +262,7 @@ class Connection(Base):
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
     )
 
-    # Relationships
-    groups: Mapped[list["ConnectionGroup"]] = relationship(
-        "ConnectionGroup", back_populates="connection", cascade="all, delete-orphan"
-    )
+    # Relationships removed - connections are now accessed via grant groups only
 
 
 class Session(Base):
@@ -333,9 +330,6 @@ class Group(Base):
     members: Mapped[list["UserGroup"]] = relationship(
         "UserGroup", back_populates="group", cascade="all, delete-orphan"
     )
-    connections: Mapped[list["ConnectionGroup"]] = relationship(
-        "ConnectionGroup", back_populates="group", cascade="all, delete-orphan"
-    )
     servers: Mapped[list["ServerGroup"]] = relationship(
         "ServerGroup", back_populates="group", cascade="all, delete-orphan"
     )
@@ -370,30 +364,9 @@ class UserGroup(Base):
     group: Mapped["Group"] = relationship("Group", back_populates="members")
 
 
-class ConnectionGroup(Base):
-    """Join table for Connection <-> Group assignment."""
-
-    __tablename__ = "connection_groups"
-
-    connection_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("connections.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    group_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-    # When the connection was assigned to the group
-    assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow
-    )
-
-    # Relationships
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="groups")
-    group: Mapped["Group"] = relationship("Group", back_populates="connections")
+# NOTE: ConnectionGroup model removed in API v1
+# Connection access is now managed exclusively through grant groups:
+# User -> UserGroup -> GrantGroup -> Connection
 
 
 class ServerGroup(Base):

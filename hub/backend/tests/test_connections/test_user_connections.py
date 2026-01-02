@@ -21,7 +21,7 @@ async def assign_connection_to_group_via_grant_group(
     """
     # Create grant group
     grant_group_response = await client.post(
-        "/api/grant-groups",
+        "/api/v1/grant-groups",
         headers=admin_headers,
         json={"name": f"Grant Group for {connection_id[:8]}"},
     )
@@ -30,14 +30,14 @@ async def assign_connection_to_group_via_grant_group(
     
     # Add connection to grant group
     add_conn_response = await client.post(
-        f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+        f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
         headers=admin_headers,
     )
     assert add_conn_response.status_code == 201
     
     # Assign grant group to user group
     assign_response = await client.post(
-        f"/api/groups/{group_id}/grant-groups/{grant_group_id}",
+        f"/api/v1/groups/{group_id}/grant-groups/{grant_group_id}",
         headers=admin_headers,
     )
     assert assign_response.status_code == 201
@@ -56,7 +56,7 @@ class TestUserCanSeeOwnConnections:
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -80,7 +80,7 @@ class TestUserCanSeeOwnConnections:
             )
 
             # User lists connections - should see the connection
-            response = await client.get("/api/connections", headers=user_headers)
+            response = await client.get("/api/v1/connections", headers=user_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -95,7 +95,7 @@ class TestUserCanSeeOwnConnections:
         async with new_client() as client:
             # Admin creates and assigns connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -118,7 +118,7 @@ class TestUserCanSeeOwnConnections:
 
             # User gets connection details
             response = await client.get(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=user_headers,
             )
 
@@ -133,7 +133,7 @@ class TestUserCanSeeOwnConnections:
         async with new_client() as client:
             # Admin creates a connection (not assigned to any group)
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Unassigned Connection",
@@ -149,7 +149,7 @@ class TestUserCanSeeOwnConnections:
                 pytest.skip("Connection creation requires encryption key")
 
             # User not in any group - should see nothing
-            response = await client.get("/api/connections", headers=user_headers)
+            response = await client.get("/api/v1/connections", headers=user_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -167,7 +167,7 @@ class TestUserCannotAccessUnassignedConnections:
         async with new_client() as client:
             # Admin creates a connection (not assigned to user's group)
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Other Connection",
@@ -186,7 +186,7 @@ class TestUserCannotAccessUnassignedConnections:
 
             # User tries to get unassigned connection - should fail
             response = await client.get(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=user_headers,
             )
 
@@ -201,7 +201,7 @@ class TestUserCannotManageConnections:
         """User cannot create connections."""
         async with new_client() as client:
             response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=user_headers,
                 json={
                     "name": "User Connection",
@@ -224,7 +224,7 @@ class TestUserCannotManageConnections:
         async with new_client() as client:
             # Admin creates and assigns connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -247,7 +247,7 @@ class TestUserCannotManageConnections:
 
             # User tries to update - should fail
             response = await client.put(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=user_headers,
                 json={"name": "Hacked Connection"},
             )
@@ -262,7 +262,7 @@ class TestUserCannotManageConnections:
         async with new_client() as client:
             # Admin creates and assigns connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -285,7 +285,7 @@ class TestUserCannotManageConnections:
 
             # User tries to delete - should fail
             response = await client.delete(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=user_headers,
             )
 
@@ -300,7 +300,7 @@ class TestUserCannotManageGrantGroups:
         """User cannot create grant groups."""
         async with new_client() as client:
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=user_headers,
                 json={"name": "User Grant Group"},
             )
@@ -315,7 +315,7 @@ class TestUserCannotManageGrantGroups:
         async with new_client() as client:
             # Admin creates connection and grant group
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -333,7 +333,7 @@ class TestUserCannotManageGrantGroups:
             connection_id = create_response.json()["id"]
 
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -341,7 +341,7 @@ class TestUserCannotManageGrantGroups:
 
             # User tries to add connection - should fail
             response = await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=user_headers,
             )
 
@@ -355,7 +355,7 @@ class TestUserCannotManageGrantGroups:
         async with new_client() as client:
             # Admin creates grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -363,7 +363,7 @@ class TestUserCannotManageGrantGroups:
 
             # User tries to assign grant group - should fail
             response = await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=user_headers,
             )
 

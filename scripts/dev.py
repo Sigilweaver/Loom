@@ -46,8 +46,9 @@ shutdown_requested = False
 # Patterns for noisy log lines to filter out (case-insensitive matching)
 # These are routine/health-check type messages that clutter the output
 NOISE_PATTERNS = [
-    # HTTP 200/304 responses (successful, not interesting in dev)
+    # HTTP 200/201/304 responses (successful, not interesting in dev)
     '" 200 ',
+    '" 201 ',
     '" 304 ',
     # Health check endpoints
     '/health',
@@ -73,7 +74,7 @@ IMPORTANT_PATTERNS = [
     'running on',
     'startup complete',
     'application startup',
-    'cannot reach',  # Keep for visibility, but we'll fix the root cause
+    'cannot reach',
     'unauthorized',  # Auth issues are important
     '" 4',  # 4xx errors
     '" 5',  # 5xx errors
@@ -307,7 +308,7 @@ def wait_for_hub_healthy(timeout: int = 30) -> bool:
     
     while time.time() - start_time < timeout:
         try:
-            req = urllib.request.Request("http://localhost:25802/api/health")
+            req = urllib.request.Request("http://localhost:25802/api/v1/health")
             with urllib.request.urlopen(req, timeout=2) as response:
                 if response.status == 200:
                     print_success("  Hub API is ready!")

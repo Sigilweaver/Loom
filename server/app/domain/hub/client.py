@@ -77,7 +77,7 @@ class HubClient:
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
-                    f"{self.hub_url}/api/internal/validate",
+                    f"{self.hub_url}/api/v1/internal/validate",
                     headers={"Authorization": f"Bearer {self.server_token}"},
                     json={
                         "token": token,
@@ -161,7 +161,7 @@ class HubClient:
 
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
-                    f"{self.hub_url}/api/servers",
+                    f"{self.hub_url}/api/v1/servers",
                     json={
                         "name": name,
                         "endpoint_url": endpoint_url,

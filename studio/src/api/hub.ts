@@ -165,7 +165,7 @@ export class HubClient {
       access_token: string;
       token_type: string;
       user: { id: string; username: string; role: string };
-    }>('/api/auth/login', {
+    }>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
@@ -183,7 +183,7 @@ export class HubClient {
    */
   async logout(): Promise<void> {
     try {
-      await this.request('/api/auth/logout', { method: 'POST' });
+      await this.request('/api/v1/auth/logout', { method: 'POST' });
     } finally {
       this.sessionToken = null;
     }
@@ -193,7 +193,7 @@ export class HubClient {
    * Get current user info
    */
   async getCurrentUser(): Promise<{ id: string; username: string; role: string }> {
-    return this.request('/api/auth/me');
+    return this.request('/api/v1/auth/me');
   }
 
   // ===========================================================================
@@ -213,7 +213,7 @@ export class HubClient {
   async requestExecuteToken(workflow: WorkflowJSON): Promise<ServerToken> {
     logger.info('Requesting server token from Hub');
 
-    const response = await this.request<ServerToken>('/api/capabilities/execute', {
+    const response = await this.request<ServerToken>('/api/v1/capabilities/execute', {
       method: 'POST',
       body: JSON.stringify({ workflow }),
     });
@@ -231,7 +231,7 @@ export class HubClient {
   async requestPreviewToken(workflow: WorkflowJSON): Promise<ServerToken> {
     logger.info('Requesting preview token from Hub');
 
-    const response = await this.request<ServerToken>('/api/capabilities/preview', {
+    const response = await this.request<ServerToken>('/api/v1/capabilities/preview', {
       method: 'POST',
       body: JSON.stringify({ workflow }),
     });
@@ -247,7 +247,7 @@ export class HubClient {
    * List connections the current user has access to
    */
   async listConnections(): Promise<HubConnectionInfo[]> {
-    const response = await this.request<{ connections: HubConnectionInfo[]; total: number }>('/api/connections');
+    const response = await this.request<{ connections: HubConnectionInfo[]; total: number }>('/api/v1/connections');
     return response.connections;
   }
 
@@ -255,7 +255,7 @@ export class HubClient {
    * Get a specific connection by ID
    */
   async getConnection(id: string): Promise<HubConnectionInfo> {
-    return this.request(`/api/connections/${id}`);
+    return this.request(`/api/v1/connections/${id}`);
   }
 
   // ===========================================================================
@@ -266,14 +266,14 @@ export class HubClient {
    * List available servers
    */
   async listServers(): Promise<HubServerInfo[]> {
-    return this.request('/api/servers');
+    return this.request('/api/v1/servers');
   }
 
   /**
    * Get a specific server by ID
    */
   async getServer(id: string): Promise<HubServerInfo> {
-    return this.request(`/api/servers/${id}`);
+    return this.request(`/api/v1/servers/${id}`);
   }
 
   // ===========================================================================
@@ -284,7 +284,7 @@ export class HubClient {
    * Check if Hub is reachable and healthy
    */
   async healthCheck(): Promise<{ status: string }> {
-    return this.request('/api/health');
+    return this.request('/api/v1/health');
   }
 }
 

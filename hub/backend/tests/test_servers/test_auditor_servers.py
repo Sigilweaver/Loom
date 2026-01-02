@@ -19,7 +19,7 @@ class TestAuditorCanReadAllServers:
     ):
         """Auditor can list all servers."""
         async with new_client() as client:
-            response = await client.get("/api/servers", headers=auditor_headers)
+            response = await client.get("/api/v1/servers", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -32,7 +32,7 @@ class TestAuditorCanReadAllServers:
         """Auditor can get server details."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=auditor_headers,
             )
 
@@ -46,7 +46,7 @@ class TestAuditorCanReadAllServers:
         """Auditor can see which groups a server belongs to."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/servers/{server_in_group['server_id']}/groups",
+                f"/api/v1/servers/{server_in_group['server_id']}/groups",
                 headers=auditor_headers,
             )
 
@@ -69,7 +69,7 @@ class TestAuditorCannotModifyServers:
         """Auditor cannot update servers."""
         async with new_client() as client:
             response = await client.put(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=auditor_headers,
                 json={"name": "Auditor Updated"},
             )
@@ -83,7 +83,7 @@ class TestAuditorCannotModifyServers:
         """Auditor cannot delete servers."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/servers/{test_server['id']}",
+                f"/api/v1/servers/{test_server['id']}",
                 headers=auditor_headers,
             )
 
@@ -100,7 +100,7 @@ class TestAuditorCannotManageServerGroups:
         """Auditor cannot assign servers to groups."""
         async with new_client() as client:
             response = await client.post(
-                f"/api/servers/{test_server['id']}/groups/{test_group['id']}",
+                f"/api/v1/servers/{test_server['id']}/groups/{test_group['id']}",
                 headers=auditor_headers,
             )
 
@@ -113,7 +113,7 @@ class TestAuditorCannotManageServerGroups:
         """Auditor cannot remove servers from groups."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
+                f"/api/v1/servers/{server_in_group['server_id']}/groups/{server_in_group['group_id']}",
                 headers=auditor_headers,
             )
 

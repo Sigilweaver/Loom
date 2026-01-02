@@ -1,74 +1,131 @@
-"""Initial schema
+"""Initial schema with all tables.
 
-Revision ID: 001_initial
-Revises:
-Create Date: 2024-12-27
-
+Revision ID: 001
+Create Date: 2026-01-02
 """
-from typing import Sequence, Union
 
-import sqlalchemy as sa
 from alembic import op
+import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-# revision identifiers, used by Alembic.
-revision: str = "001_initial"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = "001"
+down_revision = None
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
-    # Users table
+    # === Users ===
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("username", sa.String(255), unique=True, nullable=False),
         sa.Column("password_hash", sa.String(255), nullable=False),
-        sa.Column("role", sa.String(50), server_default="user"),
+        sa.Column("role", sa.String(50), default="user"),
         sa.Column("api_key", sa.String(255), unique=True, nullable=True),
-        sa.Column("created_at", sa.DateTime, server_default=sa.func.now()),
-        sa.Column("last_login", sa.DateTime, nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("last_login", sa.DateTime(timezone=True), nullable=True),
     )
 
-    # Workflows table
+    # === Sessions ===
+    op.create_table(
+        "sessions",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("token_hash", sa.String(255), nullable=False, index=True),
+        sa.Column("user_agent", sa.String(512), nullable=True),
+        sa.Column("ip_address", sa.String(45), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
+    )
+
+    # === Groups (User Groups) ===
+    op.create_table(
+        "groups",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("name", sa.String(100), unique=True, nullable=False),
+        sa.Column("description", sa.Text, default=""),
+        sa.Column("created_by", sa.String(255), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+    )
+
+    # === User Groups (join table) ===
+    op.create_table(
+        "user_groups",
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "group_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("groups.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("joined_at", sa.DateTime(timezone=True), nullable=False),
+    )
+
+    # === Workflows ===
     op.create_table(
         "workflows",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("description", sa.Text, server_default=""),
-        sa.Column("author", sa.String(255), server_default=""),
+        sa.Column("description", sa.Text, default=""),
+        sa.Column("author", sa.String(255), default=""),
         sa.Column("workflow_id", sa.String(255), nullable=False),
-        sa.Column("folder_path", sa.String(1024), server_default="/"),
-        sa.Column("tags", sa.Text, server_default=""),
+        sa.Column("folder_path", sa.String(1024), default="/"),
+        sa.Column("tags", sa.Text, default=""),
         sa.Column("file_path", sa.String(1024), nullable=False),
         sa.Column("checksum", sa.String(64), nullable=False),
         sa.Column("uploaded_by", sa.String(255), nullable=False),
-        sa.Column("created_at", sa.DateTime, server_default=sa.func.now()),
-        sa.Column(
-            "updated_at",
-            sa.DateTime,
-            server_default=sa.func.now(),
-            onupdate=sa.func.now(),
-        ),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-    # Servers table
+    # === Servers ===
     op.create_table(
         "servers",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("endpoint_url", sa.String(1024), nullable=False),
         sa.Column("auth_token", sa.String(255), nullable=True),
-        sa.Column("status", sa.String(50), server_default="unknown"),
+        sa.Column("status", sa.String(50), default="unknown"),
         sa.Column("version", sa.String(50), nullable=True),
-        sa.Column("last_poll", sa.DateTime, nullable=True),
-        sa.Column("last_healthy", sa.DateTime, nullable=True),
-        sa.Column("created_at", sa.DateTime, server_default=sa.func.now()),
+        sa.Column("last_poll", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("last_healthy", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_by", sa.String(255), nullable=False),
     )
 
-    # Schedules table (created before executions due to FK)
+    # === Server Groups (join table) ===
+    op.create_table(
+        "server_groups",
+        sa.Column(
+            "server_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("servers.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "group_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("groups.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("assigned_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("assigned_by", sa.String(255), nullable=False),
+    )
+
+    # === Schedules ===
     op.create_table(
         "schedules",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -79,22 +136,24 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("cron_expression", sa.String(255), nullable=False),
-        sa.Column("timezone", sa.String(100), server_default="UTC"),
+        sa.Column("timezone", sa.String(100), default="UTC"),
+        sa.Column("start_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "target_server_id",
             postgresql.UUID(as_uuid=True),
             sa.ForeignKey("servers.id"),
             nullable=True,
         ),
-        sa.Column("enabled", sa.Boolean, server_default="true"),
-        sa.Column("timeout_seconds", sa.Integer, server_default="3600"),
-        sa.Column("created_by", sa.String(255), nullable=False),
-        sa.Column("created_at", sa.DateTime, server_default=sa.func.now()),
-        sa.Column("last_triggered_at", sa.DateTime, nullable=True),
-        sa.Column("next_trigger_at", sa.DateTime, nullable=True),
+        sa.Column("enabled", sa.Boolean, default=True),
+        sa.Column("description", sa.Text, nullable=True),
+        sa.Column("created_by", sa.String(255), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("last_triggered_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("next_trigger_at", sa.DateTime(timezone=True), nullable=True),
     )
 
-    # Executions table
+    # === Executions ===
     op.create_table(
         "executions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -115,39 +174,145 @@ def upgrade() -> None:
         sa.Column(
             "schedule_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("schedules.id"),
+            sa.ForeignKey("schedules.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column("status", sa.String(50), server_default="queued"),
-        sa.Column("queued_at", sa.DateTime, server_default=sa.func.now()),
-        sa.Column("started_at", sa.DateTime, nullable=True),
-        sa.Column("completed_at", sa.DateTime, nullable=True),
+        sa.Column("status", sa.String(50), default="queued"),
+        sa.Column("queued_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("success", sa.Boolean, nullable=True),
         sa.Column("error_message", sa.Text, nullable=True),
         sa.Column("duration_seconds", sa.Float, nullable=True),
     )
 
-    # Create indexes for common queries
-    op.create_index("ix_workflows_folder_path", "workflows", ["folder_path"])
-    op.create_index("ix_executions_workflow_id", "executions", ["workflow_id"])
-    op.create_index("ix_executions_server_id", "executions", ["server_id"])
-    op.create_index("ix_executions_status", "executions", ["status"])
-    op.create_index("ix_schedules_workflow_id", "schedules", ["workflow_id"])
-    op.create_index("ix_schedules_enabled", "schedules", ["enabled"])
+    # === Connections ===
+    op.create_table(
+        "connections",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("name", sa.String(100), unique=True, nullable=False),
+        sa.Column("type", sa.String(20), nullable=False),
+        sa.Column("host", sa.String(255), nullable=False),
+        sa.Column("port", sa.Integer, nullable=False),
+        sa.Column("database", sa.String(255), nullable=False),
+        sa.Column("encrypted_credentials", sa.Text, nullable=False),
+        sa.Column("status", sa.String(20), nullable=False, default="unknown"),
+        sa.Column("last_checked", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("last_healthy", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("last_error", sa.Text, nullable=True),
+        sa.Column("created_by", sa.String(255), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+    )
+
+    # === Grant Groups ===
+    op.create_table(
+        "grant_groups",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("name", sa.String(100), unique=True, nullable=False),
+        sa.Column("description", sa.Text, default=""),
+        sa.Column("created_by", sa.String(255), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+    )
+
+    # === User Group -> Grant Group (join table) ===
+    op.create_table(
+        "user_group_grant_groups",
+        sa.Column(
+            "user_group_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("groups.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "grant_group_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("grant_groups.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("assigned_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("assigned_by", sa.String(255), nullable=False),
+    )
+
+    # === Grant Group -> Connection (join table) ===
+    op.create_table(
+        "grant_group_connections",
+        sa.Column(
+            "grant_group_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("grant_groups.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "connection_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("connections.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("assigned_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("assigned_by", sa.String(255), nullable=False),
+    )
+
+    # === Audit Events ===
+    op.create_table(
+        "audit_events",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("timestamp", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("event_type", sa.String(100), nullable=False),
+        sa.Column("execution_id", postgresql.UUID(as_uuid=True), nullable=True, index=True),
+        sa.Column("workflow_id", postgresql.UUID(as_uuid=True), nullable=True, index=True),
+        sa.Column("schedule_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("actor_type", sa.String(50), nullable=False),
+        sa.Column("actor_id", postgresql.UUID(as_uuid=True), nullable=True, index=True),
+        sa.Column("actor_identity", sa.String(255), nullable=False),
+        sa.Column("auth_method", sa.String(50), nullable=True),
+        sa.Column("client_ip", sa.String(45), nullable=True),
+        sa.Column("user_agent", sa.String(512), nullable=True),
+        sa.Column("server_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("details", postgresql.JSONB, default=dict),
+        sa.Column("event_hash", sa.String(64), nullable=False),
+        sa.Column("previous_hash", sa.String(64), nullable=True),
+    )
+
+    # === Execution Records ===
+    op.create_table(
+        "execution_records",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column(
+            "execution_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("executions.id"),
+            unique=True,
+            index=True,
+        ),
+        sa.Column("status", sa.String(50), nullable=False, index=True),
+        sa.Column("success", sa.Boolean, nullable=False),
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=False, index=True),
+        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("duration_ms", sa.Integer, nullable=True),
+        sa.Column("output_rows", sa.Integer, nullable=True),
+        sa.Column("output_columns", sa.Integer, nullable=True),
+        sa.Column("output_bytes", sa.BigInteger, nullable=True),
+        sa.Column("error_type", sa.String(100), nullable=True, index=True),
+        sa.Column("connection_ids", postgresql.JSONB, default=list),
+        sa.Column("details", postgresql.JSONB, default=dict),
+    )
 
 
 def downgrade() -> None:
-    # Drop indexes
-    op.drop_index("ix_schedules_enabled")
-    op.drop_index("ix_schedules_workflow_id")
-    op.drop_index("ix_executions_status")
-    op.drop_index("ix_executions_server_id")
-    op.drop_index("ix_executions_workflow_id")
-    op.drop_index("ix_workflows_folder_path")
-
-    # Drop tables in reverse order (respecting FKs)
+    op.drop_table("execution_records")
+    op.drop_table("audit_events")
+    op.drop_table("grant_group_connections")
+    op.drop_table("user_group_grant_groups")
+    op.drop_table("grant_groups")
+    op.drop_table("connections")
     op.drop_table("executions")
     op.drop_table("schedules")
+    op.drop_table("server_groups")
     op.drop_table("servers")
     op.drop_table("workflows")
+    op.drop_table("user_groups")
+    op.drop_table("groups")
+    op.drop_table("sessions")
     op.drop_table("users")

@@ -20,7 +20,7 @@ class TestAuditorCanReadAllSchedules:
         async with new_client() as client:
             # User creates a workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -34,7 +34,7 @@ class TestAuditorCanReadAllSchedules:
             workflow_id = upload_response.json()["id"]
 
             await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -44,7 +44,7 @@ class TestAuditorCanReadAllSchedules:
             )
 
             # Auditor lists all schedules
-            response = await client.get("/api/schedules", headers=auditor_headers)
+            response = await client.get("/api/v1/schedules", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -58,7 +58,7 @@ class TestAuditorCanReadAllSchedules:
         async with new_client() as client:
             # User creates a workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -72,7 +72,7 @@ class TestAuditorCanReadAllSchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -84,7 +84,7 @@ class TestAuditorCanReadAllSchedules:
 
             # Auditor gets schedule details
             response = await client.get(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=auditor_headers,
             )
 
@@ -103,7 +103,7 @@ class TestAuditorCannotModifySchedules:
         async with new_client() as client:
             # User creates a workflow (auditor can't even create workflows)
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -118,7 +118,7 @@ class TestAuditorCannotModifySchedules:
 
             # Auditor tries to create a schedule - should fail
             response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=auditor_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -137,7 +137,7 @@ class TestAuditorCannotModifySchedules:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -151,7 +151,7 @@ class TestAuditorCannotModifySchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -163,7 +163,7 @@ class TestAuditorCannotModifySchedules:
 
             # Auditor tries to update - should fail
             response = await client.put(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=auditor_headers,
                 json={"cron_expression": "0 12 * * *"},
             )
@@ -178,7 +178,7 @@ class TestAuditorCannotModifySchedules:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -192,7 +192,7 @@ class TestAuditorCannotModifySchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -204,7 +204,7 @@ class TestAuditorCannotModifySchedules:
 
             # Auditor tries to delete - should fail
             response = await client.delete(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=auditor_headers,
             )
 
@@ -218,7 +218,7 @@ class TestAuditorCannotModifySchedules:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -232,7 +232,7 @@ class TestAuditorCannotModifySchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -244,7 +244,7 @@ class TestAuditorCannotModifySchedules:
 
             # Auditor tries to toggle - should fail
             response = await client.post(
-                f"/api/schedules/{schedule_id}/toggle?enabled=false",
+                f"/api/v1/schedules/{schedule_id}/toggle?enabled=false",
                 headers=auditor_headers,
             )
 

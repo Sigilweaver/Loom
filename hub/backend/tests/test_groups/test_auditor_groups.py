@@ -19,7 +19,7 @@ class TestAuditorCanReadAllGroups:
     ):
         """Auditor can list all groups."""
         async with new_client() as client:
-            response = await client.get("/api/groups", headers=auditor_headers)
+            response = await client.get("/api/v1/groups", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -32,7 +32,7 @@ class TestAuditorCanReadAllGroups:
         """Auditor can get group details."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=auditor_headers,
             )
 
@@ -46,7 +46,7 @@ class TestAuditorCanReadAllGroups:
         """Auditor can see group membership for audit."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/groups/{user_in_group['group_id']}/members",
+                f"/api/v1/groups/{user_in_group['group_id']}/members",
                 headers=auditor_headers,
             )
 
@@ -61,7 +61,7 @@ class TestAuditorCannotModifyGroups:
         """Auditor cannot create groups."""
         async with new_client() as client:
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 headers=auditor_headers,
                 json={"name": "Auditor Group"},
             )
@@ -75,7 +75,7 @@ class TestAuditorCannotModifyGroups:
         """Auditor cannot update groups."""
         async with new_client() as client:
             response = await client.patch(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=auditor_headers,
                 json={"name": "Auditor Updated"},
             )
@@ -89,7 +89,7 @@ class TestAuditorCannotModifyGroups:
         """Auditor cannot delete groups."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=auditor_headers,
             )
 
@@ -101,14 +101,13 @@ class TestAuditorCannotManageGroupMembership:
 
     @pytest.mark.asyncio
     async def test_auditor_cannot_add_member_to_group(
-        self, auditor_headers, test_group
+        self, auditor_headers, test_group, second_user_info
     ):
         """Auditor cannot add members to groups."""
         async with new_client() as client:
             response = await client.post(
-                f"/api/groups/{test_group['id']}/members",
+                f"/api/v1/users/{second_user_info['id']}/groups/{test_group['id']}",
                 headers=auditor_headers,
-                json={"user_id": "some-user-id"},
             )
 
         assert response.status_code == 403
@@ -120,7 +119,7 @@ class TestAuditorCannotManageGroupMembership:
         """Auditor cannot remove members from groups."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/groups/{user_in_group['group_id']}/members/{user_in_group['user_id']}",
+                f"/api/v1/users/{user_in_group['user_id']}/groups/{user_in_group['group_id']}",
                 headers=auditor_headers,
             )
 

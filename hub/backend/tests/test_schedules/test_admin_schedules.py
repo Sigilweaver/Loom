@@ -21,7 +21,7 @@ class TestAdminCanReadAllSchedules:
         async with new_client() as client:
             # User creates a workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -35,7 +35,7 @@ class TestAdminCanReadAllSchedules:
             workflow_id = upload_response.json()["id"]
 
             await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -45,7 +45,7 @@ class TestAdminCanReadAllSchedules:
             )
 
             # Admin lists all schedules
-            response = await client.get("/api/schedules", headers=admin_headers)
+            response = await client.get("/api/v1/schedules", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -59,7 +59,7 @@ class TestAdminCanReadAllSchedules:
         async with new_client() as client:
             # User creates a workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -73,7 +73,7 @@ class TestAdminCanReadAllSchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -85,7 +85,7 @@ class TestAdminCanReadAllSchedules:
 
             # Admin gets schedule details
             response = await client.get(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=admin_headers,
             )
 
@@ -104,7 +104,7 @@ class TestAdminCanDeleteAnySchedule:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -118,7 +118,7 @@ class TestAdminCanDeleteAnySchedule:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -130,7 +130,7 @@ class TestAdminCanDeleteAnySchedule:
 
             # Admin deletes user's schedule
             response = await client.delete(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=admin_headers,
             )
 
@@ -154,7 +154,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -168,7 +168,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -180,7 +180,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
 
             # Admin tries to update user's schedule - should fail
             response = await client.put(
-                f"/api/schedules/{schedule_id}",
+                f"/api/v1/schedules/{schedule_id}",
                 headers=admin_headers,
                 json={"cron_expression": "0 12 * * *"},
             )
@@ -195,7 +195,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
         async with new_client() as client:
             # User creates workflow and schedule
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -209,7 +209,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
             workflow_id = upload_response.json()["id"]
 
             create_response = await client.post(
-                "/api/schedules",
+                "/api/v1/schedules",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -221,7 +221,7 @@ class TestAdminCannotCreateOrUpdateSchedules:
 
             # Admin tries to toggle user's schedule - should fail
             response = await client.post(
-                f"/api/schedules/{schedule_id}/toggle?enabled=false",
+                f"/api/v1/schedules/{schedule_id}/toggle?enabled=false",
                 headers=admin_headers,
             )
 

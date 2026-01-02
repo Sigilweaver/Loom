@@ -18,7 +18,7 @@ class TestUserWorkflowCRUD:
         """User can upload a workflow."""
         async with new_client() as client:
             response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -33,33 +33,61 @@ class TestUserWorkflowCRUD:
 
     @pytest.mark.asyncio
     async def test_user_can_list_own_workflows(self, user_headers):
-        """User can list their own workflows via /workflows/my."""
+        """User can list workflows (auto-filtered to their own)."""
         async with new_client() as client:
             # Upload a workflow
-            await client.post(
-                "/api/workflows",
+            upload_response = await client.post(
+                "/api/v1/workflows",
+                headers=user_headers,
+                files={
+                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                },
+                data={"folder_path": "/", "tags": "test"},
+            )
+            workflow_id = upload_response.json()["id"]
+
+            # User can list workflows (sees only their own)
+            response = await client.get("/api/v1/workflows", headers=user_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "workflows" in data
+        assert "total" in data
+        assert data["total"] >= 1
+        workflow_ids = [w["id"] for w in data["workflows"]]
+        assert workflow_id in workflow_ids
+
+    @pytest.mark.asyncio
+    async def test_user_only_sees_own_workflows(self, user_headers, admin_headers):
+        """User only sees their own workflows, not others'."""
+        async with new_client() as client:
+            # Upload a workflow as user
+            user_upload = await client.post(
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
                 },
                 data={"folder_path": "/", "tags": ""},
             )
+            user_workflow_id = user_upload.json()["id"]
 
-            # List own workflows
-            response = await client.get("/api/workflows/my", headers=user_headers)
+            # User lists workflows - sees only their own
+            response = await client.get("/api/v1/workflows", headers=user_headers)
 
         assert response.status_code == 200
         data = response.json()
-        assert data["total"] == 1
-        assert data["workflows"][0]["name"] == "Test Workflow"
+        # All workflows should be uploaded by the user
+        for workflow in data["workflows"]:
+            assert workflow["uploaded_by"] == "testuser"
 
     @pytest.mark.asyncio
     async def test_user_can_get_own_workflow(self, user_headers):
-        """User can get details of their own workflow."""
+        """User can get details of their own workflow by ID."""
         async with new_client() as client:
             # Upload
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -68,9 +96,9 @@ class TestUserWorkflowCRUD:
             )
             workflow_id = upload_response.json()["id"]
 
-            # Get via /my endpoint
+            # Get by ID
             response = await client.get(
-                f"/api/workflows/my/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
             )
 
@@ -83,7 +111,7 @@ class TestUserWorkflowCRUD:
         """User can get content of their own workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -93,7 +121,7 @@ class TestUserWorkflowCRUD:
             workflow_id = upload_response.json()["id"]
 
             response = await client.get(
-                f"/api/workflows/my/{workflow_id}/content",
+                f"/api/v1/workflows/{workflow_id}/content",
                 headers=user_headers,
             )
 
@@ -105,7 +133,7 @@ class TestUserWorkflowCRUD:
         """User can replace their workflow file."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -116,7 +144,7 @@ class TestUserWorkflowCRUD:
 
             # Update with new content
             response = await client.put(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
                 files={
                     "file": (
@@ -135,7 +163,7 @@ class TestUserWorkflowCRUD:
         """User can update workflow metadata (folder, tags)."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -145,7 +173,7 @@ class TestUserWorkflowCRUD:
             workflow_id = upload_response.json()["id"]
 
             response = await client.patch(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
                 json={"folder_path": "/production", "tags": ["important", "reviewed"]},
             )
@@ -160,7 +188,7 @@ class TestUserWorkflowCRUD:
         """User can delete their own workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -170,7 +198,7 @@ class TestUserWorkflowCRUD:
             workflow_id = upload_response.json()["id"]
 
             response = await client.delete(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
             )
 
@@ -181,14 +209,14 @@ class TestUserCannotAccessOthersWorkflows:
     """User cannot access workflows owned by other users."""
 
     @pytest.mark.asyncio
-    async def test_user_cannot_see_other_users_workflows(
+    async def test_user_only_sees_own_workflows_not_others(
         self, user_headers, second_user_headers
     ):
-        """User's /my list only shows their own workflows."""
+        """Users only see their own workflows, not others'."""
         async with new_client() as client:
             # First user uploads
-            await client.post(
-                "/api/workflows",
+            first_upload = await client.post(
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -199,10 +227,11 @@ class TestUserCannotAccessOthersWorkflows:
                 },
                 data={"folder_path": "/", "tags": ""},
             )
+            first_workflow_id = first_upload.json()["id"]
 
             # Second user uploads
-            await client.post(
-                "/api/workflows",
+            second_upload = await client.post(
+                "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
                     "file": (
@@ -213,24 +242,26 @@ class TestUserCannotAccessOthersWorkflows:
                 },
                 data={"folder_path": "/", "tags": ""},
             )
+            second_workflow_id = second_upload.json()["id"]
 
-            # First user lists - should only see their own
-            response = await client.get("/api/workflows/my", headers=user_headers)
+            # First user lists workflows - sees only their own
+            response = await client.get("/api/v1/workflows", headers=user_headers)
 
         assert response.status_code == 200
         data = response.json()
-        assert data["total"] == 1
-        assert data["workflows"][0]["name"] == "First User Workflow"
+        workflow_ids = [w["id"] for w in data["workflows"]]
+        assert first_workflow_id in workflow_ids
+        assert second_workflow_id not in workflow_ids
 
     @pytest.mark.asyncio
     async def test_user_cannot_get_other_users_workflow(
         self, user_headers, second_user_headers
     ):
-        """User cannot get another user's workflow via /my endpoint."""
+        """User cannot get another user's workflow."""
         async with new_client() as client:
             # Second user uploads
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -241,7 +272,7 @@ class TestUserCannotAccessOthersWorkflows:
 
             # First user tries to access
             response = await client.get(
-                f"/api/workflows/my/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
             )
 
@@ -254,7 +285,7 @@ class TestUserCannotAccessOthersWorkflows:
         """User cannot update another user's workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -264,7 +295,7 @@ class TestUserCannotAccessOthersWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.patch(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
                 json={"folder_path": "/hacked"},
             )
@@ -278,7 +309,7 @@ class TestUserCannotAccessOthersWorkflows:
         """User cannot delete another user's workflow."""
         async with new_client() as client:
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -288,23 +319,26 @@ class TestUserCannotAccessOthersWorkflows:
             workflow_id = upload_response.json()["id"]
 
             response = await client.delete(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
             )
 
         assert response.status_code == 403
 
 
-class TestUserCannotAccessAllWorkflows:
-    """User cannot use the all-workflows endpoints (auditor+ only)."""
+class TestUserWorkflowsFiltering:
+    """User sees only their own workflows."""
 
     @pytest.mark.asyncio
-    async def test_user_cannot_list_all_workflows(self, user_headers):
-        """User cannot use GET /workflows (requires auditor+)."""
+    async def test_user_sees_empty_list_without_workflows(self, user_headers):
+        """User with no workflows sees empty list."""
         async with new_client() as client:
-            response = await client.get("/api/workflows", headers=user_headers)
+            response = await client.get("/api/v1/workflows", headers=user_headers)
 
-        assert response.status_code == 403
+        assert response.status_code == 200
+        # May have leftover workflows from other tests, so just check structure
+        assert "workflows" in response.json()
+        assert "total" in response.json()
 
     @pytest.mark.asyncio
     async def test_user_cannot_get_workflow_via_global_endpoint(
@@ -314,7 +348,7 @@ class TestUserCannotAccessAllWorkflows:
         async with new_client() as client:
             # Upload a workflow first
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
@@ -325,7 +359,7 @@ class TestUserCannotAccessAllWorkflows:
 
             # Try the global endpoint - should work since user owns it
             response = await client.get(
-                f"/api/workflows/{workflow_id}",
+                f"/api/v1/workflows/{workflow_id}",
                 headers=user_headers,
             )
 

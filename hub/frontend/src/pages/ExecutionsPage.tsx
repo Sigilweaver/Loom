@@ -20,9 +20,9 @@ import {
   FileText,
 } from "lucide-react";
 import {
-  listMyExecutions,
-  listMyWorkflows,
-  listMyServers,
+  listExecutions,
+  listWorkflows,
+  listServers,
   cancelExecution,
   type ExecutionResponse,
   type WorkflowMetadata,
@@ -143,7 +143,7 @@ export function ExecutionsPage() {
 
   const fetchExecutions = useCallback(async () => {
     try {
-      const result = await listMyExecutions({
+      const result = await listExecutions({
         workflow_id: selectedWorkflow || undefined,
         server_id: selectedServer || undefined,
         status: selectedStatus || undefined,
@@ -161,14 +161,14 @@ export function ExecutionsPage() {
   const fetchFilters = useCallback(async () => {
     // Fetch workflows and servers independently
     try {
-      const workflowsRes = await listMyWorkflows();
+      const workflowsRes = await listWorkflows();
       setWorkflows(workflowsRes.workflows);
     } catch (err) {
       console.error("Failed to load workflows:", err);
     }
 
     try {
-      const serversRes = await listMyServers();
+      const serversRes = await listServers();
       setServers(serversRes.servers);
     } catch (err) {
       // Users with no group assignments will have no servers - that's OK
@@ -384,13 +384,13 @@ export function ExecutionsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       {(execution.status === "running" ||
                         execution.status === "queued") && (
-                        <button
-                          onClick={() => handleCancel(execution)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        >
-                          Cancel
-                        </button>
-                      )}
+                          <button
+                            onClick={() => handleCancel(execution)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Cancel
+                          </button>
+                        )}
                       {execution.status === "failed" && execution.error_message && (
                         <button
                           onClick={() => setViewingError(execution)}

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
 from app.db.models import ExecutionRecord
+from app.domain.auth.roles import get_role_level, Role
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
@@ -102,52 +103,13 @@ def _get_service(db: AsyncSession) -> ExecutionService:
 
 
 # =============================================================================
-# User's Executions (self-service) - MUST be before /{id} routes
-# =============================================================================
-
-
-@router.get("/my", response_model=ExecutionListResponse)
-async def list_my_executions(
-    user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-    workflow_id: UUID | None = Query(None),
-    server_id: UUID | None = Query(None),
-    status: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-) -> ExecutionListResponse:
-    """List executions triggered by the current user.
-
-    Query parameters:
-    - workflow_id: Filter by workflow
-    - server_id: Filter by server
-    - status: Filter by status (queued, running, completed, failed, cancelled)
-    - limit: Maximum results (default 50, max 200)
-    - offset: Pagination offset
-    """
-    service = _get_service(db)
-    executions, total = await service.list_executions(
-        workflow_id=workflow_id,
-        server_id=server_id,
-        status=status,
-        triggered_by=user.username,
-        limit=limit,
-        offset=offset,
-    )
-    return ExecutionListResponse(
-        executions=[_info_to_response(e) for e in executions],
-        total=total,
-    )
-
-
-# =============================================================================
-# Admin/Auditor Executions (all executions)
+# Execution List/Search
 # =============================================================================
 
 
 @router.get("", response_model=ExecutionListResponse)
 async def list_executions(
-    _auditor: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     workflow_id: UUID | None = Query(None),
     server_id: UUID | None = Query(None),
@@ -156,22 +118,37 @@ async def list_executions(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> ExecutionListResponse:
-    """List execution history, optionally filtered. Requires auditor role or higher.
+    """List executions with filtering.
+
+    For regular users: Returns only their own executions.
+    For auditor+: Returns all executions (can filter by triggered_by).
 
     Query parameters:
     - workflow_id: Filter by workflow
     - server_id: Filter by server
     - status: Filter by status (queued, running, completed, failed, cancelled)
-    - triggered_by: Filter by triggering username
+    - triggered_by: Filter by triggering username (auditor+ only)
     - limit: Maximum results (default 50, max 200)
     - offset: Pagination offset
     """
     service = _get_service(db)
+
+    # Regular users can only see their own executions
+    auditor_level = get_role_level(Role.AUDITOR)
+    user_level = get_role_level(user.role)
+
+    if user_level > auditor_level:
+        # Regular user - force filter to own executions
+        filter_by = user.username
+    else:
+        # Auditor+ - can see all, optionally filter
+        filter_by = triggered_by
+
     executions, total = await service.list_executions(
         workflow_id=workflow_id,
         server_id=server_id,
         status=status,
-        triggered_by=triggered_by,
+        triggered_by=filter_by,
         limit=limit,
         offset=offset,
     )
