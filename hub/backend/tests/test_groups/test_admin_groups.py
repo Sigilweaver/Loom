@@ -16,7 +16,7 @@ class TestAdminCanManageGroups:
     async def test_admin_can_list_all_groups(self, admin_headers, test_group):
         """Admin can list all groups."""
         async with new_client() as client:
-            response = await client.get("/api/groups", headers=admin_headers)
+            response = await client.get("/api/v1/groups", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -27,7 +27,7 @@ class TestAdminCanManageGroups:
         """Admin can create groups."""
         async with new_client() as client:
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 headers=admin_headers,
                 json={"name": "Admin Created Group"},
             )
@@ -43,7 +43,7 @@ class TestAdminCanManageGroups:
         """Admin can get group details."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=admin_headers,
             )
 
@@ -55,7 +55,7 @@ class TestAdminCanManageGroups:
         """Admin can update group configuration."""
         async with new_client() as client:
             response = await client.patch(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=admin_headers,
                 json={"name": "Admin Updated Group"},
             )
@@ -68,7 +68,7 @@ class TestAdminCanManageGroups:
         """Admin can delete groups."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/groups/{test_group['id']}",
+                f"/api/v1/groups/{test_group['id']}",
                 headers=admin_headers,
             )
 
@@ -85,7 +85,7 @@ class TestAdminCanManageGroupMembership:
         """Admin can list group members."""
         async with new_client() as client:
             response = await client.get(
-                f"/api/groups/{user_in_group['group_id']}/members",
+                f"/api/v1/groups/{user_in_group['group_id']}/members",
                 headers=admin_headers,
             )
 
@@ -100,9 +100,8 @@ class TestAdminCanManageGroupMembership:
         """Admin can add members to groups."""
         async with new_client() as client:
             response = await client.post(
-                f"/api/groups/{test_group['id']}/members",
+                f"/api/v1/users/{second_user_info['id']}/groups/{test_group['id']}",
                 headers=admin_headers,
-                json={"user_id": second_user_info["id"]},
             )
 
         assert response.status_code == 201
@@ -114,7 +113,7 @@ class TestAdminCanManageGroupMembership:
         """Admin can remove members from groups."""
         async with new_client() as client:
             response = await client.delete(
-                f"/api/groups/{user_in_group['group_id']}/members/{user_in_group['user_id']}",
+                f"/api/v1/users/{user_in_group['user_id']}/groups/{user_in_group['group_id']}",
                 headers=admin_headers,
             )
 
@@ -130,7 +129,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
         async with new_client() as client:
             # Create
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 headers=owner_headers,
                 json={"name": "Owner Created Group"},
             )
@@ -138,12 +137,12 @@ class TestOwnerHasSamePermissionsAsAdmin:
             group_id = response.json()["id"]
 
             # List
-            response = await client.get("/api/groups", headers=owner_headers)
+            response = await client.get("/api/v1/groups", headers=owner_headers)
             assert response.status_code == 200
 
             # Update
             response = await client.patch(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 headers=owner_headers,
                 json={"name": "Owner Updated Group"},
             )
@@ -151,7 +150,7 @@ class TestOwnerHasSamePermissionsAsAdmin:
 
             # Delete
             response = await client.delete(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 headers=owner_headers,
             )
             assert response.status_code == 204

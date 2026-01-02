@@ -18,7 +18,7 @@ class TestAuthStatus:
     async def test_status_no_users(self, client):
         """Status shows registration open when no users exist"""
         async with client:
-            response = await client.get("/api/auth/status")
+            response = await client.get("/api/v1/auth/status")
 
         assert response.status_code == 200
         data = response.json()
@@ -35,7 +35,7 @@ class TestRegister:
         """First user to register becomes owner"""
         async with client:
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "admin", "password": "password123"},
             )
 
@@ -52,13 +52,13 @@ class TestRegister:
         async with client:
             # Create first user (owner)
             await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
 
             # Try to register without auth
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "user2", "password": "password123"},
             )
 
@@ -70,14 +70,14 @@ class TestRegister:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Register another user as owner
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "user2", "password": "password123"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -93,14 +93,14 @@ class TestRegister:
         async with client:
             # Create first user
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "admin", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Try to register same username
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "admin", "password": "different123"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -113,7 +113,7 @@ class TestRegister:
         """Username must be at least 3 characters"""
         async with client:
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "ab", "password": "password123"},
             )
 
@@ -124,7 +124,7 @@ class TestRegister:
         """Password must be at least 8 characters"""
         async with client:
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "validuser", "password": "short"},
             )
 
@@ -136,14 +136,14 @@ class TestRegister:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Create regular user
             user_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "regularuser", "password": "password123"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -151,7 +151,7 @@ class TestRegister:
 
             # Regular user tries to register someone
             response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "newuser", "password": "password123"},
                 headers={"Authorization": f"Bearer {user_token}"},
             )
@@ -168,13 +168,13 @@ class TestLogin:
         async with client:
             # Create user first
             await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "password": "password123"},
             )
 
             # Login
             response = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "testuser", "password": "password123"},
             )
 
@@ -190,13 +190,13 @@ class TestLogin:
         async with client:
             # Create user
             await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "password": "password123"},
             )
 
             # Login with wrong password
             response = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "testuser", "password": "wrongpassword"},
             )
 
@@ -208,7 +208,7 @@ class TestLogin:
         """Nonexistent user returns 401"""
         async with client:
             response = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "nobody", "password": "password123"},
             )
 
@@ -220,17 +220,17 @@ class TestLogin:
         async with client:
             # Create user
             await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "password": "password123"},
             )
 
             # Login twice
             response1 = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "testuser", "password": "password123"},
             )
             response2 = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "testuser", "password": "password123"},
             )
 
@@ -248,14 +248,14 @@ class TestLogout:
         async with client:
             # Create and login
             reg_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "password": "password123"},
             )
             token = reg_response.json()["access_token"]
 
             # Logout
             logout_response = await client.post(
-                "/api/auth/logout",
+                "/api/v1/auth/logout",
                 headers={"Authorization": f"Bearer {token}"},
             )
             assert logout_response.status_code == 200
@@ -263,7 +263,7 @@ class TestLogout:
 
             # Try to use token after logout
             me_response = await client.get(
-                "/api/auth/me",
+                "/api/v1/auth/me",
                 headers={"Authorization": f"Bearer {token}"},
             )
 
@@ -273,7 +273,7 @@ class TestLogout:
     async def test_logout_without_token(self, client):
         """Logout without token returns graceful message"""
         async with client:
-            response = await client.post("/api/auth/logout")
+            response = await client.post("/api/v1/auth/logout")
 
         assert response.status_code == 200
         assert "No session" in response.json()["message"]
@@ -288,14 +288,14 @@ class TestMe:
         async with client:
             # Create user
             reg_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "password": "password123"},
             )
             token = reg_response.json()["access_token"]
 
             # Get user info
             response = await client.get(
-                "/api/auth/me",
+                "/api/v1/auth/me",
                 headers={"Authorization": f"Bearer {token}"},
             )
 
@@ -310,7 +310,7 @@ class TestMe:
     async def test_me_requires_auth(self, client):
         """Returns 401 when not authenticated"""
         async with client:
-            response = await client.get("/api/auth/me")
+            response = await client.get("/api/v1/auth/me")
 
         assert response.status_code == 401
 
@@ -319,7 +319,7 @@ class TestMe:
         """Returns 401 for invalid token"""
         async with client:
             response = await client.get(
-                "/api/auth/me",
+                "/api/v1/auth/me",
                 headers={"Authorization": "Bearer invalidtoken"},
             )
 
@@ -335,14 +335,14 @@ class TestCreateUser:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Create admin
             response = await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "newadmin",
                     "password": "password123",
@@ -362,14 +362,14 @@ class TestCreateUser:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Create admin
             await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "admin1",
                     "password": "password123",
@@ -380,14 +380,14 @@ class TestCreateUser:
 
             # Login as admin
             admin_login = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "admin1", "password": "password123"},
             )
             admin_token = admin_login.json()["access_token"]
 
             # Try to create another admin
             response = await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "admin2",
                     "password": "password123",
@@ -405,14 +405,14 @@ class TestCreateUser:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Create admin
             await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "admin1",
                     "password": "password123",
@@ -423,14 +423,14 @@ class TestCreateUser:
 
             # Login as admin
             admin_login = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "admin1", "password": "password123"},
             )
             admin_token = admin_login.json()["access_token"]
 
             # Create regular user
             response = await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "newuser",
                     "password": "password123",
@@ -448,14 +448,14 @@ class TestCreateUser:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Try to create another owner
             response = await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "owner2",
                     "password": "password123",
@@ -472,14 +472,14 @@ class TestCreateUser:
         async with client:
             # Create owner
             owner_response = await client.post(
-                "/api/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "owner", "password": "password123"},
             )
             owner_token = owner_response.json()["access_token"]
 
             # Create regular user
             await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "regularuser",
                     "password": "password123",
@@ -490,14 +490,14 @@ class TestCreateUser:
 
             # Login as regular user
             user_login = await client.post(
-                "/api/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "regularuser", "password": "password123"},
             )
             user_token = user_login.json()["access_token"]
 
             # Try to create another user
             response = await client.post(
-                "/api/auth/users",
+                "/api/v1/users",
                 json={
                     "username": "newuser",
                     "password": "password123",

@@ -20,7 +20,7 @@ class TestAuditorCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -34,7 +34,7 @@ class TestAuditorCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -43,7 +43,7 @@ class TestAuditorCanReadAllExecutions:
             )
 
             # Auditor lists all executions
-            response = await client.get("/api/executions", headers=auditor_headers)
+            response = await client.get("/api/v1/executions", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -57,7 +57,7 @@ class TestAuditorCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -71,7 +71,7 @@ class TestAuditorCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -82,7 +82,7 @@ class TestAuditorCanReadAllExecutions:
 
             # Auditor gets execution details
             response = await client.get(
-                f"/api/executions/{execution_id}",
+                f"/api/v1/executions/{execution_id}",
                 headers=auditor_headers,
             )
 
@@ -97,7 +97,7 @@ class TestAuditorCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -111,7 +111,7 @@ class TestAuditorCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -123,7 +123,7 @@ class TestAuditorCanReadAllExecutions:
             # Auditor gets execution record - may be 404 if no record created yet
             # but should NOT be 403
             response = await client.get(
-                f"/api/executions/{execution_id}/record",
+                f"/api/v1/executions/{execution_id}/record",
                 headers=auditor_headers,
             )
 
@@ -138,7 +138,7 @@ class TestAuditorCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -152,7 +152,7 @@ class TestAuditorCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -163,7 +163,7 @@ class TestAuditorCanReadAllExecutions:
 
             # Auditor gets execution code - may be 404 if no record yet
             response = await client.get(
-                f"/api/executions/{execution_id}/code",
+                f"/api/v1/executions/{execution_id}/code",
                 headers=auditor_headers,
             )
 
@@ -177,7 +177,7 @@ class TestAuditorCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -191,7 +191,7 @@ class TestAuditorCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -202,7 +202,7 @@ class TestAuditorCanReadAllExecutions:
 
             # Auditor gets execution logs - may be 404 if no record yet
             response = await client.get(
-                f"/api/executions/{execution_id}/logs",
+                f"/api/v1/executions/{execution_id}/logs",
                 headers=auditor_headers,
             )
 
@@ -220,7 +220,7 @@ class TestAuditorCannotTriggerOrCancelExecutions:
         async with new_client() as client:
             # User creates a workflow
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -235,7 +235,7 @@ class TestAuditorCannotTriggerOrCancelExecutions:
 
             # Auditor tries to trigger execution - should fail
             response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=auditor_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -253,7 +253,7 @@ class TestAuditorCannotTriggerOrCancelExecutions:
         async with new_client() as client:
             # User creates workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -267,7 +267,7 @@ class TestAuditorCannotTriggerOrCancelExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -278,7 +278,7 @@ class TestAuditorCannotTriggerOrCancelExecutions:
 
             # Auditor tries to cancel - should fail
             response = await client.post(
-                f"/api/executions/{execution_id}/cancel",
+                f"/api/v1/executions/{execution_id}/cancel",
                 headers=auditor_headers,
             )
 

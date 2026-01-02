@@ -17,6 +17,7 @@ dependencies = [
     "connectorx>=0.3.0",
     "cryptography>=41.0.0",
     "pyarrow>=22.0.0",
+    "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]

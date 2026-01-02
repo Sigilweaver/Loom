@@ -20,7 +20,7 @@ class TestAdminCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -34,7 +34,7 @@ class TestAdminCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -43,7 +43,7 @@ class TestAdminCanReadAllExecutions:
             )
 
             # Admin lists all executions
-            response = await client.get("/api/executions", headers=admin_headers)
+            response = await client.get("/api/v1/executions", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -57,7 +57,7 @@ class TestAdminCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -71,7 +71,7 @@ class TestAdminCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -82,7 +82,7 @@ class TestAdminCanReadAllExecutions:
 
             # Admin gets execution details
             response = await client.get(
-                f"/api/executions/{execution_id}",
+                f"/api/v1/executions/{execution_id}",
                 headers=admin_headers,
             )
 
@@ -97,7 +97,7 @@ class TestAdminCanReadAllExecutions:
         async with new_client() as client:
             # User creates a workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -111,7 +111,7 @@ class TestAdminCanReadAllExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -122,7 +122,7 @@ class TestAdminCanReadAllExecutions:
 
             # Admin gets execution record - may be 404 if no record created yet
             response = await client.get(
-                f"/api/executions/{execution_id}/record",
+                f"/api/v1/executions/{execution_id}/record",
                 headers=admin_headers,
             )
 
@@ -143,7 +143,7 @@ class TestAdminCannotTriggerOrCancelExecutions:
         async with new_client() as client:
             # User creates a workflow
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -158,7 +158,7 @@ class TestAdminCannotTriggerOrCancelExecutions:
 
             # Admin tries to trigger execution - should fail
             response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=admin_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -174,7 +174,7 @@ class TestAdminCannotTriggerOrCancelExecutions:
         async with new_client() as client:
             # User creates workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -189,7 +189,7 @@ class TestAdminCannotTriggerOrCancelExecutions:
 
             # User triggers execution
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -200,7 +200,7 @@ class TestAdminCannotTriggerOrCancelExecutions:
 
             # Admin tries to cancel - should fail (requires user role)
             response = await client.post(
-                f"/api/executions/{execution_id}/cancel",
+                f"/api/v1/executions/{execution_id}/cancel",
                 headers=admin_headers,
             )
 
@@ -218,7 +218,7 @@ class TestAdminCanReadOtherUsersExecutions:
         async with new_client() as client:
             # User creates workflow and triggers execution
             upload_response = await client.post(
-                "/api/workflows",
+                "/api/v1/workflows",
                 headers=user_headers,
                 files={
                     "file": (
@@ -232,7 +232,7 @@ class TestAdminCanReadOtherUsersExecutions:
             workflow_id = upload_response.json()["id"]
 
             trigger_response = await client.post(
-                "/api/executions",
+                "/api/v1/executions",
                 headers=user_headers,
                 json={
                     "workflow_id": workflow_id,
@@ -243,7 +243,7 @@ class TestAdminCanReadOtherUsersExecutions:
 
             # Admin can view the execution
             response = await client.get(
-                f"/api/executions/{execution_id}",
+                f"/api/v1/executions/{execution_id}",
                 headers=admin_headers,
             )
 

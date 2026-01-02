@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAdmin
 from app.db.database import get_db
-from app.db.models import ConnectionGroup, GrantGroupConnection, UserGroup, UserGroupGrantGroup
+from app.db.models import GrantGroupConnection, UserGroup, UserGroupGrantGroup
 from app.domain.auth.sessions import SessionInfo
 from app.domain.connections import (
     ConnectionInfo,
@@ -104,7 +104,8 @@ async def list_connections(
     """List Hub connections accessible to the current user.
 
     Admins and owners see all connections.
-    Regular users only see connections assigned to groups they belong to.
+    Regular users only see connections via grant groups:
+    User -> UserGroup -> GrantGroup -> Connection
     Credentials are never returned.
     """
     store = await _get_store(db)
@@ -127,16 +128,7 @@ async def list_connections(
         # User not in any groups - no connections accessible
         return ConnectionListResponse(connections=[], total=0)
 
-    # Get connections via legacy path: User -> UserGroup -> ConnectionGroup -> Connection
-    legacy_conn_result = await db.execute(
-        select(ConnectionGroup.connection_id)
-        .where(ConnectionGroup.group_id.in_(user_group_ids))
-        .distinct()
-    )
-    legacy_conn_ids = {row[0] for row in legacy_conn_result.fetchall()}
-
     # Get connections via grant group path: User -> UserGroup -> GrantGroup -> Connection
-    # First, find grant groups assigned to user's groups
     grant_groups_result = await db.execute(
         select(UserGroupGrantGroup.grant_group_id)
         .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
@@ -144,17 +136,15 @@ async def list_connections(
     )
     grant_group_ids = {row[0] for row in grant_groups_result.fetchall()}
 
-    grant_conn_ids: set[UUID] = set()
-    if grant_group_ids:
-        grant_conn_result = await db.execute(
-            select(GrantGroupConnection.connection_id)
-            .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
-            .distinct()
-        )
-        grant_conn_ids = {row[0] for row in grant_conn_result.fetchall()}
+    if not grant_group_ids:
+        return ConnectionListResponse(connections=[], total=0)
 
-    # Combine both paths (union)
-    accessible_conn_ids = legacy_conn_ids | grant_conn_ids
+    grant_conn_result = await db.execute(
+        select(GrantGroupConnection.connection_id)
+        .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
+        .distinct()
+    )
+    accessible_conn_ids = {row[0] for row in grant_conn_result.fetchall()}
 
     if not accessible_conn_ids:
         return ConnectionListResponse(connections=[], total=0)

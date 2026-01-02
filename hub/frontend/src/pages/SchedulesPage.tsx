@@ -25,9 +25,9 @@ import {
 import { DateTimePicker } from "@components/DateTimePicker";
 import { ScheduleBuilder } from "@components/ScheduleBuilder";
 import {
-  listMySchedules,
-  listMyWorkflows,
-  listMyServers,
+  listSchedules,
+  listWorkflows,
+  listServers,
   createSchedule,
   updateSchedule,
   deleteSchedule,
@@ -111,14 +111,14 @@ function ScheduleModal({
   const [formData, setFormData] = useState<ScheduleFormData>(
     schedule
       ? {
-          workflow_id: schedule.workflow_id,
-          cron_expression: schedule.cron_expression,
-          timezone: schedule.timezone,
-          start_at: schedule.start_at || "",
-          target_server_id: schedule.target_server_id || "",
-          enabled: schedule.enabled,
-          description: schedule.description || "",
-        }
+        workflow_id: schedule.workflow_id,
+        cron_expression: schedule.cron_expression,
+        timezone: schedule.timezone,
+        start_at: schedule.start_at || "",
+        target_server_id: schedule.target_server_id || "",
+        enabled: schedule.enabled,
+        description: schedule.description || "",
+      }
       : DEFAULT_FORM_DATA
   );
   const [saving, setSaving] = useState(false);
@@ -334,7 +334,7 @@ export function SchedulesPage() {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const result = await listMySchedules({
+      const result = await listSchedules({
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
@@ -349,14 +349,14 @@ export function SchedulesPage() {
   const fetchFilters = useCallback(async () => {
     // Fetch workflows and servers independently
     try {
-      const workflowsRes = await listMyWorkflows();
+      const workflowsRes = await listWorkflows();
       setWorkflows(workflowsRes.workflows);
     } catch (err) {
       console.error("Failed to load workflows:", err);
     }
 
     try {
-      const serversRes = await listMyServers();
+      const serversRes = await listServers();
       setServers(serversRes.servers);
     } catch (err) {
       // Users with no group assignments will have no servers - that's OK
@@ -508,11 +508,10 @@ export function SchedulesPage() {
             {schedules.map((schedule) => (
               <div
                 key={schedule.id}
-                className={`bg-white rounded-lg border p-4 ${
-                  schedule.enabled
+                className={`bg-white rounded-lg border p-4 ${schedule.enabled
                     ? "border-gray-200"
                     : "border-gray-200 opacity-60"
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -521,11 +520,10 @@ export function SchedulesPage() {
                         {schedule.workflow_name || "Unknown Workflow"}
                       </h3>
                       <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          schedule.enabled
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${schedule.enabled
                             ? "bg-green-100 text-green-700"
                             : "bg-gray-100 text-gray-600"
-                        }`}
+                          }`}
                       >
                         {schedule.enabled ? "Active" : "Paused"}
                       </span>

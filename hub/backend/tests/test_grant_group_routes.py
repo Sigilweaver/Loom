@@ -23,7 +23,7 @@ def client(setup_database):
 async def create_owner(client: AsyncClient) -> tuple[str, dict]:
     """Helper: Create owner user and return (token, user_data)"""
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": "owner", "password": "password123"},
     )
     data = response.json()
@@ -35,7 +35,7 @@ async def create_user_with_role(
 ) -> tuple[str, dict]:
     """Helper: Create user with specified role and return (token, user_data)"""
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": username, "password": "password123"},
         headers={"Authorization": f"Bearer {owner_token}"},
     )
@@ -43,14 +43,14 @@ async def create_user_with_role(
 
     if role != "user":
         update_response = await client.patch(
-            f"/api/auth/users/{user_data['id']}",
+            f"/api/v1/users/{user_data['id']}",
             json={"role": role},
             headers={"Authorization": f"Bearer {owner_token}"},
         )
         user_data = update_response.json()
 
     login_response = await client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"username": username, "password": "password123"},
     )
     token = login_response.json()["access_token"]
@@ -62,7 +62,7 @@ async def create_grant_group(
 ) -> dict:
     """Helper: Create a grant group and return its data."""
     response = await client.post(
-        "/api/grant-groups",
+        "/api/v1/grant-groups",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"name": name, "description": description},
     )
@@ -75,7 +75,7 @@ async def create_connection(
 ) -> dict:
     """Helper: Create a connection and return its data."""
     response = await client.post(
-        "/api/connections",
+        "/api/v1/connections",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "name": name,
@@ -96,7 +96,7 @@ async def create_user_group(
 ) -> dict:
     """Helper: Create a user group and return its data."""
     response = await client.post(
-        "/api/groups",
+        "/api/v1/groups",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"name": name, "description": f"Test group: {name}"},
     )
@@ -116,7 +116,7 @@ class TestListGrantGroups:
     async def test_list_grant_groups_requires_auth(self, client):
         """Listing grant groups requires authentication."""
         async with client:
-            response = await client.get("/api/grant-groups")
+            response = await client.get("/api/v1/grant-groups")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -127,7 +127,7 @@ class TestListGrantGroups:
             user_token, _ = await create_user_with_role(client, owner_token, "testuser")
 
             response = await client.get(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
         assert response.status_code == 403
@@ -142,7 +142,7 @@ class TestListGrantGroups:
             )
 
             response = await client.get(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
         assert response.status_code == 200
@@ -160,7 +160,7 @@ class TestListGrantGroups:
             await create_grant_group(client, owner_token, "Test Grant Group")
 
             response = await client.get(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -182,7 +182,7 @@ class TestCreateGrantGroup:
             )
 
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 json={"name": "New Grant Group"},
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
@@ -195,7 +195,7 @@ class TestCreateGrantGroup:
             owner_token, owner_data = await create_owner(client)
 
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 json={"name": "Production Access", "description": "Access to prod"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -216,7 +216,7 @@ class TestCreateGrantGroup:
             await create_grant_group(client, owner_token, "Production")
 
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 json={"name": "Production"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -230,7 +230,7 @@ class TestCreateGrantGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 json={"description": "No name provided"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -248,7 +248,7 @@ class TestGetGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Test Group")
 
             response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -261,7 +261,7 @@ class TestGetGrantGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.get(
-                "/api/grant-groups/00000000-0000-0000-0000-000000000000",
+                "/api/v1/grant-groups/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -278,7 +278,7 @@ class TestUpdateGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Old Name")
 
             response = await client.patch(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 json={"name": "New Name"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -293,7 +293,7 @@ class TestUpdateGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Test Group")
 
             response = await client.patch(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 json={"description": "New description"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -311,7 +311,7 @@ class TestUpdateGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Test Group")
 
             response = await client.patch(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 json={"name": "Updated"},
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
@@ -326,7 +326,7 @@ class TestUpdateGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "ToUpdate")
 
             response = await client.patch(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 json={"name": "Existing"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -344,14 +344,14 @@ class TestDeleteGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "ToDelete")
 
             response = await client.delete(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             assert response.status_code == 204
 
             # Verify deletion
             verify_response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert verify_response.status_code == 404
@@ -367,7 +367,7 @@ class TestDeleteGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Test Group")
 
             response = await client.delete(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
         assert response.status_code == 403
@@ -379,7 +379,7 @@ class TestDeleteGrantGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.delete(
-                "/api/grant-groups/00000000-0000-0000-0000-000000000000",
+                "/api/v1/grant-groups/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -402,7 +402,7 @@ class TestAddConnectionToGrantGroup:
             connection = await create_connection(client, owner_token, "Test Connection")
 
             response = await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 201
@@ -419,7 +419,7 @@ class TestAddConnectionToGrantGroup:
             connection = await create_connection(client, owner_token, "Test Connection")
 
             response = await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
         assert response.status_code == 403
@@ -434,13 +434,13 @@ class TestAddConnectionToGrantGroup:
 
             # First addition
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Second addition should fail
             response = await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 409
@@ -453,7 +453,7 @@ class TestAddConnectionToGrantGroup:
             connection = await create_connection(client, owner_token, "Test Connection")
 
             response = await client.post(
-                f"/api/grant-groups/00000000-0000-0000-0000-000000000000/connections/{connection['id']}",
+                f"/api/v1/grant-groups/00000000-0000-0000-0000-000000000000/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -466,7 +466,7 @@ class TestAddConnectionToGrantGroup:
             grant_group = await create_grant_group(client, owner_token, "Test Group")
 
             response = await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/00000000-0000-0000-0000-000000000000",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -485,13 +485,13 @@ class TestRemoveConnectionFromGrantGroup:
 
             # Add first
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Remove
             response = await client.delete(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 204
@@ -505,7 +505,7 @@ class TestRemoveConnectionFromGrantGroup:
             connection = await create_connection(client, owner_token, "Test Connection")
 
             response = await client.delete(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -529,12 +529,12 @@ class TestListGroupGrantGroups:
 
             # Assign grant group to user group via groups endpoint
             await client.post(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             response = await client.get(
-                f"/api/groups/{user_group['id']}/grant-groups",
+                f"/api/v1/groups/{user_group['id']}/grant-groups",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -550,7 +550,7 @@ class TestListGroupGrantGroups:
             user_group = await create_user_group(client, owner_token, "Test User Group")
 
             response = await client.get(
-                f"/api/groups/{user_group['id']}/grant-groups",
+                f"/api/v1/groups/{user_group['id']}/grant-groups",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -570,7 +570,7 @@ class TestAssignGrantGroupToUserGroup:
             user_group = await create_user_group(client, owner_token, "Test User Group")
 
             response = await client.post(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 201
@@ -589,13 +589,13 @@ class TestRemoveGrantGroupFromUserGroup:
 
             # Assign first
             await client.post(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Remove
             response = await client.delete(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 204
@@ -619,19 +619,19 @@ class TestGrantGroupCascadeDeletes:
 
             # Add connection to grant group
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Delete grant group
             await client.delete(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Connection should still exist
             response = await client.get(
-                f"/api/connections/{connection['id']}",
+                f"/api/v1/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -646,19 +646,19 @@ class TestGrantGroupCascadeDeletes:
 
             # Assign grant group to user group via groups endpoint
             await client.post(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Delete grant group
             await client.delete(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # User group should still exist
             response = await client.get(
-                f"/api/groups/{user_group['id']}",
+                f"/api/v1/groups/{user_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -673,19 +673,19 @@ class TestGrantGroupCascadeDeletes:
 
             # Add connection to grant group
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Delete connection
             await client.delete(
-                f"/api/connections/{connection['id']}",
+                f"/api/v1/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Grant group should still exist with 0 connections
             response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -701,19 +701,19 @@ class TestGrantGroupCascadeDeletes:
 
             # Assign grant group to user group via groups endpoint
             await client.post(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Delete user group
             await client.delete(
-                f"/api/groups/{user_group['id']}",
+                f"/api/v1/groups/{user_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Grant group should still exist with 0 user groups
             response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -739,16 +739,16 @@ class TestGrantGroupDetailResponse:
 
             # Add connections
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{conn1['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{conn1['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             await client.post(
-                f"/api/grant-groups/{grant_group['id']}/connections/{conn2['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{conn2['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -768,16 +768,16 @@ class TestGrantGroupDetailResponse:
 
             # Assign grant group to user groups via groups endpoint
             await client.post(
-                f"/api/groups/{group1['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{group1['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             await client.post(
-                f"/api/groups/{group2['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{group2['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             response = await client.get(
-                f"/api/grant-groups/{grant_group['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200

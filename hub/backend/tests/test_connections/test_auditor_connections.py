@@ -21,7 +21,7 @@ async def assign_connection_to_group_via_grant_group(
     """
     # Create grant group
     grant_group_response = await client.post(
-        "/api/grant-groups",
+        "/api/v1/grant-groups",
         headers=admin_headers,
         json={"name": f"Grant Group for {connection_id[:8]}"},
     )
@@ -30,14 +30,14 @@ async def assign_connection_to_group_via_grant_group(
     
     # Add connection to grant group
     add_conn_response = await client.post(
-        f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+        f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
         headers=admin_headers,
     )
     assert add_conn_response.status_code == 201
     
     # Assign grant group to user group
     assign_response = await client.post(
-        f"/api/groups/{group_id}/grant-groups/{grant_group_id}",
+        f"/api/v1/groups/{group_id}/grant-groups/{grant_group_id}",
         headers=admin_headers,
     )
     assert assign_response.status_code == 201
@@ -56,7 +56,7 @@ class TestAuditorCanReadAllConnections:
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -72,7 +72,7 @@ class TestAuditorCanReadAllConnections:
                 pytest.skip("Connection creation requires encryption key")
 
             # Auditor lists all connections
-            response = await client.get("/api/connections", headers=auditor_headers)
+            response = await client.get("/api/v1/connections", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -86,7 +86,7 @@ class TestAuditorCanReadAllConnections:
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -105,7 +105,7 @@ class TestAuditorCanReadAllConnections:
 
             # Auditor gets connection details
             response = await client.get(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=auditor_headers,
             )
 
@@ -120,13 +120,13 @@ class TestAuditorCanReadAllConnections:
         async with new_client() as client:
             # Admin creates a grant group
             await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Audit Test Grant Group"},
             )
 
             # Auditor lists grant groups
-            response = await client.get("/api/grant-groups", headers=auditor_headers)
+            response = await client.get("/api/v1/grant-groups", headers=auditor_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -140,7 +140,7 @@ class TestAuditorCanReadAllConnections:
         async with new_client() as client:
             # Admin creates connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -164,7 +164,7 @@ class TestAuditorCanReadAllConnections:
 
             # Auditor gets grant group details
             response = await client.get(
-                f"/api/grant-groups/{grant_group_id}",
+                f"/api/v1/grant-groups/{grant_group_id}",
                 headers=auditor_headers,
             )
 
@@ -183,7 +183,7 @@ class TestAuditorCannotModifyConnections:
         """Auditor cannot create connections."""
         async with new_client() as client:
             response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=auditor_headers,
                 json={
                     "name": "Auditor Connection",
@@ -206,7 +206,7 @@ class TestAuditorCannotModifyConnections:
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -225,7 +225,7 @@ class TestAuditorCannotModifyConnections:
 
             # Auditor tries to update - should fail
             response = await client.put(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=auditor_headers,
                 json={"name": "Auditor Updated"},
             )
@@ -240,7 +240,7 @@ class TestAuditorCannotModifyConnections:
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -259,7 +259,7 @@ class TestAuditorCannotModifyConnections:
 
             # Auditor tries to delete - should fail
             response = await client.delete(
-                f"/api/connections/{connection_id}",
+                f"/api/v1/connections/{connection_id}",
                 headers=auditor_headers,
             )
 
@@ -274,7 +274,7 @@ class TestAuditorCannotManageGrantGroups:
         """Auditor cannot create grant groups."""
         async with new_client() as client:
             response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=auditor_headers,
                 json={"name": "Auditor Grant Group"},
             )
@@ -289,7 +289,7 @@ class TestAuditorCannotManageGrantGroups:
         async with new_client() as client:
             # Admin creates connection
             create_response = await client.post(
-                "/api/connections",
+                "/api/v1/connections",
                 headers=admin_headers,
                 json={
                     "name": "Test Connection",
@@ -308,7 +308,7 @@ class TestAuditorCannotManageGrantGroups:
 
             # Admin creates grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -316,7 +316,7 @@ class TestAuditorCannotManageGrantGroups:
 
             # Auditor tries to add connection - should fail
             response = await client.post(
-                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
                 headers=auditor_headers,
             )
 
@@ -330,7 +330,7 @@ class TestAuditorCannotManageGrantGroups:
         async with new_client() as client:
             # Admin creates grant group
             grant_group_response = await client.post(
-                "/api/grant-groups",
+                "/api/v1/grant-groups",
                 headers=admin_headers,
                 json={"name": "Test Grant Group"},
             )
@@ -338,7 +338,7 @@ class TestAuditorCannotManageGrantGroups:
 
             # Auditor tries to assign grant group - should fail
             response = await client.post(
-                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
+                f"/api/v1/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=auditor_headers,
             )
 

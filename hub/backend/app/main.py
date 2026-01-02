@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.router import api_router
+from app.api.v1.router import v1_router
 from app.config import settings
 from app.db.database import async_session_maker
 from app.domain.auth.keys import init_key_manager
@@ -112,8 +112,8 @@ application.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
-application.include_router(api_router, prefix="/api")
+# Include API v1 routes
+application.include_router(v1_router, prefix="/api/v1")
 
 
 @application.get("/")

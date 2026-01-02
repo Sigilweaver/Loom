@@ -1,7 +1,6 @@
-"""Authentication routes"""
+"""Authentication routes (API v1)"""
 
 from datetime import UTC, datetime
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -12,7 +11,7 @@ from app.api.dependencies import CurrentUser, get_optional_user
 from app.db.database import get_db
 from app.db.models import User
 from app.domain.auth.password import hash_password, verify_password
-from app.domain.auth.roles import Role, can_assign_role, can_manage_role
+from app.domain.auth.roles import Role
 from app.domain.auth.sessions import SessionInfo, SessionManager
 
 router = APIRouter(prefix="/auth")
@@ -46,26 +45,10 @@ class LoginResponse(BaseModel):
 class UserResponse(BaseModel):
     """User info response"""
 
-    id: UUID
+    id: str  # UUID as string
     username: str
     role: str
     created_at: str
-
-
-class CreateUserRequest(BaseModel):
-    """Request to create a new user (admin only)"""
-
-    username: str = Field(..., min_length=3, max_length=255)
-    password: str = Field(..., min_length=8, max_length=128)
-    role: str = Field(default=Role.USER.value)
-
-
-class UpdateUserRequest(BaseModel):
-    """Request to update a user (admin only)"""
-
-    username: str | None = Field(None, min_length=3, max_length=255, description="New username")
-    password: str | None = Field(None, min_length=8, max_length=128, description="New password")
-    role: str | None = Field(None, description="New role for the user")
 
 
 class UpdateProfileRequest(BaseModel):
@@ -82,13 +65,21 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class AuthStatusResponse(BaseModel):
+    """Authentication system status"""
+
+    initialized: bool
+    registration_open: bool
+    user_count: int
+
+
 # Helper functions
 
 
 def _user_to_response(user: User) -> UserResponse:
     """Convert User model to response"""
     return UserResponse(
-        id=user.id,
+        id=str(user.id),
         username=user.username,
         role=user.role,
         created_at=user.created_at.isoformat() if user.created_at else "",
@@ -318,231 +309,8 @@ async def update_profile(
     return _user_to_response(user)
 
 
-@router.get("/users")
-async def list_users(
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    """List all users (auditor or higher)."""
-    # Owner, admin, and auditor can list users
-    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to list users",
-        )
-
-    result = await db.execute(select(User).order_by(User.created_at))
-    users = result.scalars().all()
-
-    return {
-        "users": [_user_to_response(u) for u in users],
-        "total": len(users),
-    }
-
-
-@router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(
-    user_id: UUID,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> UserResponse:
-    """Get a single user by ID (auditor or higher)."""
-    # Owner, admin, and auditor can view users
-    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value, Role.AUDITOR.value):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view user",
-        )
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    return _user_to_response(user)
-
-
-@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(
-    request: CreateUserRequest,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> UserResponse:
-    """Create a new user with specified role (admin only).
-
-    This endpoint allows admins to create users with specific roles,
-    unlike /register which creates standard users.
-    """
-    # Validate actor can create users
-    if current_user.role not in (Role.OWNER.value, Role.ADMIN.value):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to create users",
-        )
-
-    # Validate actor can assign the requested role
-    if not can_assign_role(current_user.role, request.role):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Cannot assign role '{request.role}'",
-        )
-
-    # Validate role is valid
-    valid_roles = {r.value for r in Role}
-    if request.role not in valid_roles:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
-        )
-
-    # Check if username already exists
-    existing_user = await _get_user_by_username(db, request.username)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already exists",
-        )
-
-    # Create user
-    user = User(
-        username=request.username,
-        password_hash=hash_password(request.password),
-        role=request.role,
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-
-    return _user_to_response(user)
-
-
-@router.patch("/users/{user_id}", response_model=UserResponse)
-async def update_user(
-    user_id: UUID,
-    request: UpdateUserRequest,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> UserResponse:
-    """Update a user's username, password, and/or role (admin only).
-
-    Users cannot update themselves or users with equal/higher privileges.
-    """
-    # Find the user to update
-    result = await db.execute(select(User).where(User.id == user_id))
-    target_user = result.scalar_one_or_none()
-
-    if target_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    # Cannot update yourself via this endpoint (use PATCH /me instead)
-    if target_user.id == current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update your own account via this endpoint. Use PATCH /auth/me instead.",
-        )
-
-    # Check permission to manage this user's current role
-    if not can_manage_role(current_user.role, target_user.role):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to update this user",
-        )
-
-    # Check if at least one field is being updated
-    if request.username is None and request.password is None and request.role is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No changes provided. Specify username, password, or role.",
-        )
-
-    # Update username if provided
-    if request.username is not None and request.username != target_user.username:
-        # Check if new username already exists
-        existing = await _get_user_by_username(db, request.username)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Username already exists",
-            )
-        target_user.username = request.username
-
-    # Update password if provided
-    if request.password is not None:
-        target_user.password_hash = hash_password(request.password)
-
-    # Update role if provided
-    if request.role is not None:
-        # Validate role is valid
-        valid_roles = {r.value for r in Role}
-        if request.role not in valid_roles:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
-            )
-
-        # Validate actor can assign the new role
-        if not can_assign_role(current_user.role, request.role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Cannot assign role '{request.role}'",
-            )
-
-        target_user.role = request.role
-
-    await db.commit()
-    await db.refresh(target_user)
-
-    return _user_to_response(target_user)
-
-
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(
-    user_id: UUID,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    """Delete a user (admin only).
-
-    Users cannot delete themselves or users with equal/higher privileges.
-    """
-    # Find the user to delete
-    result = await db.execute(select(User).where(User.id == user_id))
-    target_user = result.scalar_one_or_none()
-
-    if target_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    # Cannot delete yourself
-    if target_user.id == current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account",
-        )
-
-    # Check permission to manage this user's role
-    if not can_manage_role(current_user.role, target_user.role):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to delete this user",
-        )
-
-    # Delete the user (sessions will cascade delete)
-    await db.delete(target_user)
-    await db.commit()
-
-
-@router.get("/status")
-async def auth_status(db: AsyncSession = Depends(get_db)) -> dict:
+@router.get("/status", response_model=AuthStatusResponse)
+async def auth_status(db: AsyncSession = Depends(get_db)) -> AuthStatusResponse:
     """Check authentication system status.
 
     Returns whether the system has been initialized (has users)
@@ -550,9 +318,8 @@ async def auth_status(db: AsyncSession = Depends(get_db)) -> dict:
     """
     user_count = await _get_user_count(db)
 
-    return {
-        "initialized": user_count > 0,
-        "registration_open": user_count == 0,
-        "user_count": user_count,
-    }
-
+    return AuthStatusResponse(
+        initialized=user_count > 0,
+        registration_open=user_count == 0,
+        user_count=user_count,
+    )

@@ -68,7 +68,7 @@ Hub backend runs at `http://localhost:25802`, frontend at `http://localhost:2580
 Register multiple servers and route workflows to the right environment:
 
 ```bash
-curl -X POST https://hub.example.com/api/servers \
+curl -X POST https://hub.example.com/api/v1/servers \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name": "Production", "url": "https://server.example.com"}'
 ```
@@ -78,7 +78,7 @@ curl -X POST https://hub.example.com/api/servers \
 Automate workflow execution with cron syntax:
 
 ```bash
-curl -X POST https://hub.example.com/api/schedules \
+curl -X POST https://hub.example.com/api/v1/schedules \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"workflow_id": "...", "cron": "0 3 * * *"}'
 ```
@@ -88,7 +88,7 @@ curl -X POST https://hub.example.com/api/schedules \
 Programmatic access for CI/CD pipelines:
 
 ```bash
-curl -X POST https://hub.example.com/api/execute \
+curl -X POST https://hub.example.com/api/v1/executions \
   -H "X-API-Key: sw_key_abc123..." \
   -d '{"workflow_id": "...", "server_id": "..."}'
 ```

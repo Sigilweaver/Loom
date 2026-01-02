@@ -29,7 +29,7 @@ def client(setup_database):
 async def create_owner(client: AsyncClient) -> tuple[str, dict]:
     """Helper: Create owner user and return (token, user_data)"""
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": "owner", "password": "password123"},
     )
     data = response.json()
@@ -41,7 +41,7 @@ async def create_user_with_role(
 ) -> tuple[str, dict]:
     """Helper: Create user with specified role and return (token, user_data)"""
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": username, "password": "password123"},
         headers={"Authorization": f"Bearer {owner_token}"},
     )
@@ -49,14 +49,14 @@ async def create_user_with_role(
 
     if role != "user":
         update_response = await client.patch(
-            f"/api/auth/users/{user_data['id']}",
+            f"/api/v1/users/{user_data['id']}",
             json={"role": role},
             headers={"Authorization": f"Bearer {owner_token}"},
         )
         user_data = update_response.json()
 
     login_response = await client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"username": username, "password": "password123"},
     )
     token = login_response.json()["access_token"]
@@ -68,7 +68,7 @@ async def create_grant_group(
 ) -> dict:
     """Helper: Create a grant group and return its data."""
     response = await client.post(
-        "/api/grant-groups",
+        "/api/v1/grant-groups",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"name": name, "description": description},
     )
@@ -81,7 +81,7 @@ async def create_connection(
 ) -> dict:
     """Helper: Create a connection and return its data."""
     response = await client.post(
-        "/api/connections",
+        "/api/v1/connections",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "name": name,
@@ -102,7 +102,7 @@ async def create_user_group(
 ) -> dict:
     """Helper: Create a user group and return its data."""
     response = await client.post(
-        "/api/groups",
+        "/api/v1/groups",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"name": name, "description": f"Test group: {name}"},
     )
@@ -113,11 +113,10 @@ async def create_user_group(
 async def add_user_to_group(
     client: AsyncClient, admin_token: str, group_id: str, user_id: str
 ) -> None:
-    """Helper: Add a user to a user group."""
+    """Helper: Add a user to a user group via /users/{id}/groups endpoint."""
     response = await client.post(
-        f"/api/groups/{group_id}/members",
+        f"/api/v1/users/{user_id}/groups/{group_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
-        json={"user_id": user_id},
     )
     assert response.status_code == 201, f"Failed to add user to group: {response.text}"
 
@@ -127,7 +126,7 @@ async def assign_grant_group_to_user_group(
 ) -> None:
     """Helper: Assign a grant group to a user group via groups endpoint."""
     response = await client.post(
-        f"/api/groups/{user_group_id}/grant-groups/{grant_group_id}",
+        f"/api/v1/groups/{user_group_id}/grant-groups/{grant_group_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 201, f"Failed to assign grant group: {response.text}"
@@ -138,7 +137,7 @@ async def add_connection_to_grant_group(
 ) -> None:
     """Helper: Add a connection to a grant group."""
     response = await client.post(
-        f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+        f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 201, f"Failed to add connection to grant group: {response.text}"
@@ -179,7 +178,7 @@ class TestUserAccessViaGrantGroups:
 
             # User should see the connection
             response = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -215,7 +214,7 @@ class TestUserAccessViaGrantGroups:
 
             # User should only see assigned connection
             response = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -257,7 +256,7 @@ class TestUserAccessViaGrantGroups:
 
             # User should see both connections
             response = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -302,7 +301,7 @@ class TestUserAccessViaGrantGroups:
 
             # User should see connections from both groups' grant groups
             response = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -345,7 +344,7 @@ class TestGrantGroupPermissionRevocation:
 
             # Verify initial access
             response1 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
             assert response1.status_code == 200
@@ -353,13 +352,13 @@ class TestGrantGroupPermissionRevocation:
 
             # Remove grant group from user group via groups endpoint
             await client.delete(
-                f"/api/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
+                f"/api/v1/groups/{user_group['id']}/grant-groups/{grant_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Access should be revoked
             response2 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -390,7 +389,7 @@ class TestGrantGroupPermissionRevocation:
 
             # Verify initial access
             response1 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
             assert response1.status_code == 200
@@ -398,13 +397,13 @@ class TestGrantGroupPermissionRevocation:
 
             # Remove connection from grant group
             await client.delete(
-                f"/api/grant-groups/{grant_group['id']}/connections/{connection['id']}",
+                f"/api/v1/grant-groups/{grant_group['id']}/connections/{connection['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Access should be revoked
             response2 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -435,21 +434,21 @@ class TestGrantGroupPermissionRevocation:
 
             # Verify initial access
             response1 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
             assert response1.status_code == 200
             assert response1.json()["total"] == 1
 
-            # Remove user from group
+            # Remove user from group via /users endpoint
             await client.delete(
-                f"/api/groups/{user_group['id']}/members/{user_data['id']}",
+                f"/api/v1/users/{user_data['id']}/groups/{user_group['id']}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Access should be revoked
             response2 = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
 
@@ -483,7 +482,7 @@ class TestAdminAccessUnaffected:
 
             # Admin should see all connections
             response = await client.get(
-                "/api/connections",
+                "/api/v1/connections",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 

@@ -115,133 +115,48 @@ def _get_service(db: AsyncSession) -> WorkflowService:
 
 
 # =============================================================================
-# User's Workflows (self-service) - MUST be before other routes
-# =============================================================================
-
-
-@router.get("/my", response_model=WorkflowListResponse)
-async def list_my_workflows(
-    user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-    folder: str | None = None,
-    tag: str | None = None,
-    search: str | None = None,
-) -> WorkflowListResponse:
-    """List workflows uploaded by the current user.
-
-    Query parameters:
-    - folder: Filter by exact folder path
-    - tag: Filter by tag (partial match)
-    - search: Search in name and description
-    """
-    service = _get_service(db)
-    workflows = await service.list_workflows(
-        folder_path=folder,
-        tag=tag,
-        search=search,
-        uploaded_by=user.username,
-    )
-    return WorkflowListResponse(
-        workflows=[WorkflowMetadata.from_info(w) for w in workflows],
-        total=len(workflows),
-    )
-
-
-@router.get("/my/{workflow_id}", response_model=WorkflowMetadata)
-async def get_my_workflow(
-    workflow_id: UUID,
-    user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> WorkflowMetadata:
-    """Get metadata for a workflow the current user uploaded."""
-    service = _get_service(db)
-
-    try:
-        info = await service.get_workflow(workflow_id)
-    except WorkflowNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workflow not found",
-        )
-
-    # Check ownership
-    if info.uploaded_by != user.username:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only view workflows you uploaded",
-        )
-
-    return WorkflowMetadata.from_info(info)
-
-
-@router.get("/my/{workflow_id}/content", response_model=WorkflowContentResponse)
-async def get_my_workflow_content(
-    workflow_id: UUID,
-    user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-) -> WorkflowContentResponse:
-    """Get parsed content for a workflow the current user uploaded."""
-    service = _get_service(db)
-
-    try:
-        info = await service.get_workflow(workflow_id)
-    except WorkflowNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workflow not found",
-        )
-
-    # Check ownership
-    if info.uploaded_by != user.username:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only view workflows you uploaded",
-        )
-
-    try:
-        content = await service.get_content(workflow_id)
-    except WorkflowParseError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Stored file corrupted: {e}",
-        )
-
-    return WorkflowContentResponse(
-        version=content.version,
-        meta=content.meta,
-        tools=content.tools,
-        wires=content.wires,
-    )
-
-
-# =============================================================================
-# Admin/Auditor Workflows (all workflows)
+# Workflow List/Search
 # =============================================================================
 
 
 @router.get("", response_model=WorkflowListResponse)
 async def list_workflows(
-    _auditor: SessionInfo = RequireAuditor,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     folder: str | None = None,
     tag: str | None = None,
     search: str | None = None,
     uploaded_by: str | None = None,
 ) -> WorkflowListResponse:
-    """List all workflows, optionally filtered. Requires auditor role or higher.
+    """List workflows with filtering.
+
+    For regular users: Returns only their own workflows.
+    For auditor+: Returns all workflows (can filter by uploaded_by).
 
     Query parameters:
     - folder: Filter by exact folder path
     - tag: Filter by tag (partial match)
     - search: Search in name and description
-    - uploaded_by: Filter by uploader username
+    - uploaded_by: Filter by uploader username (auditor+ only)
     """
     service = _get_service(db)
+
+    # Regular users can only see their own workflows
+    auditor_level = get_role_level(Role.AUDITOR)
+    user_level = get_role_level(user.role)
+
+    if user_level > auditor_level:
+        # Regular user - force filter to own workflows
+        filter_by = user.username
+    else:
+        # Auditor+ - can see all, optionally filter
+        filter_by = uploaded_by
+
     workflows = await service.list_workflows(
         folder_path=folder,
         tag=tag,
         search=search,
-        uploaded_by=uploaded_by,
+        uploaded_by=filter_by,
     )
     return WorkflowListResponse(
         workflows=[WorkflowMetadata.from_info(w) for w in workflows],

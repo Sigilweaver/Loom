@@ -15,6 +15,7 @@ from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.config import settings
 from app.db.database import get_db
 from app.db.models import Group, Server, ServerGroup, UserGroup
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
 
@@ -115,46 +116,40 @@ def _server_to_response(server: Server) -> ServerResponse:
     )
 
 
+# =============================================================================
+# Server Listing (role-filtered)
+# =============================================================================
+
+
 @router.get("", response_model=ServerListResponse)
 async def list_servers(
-    _user: SessionInfo = RequireAuditor,
-    db: AsyncSession = Depends(get_db),
-) -> ServerListResponse:
-    """List all registered servers. Requires auditor role or higher."""
-    result = await db.execute(select(Server).order_by(Server.name))
-    servers = result.scalars().all()
-
-    return ServerListResponse(
-        servers=[_server_to_response(s) for s in servers],
-        total=len(servers),
-    )
-
-
-# =============================================================================
-# User's Servers (via group membership) - MUST be before /{server_id} routes
-# =============================================================================
-
-
-@router.get("/my", response_model=ServerListResponse)
-async def list_my_servers(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ServerListResponse:
-    """List servers available to the current user via group membership.
+    """List servers.
 
-    Returns servers assigned to any group the user belongs to.
-    Users can only see and target these servers for executions.
+    For regular users: Returns servers available via group membership.
+    For Auditor+: Returns all registered servers.
     """
-    # Get servers via: User -> UserGroup -> Group -> ServerGroup -> Server
-    result = await db.execute(
-        select(Server)
-        .join(ServerGroup, Server.id == ServerGroup.server_id)
-        .join(Group, ServerGroup.group_id == Group.id)
-        .join(UserGroup, Group.id == UserGroup.group_id)
-        .where(UserGroup.user_id == current_user.user_id)
-        .order_by(Server.name)
-        .distinct()
-    )
+    auditor_level = get_role_level(Role.AUDITOR)
+    user_level = get_role_level(current_user.role)
+
+    if user_level > auditor_level:
+        # Regular users: filter by group membership
+        # User -> UserGroup -> Group -> ServerGroup -> Server
+        result = await db.execute(
+            select(Server)
+            .join(ServerGroup, Server.id == ServerGroup.server_id)
+            .join(Group, ServerGroup.group_id == Group.id)
+            .join(UserGroup, Group.id == UserGroup.group_id)
+            .where(UserGroup.user_id == current_user.user_id)
+            .order_by(Server.name)
+            .distinct()
+        )
+    else:
+        # Auditor+: see all servers
+        result = await db.execute(select(Server).order_by(Server.name))
+
     servers = result.scalars().all()
 
     return ServerListResponse(

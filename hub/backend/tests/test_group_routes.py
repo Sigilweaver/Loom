@@ -15,7 +15,7 @@ def client(setup_database):
 async def create_owner(client: AsyncClient) -> tuple[str, dict]:
     """Helper: Create owner user and return (token, user_data)"""
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": "owner", "password": "password123"},
     )
     data = response.json()
@@ -28,7 +28,7 @@ async def create_user_with_role(
     """Helper: Create user with specified role and return (token, user_data)"""
     # Register the user
     response = await client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={"username": username, "password": "password123"},
         headers={"Authorization": f"Bearer {owner_token}"},
     )
@@ -37,7 +37,7 @@ async def create_user_with_role(
     # Update role if not default
     if role != "user":
         update_response = await client.patch(
-            f"/api/auth/users/{user_data['id']}",
+            f"/api/v1/users/{user_data['id']}",
             json={"role": role},
             headers={"Authorization": f"Bearer {owner_token}"},
         )
@@ -45,7 +45,7 @@ async def create_user_with_role(
 
     # Login to get token
     login_response = await client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"username": username, "password": "password123"},
     )
     token = login_response.json()["access_token"]
@@ -65,21 +65,25 @@ class TestListGroups:
     async def test_list_groups_requires_auth(self, client):
         """Listing groups requires authentication"""
         async with client:
-            response = await client.get("/api/groups")
+            response = await client.get("/api/v1/groups")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_regular_user_cannot_list_groups(self, client):
-        """Regular users cannot list groups"""
+    async def test_regular_user_sees_only_own_groups(self, client):
+        """Regular users see only groups they belong to (empty if none)."""
         async with client:
             owner_token, _ = await create_owner(client)
             user_token, _ = await create_user_with_role(client, owner_token, "testuser")
 
             response = await client.get(
-                "/api/groups",
+                "/api/v1/groups",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
-        assert response.status_code == 403
+        assert response.status_code == 200
+        data = response.json()
+        assert "groups" in data
+        # User is not in any groups, so sees empty list
+        assert data["total"] == 0
 
     @pytest.mark.asyncio
     async def test_auditor_can_list_groups(self, client):
@@ -91,7 +95,7 @@ class TestListGroups:
             )
 
             response = await client.get(
-                "/api/groups",
+                "/api/v1/groups",
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
         assert response.status_code == 200
@@ -107,13 +111,13 @@ class TestListGroups:
 
             # Create a group first
             await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group", "description": "A test group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             response = await client.get(
-                "/api/groups",
+                "/api/v1/groups",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -135,7 +139,7 @@ class TestCreateGroup:
             )
 
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "New Group"},
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
@@ -148,7 +152,7 @@ class TestCreateGroup:
             owner_token, owner_data = await create_owner(client)
 
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Engineering", "description": "Engineering team"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -157,7 +161,7 @@ class TestCreateGroup:
         assert data["name"] == "Engineering"
         assert data["description"] == "Engineering team"
         assert data["member_count"] == 0
-        assert data["connection_count"] == 0
+        assert data["grant_group_count"] == 0
         assert data["created_by"] == owner_data["username"]
 
     @pytest.mark.asyncio
@@ -168,14 +172,14 @@ class TestCreateGroup:
 
             # Create first group
             await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Engineering"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Try to create duplicate
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Engineering"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -189,7 +193,7 @@ class TestCreateGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"description": "No name provided"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -207,7 +211,7 @@ class TestGetGroup:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -215,7 +219,7 @@ class TestGetGroup:
 
             # Get group
             response = await client.get(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -228,7 +232,7 @@ class TestGetGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.get(
-                "/api/groups/00000000-0000-0000-0000-000000000000",
+                "/api/v1/groups/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -245,7 +249,7 @@ class TestUpdateGroup:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Old Name"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -253,7 +257,7 @@ class TestUpdateGroup:
 
             # Update name
             response = await client.patch(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 json={"name": "New Name"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -271,7 +275,7 @@ class TestUpdateGroup:
 
             # Create group as owner
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -279,7 +283,7 @@ class TestUpdateGroup:
 
             # Try to update as auditor
             response = await client.patch(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 json={"name": "Updated Name"},
                 headers={"Authorization": f"Bearer {auditor_token}"},
             )
@@ -297,7 +301,7 @@ class TestDeleteGroup:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "To Delete"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -305,7 +309,7 @@ class TestDeleteGroup:
 
             # Delete group
             response = await client.delete(
-                f"/api/groups/{group_id}",
+                f"/api/v1/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 204
@@ -317,7 +321,7 @@ class TestDeleteGroup:
             owner_token, _ = await create_owner(client)
 
             response = await client.delete(
-                "/api/groups/00000000-0000-0000-0000-000000000000",
+                "/api/v1/groups/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -339,7 +343,7 @@ class TestListGroupMembers:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Empty Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -347,7 +351,7 @@ class TestListGroupMembers:
 
             # List members
             response = await client.get(
-                f"/api/groups/{group_id}/members",
+                f"/api/v1/groups/{group_id}/members",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
@@ -357,7 +361,7 @@ class TestListGroupMembers:
 
 
 class TestAddGroupMember:
-    """Tests for POST /groups/{group_id}/members"""
+    """Tests for POST /users/{user_id}/groups/{group_id}"""
 
     @pytest.mark.asyncio
     async def test_add_regular_user_to_group(self, client):
@@ -368,7 +372,7 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -376,12 +380,11 @@ class TestAddGroupMember:
 
             # Add user to group
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 201
-        assert response.json()["status"] == "added"
+        assert response.json()["message"] == "User added to group"
 
     @pytest.mark.asyncio
     async def test_cannot_add_owner_to_group(self, client):
@@ -391,7 +394,7 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -399,13 +402,11 @@ class TestAddGroupMember:
 
             # Try to add owner to group
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": owner_data["id"]},
+                f"/api/v1/users/{owner_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 400
-        assert "Admin-level users" in response.json()["detail"]
-        assert "owner" in response.json()["detail"]
+        assert "Cannot add owner" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_cannot_add_admin_to_group(self, client):
@@ -418,7 +419,7 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -426,13 +427,11 @@ class TestAddGroupMember:
 
             # Try to add admin to group
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": admin_data["id"]},
+                f"/api/v1/users/{admin_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 400
-        assert "Admin-level users" in response.json()["detail"]
-        assert "admin" in response.json()["detail"]
+        assert "Cannot add admin" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_cannot_add_auditor_to_group(self, client):
@@ -445,7 +444,7 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -453,13 +452,11 @@ class TestAddGroupMember:
 
             # Try to add auditor to group
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": auditor_data["id"]},
+                f"/api/v1/users/{auditor_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 400
-        assert "Admin-level users" in response.json()["detail"]
-        assert "auditor" in response.json()["detail"]
+        assert "Cannot add auditor" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_cannot_add_same_user_twice(self, client):
@@ -470,7 +467,7 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -478,15 +475,13 @@ class TestAddGroupMember:
 
             # Add user first time
             await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Try to add again
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 409
@@ -500,8 +495,7 @@ class TestAddGroupMember:
             _, user_data = await create_user_with_role(client, owner_token, "testuser")
 
             response = await client.post(
-                "/api/groups/00000000-0000-0000-0000-000000000000/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -514,22 +508,21 @@ class TestAddGroupMember:
 
             # Create group
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             group_id = create_response.json()["id"]
 
             response = await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": "00000000-0000-0000-0000-000000000000"},
+                f"/api/v1/users/00000000-0000-0000-0000-000000000000/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
 
 
 class TestRemoveGroupMember:
-    """Tests for DELETE /groups/{group_id}/members/{user_id}"""
+    """Tests for DELETE /users/{user_id}/groups/{group_id}"""
 
     @pytest.mark.asyncio
     async def test_remove_member_from_group(self, client):
@@ -540,21 +533,20 @@ class TestRemoveGroupMember:
 
             # Create group and add member
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             group_id = create_response.json()["id"]
 
             await client.post(
-                f"/api/groups/{group_id}/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Remove member
             response = await client.delete(
-                f"/api/groups/{group_id}/members/{user_data['id']}",
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 204
@@ -568,7 +560,7 @@ class TestRemoveGroupMember:
 
             # Create group (without adding member)
             create_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Test Group"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
@@ -576,7 +568,7 @@ class TestRemoveGroupMember:
 
             # Try to remove
             response = await client.delete(
-                f"/api/groups/{group_id}/members/{user_data['id']}",
+                f"/api/v1/users/{user_data['id']}/groups/{group_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 404
@@ -587,43 +579,42 @@ class TestRemoveGroupMember:
 # =============================================================================
 
 
-class TestListMyGroups:
-    """Tests for GET /groups/my"""
+class TestListUserGroups:
+    """Tests for GET /users/{user_id}/groups"""
 
     @pytest.mark.asyncio
-    async def test_user_sees_own_groups(self, client):
-        """Users can see groups they belong to"""
+    async def test_admin_can_see_user_groups(self, client):
+        """Admin can see groups a user belongs to"""
         async with client:
             owner_token, _ = await create_owner(client)
-            user_token, user_data = await create_user_with_role(
+            _, user_data = await create_user_with_role(
                 client, owner_token, "testuser"
             )
 
             # Create two groups
             group1_response = await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Group One"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
             group1_id = group1_response.json()["id"]
 
             await client.post(
-                "/api/groups",
+                "/api/v1/groups",
                 json={"name": "Group Two"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
             # Add user to only Group One
             await client.post(
-                f"/api/groups/{group1_id}/members",
-                json={"user_id": user_data["id"]},
+                f"/api/v1/users/{user_data['id']}/groups/{group1_id}",
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
 
-            # User should only see Group One
+            # Admin should see user belongs to Group One
             response = await client.get(
-                "/api/groups/my",
-                headers={"Authorization": f"Bearer {user_token}"},
+                f"/api/v1/users/{user_data['id']}/groups",
+                headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
         data = response.json()
@@ -632,14 +623,14 @@ class TestListMyGroups:
 
     @pytest.mark.asyncio
     async def test_user_with_no_groups(self, client):
-        """Users with no groups see empty list"""
+        """User with no groups shows empty list"""
         async with client:
             owner_token, _ = await create_owner(client)
-            user_token, _ = await create_user_with_role(client, owner_token, "testuser")
+            _, user_data = await create_user_with_role(client, owner_token, "testuser")
 
             response = await client.get(
-                "/api/groups/my",
-                headers={"Authorization": f"Bearer {user_token}"},
+                f"/api/v1/users/{user_data['id']}/groups",
+                headers={"Authorization": f"Bearer {owner_token}"},
             )
         assert response.status_code == 200
         data = response.json()

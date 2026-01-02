@@ -110,7 +110,7 @@ function toConnectionInfo(stored: StoredConnection) {
 
 // Backend process management
 let backendProcess: ChildProcess | null = null;
-const BACKEND_PORT = 8000;
+const BACKEND_PORT = 25811;
 
 // Ephemeral session token for backend authentication
 // Generated fresh on each app launch, passed to backend via env var
@@ -124,13 +124,25 @@ const version = packageJson.version;
 /**
  * Get the path to the server executable
  */
-function getBackendPath(): { command: string; args: string[]; cwd?: string } {
+function getBackendPath(): { command: string; args: string[]; cwd?: string } | null {
   if (isDev) {
     // Development: run Python from virtual environment
     const serverDir = join(__dirname, "../../server");
     const venvPython = process.platform === "win32"
       ? join(serverDir, ".venv", "Scripts", "python.exe")
       : join(serverDir, ".venv", "bin", "python");
+
+    // Check if venv exists before trying to use it
+    try {
+      const fs = require("fs");
+      if (!fs.existsSync(venvPython)) {
+        console.log(`[Backend] Python venv not found at: ${venvPython}`);
+        console.log("[Backend] Run 'cd server && uv sync' to set up the server");
+        return null;
+      }
+    } catch {
+      return null;
+    }
 
     return {
       command: venvPython,
@@ -143,6 +155,16 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
   const ext = process.platform === "win32" ? ".exe" : "";
   const serverExe = join(process.resourcesPath, "server", `server${ext}`);
 
+  // Check if server exists (Client build won't have it)
+  try {
+    const fs = require("fs");
+    if (!fs.existsSync(serverExe)) {
+      return null; // Client build - no server bundled
+    }
+  } catch {
+    return null;
+  }
+
   return {
     command: serverExe,
     args: [],
@@ -150,41 +172,56 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } {
 }
 
 /**
- * Start the backend server (or verify it's already running in dev mode)
+ * Start the backend server based on build type and configuration
+ * 
+ * Build types:
+ * - Dev mode: NEVER spawn server, user must use ./scripts/dev.py --server
+ * - Client build: NEVER spawn (server doesn't exist)
+ * - Full build: Spawn based on autoStart setting
  */
 async function startBackend(): Promise<void> {
-  // In dev mode, check if backend is already running (started by dev.py)
+  // DEV MODE: Never auto-spawn, user must start server manually
   if (isDev) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`);
-      if (response.ok) {
-        console.log("[Backend] Already running (started by dev.py)");
-        return;
-      }
-    } catch {
-      // Backend not running, continue to start it
-    }
+    console.log("[Backend] Dev mode - start server manually or use: ./scripts/dev.py --server");
+    return;
   }
 
+  // PRODUCTION: Check if server is bundled (Full vs Client build)
+  const backendPath = getBackendPath();
+  if (!backendPath) {
+    console.log("[Backend] Client build - no bundled server");
+    console.log("[Backend] Connect to a remote server via Settings");
+    return;
+  }
+
+  // FULL BUILD: Check autoStart setting
+  const settings = store.get('settings') as typeof DEFAULT_SETTINGS;
+  const autoStart = settings?.backend?.autoStart ?? true;
+
+  if (!autoStart) {
+    console.log("[Backend] autoStart disabled in settings");
+    return;
+  }
+
+  // Start the bundled server
+  console.log("[Backend] Starting bundled server (Full build)");
+
   return new Promise((resolve, reject) => {
-    const { command, args, cwd } = getBackendPath();
+    const { command, args } = backendPath;
 
     // Generate ephemeral session token for this launch
     sessionToken = randomUUID();
     console.log("[Backend] Generated ephemeral session token");
 
     console.log(`[Backend] Starting: ${command} ${args.join(" ")}`);
-    if (cwd) console.log(`[Backend] Working directory: ${cwd}`);
 
     backendProcess = spawn(command, args, {
-      cwd,
       env: {
         ...process.env,
         PYTHONUNBUFFERED: "1",
         POLARS_VERBOSE: "1",
-        // In development: disable auth for easier debugging
-        // In production: enable ephemeral auth mode with generated token
-        AUTH_MODE: isDev ? "disabled" : "ephemeral",
+        // Production: enable ephemeral auth mode with generated token
+        AUTH_MODE: "ephemeral",
         SESSION_TOKEN: sessionToken,
       },
     });

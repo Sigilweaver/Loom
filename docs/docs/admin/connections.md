@@ -26,16 +26,18 @@ From **Admin > Connections**:
 
 Credentials are encrypted before storage. The encryption key is stored separately in `CONNECTION_ENCRYPTION_KEY` environment variable.
 
-## Assigning to Groups
+## Assigning to Grant Groups
 
-A connection is not accessible to users until assigned to at least one group:
+A connection is not accessible to users until assigned to a grant group that is linked to a user group:
 
-1. Go to **Admin > Groups**
-2. Select a group
-3. Go to **Connections** tab
-4. Add the connection
+1. Go to **Admin > Grant Groups**
+2. Create or select a grant group
+3. In the **Connections** section, click **Add Connection**
+4. Select the connection to add
+5. Go to **Admin > User Groups**, select a user group
+6. Go to the **Grant Groups** tab and assign the grant group
 
-Users in that group can now use the connection in workflows.
+Users in that user group can now use the connection in workflows.
 
 ## What Users See
 
