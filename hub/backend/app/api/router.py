@@ -8,6 +8,7 @@ from app.api.routes import (
     capabilities,
     connections,
     executions,
+    grant_groups,
     groups,
     health,
     internal,
@@ -35,6 +36,9 @@ api_router.include_router(connections.router, tags=["connections"])
 
 # Group management (admin only)
 api_router.include_router(groups.router, tags=["groups"])
+
+# Grant group management (admin only)
+api_router.include_router(grant_groups.router, tags=["grant-groups"])
 
 # Audit log (auditor and above)
 api_router.include_router(audit.router, tags=["audit"])

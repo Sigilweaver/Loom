@@ -2,7 +2,7 @@
 
 Per roles.md:
 - Users have R (Read) on connections via group membership
-- Users can only see connections assigned to groups they belong to
+- Users can only see connections assigned to groups they belong to (via grant groups)
 - Users cannot create, update, or delete connections
 """
 
@@ -10,14 +10,49 @@ import pytest
 from tests.conftest import new_client
 
 
+async def assign_connection_to_group_via_grant_group(
+    client, admin_headers, connection_id: str, group_id: str
+) -> str:
+    """
+    Helper: Assign a connection to a user group via a grant group.
+    
+    Creates a grant group, adds the connection to it, and assigns the
+    grant group to the user group. Returns the grant group ID.
+    """
+    # Create grant group
+    grant_group_response = await client.post(
+        "/api/grant-groups",
+        headers=admin_headers,
+        json={"name": f"Grant Group for {connection_id[:8]}"},
+    )
+    assert grant_group_response.status_code == 201
+    grant_group_id = grant_group_response.json()["id"]
+    
+    # Add connection to grant group
+    add_conn_response = await client.post(
+        f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+        headers=admin_headers,
+    )
+    assert add_conn_response.status_code == 201
+    
+    # Assign grant group to user group
+    assign_response = await client.post(
+        f"/api/groups/{group_id}/grant-groups/{grant_group_id}",
+        headers=admin_headers,
+    )
+    assert assign_response.status_code == 201
+    
+    return grant_group_id
+
+
 class TestUserCanSeeOwnConnections:
-    """User can see connections assigned to their groups via /connections list."""
+    """User can see connections assigned to their groups via grant groups."""
 
     @pytest.mark.asyncio
     async def test_user_can_list_connections_in_own_groups(
         self, user_headers, user_in_group, admin_headers, test_group
     ):
-        """User can list connections assigned to their groups."""
+        """User can list connections assigned to their groups via grant groups."""
         async with new_client() as client:
             # Admin creates a connection
             create_response = await client.post(
@@ -39,13 +74,10 @@ class TestUserCanSeeOwnConnections:
 
             connection_id = create_response.json()["id"]
 
-            # Admin assigns connection to user's group
-            assign_response = await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
+            # Admin assigns connection to user's group via grant group
+            await assign_connection_to_group_via_grant_group(
+                client, admin_headers, connection_id, test_group["id"]
             )
-            assert assign_response.status_code == 201
 
             # User lists connections - should see the connection
             response = await client.get("/api/connections", headers=user_headers)
@@ -59,7 +91,7 @@ class TestUserCanSeeOwnConnections:
     async def test_user_can_get_connection_in_own_groups(
         self, user_headers, user_in_group, admin_headers, test_group
     ):
-        """User can get details of a connection in their group."""
+        """User can get details of a connection accessible via their group."""
         async with new_client() as client:
             # Admin creates and assigns connection
             create_response = await client.post(
@@ -80,10 +112,8 @@ class TestUserCanSeeOwnConnections:
 
             connection_id = create_response.json()["id"]
 
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
+            await assign_connection_to_group_via_grant_group(
+                client, admin_headers, connection_id, test_group["id"]
             )
 
             # User gets connection details
@@ -211,10 +241,8 @@ class TestUserCannotManageConnections:
 
             connection_id = create_response.json()["id"]
 
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
+            await assign_connection_to_group_via_grant_group(
+                client, admin_headers, connection_id, test_group["id"]
             )
 
             # User tries to update - should fail
@@ -251,10 +279,8 @@ class TestUserCannotManageConnections:
 
             connection_id = create_response.json()["id"]
 
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
+            await assign_connection_to_group_via_grant_group(
+                client, admin_headers, connection_id, test_group["id"]
             )
 
             # User tries to delete - should fail
@@ -266,90 +292,78 @@ class TestUserCannotManageConnections:
         assert response.status_code == 403
 
 
-class TestUserCannotManageConnectionGroups:
-    """User cannot assign/remove connections from groups."""
+class TestUserCannotManageGrantGroups:
+    """User cannot manage grant groups or their assignments."""
 
     @pytest.mark.asyncio
-    async def test_user_cannot_assign_connection_to_group(
+    async def test_user_cannot_create_grant_group(self, user_headers):
+        """User cannot create grant groups."""
+        async with new_client() as client:
+            response = await client.post(
+                "/api/grant-groups",
+                headers=user_headers,
+                json={"name": "User Grant Group"},
+            )
+
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_user_cannot_add_connection_to_grant_group(
+        self, user_headers, admin_headers
+    ):
+        """User cannot add connections to grant groups."""
+        async with new_client() as client:
+            # Admin creates connection and grant group
+            create_response = await client.post(
+                "/api/connections",
+                headers=admin_headers,
+                json={
+                    "name": "Test Connection",
+                    "type": "postgresql",
+                    "host": "localhost",
+                    "port": 5432,
+                    "database": "testdb",
+                    "username": "testuser",
+                    "password": "testpass",
+                },
+            )
+            if create_response.status_code != 201:
+                pytest.skip("Connection creation requires encryption key")
+
+            connection_id = create_response.json()["id"]
+
+            grant_group_response = await client.post(
+                "/api/grant-groups",
+                headers=admin_headers,
+                json={"name": "Test Grant Group"},
+            )
+            grant_group_id = grant_group_response.json()["id"]
+
+            # User tries to add connection - should fail
+            response = await client.post(
+                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                headers=user_headers,
+            )
+
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_user_cannot_assign_grant_group_to_user_group(
         self, user_headers, admin_headers, test_group
     ):
-        """User cannot assign connections to groups."""
+        """User cannot assign grant groups to user groups."""
         async with new_client() as client:
-            # Admin creates a connection
-            create_response = await client.post(
-                "/api/connections",
+            # Admin creates grant group
+            grant_group_response = await client.post(
+                "/api/grant-groups",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json={"name": "Test Grant Group"},
             )
-            if create_response.status_code != 201:
-                pytest.skip("Connection creation requires encryption key")
+            grant_group_id = grant_group_response.json()["id"]
 
-            connection_id = create_response.json()["id"]
-
-            # User tries to assign - should fail
+            # User tries to assign grant group - should fail
             response = await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=user_headers,
-                json={"connection_id": connection_id},
-            )
-
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_user_cannot_remove_connection_from_group(
-        self, user_headers, user_in_group, admin_headers, test_group
-    ):
-        """User cannot remove connections from groups."""
-        async with new_client() as client:
-            # Admin creates and assigns connection
-            create_response = await client.post(
-                "/api/connections",
-                headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
-            )
-            if create_response.status_code != 201:
-                pytest.skip("Connection creation requires encryption key")
-
-            connection_id = create_response.json()["id"]
-
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
-            )
-
-            # User tries to remove - should fail
-            response = await client.delete(
-                f"/api/groups/{test_group['id']}/connections/{connection_id}",
-                headers=user_headers,
-            )
-
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_user_cannot_list_group_connections(
-        self, user_headers, test_group
-    ):
-        """User cannot list connections assigned to a group."""
-        async with new_client() as client:
-            response = await client.get(
-                f"/api/groups/{test_group['id']}/connections",
+                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=user_headers,
             )
 

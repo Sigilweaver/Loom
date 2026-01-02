@@ -3,11 +3,46 @@
 Per roles.md:
 - Auditor has R (Read) on ALL connections (for audit purposes)
 - Auditor cannot create, update, or delete connections
-- Auditor cannot manage connection-group assignments
+- Auditor cannot manage grant groups or their assignments
 """
 
 import pytest
 from tests.conftest import new_client
+
+
+async def assign_connection_to_group_via_grant_group(
+    client, admin_headers, connection_id: str, group_id: str
+) -> str:
+    """
+    Helper: Assign a connection to a user group via a grant group.
+    
+    Creates a grant group, adds the connection to it, and assigns the
+    grant group to the user group. Returns the grant group ID.
+    """
+    # Create grant group
+    grant_group_response = await client.post(
+        "/api/grant-groups",
+        headers=admin_headers,
+        json={"name": f"Grant Group for {connection_id[:8]}"},
+    )
+    assert grant_group_response.status_code == 201
+    grant_group_id = grant_group_response.json()["id"]
+    
+    # Add connection to grant group
+    add_conn_response = await client.post(
+        f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+        headers=admin_headers,
+    )
+    assert add_conn_response.status_code == 201
+    
+    # Assign grant group to user group
+    assign_response = await client.post(
+        f"/api/groups/{group_id}/grant-groups/{grant_group_id}",
+        headers=admin_headers,
+    )
+    assert assign_response.status_code == 201
+    
+    return grant_group_id
 
 
 class TestAuditorCanReadAllConnections:
@@ -78,12 +113,32 @@ class TestAuditorCanReadAllConnections:
         assert response.json()["id"] == connection_id
 
     @pytest.mark.asyncio
-    async def test_auditor_can_list_group_connections(
+    async def test_auditor_can_list_grant_groups(
+        self, auditor_headers, admin_headers
+    ):
+        """Auditor can list grant groups for audit purposes."""
+        async with new_client() as client:
+            # Admin creates a grant group
+            await client.post(
+                "/api/grant-groups",
+                headers=admin_headers,
+                json={"name": "Audit Test Grant Group"},
+            )
+
+            # Auditor lists grant groups
+            response = await client.get("/api/grant-groups", headers=auditor_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_auditor_can_get_grant_group_details(
         self, auditor_headers, admin_headers, test_group
     ):
-        """Auditor can see which connections are assigned to a group."""
+        """Auditor can get grant group details including connections and user groups."""
         async with new_client() as client:
-            # Admin creates and assigns connection
+            # Admin creates connection
             create_response = await client.post(
                 "/api/connections",
                 headers=admin_headers,
@@ -102,21 +157,22 @@ class TestAuditorCanReadAllConnections:
 
             connection_id = create_response.json()["id"]
 
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
-                headers=admin_headers,
-                json={"connection_id": connection_id},
+            # Set up grant group with connection and user group
+            grant_group_id = await assign_connection_to_group_via_grant_group(
+                client, admin_headers, connection_id, test_group["id"]
             )
 
-            # Auditor lists group connections
+            # Auditor gets grant group details
             response = await client.get(
-                f"/api/groups/{test_group['id']}/connections",
+                f"/api/grant-groups/{grant_group_id}",
                 headers=auditor_headers,
             )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["total"] == 1
+        assert data["id"] == grant_group_id
+        assert len(data["connections"]) == 1
+        assert len(data["user_groups"]) == 1
 
 
 class TestAuditorCannotModifyConnections:
@@ -210,50 +266,28 @@ class TestAuditorCannotModifyConnections:
         assert response.status_code == 403
 
 
-class TestAuditorCannotManageConnectionGroups:
-    """Auditor cannot assign or remove connections from groups."""
+class TestAuditorCannotManageGrantGroups:
+    """Auditor cannot create grant groups or manage their assignments."""
 
     @pytest.mark.asyncio
-    async def test_auditor_cannot_assign_connection_to_group(
-        self, auditor_headers, admin_headers, test_group
-    ):
-        """Auditor cannot assign connections to groups."""
+    async def test_auditor_cannot_create_grant_group(self, auditor_headers):
+        """Auditor cannot create grant groups."""
         async with new_client() as client:
-            # Admin creates a connection
-            create_response = await client.post(
-                "/api/connections",
-                headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
-            )
-            if create_response.status_code != 201:
-                pytest.skip("Connection creation requires encryption key")
-
-            connection_id = create_response.json()["id"]
-
-            # Auditor tries to assign - should fail
             response = await client.post(
-                f"/api/groups/{test_group['id']}/connections",
+                "/api/grant-groups",
                 headers=auditor_headers,
-                json={"connection_id": connection_id},
+                json={"name": "Auditor Grant Group"},
             )
 
         assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_auditor_cannot_remove_connection_from_group(
-        self, auditor_headers, admin_headers, test_group
+    async def test_auditor_cannot_add_connection_to_grant_group(
+        self, auditor_headers, admin_headers
     ):
-        """Auditor cannot remove connections from groups."""
+        """Auditor cannot add connections to grant groups."""
         async with new_client() as client:
-            # Admin creates and assigns connection
+            # Admin creates connection
             create_response = await client.post(
                 "/api/connections",
                 headers=admin_headers,
@@ -272,15 +306,39 @@ class TestAuditorCannotManageConnectionGroups:
 
             connection_id = create_response.json()["id"]
 
-            await client.post(
-                f"/api/groups/{test_group['id']}/connections",
+            # Admin creates grant group
+            grant_group_response = await client.post(
+                "/api/grant-groups",
                 headers=admin_headers,
-                json={"connection_id": connection_id},
+                json={"name": "Test Grant Group"},
+            )
+            grant_group_id = grant_group_response.json()["id"]
+
+            # Auditor tries to add connection - should fail
+            response = await client.post(
+                f"/api/grant-groups/{grant_group_id}/connections/{connection_id}",
+                headers=auditor_headers,
             )
 
-            # Auditor tries to remove - should fail
-            response = await client.delete(
-                f"/api/groups/{test_group['id']}/connections/{connection_id}",
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_auditor_cannot_assign_grant_group_to_user_group(
+        self, auditor_headers, admin_headers, test_group
+    ):
+        """Auditor cannot assign grant groups to user groups."""
+        async with new_client() as client:
+            # Admin creates grant group
+            grant_group_response = await client.post(
+                "/api/grant-groups",
+                headers=admin_headers,
+                json={"name": "Test Grant Group"},
+            )
+            grant_group_id = grant_group_response.json()["id"]
+
+            # Auditor tries to assign grant group - should fail
+            response = await client.post(
+                f"/api/groups/{test_group['id']}/grant-groups/{grant_group_id}",
                 headers=auditor_headers,
             )
 

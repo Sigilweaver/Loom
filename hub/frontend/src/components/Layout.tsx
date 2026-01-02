@@ -18,6 +18,7 @@ import {
   Server,
   Database,
   UsersRound,
+  Package,
   Users,
   Settings,
 } from "lucide-react";
@@ -35,9 +36,10 @@ const adminNavItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/activity", label: "Activity", icon: Activity },
   { to: "/admin/servers", label: "Servers", icon: Server },
-  { to: "/admin/connections", label: "Connections", icon: Database },
-  { to: "/admin/groups", label: "Groups", icon: UsersRound },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/groups", label: "User Groups", icon: UsersRound },
+  { to: "/admin/grant-groups", label: "Grant Groups", icon: Package },
+  { to: "/admin/connections", label: "Connections", icon: Database },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -77,9 +79,8 @@ export function Layout() {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${
-          sidebarCollapsed ? "w-16" : "w-64"
-        }`}
+        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${sidebarCollapsed ? "w-16" : "w-64"
+          }`}
       >
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
@@ -117,10 +118,9 @@ export function Layout() {
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? "bg-brand-50 text-brand-700"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 } ${sidebarCollapsed ? "justify-center" : ""}`
               }
               title={sidebarCollapsed ? item.label : undefined}
@@ -138,10 +138,9 @@ export function Layout() {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-brand-50 text-brand-700"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                      ? "bg-brand-50 text-brand-700"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     } ${sidebarCollapsed ? "justify-center" : ""}`
                   }
                   title={sidebarCollapsed ? item.label : undefined}
@@ -158,9 +157,8 @@ export function Layout() {
         <div className="relative p-2 border-t border-gray-200">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`w-full flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors ${
-              sidebarCollapsed ? "justify-center" : ""
-            }`}
+            className={`w-full flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors ${sidebarCollapsed ? "justify-center" : ""
+              }`}
             title={sidebarCollapsed ? user?.username : undefined}
           >
             <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-brand-100">
@@ -177,9 +175,8 @@ export function Layout() {
                   <p className="text-xs text-gray-500 truncate">{roleLabel}</p>
                 </div>
                 <ChevronDown
-                  className={`h-4 w-4 text-gray-400 transition-transform ${
-                    showUserMenu ? "rotate-180" : ""
-                  }`}
+                  className={`h-4 w-4 text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""
+                    }`}
                 />
               </>
             )}
@@ -195,9 +192,8 @@ export function Layout() {
               />
               {/* Menu */}
               <div
-                className={`absolute bottom-full mb-2 bg-white rounded-lg border border-gray-200 shadow-lg z-20 overflow-hidden ${
-                  sidebarCollapsed ? "left-2 w-48" : "left-2 right-2"
-                }`}
+                className={`absolute bottom-full mb-2 bg-white rounded-lg border border-gray-200 shadow-lg z-20 overflow-hidden ${sidebarCollapsed ? "left-2 w-48" : "left-2 right-2"
+                  }`}
               >
                 <button
                   onClick={() => {

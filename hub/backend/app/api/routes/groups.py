@@ -15,7 +15,13 @@ from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
 from app.db.database import get_db
-from app.db.models import Connection, ConnectionGroup, Group, User, UserGroup
+from app.db.models import (
+    GrantGroup,
+    Group,
+    User,
+    UserGroup,
+    UserGroupGrantGroup,
+)
 from app.domain.auth.roles import Role
 from app.domain.auth.sessions import SessionInfo
 
@@ -84,34 +90,10 @@ class GroupMembersResponse(BaseModel):
     total: int
 
 
-class GroupConnectionResponse(BaseModel):
-    """Connection assigned to a group."""
-
-    connection_id: UUID
-    name: str
-    type: str
-    assigned_at: str
-
-
-class GroupConnectionsResponse(BaseModel):
-    """Connections assigned to a group."""
-
-    group_id: UUID
-    group_name: str
-    connections: list[GroupConnectionResponse]
-    total: int
-
-
 class AddMemberRequest(BaseModel):
     """Request to add a user to a group."""
 
     user_id: UUID = Field(..., description="User ID to add")
-
-
-class AddConnectionRequest(BaseModel):
-    """Request to assign a connection to a group."""
-
-    connection_id: UUID = Field(..., description="Connection ID to assign")
 
 
 # =============================================================================
@@ -447,21 +429,43 @@ async def remove_group_member(
 
 
 # =============================================================================
-# Group Connections Routes
+# Group Grant Groups Routes (User Group -> Grant Group assignment)
 # =============================================================================
 
 
-@router.get("/{group_id}/connections", response_model=GroupConnectionsResponse)
-async def list_group_connections(
+class GroupGrantGroupResponse(BaseModel):
+    """Grant group assigned to a user group."""
+
+    grant_group_id: UUID
+    grant_group_name: str
+    connection_count: int
+    assigned_at: str
+
+
+class GroupGrantGroupsResponse(BaseModel):
+    """Grant groups assigned to a user group."""
+
+    group_id: UUID
+    group_name: str
+    grant_groups: list[GroupGrantGroupResponse]
+    total: int
+
+
+@router.get("/{group_id}/grant-groups", response_model=GroupGrantGroupsResponse)
+async def list_group_grant_groups(
     group_id: UUID,
     _user: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
-) -> GroupConnectionsResponse:
-    """List connections assigned to a group. Requires auditor role or higher."""
+) -> GroupGrantGroupsResponse:
+    """List grant groups assigned to a user group. Requires auditor role or higher."""
     result = await db.execute(
         select(Group)
-        .options(selectinload(Group.connections).selectinload(ConnectionGroup.connection))
         .where(Group.id == group_id)
+        .options(
+            selectinload(Group.grant_groups)
+            .selectinload(UserGroupGrantGroup.grant_group)
+            .selectinload(GrantGroup.connections)
+        )
     )
     group = result.scalar_one_or_none()
 
@@ -471,91 +475,91 @@ async def list_group_connections(
             detail=f"Group {group_id} not found",
         )
 
-    connections = [
-        GroupConnectionResponse(
-            connection_id=cg.connection.id,
-            name=cg.connection.name,
-            type=cg.connection.type,
-            assigned_at=cg.assigned_at.isoformat(),
+    grant_groups = [
+        GroupGrantGroupResponse(
+            grant_group_id=ugg.grant_group.id,
+            grant_group_name=ugg.grant_group.name,
+            connection_count=len(ugg.grant_group.connections) if ugg.grant_group.connections else 0,
+            assigned_at=ugg.assigned_at.isoformat(),
         )
-        for cg in group.connections
+        for ugg in group.grant_groups
     ]
 
-    return GroupConnectionsResponse(
+    return GroupGrantGroupsResponse(
         group_id=group.id,
         group_name=group.name,
-        connections=connections,
-        total=len(connections),
+        grant_groups=grant_groups,
+        total=len(grant_groups),
     )
 
 
-@router.post("/{group_id}/connections", status_code=status.HTTP_201_CREATED)
-async def add_group_connection(
+@router.post("/{group_id}/grant-groups/{grant_group_id}", status_code=status.HTTP_201_CREATED)
+async def assign_grant_group_to_group(
     group_id: UUID,
-    request: AddConnectionRequest,
-    _admin: SessionInfo = RequireAdmin,
+    grant_group_id: UUID,
+    admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Assign a connection to a group. Requires admin role."""
-    # Check group exists
-    result = await db.execute(select(Group).where(Group.id == group_id))
-    group = result.scalar_one_or_none()
-
-    if not group:
+    """Assign a grant group to a user group. Requires admin role."""
+    # Verify user group exists
+    user_group = await db.get(Group, group_id)
+    if not user_group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Group {group_id} not found",
         )
 
-    # Check connection exists
-    result = await db.execute(select(Connection).where(Connection.id == request.connection_id))
-    connection = result.scalar_one_or_none()
-
-    if not connection:
+    # Verify grant group exists
+    grant_group = await db.get(GrantGroup, grant_group_id)
+    if not grant_group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Connection {request.connection_id} not found",
+            detail=f"Grant group {grant_group_id} not found",
         )
 
     # Check if already assigned
-    result = await db.execute(
-        select(ConnectionGroup).where(
-            ConnectionGroup.connection_id == request.connection_id,
-            ConnectionGroup.group_id == group_id,
+    existing = await db.execute(
+        select(UserGroupGrantGroup).where(
+            UserGroupGrantGroup.user_group_id == group_id,
+            UserGroupGrantGroup.grant_group_id == grant_group_id,
         )
     )
-    if result.scalar_one_or_none():
+    if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Connection {connection.name} is already assigned to {group.name}",
+            detail=f"Grant group '{grant_group.name}' is already assigned to '{user_group.name}'",
         )
 
     # Add assignment
-    assignment = ConnectionGroup(connection_id=request.connection_id, group_id=group_id)
+    assignment = UserGroupGrantGroup(
+        user_group_id=group_id,
+        grant_group_id=grant_group_id,
+        assigned_by=admin.username,
+    )
     db.add(assignment)
     await db.commit()
 
-    logger.info(f"Assigned connection '{connection.name}' to group '{group.name}'")
+    logger.info(f"Assigned grant group '{grant_group.name}' to group '{user_group.name}'")
 
     return {
         "status": "assigned",
-        "connection_id": str(request.connection_id),
         "group_id": str(group_id),
+        "grant_group_id": str(grant_group_id),
     }
 
 
-@router.delete("/{group_id}/connections/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_group_connection(
+@router.delete("/{group_id}/grant-groups/{grant_group_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_grant_group_from_group(
     group_id: UUID,
-    connection_id: UUID,
+    grant_group_id: UUID,
     _admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Remove a connection from a group. Requires admin role."""
+    """Remove a grant group from a user group. Requires admin role."""
     result = await db.execute(
-        select(ConnectionGroup).where(
-            ConnectionGroup.connection_id == connection_id,
-            ConnectionGroup.group_id == group_id,
+        select(UserGroupGrantGroup).where(
+            UserGroupGrantGroup.user_group_id == group_id,
+            UserGroupGrantGroup.grant_group_id == grant_group_id,
         )
     )
     assignment = result.scalar_one_or_none()
@@ -563,10 +567,10 @@ async def remove_group_connection(
     if not assignment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Connection {connection_id} is not assigned to group {group_id}",
+            detail=f"Grant group {grant_group_id} is not assigned to group {group_id}",
         )
 
     await db.delete(assignment)
     await db.commit()
 
-    logger.info(f"Removed connection {connection_id} from group {group_id}")
+    logger.info(f"Removed grant group {grant_group_id} from group {group_id}")

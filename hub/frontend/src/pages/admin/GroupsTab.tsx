@@ -4,7 +4,7 @@
  * Provides UI for:
  * - Creating and editing groups
  * - Managing group members (add/remove users)
- * - Managing group connections (assign/unassign)
+ * - Assigning grant groups to user groups
  */
 
 import { useState, useEffect } from "react";
@@ -16,16 +16,14 @@ import {
   Loader2,
   AlertCircle,
   X,
-  Database,
   UserPlus,
   UserMinus,
-  Link,
-  Unlink,
   ChevronRight,
   Shield,
   ShieldCheck,
   Eye,
   User,
+  Package,
 } from "lucide-react";
 import {
   listGroups,
@@ -35,16 +33,16 @@ import {
   listGroupMembers,
   addGroupMember,
   removeGroupMember,
-  listGroupConnections,
-  addGroupConnection,
-  removeGroupConnection,
   listUsers,
-  listConnections,
+  listGroupGrantGroups,
+  listGrantGroups,
+  assignGrantGroupToGroup,
+  removeGrantGroupFromGroup,
   type GroupResponse,
   type GroupMemberResponse,
-  type GroupConnectionResponse,
   type UserResponse,
-  type ConnectionResponse,
+  type GroupGrantGroupResponse,
+  type GrantGroupSummary,
 } from "@api/client";
 import type { UserRole } from "@state/authStore";
 
@@ -176,11 +174,10 @@ export function GroupsTab() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className={`bg-white rounded-lg border p-3 cursor-pointer transition-colors ${
-                  selectedGroup?.id === group.id
-                    ? "border-brand-600 ring-1 ring-brand-600"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`bg-white rounded-lg border p-3 cursor-pointer transition-colors ${selectedGroup?.id === group.id
+                  ? "border-brand-600 ring-1 ring-brand-600"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
                 onClick={() => setSelectedGroup(group)}
               >
                 <div className="flex items-center justify-between">
@@ -194,10 +191,6 @@ export function GroupsTab() {
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" />
                     {group.member_count} members
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Database className="h-3.5 w-3.5" />
-                    {group.connection_count} connections
                   </span>
                 </div>
               </div>
@@ -253,13 +246,13 @@ interface GroupDetailsProps {
 }
 
 function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) {
-  const [activeTab, setActiveTab] = useState<"members" | "connections">("members");
+  const [activeTab, setActiveTab] = useState<"members" | "grant-groups">("members");
   const [members, setMembers] = useState<GroupMemberResponse[]>([]);
-  const [connections, setConnections] = useState<GroupConnectionResponse[]>([]);
+  const [grantGroups, setGrantGroups] = useState<GroupGrantGroupResponse[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [loadingConnections, setLoadingConnections] = useState(false);
+  const [loadingGrantGroups, setLoadingGrantGroups] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [showAddConnection, setShowAddConnection] = useState(false);
+  const [showAddGrantGroup, setShowAddGrantGroup] = useState(false);
 
   const fetchMembers = async () => {
     setLoadingMembers(true);
@@ -273,21 +266,21 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
     }
   };
 
-  const fetchConnections = async () => {
-    setLoadingConnections(true);
+  const fetchGrantGroups = async () => {
+    setLoadingGrantGroups(true);
     try {
-      const response = await listGroupConnections(group.id);
-      setConnections(response.connections);
+      const response = await listGroupGrantGroups(group.id);
+      setGrantGroups(response.grant_groups);
     } catch (err) {
-      console.error("Failed to load connections:", err);
+      console.error("Failed to load grant groups:", err);
     } finally {
-      setLoadingConnections(false);
+      setLoadingGrantGroups(false);
     }
   };
 
   useEffect(() => {
     fetchMembers();
-    fetchConnections();
+    fetchGrantGroups();
   }, [group.id]);
 
   const handleRemoveMember = async (userId: string, username: string) => {
@@ -302,28 +295,26 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
     }
   };
 
-  const handleRemoveConnection = async (connectionId: string, connectionName: string) => {
-    if (!confirm(`Remove ${connectionName} from ${group.name}?`)) return;
-
-    try {
-      await removeGroupConnection(group.id, connectionId);
-      setConnections(connections.filter((c) => c.connection_id !== connectionId));
-      onUpdate({ ...group, connection_count: group.connection_count - 1 });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to remove connection");
-    }
-  };
-
   const handleMemberAdded = (member: GroupMemberResponse) => {
     setMembers([...members, member]);
     onUpdate({ ...group, member_count: group.member_count + 1 });
     setShowAddMember(false);
   };
 
-  const handleConnectionAdded = (connection: GroupConnectionResponse) => {
-    setConnections([...connections, connection]);
-    onUpdate({ ...group, connection_count: group.connection_count + 1 });
-    setShowAddConnection(false);
+  const handleRemoveGrantGroup = async (grantGroupId: string, grantGroupName: string) => {
+    if (!confirm(`Remove grant group "${grantGroupName}" from ${group.name}?`)) return;
+
+    try {
+      await removeGrantGroupFromGroup(group.id, grantGroupId);
+      setGrantGroups(grantGroups.filter((g) => g.grant_group_id !== grantGroupId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to remove grant group");
+    }
+  };
+
+  const handleGrantGroupAdded = (grantGroup: GroupGrantGroupResponse) => {
+    setGrantGroups([...grantGroups, grantGroup]);
+    setShowAddGrantGroup(false);
   };
 
   return (
@@ -364,11 +355,10 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
         <div className="flex gap-6">
           <button
             onClick={() => setActiveTab("members")}
-            className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "members"
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
+            className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "members"
+              ? "border-brand-600 text-brand-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
           >
             <span className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -376,16 +366,15 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
             </span>
           </button>
           <button
-            onClick={() => setActiveTab("connections")}
-            className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "connections"
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
+            onClick={() => setActiveTab("grant-groups")}
+            className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "grant-groups"
+              ? "border-brand-600 text-brand-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
           >
             <span className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Connections ({connections.length})
+              <Package className="h-4 w-4" />
+              Grant Groups ({grantGroups.length})
             </span>
           </button>
         </div>
@@ -396,7 +385,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
         {activeTab === "members" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">Users in this group can access its connections.</p>
+              <p className="text-sm text-gray-500">Users in this group get access to assigned grant groups.</p>
               <button
                 onClick={() => setShowAddMember(true)}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700"
@@ -454,50 +443,57 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
           </div>
         )}
 
-        {activeTab === "connections" && (
+        {activeTab === "grant-groups" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">Connections available to this group's members.</p>
+              <p className="text-sm text-gray-500">
+                Grant groups provide bundled connection access to this group's members.
+              </p>
               <button
-                onClick={() => setShowAddConnection(true)}
+                onClick={() => setShowAddGrantGroup(true)}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700"
               >
-                <Link className="h-4 w-4" />
-                Assign Connection
+                <Package className="h-4 w-4" />
+                Assign Grant Group
               </button>
             </div>
 
-            {loadingConnections ? (
+            {loadingGrantGroups ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
               </div>
-            ) : connections.length === 0 ? (
+            ) : grantGroups.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <Database className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                <p>No connections assigned</p>
+                <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                <p>No grant groups assigned</p>
+                <p className="text-xs mt-1">
+                  Assign grant groups to give this group access to bundled connections.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {connections.map((conn) => (
+                {grantGroups.map((gg) => (
                   <div
-                    key={conn.connection_id}
+                    key={gg.grant_group_id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-brand-100">
-                        <Database className="h-4 w-4 text-brand-600" />
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <Package className="h-4 w-4 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{conn.name}</p>
-                        <p className="text-xs text-gray-500">{conn.type}</p>
+                        <p className="text-sm font-medium text-gray-900">{gg.grant_group_name}</p>
+                        <p className="text-xs text-gray-500">
+                          {gg.connection_count} connection{gg.connection_count !== 1 ? "s" : ""}
+                        </p>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemoveConnection(conn.connection_id, conn.name)}
+                      onClick={() => handleRemoveGrantGroup(gg.grant_group_id, gg.grant_group_name)}
                       className="p-1.5 text-gray-400 hover:text-red-600 rounded"
-                      title="Unassign from group"
+                      title="Remove grant group"
                     >
-                      <Unlink className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -517,13 +513,13 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
         />
       )}
 
-      {/* Add Connection Dialog */}
-      {showAddConnection && (
-        <AddConnectionDialog
+      {/* Add Grant Group Dialog */}
+      {showAddGrantGroup && (
+        <AddGrantGroupDialog
           group={group}
-          existingConnections={connections}
-          onClose={() => setShowAddConnection(false)}
-          onAdded={handleConnectionAdded}
+          existingGrantGroups={grantGroups}
+          onClose={() => setShowAddGrantGroup(false)}
+          onAdded={handleGrantGroupAdded}
         />
       )}
     </div>
@@ -794,52 +790,51 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
 }
 
 // =============================================================================
-// Add Connection Dialog
+// Add Grant Group Dialog
 // =============================================================================
 
-interface AddConnectionDialogProps {
+interface AddGrantGroupDialogProps {
   group: GroupResponse;
-  existingConnections: GroupConnectionResponse[];
+  existingGrantGroups: GroupGrantGroupResponse[];
   onClose: () => void;
-  onAdded: (connection: GroupConnectionResponse) => void;
+  onAdded: (grantGroup: GroupGrantGroupResponse) => void;
 }
 
-function AddConnectionDialog({ group, existingConnections, onClose, onAdded }: AddConnectionDialogProps) {
-  const [connections, setConnections] = useState<ConnectionResponse[]>([]);
+function AddGrantGroupDialog({ group, existingGrantGroups, onClose, onAdded }: AddGrantGroupDialogProps) {
+  const [grantGroups, setGrantGroups] = useState<GrantGroupSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchConnections = async () => {
+    const fetchGrantGroups = async () => {
       try {
-        const response = await listConnections();
-        // Filter out connections already in the group
-        const existingIds = new Set(existingConnections.map((c) => c.connection_id));
-        setConnections(response.connections.filter((c) => !existingIds.has(c.id)));
+        const response = await listGrantGroups();
+        const existingIds = new Set(existingGrantGroups.map((g) => g.grant_group_id));
+        setGrantGroups(response.grant_groups.filter((g) => !existingIds.has(g.id)));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load connections");
+        setError(err instanceof Error ? err.message : "Failed to load grant groups");
       } finally {
         setLoading(false);
       }
     };
-    fetchConnections();
-  }, [existingConnections]);
+    fetchGrantGroups();
+  }, [existingGrantGroups]);
 
-  const handleAddConnection = async (conn: ConnectionResponse) => {
-    setAdding(conn.id);
+  const handleAddGrantGroup = async (gg: GrantGroupSummary) => {
+    setAdding(gg.id);
     setError(null);
 
     try {
-      await addGroupConnection(group.id, conn.id);
+      await assignGrantGroupToGroup(group.id, gg.id);
       onAdded({
-        connection_id: conn.id,
-        name: conn.name,
-        type: conn.type,
+        grant_group_id: gg.id,
+        grant_group_name: gg.name,
+        connection_count: gg.connection_count,
         assigned_at: new Date().toISOString(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign connection");
+      setError(err instanceof Error ? err.message : "Failed to assign grant group");
     } finally {
       setAdding(null);
     }
@@ -850,7 +845,7 @@ function AddConnectionDialog({ group, existingConnections, onClose, onAdded }: A
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Assign Connection to {group.name}</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Assign Grant Group to {group.name}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
@@ -868,41 +863,41 @@ function AddConnectionDialog({ group, existingConnections, onClose, onAdded }: A
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
-          ) : connections.length === 0 ? (
+          ) : grantGroups.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <Database className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-              <p>All connections are already assigned</p>
+              <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <p>All grant groups are already assigned</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {connections.map((conn) => {
-                const isAdding = adding === conn.id;
+              {grantGroups.map((gg) => {
+                const isAdding = adding === gg.id;
 
                 return (
                   <div
-                    key={conn.id}
+                    key={gg.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-brand-100">
-                        <Database className="h-4 w-4 text-brand-600" />
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <Package className="h-4 w-4 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{conn.name}</p>
+                        <p className="text-sm font-medium text-gray-900">{gg.name}</p>
                         <p className="text-xs text-gray-500">
-                          {conn.type} - {conn.host}:{conn.port}
+                          {gg.connection_count} connection{gg.connection_count !== 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleAddConnection(conn)}
+                      onClick={() => handleAddGrantGroup(gg)}
                       disabled={isAdding}
                       className="flex items-center gap-1 px-2 py-1 text-sm bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50"
                     >
                       {isAdding ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Link className="h-3.5 w-3.5" />
+                        <Plus className="h-3.5 w-3.5" />
                       )}
                       Assign
                     </button>

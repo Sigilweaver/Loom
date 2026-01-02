@@ -855,20 +855,6 @@ export interface GroupMembersResponse {
   total: number;
 }
 
-export interface GroupConnectionResponse {
-  connection_id: string;
-  name: string;
-  type: string;
-  assigned_at: string;
-}
-
-export interface GroupConnectionsResponse {
-  group_id: string;
-  group_name: string;
-  connections: GroupConnectionResponse[];
-  total: number;
-}
-
 export async function listGroups(): Promise<GroupListResponse> {
   const response = await fetch(`${API_BASE}/groups`, {
     headers: getAuthHeaders(),
@@ -952,27 +938,161 @@ export async function removeGroupMember(groupId: string, userId: string): Promis
   }
 }
 
-export async function listGroupConnections(groupId: string): Promise<GroupConnectionsResponse> {
-  const response = await fetch(`${API_BASE}/groups/${groupId}/connections`, {
+// Group -> Grant Group assignments
+export interface GroupGrantGroupResponse {
+  grant_group_id: string;
+  grant_group_name: string;
+  connection_count: number;
+  assigned_at: string;
+}
+
+export interface GroupGrantGroupsResponse {
+  group_id: string;
+  group_name: string;
+  grant_groups: GroupGrantGroupResponse[];
+  total: number;
+}
+
+export async function listGroupGrantGroups(groupId: string): Promise<GroupGrantGroupsResponse> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/grant-groups`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
 
-export async function addGroupConnection(
+export async function assignGrantGroupToGroup(
   groupId: string,
-  connectionId: string
-): Promise<{ status: string; connection_id: string; group_id: string }> {
-  const response = await fetch(`${API_BASE}/groups/${groupId}/connections`, {
+  grantGroupId: string
+): Promise<{ status: string; grant_group_id: string; user_group_id: string }> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/grant-groups/${grantGroupId}`, {
     method: "POST",
-    headers: getJsonAuthHeaders(),
-    body: JSON.stringify({ connection_id: connectionId }),
+    headers: getAuthHeaders(),
   });
   return handleResponse(response);
 }
 
-export async function removeGroupConnection(groupId: string, connectionId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/groups/${groupId}/connections/${connectionId}`, {
+export async function removeGrantGroupFromGroup(groupId: string, grantGroupId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/groups/${groupId}/grant-groups/${grantGroupId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
+  }
+}
+
+// =============================================================================
+// Grant Groups (Permission Bundles)
+// =============================================================================
+
+export interface GrantGroupSummary {
+  id: string;
+  name: string;
+  description: string;
+  connection_count: number;
+  user_group_count: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GrantGroupConnection {
+  connection_id: string;
+  name: string;
+  type: string;
+  assigned_at: string;
+  assigned_by: string;
+}
+
+export interface GrantGroupUserGroup {
+  user_group_id: string;
+  user_group_name: string;
+  description: string;
+  member_count: number;
+  assigned_at: string;
+  assigned_by: string;
+}
+
+export interface GrantGroupDetail extends GrantGroupSummary {
+  connections: GrantGroupConnection[];
+  user_groups: GrantGroupUserGroup[];
+}
+
+export interface GrantGroupListResponse {
+  grant_groups: GrantGroupSummary[];
+  total: number;
+}
+
+export async function listGrantGroups(): Promise<GrantGroupListResponse> {
+  const response = await fetch(`${API_BASE}/grant-groups`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createGrantGroup(data: {
+  name: string;
+  description?: string;
+}): Promise<GrantGroupSummary> {
+  const response = await fetch(`${API_BASE}/grant-groups`, {
+    method: "POST",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function getGrantGroup(id: string): Promise<GrantGroupDetail> {
+  const response = await fetch(`${API_BASE}/grant-groups/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function updateGrantGroup(
+  id: string,
+  data: { name?: string; description?: string }
+): Promise<GrantGroupSummary> {
+  const response = await fetch(`${API_BASE}/grant-groups/${id}`, {
+    method: "PATCH",
+    headers: getJsonAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
+export async function deleteGrantGroup(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/grant-groups/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      detail: `HTTP ${response.status}`,
+    }));
+    throw new Error(extractErrorMessage(error, `HTTP ${response.status}`));
+  }
+}
+
+export async function addConnectionToGrantGroup(
+  grantGroupId: string,
+  connectionId: string
+): Promise<{ status: string; connection_id: string; grant_group_id: string }> {
+  const response = await fetch(`${API_BASE}/grant-groups/${grantGroupId}/connections/${connectionId}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function removeConnectionFromGrantGroup(
+  grantGroupId: string,
+  connectionId: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/grant-groups/${grantGroupId}/connections/${connectionId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });

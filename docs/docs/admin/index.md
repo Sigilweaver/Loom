@@ -16,14 +16,22 @@ Hub enforces strict [separation between administrators and users](./roles). Admi
 
 ## Centralized Credential Management
 
-[Hub connections](./connections) let you provide database access to teams without sharing passwords. Create a connection once, assign it to groups, and users can execute workflows against it - without ever seeing the host, username, or password.
+[Hub connections](./connections) let you provide database access to teams without sharing passwords. Create a connection once, assign it to [grant groups](./grant-groups), and users can execute workflows against it - without ever seeing the host, username, or password.
 
-## User and Group Management
+## Permission Hierarchy
 
-Organize users into [groups](./groups) that control which connections they can access. Add users to multiple groups as needed. When someone leaves a team, remove them from the group and they immediately lose access.
+Hub uses a three-level permission hierarchy for clear audit trails:
+
+```
+Users → User Groups → Grant Groups → Connections
+```
 
 - [User Management](./users) - Create accounts, assign roles
-- [Groups](./groups) - Control connection access
+- [User Groups](./groups) - Organize users into teams
+- [Grant Groups](./grant-groups) - Reusable permission bundles
+- [Connections](./connections) - Database credentials
+
+This design ensures a single audit path from any user to any connection they can access.
 
 ## Execution Infrastructure
 
@@ -32,8 +40,10 @@ Organize users into [groups](./groups) that control which connections they can a
 ## Getting Started
 
 1. **First login** - The first user to register becomes Owner
-2. **Create groups** - Organize users by team or access level
-3. **Set up connections** - Add database connections and assign to groups
-4. **Create user accounts** - Add users and assign to groups
+2. **Create connections** - Add database connections
+3. **Create grant groups** - Bundle connections by purpose (e.g., "Production DBs")
+4. **Create user groups** - Organize users by team
+5. **Assign grant groups to user groups** - Grant access to connections
+6. **Create user accounts** - Add users and assign to groups
 
 Servers register automatically when configured with `HUB_URL`.

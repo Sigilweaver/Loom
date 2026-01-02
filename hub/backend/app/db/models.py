@@ -339,6 +339,9 @@ class Group(Base):
     servers: Mapped[list["ServerGroup"]] = relationship(
         "ServerGroup", back_populates="group", cascade="all, delete-orphan"
     )
+    grant_groups: Mapped[list["UserGroupGrantGroup"]] = relationship(
+        "UserGroupGrantGroup", back_populates="user_group", cascade="all, delete-orphan"
+    )
 
 
 class UserGroup(Base):
@@ -526,3 +529,104 @@ class ExecutionRecord(Base):
 
     # Relationships
     execution: Mapped["Execution"] = relationship("Execution")
+
+
+# =============================================================================
+# Grant Groups - Permission Bundles
+# =============================================================================
+
+
+class GrantGroup(Base):
+    """Permission bundle containing grants (connections, collections, etc.).
+
+    Grant Groups separate permission management from user membership.
+    User Groups contain users and reference Grant Groups.
+    Grant Groups contain grants only (connections, collections, etc.).
+
+    This enables:
+    - Reusable permission bundles across teams
+    - Single audit path: User -> User Group -> Grant Group -> Grant
+    - No cycles possible (Grant Groups cannot reference other groups)
+    """
+
+    __tablename__ = "grant_groups"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+
+    # Metadata
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
+
+    # Relationships
+    connections: Mapped[list["GrantGroupConnection"]] = relationship(
+        "GrantGroupConnection", back_populates="grant_group", cascade="all, delete-orphan"
+    )
+    user_groups: Mapped[list["UserGroupGrantGroup"]] = relationship(
+        "UserGroupGrantGroup", back_populates="grant_group", cascade="all, delete-orphan"
+    )
+
+
+class UserGroupGrantGroup(Base):
+    """Join table: User Group -> Grant Group assignment.
+
+    Links user groups (which contain users) to grant groups (which contain permissions).
+    """
+
+    __tablename__ = "user_group_grant_groups"
+
+    user_group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    grant_group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("grant_groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    assigned_by: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Relationships
+    user_group: Mapped["Group"] = relationship("Group", back_populates="grant_groups")
+    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="user_groups")
+
+
+class GrantGroupConnection(Base):
+    """Join table: Grant Group -> Connection assignment.
+
+    Connections assigned to a grant group become accessible to users
+    who are members of user groups that reference this grant group.
+    """
+
+    __tablename__ = "grant_group_connections"
+
+    grant_group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("grant_groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("connections.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    assigned_by: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Relationships
+    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="connections")
+    connection: Mapped["Connection"] = relationship("Connection")
