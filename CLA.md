@@ -1,5 +1,19 @@
 # SIGILWEAVER CONTRIBUTOR LICENSE AGREEMENT
 
+> **NOTICE: HUMAN-READABLE SUMMARY**
+>
+> *The following is a summary of the legal text for convenience only. It is not legally binding. In the event of a conflict, the full text of the Agreement below controls.*
+>
+> 1. **You give us ownership:** You assign the copyright of your code to Sigilweaver Holdings LLC so we can defend the license and offer commercial options to support the project's sustainability.
+>
+> 2. **We give you a license:** You get a license back to use your own contribution however you want.
+>
+> 3. **The "Poison Pill":** This assignment is conditional. If we ever stop keeping the project Open Source, or if we sell the company to a for-profit corporation, the assignment self-destructs. Your rights automatically revert to you.
+>
+> 4. **The Safety Valve:** We have a strict "No Corporate Sellout" clause, but it includes standard exceptions for family inheritance so the project doesn't break if the founder passes away.
+
+---
+
 This Contributor License Agreement ("Agreement") is entered into between the entity or individual identified in the signature block ("You" or "Contributor") and **Sigilweaver Holdings LLC**, a limited liability company ("Company").
 
 ### 1. Definitions
@@ -25,11 +39,15 @@ In consideration for the Assignment granted in Section 2, the Company covenants 
 
 The Assignment granted in Section 2.1 is conditional. In the event that the Company:
 
-* (a) Ceases to make the source code of the Work publicly available under an OSI-Approved License for a period exceeding ninety (90) consecutive days; OR
-* (b) Transfers, assigns, or attempts to transfer ownership of the Contribution to a for-profit entity; OR
-* (c) Is subject to an involuntary transfer or assignment of the Contribution by **operation of law**, including but not limited to bankruptcy trustee sale, foreclosure, court-ordered judgment, attachment, or hostile acquisition, to any entity other than a qualified Non-Profit successor;
+* (a) Ceases to make the source code of the Work publicly available under an OSI-Approved License for a period exceeding ninety (90) consecutive days following the Company's receipt of written notice from a Contributor detailing such unavailability; OR
 
-Then the Assignment granted in Section 2.1 shall **automatically and immediately terminate** without the need for further notice, judicial action, or demand. Upon such termination, all right, title, and interest in and to the Contribution shall immediately revert to You.
+* (b) Transfers, assigns, or attempts to transfer ownership of the Contribution, or undergoes a sale of more than 50% of its equity interests, to any Commercial Third Party; OR
+
+* (c) Is subject to an involuntary transfer or assignment of the Contribution by operation of law, including but not limited to bankruptcy trustee sale, foreclosure, court-ordered judgment, attachment, or hostile acquisition, to any entity other than a qualified Non-Profit successor;
+
+Then the Assignment granted in Section 2.1 shall automatically and immediately terminate without the need for further notice, judicial action, or demand. Upon such termination, all right, title, and interest in and to the Contribution shall immediately revert to You.
+
+For the purposes of Section 4(b), a "Commercial Third Party" shall NOT include: (i) a qualified non-profit successor as defined in Section 3; (ii) a spouse, child, or lineal descendant of the Company’s current members; (iii) a trust created for the benefit of such persons for estate planning purposes; or (iv) any transfer occurring by operation of law upon death (will or intestacy).
 
 ### 5. Patent License
 
@@ -53,4 +71,4 @@ You agree that the Company may assign this Agreement and the rights granted here
 
 ### 10. Severability and Integration (The "Safety Pin")
 
-If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions of this Agreement will remain in full force and effect; **PROVIDED, HOWEVER**, that the parties expressly agree that the Assignment in Section 2 is inextricably linked to the Covenants and Conditions in Sections 3 and 4. If Section 3 or Section 4 is held to be invalid, unenforceable, or void for any reason, **then the Assignment in Section 2 shall also be deemed void ab initio**, and ownership of the Contribution shall revert to You.
+If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions of this Agreement will remain in full force and effect; PROVIDED, HOWEVER, that the parties expressly agree that the Assignment in Section 2 is inextricably linked to the Covenants and Conditions in Sections 3 and 4. If Section 3 or Section 4 is held to be invalid, unenforceable, or void for any reason, then the Assignment in Section 2 shall automatically terminate, and ownership of the Contribution shall revert to You effective immediately upon such finding. For the avoidance of doubt, valid acts of distribution or licensing occurring prior to the date of termination shall remain unaffected.
