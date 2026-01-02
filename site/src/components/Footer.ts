@@ -53,7 +53,7 @@ export const defaultFooterConfig: FooterConfig = {
   ],
   copyright: {
     tagline: `Open source software with <i data-lucide="heart" class="inline-block w-4 h-4 text-purple-400 fill-current align-middle"></i> for the data community.`,
-    text: '© 2025 Nathan Riley (DBA Sigilweaver). Sigilweaver™ is a trademark of Nathan Riley.',
+    text: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC.<br/>Operated under license by Sigilweaver LLC.`,
   },
 };
 
