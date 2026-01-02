@@ -11,7 +11,7 @@ import { resolveWorkflowConnections } from "@api/connectionResolver";
 import { cacheAllPreviews } from "@api/cache";
 import { platform, hasNativeDialogs } from "@platform";
 import { createLogger } from "@utils/logger";
-import SigilweaverLogo from "./SigilweaverLogo";
+import SigilWeaverLogo from "./SigilWeaverLogo";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -507,7 +507,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
           {/* Left side - App title and workflow info */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <SigilweaverLogo
+              <SigilWeaverLogo
                 className="opacity-75 text-theme-header-logo-icon"
                 size="md"
               />

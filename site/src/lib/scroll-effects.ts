@@ -3,6 +3,8 @@
  * Intersection Observer-based scroll animations
  */
 
+import gsap from 'gsap';
+
 /**
  * Check if accessibility mode is enabled
  */
@@ -50,22 +52,18 @@ export function initializeScrollEffects(): void {
  * Animate use case cards
  */
 function animateUseCaseCard(card: HTMLElement): void {
-  if (typeof gsap !== 'undefined') {
-    gsap.fromTo(
-      card,
-      { opacity: 0, scale: 0.9, rotationY: -15 },
-      { opacity: 1, scale: 1, rotationY: 0, duration: 0.8, ease: 'back.out(1.7)' }
-    );
-  }
+  gsap.fromTo(
+    card,
+    { opacity: 0, scale: 0.9, rotationY: -15 },
+    { opacity: 1, scale: 1, rotationY: 0, duration: 0.8, ease: 'back.out(1.7)' }
+  );
 }
 
 /**
  * Animate tech items
  */
 function animateTechItem(item: HTMLElement): void {
-  if (typeof gsap !== 'undefined') {
-    gsap.fromTo(item, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' });
-  }
+  gsap.fromTo(item, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' });
 }
 
 /**
@@ -76,57 +74,42 @@ export function initializeHeroAnimations(): void {
     return;
   }
 
-  if (typeof gsap !== 'undefined') {
-    gsap.fromTo(
-      '.hero h1',
-      { opacity: 0, y: 50 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        delay: 0.5,
-        ease: 'power2.out',
-        clearProps: 'transform,opacity',
-      }
-    );
+  gsap.fromTo(
+    '.hero h1',
+    { opacity: 0, y: 50 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: 1,
+      delay: 0.5,
+      ease: 'power2.out',
+      clearProps: 'transform,opacity',
+    }
+  );
 
-    gsap.fromTo(
-      '.hero p',
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        delay: 0.8,
-        ease: 'power2.out',
-        clearProps: 'transform,opacity',
-      }
-    );
+  gsap.fromTo(
+    '.hero p',
+    { opacity: 0, y: 30 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: 1,
+      delay: 0.8,
+      ease: 'power2.out',
+      clearProps: 'transform,opacity',
+    }
+  );
 
-    gsap.fromTo(
-      '.hero .flex',
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        delay: 1.1,
-        ease: 'power2.out',
-        clearProps: 'transform,opacity',
-      }
-    );
-  }
+  gsap.fromTo(
+    '.hero .flex',
+    { opacity: 0, y: 30 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: 1.1,
+      delay: 1.1,
+      ease: 'power2.out',
+      clearProps: 'transform,opacity',
+    }
+  );
 }
-
-// GSAP type declaration
-declare const gsap: {
-  fromTo: (
-    target: string | Element,
-    fromVars: Record<string, unknown>,
-    toVars: Record<string, unknown>
-  ) => void;
-  to: (target: string | Element, vars: Record<string, unknown>) => void;
-  timeline: () => {
-    to: (target: string | Element, vars: Record<string, unknown>, position?: string | number) => void;
-  };
-};

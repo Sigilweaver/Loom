@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,17 +31,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="icon" type="image/svg+xml" href="/icons/sigilweaver-logo.svg">
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- GSAP (used by site animations) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Self-hosted Fonts -->
+    <link rel="stylesheet" href="/fonts/inter.css">
 </head>
+
 <body class="bg-gradient-to-b from-mystic-900 to-mystic-700 text-white font-mystical">
     <!-- Skip Link -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">Skip to main content</a>
+    <a href="#main-content"
+        class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900 px-4 py-2 rounded-md z-50 font-semibold">Skip
+        to main content</a>
 
     <!-- Background floating elements -->
     <div class="floating-elements">
@@ -57,7 +56,8 @@
 
     <main>
         <!-- Hero -->
-        <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20" aria-labelledby="downloads-hero-heading">
+        <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
+            aria-labelledby="downloads-hero-heading">
             <!-- Animated Background -->
             <div class="absolute inset-0" aria-hidden="true">
                 <div class="workflow-canvas absolute inset-0 opacity-20"></div>
@@ -66,12 +66,16 @@
             <div class="relative z-10 container mx-auto px-6 text-center" id="main-content">
                 <div class="max-w-5xl mx-auto">
                     <h1 id="downloads-hero-heading" class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                        <span class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Download Sigilweaver</span>
+                        <span
+                            class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Download
+                            Sigilweaver</span>
                     </h1>
                     <p id="latest-version" class="text-gold-400 font-mono mb-4 hidden">Latest Release: ...</p>
-                    <p class="text-xl md:text-2xl text-mystic-200 mb-8 max-w-4xl mx-auto leading-relaxed">Get the latest builds for your platform.</p>
+                    <p class="text-xl md:text-2xl text-mystic-200 mb-8 max-w-4xl mx-auto leading-relaxed">Get the latest
+                        builds for your platform.</p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a id="auto-download-btn" href="#downloads-grid" class="bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75">
+                        <a id="auto-download-btn" href="#downloads-grid"
+                            class="bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75">
                             Download for Your OS
                         </a>
                     </div>
@@ -86,16 +90,20 @@
                 <div id="downloads-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Loading state -->
                     <div class="col-span-full text-center py-12">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gold-500"></div>
+                        <div
+                            class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gold-500">
+                        </div>
                         <p class="mt-4 text-mystic-300">Loading latest release information...</p>
                     </div>
                 </div>
-                
+
                 <div class="mt-12 text-center">
                     <p class="text-mystic-400 mb-3">
-                        <a href="/verify-downloads.html" class="text-gold-400 hover:underline">🔒 Learn how to verify download checksums</a>
+                        <a href="/verify-downloads.html" class="text-gold-400 hover:underline">🔒 Learn how to verify
+                            download checksums</a>
                     </p>
-                    <button id="load-releases-btn" class="bg-mystic-700 hover:bg-mystic-600 text-white px-6 py-3 rounded-lg transition-colors font-medium">
+                    <button id="load-releases-btn"
+                        class="bg-mystic-700 hover:bg-mystic-600 text-white px-6 py-3 rounded-lg transition-colors font-medium">
                         Load Previous Releases
                     </button>
                 </div>
@@ -106,7 +114,8 @@
         <section id="releases-section" class="py-12 hidden" aria-labelledby="releases-heading">
             <div class="container mx-auto px-6">
                 <!-- About Asset Naming -->
-                <div id="releases-about" class="hidden mb-8 bg-mystic-800/50 rounded-xl border border-mystic-600/50 p-6">
+                <div id="releases-about"
+                    class="hidden mb-8 bg-mystic-800/50 rounded-xl border border-mystic-600/50 p-6">
                     <h2 id="releases-heading" class="text-2xl font-bold text-mystic-200 mb-4">Previous Releases</h2>
                     <div class="prose prose-invert max-w-none">
                         <h3 class="text-lg font-semibold text-gold-400 mb-3">Understanding Asset Names</h3>
@@ -114,8 +123,10 @@
                             <div>
                                 <h4 class="font-semibold text-mystic-300 mb-2">Variants:</h4>
                                 <ul class="list-disc list-inside text-mystic-400 space-y-1">
-                                    <li><strong>Full Application:</strong> Complete desktop app with bundled backend (Python/Polars runtime included)</li>
-                                    <li><strong>Client Only:</strong> Frontend-only build that connects to a separate backend server</li>
+                                    <li><strong>Full Application:</strong> Complete desktop app with bundled backend
+                                        (Python/Polars runtime included)</li>
+                                    <li><strong>Client Only:</strong> Frontend-only build that connects to a separate
+                                        backend server</li>
                                     <li><strong>Web Version:</strong> Static files for self-hosting the web UI</li>
                                 </ul>
                             </div>
@@ -123,14 +134,16 @@
                                 <h4 class="font-semibold text-mystic-300 mb-2">Formats:</h4>
                                 <ul class="list-disc list-inside text-mystic-400 space-y-1">
                                     <li><strong>.exe (Windows):</strong> Standard Windows installer</li>
-                                    <li><strong>.AppImage (Linux):</strong> Portable executable - make it executable with <code class="bg-mystic-900/50 px-1 rounded">chmod +x</code></li>
+                                    <li><strong>.AppImage (Linux):</strong> Portable executable - make it executable
+                                        with <code class="bg-mystic-900/50 px-1 rounded">chmod +x</code></li>
                                     <li><strong>.snap (Linux):</strong> Snap package for snap-enabled distributions</li>
                                     <li><strong>.zip (Web):</strong> Static files ready for deployment</li>
                                 </ul>
                             </div>
                         </div>
                         <p class="text-mystic-400 mt-4 text-sm">
-                            <strong>Note:</strong> All desktop builds are currently unsigned. You may need to bypass security warnings on first launch.
+                            <strong>Note:</strong> All desktop builds are currently unsigned. You may need to bypass
+                            security warnings on first launch.
                         </p>
                     </div>
                 </div>
@@ -154,4 +167,5 @@
     <!-- Scripts -->
     <script type="module" src="/src/pages/downloads.ts"></script>
 </body>
+
 </html>

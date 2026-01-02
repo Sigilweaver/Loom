@@ -9,6 +9,11 @@ const config: Config = {
   tagline: 'The visual data pipeline tool you always wished existed',
   favicon: 'img/favicon.ico',
 
+  // Custom plugins
+  plugins: [
+    './plugins/remove-google-fonts', // Remove Infima's Google Fonts import
+  ],
+
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
