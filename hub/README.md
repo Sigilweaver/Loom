@@ -124,7 +124,7 @@ For architecture details, API documentation, and development setup, see:
 
 ## License
 
-AGPLv3 - See [LICENSE](LICENSE).
+AGPLv3 - See [LICENSE](LICENSE.md).
 
 ---
 

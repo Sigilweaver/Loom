@@ -88,4 +88,4 @@ For architecture details, state management patterns, and how to add new tools, s
 
 ## License
 
-AGPLv3 - See [LICENSE](LICENSE).
+AGPLv3 - See [LICENSE](LICENSE.md).

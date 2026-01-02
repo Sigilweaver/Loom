@@ -86,9 +86,9 @@ Full license: https://gsap.com/licensing/
 
 ### MIT License (Summary)
 
-- ✅ Free to use, modify, distribute
-- ✅ Can be used commercially
-- ℹ️ Must include copyright notice in copies
+- Free to use, modify, distribute
+- Can be used commercially
+- Must include copyright notice in copies
 
 ---
 
@@ -136,7 +136,8 @@ Full license: https://gsap.com/licensing/
 
 **Source:** https://pola.rs/
 
-**Copyright:** Copyright (c) 2020 Ritchie Vink
+**Copyright:** Copyright (c) 2025 Ritchie Vink  
+Some portions Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES
 
 ---
 

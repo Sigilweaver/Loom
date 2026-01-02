@@ -18,7 +18,7 @@ Under the following terms:
 - **Attribution** - You must give appropriate credit and indicate if changes were made
 - **ShareAlike** - If you remix or transform the material, you must distribute your contributions under the same license
 
-See [LICENSE](LICENSE) for the full text.
+See [LICENSE](LICENSE.md) for the full text.
 
 ## Structure
 

@@ -94,4 +94,4 @@ For architecture details, development setup, and how to add new tools, see:
 
 ## License
 
-AGPLv3 - See [LICENSE](LICENSE).
+AGPLv3 - See [LICENSE](LICENSE.md).

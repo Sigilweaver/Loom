@@ -23,8 +23,12 @@ LICENSE MAP
 | Website   | /site     | CC BY-SA 4.0 |
 | Docs      | /docs     | CC BY-SA 4.0 |
 
-Specific license files are included in the /site and /docs subdirectories for clarity.
+Specific license files are included in the subdirectories for clarity.
 For the core software, the full text of the AGPLv3 is provided below.
+
+3. THIRD-PARTY DEPENDENCIES
+   This project includes third-party open source software. See 
+   [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details.
 
 ================================================================================
 SIGILWEAVER SOFTWARE LICENSE (AGPLv3)

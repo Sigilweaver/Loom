@@ -92,7 +92,7 @@ Open source needs to be sustainable. Sigilweaver requires contributors to sign a
 - Development remains funded without relying on donations or sponsorships
 - You can always use, fork, and modify Sigilweaver under the AGPL
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE) for the full AGPL text.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE.md) for the full AGPL text.
 
 ## Team
 

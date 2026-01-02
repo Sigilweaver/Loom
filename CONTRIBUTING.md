@@ -95,7 +95,7 @@ Sigilweaver is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for
 
 By contributing, you agree that your contributions will be licensed under these licenses, and you agree to the terms of the CLA.
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE.md) for details.
 
 ---
 
