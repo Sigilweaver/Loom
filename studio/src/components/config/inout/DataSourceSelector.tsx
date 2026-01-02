@@ -127,61 +127,29 @@ interface DataSourceSelectorProps {
 }
 
 // Get icon URL based on theme and data source
-const getIconUrl = (dataSourceId: string, currentTheme: string): string => {
-  // Determine icon color based on theme with much better contrast
-  let color: string;
+const getIconUrl = (dataSourceId: string, _currentTheme: string): string => {
+  // Use self-hosted icons to eliminate CDN calls
+  // Icons are in /icons/datasources/ directory
 
-  switch (currentTheme) {
-    case "sigilweaver":
-      // Much lighter for sigilweaver dark theme
-      color = "white";
-      break;
-    case "dark":
-      // Much lighter for dark theme
-      color = "white";
-      break;
-    case "light":
-      // Much darker for light theme
-      color = "333333"; // Very dark gray, almost black
-      break;
-    case "highContrast":
-      // High contrast uses white for maximum contrast
-      color = "white";
-      break;
-    default:
-      // Default fallback to dark
-      color = "333333";
-  }
-
-  // Simple Icons mapping
-  const simpleIconsMap: Record<string, string> = {
+  // Map data source IDs to icon filenames
+  const iconMap: Record<string, string> = {
     csv: "files",
     excel: "microsoftexcel",
     parquet: "apacheparquet",
     json: "json",
     ipc: "apachearrow",
-    avro: "apachekafka", // Avro is closely associated with Kafka ecosystem
+    avro: "apacheavro", // Use dedicated Avro icon
     ods: "libreoffice",
     sqlite: "sqlite",
     postgresql: "postgresql",
     mysql: "mysql",
     mariadb: "mariadb",
     mssql: "microsoftsqlserver",
+    oracle: "oracle",
   };
 
-  // For Oracle, use devicons since simple-icons removed it due to legal issues
-  if (dataSourceId === "oracle") {
-    return `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/oracle/oracle-original.svg`;
-  }
-
-  // Use simple-icons for everything else
-  const iconName = simpleIconsMap[dataSourceId];
-  if (iconName) {
-    return `https://cdn.simpleicons.org/${iconName}/${color}`;
-  }
-
-  // Fallback
-  return `https://cdn.simpleicons.org/files/${color}`;
+  const iconName = iconMap[dataSourceId] || "files";
+  return `/icons/datasources/${iconName}.svg`;
 };
 
 export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
@@ -253,15 +221,13 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
         disabled={!dataSource.enabled}
         className={`
           relative w-full p-4 border-2 rounded-lg transition-all duration-200 text-left
-          ${
-            dataSource.enabled
-              ? "cursor-pointer hover:shadow-md"
-              : "cursor-not-allowed opacity-60"
+          ${dataSource.enabled
+            ? "cursor-pointer hover:shadow-md"
+            : "cursor-not-allowed opacity-60"
           }
-          ${
-            isSelected
-              ? "border-theme-border-focus bg-theme-interactive-accent text-theme-text-on-accent shadow-md"
-              : "border-theme-border-primary bg-theme-surface-panel hover:border-theme-border-focus"
+          ${isSelected
+            ? "border-theme-border-focus bg-theme-interactive-accent text-theme-text-on-accent shadow-md"
+            : "border-theme-border-primary bg-theme-surface-panel hover:border-theme-border-focus"
           }
         `}
       >
@@ -277,7 +243,15 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
             <img
               src={getIconUrl(dataSource.id, currentTheme.id)}
               alt={`${dataSource.name} icon`}
-              className="w-6 h-6"
+              className={`w-6 h-6 ${currentTheme.id === "light"
+                  ? ""
+                  : "invert brightness-0 invert"
+                }`}
+              style={{
+                filter: currentTheme.id === "light"
+                  ? "none"
+                  : "brightness(0) invert(1)"
+              }}
               onError={(e) => {
                 // Fallback to text if icon fails to load
                 const target = e.target as HTMLImageElement;
@@ -329,22 +303,20 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
         <div className="flex gap-2">
           <button
             onClick={() => setSelectedCategory("all")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors border ${
-              selectedCategory === "all"
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors border ${selectedCategory === "all"
                 ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
                 : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
-            }`}
+              }`}
           >
             All Sources
           </button>
 
           <button
             onClick={() => setSelectedCategory("file")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${
-              selectedCategory === "file"
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${selectedCategory === "file"
                 ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
                 : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
-            }`}
+              }`}
           >
             <FileText className="w-3 h-3" />
             Files
@@ -352,11 +324,10 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
 
           <button
             onClick={() => setSelectedCategory("database")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${
-              selectedCategory === "database"
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${selectedCategory === "database"
                 ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
                 : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
-            }`}
+              }`}
           >
             <Database className="w-3 h-3" />
             Databases

@@ -1,55 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sigilweaver - Weave Data Magic Into Reality</title>
-    <meta name="description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
-    
+    <meta name="description"
+        content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
+
     <!-- Enhanced SEO and Social Media Meta Tags -->
-    <meta name="keywords" content="ETL tool, data pipeline, visual programming, data engineering, open source, Python, Polars, workflow automation">
+    <meta name="keywords"
+        content="ETL tool, data pipeline, visual programming, data engineering, open source, Python, Polars, workflow automation">
     <meta name="author" content="Sigilweaver">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://sigilweaver.app">
-    
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Sigilweaver - Weave Data Magic Into Reality">
-    <meta property="og:description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
+    <meta property="og:description"
+        content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sigilweaver.app">
     <meta property="og:image" content="https://sigilweaver.app/icons/sigilweaver-og-image.png">
     <meta property="og:site_name" content="Sigilweaver">
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Sigilweaver - Weave Data Magic Into Reality">
-    <meta name="twitter:description" content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
+    <meta name="twitter:description"
+        content="The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.">
     <meta name="twitter:image" content="https://sigilweaver.app/icons/sigilweaver-og-image.png">
-    
+
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="icon" type="image/svg+xml" href="/icons/sigilweaver-logo.svg">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- GSAP for advanced animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    
-    <!-- Prism.js for code highlighting -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <!-- Self-hosted Fonts -->
+    <link rel="stylesheet" href="/fonts/inter.css">
 </head>
+
 <body class="text-white bg-gradient-to-b from-mystic-900 to-mystic-700 font-mystical">
     <!-- Skip Link for Accessibility -->
-    <a href="#main-content" class="z-50 px-4 py-2 font-semibold rounded-md sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900">
+    <a href="#main-content"
+        class="z-50 px-4 py-2 font-semibold rounded-md sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-gold-500 text-mystic-900">
         Skip to main content
     </a>
-    
+
     <!-- Global Floating Elements -->
     <div class="floating-elements">
         <div class="floating-node"></div>
@@ -65,7 +64,8 @@
 
     <!-- Hero Section -->
     <main>
-        <section class="relative flex items-center justify-center min-h-screen pt-20 overflow-hidden" aria-labelledby="hero-heading">
+        <section class="relative flex items-center justify-center min-h-screen pt-20 overflow-hidden"
+            aria-labelledby="hero-heading">
             <!-- Animated Background -->
             <div class="absolute inset-0" aria-hidden="true">
                 <div class="absolute inset-0 workflow-canvas opacity-20"></div>
@@ -73,21 +73,32 @@
 
             <div class="container relative z-10 px-6 mx-auto text-center hero" id="main-content">
                 <h1 id="hero-heading" class="mb-6 text-5xl font-bold leading-tight md:text-7xl">
-                    <span class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Weave Data Magic</span>
-                    <span class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Into Reality</span>
+                    <span
+                        class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Weave
+                        Data Magic</span>
+                    <span
+                        class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Into
+                        Reality</span>
                 </h1>
                 <p class="max-w-4xl mx-auto mb-8 text-xl md:text-2xl text-mystic-200">
-                    The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual design.
+                    The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual
+                    design.
                 </p>
                 <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                    <a href="/downloads.html" class="px-8 py-4 text-lg font-semibold transition-all transform rounded-lg bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" aria-describedby="start-weaving-desc">
+                    <a href="/downloads.html"
+                        class="px-8 py-4 text-lg font-semibold transition-all transform rounded-lg bg-gradient-to-r from-mystic-600 to-mystic-500 hover:from-mystic-500 hover:to-mystic-400 hover:scale-105 hover:shadow-lg hover:shadow-mystic-500/25 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50"
+                        aria-describedby="start-weaving-desc">
                         Start Weaving
                     </a>
-                    <span id="start-weaving-desc" class="sr-only">Get started with Sigilweaver by downloading the application</span>
-                    <a href="#demo" class="px-8 py-4 text-lg font-semibold transition-all border-2 rounded-lg border-mystic-500 hover:border-gold-400 hover:bg-mystic-500/10 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50" aria-describedby="see-magic-desc">
+                    <span id="start-weaving-desc" class="sr-only">Get started with Sigilweaver by downloading the
+                        application</span>
+                    <a href="#demo"
+                        class="px-8 py-4 text-lg font-semibold transition-all border-2 rounded-lg border-mystic-500 hover:border-gold-400 hover:bg-mystic-500/10 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50"
+                        aria-describedby="see-magic-desc">
                         See the Magic
                     </a>
-                    <span id="see-magic-desc" class="sr-only">View the interactive frontend demo to see Sigilweaver's interface design</span>
+                    <span id="see-magic-desc" class="sr-only">View the interactive frontend demo to see Sigilweaver's
+                        interface design</span>
                 </div>
             </div>
         </section>
@@ -95,38 +106,49 @@
         <!-- Core Value Props -->
         <section id="features" class="py-20" aria-labelledby="features-heading">
             <div class="container px-6 mx-auto">
-                <h2 id="features-heading" class="mb-16 text-4xl font-bold text-center sr-only md:text-5xl text-mystic-200">Core Features</h2>
+                <h2 id="features-heading"
+                    class="mb-16 text-4xl font-bold text-center sr-only md:text-5xl text-mystic-200">Core Features</h2>
                 <div class="grid gap-8 md:grid-cols-3">
                     <!-- Ultimate Flexibility -->
-                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
+                    <article
+                        class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
                         <div class="flex items-center mb-4 space-x-4">
-                            <div class="flex-shrink-0" role="img" aria-label="Crystal ball icon"><i data-lucide="sparkles" class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
+                            <div class="flex-shrink-0" role="img" aria-label="Crystal ball icon"><i
+                                    data-lucide="sparkles"
+                                    class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
                             <h3 class="text-2xl font-bold text-mystic-200">Ultimate Flexibility</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Cast your spells anywhere - desktop, web browser, or headless server. Your magic works offline, on-prem, or in any cloud.
+                            Cast your spells anywhere - desktop, web browser, or headless server. Your magic works
+                            offline, on-prem, or in any cloud.
                         </p>
                     </article>
 
                     <!-- Wicked Fast Performance -->
-                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
+                    <article
+                        class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
                         <div class="flex items-center mb-4 space-x-4">
-                            <div class="flex-shrink-0" role="img" aria-label="Lightning bolt icon"><i data-lucide="zap" class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
+                            <div class="flex-shrink-0" role="img" aria-label="Lightning bolt icon"><i data-lucide="zap"
+                                    class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
                             <h3 class="text-2xl font-bold text-mystic-200">Wicked Fast Performance</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Polars-powered performance blazes through massive datasets with unmatched speed. Python-first with extensibility built in.
+                            Polars-powered performance blazes through massive datasets with unmatched speed.
+                            Python-first with extensibility built in.
                         </p>
                     </article>
 
                     <!-- Enterprise-Grade Security -->
-                    <article class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
+                    <article
+                        class="p-8 transition-all border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50 group">
                         <div class="flex items-center mb-4 space-x-4">
-                            <div class="flex-shrink-0" role="img" aria-label="Shield icon"><i data-lucide="shield" class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
+                            <div class="flex-shrink-0" role="img" aria-label="Shield icon"><i data-lucide="shield"
+                                    class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
                             <h3 class="text-2xl font-bold text-mystic-200">Enterprise-Grade Security</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Verbose logging, audit trails, and compliance-ready. Your data never leaves without permission - perfect for the most sensitive environments.
+                            Verbose logging, audit trails, and compliance-ready. Your data never leaves without
+                            permission - perfect for the most sensitive environments.
                         </p>
                     </article>
                 </div>
@@ -136,24 +158,32 @@
         <!-- Product Demo Section -->
         <section id="demo" class="py-20" aria-labelledby="demo-heading">
             <div class="container px-6 mx-auto text-center">
-                <h2 id="demo-heading" class="mb-8 text-4xl font-bold md:text-5xl text-mystic-200">Try the Magic Yourself</h2>
+                <h2 id="demo-heading" class="mb-8 text-4xl font-bold md:text-5xl text-mystic-200">Try the Magic Yourself
+                </h2>
                 <p class="max-w-3xl mx-auto mb-12 text-xl text-mystic-300">
-                    Experience the interface with our frontend-only interactive demo. See exactly how intuitive data pipeline creation can be.
+                    Experience the interface with our frontend-only interactive demo. See exactly how intuitive data
+                    pipeline creation can be.
                 </p>
-                
-                <div class="max-w-2xl p-8 mx-auto border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+
+                <div
+                    class="max-w-2xl p-8 mx-auto border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                     <div class="text-center">
-                        <div class="flex justify-center mb-6" role="img" aria-label="Target icon"><i data-lucide="target" class="w-16 h-16 text-gold-400"></i></div>
+                        <div class="flex justify-center mb-6" role="img" aria-label="Target icon"><i
+                                data-lucide="target" class="w-16 h-16 text-gold-400"></i></div>
                         <h3 class="mb-4 text-2xl font-bold text-mystic-200">Interactive Demo Available</h3>
                         <p class="mb-6 text-mystic-300">
-                            Try the frontend demo environment with drag-and-drop workflow creation, 
-                            node-based canvas interaction, and real-time XML generation. This is a UI-only preview showing the interface design and user experience.
+                            Try the frontend demo environment with drag-and-drop workflow creation,
+                            node-based canvas interaction, and real-time XML generation. This is a UI-only preview
+                            showing the interface design and user experience.
                         </p>
-                        <a href="https://demo.sigilweaver.app" class="inline-block px-8 py-4 font-semibold transition-all transform rounded-lg bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 hover:from-gold-400 hover:to-gold-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75" aria-describedby="demo-link-desc" target="_blank" rel="noopener noreferrer">
+                        <a href="https://demo.sigilweaver.app"
+                            class="inline-block px-8 py-4 font-semibold transition-all transform rounded-lg bg-gradient-to-r from-gold-500 to-gold-400 text-mystic-900 hover:from-gold-400 hover:to-gold-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-opacity-75"
+                            aria-describedby="demo-link-desc" target="_blank" rel="noopener noreferrer">
                             Launch Frontend Demo
                             <span class="sr-only">(opens in new window)</span>
                         </a>
-                        <span id="demo-link-desc" class="sr-only">Opens the Sigilweaver frontend demo application in a new window - UI preview only, no server backend</span>
+                        <span id="demo-link-desc" class="sr-only">Opens the Sigilweaver frontend demo application in a
+                            new window - UI preview only, no server backend</span>
                     </div>
                 </div>
             </div>
@@ -162,11 +192,13 @@
         <!-- Technical Superiority -->
         <section class="py-20" aria-labelledby="technical-heading">
             <div class="container px-6 mx-auto">
-                <h2 id="technical-heading" class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Engineered for Data Wizards</h2>
-                
+                <h2 id="technical-heading" class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">
+                    Engineered for Data Wizards</h2>
+
                 <div class="flex flex-col gap-8 lg:flex-row lg:items-stretch">
                     <!-- Frontend Magic -->
-                    <article class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                    <article
+                        class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-6 text-2xl font-bold text-gold-400">Frontend Magic</h3>
                         <div class="space-y-4">
                             <div class="tech-item">
@@ -185,7 +217,8 @@
                     </article>
 
                     <!-- Backend Power -->
-                    <article class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                    <article
+                        class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-6 text-2xl font-bold text-gold-400">Backend Power</h3>
                         <div class="space-y-4">
                             <div class="tech-item">
@@ -198,13 +231,15 @@
                             </div>
                             <div class="tech-item">
                                 <h4 class="font-semibold text-mystic-200">Python-Powered</h4>
-                                <p class="text-sm text-mystic-300">Modern Python-first architecture, extensible design</p>
+                                <p class="text-sm text-mystic-300">Modern Python-first architecture, extensible design
+                                </p>
                             </div>
                         </div>
                     </article>
 
                     <!-- Enterprise Features -->
-                    <article class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
+                    <article
+                        class="flex-1 min-h-0 p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-6 text-2xl font-bold text-gold-400">Enterprise Features</h3>
                         <div class="space-y-4">
                             <div class="tech-item">
@@ -228,8 +263,9 @@
         <!-- Use Cases -->
         <section class="py-20">
             <div class="container px-6 mx-auto">
-                <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Your Spellbook for Any Data Challenge</h2>
-                
+                <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Your Spellbook for Any Data
+                    Challenge</h2>
+
                 <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <div class="use-case-card">
                         <h3 class="mb-3 text-xl font-bold text-gold-400">Data Engineers</h3>
@@ -254,7 +290,8 @@
         <!-- Open Source Section -->
         <section id="opensource" class="py-20">
             <div class="container px-6 mx-auto text-center">
-                <h2 class="mb-8 text-4xl font-bold md:text-5xl text-mystic-200">Free as in Freedom, Powerful as Magic</h2>
+                <h2 class="mb-8 text-4xl font-bold md:text-5xl text-mystic-200">Free as in Freedom, Powerful as Magic
+                </h2>
                 <div class="max-w-4xl mx-auto">
                     <div class="grid gap-8 mb-12 md:grid-cols-2">
                         <div class="p-6 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
@@ -276,9 +313,11 @@
                             </ul>
                         </div>
                     </div>
-                    <a href="https://github.com/sigilweaver" class="inline-flex items-center px-8 py-4 font-semibold transition-all border rounded-lg bg-mystic-800 hover:bg-mystic-700 border-mystic-600 hover:border-gold-400">
+                    <a href="https://github.com/sigilweaver"
+                        class="inline-flex items-center px-8 py-4 font-semibold transition-all border rounded-lg bg-mystic-800 hover:bg-mystic-700 border-mystic-600 hover:border-gold-400">
                         <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            <path
+                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                         </svg>
                         View on GitHub
                     </a>
@@ -290,17 +329,20 @@
         <section id="download" class="py-20">
             <div class="container px-6 mx-auto text-center">
                 <h2 class="mb-8 text-4xl font-bold md:text-5xl text-mystic-200">Begin Your Data Journey</h2>
-                
+
                 <div class="grid gap-8 mb-12 md:grid-cols-3">
                     <!-- Download -->
                     <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-4 text-2xl font-bold text-gold-400">Download</h3>
-                        <p class="mb-6 text-mystic-300">Get started with our desktop application or deploy on your own infrastructure.</p>
+                        <p class="mb-6 text-mystic-300">Get started with our desktop application or deploy on your own
+                            infrastructure.</p>
                         <div class="space-y-3">
-                            <a href="/downloads.html" class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
+                            <a href="/downloads.html"
+                                class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
                                 Desktop App
                             </a>
-                            <a href="/downloads.html#web" class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
+                            <a href="/downloads.html#web"
+                                class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
                                 Web Deployment Guide
                             </a>
                         </div>
@@ -309,12 +351,15 @@
                     <!-- Documentation -->
                     <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-4 text-2xl font-bold text-gold-400">Documentation</h3>
-                        <p class="mb-6 text-mystic-300">Comprehensive guides and API reference to master your data weaving skills.</p>
+                        <p class="mb-6 text-mystic-300">Comprehensive guides and API reference to master your data
+                            weaving skills.</p>
                         <div class="space-y-3">
-                            <a href="https://docs.sigilweaver.app/getting-started" class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
+                            <a href="https://docs.sigilweaver.app/getting-started"
+                                class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
                                 Getting Started Guide
                             </a>
-                            <a href="https://docs.sigilweaver.app/api" class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
+                            <a href="https://docs.sigilweaver.app/api"
+                                class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
                                 API Reference
                             </a>
                         </div>
@@ -323,12 +368,15 @@
                     <!-- Community -->
                     <div class="p-8 border bg-mystic-700/30 rounded-xl backdrop-blur-sm border-mystic-600/50">
                         <h3 class="mb-4 text-2xl font-bold text-gold-400">Community</h3>
-                        <p class="mb-6 text-mystic-300">Join our community for support, discussions, and collaboration.</p>
+                        <p class="mb-6 text-mystic-300">Join our community for support, discussions, and collaboration.
+                        </p>
                         <div class="space-y-3">
-                            <a href="#" class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
+                            <a href="#"
+                                class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
                                 GitHub Discussions
                             </a>
-                            <a href="#" class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
+                            <a href="#"
+                                class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
                                 Community Forum
                             </a>
                         </div>
@@ -342,8 +390,7 @@
     <div id="footer-root"></div>
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script type="module" src="/src/main.ts"></script>
 </body>
+
 </html>

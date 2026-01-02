@@ -3,6 +3,8 @@
  * Animated SVG connections between floating nodes
  */
 
+import gsap from 'gsap';
+
 interface Connection {
   element: SVGLineElement;
   node1: Element;
@@ -30,7 +32,7 @@ function isA11yMode(): boolean {
 export function initializeNodeConnections(): void {
   // Don't run in accessibility mode
   if (isA11yMode()) return;
-  
+
   const floatingNodes = document.querySelectorAll('.floating-node');
   if (floatingNodes.length < 2) return;
 
@@ -177,23 +179,11 @@ function expireConnection(connection: Connection, svg: SVGSVGElement): void {
   breakLineIntoParticles(pos1, pos2, svg);
 
   // Fade out the line
-  if (typeof gsap !== 'undefined') {
-    gsap.to(connection.element, {
-      opacity: 0,
-      duration: 2,
-      ease: 'power2.in',
-      onComplete: () => {
-        if (connection.element.parentNode) {
-          connection.element.remove();
-        }
-        const index = activeConnections.indexOf(connection);
-        if (index > -1) {
-          activeConnections.splice(index, 1);
-        }
-      },
-    });
-  } else {
-    setTimeout(() => {
+  gsap.to(connection.element, {
+    opacity: 0,
+    duration: 2,
+    ease: 'power2.in',
+    onComplete: () => {
       if (connection.element.parentNode) {
         connection.element.remove();
       }
@@ -201,8 +191,8 @@ function expireConnection(connection: Connection, svg: SVGSVGElement): void {
       if (index > -1) {
         activeConnections.splice(index, 1);
       }
-    }, 2000);
-  }
+    },
+  });
 }
 
 function getNodePosition(node: Element): { x: number; y: number } {
@@ -216,47 +206,39 @@ function getNodePosition(node: Element): { x: number; y: number } {
 function animateLineFormation(connection: Connection, _svg: SVGSVGElement): void {
   const line = connection.element;
 
-  if (typeof gsap !== 'undefined') {
-    const timeline = gsap.timeline();
+  const timeline = gsap.timeline();
 
-    timeline.to(line, {
-      opacity: 1,
-      duration: 0.5,
-      ease: 'power2.out',
-    });
+  timeline.to(line, {
+    opacity: 1,
+    duration: 0.5,
+    ease: 'power2.out',
+  });
 
-    timeline.to(
-      line,
-      {
-        duration: 1.5,
-        ease: 'power2.inOut',
-        onUpdate: function (this: { progress: () => number }) {
-          const currentPos1 = getNodePosition(connection.node1);
-          const currentPos2 = getNodePosition(connection.node2);
-          const progress = this.progress();
+  timeline.to(
+    line,
+    {
+      duration: 1.5,
+      ease: 'power2.inOut',
+      onUpdate: function (this: { progress: () => number }) {
+        const currentPos1 = getNodePosition(connection.node1);
+        const currentPos2 = getNodePosition(connection.node2);
+        const progress = this.progress();
 
-          line.setAttribute('x1', String(currentPos1.x));
-          line.setAttribute('y1', String(currentPos1.y));
+        line.setAttribute('x1', String(currentPos1.x));
+        line.setAttribute('y1', String(currentPos1.y));
 
-          const endX = currentPos1.x + (currentPos2.x - currentPos1.x) * progress;
-          const endY = currentPos1.y + (currentPos2.y - currentPos1.y) * progress;
+        const endX = currentPos1.x + (currentPos2.x - currentPos1.x) * progress;
+        const endY = currentPos1.y + (currentPos2.y - currentPos1.y) * progress;
 
-          line.setAttribute('x2', String(endX));
-          line.setAttribute('y2', String(endY));
-        },
-        onComplete: () => {
-          connection.isForming = false;
-        },
+        line.setAttribute('x2', String(endX));
+        line.setAttribute('y2', String(endY));
       },
-      0.2
-    );
-  } else {
-    line.style.opacity = '1';
-    const currentPos2 = getNodePosition(connection.node2);
-    line.setAttribute('x2', String(currentPos2.x));
-    line.setAttribute('y2', String(currentPos2.y));
-    connection.isForming = false;
-  }
+      onComplete: () => {
+        connection.isForming = false;
+      },
+    },
+    0.2
+  );
 }
 
 function breakLineIntoParticles(
@@ -286,40 +268,20 @@ function createConnectionParticle(x: number, y: number, svg: SVGSVGElement): voi
 
   svg.appendChild(particle);
 
-  if (typeof gsap !== 'undefined') {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * 100 + 50;
-    const endX = x + Math.cos(angle) * distance;
-    const endY = y + Math.sin(angle) * distance;
+  const angle = Math.random() * Math.PI * 2;
+  const distance = Math.random() * 100 + 50;
+  const endX = x + Math.cos(angle) * distance;
+  const endY = y + Math.sin(angle) * distance;
 
-    gsap.to(particle, {
-      attr: { cx: endX, cy: endY, r: 1 },
-      opacity: 0,
-      duration: 4,
-      ease: 'power1.out',
-      onComplete: () => {
-        if (particle.parentNode) {
-          particle.remove();
-        }
-      },
-    });
-  } else {
-    setTimeout(() => {
-      particle.style.opacity = '0';
-      setTimeout(() => {
-        if (particle.parentNode) {
-          particle.remove();
-        }
-      }, 3000);
-    }, 1000);
-  }
+  gsap.to(particle, {
+    attr: { cx: endX, cy: endY, r: 1 },
+    opacity: 0,
+    duration: 4,
+    ease: 'power1.out',
+    onComplete: () => {
+      if (particle.parentNode) {
+        particle.remove();
+      }
+    },
+  });
 }
-
-// GSAP type declaration
-declare const gsap: {
-  to: (target: Element, vars: Record<string, unknown>) => void;
-  timeline: () => {
-    to: (target: Element, vars: Record<string, unknown>, position?: string | number) => ReturnType<typeof gsap.timeline>;
-    progress: () => number;
-  };
-};

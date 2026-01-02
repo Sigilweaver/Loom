@@ -8,8 +8,46 @@
  * - Deep Purple: #1a0b2e (dark bg)
  */
 
-/* Import Inter font to match main site */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Self-hosted Inter font - no external CDN calls */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/Inter-Light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Inter-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Inter-Bold.woff2') format('woff2');
+}
 
 /* ============================================
    LIGHT MODE
@@ -27,39 +65,39 @@
   /* Gold accent for links and highlights */
   --ifm-link-color: #b45309;
   --ifm-link-hover-color: #d97706;
-  
+
   /* Typography */
   --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
   --ifm-heading-font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --ifm-font-weight-semibold: 600;
-  
+
   /* Code */
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(107, 63, 160, 0.1);
-  
+
   /* Backgrounds */
   --ifm-background-color: #faf9fc;
   --ifm-background-surface-color: #ffffff;
-  
+
   /* Navbar */
   --ifm-navbar-background-color: #ffffff;
   --ifm-navbar-shadow: 0 1px 2px 0 rgba(26, 11, 46, 0.1);
-  
+
   /* Footer */
   --ifm-footer-background-color: #2d1b42;
   --ifm-footer-color: #ddd6fe;
   --ifm-footer-link-color: #fbbf24;
   --ifm-footer-link-hover-color: #fcd34d;
   --ifm-footer-title-color: #f3f0ff;
-  
+
   /* Sidebar */
   --ifm-menu-color: #4c2a6b;
   --ifm-menu-color-active: #6b3fa0;
   --ifm-menu-color-background-active: rgba(107, 63, 160, 0.1);
-  
+
   /* Table of contents */
   --ifm-toc-link-color: #4c2a6b;
-  
+
   /* Cards and borders */
   --ifm-card-background-color: #ffffff;
   --ifm-card-border-radius: 0.75rem;
@@ -82,37 +120,37 @@
   /* Gold accent for links */
   --ifm-link-color: #b7a1fc;
   --ifm-link-hover-color: #fcd34d;
-  
+
   /* Code highlighting */
   --docusaurus-highlighted-code-line-bg: rgba(167, 139, 250, 0.2);
-  
+
   /* Lighter purple background - matches main site top gradient */
   --ifm-background-color: #2b1241;
   --ifm-background-surface-color: #3d2256;
-  
+
   /* Navbar - dark like main site */
   --ifm-navbar-background-color: #1a0b2e;
   --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  
+
   /* Footer - darker to ground the page */
   --ifm-footer-background-color: #1a0b2e;
   --ifm-footer-color: #c4b5fd;
   --ifm-footer-link-color: #b7a1fc;
   --ifm-footer-link-hover-color: #fcd34d;
   --ifm-footer-title-color: #f3f0ff;
-  
+
   /* Sidebar */
   --ifm-menu-color: #ddd6fe;
   --ifm-menu-color-active: #a78bfa;
   --ifm-menu-color-background-active: rgba(167, 139, 250, 0.15);
-  
+
   /* Table of contents */
   --ifm-toc-link-color: #c4b5fd;
-  
+
   /* Cards and borders */
   --ifm-card-background-color: #3d2256;
   --ifm-global-border-color: #6b3fa0;
-  
+
   /* Text colors */
   --ifm-font-color-base: #f3f0ff;
   --ifm-font-color-secondary: #ddd6fe;
