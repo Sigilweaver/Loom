@@ -1,13 +1,14 @@
 """Connection management API routes.
 
-Admin-only endpoints for managing Hub database connections.
-Connections are stored with encrypted credentials.
+Admin-only endpoints for managing Hub connections (database, filesystem).
+Database connections store encrypted credentials.
 """
 
 import logging
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,10 +21,15 @@ from app.domain.connections import (
     ConnectionInfo,
     ConnectionNotFoundError,
     ConnectionStore,
+    ConnectionType,
     CreateConnectionInput,
+    DatabaseConfig,
     DatabaseType,
     DuplicateConnectionError,
     EncryptionKeyError,
+    FilesystemConfig,
+    PathType,
+    ResolvedDatabaseConnection,
     UpdateConnectionInput,
 )
 
@@ -34,15 +40,30 @@ logger = logging.getLogger(__name__)
 # Response models
 
 
+class DatabaseConfigResponse(BaseModel):
+    """Database-specific configuration."""
+
+    db_type: str
+    host: str
+    port: int
+    database: str
+
+
+class FilesystemConfigResponse(BaseModel):
+    """Filesystem-specific configuration."""
+
+    path: str
+    path_type: str
+
+
 class ConnectionResponse(BaseModel):
     """Connection details (without credentials)."""
 
     id: str
     name: str
     type: str
-    host: str
-    port: int
-    database: str
+    description: str | None
+    read_only: bool
     status: str
     last_checked: str | None
     last_healthy: str | None
@@ -50,6 +71,9 @@ class ConnectionResponse(BaseModel):
     created_by: str
     created_at: str
     updated_at: str
+    # Type-specific configs (only one will be present)
+    database_config: DatabaseConfigResponse | None = None
+    filesystem_config: FilesystemConfigResponse | None = None
 
 
 class ConnectionListResponse(BaseModel):
@@ -68,13 +92,29 @@ class TestConnectionResponse(BaseModel):
 
 def _info_to_response(info: ConnectionInfo) -> ConnectionResponse:
     """Convert ConnectionInfo to API response."""
+    database_config = None
+    filesystem_config = None
+
+    if info.database_config:
+        database_config = DatabaseConfigResponse(
+            db_type=info.database_config.db_type.value if isinstance(info.database_config.db_type, DatabaseType) else info.database_config.db_type,
+            host=info.database_config.host,
+            port=info.database_config.port,
+            database=info.database_config.database,
+        )
+
+    if info.filesystem_config:
+        filesystem_config = FilesystemConfigResponse(
+            path=info.filesystem_config.path,
+            path_type=info.filesystem_config.path_type.value if isinstance(info.filesystem_config.path_type, PathType) else info.filesystem_config.path_type,
+        )
+
     return ConnectionResponse(
         id=info.id,
         name=info.name,
         type=info.type if isinstance(info.type, str) else info.type.value,
-        host=info.host,
-        port=info.port,
-        database=info.database,
+        description=info.description,
+        read_only=info.read_only,
         status=info.status,
         last_checked=info.last_checked.isoformat() if info.last_checked else None,
         last_healthy=info.last_healthy.isoformat() if info.last_healthy else None,
@@ -82,6 +122,8 @@ def _info_to_response(info: ConnectionInfo) -> ConnectionResponse:
         created_by=info.created_by,
         created_at=info.created_at.isoformat(),
         updated_at=info.updated_at.isoformat(),
+        database_config=database_config,
+        filesystem_config=filesystem_config,
     )
 
 
@@ -99,6 +141,7 @@ async def _get_store(db: AsyncSession) -> ConnectionStore:
 @router.get("", response_model=ConnectionListResponse)
 async def list_connections(
     user: CurrentUser,
+    connection_type: Annotated[ConnectionType | None, Query(alias="type")] = None,
     db: AsyncSession = Depends(get_db),
 ) -> ConnectionListResponse:
     """List Hub connections accessible to the current user.
@@ -107,12 +150,15 @@ async def list_connections(
     Regular users only see connections via grant groups:
     User -> UserGroup -> GrantGroup -> Connection
     Credentials are never returned.
+
+    Query params:
+        type: Optional filter by connection type ("database" or "filesystem")
     """
     store = await _get_store(db)
 
     # Admins/Owners/Auditors see all connections
     if user.role in ("owner", "admin", "auditor"):
-        connections = await store.list_connections()
+        connections = await store.list_connections(connection_type=connection_type)
         return ConnectionListResponse(
             connections=[_info_to_response(c) for c in connections],
             total=len(connections),
@@ -150,7 +196,7 @@ async def list_connections(
         return ConnectionListResponse(connections=[], total=0)
 
     # Filter connections to only those accessible
-    all_connections = await store.list_connections()
+    all_connections = await store.list_connections(connection_type=connection_type)
     filtered = [
         c for c in all_connections
         if UUID(c.id) in accessible_conn_ids
@@ -352,9 +398,10 @@ async def test_connection(
     _user: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> TestConnectionResponse:
-    """Test a connection by attempting to connect.
+    """Test a database connection by attempting to connect.
 
     Requires admin role. Decrypts credentials and attempts a connection.
+    Only works for database connections.
     """
     store = await _get_store(db)
     resolved = await store.resolve_connection(connection_id)
@@ -365,8 +412,15 @@ async def test_connection(
             detail=f"Connection {connection_id} not found",
         )
 
+    # Only database connections can be tested this way
+    if not isinstance(resolved, ResolvedDatabaseConnection):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only database connections can be tested directly. Filesystem connections require a Server for health checks.",
+        )
+
     return _test_connection_params(
-        db_type=resolved.type,
+        db_type=resolved.db_type,
         host=resolved.host,
         port=resolved.port,
         database=resolved.database,

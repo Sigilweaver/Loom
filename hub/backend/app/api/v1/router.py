@@ -8,6 +8,7 @@ from app.api.v1.routes import (
     capabilities,
     connections,
     executions,
+    # file_paths,  # Deprecated: Use connections with type=filesystem instead
     grant_groups,
     groups,
     health,
@@ -43,6 +44,9 @@ v1_router.include_router(groups.router, tags=["groups"])
 
 # Grant group management (admin only)
 v1_router.include_router(grant_groups.router, tags=["grant-groups"])
+
+# File paths deprecated - use connections with type=filesystem
+# v1_router.include_router(file_paths.router, tags=["file-paths"])
 
 # Audit log (auditor and above)
 v1_router.include_router(audit.router, tags=["audit"])

@@ -1,28 +1,39 @@
 """Encrypted connection store backed by PostgreSQL.
 
-This module provides encrypted storage for database connection credentials.
-Credentials are encrypted using Fernet (AES-128-CBC with HMAC) before
+This module provides storage for Hub-managed connections (database, filesystem, etc.).
+Database credentials are encrypted using Fernet (AES-128-CBC with HMAC) before
 storage. The encryption key must be provided via environment variable.
 
-Unlike the Server's file-based store, this uses async SQLAlchemy for
-database-backed storage suitable for multi-instance Hub deployments.
+The store dispatches create/update/resolve operations based on connection type.
 """
 
 import json
 import logging
+from typing import Union
 from uuid import UUID
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.db.models import Connection
+from app.db.models import Connection, ConnectionDatabase, ConnectionFilesystem
 from app.domain.connections.models import (
     ConnectionInfo,
+    ConnectionType,
     CreateConnectionInput,
-    ResolvedConnection,
+    CreateDatabaseConnectionInput,
+    CreateFilesystemConnectionInput,
+    DatabaseConfig,
+    DatabaseType,
+    FilesystemConfig,
+    PathType,
+    ResolvedDatabaseConnection,
+    ResolvedFilesystemConnection,
     UpdateConnectionInput,
+    UpdateDatabaseConnectionInput,
+    UpdateFilesystemConnectionInput,
 )
 
 logger = logging.getLogger(__name__)
@@ -126,13 +137,31 @@ class ConnectionStore:
 
     def _model_to_info(self, conn: Connection) -> ConnectionInfo:
         """Convert database model to ConnectionInfo."""
+        # Build type-specific configs
+        database_config = None
+        filesystem_config = None
+
+        if conn.type == ConnectionType.DATABASE.value and conn.database_config:
+            db_cfg = conn.database_config
+            database_config = DatabaseConfig(
+                db_type=db_cfg.db_type,
+                host=db_cfg.host,
+                port=db_cfg.port,
+                database=db_cfg.database,
+            )
+        elif conn.type == ConnectionType.FILESYSTEM.value and conn.filesystem_config:
+            fs_cfg = conn.filesystem_config
+            filesystem_config = FilesystemConfig(
+                path=fs_cfg.path,
+                path_type=PathType(fs_cfg.path_type),
+            )
+
         return ConnectionInfo(
             id=str(conn.id),
             name=conn.name,
-            type=conn.type,
-            host=conn.host,
-            port=conn.port,
-            database=conn.database,
+            type=ConnectionType(conn.type),
+            description=conn.description,
+            read_only=conn.read_only,
             status=conn.status,
             last_checked=conn.last_checked,
             last_healthy=conn.last_healthy,
@@ -140,15 +169,31 @@ class ConnectionStore:
             created_by=conn.created_by,
             created_at=conn.created_at,
             updated_at=conn.updated_at,
+            database_config=database_config,
+            filesystem_config=filesystem_config,
         )
 
-    async def list_connections(self) -> list[ConnectionInfo]:
+    async def list_connections(
+        self,
+        connection_type: ConnectionType | None = None,
+    ) -> list[ConnectionInfo]:
         """List all connections (without credentials).
+
+        Args:
+            connection_type: Optional filter by connection type.
 
         Returns:
             List of ConnectionInfo objects.
         """
-        result = await self.db.execute(select(Connection).order_by(Connection.name))
+        query = select(Connection).options(
+            selectinload(Connection.database_config),
+            selectinload(Connection.filesystem_config),
+        ).order_by(Connection.name)
+
+        if connection_type:
+            query = query.where(Connection.type == connection_type.value)
+
+        result = await self.db.execute(query)
         connections = result.scalars().all()
         return [self._model_to_info(c) for c in connections]
 
@@ -164,7 +209,14 @@ class ConnectionStore:
         if isinstance(connection_id, str):
             connection_id = UUID(connection_id)
 
-        result = await self.db.execute(select(Connection).where(Connection.id == connection_id))
+        result = await self.db.execute(
+            select(Connection)
+            .options(
+                selectinload(Connection.database_config),
+                selectinload(Connection.filesystem_config),
+            )
+            .where(Connection.id == connection_id)
+        )
         conn = result.scalar_one_or_none()
 
         if conn is None:
@@ -180,7 +232,7 @@ class ConnectionStore:
         """Create a new connection.
 
         Args:
-            input: Connection details including credentials.
+            input: Connection details (type determines validation).
             created_by: Username of the creating user.
 
         Returns:
@@ -194,25 +246,36 @@ class ConnectionStore:
         if result.scalar_one_or_none():
             raise DuplicateConnectionError(f"Connection with name '{input.name}' already exists")
 
-        # Encrypt credentials
-        encrypted = self._encrypt_credentials(input.username, input.password)
-
-        # Create model
+        # Create base connection
         conn = Connection(
             name=input.name,
-            type=input.type.value,
-            host=input.host,
-            port=input.port,
-            database=input.database,
-            encrypted_credentials=encrypted,
+            type=input.type,
+            description=input.description,
+            read_only=input.read_only,
             created_by=created_by,
         )
 
+        # Add type-specific config
+        if isinstance(input, CreateDatabaseConnectionInput):
+            encrypted = self._encrypt_credentials(input.username, input.password)
+            conn.database_config = ConnectionDatabase(
+                db_type=input.db_type.value,
+                host=input.host,
+                port=input.port,
+                database=input.database,
+                encrypted_credentials=encrypted,
+            )
+        elif isinstance(input, CreateFilesystemConnectionInput):
+            conn.filesystem_config = ConnectionFilesystem(
+                path=input.path,
+                path_type=input.path_type.value,
+            )
+
         self.db.add(conn)
         await self.db.commit()
-        await self.db.refresh(conn)
+        await self.db.refresh(conn, ["database_config", "filesystem_config"])
 
-        logger.info(f"Created connection '{conn.name}' (id={conn.id}) by {created_by}")
+        logger.info(f"Created {input.type} connection '{conn.name}' (id={conn.id}) by {created_by}")
         return self._model_to_info(conn)
 
     async def update_connection(
@@ -236,7 +299,14 @@ class ConnectionStore:
         if isinstance(connection_id, str):
             connection_id = UUID(connection_id)
 
-        result = await self.db.execute(select(Connection).where(Connection.id == connection_id))
+        result = await self.db.execute(
+            select(Connection)
+            .options(
+                selectinload(Connection.database_config),
+                selectinload(Connection.filesystem_config),
+            )
+            .where(Connection.id == connection_id)
+        )
         conn = result.scalar_one_or_none()
 
         if conn is None:
@@ -253,35 +323,48 @@ class ConnectionStore:
                 )
             conn.name = input.name
 
-        # Update other fields
-        if input.host is not None:
-            conn.host = input.host
-        if input.port is not None:
-            conn.port = input.port
-        if input.database is not None:
-            conn.database = input.database
+        # Update common fields
+        if input.description is not None:
+            conn.description = input.description
+        if input.read_only is not None:
+            conn.read_only = input.read_only
 
-        # Update credentials if provided
-        if input.username is not None or input.password is not None:
-            # Get current credentials
-            current_username, current_password = self._decrypt_credentials(
-                conn.encrypted_credentials
-            )
+        # Update type-specific fields
+        if isinstance(input, UpdateDatabaseConnectionInput) and conn.database_config:
+            db_cfg = conn.database_config
+            if input.host is not None:
+                db_cfg.host = input.host
+            if input.port is not None:
+                db_cfg.port = input.port
+            if input.database is not None:
+                db_cfg.database = input.database
 
-            # Apply updates
-            new_username = input.username if input.username is not None else current_username
-            new_password = input.password if input.password is not None else current_password
+            # Update credentials if provided
+            if input.username is not None or input.password is not None:
+                current_username, current_password = self._decrypt_credentials(
+                    db_cfg.encrypted_credentials
+                )
+                new_username = input.username if input.username is not None else current_username
+                new_password = input.password if input.password is not None else current_password
+                db_cfg.encrypted_credentials = self._encrypt_credentials(new_username, new_password)
 
-            conn.encrypted_credentials = self._encrypt_credentials(new_username, new_password)
+        elif isinstance(input, UpdateFilesystemConnectionInput) and conn.filesystem_config:
+            fs_cfg = conn.filesystem_config
+            if input.path is not None:
+                fs_cfg.path = input.path
+            if input.path_type is not None:
+                fs_cfg.path_type = input.path_type.value
 
         await self.db.commit()
-        await self.db.refresh(conn)
+        await self.db.refresh(conn, ["database_config", "filesystem_config"])
 
         logger.info(f"Updated connection '{conn.name}' (id={conn.id})")
         return self._model_to_info(conn)
 
     async def delete_connection(self, connection_id: UUID | str) -> bool:
         """Delete a connection.
+
+        Cascade deletes handle type-specific config tables.
 
         Args:
             connection_id: The connection UUID.
@@ -304,39 +387,65 @@ class ConnectionStore:
         logger.info(f"Deleted connection '{conn.name}' (id={conn.id})")
         return True
 
-    async def resolve_connection(self, connection_id: UUID | str) -> ResolvedConnection | None:
-        """Resolve a connection with decrypted credentials.
+    async def resolve_connection(
+        self, connection_id: UUID | str
+    ) -> ResolvedDatabaseConnection | ResolvedFilesystemConnection | None:
+        """Resolve a connection with decrypted credentials (for database type).
 
-        WARNING: This returns plaintext credentials. Only use for
-        authenticated server requests during workflow execution.
+        WARNING: For database connections, this returns plaintext credentials.
+        Only use for authenticated server requests during workflow execution.
 
         Args:
             connection_id: The connection UUID.
 
         Returns:
-            ResolvedConnection with decrypted credentials, or None if not found.
+            ResolvedDatabaseConnection or ResolvedFilesystemConnection, or None if not found.
         """
         if isinstance(connection_id, str):
             connection_id = UUID(connection_id)
 
-        result = await self.db.execute(select(Connection).where(Connection.id == connection_id))
+        result = await self.db.execute(
+            select(Connection)
+            .options(
+                selectinload(Connection.database_config),
+                selectinload(Connection.filesystem_config),
+            )
+            .where(Connection.id == connection_id)
+        )
         conn = result.scalar_one_or_none()
 
         if conn is None:
             return None
 
-        username, password = self._decrypt_credentials(conn.encrypted_credentials)
+        if conn.type == ConnectionType.DATABASE.value and conn.database_config:
+            db_cfg = conn.database_config
+            username, password = self._decrypt_credentials(db_cfg.encrypted_credentials)
 
-        return ResolvedConnection(
-            id=str(conn.id),
-            name=conn.name,
-            type=conn.type,
-            host=conn.host,
-            port=conn.port,
-            database=conn.database,
-            username=username,
-            password=password,
-        )
+            return ResolvedDatabaseConnection(
+                id=str(conn.id),
+                name=conn.name,
+                type="database",
+                read_only=conn.read_only,
+                db_type=DatabaseType(db_cfg.db_type),
+                host=db_cfg.host,
+                port=db_cfg.port,
+                database=db_cfg.database,
+                username=username,
+                password=password,
+            )
+        elif conn.type == ConnectionType.FILESYSTEM.value and conn.filesystem_config:
+            fs_cfg = conn.filesystem_config
+
+            return ResolvedFilesystemConnection(
+                id=str(conn.id),
+                name=conn.name,
+                type="filesystem",
+                read_only=conn.read_only,
+                path=fs_cfg.path,
+                path_type=PathType(fs_cfg.path_type),
+            )
+
+        return None
 
 
 # Factory function for dependency injection

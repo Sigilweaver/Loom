@@ -223,10 +223,15 @@ class Schedule(Base):
 
 
 class Connection(Base):
-    """Hub-managed database connection credentials.
+    """Hub-managed connection for data access.
 
-    Credentials are stored encrypted using Fernet symmetric encryption.
-    The encryption key must be provided via environment variable.
+    Connections are a unified abstraction for data sources:
+    - Database connections (PostgreSQL, MySQL, etc.)
+    - Filesystem paths (local, UNC)
+    - S3 buckets (future)
+
+    Type-specific configuration is stored in separate tables
+    (ConnectionDatabase, ConnectionFilesystem) linked via connection_id.
     """
 
     __tablename__ = "connections"
@@ -235,13 +240,9 @@ class Connection(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    type: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql, mysql, etc.
-    host: Mapped[str] = mapped_column(String(255), nullable=False)
-    port: Mapped[int] = mapped_column(Integer, nullable=False)
-    database: Mapped[str] = mapped_column(String(255), nullable=False)
-
-    # Credentials stored as Fernet-encrypted JSON string (base64)
-    encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False)  # database, filesystem, s3
+    description: Mapped[str] = mapped_column(Text, default="")
+    read_only: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Health status
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="unknown")
@@ -262,7 +263,59 @@ class Connection(Base):
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
     )
 
-    # Relationships removed - connections are now accessed via grant groups only
+    # Relationships to type-specific tables
+    database_config: Mapped[Optional["ConnectionDatabase"]] = relationship(
+        "ConnectionDatabase", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+    )
+    filesystem_config: Mapped[Optional["ConnectionFilesystem"]] = relationship(
+        "ConnectionFilesystem", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class ConnectionDatabase(Base):
+    """Database-specific connection configuration.
+
+    Credentials are stored encrypted using Fernet symmetric encryption.
+    The encryption key must be provided via environment variable.
+    """
+
+    __tablename__ = "connection_databases"
+
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("connections.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    db_type: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql, mysql, sqlite, mssql
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(Integer, nullable=False)
+    database: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Credentials stored as Fernet-encrypted JSON string (base64)
+    encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Relationship back to base
+    connection: Mapped["Connection"] = relationship("Connection", back_populates="database_config")
+
+
+class ConnectionFilesystem(Base):
+    """Filesystem-specific connection configuration.
+
+    File paths are directory roots that users can browse on Server instances.
+    """
+
+    __tablename__ = "connection_filesystems"
+
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("connections.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    path_type: Mapped[str] = mapped_column(String(20), nullable=False, default="local")  # local, unc
+
+    # Relationship back to base
+    connection: Mapped["Connection"] = relationship("Connection", back_populates="filesystem_config")
 
 
 class Session(Base):

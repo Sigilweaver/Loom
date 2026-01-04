@@ -39,17 +39,62 @@ export interface ServerToken {
 }
 
 /**
+ * Browse token response from Hub
+ */
+export interface BrowseToken {
+  /** JWT token for file browsing */
+  token: string;
+  /** Server endpoint URL */
+  server_endpoint: string;
+  /** Seconds until token expires */
+  expires_in: number;
+}
+
+/**
+ * Hub connection types
+ */
+export type HubConnectionType = 'database' | 'filesystem';
+export type HubDatabaseType = 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
+export type HubPathType = 'local' | 'unc';
+export type HubConnectionStatus = 'healthy' | 'unhealthy' | 'error' | 'unknown';
+
+/**
+ * Database-specific config (present when type='database')
+ */
+export interface HubDatabaseConfig {
+  db_type: HubDatabaseType;
+  host: string;
+  port: number;
+  database: string;
+}
+
+/**
+ * Filesystem-specific config (present when type='filesystem')
+ */
+export interface HubFilesystemConfig {
+  path: string;
+  path_type: HubPathType;
+}
+
+/**
  * Hub connection info (credential-free metadata)
  */
 export interface HubConnectionInfo {
   id: string;
   name: string;
-  type: 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
-  host: string;
-  port: number;
-  database: string;
+  type: HubConnectionType;
+  description: string | null;
+  read_only: boolean;
+  status: HubConnectionStatus;
+  last_checked: string | null;
+  last_healthy: string | null;
+  last_error: string | null;
+  created_by: string;
   created_at: string;
   updated_at: string;
+  // Type-specific configs (only one will be present)
+  database_config?: HubDatabaseConfig;
+  filesystem_config?: HubFilesystemConfig;
 }
 
 /**
@@ -113,6 +158,8 @@ export class HubClient {
 
     if (this.sessionToken) {
       headers['Authorization'] = `Bearer ${this.sessionToken}`;
+    } else {
+      console.warn('[HubClient] No session token - request will be unauthenticated:', endpoint);
     }
 
     try {
@@ -140,6 +187,17 @@ export class HubClient {
         }
 
         throw new HubError(errorMessage, response.status);
+      }
+
+      // Some endpoints may return 204 No Content (e.g., logout).
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      // If the response has an empty body, treat it as undefined.
+      const contentLength = response.headers.get('content-length');
+      if (contentLength === '0') {
+        return undefined as T;
       }
 
       return await response.json();
@@ -239,6 +297,29 @@ export class HubClient {
     return response;
   }
 
+  /**
+   * Request a browse token for file browsing
+   *
+   * Gets a token that allows browsing files on a Server within
+   * the user's granted file paths. Hub picks a healthy server automatically.
+   *
+   * @param serverId - Optional server ID (Hub picks if not specified)
+   * @returns Browse token with endpoint and expiration
+   */
+  async requestBrowseToken(serverId?: string): Promise<BrowseToken> {
+    logger.info('Requesting browse token from Hub');
+
+    const body = serverId ? { server_id: serverId } : {};
+    const response = await this.request<BrowseToken>('/api/v1/capabilities/browse', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    logger.info(`Got browse token for ${response.server_endpoint}, expires in ${response.expires_in}s`);
+
+    return response;
+  }
+
   // ===========================================================================
   // Connections
   // ===========================================================================
@@ -266,7 +347,8 @@ export class HubClient {
    * List available servers
    */
   async listServers(): Promise<HubServerInfo[]> {
-    return this.request('/api/v1/servers');
+    const response = await this.request<{ servers: HubServerInfo[]; total: number }>('/api/v1/servers');
+    return response.servers;
   }
 
   /**

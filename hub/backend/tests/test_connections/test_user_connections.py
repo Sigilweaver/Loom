@@ -8,6 +8,7 @@ Per roles.md:
 
 import pytest
 from tests.conftest import new_client
+from tests.test_connections import database_connection_payload
 
 
 async def assign_connection_to_group_via_grant_group(
@@ -58,15 +59,7 @@ class TestUserCanSeeOwnConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload(),
             )
             # May fail if encryption key not set, that's OK
             if create_response.status_code != 201:
@@ -97,15 +90,7 @@ class TestUserCanSeeOwnConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload(),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")
@@ -135,15 +120,7 @@ class TestUserCanSeeOwnConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Unassigned Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload("Unassigned Connection"),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")
@@ -169,15 +146,7 @@ class TestUserCannotAccessUnassignedConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Other Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "otherdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload("Other Connection"),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")
@@ -203,15 +172,7 @@ class TestUserCannotManageConnections:
             response = await client.post(
                 "/api/v1/connections",
                 headers=user_headers,
-                json={
-                    "name": "User Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload("User Connection"),
             )
 
         assert response.status_code == 403
@@ -226,15 +187,7 @@ class TestUserCannotManageConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload(),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")
@@ -264,15 +217,7 @@ class TestUserCannotManageConnections:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload(),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")
@@ -317,15 +262,7 @@ class TestUserCannotManageGrantGroups:
             create_response = await client.post(
                 "/api/v1/connections",
                 headers=admin_headers,
-                json={
-                    "name": "Test Connection",
-                    "type": "postgresql",
-                    "host": "localhost",
-                    "port": 5432,
-                    "database": "testdb",
-                    "username": "testuser",
-                    "password": "testpass",
-                },
+                json=database_connection_payload(),
             )
             if create_response.status_code != 201:
                 pytest.skip("Connection creation requires encryption key")

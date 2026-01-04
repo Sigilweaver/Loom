@@ -9,6 +9,7 @@ from app.domain.tools.loaders.base import FileLoader
 from app.domain.tools.loaders.generic import GenericLoader
 from app.domain.tools.loaders.specs import LOADER_SPECS
 from app.utils.errors import ToolError
+from app.utils.security import validate_file_path
 
 
 class JsonLoader(FileLoader):
@@ -40,6 +41,10 @@ class JsonLoader(FileLoader):
         source = config.get("source")
         if not source:
             raise ToolError("JSON config missing 'source' field")
+
+        # Security: Validate file path against allowed paths (Hub mode enforcement)
+        # Note: GenericLoader also validates, but we validate early for clear error messages
+        validate_file_path(source)
 
         loader = self._get_loader(source)
         return await loader.load(config)

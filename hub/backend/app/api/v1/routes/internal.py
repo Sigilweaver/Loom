@@ -23,7 +23,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.database import get_db
-from app.db.models import Execution, ExecutionRecord, Server
+from app.db.models import (
+    Connection,
+    ConnectionFilesystem,
+    Execution,
+    ExecutionRecord,
+    GrantGroupConnection,
+    Server,
+    UserGroup,
+    UserGroupGrantGroup,
+)
 from app.domain.audit import AuditService
 from app.domain.auth.keys import get_key_manager
 from app.domain.auth.tokens import get_token_tracker
@@ -98,14 +107,36 @@ class ValidateRequest(BaseModel):
 
 
 class ConnectionCredentials(BaseModel):
-    """Decrypted connection credentials."""
+    """Resolved connection credentials for Server execution.
+    
+    For database connections: includes host, port, database, username, password.
+    For filesystem connections: includes path, path_type.
+    """
 
-    type: str
-    host: str
-    port: int
-    database: str
-    username: str
-    password: str
+    type: str  # "database" or "filesystem"
+    read_only: bool = False
+    # Database fields (only for type="database")
+    db_type: str | None = None
+    host: str | None = None
+    port: int | None = None
+    database: str | None = None
+    username: str | None = None
+    password: str | None = None
+    # Filesystem fields (only for type="filesystem")
+    path: str | None = None
+    path_type: str | None = None
+
+
+class ValidateFilePathGrant(BaseModel):
+    """File path grant for workflow execution.
+    
+    These are returned separately from connections because file access
+    validation applies to ALL file operations in a workflow, not just
+    those using explicit filesystem connections.
+    """
+
+    path: str
+    read_only: bool
 
 
 class ValidateResponse(BaseModel):
@@ -117,6 +148,10 @@ class ValidateResponse(BaseModel):
     scope: str | None = None
     connections: dict[str, ConnectionCredentials] | None = None
     constraints: dict | None = None
+    file_paths: list[ValidateFilePathGrant] = Field(
+        default_factory=list,
+        description="User's file path grants for file access validation"
+    )
 
 
 # Endpoints
@@ -188,35 +223,48 @@ async def validate_server_token(
         # 5. Resolve credentials for requested connections
         connections: dict[str, ConnectionCredentials] = {}
         if request.connection_ids:
-            from app.domain.connections import ConnectionStore, EncryptionKeyError
+            from app.domain.connections import (
+                ConnectionStore,
+                EncryptionKeyError,
+                ResolvedDatabaseConnection,
+                ResolvedFilesystemConnection,
+            )
 
             try:
                 store = ConnectionStore(db)
                 for conn_id in request.connection_ids:
                     resolved = await store.resolve_connection(conn_id)
                     if resolved:
-                        resolved_type = resolved.type
-                        type_str = (
-                            resolved_type
-                            if isinstance(resolved_type, str)
-                            else resolved_type.value
-                        )
-                        connections[conn_id] = ConnectionCredentials(
-                            type=type_str,
-                            host=resolved.host,
-                            port=resolved.port,
-                            database=resolved.database,
-                            username=resolved.username,
-                            password=resolved.password,
-                        )
+                        if isinstance(resolved, ResolvedDatabaseConnection):
+                            connections[conn_id] = ConnectionCredentials(
+                                type="database",
+                                read_only=resolved.read_only,
+                                db_type=resolved.db_type.value if hasattr(resolved.db_type, 'value') else resolved.db_type,
+                                host=resolved.host,
+                                port=resolved.port,
+                                database=resolved.database,
+                                username=resolved.username,
+                                password=resolved.password,
+                            )
+                        elif isinstance(resolved, ResolvedFilesystemConnection):
+                            connections[conn_id] = ConnectionCredentials(
+                                type="filesystem",
+                                read_only=resolved.read_only,
+                                path=resolved.path,
+                                path_type=resolved.path_type.value if hasattr(resolved.path_type, 'value') else resolved.path_type,
+                            )
                     else:
                         logger.warning(f"Connection {conn_id} not found in store")
             except EncryptionKeyError as e:
                 logger.error(f"Connection store not available: {e}")
                 # Continue without credentials if store not configured
 
-        # 6. Log audit events
+        # 6. Get user's file path grants (ALL filesystem connections accessible via grant groups)
+        # This is critical for security - restricts file access during workflow execution
         user_id = claims.get("sub", "unknown")
+        file_path_grants = await _get_user_file_paths_for_validate(UUID(user_id), db)
+
+        # 7. Log audit events
         scope = claims.get("scope", "unknown")
 
         audit_service = AuditService(db)
@@ -251,7 +299,7 @@ async def validate_server_token(
 
         logger.info(
             f"Token validated: user={user_id[:8]}..., server={server.server_name}, "
-            f"scope={scope}, connections={len(request.connection_ids)}"
+            f"scope={scope}, connections={len(request.connection_ids)}, file_paths={len(file_path_grants)}"
         )
 
         return ValidateResponse(
@@ -260,6 +308,7 @@ async def validate_server_token(
             scope=scope,
             connections=connections if connections else None,
             constraints=claims.get("constraints"),
+            file_paths=file_path_grants,
         )
 
     except jwt.ExpiredSignatureError:
@@ -403,3 +452,159 @@ async def receive_execution_report(
     )
 
     return {"status": "received"}
+
+
+# =============================================================================
+# Browse Token Validation
+# =============================================================================
+
+
+class FilePathGrant(BaseModel):
+    """File path permission for browse operations."""
+
+    path: str
+    read_only: bool
+
+
+class ValidateBrowseRequest(BaseModel):
+    """Request to validate a browse token."""
+
+    token: str = Field(..., description="The browse token to validate")
+
+
+class ValidateBrowseResponse(BaseModel):
+    """Response from browse token validation."""
+
+    valid: bool
+    error: str | None = None
+    user_id: str | None = None
+    file_paths: list[FilePathGrant] = Field(default_factory=list)
+
+
+@router.post("/validate-browse", response_model=ValidateBrowseResponse)
+async def validate_browse_token(
+    request: ValidateBrowseRequest,
+    server: ServerIdentity = Depends(get_server_identity),
+    db: AsyncSession = Depends(get_db),
+) -> ValidateBrowseResponse:
+    """Validate a browse token and return file path permissions.
+
+    This is a simpler validation than /validate - it doesn't require
+    workflow hash verification or connection credentials. Used for
+    file browser operations.
+
+    Returns:
+        ValidateBrowseResponse with file paths the user can access.
+    """
+    key_manager = get_key_manager()
+    token_tracker = get_token_tracker()
+
+    try:
+        # 1. Decode and verify JWT signature, audience, issuer, expiration
+        claims = jwt.decode(
+            request.token,
+            key_manager.public_key,
+            algorithms=["RS256"],
+            audience=f"server-{server.server_id}",
+            issuer=settings.jwt_issuer,
+        )
+
+        jti = claims["jti"]
+        exp = datetime.fromtimestamp(claims["exp"], tz=UTC)
+        token_type = claims.get("type", "exec")
+
+        # Verify this is a browse token
+        if token_type != "browse":
+            return ValidateBrowseResponse(
+                valid=False,
+                error=f"Invalid token type: expected 'browse', got '{token_type}'",
+            )
+
+        # 2. Check one-time use
+        if not await token_tracker.mark_used(jti, exp):
+            logger.warning(f"Browse token replay attempt: {jti[:8]}... from server {server.server_name}")
+            return ValidateBrowseResponse(valid=False, error="Token already used")
+
+        # 3. Get user's file paths via grant groups
+        user_id = claims.get("sub")
+        if not user_id:
+            return ValidateBrowseResponse(valid=False, error="Token missing user ID")
+
+        file_paths = await _get_user_file_paths(UUID(user_id), db)
+
+        logger.info(
+            f"Browse token validated: user={user_id[:8]}..., server={server.server_name}, "
+            f"file_paths={len(file_paths)}"
+        )
+
+        return ValidateBrowseResponse(
+            valid=True,
+            user_id=user_id,
+            file_paths=file_paths,
+        )
+
+    except jwt.ExpiredSignatureError:
+        logger.warning(f"Expired browse token from server {server.server_name}")
+        return ValidateBrowseResponse(valid=False, error="Token expired")
+    except jwt.InvalidAudienceError:
+        logger.warning(f"Invalid audience in browse token from server {server.server_name}")
+        return ValidateBrowseResponse(valid=False, error="Token not valid for this server")
+    except jwt.InvalidIssuerError:
+        logger.warning(f"Invalid issuer in browse token from server {server.server_name}")
+        return ValidateBrowseResponse(valid=False, error="Invalid token issuer")
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid browse token from server {server.server_name}: {e}")
+        return ValidateBrowseResponse(valid=False, error=f"Invalid token: {e}")
+
+
+async def _get_user_file_paths_for_validate(user_id: UUID, db: AsyncSession) -> list[ValidateFilePathGrant]:
+    """Get filesystem connections accessible to user for workflow validation.
+
+    This is the critical security function that determines what file paths
+    a user can access during workflow execution. Returns all filesystem
+    connections the user has access to via their grant group memberships.
+
+    Access path: User -> UserGroup -> UserGroupGrantGroup -> GrantGroup -> GrantGroupConnection -> Connection (type=filesystem)
+
+    Returns:
+        List of ValidateFilePathGrant with path and read_only flag.
+    """
+    result = await db.execute(
+        select(Connection, ConnectionFilesystem)
+        .join(ConnectionFilesystem, Connection.id == ConnectionFilesystem.connection_id)
+        .join(GrantGroupConnection, GrantGroupConnection.connection_id == Connection.id)
+        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id)
+        .join(UserGroup, UserGroup.group_id == UserGroupGrantGroup.user_group_id)
+        .where(UserGroup.user_id == user_id)
+        .where(Connection.type == "filesystem")
+        .distinct()
+    )
+    rows = result.all()
+
+    return [
+        ValidateFilePathGrant(path=fs.path, read_only=conn.read_only)
+        for conn, fs in rows
+    ]
+
+
+async def _get_user_file_paths(user_id: UUID, db: AsyncSession) -> list[FilePathGrant]:
+    """Get filesystem connections accessible to user via grant group membership.
+
+    Access path: User -> UserGroup -> UserGroupGrantGroup -> GrantGroup -> GrantGroupConnection -> Connection (type=filesystem)
+    """
+    result = await db.execute(
+        select(Connection, ConnectionFilesystem)
+        .join(ConnectionFilesystem, Connection.id == ConnectionFilesystem.connection_id)
+        .join(GrantGroupConnection, GrantGroupConnection.connection_id == Connection.id)
+        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id)
+        .join(UserGroup, UserGroup.group_id == UserGroupGrantGroup.user_group_id)
+        .where(UserGroup.user_id == user_id)
+        .where(Connection.type == "filesystem")
+        .distinct()
+    )
+    rows = result.all()
+
+    return [
+        FilePathGrant(path=fs.path, read_only=conn.read_only)
+        for conn, fs in rows
+    ]

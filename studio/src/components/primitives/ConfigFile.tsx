@@ -1,9 +1,14 @@
 import { EmissionMap } from "@domain/workflow/entities/workflow";
-import React, { useId } from "react";
+import React, { useId, useState, useCallback } from "react";
 import { platform } from "@platform";
 import { BrowserFileWarning } from "./BrowserFileWarning";
 import { ConfigField } from "./ConfigField";
 import { usePrimitiveEmission } from "./hooks";
+import { useSettingsStore } from "@state/settingsStore";
+import { getHubClient, hasHubClient, initHubClient } from "../../api/hub";
+import { getSessionToken } from "../../api/backend";
+import { RemoteFileBrowser } from "../common/RemoteFileBrowser";
+import { Globe } from "lucide-react";
 
 export interface FileFilter {
   name: string;
@@ -75,12 +80,77 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
   const inputId = useId();
   const descriptionId = description ? `${inputId}-description` : undefined;
 
+  // Remote file browser state
+  const [remoteBrowserOpen, setRemoteBrowserOpen] = useState(false);
+
+  // Check if remote browsing is available (hub or external mode)
+  const executionMode = useSettingsStore((s) => s.executionMode);
+  const backendUrl = useSettingsStore((s) => s.backend.url);
+  const isRemoteModeAvailable = executionMode === "hub" || executionMode === "external";
+
   const { shouldEmit, commit } = usePrimitiveEmission<string>({
     configKey,
     value,
     defaultValue,
     onChange,
   });
+
+  // Get hub settings for client restoration
+  const hubUrl = useSettingsStore((s) => s.hub.url);
+  const hubSessionToken = useSettingsStore((s) => s.hub.sessionToken);
+
+  // Handle remote browse button click - just opens the dialog
+  // Tokens are now fetched per-operation by the RemoteFileBrowser
+  const handleRemoteBrowseClick = useCallback(() => {
+    if (disabled) return;
+    setRemoteBrowserOpen(true);
+  }, [disabled]);
+
+  // Get token function for RemoteFileBrowser - fetches fresh token for each operation
+  const getRemoteBrowseToken = useCallback(async (): Promise<{ token: string; serverUrl: string }> => {
+    if (executionMode === "hub") {
+      // Hub mode: get browse token from Hub
+      // Restore client from settings if it was lost (e.g., HMR reload)
+      if (!hasHubClient() && hubSessionToken && hubUrl) {
+        console.log("[ConfigFile] Restoring HubClient from settings");
+        initHubClient({ url: hubUrl, sessionToken: hubSessionToken });
+      }
+      if (!hasHubClient()) {
+        throw new Error("Hub client not available");
+      }
+      const hubClient = getHubClient();
+      // Request browse token - Hub picks a healthy server for us
+      const browseTokenResponse = await hubClient.requestBrowseToken();
+      return {
+        token: browseTokenResponse.token,
+        serverUrl: browseTokenResponse.server_endpoint,
+      };
+    } else if (executionMode === "external") {
+      // External mode: use session token directly
+      const token = getSessionToken();
+      if (!token) {
+        throw new Error("No session token available for external server");
+      }
+      return {
+        token,
+        serverUrl: backendUrl,
+      };
+    }
+    throw new Error(`Unsupported execution mode: ${executionMode}`);
+  }, [executionMode, backendUrl, hubUrl, hubSessionToken]);
+
+  const handleRemoteSelect = useCallback(
+    (path: string) => {
+      commit(path);
+      setRemoteBrowserOpen(false);
+    },
+    [commit]
+  );
+
+  // Extract file extensions from filters for remote browser
+  const fileTypes = filters
+    .flatMap((f) => f.extensions)
+    .filter((ext) => ext !== "*");
 
   const handleBrowseClick = async () => {
     if (disabled) return;
@@ -162,10 +232,35 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
         >
           Browse
         </button>
+        {/* Remote browse button for hub/external modes */}
+        {isRemoteModeAvailable && mode === "open" && (
+          <button
+            onClick={handleRemoteBrowseClick}
+            disabled={disabled}
+            title="Browse files on remote server"
+            className="px-3 py-2 text-sm transition-colors border rounded-md bg-theme-surface-panel border-theme-border-primary text-theme-text-primary hover:bg-theme-surface-elevated focus:outline-none focus:ring-1 focus:ring-theme-border-focus disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+          >
+            <Globe className="w-4 h-4" />
+            <span className="hidden sm:inline">Remote</span>
+          </button>
+        )}
       </div>
 
       {/* Browser limitation warning */}
       {showBrowserWarning && <BrowserFileWarning className="mt-2" />}
+
+      {/* Remote file browser dialog */}
+      {remoteBrowserOpen && (
+        <RemoteFileBrowser
+          open={remoteBrowserOpen}
+          getToken={getRemoteBrowseToken}
+          onSelect={handleRemoteSelect}
+          onClose={() => setRemoteBrowserOpen(false)}
+          {...(fileTypes.length > 0 ? { fileTypes } : {})}
+          title="Select File from Server"
+          description="Choose a file from the remote server's file system"
+        />
+      )}
     </ConfigField>
   );
 };

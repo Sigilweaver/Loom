@@ -362,3 +362,72 @@ async def request_preview_capability(
         server_endpoint=capability.server_endpoint,
         expires_in=capability.expires_in,
     )
+
+
+class BrowseCapabilityRequest(BaseModel):
+    """Request for browse capability."""
+
+    server_id: UUID | None = Field(None, description="Server to browse files on (optional, Hub picks if not specified)")
+
+
+@router.post("/browse", response_model=CapabilityResponse)
+async def request_browse_capability(
+    request: BrowseCapabilityRequest,
+    current_user: CurrentUser,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+    issuer: CapabilityIssuer = Depends(get_issuer),
+) -> CapabilityResponse:
+    """Request authorization to browse files on a server.
+
+    Returns a browse token that can be used to list directories and files
+    on the designated server. The token is short-lived (default 5 minutes)
+    and single-use.
+
+    Unlike execute/preview tokens, browse tokens don't require a workflow
+    or connections - they only authorize file browsing operations.
+    """
+    # Select the specified server (must be healthy)
+    server = await _select_healthy_server(db, request.server_id)
+
+    # Issue the browse token
+    capability = await issuer.issue_browse_token(
+        user_id=str(current_user.user_id),
+        server=server,
+    )
+
+    # Log audit events
+    audit_service = AuditService(db)
+
+    # Get client IP
+    client_ip = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+
+    # Log browse.token_issued
+    await audit_service.log_event(
+        event_type="browse.token_issued",
+        actor_type="user",
+        actor_identity=current_user.username,
+        actor_id=current_user.user_id,
+        server_id=server.id,
+        auth_method="session",
+        client_ip=client_ip,
+        user_agent=user_agent,
+        details={
+            "server_name": server.name,
+            "expires_in": capability.expires_in,
+        },
+    )
+
+    await db.commit()
+
+    logger.info(
+        f"Issued browse capability for user {current_user.username} "
+        f"on server {server.name}"
+    )
+
+    return CapabilityResponse(
+        token=capability.token,
+        server_endpoint=capability.server_endpoint,
+        expires_in=capability.expires_in,
+    )

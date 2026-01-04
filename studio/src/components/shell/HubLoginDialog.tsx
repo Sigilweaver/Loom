@@ -39,11 +39,10 @@ export const HubLoginDialog: React.FC<HubLoginDialogProps> = ({ isOpen, onClose,
       // Attempt login
       const result = await client.login(username, password);
 
-      // If rememberLogin is enabled, persist the token
-      if (hub.rememberLogin) {
-        const { useSettingsStore } = await import('../../state/settingsStore');
-        await useSettingsStore.getState().updateHubSessionToken(result.token);
-      }
+      // Always persist the token to settings store so it survives HMR reloads
+      // The rememberLogin setting controls whether the token persists across app restarts
+      const { useSettingsStore } = await import('../../state/settingsStore');
+      await useSettingsStore.getState().updateHubSessionToken(result.token);
 
       // Success - close dialog and notify parent
       onSuccess();
@@ -64,11 +63,11 @@ export const HubLoginDialog: React.FC<HubLoginDialogProps> = ({ isOpen, onClose,
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50" 
+      <div
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
-      
+
       {/* Dialog */}
       <div className="relative w-full max-w-md bg-theme-surface-panel border border-theme-border-primary rounded-lg shadow-xl">
         {/* Header */}

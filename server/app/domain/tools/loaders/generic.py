@@ -7,6 +7,7 @@ import polars as pl
 from app.domain.tools.loaders.base import FileLoader
 from app.domain.tools.loaders.specs import LoaderSpec
 from app.utils.errors import ToolError
+from app.utils.security import validate_file_path
 
 
 class GenericLoader(FileLoader):
@@ -26,6 +27,9 @@ class GenericLoader(FileLoader):
         source = config.get("source")
         if not source:
             raise ToolError(f"{self.spec.name} config missing 'source' field")
+
+        # Security: Validate file path against allowed paths (Hub mode enforcement)
+        validate_file_path(source)
 
         # Determine mode (scan vs read)
         mode = "read"  # Default for formats without scan support
