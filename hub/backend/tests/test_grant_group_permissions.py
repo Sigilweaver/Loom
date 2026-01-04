@@ -84,8 +84,9 @@ async def create_connection(
         "/api/v1/connections",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
+            "type": "database",
             "name": name,
-            "type": "postgresql",
+            "db_type": "postgresql",
             "host": "localhost",
             "port": 5432,
             "database": "test",

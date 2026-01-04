@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     reload: bool = False
     log_level: str = "info"
 
-    # CORS
-    cors_origins: list[str] = ["http://localhost:25803"]
+    # CORS - Allow Hub frontend (25803) and Studio (25810)
+    cors_origins: list[str] = ["http://localhost:25803", "http://localhost:25810"]
 
     # Database
     database_url: str = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"

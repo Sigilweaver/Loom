@@ -23,6 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class FilePathGrant:
+    """A file path grant from Hub validation."""
+
+    path: str
+    read_only: bool
+
+
+@dataclass
 class ValidationResult:
     """Result of Hub token validation."""
 
@@ -32,6 +40,17 @@ class ValidationResult:
     scope: str | None = None
     connections: dict[str, ResolvedConnection] | None = None
     constraints: dict[str, Any] | None = None
+    file_paths: list[FilePathGrant] | None = None  # Filesystem paths from connections
+
+
+@dataclass
+class BrowseValidationResult:
+    """Result of Hub browse token validation."""
+
+    valid: bool
+    error: str | None = None
+    user_id: str | None = None
+    file_paths: list[FilePathGrant] | None = None
 
 
 class HubClient:
@@ -103,26 +122,44 @@ class HubClient:
 
                 # Convert connection credentials to ResolvedConnection objects
                 connections: dict[str, ResolvedConnection] = {}
+
                 # Handle both None and missing connections field
                 connections_data = data.get("connections") or {}
                 for conn_id, creds in connections_data.items():
-                    connections[conn_id] = ResolvedConnection(
-                        id=conn_id,
-                        name=creds.get("name", conn_id),  # Use ID as name fallback
-                        type=creds["type"],
-                        host=creds["host"],
-                        port=creds["port"],
-                        database=creds["database"],
-                        username=creds["username"],
-                        password=creds["password"],
-                    )
+                    conn_type = creds.get("type")
+
+                    if conn_type == "database":
+                        # Database connection - convert to ResolvedConnection
+                        connections[conn_id] = ResolvedConnection(
+                            id=conn_id,
+                            name=creds.get("name", conn_id),  # Use ID as name fallback
+                            type=creds.get("db_type", creds["type"]),
+                            host=creds["host"],
+                            port=creds["port"],
+                            database=creds["database"],
+                            username=creds["username"],
+                            password=creds["password"],
+                        )
+                    # Note: filesystem connections in the connections dict are ignored here
+                    # because file_paths are now returned separately by Hub
+
+                # Extract file paths from the dedicated file_paths field
+                # This is the authoritative source for file access validation
+                file_paths: list[FilePathGrant] = []
+                file_paths_data = data.get("file_paths") or []
+                for fp in file_paths_data:
+                    file_paths.append(FilePathGrant(
+                        path=fp["path"],
+                        read_only=fp.get("read_only", True),
+                    ))
 
                 return ValidationResult(
                     valid=True,
                     user_id=data.get("user_id"),
                     scope=data.get("scope"),
-                    connections=connections,
+                    connections=connections if connections else None,
                     constraints=data.get("constraints"),
+                    file_paths=file_paths if file_paths else None,
                 )
 
         except httpx.TimeoutException:
@@ -189,6 +226,67 @@ class HubClient:
         except Exception as e:
             logger.exception(f"Unexpected error during Hub registration: {e}")
             return None
+
+    async def validate_browse(
+        self,
+        token: str,
+        timeout: float = 10.0,
+    ) -> BrowseValidationResult:
+        """Validate a browse token and get file path grants from Hub.
+
+        Args:
+            token: The browse token to validate.
+            timeout: Request timeout in seconds.
+
+        Returns:
+            BrowseValidationResult with file path grants if valid.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    f"{self.hub_url}/api/v1/internal/validate-browse",
+                    headers={"Authorization": f"Bearer {self.server_token}"},
+                    json={"token": token},
+                )
+
+                if response.status_code != 200:
+                    logger.error(f"Hub browse validation failed with status {response.status_code}")
+                    return BrowseValidationResult(
+                        valid=False,
+                        error=f"Hub error: {response.status_code} - {response.text}",
+                    )
+
+                data = response.json()
+
+                if not data.get("valid"):
+                    return BrowseValidationResult(
+                        valid=False,
+                        error=data.get("error", "Unknown validation error"),
+                    )
+
+                # Convert file paths to FilePathGrant objects
+                file_paths: list[FilePathGrant] = []
+                for fp in data.get("file_paths") or []:
+                    file_paths.append(FilePathGrant(
+                        path=fp["path"],
+                        read_only=fp.get("read_only", True),
+                    ))
+
+                return BrowseValidationResult(
+                    valid=True,
+                    user_id=data.get("user_id"),
+                    file_paths=file_paths,
+                )
+
+        except httpx.TimeoutException:
+            logger.error(f"Hub browse validation timed out after {timeout}s")
+            return BrowseValidationResult(valid=False, error="Hub validation timed out")
+        except httpx.ConnectError as e:
+            logger.error(f"Failed to connect to Hub: {e}")
+            return BrowseValidationResult(valid=False, error=f"Cannot reach Hub: {e}")
+        except Exception as e:
+            logger.exception(f"Unexpected error during Hub browse validation: {e}")
+            return BrowseValidationResult(valid=False, error=f"Hub validation error: {e}")
 
 
 # Factory function

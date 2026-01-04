@@ -523,3 +523,13 @@ async def list_grant_group_user_groups(
         user_groups=user_groups,
         total=len(user_groups),
     )
+
+
+# =============================================================================
+# NOTE: File Path Assignment Routes - DEPRECATED
+# =============================================================================
+# File paths are now unified under "connections" with type="filesystem".
+# Use the /connections endpoints instead:
+#   - GET /connections?type=filesystem
+#   - POST /connections (with type="filesystem")
+#   - POST /grant-groups/{id}/connections/{connection_id} to assign

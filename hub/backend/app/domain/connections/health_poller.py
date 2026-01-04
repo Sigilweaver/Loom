@@ -86,6 +86,11 @@ class ConnectionHealthPoller:
         self, session: AsyncSession, connection: Connection
     ) -> None:
         """Check a single connection and update its status."""
+        from app.domain.connections.models import (
+            ResolvedDatabaseConnection,
+            ResolvedFilesystemConnection,
+        )
+
         now = datetime.now(UTC)
         connection.last_checked = now
 
@@ -98,14 +103,22 @@ class ConnectionHealthPoller:
                 connection.last_error = "Could not resolve connection credentials"
                 return
 
-            success, message = await self._test_connection(
-                db_type=resolved.type,
-                host=resolved.host,
-                port=resolved.port,
-                database=resolved.database,
-                username=resolved.username,
-                password=resolved.password,
-            )
+            if isinstance(resolved, ResolvedDatabaseConnection):
+                success, message = await self._test_database_connection(
+                    db_type=resolved.db_type,
+                    host=resolved.host,
+                    port=resolved.port,
+                    database=resolved.database,
+                    username=resolved.username,
+                    password=resolved.password,
+                )
+            elif isinstance(resolved, ResolvedFilesystemConnection):
+                success, message = self._test_filesystem_connection(
+                    path=resolved.path,
+                    path_type=resolved.path_type,
+                )
+            else:
+                success, message = False, f"Unknown connection type: {type(resolved)}"
 
             if success:
                 connection.status = "healthy"
@@ -126,7 +139,7 @@ class ConnectionHealthPoller:
             connection.last_error = str(e)
             logger.error("Error checking connection %s: %s", connection.name, e)
 
-    async def _test_connection(
+    async def _test_database_connection(
         self,
         db_type: str,
         host: str,
@@ -135,7 +148,7 @@ class ConnectionHealthPoller:
         username: str,
         password: str,
     ) -> tuple[bool, str]:
-        """Test connection with provided parameters.
+        """Test database connection with provided parameters.
 
         Returns:
             Tuple of (success, message).
@@ -147,17 +160,20 @@ class ConnectionHealthPoller:
             safe_username = quote_plus(username)
             safe_password = quote_plus(password)
 
+            # Get db_type value if it's an enum
+            db_type_str = db_type.value if hasattr(db_type, "value") else str(db_type)
+
             # Build connection URL based on type
-            if db_type == "postgresql":
+            if db_type_str == "postgresql":
                 url = f"postgresql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type == "mysql":
+            elif db_type_str == "mysql":
                 url = f"mysql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type == "mssql":
+            elif db_type_str == "mssql":
                 url = f"mssql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type == "sqlite":
+            elif db_type_str == "sqlite":
                 url = f"sqlite://{database}"
             else:
-                return False, f"Connection testing not implemented for type: {db_type}"
+                return False, f"Connection testing not implemented for database type: {db_type_str}"
 
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
@@ -182,6 +198,42 @@ class ConnectionHealthPoller:
             if username and username in error_msg:
                 error_msg = error_msg.replace(username, "***")
             return False, f"Connection failed: {error_msg}"
+
+    def _test_filesystem_connection(
+        self,
+        path: str,
+        path_type: str,
+    ) -> tuple[bool, str]:
+        """Test filesystem connection by checking if path exists and is accessible.
+
+        Returns:
+            Tuple of (success, message).
+        """
+        import os
+
+        # Get path_type value if it's an enum
+        path_type_str = path_type.value if hasattr(path_type, "value") else str(path_type)
+
+        try:
+            if path_type_str == "local":
+                if not os.path.exists(path):
+                    return False, f"Path does not exist: {path}"
+                if not os.path.isdir(path):
+                    return False, f"Path is not a directory: {path}"
+                if not os.access(path, os.R_OK):
+                    return False, f"Path is not readable: {path}"
+                return True, "Path is accessible"
+            elif path_type_str == "unc":
+                # UNC paths (Windows network shares) - just check existence
+                if not os.path.exists(path):
+                    return False, f"UNC path does not exist or is not accessible: {path}"
+                return True, "UNC path is accessible"
+            else:
+                return False, f"Unknown path type: {path_type_str}"
+        except PermissionError:
+            return False, f"Permission denied accessing path: {path}"
+        except Exception as e:
+            return False, f"Error checking path: {e}"
 
     async def check_single_connection(self, connection_id: str) -> dict:
         """Check a single connection immediately (for manual refresh).

@@ -585,20 +585,35 @@ export async function triggerSchedule(id: string): Promise<ExecutionResponse> {
 }
 
 // =============================================================================
-// Connections (Database Connections)
+// Connections (Database + Filesystem)
 // =============================================================================
 
+// Base connection types
+export type ConnectionType = "database" | "filesystem";
 export type DatabaseType = "postgresql" | "mysql" | "sqlite" | "mssql";
-
+export type PathType = "local" | "unc";
 export type ConnectionStatus = "healthy" | "unhealthy" | "error" | "unknown";
 
-export interface ConnectionResponse {
-  id: string;
-  name: string;
-  type: DatabaseType;
+// Type-specific configs (for response)
+export interface DatabaseConfigResponse {
+  db_type: DatabaseType;
   host: string;
   port: number;
   database: string;
+}
+
+export interface FilesystemConfigResponse {
+  path: string;
+  path_type: PathType;
+}
+
+// Connection response (database or filesystem)
+export interface ConnectionResponse {
+  id: string;
+  name: string;
+  type: ConnectionType;
+  description: string | null;
+  read_only: boolean;
   status: ConnectionStatus;
   last_checked: string | null;
   last_healthy: string | null;
@@ -606,6 +621,9 @@ export interface ConnectionResponse {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Type-specific configs (only one will be present)
+  database_config?: DatabaseConfigResponse;
+  filesystem_config?: FilesystemConfigResponse;
 }
 
 export interface ConnectionsListResponse {
@@ -627,9 +645,13 @@ export interface HealthCheckAllResponse {
   error: number;
 }
 
-export interface CreateConnectionRequest {
+// Create connection requests (discriminated by type)
+export interface CreateDatabaseConnectionRequest {
+  type: "database";
   name: string;
-  type: DatabaseType;
+  description?: string;
+  read_only?: boolean;
+  db_type: DatabaseType;
   host: string;
   port: number;
   database: string;
@@ -637,8 +659,25 @@ export interface CreateConnectionRequest {
   password: string;
 }
 
-export interface UpdateConnectionRequest {
+export interface CreateFilesystemConnectionRequest {
+  type: "filesystem";
+  name: string;
+  description?: string;
+  read_only?: boolean;
+  path: string;
+  path_type?: PathType;
+}
+
+export type CreateConnectionRequest =
+  | CreateDatabaseConnectionRequest
+  | CreateFilesystemConnectionRequest;
+
+// Update connection requests (all fields optional, type determines which fields apply)
+export interface UpdateDatabaseConnectionRequest {
+  type?: "database";
   name?: string;
+  description?: string;
+  read_only?: boolean;
   host?: string;
   port?: number;
   database?: string;
@@ -646,14 +685,30 @@ export interface UpdateConnectionRequest {
   password?: string;
 }
 
+export interface UpdateFilesystemConnectionRequest {
+  type?: "filesystem";
+  name?: string;
+  description?: string;
+  read_only?: boolean;
+  path?: string;
+  path_type?: PathType;
+}
+
+export type UpdateConnectionRequest =
+  | UpdateDatabaseConnectionRequest
+  | UpdateFilesystemConnectionRequest;
+
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
   latency_ms?: number;
 }
 
-export async function listConnections(): Promise<ConnectionsListResponse> {
-  const response = await fetch(`${API_BASE}/connections`, {
+export async function listConnections(
+  type?: ConnectionType
+): Promise<ConnectionsListResponse> {
+  const params = type ? `?type=${type}` : "";
+  const response = await fetch(`${API_BASE}/connections${params}`, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
@@ -730,6 +785,7 @@ export async function checkAllConnectionsHealth(): Promise<HealthCheckAllRespons
   return handleResponse(response);
 }
 
+// Test database connection before creating (only for database type)
 export async function testConnectionPreCreate(data: {
   type: DatabaseType;
   host: string;

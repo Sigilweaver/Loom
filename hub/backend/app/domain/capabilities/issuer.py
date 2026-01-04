@@ -115,6 +115,61 @@ class CapabilityIssuer:
             scope="preview",
         )
 
+    async def issue_browse_token(
+        self,
+        user_id: str,
+        server: Server,
+    ) -> ServerToken:
+        """Issue a token for file browsing operations.
+
+        Browse tokens are simpler than execute/preview tokens:
+        - No workflow hash (no workflow to verify)
+        - No connection list (browsing doesn't need credentials)
+        - Token type is 'browse' instead of scope
+
+        Args:
+            user_id: The user requesting browsing capability.
+            server: The target server.
+
+        Returns:
+            ServerToken with the signed JWT and metadata.
+        """
+        # Generate unique token ID
+        jti = str(uuid4())
+
+        # Build claims
+        now = datetime.now(UTC)
+        exp = now + timedelta(seconds=self.settings.server_token_ttl_seconds)
+
+        claims = {
+            "jti": jti,
+            "iss": self.settings.jwt_issuer,
+            "aud": f"server-{server.id}",
+            "sub": user_id,
+            "iat": int(now.timestamp()),
+            "exp": int(exp.timestamp()),
+            "type": "browse",  # Different from scope - identifies token purpose
+        }
+
+        # Sign token with RS256
+        token = jwt.encode(
+            claims,
+            self.key_manager.private_key,
+            algorithm="RS256",
+            headers={"kid": self.key_manager.key_id},
+        )
+
+        logger.info(
+            f"Issued browse token for user {user_id[:8]}... "
+            f"on server {server.name}"
+        )
+
+        return ServerToken(
+            token=token,
+            server_endpoint=server.endpoint_url,
+            expires_in=self.settings.server_token_ttl_seconds,
+        )
+
     async def _issue_token(
         self,
         user_id: str,

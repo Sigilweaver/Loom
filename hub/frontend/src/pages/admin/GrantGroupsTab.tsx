@@ -687,7 +687,11 @@ function AddConnectionToGrantGroupDialog({
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">{conn.name}</p>
                                                 <p className="text-xs text-gray-500">
-                                                    {conn.type} - {conn.host}:{conn.port}
+                                                    {conn.type === "database" && conn.database_config
+                                                        ? `${conn.database_config.db_type} - ${conn.database_config.host}:${conn.database_config.port}`
+                                                        : conn.filesystem_config
+                                                        ? `${conn.filesystem_config.path_type} - ${conn.filesystem_config.path}`
+                                                        : conn.type}
                                                 </p>
                                             </div>
                                         </div>

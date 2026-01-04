@@ -10,6 +10,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
+from app.utils.security import validate_file_path_for_write
 
 
 @register_tool("Output")
@@ -75,6 +76,9 @@ class OutputTool(BaseTool):
         if not destination:
             raise ToolError("CSV output config missing 'destination' field")
 
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
+
         # Ensure destination directory exists
         dest_path = Path(destination)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +109,9 @@ class OutputTool(BaseTool):
         destination = config.get("destination")
         if not destination:
             raise ToolError("Parquet output config missing 'destination' field")
+
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
 
         # Ensure destination directory exists
         dest_path = Path(destination)
@@ -140,6 +147,9 @@ class OutputTool(BaseTool):
         destination = config.get("destination")
         if not destination:
             raise ToolError("IPC output config missing 'destination' field")
+
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
 
         # Ensure destination directory exists
         dest_path = Path(destination)
@@ -182,6 +192,9 @@ class OutputTool(BaseTool):
         destination = config.get("destination")
         if not destination:
             raise ToolError("Avro output config missing 'destination' field")
+
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
 
         # Ensure destination directory exists
         dest_path = Path(destination)
@@ -312,6 +325,9 @@ class OutputTool(BaseTool):
         if not destination:
             raise ToolError("Excel output config missing 'destination' field")
 
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
+
         # Ensure destination directory exists
         dest_path = Path(destination)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -393,6 +409,9 @@ class OutputTool(BaseTool):
         destination = config.get("destination")
         if not destination:
             raise ToolError("JSON output config missing 'destination' field")
+
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
 
         # Ensure destination directory exists
         dest_path = Path(destination)
@@ -496,7 +515,7 @@ class OutputTool(BaseTool):
                 if destination
                 else False
             )
-            mode = config.get("jsonMode", "write")
+            mode = config.get("jsonMode", "sink")
 
             if is_ndjson:
                 # NDJSON supports both sink and write

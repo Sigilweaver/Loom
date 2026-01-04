@@ -1,7 +1,7 @@
 /**
  * useAllConnections Hook
  * 
- * Provides unified access to all database connections from both local storage
+ * Provides access to all database connections from both local storage
  * and Hub (when in Hub mode and logged in). This is the primary hook for
  * components that need to display connection selectors.
  */
@@ -27,9 +27,9 @@ export function triggerHubConnectionsRefresh(): void {
 }
 
 /**
- * Unified connection info that works across local and Hub connections
+ * Database connection info from local storage or Hub
  */
-export interface UnifiedConnection {
+export interface DatabaseConnectionInfo {
   id: string;
   name: string;
   type: DatabaseType;
@@ -42,7 +42,7 @@ export interface UnifiedConnection {
 
 interface UseAllConnectionsResult {
   /** All connections (local + Hub when applicable) */
-  connections: UnifiedConnection[];
+  connections: DatabaseConnectionInfo[];
   /** Whether connections are being loaded */
   loading: boolean;
   /** Whether initial load has completed */
@@ -52,13 +52,13 @@ interface UseAllConnectionsResult {
   /** Refresh connections from all sources */
   refresh: () => Promise<void>;
   /** Get connections filtered by database type */
-  getByType: (type: DatabaseType) => UnifiedConnection[];
+  getByType: (type: DatabaseType) => DatabaseConnectionInfo[];
 }
 
 /**
- * Convert local ConnectionInfo to UnifiedConnection
+ * Convert local ConnectionInfo to DatabaseConnectionInfo
  */
-function toUnified(conn: ConnectionInfo): UnifiedConnection {
+function toLocalDbConnection(conn: ConnectionInfo): DatabaseConnectionInfo {
   return {
     id: conn.id,
     name: conn.name,
@@ -71,16 +71,22 @@ function toUnified(conn: ConnectionInfo): UnifiedConnection {
 }
 
 /**
- * Convert Hub connection to UnifiedConnection
+ * Convert Hub connection to DatabaseConnectionInfo
+ * Only handles database connections - filesystem connections are filtered out
  */
-function hubToUnified(conn: HubConnectionInfo): UnifiedConnection {
+function toHubDbConnection(conn: HubConnectionInfo): DatabaseConnectionInfo | null {
+  // Only convert database connections
+  if (conn.type !== 'database' || !conn.database_config) {
+    return null;
+  }
+
   return {
     id: conn.id,
     name: conn.name,
-    type: conn.type as DatabaseType,
-    host: conn.host,
-    port: conn.port,
-    database: conn.database,
+    type: conn.database_config.db_type as DatabaseType,
+    host: conn.database_config.host,
+    port: conn.database_config.port,
+    database: conn.database_config.database,
     owner: 'hub',
   };
 }
@@ -91,8 +97,8 @@ function hubToUnified(conn: HubConnectionInfo): UnifiedConnection {
 export function useAllConnections(): UseAllConnectionsResult {
   const { executionMode, hub } = useSettingsStore();
   const { connections: localConnections, loaded: localLoaded, loadConnections } = useConnectionStore();
-  
-  const [hubConnections, setHubConnections] = useState<UnifiedConnection[]>([]);
+
+  const [hubConnections, setHubConnections] = useState<DatabaseConnectionInfo[]>([]);
   const [hubLoading, setHubLoading] = useState(false);
   const [hubLoaded, setHubLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,20 +110,35 @@ export function useAllConnections(): UseAllConnectionsResult {
   // Load Hub connections
   const loadHubConnections = useCallback(async () => {
     // Re-check hasHubClient() inside the callback since it may have changed
-    const canFetchHub = executionMode === 'hub' && !!hub.sessionToken && hasHubClient();
-    
-    if (!canFetchHub) {
+    const inHubMode = executionMode === 'hub' && !!hub.sessionToken;
+    const clientAvailable = hasHubClient();
+
+    // Not in Hub mode or no token: mark loaded immediately
+    if (!inHubMode) {
       setHubConnections([]);
       setHubLoaded(true);
+      setHubLoading(false);
+      return;
+    }
+
+    // Hub mode but client not ready yet: expose as not loaded so retry logic runs
+    if (!clientAvailable) {
+      setHubConnections([]);
+      setHubLoaded(false);
+      setHubLoading(false);
       return;
     }
 
     setHubLoading(true);
     setError(null);
-    
+
     try {
       const conns = await getHubClient().listConnections();
-      setHubConnections(conns.map(hubToUnified));
+      // Filter to database connections only (filesystem connections return null)
+      const databaseConns = conns
+        .map(toHubDbConnection)
+        .filter((c): c is DatabaseConnectionInfo => c !== null);
+      setHubConnections(databaseConns);
       setHubLoaded(true);
     } catch (e) {
       console.error('[useAllConnections] Failed to load Hub connections:', e);
@@ -173,17 +194,17 @@ export function useAllConnections(): UseAllConnectionsResult {
   }, [loadConnections, loadHubConnections]);
 
   // Combine all connections - memoize to prevent unnecessary recalculations
-  const allConnections: UnifiedConnection[] = useMemo(() => [
+  const allConnections: DatabaseConnectionInfo[] = useMemo(() => [
     ...hubConnections, // Hub connections first (if any)
-    ...localConnections.map(toUnified),
+    ...localConnections.map(toLocalDbConnection),
   ], [hubConnections, localConnections]);
 
   // Filter by type - stable callback that reads from current allConnections
-  const getByType = useCallback((type: DatabaseType): UnifiedConnection[] => {
+  const getByType = useCallback((type: DatabaseType): DatabaseConnectionInfo[] => {
     // Combine inline to avoid dependency on allConnections array identity
     const combined = [
       ...hubConnections,
-      ...localConnections.map(toUnified),
+      ...localConnections.map(toLocalDbConnection),
     ];
     return combined.filter(c => c.type === type);
   }, [hubConnections, localConnections]);

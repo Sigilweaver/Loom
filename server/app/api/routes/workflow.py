@@ -1,7 +1,8 @@
 """Workflow execution API routes"""
 
 import logging
-from typing import Annotated, Any
+from contextlib import contextmanager
+from typing import Annotated, Any, Generator
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -13,6 +14,7 @@ from app.domain.execution.executor import WorkflowExecutor
 from app.domain.hub import ValidationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
 from app.utils.errors import ExecutionError, ToolError, ValidationError
+from app.utils.security import FilePathGrant, allowed_paths_context
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +28,43 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     """Extract Bearer token from Authorization header."""
     if not authorization:
         return None
-    if not authorization.startswith("Bearer "):
+
+    parts = authorization.split(" ", 1)
+    if len(parts) != 2:
         return None
-    return authorization[7:]
+
+    scheme, token = parts[0], parts[1]
+    if scheme.lower() != "bearer":
+        return None
+
+    return token
+
+
+@contextmanager
+def _set_file_paths_context(hub_result: ValidationResult | None) -> Generator[None, None, None]:
+    """Set the allowed file paths context from Hub validation result.
+
+    In hub mode, file access is restricted to paths granted via filesystem connections.
+    This context manager sets those paths for the duration of the execution.
+
+    Args:
+        hub_result: Hub validation result containing file_paths, or None if not hub mode.
+    """
+    if not hub_result:
+        yield
+        return
+
+    # Convert Hub FilePathGrant to security FilePathGrant (same structure)
+    # If Hub provided no grants, enforce a deny-all context by setting an empty list.
+    grants = [
+        FilePathGrant(path=fp.path, read_only=fp.read_only)
+        for fp in (hub_result.file_paths or [])
+    ]
+    token = allowed_paths_context.set(grants)
+    try:
+        yield
+    finally:
+        allowed_paths_context.reset(token)
 
 
 def _parse_workflow(workflow_json: dict) -> Workflow:
@@ -109,19 +145,27 @@ async def _validate_hub_token(
 
 
 def _extract_hub_connections(workflow_json: dict) -> list[str]:
-    """Extract hub-owned connection IDs from raw workflow JSON."""
+    """Extract hub-owned connection IDs from raw workflow JSON.
+
+    Hub can return both database credentials and filesystem grants tied to
+    connections, so include any hub-owned Input tool with a connectionId.
+    """
     hub_connections: list[str] = []
+    seen: set[str] = set()
+
     for tool in workflow_json.get("tools", []):
         if tool.get("type") != "Input":
             continue
-        config = tool.get("config", {})
-        if config.get("category") != "database":
+
+        config = tool.get("config", {}) or {}
+        if (config.get("owner") or "client") != "hub":
             continue
-        if config.get("owner") != "hub":
-            continue
+
         connection_id = config.get("connectionId")
-        if connection_id:
+        if connection_id and connection_id not in seen:
             hub_connections.append(connection_id)
+            seen.add(connection_id)
+
     return hub_connections
 
 
@@ -240,13 +284,15 @@ async def execute_workflow(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.execute_workflow(
-            workflow=resolved_workflow,
-            target_tool_id=request.target_tool_id,
-            preview_limit=_clamp_preview_limit(request.preview_limit),
-            force_refresh=request.force_refresh,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.execute_workflow(
+                workflow=resolved_workflow,
+                target_tool_id=request.target_tool_id,
+                preview_limit=_clamp_preview_limit(request.preview_limit),
+                force_refresh=request.force_refresh,
+            )
         return result
 
     except ValidationError as e:
@@ -291,14 +337,16 @@ async def execute_tool(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.execute_single_tool(
-            workflow=resolved_workflow,
-            tool_id=request.tool_id,
-            socket_id=request.socket_id,
-            preview_limit=_clamp_preview_limit(request.preview_limit),
-            force_refresh=request.force_refresh,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.execute_single_tool(
+                workflow=resolved_workflow,
+                tool_id=request.tool_id,
+                socket_id=request.socket_id,
+                preview_limit=_clamp_preview_limit(request.preview_limit),
+                force_refresh=request.force_refresh,
+            )
         return result
 
     except ValidationError as e:
@@ -341,12 +389,14 @@ async def get_tool_schema(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.get_tool_schema(
-            workflow=resolved_workflow,
-            tool_id=request.tool_id,
-            socket_id=request.socket_id,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.get_tool_schema(
+                workflow=resolved_workflow,
+                tool_id=request.tool_id,
+                socket_id=request.socket_id,
+            )
         return result
 
     except ValidationError as e:
@@ -388,12 +438,14 @@ async def get_tool_metadata(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.get_tool_metadata(
-            workflow=resolved_workflow,
-            tool_id=request.tool_id,
-            socket_id=request.socket_id,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.get_tool_metadata(
+                workflow=resolved_workflow,
+                tool_id=request.tool_id,
+                socket_id=request.socket_id,
+            )
         return result
 
     except ValidationError as e:
@@ -449,14 +501,16 @@ async def profile_tool_input(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.profile_columns(
-            workflow=resolved_workflow,
-            tool_id=request.tool_id,
-            socket_id=request.socket_id,
-            columns=request.columns,
-            metrics=request.metrics,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.profile_columns(
+                workflow=resolved_workflow,
+                tool_id=request.tool_id,
+                socket_id=request.socket_id,
+                columns=request.columns,
+                metrics=request.metrics,
+            )
         return result
 
     except ValidationError as e:
@@ -513,12 +567,14 @@ async def preview_all_tools(
         )
         resolver.validate_client_connections(resolved_workflow)
 
-        executor = WorkflowExecutor()
-        result = await executor.preview_all_tools(
-            workflow=resolved_workflow,
-            preview_limit=_clamp_preview_limit(request.preview_limit),
-            force_refresh=request.force_refresh,
-        )
+        # Set file paths context for Hub mode (restricts file access during execution)
+        with _set_file_paths_context(hub_result):
+            executor = WorkflowExecutor()
+            result = await executor.preview_all_tools(
+                workflow=resolved_workflow,
+                preview_limit=_clamp_preview_limit(request.preview_limit),
+                force_refresh=request.force_refresh,
+            )
         return result
 
     except ValidationError as e:

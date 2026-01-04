@@ -675,3 +675,183 @@ export async function closeWorkflowCachesBatchOnBackend(
     logger.warn('Failed to close backend caches for workflows:', workflowIds, error);
   }
 }
+
+// =============================================================================
+// File Browser API
+// =============================================================================
+
+/**
+ * File or directory entry from Server file browser
+ */
+export interface FileEntry {
+  /** File or directory name */
+  name: string;
+  /** Absolute path */
+  path: string;
+  /** True if this is a directory */
+  is_dir: boolean;
+  /** File size in bytes (null for directories) */
+  size: number | null;
+  /** Last modified timestamp (ISO string) */
+  modified: string | null;
+  /** File extension without dot (null for directories) */
+  extension: string | null;
+}
+
+/**
+ * Root directory entry from Server file browser
+ */
+export interface RootEntry {
+  /** Absolute path to the root directory */
+  path: string;
+  /** True if this root is read-only */
+  read_only: boolean;
+}
+
+/**
+ * Response from /api/files/list endpoint
+ */
+export interface ListFilesResponse {
+  /** Absolute path of listed directory */
+  path: string;
+  /** File and directory entries */
+  entries: FileEntry[];
+  /** Whether this directory is read-only */
+  read_only: boolean;
+}
+
+/**
+ * Response from /api/files/stat endpoint
+ */
+export interface StatResponse {
+  /** Absolute path */
+  path: string;
+  /** Whether the path exists */
+  exists: boolean;
+  /** True if this is a file (null if doesn't exist) */
+  is_file: boolean | null;
+  /** True if this is a directory (null if doesn't exist) */
+  is_dir: boolean | null;
+  /** File size in bytes (null for directories or non-existent) */
+  size: number | null;
+  /** Last modified timestamp (ISO string, null if doesn't exist) */
+  modified: string | null;
+  /** File extension without dot (null for directories) */
+  extension: string | null;
+  /** Whether this path is read-only */
+  read_only: boolean;
+}
+
+/**
+ * Make a request to a specific server with a browse token
+ */
+async function serverRequest<T>(
+  serverUrl: string,
+  endpoint: string,
+  browseToken: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${serverUrl}${endpoint}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${browseToken}`,
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorType: string | undefined;
+
+      try {
+        const errorData = await response.json() as ErrorResponse;
+        errorMessage = errorData.detail || errorMessage;
+        errorType = errorData.error_type;
+      } catch {
+        // If error response isn't JSON, use status text
+      }
+
+      throw new BackendError(errorMessage, response.status, errorType);
+    }
+
+    return await response.json() as T;
+  } catch (error) {
+    if (error instanceof BackendError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new BackendError(`Failed to connect to server: ${message}`, 0);
+  }
+}
+
+/**
+ * List root directories available for browsing
+ *
+ * In Hub mode, returns the roots the user has been granted access to.
+ * In non-Hub modes, returns the server's configured allowed_file_paths.
+ *
+ * @param serverUrl - Server base URL (e.g., "http://localhost:25811")
+ * @param browseToken - Browse token from Hub (or session token for non-Hub)
+ * @returns Array of browsable root directories
+ */
+export async function listFileRoots(
+  serverUrl: string,
+  browseToken: string
+): Promise<RootEntry[]> {
+  return serverRequest<RootEntry[]>(
+    serverUrl,
+    '/api/files/roots',
+    browseToken
+  );
+}
+
+/**
+ * List contents of a directory
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse token for authentication
+ * @param path - Absolute path to the directory to list
+ * @returns Directory listing with file and subdirectory entries
+ */
+export async function listFiles(
+  serverUrl: string,
+  browseToken: string,
+  path: string
+): Promise<ListFilesResponse> {
+  const params = new URLSearchParams({ path });
+  return serverRequest<ListFilesResponse>(
+    serverUrl,
+    `/api/files/list?${params}`,
+    browseToken
+  );
+}
+
+/**
+ * Get information about a file or directory
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse token for authentication
+ * @param path - Absolute path to stat
+ * @returns File/directory information
+ */
+export async function statFile(
+  serverUrl: string,
+  browseToken: string,
+  path: string
+): Promise<StatResponse> {
+  const params = new URLSearchParams({ path });
+  return serverRequest<StatResponse>(
+    serverUrl,
+    `/api/files/stat?${params}`,
+    browseToken
+  );
+}
