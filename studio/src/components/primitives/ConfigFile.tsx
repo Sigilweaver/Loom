@@ -119,11 +119,11 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
         throw new Error("Hub client not available");
       }
       const hubClient = getHubClient();
-      // Request browse token - Hub picks a healthy server for us
-      const browseTokenResponse = await hubClient.requestBrowseToken();
+      // Request server token - Hub picks a healthy server for us
+      const tokenResponse = await hubClient.requestToken();
       return {
-        token: browseTokenResponse.token,
-        serverUrl: browseTokenResponse.server_endpoint,
+        token: tokenResponse.token,
+        serverUrl: tokenResponse.server_endpoint,
       };
     } else if (executionMode === "external") {
       // External mode: use session token directly

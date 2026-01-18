@@ -9,9 +9,9 @@
  *
  * Credential Flow (Hub mode):
  * 1. Studio calls execution function
- * 2. This layer gets Server Token from Hub (requestPreviewToken/requestExecuteToken)
+ * 2. This layer gets Server Token from Hub (requestToken)
  * 3. Calls Server endpoint with Server Token in Authorization header
- * 4. Server validates token with Hub, Hub returns credentials just-in-time
+ * 4. Server calls Hub to authorize, Hub returns credentials just-in-time
  * 5. Server executes and returns result
  */
 
@@ -28,9 +28,8 @@ const logger = createLogger('ExecutionService');
 // =============================================================================
 
 // Note: Server tokens are NOT cached because:
-// 1. Each token is single-use (Hub tracks JTI to prevent replay)
-// 2. Tokens are bound to a specific workflow hash
-// 3. Any workflow change invalidates the token
+// 1. Each token is single-use (one-time use, consumed on authorize)
+// 2. Any request needs a fresh token
 
 /**
  * Clear any server token state (kept for API compatibility)
@@ -42,14 +41,14 @@ export function clearServerToken(): void {
 /**
  * Request a server token for the workflow
  */
-async function getServerToken(workflow: WorkflowJSON): Promise<ServerToken> {
+async function getServerToken(_workflow: WorkflowJSON): Promise<ServerToken> {
   if (!hasHubClient()) {
     throw new Error('Not connected to Hub. Please login.');
   }
 
-  // Always request a fresh token since they're single-use and workflow-bound
+  // Always request a fresh token since they're single-use
   const hubClient = getHubClient();
-  const serverToken = await hubClient.requestPreviewToken(workflow);
+  const serverToken = await hubClient.requestToken();
 
   logger.debug(`Got server token, expires in ${serverToken.expires_in}s`);
   return serverToken;

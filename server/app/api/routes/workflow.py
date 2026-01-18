@@ -11,7 +11,7 @@ from app.api.models.workflow import Workflow
 from app.config import settings
 from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 from app.domain.execution.executor import WorkflowExecutor
-from app.domain.hub import ValidationResult, get_hub_client
+from app.domain.hub import AuthorizationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
 from app.utils.errors import ExecutionError, ToolError, ValidationError
 from app.utils.security import FilePathGrant, allowed_paths_context
@@ -41,14 +41,14 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
 
 
 @contextmanager
-def _set_file_paths_context(hub_result: ValidationResult | None) -> Generator[None, None, None]:
-    """Set the allowed file paths context from Hub validation result.
+def _set_file_paths_context(hub_result: AuthorizationResult | None) -> Generator[None, None, None]:
+    """Set the allowed file paths context from Hub authorization result.
 
     In hub mode, file access is restricted to paths granted via filesystem connections.
     This context manager sets those paths for the duration of the execution.
 
     Args:
-        hub_result: Hub validation result containing file_paths, or None if not hub mode.
+        hub_result: Hub authorization result containing file_paths, or None if not hub mode.
     """
     if not hub_result:
         yield
@@ -91,21 +91,26 @@ def _parse_workflow(workflow_json: dict) -> Workflow:
         )
 
 
-async def _validate_hub_token(
+async def _authorize_hub_request(
     workflow_json: dict,
     authorization: str | None,
-) -> ValidationResult | None:
-    """Validate Hub token if in hub auth mode.
+    request_type: str = "execute",
+) -> AuthorizationResult | None:
+    """Authorize a request with Hub if in hub auth mode.
 
-    IMPORTANT: This takes raw workflow JSON dict, NOT a Pydantic model.
-    This ensures the hash is computed on the exact JSON that Studio sent,
-    matching what Hub hashed when issuing the token.
+    This sends the server token to Hub for authorization. Hub validates
+    the token (one-time use), checks permissions, and returns credentials.
+
+    Args:
+        workflow_json: Raw workflow JSON dict.
+        authorization: Authorization header value.
+        request_type: Type of operation ('execute', 'preview').
 
     Returns:
-        ValidationResult with hub-provided credentials, or None if not hub mode.
+        AuthorizationResult with hub-provided credentials, or None if not hub mode.
 
     Raises:
-        HTTPException: If hub mode and validation fails.
+        HTTPException: If hub mode and authorization fails.
     """
     if settings.auth_mode != "hub":
         return None
@@ -127,18 +132,19 @@ async def _validate_hub_token(
     # Extract hub connection IDs from raw workflow JSON
     hub_connection_ids = _extract_hub_connections(workflow_json)
 
-    # Validate with Hub - pass raw JSON directly, no Pydantic transformation
-    result = await hub_client.validate(
-        token=token,
-        workflow_json=workflow_json,
+    # Authorize with Hub - token is validated and consumed (one-time use)
+    result = await hub_client.authorize(
+        server_token=token,
+        request_type=request_type,  # type: ignore[arg-type]
         connection_ids=hub_connection_ids,
+        workflow=workflow_json,
     )
 
-    if not result.valid:
-        logger.warning(f"Hub token validation failed: {result.error}")
+    if not result.authorized:
+        logger.warning(f"Hub authorization failed: {result.error}")
         raise HTTPException(
             status_code=401,
-            detail=result.error or "Token validation failed",
+            detail=result.error or "Authorization failed",
         )
 
     return result
@@ -272,7 +278,7 @@ async def execute_workflow(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)
@@ -325,7 +331,7 @@ async def execute_tool(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)
@@ -377,7 +383,7 @@ async def get_tool_schema(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)
@@ -426,7 +432,7 @@ async def get_tool_metadata(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)
@@ -489,7 +495,7 @@ async def profile_tool_input(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)
@@ -555,7 +561,7 @@ async def preview_all_tools(
     """
     try:
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _validate_hub_token(request.workflow, authorization)
+        hub_result = await _authorize_hub_request(request.workflow, authorization)
 
         # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
         workflow = _parse_workflow(request.workflow)

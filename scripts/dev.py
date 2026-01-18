@@ -294,7 +294,7 @@ def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
         return False
 
 
-def wait_for_hub_healthy(timeout: int = 30) -> bool:
+def wait_for_hub_healthy(timeout: int = 45) -> bool:
     """Wait for Hub backend to be healthy.
     
     Returns:
@@ -305,19 +305,24 @@ def wait_for_hub_healthy(timeout: int = 30) -> bool:
     
     print("  Waiting for Hub API to be ready...")
     start_time = time.time()
+    last_error = None
     
     while time.time() - start_time < timeout:
         try:
             req = urllib.request.Request("http://localhost:25802/api/v1/health")
-            with urllib.request.urlopen(req, timeout=2) as response:
+            with urllib.request.urlopen(req, timeout=3) as response:
                 if response.status == 200:
                     print_success("  Hub API is ready!")
                     return True
-        except (urllib.error.URLError, urllib.error.HTTPError, OSError):
-            pass
+        except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
+            last_error = e
         time.sleep(0.5)
     
-    print_warning("  Hub API not responding yet (Server may retry registration)")
+    if last_error:
+        print_warning(f"  Hub API not responding after {timeout}s: {last_error}")
+    else:
+        print_warning(f"  Hub API not responding after {timeout}s")
+    print_warning("  Server will automatically retry Hub registration")
     return False
 
 
@@ -530,8 +535,13 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         return None
 
 
-def start_studio(repo_root: Path) -> subprocess.Popen | None:
-    """Start the Vite development server."""
+def start_studio(repo_root: Path, with_electron: bool = False) -> subprocess.Popen | None:
+    """Start the Vite development server.
+    
+    Args:
+        repo_root: Repository root path.
+        with_electron: If True, allow Electron to launch (requires display).
+    """
     global studio_process
     
     print_success("Starting Vite dev server...")
@@ -539,10 +549,16 @@ def start_studio(repo_root: Path) -> subprocess.Popen | None:
     studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
     
+    # Set environment - disable Electron by default
+    env = os.environ.copy()
+    if not with_electron:
+        env["NO_ELECTRON"] = "1"
+    
     try:
         studio_process = subprocess.Popen(
             [npm_cmd, "run", "dev"],
             cwd=studio_dir,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -821,11 +837,8 @@ def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub
     if run_site:
         print(f"Site:           {GREEN}http://localhost:25808{NC}")
     print(f"{BLUE}========================================{NC}")
-    if not run_electron and run_studio:
-        print_warning("To launch Electron, run in another terminal:")
-        print("   cd studio && npm run electron")
-        print()
-        print("Or restart with: ./scripts/dev.py --electron")
+    if run_electron and run_studio:
+        print_success("Electron mode enabled")
     print()
     print_warning("Press Ctrl+C to stop all services")
     print()
@@ -973,7 +986,8 @@ Examples:
         if start_hub_backend(repo_root) is None:
             return 1
         # Wait for Hub to be healthy before starting Server
-        wait_for_hub_healthy(timeout=15)
+        # Server will auto-retry registration if Hub isn't ready yet
+        wait_for_hub_healthy(timeout=45)
     
     if run_server:
         if start_server(repo_root, hub_auth=hub_auth) is None:
@@ -982,7 +996,7 @@ Examples:
         time.sleep(2)
     
     if run_studio:
-        if start_studio(repo_root) is None:
+        if start_studio(repo_root, with_electron=run_electron) is None:
             return 1
         # Wait for Vite to start
         time.sleep(3)
@@ -1003,11 +1017,8 @@ Examples:
             return 1
         time.sleep(2)
     
-    if run_electron:
-        # Wait a bit more for studio to be ready
-        time.sleep(2)
-        if start_electron(repo_root) is None:
-            print_warning("Electron failed to start, but other services are running")
+    # Note: Electron is now launched by vite-plugin-electron when --electron is passed
+    # (via with_electron=True in start_studio, which doesn't set NO_ELECTRON)
     
     # Print status
     print_status(run_server, run_studio, run_electron, run_hub, run_docs, run_site)
@@ -1035,12 +1046,6 @@ Examples:
             if run_site and site_process and site_process.poll() is not None:
                 print_error("Site process died unexpectedly!")
                 break
-            if run_electron and electron_process and electron_process.poll() is not None:
-                # Electron closing is expected (user closed window)
-                print_warning("Electron closed")
-                run_electron = False
-                # If only electron was the user focus, maybe exit?
-                # For now, keep other services running
             
             time.sleep(1)
     except KeyboardInterrupt:

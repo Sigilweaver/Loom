@@ -1,33 +1,47 @@
-"""Token tracking for one-time use enforcement.
+"""Server token storage for authorization.
 
-Server tokens are designed to be used exactly once. This module tracks
-issued tokens and rejects reuse attempts. This prevents replay attacks
-where an attacker captures a valid token and attempts to reuse it.
+Server tokens are opaque UUIDs that authorize a user to perform operations
+on a specific server. This module stores token metadata and handles one-time
+use enforcement by deleting tokens when they are consumed.
 
-In Phase 1, tracking is in-memory. For production with multiple Hub
-instances, this should be backed by Redis or a database.
+Tokens are stored in-memory intentionally:
+- Fail closed: Hub restart invalidates all tokens (security feature)
+- Simple: No external dependencies
+- Fast: Dict lookup is O(1)
+- Scale: ~500 tokens × ~100 bytes = ~50KB (trivial)
 """
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 
-class TokenTracker:
-    """Tracks issued tokens to enforce one-time use.
+@dataclass
+class ServerTokenData:
+    """Data associated with a server token."""
 
-    Maintains an in-memory set of used token IDs (JTIs) with their
-    expiration times. Expired entries are periodically cleaned up.
+    user_id: str
+    server_id: str
+    expires_at: datetime
+
+
+class TokenStore:
+    """Stores server tokens for authorization.
+
+    Tokens are opaque UUIDs. When a server asks Hub to authorize a request,
+    Hub looks up the token, retrieves the user/server info, and deletes
+    the token (one-time use).
 
     Thread-safe via asyncio.Lock for concurrent access.
     """
 
     def __init__(self):
-        """Initialize the token tracker."""
-        # Map of JTI -> expiration time
-        self._used: dict[str, datetime] = {}
+        """Initialize the token store."""
+        self._tokens: dict[str, ServerTokenData] = {}
         self._lock = asyncio.Lock()
         self._cleanup_task: asyncio.Task | None = None
 
@@ -35,7 +49,7 @@ class TokenTracker:
         """Start the background cleanup task."""
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(self._cleanup_loop())
-            logger.info("Token tracker cleanup task started")
+            logger.info("Token store cleanup task started")
 
     async def stop(self) -> None:
         """Stop the background cleanup task."""
@@ -46,39 +60,72 @@ class TokenTracker:
             except asyncio.CancelledError:
                 pass
             self._cleanup_task = None
-            logger.info("Token tracker cleanup task stopped")
+            logger.info("Token store cleanup task stopped")
 
-    async def mark_used(self, jti: str, expires_at: datetime) -> bool:
-        """Mark a token as used.
-
-        Args:
-            jti: The unique token ID (JWT ID claim).
-            expires_at: When the token expires (for cleanup).
-
-        Returns:
-            True if the token was successfully marked as used (first use).
-            False if the token was already used (replay attempt).
-        """
-        async with self._lock:
-            if jti in self._used:
-                logger.warning(f"Token replay attempt detected: {jti[:8]}...")
-                return False
-
-            self._used[jti] = expires_at
-            logger.debug(f"Token marked as used: {jti[:8]}...")
-            return True
-
-    async def is_used(self, jti: str) -> bool:
-        """Check if a token has been used.
+    async def create(self, user_id: str, server_id: str, ttl_seconds: int = 300) -> str:
+        """Create a new server token.
 
         Args:
-            jti: The unique token ID.
+            user_id: The user this token authorizes.
+            server_id: The server this token is valid for.
+            ttl_seconds: Time-to-live in seconds (default 5 minutes).
 
         Returns:
-            True if the token has been used, False otherwise.
+            The opaque token string (UUID).
+        """
+        token = str(uuid4())
+        expires_at = datetime.now(UTC).replace(microsecond=0) + \
+            __import__('datetime').timedelta(seconds=ttl_seconds)
+
+        async with self._lock:
+            self._tokens[token] = ServerTokenData(
+                user_id=user_id,
+                server_id=server_id,
+                expires_at=expires_at,
+            )
+
+        logger.debug(f"Created server token {token[:8]}... for user {user_id[:8]}...")
+        return token
+
+    async def consume(self, token: str, server_id: str) -> ServerTokenData | None:
+        """Consume a token and return its data.
+
+        This is atomic: the token is looked up and deleted in one operation.
+        If the token doesn't exist, is expired, or is for a different server,
+        returns None.
+
+        Args:
+            token: The token to consume.
+            server_id: The server attempting to use this token.
+
+        Returns:
+            The token data if valid, None otherwise.
         """
         async with self._lock:
-            return jti in self._used
+            data = self._tokens.get(token)
+
+            if data is None:
+                logger.warning(f"Token not found: {token[:8]}...")
+                return None
+
+            # Check server matches
+            if data.server_id != server_id:
+                logger.warning(
+                    f"Token {token[:8]}... used on wrong server "
+                    f"(expected {data.server_id[:8]}..., got {server_id[:8]}...)"
+                )
+                return None
+
+            # Check expiry
+            if datetime.now(UTC) > data.expires_at:
+                logger.warning(f"Token {token[:8]}... expired")
+                del self._tokens[token]
+                return None
+
+            # Delete and return (one-time use)
+            del self._tokens[token]
+            logger.debug(f"Consumed token {token[:8]}... for user {data.user_id[:8]}...")
+            return data
 
     async def _cleanup_loop(self) -> None:
         """Background task to clean up expired tokens."""
@@ -92,12 +139,12 @@ class TokenTracker:
                 logger.error(f"Error in token cleanup: {e}")
 
     async def _cleanup_expired(self) -> None:
-        """Remove expired tokens from tracking."""
+        """Remove expired tokens from storage."""
         now = datetime.now(UTC)
         async with self._lock:
-            before_count = len(self._used)
-            self._used = {k: v for k, v in self._used.items() if v > now}
-            after_count = len(self._used)
+            before_count = len(self._tokens)
+            self._tokens = {k: v for k, v in self._tokens.items() if v.expires_at > now}
+            after_count = len(self._tokens)
 
             if before_count != after_count:
                 logger.debug(
@@ -106,32 +153,54 @@ class TokenTracker:
                 )
 
     @property
-    def tracked_count(self) -> int:
-        """Get the number of tokens currently being tracked."""
-        return len(self._used)
+    def token_count(self) -> int:
+        """Get the number of tokens currently stored."""
+        return len(self._tokens)
 
 
 # Module-level singleton
-_token_tracker: TokenTracker | None = None
+_token_store: TokenStore | None = None
 
 
-def get_token_tracker() -> TokenTracker:
-    """Get the global TokenTracker instance.
+def get_token_store() -> TokenStore:
+    """Get the global TokenStore instance.
 
     Raises:
-        RuntimeError: If TokenTracker has not been initialized.
+        RuntimeError: If TokenStore has not been initialized.
     """
-    if _token_tracker is None:
-        raise RuntimeError("TokenTracker not initialized. Call init_token_tracker() first.")
-    return _token_tracker
+    if _token_store is None:
+        raise RuntimeError("TokenStore not initialized. Call init_token_store() first.")
+    return _token_store
 
 
-def init_token_tracker() -> TokenTracker:
-    """Initialize the global TokenTracker instance.
+def init_token_store() -> TokenStore:
+    """Initialize the global TokenStore instance.
 
     Returns:
-        The initialized TokenTracker.
+        The initialized TokenStore.
     """
+    global _token_store
+    _token_store = TokenStore()
+    return _token_store
+
+
+# =============================================================================
+# Legacy Compatibility (to be removed after migration)
+# =============================================================================
+
+# Keep old names as aliases during transition
+TokenTracker = TokenStore
+_token_tracker: TokenStore | None = None
+
+
+def get_token_tracker() -> TokenStore:
+    """Legacy alias for get_token_store()."""
+    return get_token_store()
+
+
+def init_token_tracker() -> TokenStore:
+    """Legacy alias for init_token_store()."""
     global _token_tracker
-    _token_tracker = TokenTracker()
-    return _token_tracker
+    store = init_token_store()
+    _token_tracker = store
+    return store

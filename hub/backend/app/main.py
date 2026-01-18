@@ -11,9 +11,8 @@ from app import __version__
 from app.api.v1.router import v1_router
 from app.config import settings
 from app.db.database import async_session_maker
-from app.domain.auth.keys import init_key_manager
 from app.domain.auth.sessions import SessionManager
-from app.domain.auth.tokens import init_token_tracker
+from app.domain.auth.tokens import init_token_store
 from app.domain.capabilities import init_issuer
 from app.domain.connections.health_poller import connection_health_poller
 from app.domain.schedules.scheduler import get_scheduler
@@ -52,10 +51,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Sigilweaver Hub starting up...")
 
     # Initialize server token infrastructure
-    key_manager = init_key_manager(settings.jwt_private_key or None)
-    token_tracker = init_token_tracker()
-    init_issuer(key_manager, settings)
-    await token_tracker.start()
+    token_store = init_token_store()
+    init_issuer(token_store, settings)
+    await token_store.start()
 
     # Start server health polling
     await health_poller.start()
@@ -81,8 +79,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except asyncio.CancelledError:
         pass
 
-    # Stop token tracker cleanup
-    await token_tracker.stop()
+    # Stop token store cleanup
+    await token_store.stop()
 
     # Stop health polling
     await health_poller.stop()

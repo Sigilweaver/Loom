@@ -1,14 +1,17 @@
-"""Capability endpoints for workflow execution authorization.
+"""Capability endpoints for server operation authorization.
 
-These endpoints issue server tokens that authorize workflow execution.
+These endpoints issue server tokens that authorize operations on servers.
 Users authenticate with their Hub session token and receive a short-lived
-server token that can be used to execute on a specific server.
+server token that can be used with a specific server.
 
-The flow:
-1. User sends workflow JSON to /api/capabilities/execute
-2. Hub validates user session and connection access
-3. Hub selects a healthy server and issues a server token
-4. User receives token and server endpoint to call
+The simplified flow:
+1. User requests a token via POST /token
+2. Hub validates user session and selects a healthy server
+3. Hub issues an opaque server token (stored in TokenStore)
+4. User receives token and server endpoint
+5. User sends request to Server with token
+6. Server calls /internal/authorize with token + request details
+7. Hub validates and returns credentials
 """
 
 import logging
@@ -21,14 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
 from app.db.database import get_db
-from app.db.models import (
-    Connection,
-    GrantGroup,
-    GrantGroupConnection,
-    Server,
-    UserGroup,
-    UserGroupGrantGroup,
-)
+from app.db.models import Server
 from app.domain.audit import AuditService
 from app.domain.capabilities import CapabilityIssuer, get_issuer
 
@@ -36,376 +32,116 @@ router = APIRouter(prefix="/capabilities", tags=["capabilities"])
 logger = logging.getLogger(__name__)
 
 
-class ExecuteCapabilityRequest(BaseModel):
-    """Request for execution capability."""
-
-    workflow: dict = Field(..., description="Full workflow JSON")
-    server_id: UUID | None = Field(
-        None, description="Optional: specific server to use (otherwise auto-selected)"
-    )
-
-
-class PreviewCapabilityRequest(BaseModel):
-    """Request for preview capability."""
-
-    workflow: dict = Field(..., description="Full workflow JSON")
-    server_id: UUID | None = Field(
-        None, description="Optional: specific server to use (otherwise auto-selected)"
-    )
-
-
-class CapabilityResponse(BaseModel):
-    """Response with server token and endpoint."""
-
-    token: str = Field(..., description="Server token for authorization")
-    server_endpoint: str = Field(..., description="Server URL to send execution request to")
-    expires_in: int = Field(..., description="Token lifetime in seconds")
+# =============================================================================
+# Helpers
+# =============================================================================
 
 
 async def _select_healthy_server(
     db: AsyncSession,
     server_id: UUID | None = None,
 ) -> Server:
-    """Select a healthy server for execution.
-
-    If server_id is specified, returns that server if healthy.
-    Otherwise, selects a healthy server (simple round-robin for now).
+    """Select a healthy server, optionally by ID.
 
     Args:
         db: Database session.
-        server_id: Optional specific server ID.
+        server_id: Optional specific server ID to use.
 
     Returns:
-        A healthy Server instance.
+        Selected server.
 
     Raises:
         HTTPException: If no healthy server is available.
     """
     if server_id:
-        # Fetch specific server
-        result = await db.execute(select(Server).where(Server.id == server_id))
+        # Specific server requested
+        result = await db.execute(
+            select(Server).where(Server.id == server_id)
+        )
         server = result.scalar_one_or_none()
-
         if not server:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Server {server_id} not found",
             )
-
         if server.status != "online":
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Server {server.name} is not online (status: {server.status})",
+                detail=f"Server {server.name} is not healthy (status: {server.status})",
             )
-
         return server
 
-    # Select any online server (TODO: implement proper load balancing)
+    # Auto-select: find an online server (ordered by name for consistency)
     result = await db.execute(
-        select(Server).where(Server.status == "online").order_by(Server.last_poll.desc())
+        select(Server)
+        .where(Server.status == "online")
+        .order_by(Server.name)
     )
-    server = result.scalars().first()
+    servers = result.scalars().all()
 
-    if not server:
+    if not servers:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No online servers available",
+            detail="No healthy servers available",
         )
 
-    return server
+    return servers[0]
 
 
-async def _validate_connection_access(
-    user: CurrentUser,
-    connection_ids: list[str],
-    db: AsyncSession,
-) -> None:
-    """Validate user has access to the specified connections.
+# =============================================================================
+# Token API
+# =============================================================================
 
-    Access is granted if:
-    1. User has admin or owner role (can access all connections), OR
-    2. User is a member of a group that references a grant group containing the connection, OR
-    3. (Legacy) User is a member of a group that the connection is directly assigned to
 
-    Connections with no assignments are accessible by admins only.
+class TokenRequest(BaseModel):
+    """Request for a server token."""
 
-    Args:
-        user: Current authenticated user.
-        connection_ids: List of connection IDs to validate.
-        db: Database session.
-
-    Raises:
-        HTTPException: If user doesn't have access to a connection.
-    """
-    if not connection_ids:
-        return  # No hub connections to validate
-
-    # Admins/Owners can access all connections
-    if user.role in ("owner", "admin"):
-        logger.debug(f"Admin/owner {user.username} accessing connections: {connection_ids}")
-        return
-
-    # Get user's group memberships
-    user_groups_result = await db.execute(
-        select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
+    server_id: UUID | None = Field(
+        None, description="Optional: specific server to use (otherwise auto-selected)"
     )
-    user_group_ids = {row[0] for row in user_groups_result.fetchall()}
-
-    if not user_group_ids:
-        # User not in any groups - cannot access any connections
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of any groups and cannot access Hub connections",
-        )
-
-    # Get connections accessible via grant groups
-    # User -> UserGroup -> UserGroupGrantGroup -> GrantGroup -> GrantGroupConnection -> Connection
-    grant_group_conn_result = await db.execute(
-        select(GrantGroupConnection.connection_id)
-        .join(GrantGroup, GrantGroupConnection.grant_group_id == GrantGroup.id)
-        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroup.id)
-        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
-        .distinct()
-    )
-    accessible_conn_ids = {row[0] for row in grant_group_conn_result.fetchall()}
-
-    # Check each connection
-    unauthorized = []
-    for conn_id_str in connection_ids:
-        try:
-            conn_id = UUID(conn_id_str)
-        except ValueError:
-            unauthorized.append(conn_id_str)
-            continue
-
-        # Check if connection exists
-        conn_result = await db.execute(
-            select(Connection.id).where(Connection.id == conn_id)
-        )
-        if not conn_result.scalar_one_or_none():
-            unauthorized.append(conn_id_str)
-            continue
-
-        # Check if user has access to this connection via grant groups
-        if conn_id not in accessible_conn_ids:
-            unauthorized.append(conn_id_str)
-
-    if unauthorized:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"You do not have access to the following connections: {unauthorized}",
-        )
 
 
-@router.post("/execute", response_model=CapabilityResponse)
-async def request_execute_capability(
-    request: ExecuteCapabilityRequest,
+class TokenResponse(BaseModel):
+    """Response with server token and endpoint."""
+
+    token: str = Field(..., description="Opaque server token for authorization")
+    server_endpoint: str = Field(..., description="Server URL to send requests to")
+    expires_in: int = Field(..., description="Token lifetime in seconds")
+
+
+@router.post("/token", response_model=TokenResponse)
+async def request_token(
+    request: TokenRequest,
     current_user: CurrentUser,
     http_request: Request,
     db: AsyncSession = Depends(get_db),
     issuer: CapabilityIssuer = Depends(get_issuer),
-) -> CapabilityResponse:
-    """Request authorization to execute a workflow.
+) -> TokenResponse:
+    """Request a server token.
 
-    Returns a server token that can be used to execute the workflow
-    on the designated server. The token is short-lived (default 5 minutes)
+    Returns an opaque token that authorizes the user to make requests
+    to the designated server. The token is short-lived (default 5 minutes)
     and single-use.
 
-    The workflow JSON is hashed and embedded in the token, so the server
-    can verify the workflow hasn't been modified.
+    The actual authorization (what operations are allowed, what connections
+    can be accessed) happens when the server calls /internal/authorize.
     """
-    # Extract hub connections and validate access
-    connection_ids = issuer.extract_hub_connections(request.workflow)
-    await _validate_connection_access(current_user, connection_ids, db)
-
     # Select a healthy server
     server = await _select_healthy_server(db, request.server_id)
 
     # Issue the token
-    capability = await issuer.issue_execute_token(
-        user_id=str(current_user.user_id),
-        server=server,
-        workflow_json=request.workflow,
-    )
-
-    # Log audit events
-    audit_service = AuditService(db)
-    workflow_id = request.workflow.get("workflowId")
-
-    # Get client IP
-    client_ip = http_request.client.host if http_request.client else None
-    user_agent = http_request.headers.get("user-agent")
-
-    # Log execution.requested
-    await audit_service.log_event(
-        event_type="execution.requested",
-        actor_type="user",
-        actor_identity=current_user.username,
-        actor_id=current_user.user_id,
-        workflow_id=UUID(workflow_id) if workflow_id else None,
-        server_id=server.id,
-        auth_method="session",
-        client_ip=client_ip,
-        user_agent=user_agent,
-        details={
-            "workflow_name": request.workflow.get("name"),
-            "connection_ids": connection_ids,
-            "server_name": server.name,
-        },
-    )
-
-    # Log execution.token_issued
-    await audit_service.log_event(
-        event_type="execution.token_issued",
-        actor_type="system",
-        actor_identity="hub",
-        workflow_id=UUID(workflow_id) if workflow_id else None,
-        server_id=server.id,
-        details={
-            "scope": "execute",
-            "expires_in": capability.expires_in,
-            "target_server": server.name,
-        },
-    )
-
-    await db.commit()
-
-    logger.info(
-        f"Issued execute capability for user {current_user.username} "
-        f"on server {server.name}"
-    )
-
-    return CapabilityResponse(
-        token=capability.token,
-        server_endpoint=capability.server_endpoint,
-        expires_in=capability.expires_in,
-    )
-
-
-@router.post("/preview", response_model=CapabilityResponse)
-async def request_preview_capability(
-    request: PreviewCapabilityRequest,
-    current_user: CurrentUser,
-    http_request: Request,
-    db: AsyncSession = Depends(get_db),
-    issuer: CapabilityIssuer = Depends(get_issuer),
-) -> CapabilityResponse:
-    """Request authorization to preview a workflow.
-
-    Similar to /execute but issues a token with 'preview' scope.
-    Servers may apply different limits for preview operations.
-    """
-    # Extract hub connections and validate access
-    connection_ids = issuer.extract_hub_connections(request.workflow)
-    await _validate_connection_access(current_user, connection_ids, db)
-
-    # Select a healthy server
-    server = await _select_healthy_server(db, request.server_id)
-
-    # Issue the token
-    capability = await issuer.issue_preview_token(
-        user_id=str(current_user.user_id),
-        server=server,
-        workflow_json=request.workflow,
-    )
-
-    # Log audit events
-    audit_service = AuditService(db)
-    workflow_id = request.workflow.get("workflowId")
-
-    # Get client IP
-    client_ip = http_request.client.host if http_request.client else None
-    user_agent = http_request.headers.get("user-agent")
-
-    # Log execution.requested for preview
-    await audit_service.log_event(
-        event_type="execution.requested",
-        actor_type="user",
-        actor_identity=current_user.username,
-        actor_id=current_user.user_id,
-        workflow_id=UUID(workflow_id) if workflow_id else None,
-        server_id=server.id,
-        auth_method="session",
-        client_ip=client_ip,
-        user_agent=user_agent,
-        details={
-            "workflow_name": request.workflow.get("name"),
-            "connection_ids": connection_ids,
-            "server_name": server.name,
-            "scope": "preview",
-        },
-    )
-
-    # Log execution.token_issued
-    await audit_service.log_event(
-        event_type="execution.token_issued",
-        actor_type="system",
-        actor_identity="hub",
-        workflow_id=UUID(workflow_id) if workflow_id else None,
-        server_id=server.id,
-        details={
-            "scope": "preview",
-            "expires_in": capability.expires_in,
-            "target_server": server.name,
-        },
-    )
-
-    await db.commit()
-
-    logger.info(
-        f"Issued preview capability for user {current_user.username} "
-        f"on server {server.name}"
-    )
-
-    return CapabilityResponse(
-        token=capability.token,
-        server_endpoint=capability.server_endpoint,
-        expires_in=capability.expires_in,
-    )
-
-
-class BrowseCapabilityRequest(BaseModel):
-    """Request for browse capability."""
-
-    server_id: UUID | None = Field(None, description="Server to browse files on (optional, Hub picks if not specified)")
-
-
-@router.post("/browse", response_model=CapabilityResponse)
-async def request_browse_capability(
-    request: BrowseCapabilityRequest,
-    current_user: CurrentUser,
-    http_request: Request,
-    db: AsyncSession = Depends(get_db),
-    issuer: CapabilityIssuer = Depends(get_issuer),
-) -> CapabilityResponse:
-    """Request authorization to browse files on a server.
-
-    Returns a browse token that can be used to list directories and files
-    on the designated server. The token is short-lived (default 5 minutes)
-    and single-use.
-
-    Unlike execute/preview tokens, browse tokens don't require a workflow
-    or connections - they only authorize file browsing operations.
-    """
-    # Select the specified server (must be healthy)
-    server = await _select_healthy_server(db, request.server_id)
-
-    # Issue the browse token
-    capability = await issuer.issue_browse_token(
+    capability = await issuer.issue_token(
         user_id=str(current_user.user_id),
         server=server,
     )
 
-    # Log audit events
+    # Log audit event
     audit_service = AuditService(db)
-
-    # Get client IP
     client_ip = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
 
-    # Log browse.token_issued
     await audit_service.log_event(
-        event_type="browse.token_issued",
+        event_type="capability.token_issued",
         actor_type="user",
         actor_identity=current_user.username,
         actor_id=current_user.user_id,
@@ -422,12 +158,13 @@ async def request_browse_capability(
     await db.commit()
 
     logger.info(
-        f"Issued browse capability for user {current_user.username} "
+        f"Issued server token for user {current_user.username} "
         f"on server {server.name}"
     )
 
-    return CapabilityResponse(
+    return TokenResponse(
         token=capability.token,
         server_endpoint=capability.server_endpoint,
         expires_in=capability.expires_in,
     )
+

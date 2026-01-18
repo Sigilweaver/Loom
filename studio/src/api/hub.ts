@@ -6,13 +6,12 @@
  *
  * Hub is the orchestration layer that:
  * - Authenticates users
- * - Issues server tokens for workflow execution
+ * - Issues server tokens for server operations
  * - Manages server-side connections
  * - Tracks workflow execution history
  */
 
 import { createLogger } from '../utils/logger';
-import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 
 const logger = createLogger('HubAPI');
 
@@ -33,18 +32,6 @@ export interface ServerToken {
   /** JWT token to send to Server */
   token: string;
   /** Server endpoint URL to send the request to */
-  server_endpoint: string;
-  /** Seconds until token expires */
-  expires_in: number;
-}
-
-/**
- * Browse token response from Hub
- */
-export interface BrowseToken {
-  /** JWT token for file browsing */
-  token: string;
-  /** Server endpoint URL */
   server_endpoint: string;
   /** Seconds until token expires */
   expires_in: number;
@@ -259,70 +246,28 @@ export class HubClient {
   // ===========================================================================
 
   /**
-   * Request a server token for workflow execution
+   * Request a server token for any operation
    *
-   * This is the primary method for getting authorization to execute
-   * workflows on a Server. The returned token should be passed to
-   * the Server in the Authorization header.
+   * This is the unified method for getting authorization to interact
+   * with a Server. The returned token is opaque - all metadata is stored
+   * server-side in Hub.
    *
-   * @param workflow - The workflow to execute
+   * @param serverId - ID of the server to target (optional, Hub picks if not specified)
    * @returns Server token with endpoint and expiration
    */
-  async requestExecuteToken(workflow: WorkflowJSON): Promise<ServerToken> {
+  async requestToken(serverId?: string): Promise<ServerToken> {
     logger.info('Requesting server token from Hub');
 
-    const response = await this.request<ServerToken>('/api/v1/capabilities/execute', {
+    const body = serverId ? { server_id: serverId } : {};
+    const response = await this.request<ServerToken>('/api/v1/capabilities/token', {
       method: 'POST',
-      body: JSON.stringify({ workflow }),
+      body: JSON.stringify(body),
     });
 
     logger.info(`Got server token for ${response.server_endpoint}, expires in ${response.expires_in}s`);
 
     return response;
   }
-
-  /**
-   * Request a server token for preview operations
-   *
-   * Similar to execute but with more limited scope.
-   */
-  async requestPreviewToken(workflow: WorkflowJSON): Promise<ServerToken> {
-    logger.info('Requesting preview token from Hub');
-
-    const response = await this.request<ServerToken>('/api/v1/capabilities/preview', {
-      method: 'POST',
-      body: JSON.stringify({ workflow }),
-    });
-
-    return response;
-  }
-
-  /**
-   * Request a browse token for file browsing
-   *
-   * Gets a token that allows browsing files on a Server within
-   * the user's granted file paths. Hub picks a healthy server automatically.
-   *
-   * @param serverId - Optional server ID (Hub picks if not specified)
-   * @returns Browse token with endpoint and expiration
-   */
-  async requestBrowseToken(serverId?: string): Promise<BrowseToken> {
-    logger.info('Requesting browse token from Hub');
-
-    const body = serverId ? { server_id: serverId } : {};
-    const response = await this.request<BrowseToken>('/api/v1/capabilities/browse', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-
-    logger.info(`Got browse token for ${response.server_endpoint}, expires in ${response.expires_in}s`);
-
-    return response;
-  }
-
-  // ===========================================================================
-  // Connections
-  // ===========================================================================
 
   /**
    * List connections the current user has access to
