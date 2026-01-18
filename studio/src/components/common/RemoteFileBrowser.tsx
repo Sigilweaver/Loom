@@ -13,7 +13,7 @@
  * <RemoteFileBrowser
  *   open={isOpen}
  *   getToken={async () => {
- *     const response = await hubClient.requestBrowseToken();
+ *     const response = await hubClient.requestToken();
  *     return { token: response.token, serverUrl: response.server_endpoint };
  *   }}
  *   onSelect={(path) => console.log('Selected:', path)}

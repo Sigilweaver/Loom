@@ -28,20 +28,27 @@ class HeartbeatManager:
         server_name: str,
         endpoint_url: str,
         interval_seconds: int = 30,
+        initial_retry_interval: int = 5,
+        max_initial_retries: int = 12,
     ):
         """Initialize the heartbeat manager.
 
         Args:
             server_name: Name for this server in Hub (e.g., "dev-server")
             endpoint_url: This server's API endpoint (e.g., "http://localhost:25811")
-            interval_seconds: How often to heartbeat (default: 30s)
+            interval_seconds: How often to heartbeat after registration (default: 30s)
+            initial_retry_interval: Retry interval during initial registration (default: 5s)
+            max_initial_retries: Max initial registration attempts (default: 12 = 60s)
         """
         self.server_name = server_name
         self.endpoint_url = endpoint_url
         self.interval_seconds = interval_seconds
+        self.initial_retry_interval = initial_retry_interval
+        self.max_initial_retries = max_initial_retries
         self._task: asyncio.Task | None = None
         self._running = False
         self._registered = False
+        self._initial_registration_attempts = 0
 
         # Initialize Hub client
         try:
@@ -86,10 +93,21 @@ class HeartbeatManager:
         logger.info("Heartbeat manager stopped")
 
     async def _heartbeat_loop(self) -> None:
-        """Main heartbeat loop - periodically re-registers with Hub."""
+        """Main heartbeat loop - periodically re-registers with Hub.
+        
+        Uses a faster retry interval during initial registration, then
+        switches to normal interval once registered.
+        """
         while self._running:
             try:
-                await asyncio.sleep(self.interval_seconds)
+                # Use faster interval until first successful registration
+                if not self._registered:
+                    interval = self.initial_retry_interval
+                    self._initial_registration_attempts += 1
+                else:
+                    interval = self.interval_seconds
+                    
+                await asyncio.sleep(interval)
                 await self._register()
             except Exception as e:
                 logger.error("Error in heartbeat loop: %s", e)
@@ -127,14 +145,26 @@ class HeartbeatManager:
                     )
                     self._registered = False
                 else:
-                    # Still trying to connect for the first time
+                    # Still trying to connect for the first time - use debug level
+                    # to avoid spamming logs during normal startup timing delays
+                    retry_interval = self.initial_retry_interval
                     logger.debug(
-                        "Hub not reachable, will retry in %ds",
-                        self.interval_seconds,
+                        "Hub not reachable yet, will retry in %ds (attempt %d)",
+                        retry_interval,
+                        self._initial_registration_attempts,
                     )
 
         except Exception as e:
-            logger.exception("Unexpected error during Hub registration: %s", e)
+            # During initial registration, connection errors are expected while
+            # Hub is starting up - use a less alarming log level
+            if not self._registered and self._initial_registration_attempts < self.max_initial_retries:
+                logger.debug(
+                    "Hub registration attempt %d failed (Hub may still be starting): %s",
+                    self._initial_registration_attempts,
+                    type(e).__name__,
+                )
+            else:
+                logger.exception("Unexpected error during Hub registration: %s", e)
             self._registered = False
 
 

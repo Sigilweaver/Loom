@@ -341,18 +341,17 @@ class ExecutionService:
                     )
                     return
 
-                # Generate execution token for the server
+                # Generate server token for execution
                 try:
                     issuer = get_issuer()
-                    server_token = await issuer.issue_execute_token(
+                    server_token = await issuer.issue_token(
                         user_id="hub-system",  # Hub-triggered executions use system user
                         server=server,
-                        workflow_json=workflow_json,
                     )
                     auth_token = server_token.token
                 except Exception as e:
                     logger.warning(
-                        "Failed to issue execution token, using server auth_token: %s", e
+                        "Failed to issue server token, using server auth_token: %s", e
                     )
                     auth_token = server.auth_token
 

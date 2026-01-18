@@ -6,6 +6,16 @@ import renderer from "vite-plugin-electron-renderer";
 // @ts-ignore - CJS module in ESM context
 import monacoEditorPlugin from "vite-plugin-monaco-editor";
 
+// Check if we should skip Electron launch (no display or explicitly disabled)
+const noElectron = process.env.NO_ELECTRON === '1' || process.env.NO_ELECTRON === 'true';
+const hasDisplay = !!(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+const shouldLaunchElectron = !noElectron && hasDisplay;
+
+if (!shouldLaunchElectron) {
+  console.log('[vite] Running in web-only mode (no display available)');
+  console.log('[vite] Access Studio at http://localhost:25810');
+}
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -30,6 +40,10 @@ export default defineConfig({
       {
         entry: "electron/main.ts",
         onstart(options) {
+          if (!shouldLaunchElectron) {
+            return;  // Skip - already logged at startup
+          }
+
           if (options.startup) {
             // Pass Ozone platform flags for proper Wayland support
             // This enables DevTools and other Chromium features on Wayland

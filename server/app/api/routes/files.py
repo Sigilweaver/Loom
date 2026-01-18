@@ -1,7 +1,7 @@
 """File browser API routes for Hub-authenticated file browsing.
 
 These endpoints allow Hub users to browse files on the Server within
-their granted file paths. In hub mode, a browse token is validated
+their granted file paths. In hub mode, a browse token is authorized
 with Hub to get the user's file path grants. In other modes, browsing
 uses the configured allowed_file_paths.
 """
@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from app.config import settings
-from app.domain.hub.client import BrowseValidationResult, FilePathGrant, get_hub_client
+from app.domain.hub.client import AuthorizationResult, FilePathGrant, get_hub_client
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class StatResponse(BaseModel):
 
 
 class BrowseContext(BaseModel):
-    """Context from browse token validation."""
+    """Context from browse token authorization."""
 
     user_id: str | None = None
     file_paths: list[FilePathGrant]
@@ -77,9 +77,9 @@ class BrowseContext(BaseModel):
 async def get_browse_context(
     authorization: Annotated[str | None, Header()] = None,
 ) -> BrowseContext:
-    """Get browse context from token validation.
+    """Get browse context from token authorization.
 
-    In hub mode, validates the browse token with Hub.
+    In hub mode, authorizes the browse token with Hub.
     In other modes, uses configured allowed_file_paths.
 
     Returns:
@@ -97,7 +97,7 @@ async def get_browse_context(
         ]
         return BrowseContext(user_id=None, file_paths=file_paths)
 
-    # Hub mode: validate token
+    # Hub mode: authorize token
     if not authorization:
         raise HTTPException(
             status_code=401,
@@ -122,10 +122,13 @@ async def get_browse_context(
             detail="Hub client not configured",
         )
 
-    # Validate with Hub
-    result: BrowseValidationResult = await hub_client.validate_browse(token)
+    # Authorize with Hub (token is consumed - one-time use)
+    result: AuthorizationResult = await hub_client.authorize(
+        server_token=token,
+        request_type="browse",
+    )
 
-    if not result.valid:
+    if not result.authorized:
         raise HTTPException(
             status_code=401,
             detail=result.error or "Invalid browse token",
