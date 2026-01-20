@@ -50,11 +50,11 @@ Enterprise grade means "it works when you need it." That's a promise we make to 
 
 ## The Platform
 
-| Component | What It Does |
-|-----------|--------------|
-| **Studio** | Desktop app for visual workflow design (React + Electron) |
-| **Server** | Execution engine that runs workflows (FastAPI + Polars) |
-| **Hub** | Orchestration platform for teams and automation (Full stack) |
+| Component  | What It Does                                                 |
+| ---------- | ------------------------------------------------------------ |
+| **Studio** | Desktop app for visual workflow design (React + Electron)    |
+| **Server** | Execution engine that runs workflows (FastAPI + Polars)      |
+| **Hub**    | Orchestration platform for teams and automation (Full stack) |
 
 Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
 
@@ -68,12 +68,12 @@ For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
-| Audience | Link |
-|----------|------|
-| **Getting Started** | [docs.sigilweaver.app/user](https://docs.sigilweaver.app/user) |
-| **Coming from Alteryx/KNIME?** | [Crash Courses](https://docs.sigilweaver.app/user/crash-courses) |
-| **Developers** | [docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer) |
-| **Architecture Decisions** | [ADRs](https://docs.sigilweaver.app/developer/architecture/decisions) |
+| Audience                       | Link                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| **Getting Started**            | [docs.sigilweaver.app/user](https://docs.sigilweaver.app/user)           |
+| **Coming from Alteryx/KNIME?** | [Crash Courses](https://docs.sigilweaver.app/user/crash-courses)         |
+| **Developers**                 | [docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer) |
+| **Architecture Decisions**     | [ADRs](https://docs.sigilweaver.app/developer/architecture/decisions)    |
 
 ## License
 
@@ -93,13 +93,6 @@ Open source needs to be sustainable. Sigilweaver requires contributors to sign a
 - You can always use, fork, and modify Sigilweaver under the AGPL
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE.md) for the full AGPL text.
-
-## Team
-
-| Role | Maintainer |
-|------|------------|
-| **Lead Developer** | [Nathan Riley](https://github.com/Nathan-D-R) |
-| **Community Manager** | [Madalyn Riley](https://github.com/mads040205) |
 
 ---
 

@@ -142,29 +142,6 @@ const AboutContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Team & Community */}
-      <div className="space-y-2">
-        <h3 className="text-base font-semibold text-theme-text-primary">Team</h3>
-        <ul className="text-sm text-theme-text-secondary space-y-1">
-          <li>
-            <span className="font-medium text-theme-text-primary">Lead Developer:</span> Nathan Riley
-          </li>
-          <li>
-            <span className="font-medium text-theme-text-primary">Community Manager:</span> Madalyn Riley
-          </li>
-          <li className="pt-1 text-theme-text-tertiary">
-            <a
-              href="https://github.com/sigilweaver/sigilweaver/graphs/contributors"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-theme-primary transition-colors"
-            >
-              And the Sigilweaver Community &rarr;
-            </a>
-          </li>
-        </ul>
-      </div>
-
       {/* Attribution */}
       <div className="pt-4 border-t border-theme-border-primary">
         <p className="text-sm text-theme-text-tertiary">
