@@ -5,15 +5,17 @@ Sigilweaver Development Script
 Starts development servers for Studio, Server, Hub, Docs, and/or Site.
 
 Usage:
-    ./scripts/dev.py                    # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py                    # Start Studio in web mode only
     ./scripts/dev.py --server           # Server only
-    ./scripts/dev.py --studio           # Studio only  
+    ./scripts/dev.py --studio           # Studio (web mode)
+    ./scripts/dev.py --studio-electron  # Studio as Electron desktop app
+    ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Documentation site only (Docusaurus)
     ./scripts/dev.py --site             # Marketing website only (Vite)
     ./scripts/dev.py --studio --server  # Multiple components
-    ./scripts/dev.py --hub-auth         # All components with Hub authentication enabled
-    ./scripts/dev.py --electron         # All components + launch Electron
+    ./scripts/dev.py --hub-auth         # Specified components with Hub authentication enabled
+    ./scripts/dev.py --all              # Start all core components (Server, Studio, Hub)
 """
 
 import argparse
@@ -37,6 +39,7 @@ NC = "\033[0m"  # No Color
 server_process: subprocess.Popen | None = None
 studio_process: subprocess.Popen | None = None
 electron_process: subprocess.Popen | None = None
+tauri_process: subprocess.Popen | None = None
 hub_backend_process: subprocess.Popen | None = None
 hub_frontend_process: subprocess.Popen | None = None
 docs_process: subprocess.Popen | None = None
@@ -535,28 +538,39 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         return None
 
 
-def start_studio(repo_root: Path, with_electron: bool = False) -> subprocess.Popen | None:
-    """Start the Vite development server.
+def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
+    """Start Studio in the specified mode.
     
     Args:
         repo_root: Repository root path.
-        with_electron: If True, allow Electron to launch (requires display).
+        mode: One of "web", "electron", or "tauri"
     """
     global studio_process
     
-    print_success("Starting Vite dev server...")
+    print_success(f"Starting Studio ({mode} mode)...")
     
     studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
     
-    # Set environment - disable Electron by default
+    # Set environment
     env = os.environ.copy()
-    if not with_electron:
+    
+    if mode == "web":
+        # Web mode - disable Electron
         env["NO_ELECTRON"] = "1"
+        cmd = [npm_cmd, "run", "dev"]
+    elif mode == "electron":
+        # Electron mode - let vite-plugin-electron handle it
+        env["NO_ELECTRON"] = "0"
+        cmd = [npm_cmd, "run", "dev:electron"]
+    else:
+        # Should not reach here for Tauri - handled by start_tauri()
+        print_error(f"Unknown studio mode: {mode}")
+        return None
     
     try:
         studio_process = subprocess.Popen(
-            [npm_cmd, "run", "dev"],
+            cmd,
             cwd=studio_dir,
             env=env,
             stdout=subprocess.PIPE,
@@ -577,6 +591,46 @@ def start_studio(repo_root: Path, with_electron: bool = False) -> subprocess.Pop
         return studio_process
     except Exception as e:
         print_error(f"Failed to start studio: {e}")
+        return None
+
+
+def start_tauri(repo_root: Path) -> subprocess.Popen | None:
+    """Start Studio as Tauri desktop app."""
+    global tauri_process
+    
+    # Check for display in headless environments
+    if not is_display_available():
+        print_warning("No display available (headless environment)")
+        print_warning("Skipping Tauri - use Studio web UI at http://localhost:25810")
+        return None
+    
+    print_success("Starting Tauri...")
+    
+    studio_dir = repo_root / "studio"
+    npm_cmd = get_npm_command()
+    
+    try:
+        tauri_process = subprocess.Popen(
+            [npm_cmd, "run", "dev:tauri"],
+            cwd=studio_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            shell=(sys.platform == "win32"),
+        )
+        
+        # Start output streaming in a separate thread
+        thread = threading.Thread(
+            target=stream_output,
+            args=(tauri_process, "TAURI"),
+            daemon=True
+        )
+        thread.start()
+        
+        return tauri_process
+    except Exception as e:
+        print_error(f"Failed to start Tauri: {e}")
         return None
 
 
@@ -802,6 +856,7 @@ def cleanup() -> None:
     print_warning("Shutting down services...")
     
     terminate_process(electron_process, "Electron")
+    terminate_process(tauri_process, "Tauri")
     terminate_process(site_process, "Site")
     terminate_process(docs_process, "Docs")
     terminate_process(hub_frontend_process, "Hub Frontend")
@@ -818,8 +873,24 @@ def signal_handler(signum: int, frame) -> None:
     sys.exit(0)
 
 
-def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub: bool, run_docs: bool = False, run_site: bool = False) -> None:
-    """Print status information after services start."""
+def print_status(
+    run_server: bool,
+    run_studio: bool,
+    studio_mode: str = "web",
+    run_hub: bool = False,
+    run_docs: bool = False,
+    run_site: bool = False
+) -> None:
+    """Print status information after services start.
+    
+    Args:
+        run_server: Whether server is running.
+        run_studio: Whether studio is running.
+        studio_mode: One of "web", "electron", or "tauri".
+        run_hub: Whether hub is running.
+        run_docs: Whether docs server is running.
+        run_site: Whether marketing site is running.
+    """
     print()
     print_success("Services started!")
     print(f"{BLUE}========================================{NC}")
@@ -837,8 +908,10 @@ def print_status(run_server: bool, run_studio: bool, run_electron: bool, run_hub
     if run_site:
         print(f"Site:           {GREEN}http://localhost:25808{NC}")
     print(f"{BLUE}========================================{NC}")
-    if run_electron and run_studio:
-        print_success("Electron mode enabled")
+    if run_studio and studio_mode == "electron":
+        print_success("Electron desktop mode enabled")
+    elif run_studio and studio_mode == "tauri":
+        print_success("Tauri desktop mode enabled")
     print()
     print_warning("Press Ctrl+C to stop all services")
     print()
@@ -851,16 +924,23 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    ./scripts/dev.py                    # Start all components (Server, Studio, Hub)
+    ./scripts/dev.py                    # Start Studio in web mode only
+    ./scripts/dev.py --all              # Start all core components (Server, Studio web, Hub)
     ./scripts/dev.py --server           # Server only
-    ./scripts/dev.py --studio           # Studio only
+    ./scripts/dev.py --studio           # Studio (web mode) only
+    ./scripts/dev.py --studio-electron  # Studio as Electron desktop app
+    ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Docs only (Docusaurus)
     ./scripts/dev.py --site             # Site only (marketing website)
     ./scripts/dev.py --studio --server  # Multiple components
     ./scripts/dev.py --hub-auth         # All components with Hub authentication enabled
-    ./scripts/dev.py --electron         # All components + launch Electron
         """
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Start all core components (Server, Studio web, Hub)"
     )
     parser.add_argument(
         "--server",
@@ -870,12 +950,17 @@ Examples:
     parser.add_argument(
         "--studio",
         action="store_true",
-        help="Start studio"
+        help="Start Studio in web mode"
     )
     parser.add_argument(
-        "--electron",
+        "--studio-electron",
         action="store_true",
-        help="Also launch Electron after studio starts"
+        help="Start Studio as Electron desktop app"
+    )
+    parser.add_argument(
+        "--studio-tauri",
+        action="store_true",
+        help="Start Studio as Tauri desktop app"
     )
     parser.add_argument(
         "--hub",
@@ -900,29 +985,36 @@ Examples:
     
     args = parser.parse_args()
     
-    # Determine what to run
-    # If any specific services requested, only run those
-    any_specific = args.server or args.studio or args.hub or args.docs or args.site
+    # Determine studio mode
+    # Priority: tauri > electron > web (if multiple specified, use highest priority)
+    studio_mode = "web"
+    if args.studio_tauri:
+        studio_mode = "tauri"
+    elif args.studio_electron:
+        studio_mode = "electron"
     
-    if any_specific:
-        run_server = args.server
-        run_studio = args.studio
-        run_hub = args.hub
-        run_docs = args.docs
-        run_site = args.site
-    # Default: run core components (Server, Studio, Hub) but not docs/site
-    else:
+    # Determine what to run
+    # If --all flag is set, run core components
+    if args.all:
         run_server = True
         run_studio = True
         run_hub = True
         run_docs = False
         run_site = False
-    
-    run_electron = args.electron
-    
-    # If electron requested but not studio, enable studio too
-    if run_electron and not run_studio:
+    # If any specific services requested, only run those
+    elif args.server or args.studio or args.studio_electron or args.studio_tauri or args.hub or args.docs or args.site:
+        run_server = args.server
+        run_studio = args.studio or args.studio_electron or args.studio_tauri
+        run_hub = args.hub
+        run_docs = args.docs
+        run_site = args.site
+    # Default: run studio in web mode only
+    else:
+        run_server = False
         run_studio = True
+        run_hub = False
+        run_docs = False
+        run_site = False
     
     # If Hub is running, enable hub auth mode for the server automatically
     # This ensures Hub connections work without requiring --hub-auth flag
@@ -996,10 +1088,24 @@ Examples:
         time.sleep(2)
     
     if run_studio:
-        if start_studio(repo_root, with_electron=run_electron) is None:
-            return 1
-        # Wait for Vite to start
-        time.sleep(3)
+        if studio_mode == "tauri":
+            # Tauri mode - start web server then tauri
+            if start_studio(repo_root, mode="web") is None:
+                return 1
+            time.sleep(3)
+            if start_tauri(repo_root) is None:
+                # Tauri failed (e.g. no display), but web server is running
+                print_warning("Tauri failed to start, but web UI is available")
+        elif studio_mode == "electron":
+            # Electron mode - vite-plugin-electron handles Electron
+            if start_studio(repo_root, mode="electron") is None:
+                return 1
+            time.sleep(3)
+        else:
+            # Web mode only
+            if start_studio(repo_root, mode="web") is None:
+                return 1
+            time.sleep(3)
     
     if run_hub:
         # Hub backend already started above, now start frontend
@@ -1017,11 +1123,8 @@ Examples:
             return 1
         time.sleep(2)
     
-    # Note: Electron is now launched by vite-plugin-electron when --electron is passed
-    # (via with_electron=True in start_studio, which doesn't set NO_ELECTRON)
-    
     # Print status
-    print_status(run_server, run_studio, run_electron, run_hub, run_docs, run_site)
+    print_status(run_server, run_studio, studio_mode, run_hub, run_docs, run_site)
     
     # Wait for processes to complete (they run until interrupted)
     try:
@@ -1046,6 +1149,9 @@ Examples:
             if run_site and site_process and site_process.poll() is not None:
                 print_error("Site process died unexpectedly!")
                 break
+            if studio_mode == "tauri" and tauri_process and tauri_process.poll() is not None:
+                print_warning("Tauri process exited - web UI still available")
+                # Don't break, web server is still running
             
             time.sleep(1)
     except KeyboardInterrupt:
