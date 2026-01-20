@@ -21,6 +21,7 @@
 
 import type { PlatformAdapter, PlatformName } from './types';
 import { electronPlatform } from './electron';
+import { tauriPlatform } from './tauri';
 import { webPlatform } from './web';
 
 // Re-export types for convenience
@@ -43,16 +44,16 @@ export type {
  * Detect which platform we're running on.
  */
 function detectPlatform(): PlatformName {
+  // Check for Tauri (must check before Electron as both may have window object)
+  if (typeof window !== 'undefined' && '__TAURI__' in window) {
+    return 'tauri';
+  }
+
   // Check for Electron
   if (typeof window !== 'undefined' && window.electronAPI) {
     return 'electron';
   }
-  
-  // Future: Check for Tauri
-  // if (typeof window !== 'undefined' && window.__TAURI__) {
-  //   return 'tauri';
-  // }
-  
+
   // Default to web
   return 'web';
 }
@@ -64,8 +65,8 @@ function getPlatformAdapter(name: PlatformName): PlatformAdapter {
   switch (name) {
     case 'electron':
       return electronPlatform;
-    // case 'tauri':
-    //   return tauriPlatform;
+    case 'tauri':
+      return tauriPlatform;
     case 'web':
     default:
       return webPlatform;
