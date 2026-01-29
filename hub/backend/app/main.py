@@ -1,11 +1,15 @@
 """FastAPI application entry point for Sigilweaver Hub"""
 
+import json
 import logging
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.v1.router import v1_router
@@ -18,6 +22,42 @@ from app.domain.connections.health_poller import connection_health_poller
 from app.domain.schedules.scheduler import get_scheduler
 from app.domain.servers.health_poller import health_poller
 
+
+class JsonFormatter(logging.Formatter):
+    """JSON log formatter for production environments."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        log_obj = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log_obj["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_obj)
+
+
+def configure_logging() -> None:
+    """Configure logging based on settings."""
+    root_logger = logging.getLogger()
+    root_logger.setLevel(settings.log_level.upper())
+
+    # Clear existing handlers
+    root_logger.handlers.clear()
+
+    handler = logging.StreamHandler(sys.stdout)
+    if settings.log_format == "json":
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+    root_logger.addHandler(handler)
+
+
+# Configure logging at module load
+configure_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -114,14 +154,32 @@ application.add_middleware(
 application.include_router(v1_router, prefix="/api/v1")
 
 
-@application.get("/")
-async def root() -> dict[str, str]:
-    """Root endpoint - basic service information"""
-    return {
-        "service": "Sigilweaver Hub",
-        "version": __version__,
-        "docs": "/docs",
-    }
+# Mount static files for production (when frontend is bundled with backend)
+_static_mounted = False
+if settings.static_files_path:
+    static_path = Path(settings.static_files_path)
+    if static_path.exists() and static_path.is_dir():
+        # Note: Mount at "/" must come after all API routes are registered
+        application.mount(
+            "/", StaticFiles(directory=static_path, html=True), name="static"
+        )
+        _static_mounted = True
+        logger.info(f"Serving static files from {static_path}")
+    else:
+        logger.warning(f"Static files path does not exist: {static_path}")
+
+
+# Only register root endpoint when not serving static files
+if not _static_mounted:
+
+    @application.get("/")
+    async def root() -> dict[str, str]:
+        """Root endpoint - basic service information"""
+        return {
+            "service": "Sigilweaver Hub",
+            "version": __version__,
+            "docs": "/docs",
+        }
 
 
 # Export as 'app' for ASGI servers

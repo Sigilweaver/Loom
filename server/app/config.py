@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     port: int = 25811  # Part of 258xx port scheme (founding date 2025-08-01)
     reload: bool = False
     log_level: str = "info"
+    log_format: str = "text"  # "text" or "json"
 
     # CORS
     cors_origins: list[str] = ["http://localhost:25810"]  # Studio dev server

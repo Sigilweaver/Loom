@@ -1,0 +1,110 @@
+# =============================================================================
+# Docker Build Ignore Patterns
+# =============================================================================
+# Exclude files and directories from Docker build context for faster builds
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+!README.md
+docs/
+obsidian/
+
+# IDE/Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+*.egg
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.coverage
+htmlcov
+.venv
+venv
+
+# Node
+node_modules
+*.log
+npm-debug.log*
+.npm
+
+# Build artifacts
+dist
+build
+*.spec
+
+# Local development
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage
+*.lcov
+
+# Data files (large)
+data/
+
+# Working directories
+.working
+
+# Workflows (mounted at runtime)
+workflows/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Site and docs (not needed in containers)
+site/
+docs/build/
+
+# Hub specific ignores
+hub/backend/.venv
+hub/backend/.coverage
+hub/backend/htmlcov
+hub/backend/hub.db
+hub/backend/.mypy_cache
+hub/backend/.pytest_cache
+hub/backend/.ruff_cache
+hub/frontend/node_modules
+hub/frontend/dist
+hub/frontend/coverage
+
+# Server specific ignores
+server/.venv
+server/.coverage
+server/htmlcov
+server/.mypy_cache
+server/.pytest_cache
+server/.ruff_cache
+server/build
+server/dist
+server/backend.egg-info
+
+# Studio (not in docker builds)
+studio/

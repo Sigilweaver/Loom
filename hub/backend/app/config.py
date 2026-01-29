@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     port: int = 25802
     reload: bool = False
     log_level: str = "info"
+    log_format: str = "text"  # "text" or "json"
+
+    # Static files - serve frontend from this directory (empty = disabled)
+    static_files_path: str = ""
 
     # CORS - Allow Hub frontend (25803) and Studio (25810)
     cors_origins: list[str] = ["http://localhost:25803", "http://localhost:25810"]
