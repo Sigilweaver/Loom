@@ -1,0 +1,147 @@
+# =============================================================================
+# Sigilweaver Docker Image Build and Push
+# =============================================================================
+# Builds multi-arch (amd64 + arm64) Docker images for Hub and Server
+# and pushes them to GitHub Container Registry (ghcr.io).
+#
+# Triggers:
+#   - On release publish: Builds and pushes with version tags
+#   - Manual dispatch: Allows building with custom version tag
+# =============================================================================
+
+name: Build Docker Images
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  HUB_IMAGE: ghcr.io/${{ github.repository_owner }}/sigilweaver-hub
+  SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/sigilweaver-server
+
+jobs:
+  # ===========================================================================
+  # Build Hub Image
+  # ===========================================================================
+  build-hub:
+    name: Build Hub Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version metadata
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          # Remove 'v' prefix if present
+          VERSION="${VERSION#v}"
+          MAJOR_MINOR="${VERSION%.*}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Build and push Hub image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: hub/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.HUB_IMAGE }}:latest
+            ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.major_minor }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.title=Sigilweaver Hub
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  # ===========================================================================
+  # Build Server Image
+  # ===========================================================================
+  build-server:
+    name: Build Server Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version metadata
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          VERSION="${VERSION#v}"
+          MAJOR_MINOR="${VERSION%.*}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Build and push Server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.SERVER_IMAGE }}:latest
+            ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.major_minor }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.title=Sigilweaver Server
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}

@@ -1,6 +1,8 @@
 """FastAPI application entry point"""
 
+import json
 import logging
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -16,6 +18,42 @@ from app.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.auth import AuthMiddleware
 
+
+class JsonFormatter(logging.Formatter):
+    """JSON log formatter for production environments."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        log_obj = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log_obj["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_obj)
+
+
+def configure_logging() -> None:
+    """Configure logging based on settings."""
+    root_logger = logging.getLogger()
+    root_logger.setLevel(settings.log_level.upper())
+
+    # Clear existing handlers
+    root_logger.handlers.clear()
+
+    handler = logging.StreamHandler(sys.stdout)
+    if settings.log_format == "json":
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+    root_logger.addHandler(handler)
+
+
+# Configure logging at module load
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

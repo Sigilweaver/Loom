@@ -119,3 +119,4 @@ pids/
 coverage/
 *.lcov
 .nyc_output/
+docker/.env

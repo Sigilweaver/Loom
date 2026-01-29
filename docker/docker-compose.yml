@@ -1,0 +1,169 @@
+# =============================================================================
+# Sigilweaver Production Docker Compose
+# =============================================================================
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in required values
+#   2. docker compose up -d
+#   3. Scale servers: docker compose up -d --scale server=3
+#
+# =============================================================================
+
+name: sigilweaver
+
+services:
+  # ===========================================================================
+  # PostgreSQL (optional - can use external database via DATABASE_URL)
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sigilweaver-internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sigilweaver}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Uncomment to expose PostgreSQL externally (not recommended for production)
+    # ports:
+    #   - "5432:5432"
+
+    # ===========================================================================
+    # Hub - Orchestration, user management, and frontend
+    # ===========================================================================
+  hub:
+    image: ghcr.io/sigilweaver/sigilweaver-hub:${VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: hub/Dockerfile
+      # Use host network for builds in dev containers (DNS resolution)
+      network: host
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sigilweaver_hub}
+
+      # Security (required)
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      CONNECTION_ENCRYPTION_KEY: ${CONNECTION_ENCRYPTION_KEY:?CONNECTION_ENCRYPTION_KEY is required}
+      SERVER_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET:?SERVER_REGISTRATION_SECRET is required}
+
+      # CORS - defaults to allowing Studio
+      # Set CORS_ORIGINS='["https://app.example.com"]' for production
+
+      # Workflow storage
+      WORKFLOW_STORAGE_PATH: /app/data/workflows
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+
+      # Static files path for bundled frontend
+      STATIC_FILES_PATH: /app/static
+    volumes:
+      - hub_workflows:/app/data/workflows
+    networks:
+      - sigilweaver-internal
+      - sigilweaver-external
+    ports:
+      - "${HUB_PORT:-25802}:25802"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:25802/api/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+
+  # ===========================================================================
+  # Server - Workflow execution (stateless, horizontally scalable)
+  # ===========================================================================
+  server:
+    image: ghcr.io/sigilweaver/sigilweaver-server:${VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+      # Use host network for builds in dev containers (DNS resolution)
+      network: host
+    restart: unless-stopped
+    depends_on:
+      hub:
+        condition: service_healthy
+    environment:
+      # Hub connection
+      HUB_URL: http://hub:25802
+      HUB_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET}
+      SERVER_NAME: ${SERVER_NAME:-server-${HOSTNAME:-1}}
+
+      # Authentication
+      AUTH_MODE: hub
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+      CORS_MODE: production
+
+      # Storage paths (must be writable inside container)
+      AUDIT_PATH: /app/data/audit
+      ARCHIVE_PATH: /app/data/archives
+      CACHE_PATH: /app/data/cache
+
+      # Disable features that require local storage
+      AUDIT_ENABLED: "false"
+      ARCHIVE_ENABLED: "false"
+      CACHE_ENABLED: "false"
+    volumes:
+      # Mount data files (read-only for security)
+      - server_data:/app/data/files:ro
+    networks:
+      - sigilweaver-internal
+      - sigilweaver-external
+    ports:
+      - "${SERVER_PORT:-25811}:25811"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:25811/api/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    # Scale with: docker compose up -d --scale server=3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  # Internal network for Hub <-> Server <-> PostgreSQL communication
+  sigilweaver-internal:
+    driver: bridge
+    internal: true
+
+  # External network for Hub to receive requests
+  sigilweaver-external:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: sigilweaver_postgres_data
+  hub_workflows:
+    name: sigilweaver_hub_workflows
+  server_data:
+    name: sigilweaver_server_data
