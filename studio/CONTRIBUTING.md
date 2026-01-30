@@ -25,8 +25,8 @@ npm run electron
 Or from the repository root:
 
 ```bash
-./scripts/dev.py --studio    # Browser mode
-./scripts/dev.py --electron  # With Electron
+./scripts/dev.py --studio           # Browser mode
+./scripts/dev.py --studio-electron  # With Electron
 ```
 
 ### Running Tests
@@ -46,13 +46,13 @@ npm run lint:fix
 
 ## Key Documentation
 
-| Topic | Link |
-|-------|------|
-| **Studio Patterns** | [docs.sigilweaver.app/developer/contributing/studio](https://docs.sigilweaver.app/developer/contributing/studio) |
-| **Adding Tools** | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
-| **Code Style** | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style) |
-| **Architecture** | [docs.sigilweaver.app/developer/architecture/frontend](https://docs.sigilweaver.app/developer/architecture/frontend) |
-| **Testing** | [docs.sigilweaver.app/developer/testing/frontend](https://docs.sigilweaver.app/developer/testing/frontend) |
+| Topic               | Link                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Studio Patterns** | [docs.sigilweaver.app/developer/contributing/studio](https://docs.sigilweaver.app/developer/contributing/studio)             |
+| **Adding Tools**    | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
+| **Code Style**      | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style)     |
+| **Architecture**    | [docs.sigilweaver.app/developer/architecture/frontend](https://docs.sigilweaver.app/developer/architecture/frontend)         |
+| **Testing**         | [docs.sigilweaver.app/developer/testing/frontend](https://docs.sigilweaver.app/developer/testing/frontend)                   |
 
 ## CLA Requirement
 

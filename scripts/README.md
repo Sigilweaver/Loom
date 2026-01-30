@@ -10,7 +10,8 @@ Utility scripts for building, testing, and running Sigilweaver.
 ./scripts/dev.py --server           # Server only
 ./scripts/dev.py --studio           # Studio only  
 ./scripts/dev.py --hub              # Hub (backend + frontend)
-./scripts/dev.py --electron         # All + launch Electron
+./scripts/dev.py --studio-electron  # All + launch Electron desktop app
+./scripts/dev.py --studio-tauri     # All + launch Tauri desktop app
 
 # Testing
 ./scripts/test.py                   # Smart mode: only test changed components
@@ -50,19 +51,20 @@ Utility scripts for building, testing, and running Sigilweaver.
 ./scripts/dev.py --hub              # Hub (backend + frontend)
 ./scripts/dev.py --docs             # Documentation site (Docusaurus)
 ./scripts/dev.py --site             # Marketing website (Vite)
-./scripts/dev.py --electron         # All + launch Electron
+./scripts/dev.py --studio-electron  # All + launch Electron desktop app
+./scripts/dev.py --studio-tauri     # All + launch Tauri desktop app
 ./scripts/dev.py --hub-auth         # All with Hub authentication enabled
 ```
 
 **Ports**:
-| Service | Port |
-|---------|------|
-| Server | http://localhost:25811 |
-| Studio | http://localhost:25810 |
-| Hub Backend | http://localhost:25802 |
+| Service      | Port                   |
+| ------------ | ---------------------- |
+| Server       | http://localhost:25811 |
+| Studio       | http://localhost:25810 |
+| Hub Backend  | http://localhost:25802 |
 | Hub Frontend | http://localhost:25803 |
-| Docs | http://localhost:25809 |
-| Site | http://localhost:25808 |
+| Docs         | http://localhost:25809 |
+| Site         | http://localhost:25808 |
 
 Press `Ctrl+C` to stop all services.
 
@@ -100,22 +102,22 @@ Press `Ctrl+C` to stop all services.
 ```
 
 **Flags**:
-| Flag | Description |
-|------|-------------|
-| `--full` | Run full test suite (bypass smart mode) |
-| `--ci` | CI mode: XML coverage, optimized for GitHub Actions |
-| `--server` | Run server checks (ruff + mypy + pytest) |
-| `--studio` | Run studio checks (tsc + eslint + vitest) |
-| `--hub` | Run hub checks (backend + frontend) |
-| `--docs` | Run docs build check |
-| `--site` | Run site build check |
-| `--integration` | Run integration tests only |
-| `--no-integration` | Skip integration tests |
-| `--no-coverage` | Skip coverage reports (faster) |
-| `--strict` | Fail on lint/type warnings |
-| `-p, --parallel` | Run test suites in parallel |
-| `-v, --verbose` | Show all output |
-| `--dry-run` | Show what would run without running |
+| Flag               | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `--full`           | Run full test suite (bypass smart mode)             |
+| `--ci`             | CI mode: XML coverage, optimized for GitHub Actions |
+| `--server`         | Run server checks (ruff + mypy + pytest)            |
+| `--studio`         | Run studio checks (tsc + eslint + vitest)           |
+| `--hub`            | Run hub checks (backend + frontend)                 |
+| `--docs`           | Run docs build check                                |
+| `--site`           | Run site build check                                |
+| `--integration`    | Run integration tests only                          |
+| `--no-integration` | Skip integration tests                              |
+| `--no-coverage`    | Skip coverage reports (faster)                      |
+| `--strict`         | Fail on lint/type warnings                          |
+| `-p, --parallel`   | Run test suites in parallel                         |
+| `-v, --verbose`    | Show all output                                     |
+| `--dry-run`        | Show what would run without running                 |
 
 **Smart Mode**:
 By default, `test.py` uses git to detect changed files and only runs tests for affected components. Use `--full` for complete validation before merging.
@@ -146,13 +148,13 @@ By default, `test.py` uses git to detect changed files and only runs tests for a
 ```
 
 **Flags**:
-| Flag | Description |
-|------|-------------|
-| `--dry-run, -n` | Preview without execution |
-| `--job, -j` | Run specific job within workflow |
-| `--verbose, -v` | Verbose output |
-| `--event, -e` | Event type to simulate (push, pull_request) |
-| `--init-secrets` | Create `.act.secrets` template |
+| Flag             | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `--dry-run, -n`  | Preview without execution                   |
+| `--job, -j`      | Run specific job within workflow            |
+| `--verbose, -v`  | Verbose output                              |
+| `--event, -e`    | Event type to simulate (push, pull_request) |
+| `--init-secrets` | Create `.act.secrets` template              |
 
 **Requirements**:
 - Docker must be running

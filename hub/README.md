@@ -54,12 +54,12 @@ Hub backend runs at `http://localhost:25802`, frontend at `http://localhost:2580
 
 ### Role-Based Access Control (RBAC)
 
-| Role | Capabilities |
-|------|-------------|
-| **Owner** | Full control. First registered user. Only one per instance. |
-| **Admin** | Manage non-admin users, register servers, create schedules. |
-| **Auditor** | Read-only access to workflows and execution history. |
-| **User** | Execute workflows, view assigned servers. |
+| Role        | Capabilities                                                |
+| ----------- | ----------------------------------------------------------- |
+| **Owner**   | Full control. First registered user. Only one per instance. |
+| **Admin**   | Manage non-admin users, register servers, create schedules. |
+| **Auditor** | Read-only access to workflows and execution history.        |
+| **User**    | Execute workflows, view assigned servers.                   |
 
 ## Key Features
 
@@ -70,7 +70,7 @@ Register multiple servers and route workflows to the right environment:
 ```bash
 curl -X POST https://hub.example.com/api/v1/servers \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"name": "Production", "url": "https://server.example.com"}'
+  -d '{"name": "Production", "endpoint_url": "https://server.example.com"}'
 ```
 
 ### Scheduling
@@ -80,7 +80,7 @@ Automate workflow execution with cron syntax:
 ```bash
 curl -X POST https://hub.example.com/api/v1/schedules \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"workflow_id": "...", "cron": "0 3 * * *"}'
+  -d '{"workflow_id": "...", "cron_expression": "0 3 * * *"}'
 ```
 
 ### API Keys

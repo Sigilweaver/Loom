@@ -151,6 +151,65 @@ Execute workflow and return preview data for all tools.
 
 More efficient than calling `/tool/execute` multiple times because upstream tools are only executed once. Used when loading a workflow or when data sources change.
 
+### POST /api/workflow/tool/profile
+
+Profile columns for a tool's input data. Computes statistical profiles for data quality analysis.
+
+**Request:**
+```json
+{
+  "tool_id": "tool-123",
+  "workflow": { /* Workflow object */ },
+  "socket_id": "input_0",
+  "columns": ["name", "age"],  // optional, null = all
+  "metrics": ["count", "null_count", "unique_count"]  // optional, null = all
+}
+```
+
+**Available Metrics:**
+- Basic: `count`, `null_count`, `null_percent`, `unique_count`
+- Numeric: `min`, `max`, `mean`, `median`, `std`
+- String quality: `whitespace_leading`, `whitespace_trailing`, `contains_linebreaks`, `contains_non_ascii`
+- Distribution: `top_values`
+
+**Response:**
+```json
+{
+  "columns": {
+    "name": {
+      "count": 1000,
+      "null_count": 5,
+      "null_percent": 0.5,
+      "unique_count": 950,
+      "top_values": [["John", 15], ["Jane", 12]]
+    }
+  }
+}
+```
+
+:::note
+This endpoint collects the FULL dataset (not preview limited) to compute accurate statistics. Use sparingly on large datasets.
+:::
+
+### POST /api/workflow/cache/clear
+
+Clear cache for a specific workflow.
+
+**Request:**
+```json
+{
+  "workflow_id": "abc-123"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "cleared",
+  "workflow_id": "abc-123"
+}
+```
+
 ### POST /api/workflow/preview_code
 
 Generate Python code for a workflow.
@@ -465,6 +524,169 @@ Get archive configuration.
   "enabled": true,
   "archive_path": "/path/to/archives",
   "retention_days": 90
+}
+```
+
+---
+
+## Cache
+
+Manage the blocking tool cache (outputs of sort, summarize, join, database queries).
+
+### POST /api/cache/clear
+
+Clear cache for a specific workflow.
+
+**Request:**
+```json
+{
+  "workflow_id": "abc-123"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "cleared",
+  "workflow_id": "abc-123"
+}
+```
+
+### POST /api/cache/close
+
+Notify that a workflow has been closed. Clears cache if `CACHE_CLEAR_ON_CLOSE=true`.
+
+**Request:**
+```json
+{
+  "workflow_id": "abc-123"
+}
+```
+
+### POST /api/cache/close/batch
+
+Close multiple workflows efficiently (used on app shutdown).
+
+**Request:**
+```json
+{
+  "workflow_ids": ["abc-123", "def-456"]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "cleared_on_close",
+  "cleared_count": 2,
+  "workflow_ids": ["abc-123", "def-456"]
+}
+```
+
+### GET /api/cache/stats
+
+Get global cache statistics.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "workflow_count": 5,
+  "file_count": 23,
+  "total_size_bytes": 104857600,
+  "total_size_mb": 100.0,
+  "total_size_gb": 0.1,
+  "quota_gb": 20.0,
+  "retention_days": 7
+}
+```
+
+### POST /api/cache/maintenance
+
+Trigger TTL cleanup and LRU eviction manually.
+
+**Response:**
+```json
+{
+  "ttl_files_deleted": 5,
+  "lru_files_evicted": 3,
+  "message": "Maintenance complete: 5 TTL deletions, 3 LRU evictions"
+}
+```
+
+---
+
+## Files
+
+Browse files within allowed paths. In Hub mode, requires a browse token.
+
+:::note Availability
+File browsing is controlled by `RESTRICT_FILE_ACCESS` and `ALLOWED_FILE_PATHS` settings. In Hub mode, access is determined by filesystem connection grants.
+:::
+
+### GET /api/files/roots
+
+List browsable root directories.
+
+**Response:**
+```json
+[
+  { "path": "/data/shared", "read_only": false },
+  { "path": "/data/exports", "read_only": true }
+]
+```
+
+### GET /api/files/list
+
+List directory contents.
+
+**Query Parameters:**
+- `path`: Directory path to list
+
+**Response:**
+```json
+{
+  "path": "/data/shared",
+  "entries": [
+    {
+      "name": "report.csv",
+      "path": "/data/shared/report.csv",
+      "is_dir": false,
+      "size": 1024,
+      "modified": "2025-01-15T10:30:00Z",
+      "extension": "csv"
+    },
+    {
+      "name": "archive",
+      "path": "/data/shared/archive",
+      "is_dir": true,
+      "size": null,
+      "modified": "2025-01-10T08:00:00Z",
+      "extension": null
+    }
+  ],
+  "read_only": false
+}
+```
+
+### GET /api/files/stat
+
+Get file or directory information.
+
+**Query Parameters:**
+- `path`: File or directory path
+
+**Response:**
+```json
+{
+  "path": "/data/shared/report.csv",
+  "exists": true,
+  "is_file": true,
+  "is_dir": false,
+  "size": 1024,
+  "modified": "2025-01-15T10:30:00Z",
+  "extension": "csv",
+  "read_only": false
 }
 ```
 

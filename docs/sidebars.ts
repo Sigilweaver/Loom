@@ -114,6 +114,7 @@ const sidebars: SidebarsConfig = {
         'admin/grant-groups',
         'admin/connections',
         'admin/servers',
+        'admin/server-configuration',
         'admin/security',
       ],
     },
@@ -131,6 +132,7 @@ const sidebars: SidebarsConfig = {
           label: 'Architecture',
           items: [
             'developer/architecture/overview',
+            'developer/architecture/component-relationships',
             'developer/architecture/frontend',
             'developer/architecture/backend',
             'developer/architecture/hub',
