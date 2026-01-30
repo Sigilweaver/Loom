@@ -9,7 +9,7 @@ Studio is where you design your workflows. It's a desktop application that gives
 Studio is built with:
 - **[React](https://react.dev/)** - For the user interface
 - **[Xyflow](https://xyflow.com/)** - For the node-based canvas
-- **[Electron](https://www.electronjs.org/)** - For native desktop distribution
+- **[Electron](https://www.electronjs.org/)** or **[Tauri](https://tauri.app/)** - For native desktop distribution
 
 ## Key Features
 
@@ -53,14 +53,23 @@ npm run dev      # Terminal 1: Start Vite dev server
 npm run electron  # Terminal 2: Launch Electron (after Vite starts)
 ```
 
+### With Tauri
+
+```bash
+cd studio
+npm run dev:tauri  # Starts Tauri dev mode (Vite + Tauri)
+```
+
+> **Note:** Electron (Full build) bundles the Server executable. Tauri (Client build) is a lightweight shell that connects to an external Server.
+
 ## Connecting to a Backend
 
 Studio needs a backend to execute workflows:
 
-| Mode | When to Use |
-|------|-------------|
-| **Local Server** | Development, single-user. Connect directly to Server on localhost. |
-| **Hub** | Teams, multiple servers. Authenticate with Hub, which routes to servers. |
+| Mode             | When to Use                                                              |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Local Server** | Development, single-user. Connect directly to Server on localhost.       |
+| **Hub**          | Teams, multiple servers. Authenticate with Hub, which routes to servers. |
 
 Configure your connection in **Settings > Connection**.
 

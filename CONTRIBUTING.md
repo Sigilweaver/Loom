@@ -51,23 +51,23 @@ That's it. The dev script handles dependency installation, database setup, and l
 ### Selective Development
 
 ```bash
-./scripts/dev.py --server    # Server only (port 8000)
-./scripts/dev.py --studio    # Studio only (port 25810)
-./scripts/dev.py --hub       # Hub only (backend: 25802, frontend: 25803)
-./scripts/dev.py --electron  # Full stack + Electron desktop app
+./scripts/dev.py --server           # Server only (port 25811)
+./scripts/dev.py --studio           # Studio only (port 25810)
+./scripts/dev.py --hub              # Hub only (backend: 25802, frontend: 25803)
+./scripts/dev.py --studio-electron  # Full stack + Electron desktop app
 ```
 
 ---
 
 ## Where to Contribute
 
-| Area | Description | Documentation |
-|------|-------------|---------------|
-| **Studio** | Desktop app (React/Electron) | [Studio Guide](https://docs.sigilweaver.app/developer/contributing/studio) |
-| **Server** | Execution engine (Python/FastAPI) | [Server Guide](https://docs.sigilweaver.app/developer/contributing/server) |
-| **Hub** | Orchestration platform | [Hub Guide](https://docs.sigilweaver.app/developer/contributing/hub) |
-| **Docs** | Documentation site (Docusaurus) | [docs/README.md](docs/README.md) |
-| **Website** | Marketing site (Vite) | [site/README.md](site/README.md) |
+| Area        | Description                       | Documentation                                                              |
+| ----------- | --------------------------------- | -------------------------------------------------------------------------- |
+| **Studio**  | Desktop app (React/Electron)      | [Studio Guide](https://docs.sigilweaver.app/developer/contributing/studio) |
+| **Server**  | Execution engine (Python/FastAPI) | [Server Guide](https://docs.sigilweaver.app/developer/contributing/server) |
+| **Hub**     | Orchestration platform            | [Hub Guide](https://docs.sigilweaver.app/developer/contributing/hub)       |
+| **Docs**    | Documentation site (Docusaurus)   | [docs/README.md](docs/README.md)                                           |
+| **Website** | Marketing site (Vite)             | [site/README.md](site/README.md)                                           |
 
 ---
 

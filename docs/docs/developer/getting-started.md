@@ -13,11 +13,11 @@ You'll need:
 
 ## Platform Notes
 
-| Platform | Development | Notes |
-|----------|-------------|-------|
-| **Linux** | ✅ Primary | Most heavily tested |
+| Platform    | Development        | Notes                                 |
+| ----------- | ------------------ | ------------------------------------- |
+| **Linux**   | ✅ Primary          | Most heavily tested                   |
 | **Windows** | ⚠️ WSL2 recommended | Native Windows dev tooling is painful |
-| **macOS** | ✅ Should work | Needs testing before v1.0 |
+| **macOS**   | ✅ Should work      | Needs testing before v1.0             |
 
 I develop on Arch Linux. The venv + package-lock approach means everything should work on any platform, but I can only verify what I actually run.
 
@@ -210,7 +210,7 @@ cd server && uv sync --all-extras
 
 ### Studio can't reach Server
 
-Check that the Server is actually running on port 8000. The Vite dev server proxies `/api/*` requests.
+Check that the Server is actually running on port 25811. The Vite dev server proxies `/api/*` requests.
 
 ### Electron window is blank
 

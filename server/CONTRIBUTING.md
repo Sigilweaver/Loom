@@ -13,7 +13,7 @@ cd server
 uv sync --all-extras
 
 # Start dev server (hot reload)
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 25811
 ```
 
 Or from the repository root:
@@ -39,13 +39,13 @@ uv run ruff format app/
 
 ## Key Documentation
 
-| Topic | Link |
-|-------|------|
-| **Server Patterns** | [docs.sigilweaver.app/developer/contributing/server](https://docs.sigilweaver.app/developer/contributing/server) |
-| **Adding Tools** | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
-| **Code Style** | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style) |
-| **Architecture** | [docs.sigilweaver.app/developer/architecture/backend](https://docs.sigilweaver.app/developer/architecture/backend) |
-| **Testing** | [docs.sigilweaver.app/developer/testing/backend](https://docs.sigilweaver.app/developer/testing/backend) |
+| Topic               | Link                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Server Patterns** | [docs.sigilweaver.app/developer/contributing/server](https://docs.sigilweaver.app/developer/contributing/server)             |
+| **Adding Tools**    | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
+| **Code Style**      | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style)     |
+| **Architecture**    | [docs.sigilweaver.app/developer/architecture/backend](https://docs.sigilweaver.app/developer/architecture/backend)           |
+| **Testing**         | [docs.sigilweaver.app/developer/testing/backend](https://docs.sigilweaver.app/developer/testing/backend)                     |
 
 ## CLA Requirement
 
