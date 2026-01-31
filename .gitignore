@@ -78,6 +78,7 @@ dist-electron/
 .env
 .env.*
 !.env.example
+docker/.secrets/
 
 # ───────────────────────────────────────────────────────────────────────────────
 # IDE & Editors

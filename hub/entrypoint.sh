@@ -3,12 +3,91 @@
 # Sigilweaver Hub - Container Entrypoint
 # =============================================================================
 # Handles:
+#   - Graceful shutdown with signal trapping
 #   - Startup validation (required secrets)
 #   - Database migrations
 #   - Server launch
 # =============================================================================
 
 set -e
+
+# =============================================================================
+# Signal Handling for Graceful Shutdown
+# =============================================================================
+
+# Track child process PID
+CHILD_PID=""
+
+cleanup() {
+    echo "Received shutdown signal, gracefully stopping..."
+    if [ -n "$CHILD_PID" ]; then
+        kill -TERM "$CHILD_PID" 2>/dev/null || true
+        wait "$CHILD_PID" 2>/dev/null || true
+    fi
+    echo "Shutdown complete."
+    exit 0
+}
+
+# Trap SIGTERM and SIGINT for graceful shutdown
+trap cleanup SIGTERM SIGINT
+
+# =============================================================================
+# Secret Loading from Docker Secrets
+# =============================================================================
+# Docker secrets are mounted as files at /run/secrets/<name>
+# Environment variables ending in _FILE point to these files
+# This function reads the file and exports the value to the base variable name
+
+load_secret_from_file() {
+    local var_name="$1"
+    local file_var="${var_name}_FILE"
+    local file_path="${!file_var}"
+    
+    # If file path is set and file exists, read it
+    if [ -n "$file_path" ] && [ -f "$file_path" ]; then
+        local value
+        # Strip trailing newlines to avoid issues with cryptographic keys
+        value="$(tr -d '\n' < "$file_path")"
+        export "$var_name"="$value"
+        echo "Loaded $var_name from secret file"
+    fi
+}
+
+# Load secrets from Docker secret files (if mounted)
+load_secret_from_file "SESSION_SECRET"
+load_secret_from_file "SECRET_KEY"
+load_secret_from_file "CONNECTION_ENCRYPTION_KEY"
+load_secret_from_file "SERVER_REGISTRATION_SECRET"
+load_secret_from_file "POSTGRES_PASSWORD"
+
+# =============================================================================
+# Database URL Construction
+# =============================================================================
+# If DATABASE_URL contains an empty password (from compose substitution with secrets),
+# reconstruct it using the loaded POSTGRES_PASSWORD
+
+construct_database_url() {
+    # Check if DATABASE_URL has empty password (pattern: user:@host)
+    if [[ "$DATABASE_URL" =~ :\/\/([^:]+):@([^/]+) ]]; then
+        local user="${BASH_REMATCH[1]}"
+        local host_and_rest="${BASH_REMATCH[2]}"
+        local scheme="${DATABASE_URL%%://*}"
+        local db_path="${DATABASE_URL#*@*/}"
+        
+        if [ -n "$POSTGRES_PASSWORD" ]; then
+            # URL-encode the password to handle special characters (@, :, /, %, etc.)
+            # Use stdin to avoid shell injection with special characters like '''
+            local encoded_password
+            encoded_password=$(printf '%s' "$POSTGRES_PASSWORD" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read(), safe=''))" 2>/dev/null || printf '%s' "$POSTGRES_PASSWORD")
+            export DATABASE_URL="${scheme}://${user}:${encoded_password}@${host_and_rest}/${db_path}"
+            echo "Constructed DATABASE_URL with password from secret"
+        else
+            echo "WARNING: DATABASE_URL has empty password and POSTGRES_PASSWORD not set" >&2
+        fi
+    fi
+}
+
+construct_database_url
 
 # =============================================================================
 # Startup Validation
@@ -102,11 +181,13 @@ case "${1:-serve}" in
     serve)
         run_migrations
         echo "Starting Hub server on ${HOST:-0.0.0.0}:${PORT:-25802}..."
-        exec python -m uvicorn app.main:application \
+        python -m uvicorn app.main:application \
             --host "${HOST:-0.0.0.0}" \
             --port "${PORT:-25802}" \
             --log-level "${LOG_LEVEL:-info}" \
-            --no-access-log
+            --no-access-log &
+        CHILD_PID=$!
+        wait "$CHILD_PID" || true
         ;;
     migrate)
         run_migrations
