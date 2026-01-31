@@ -1,0 +1,74 @@
+# =============================================================================
+# Sigilweaver Development Docker Compose Overrides
+# =============================================================================
+#
+# This file is automatically loaded by `docker compose up` when present.
+# It provides development-friendly overrides for local testing.
+#
+# IMPORTANT: You must run ./init-dev-secrets.sh first to create the .secrets
+# directory with placeholder values. Docker Compose requires the secret files
+# to exist even in development mode.
+#
+# Usage:
+#   ./init-dev-secrets.sh        # Create dev secrets (run once)
+#   docker compose up            # Uses docker-compose.yml + docker-compose.override.yml
+#   docker compose -f docker-compose.yml up  # Production only (skip overrides)
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Hub - Development overrides
+  # ===========================================================================
+  hub:
+    # Disable read-only for development (allows hot reload, debugging)
+    read_only: false
+
+    # Mount source for hot reload (optional - uncomment if needed)
+    # volumes:
+    #   - ../hub/backend/app:/app/app:ro
+
+    environment:
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+
+    # Allow using env vars instead of secrets for development
+    secrets: []
+
+  # ===========================================================================
+  # Server - Development overrides
+  # ===========================================================================
+  server:
+    # Disable read-only for development
+    read_only: false
+
+    # Mount source for hot reload (optional - uncomment if needed)
+    # volumes:
+    #   - ../server/app:/app/app:ro
+
+    environment:
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+
+    # Allow using env vars instead of secrets for development
+    secrets: []
+
+  # ===========================================================================
+  # PostgreSQL - Development overrides
+  # ===========================================================================
+  postgres:
+    # Expose port for local development tools (DBeaver, pgAdmin, etc.)
+    ports:
+      - "25801:5432"
+
+    # Use env var instead of secret for development
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
+    secrets: []
+
+# =============================================================================
+# Secrets - Disabled for development (use env vars instead)
+# =============================================================================
+secrets: {}

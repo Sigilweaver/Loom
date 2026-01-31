@@ -7,9 +7,40 @@
 #   2. docker compose up -d
 #   3. Scale servers: docker compose up -d --scale server=3
 #
+# Security Features:
+#   - Read-only root filesystems
+#   - Non-root users
+#   - Docker secrets for sensitive data
+#   - Network isolation
+#   - Resource limits
+#
 # =============================================================================
 
 name: sigilweaver
+
+# =============================================================================
+# Secrets (recommended for production)
+# =============================================================================
+# Create secrets with:
+#   echo "your-secret-value" | docker secret create session_secret -
+#   echo "your-secret-value" | docker secret create secret_key -
+#   echo "your-fernet-key" | docker secret create connection_encryption_key -
+#   echo "your-secret-value" | docker secret create server_registration_secret -
+#   echo "your-password" | docker secret create postgres_password -
+#
+# For non-swarm mode, use file-based secrets (see below)
+# =============================================================================
+secrets:
+  session_secret:
+    file: ${SECRETS_DIR:-./.secrets}/session_secret
+  secret_key:
+    file: ${SECRETS_DIR:-./.secrets}/secret_key
+  connection_encryption_key:
+    file: ${SECRETS_DIR:-./.secrets}/connection_encryption_key
+  server_registration_secret:
+    file: ${SECRETS_DIR:-./.secrets}/server_registration_secret
+  postgres_password:
+    file: ${SECRETS_DIR:-./.secrets}/postgres_password
 
 services:
   # ===========================================================================
@@ -18,10 +49,15 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    init: true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # In production: reads password from Docker secret file
+      # In development: override file sets POSTGRES_PASSWORD env var instead
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
+    secrets:
+      - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -43,21 +79,39 @@ services:
     build:
       context: ..
       dockerfile: hub/Dockerfile
+      args:
+        VERSION: ${VERSION:-latest}
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
       # Use host network for builds in dev containers (DNS resolution)
       network: host
     restart: unless-stopped
+    init: true
+    read_only: true
     depends_on:
       postgres:
         condition: service_healthy
+    secrets:
+      - session_secret
+      - secret_key
+      - connection_encryption_key
+      - server_registration_secret
+      - postgres_password
     environment:
-      # Database
+      # Database (use secret file for password)
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sigilweaver_hub}
 
-      # Security (required)
-      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
-      CONNECTION_ENCRYPTION_KEY: ${CONNECTION_ENCRYPTION_KEY:?CONNECTION_ENCRYPTION_KEY is required}
-      SERVER_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET:?SERVER_REGISTRATION_SECRET is required}
+      # Security secrets (read from Docker secrets)
+      SESSION_SECRET_FILE: /run/secrets/session_secret
+      SECRET_KEY_FILE: /run/secrets/secret_key
+      CONNECTION_ENCRYPTION_KEY_FILE: /run/secrets/connection_encryption_key
+      SERVER_REGISTRATION_SECRET_FILE: /run/secrets/server_registration_secret
+
+      # Fallback to env vars if secrets not mounted (for backwards compatibility)
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      SECRET_KEY: ${SECRET_KEY:-}
+      CONNECTION_ENCRYPTION_KEY: ${CONNECTION_ENCRYPTION_KEY:-}
+      SERVER_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET:-}
 
       # CORS - defaults to allowing Studio
       # Set CORS_ORIGINS='["https://app.example.com"]' for production
@@ -71,6 +125,8 @@ services:
 
       # Static files path for bundled frontend
       STATIC_FILES_PATH: /app/static
+    tmpfs:
+      - /tmp:mode=1777,size=100M
     volumes:
       - hub_workflows:/app/data/workflows
     networks:
@@ -93,16 +149,26 @@ services:
     build:
       context: ..
       dockerfile: server/Dockerfile
+      args:
+        VERSION: ${VERSION:-latest}
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
       # Use host network for builds in dev containers (DNS resolution)
       network: host
     restart: unless-stopped
+    init: true
+    read_only: true
     depends_on:
       hub:
         condition: service_healthy
+    secrets:
+      - server_registration_secret
     environment:
       # Hub connection
       HUB_URL: http://hub:25802
-      HUB_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET}
+      HUB_REGISTRATION_SECRET_FILE: /run/secrets/server_registration_secret
+      # Fallback to env var for backwards compatibility
+      HUB_REGISTRATION_SECRET: ${SERVER_REGISTRATION_SECRET:-}
       SERVER_NAME: ${SERVER_NAME:-server-${HOSTNAME:-1}}
 
       # Authentication
@@ -122,12 +188,17 @@ services:
       AUDIT_ENABLED: "false"
       ARCHIVE_ENABLED: "false"
       CACHE_ENABLED: "false"
+    tmpfs:
+      - /tmp:mode=1777,size=100M
+      - /app/data/cache:mode=1777,size=500M
     volumes:
       # Mount data files (read-only for security)
       - server_data:/app/data/files:ro
     networks:
       - sigilweaver-internal
       - sigilweaver-external
+    # Port exposed for direct Studio -> Server connections (bypassing Hub)
+    # Remove this section if all traffic should route through Hub
     ports:
       - "${SERVER_PORT:-25811}:25811"
     healthcheck:

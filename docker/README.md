@@ -9,23 +9,69 @@ Production Docker deployment for Sigilweaver Hub and Server.
 cp .env.example .env
 
 # 2. Generate required secrets
-openssl rand -hex 32  # For SESSION_SECRET, SECRET_KEY, SERVER_REGISTRATION_SECRET
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"  # For CONNECTION_ENCRYPTION_KEY
+mkdir -p .secrets
+openssl rand -hex 32 > .secrets/session_secret
+openssl rand -hex 32 > .secrets/secret_key
+openssl rand -hex 32 > .secrets/server_registration_secret
+openssl rand -hex 16 > .secrets/postgres_password
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > .secrets/connection_encryption_key
 
-# 3. Edit .env with your secrets
-nano .env
-
-# 4. Build and start the stack
+# 3. Build and start the stack
 docker compose build
 docker compose up -d
 
-# 5. Check status
+# 4. Check status
 docker compose ps
+docker compose logs -f
+```
+
+## Development Quick Start
+
+For local development, use the init script to create placeholder secrets:
+
+```bash
+# 1. Initialize development secrets
+./init-dev-secrets.sh
+
+# 2. Start services (override file is auto-loaded)
+docker compose up
+
+# 3. View logs
 docker compose logs -f
 ```
 
 > **Note for Dev Container users:** The docker-compose.yml includes `network: host` for builds
 > to work around DNS resolution issues with Docker-in-Docker. This is transparent in CI/CD.
+
+> **Development mode:** Run `./init-dev-secrets.sh` first to create placeholder secrets,
+> then `docker compose up`. The override file (`docker-compose.override.yml`) relaxes security
+> settings for local development. For production, use: `docker compose -f docker-compose.yml up -d`
+
+## Testing
+
+The Docker implementation includes a comprehensive test suite:
+
+```bash
+# Quick validation (no builds, fast)
+./test-docker.sh --quick
+
+# Full test including image builds
+./test-docker.sh --build
+
+# Include security scanning
+./test-docker.sh --security
+
+# Run everything
+./test-docker.sh --all
+```
+
+Tests include:
+- Dockerfile syntax and best practices (multi-stage builds, non-root user, health checks)
+- Docker Compose validation (services, networks, secrets)
+- Entrypoint script validation (signal handling, error handling)
+- Security configuration checks (read-only filesystems, init process)
+- Container runtime tests (with `--build`)
+- Vulnerability scanning (with `--security`)
 
 ## Architecture
 
@@ -73,7 +119,32 @@ docker/
 
 ## Configuration
 
-### Required Environment Variables
+### Secrets (Recommended for Production)
+
+Production deployments should use Docker secrets instead of environment variables:
+
+```bash
+# Create secrets directory
+mkdir -p .secrets
+chmod 700 .secrets
+
+# Generate and store secrets
+openssl rand -hex 32 > .secrets/session_secret
+openssl rand -hex 32 > .secrets/secret_key
+openssl rand -hex 32 > .secrets/server_registration_secret
+openssl rand -hex 16 > .secrets/postgres_password
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > .secrets/connection_encryption_key
+
+# Secure the files
+chmod 600 .secrets/*
+```
+
+Secrets are mounted to `/run/secrets/` in containers and read via `*_FILE` environment variables.
+
+### Environment Variables (Development)
+
+For development, you can use environment variables in `.env` instead of secrets files.
+The `docker-compose.override.yml` file disables secrets for local development.
 
 | Variable                     | Description                           |
 | ---------------------------- | ------------------------------------- |
@@ -204,14 +275,32 @@ docker compose exec hub alembic current
 ./docker/build.sh hub      # Hub only
 ./docker/build.sh server   # Server only
 
-# Or directly
-docker build -f hub/Dockerfile -t sigilweaver-hub:dev .
-docker build -f server/Dockerfile -t sigilweaver-server:dev .
+# Build with version tag
+VERSION=1.0.0 ./docker/build.sh
+
+# Build and scan for vulnerabilities
+SCAN=1 ./docker/build.sh
+
+# Scan existing images only
+./docker/build.sh scan
 ```
+
+## Security Features
+
+- **Read-only root filesystems** - Containers run with immutable filesystems
+- **Non-root users** - All containers run as `appuser` (UID 1000)
+- **Docker secrets** - Sensitive data stored outside container images
+- **Network isolation** - Internal network for service-to-service communication
+- **Resource limits** - Memory constraints prevent runaway containers
+- **Health checks** - Automatic restart on failure
+- **Init process** - Proper signal handling via tini
 
 ## Production Checklist
 
-- [ ] All secrets generated and stored securely
+- [ ] All secrets generated and stored in `.secrets/` directory
+- [ ] `.secrets/` directory has `chmod 700` permissions
+- [ ] Secret files have `chmod 600` permissions
+- [ ] Using production compose: `docker compose -f docker-compose.yml up -d`
 - [ ] `CORS_ORIGINS` set to your domain(s)
 - [ ] `LOG_FORMAT=json` for log aggregation
 - [ ] External PostgreSQL (recommended for production)
@@ -219,3 +308,4 @@ docker build -f server/Dockerfile -t sigilweaver-server:dev .
 - [ ] Resource limits configured
 - [ ] Monitoring and alerting configured
 - [ ] Backup strategy for PostgreSQL and workflows
+- [ ] Vulnerability scanning enabled: `SCAN=1 ./docker/build.sh`
