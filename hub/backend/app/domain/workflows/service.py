@@ -144,7 +144,7 @@ class WorkflowService:
             "Created workflow",
             extra={
                 "workflow_id": str(workflow.id),
-                "name": workflow.name,
+                "workflow_name": workflow.name,
                 "uploaded_by": uploaded_by,
             },
         )
