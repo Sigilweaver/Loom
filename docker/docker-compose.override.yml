@@ -61,10 +61,17 @@ services:
     ports:
       - "25801:5432"
 
+    # Add to external network to allow port publishing (internal network blocks host access)
+    networks:
+      - sigilweaver-internal
+      - sigilweaver-external
+
     # Use env var instead of secret for development
+    # Must explicitly unset POSTGRES_PASSWORD_FILE from base compose to avoid conflict
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-password}
+      POSTGRES_PASSWORD_FILE: ""
       POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
     secrets: []
 
