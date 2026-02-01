@@ -14,7 +14,7 @@
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_json.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_ndjson.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_ndjson.html
- * https://docs.sigilweaver.app/user/tools/input-output/output/#json
+ * https://sigilweaver.app/docs/user/tools/input-output/output/#json
  */
 
 /**
@@ -171,4 +171,4 @@ export const JSON_OUTPUT_MODE_INFO: Record<
   },
 };
 
-export const JSON_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#json";
+export const JSON_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#json";

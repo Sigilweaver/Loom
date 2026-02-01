@@ -14,7 +14,7 @@
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_json.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_ndjson.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_ndjson.html
- * https://docs.sigilweaver.app/user/tools/input-output/input/#json
+ * https://sigilweaver.app/docs/user/tools/input-output/input/#json
  */
 
 /**
@@ -147,7 +147,7 @@ export const JSON_MODE_INFO: Record<
   },
 };
 
-export const JSON_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#json";
+export const JSON_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/input/#json";
 
 /**
  * Detect JSON format from file extension

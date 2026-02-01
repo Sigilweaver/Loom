@@ -98,6 +98,17 @@ const sidebars: SidebarsConfig = {
             'user/crash-courses/excel',
           ],
         },
+        {
+          type: 'category',
+          label: 'Comparisons',
+          link: {
+            type: 'doc',
+            id: 'user/comparisons/index',
+          },
+          items: [
+            'user/comparisons/alteryx',
+          ],
+        },
       ],
     },
     {
@@ -108,6 +119,7 @@ const sidebars: SidebarsConfig = {
         id: 'admin/index',
       },
       items: [
+        'admin/deployment',
         'admin/roles',
         'admin/users',
         'admin/groups',
@@ -180,11 +192,12 @@ const sidebars: SidebarsConfig = {
             'developer/reference/tool-registry',
           ],
         },
-        'developer/roadmap',
         'developer/known-issues',
       ],
     },
     'code-of-conduct',
+    'roadmap',
+    'development-history',
   ],
 };
 

@@ -1,6 +1,6 @@
 # Contributing to Sigilweaver Server
 
-For comprehensive development documentation, see **[docs.sigilweaver.app/developer/contributing/server](https://docs.sigilweaver.app/developer/contributing/server)**.
+For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/server](https://sigilweaver.app/docs/developer/contributing/server)**.
 
 ## Quick Reference
 
@@ -41,11 +41,11 @@ uv run ruff format app/
 
 | Topic               | Link                                                                                                                         |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Server Patterns** | [docs.sigilweaver.app/developer/contributing/server](https://docs.sigilweaver.app/developer/contributing/server)             |
-| **Adding Tools**    | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
-| **Code Style**      | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style)     |
-| **Architecture**    | [docs.sigilweaver.app/developer/architecture/backend](https://docs.sigilweaver.app/developer/architecture/backend)           |
-| **Testing**         | [docs.sigilweaver.app/developer/testing/backend](https://docs.sigilweaver.app/developer/testing/backend)                     |
+| **Server Patterns** | [sigilweaver.app/docs/developer/contributing/server](https://sigilweaver.app/docs/developer/contributing/server)             |
+| **Adding Tools**    | [sigilweaver.app/docs/developer/contributing/adding-tools](https://sigilweaver.app/docs/developer/contributing/adding-tools) |
+| **Code Style**      | [sigilweaver.app/docs/developer/contributing/code-style](https://sigilweaver.app/docs/developer/contributing/code-style)     |
+| **Architecture**    | [sigilweaver.app/docs/developer/architecture/backend](https://sigilweaver.app/docs/developer/architecture/backend)           |
+| **Testing**         | [sigilweaver.app/docs/developer/testing/backend](https://sigilweaver.app/docs/developer/testing/backend)                     |
 
 ## CLA Requirement
 

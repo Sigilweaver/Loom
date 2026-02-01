@@ -48,11 +48,11 @@ const AboutContent: React.FC = () => {
           </div>
           <div>
             <a
-              href="https://docs.sigilweaver.app"
+              href="https://sigilweaver.app/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://docs.sigilweaver.app"
+              title="https://sigilweaver.app/docs"
             >
               Documentation
             </a>

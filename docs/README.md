@@ -4,7 +4,7 @@
 
 The official documentation site for Sigilweaver, built with [Docusaurus](https://docusaurus.io/).
 
-**Live site**: [docs.sigilweaver.app](https://docs.sigilweaver.app)
+**Live site**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
 
 ## License
 
@@ -146,7 +146,7 @@ See the [Getting Started](./intro.md) guide.
 
 ## Deployment
 
-Documentation is automatically deployed to [docs.sigilweaver.app](https://docs.sigilweaver.app) when changes are pushed to the main branch.
+Documentation is automatically deployed to [sigilweaver.app/docs](https://sigilweaver.app/docs) when changes are pushed to the main branch.
 
 ### Manual Deployment
 

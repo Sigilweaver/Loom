@@ -8,7 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_ipc.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_ipc.html
- * https://docs.sigilweaver.app/user/tools/input-output/output/#ipc--arrow
+ * https://sigilweaver.app/docs/user/tools/input-output/output/#ipc--arrow
  *
  * IPC (Inter-Process Communication) is Apache Arrow's native binary format.
  * It supports only limited compression options: uncompressed, lz4, and zstd.
@@ -134,7 +134,7 @@ export const IPC_OUTPUT_MODE_INFO: Record<
   },
 };
 
-export const IPC_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#ipc--arrow";
+export const IPC_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#ipc--arrow";
 
 /**
  * Compression options with descriptions
