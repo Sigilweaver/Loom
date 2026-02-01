@@ -10,7 +10,7 @@
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv_batched.html
- * https://docs.sigilweaver.app/user/tools/input-output/input/#csv
+ * https://sigilweaver.app/docs/user/tools/input-output/input/#csv
  */
 
 import { PolarsDataType } from "../../data/polarsTypes";
@@ -247,7 +247,7 @@ export const CSV_MODE_INFO: Record<
   },
 };
 
-export const CSV_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#csv";
+export const CSV_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/input/#csv";
 
 /**
  * Common delimiter options

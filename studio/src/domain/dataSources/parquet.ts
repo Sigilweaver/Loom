@@ -8,7 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_parquet.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_parquet.html
- * https://docs.sigilweaver.app/user/tools/input-output/input/#parquet
+ * https://sigilweaver.app/docs/user/tools/input-output/input/#parquet
  */
 
 /**
@@ -105,7 +105,7 @@ export const PARQUET_MODE_INFO: Record<
   },
 };
 
-export const PARQUET_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#parquet";
+export const PARQUET_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/input/#parquet";
 
 /**
  * Parallel strategy options

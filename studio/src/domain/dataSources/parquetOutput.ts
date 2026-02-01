@@ -8,7 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_parquet.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_parquet.html
- * https://docs.sigilweaver.app/user/tools/input-output/output/#parquet
+ * https://sigilweaver.app/docs/user/tools/input-output/output/#parquet
  */
 
 /**
@@ -144,7 +144,7 @@ export const PARQUET_OUTPUT_MODE_INFO: Record<
   },
 };
 
-export const PARQUET_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#parquet";
+export const PARQUET_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#parquet";
 
 /**
  * Compression options with descriptions

@@ -7,9 +7,9 @@ tags: [open-source, business-model, legal, sustainability]
 
 # Building Sustainable Open Source: Legal Structure, Licensing, and the Long Game
 
-Most open source projects fail not because the code is bad, but because the maintainer burns out or runs out of money. I'm building Sigilweaver to last, and that requires deliberate choices about legal structure, licensing, and business model from day one - not as an afterthought when GitHub stars hit 10k.
+Most open source projects fail not because the code is bad, but because the maintainers burn out or run out of money. We encounter this problem frequently in the ecosystem. We represent Sigilweaver as a long-term project, and that requires deliberate choices about legal structure, licensing, and business model from day one - not as an afterthought when GitHub stars hit 10k.
 
-This post outlines the model I'm using. It's not the only way, but it's one that balances sustainability with open source values. I'm sharing this in detail so other maintainers can use it as a template.
+This post outlines the model we are using. It's not the only way, but it's one that balances sustainability with open source values. We are sharing this in detail so other maintainers can use it as a template.
 
 :::info TL;DR
 - **PropCo/OpCo split**: Separate entities for IP (PropCo) and operations (OpCo) for liability isolation
@@ -45,10 +45,10 @@ These aren't edge cases. This is the default outcome when critical infrastructur
 
 Sigilweaver is split into two legal entities:
 
-| Entity | Role | What It Owns/Does |
-|--------|------|-------------------|
-| **Sigilweaver Holdings LLC** (PropCo) | Intellectual Property Holder | Owns trademarks, copyrights, patents. Holds all contributor IP via CLA. |
-| **Sigilweaver LLC** (OpCo) | Operating Company | Runs operations, employs people, signs contracts, takes on liability. Licensed by PropCo to use and sublicense the IP. |
+| Entity                                | Role                         | What It Owns/Does                                                                                                      |
+| ------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Sigilweaver Holdings LLC** (PropCo) | Intellectual Property Holder | Owns trademarks, copyrights, patents. Holds all contributor IP via CLA.                                                |
+| **Sigilweaver LLC** (OpCo)            | Operating Company            | Runs operations, employs people, signs contracts, takes on liability. Licensed by PropCo to use and sublicense the IP. |
 
 ### Why Split Them?
 
@@ -56,7 +56,7 @@ Sigilweaver is split into two legal entities:
 
 **IP Protection.** Contributors assign copyright to PropCo via a [Contributor License Agreement (CLA)](https://github.com/sigilweaver/sigilweaver/blob/main/CLA.md). This lets PropCo dual-license the code (AGPL to the public, Commercial to enterprises). Without a CLA, you can't do dual licensing - every contributor would need to consent to every commercial deal.
 
-**Future Flexibility.** If Sigilweaver ever generates enough revenue to justify it, PropCo can be rolled into a nonprofit foundation (think Linux Foundation, Apache Foundation). Nonprofits have high overhead and regulatory burden, so I'm not doing that prematurely. But the structure makes it possible later.
+**Future Flexibility.** If Sigilweaver ever generates enough revenue to justify it, PropCo can be rolled into a nonprofit foundation (think Linux Foundation, Apache Foundation). Nonprofits have high overhead and regulatory burden, so we are not doing that prematurely. But the structure makes it possible later.
 
 **Exit Optionality.** If someone wants to acquire Sigilweaver, they buy OpCo (the business) but license the IP from PropCo. Or they buy PropCo (the IP) but leave OpCo to continue operating. This flexibility increases the project's value.
 
@@ -77,10 +77,10 @@ This isn't random. It's deliberate separation of concerns at the legal level.
 
 Sigilweaver is available under two licenses:
 
-| License | Cost | Usage | Constraints |
-|---------|------|-------|-------------|
-| **AGPLv3** | Free | Open source, evaluation, personal use | Viral copyleft. Modifications deployed as network services must be open-sourced. Zero warranty. |
-| **Commercial** | Paid | Professional, enterprise, proprietary use | Proprietary license. No copyleft obligations. Legal indemnification available. |
+| License        | Cost | Usage                                     | Constraints                                                                                     |
+| -------------- | ---- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **AGPLv3**     | Free | Open source, evaluation, personal use     | Viral copyleft. Modifications deployed as network services must be open-sourced. Zero warranty. |
+| **Commercial** | Paid | Professional, enterprise, proprietary use | Proprietary license. No copyleft obligations. Legal indemnification available.                  |
 
 ### Why AGPL (Not MIT or Apache)?
 
@@ -123,7 +123,7 @@ This is the model used by:
 - **Apache Foundation** (IP holder) + **Databricks** (commercial operator)
 - **Python Software Foundation** (IP holder) + **Anaconda** (commercial operator)
 
-I'm not there yet. But the structure doesn't prevent it.
+We are not there yet. But the structure doesn't prevent it.
 
 ## The Contributor License Agreement: The "Poison Pill" Defense
 

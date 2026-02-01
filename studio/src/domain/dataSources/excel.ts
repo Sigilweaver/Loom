@@ -6,7 +6,7 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_excel.html
- * https://docs.sigilweaver.app/user/tools/input-output/input/#excel
+ * https://sigilweaver.app/docs/user/tools/input-output/input/#excel
  *
  * Note: Excel files only support eager reading. The calamine engine (default)
  * is the fastest option, using the fastexcel module.
@@ -76,7 +76,7 @@ export const EXCEL_MODE_INFO = {
   useCase: "Best for: All Excel files - this is the only available mode.",
 };
 
-export const EXCEL_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/input/#excel";
+export const EXCEL_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/input/#excel";
 
 /**
  * Get default configuration

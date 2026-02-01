@@ -47,7 +47,7 @@ export const defaultFooterConfig: FooterConfig = {
       links: [
         { label: 'Terms of Use', href: '/terms.html' },
         { label: 'Privacy Policy', href: '/privacy.html' },
-        { label: 'Code of Conduct', href: 'https://docs.sigilweaver.app/code-of-conduct', isExternal: true },
+        { label: 'Code of Conduct', href: '/docs/code-of-conduct', isExternal: false },
       ],
     },
   ],

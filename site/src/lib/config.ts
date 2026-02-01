@@ -33,7 +33,7 @@ export const navConfig: NavConfig = {
     href: '/',
   },
   links: [
-    { label: 'Docs', href: 'https://docs.sigilweaver.app', isExternal: true },
+    { label: 'Docs', href: '/docs', isExternal: false },
     { label: 'Contributing', href: '/contributing.html' },
   ],
   ctaButton: {

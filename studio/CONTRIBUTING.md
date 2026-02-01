@@ -1,6 +1,6 @@
 # Contributing to Sigilweaver Studio
 
-For comprehensive development documentation, see **[docs.sigilweaver.app/developer/contributing/studio](https://docs.sigilweaver.app/developer/contributing/studio)**.
+For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/studio](https://sigilweaver.app/docs/developer/contributing/studio)**.
 
 ## Quick Reference
 
@@ -48,11 +48,11 @@ npm run lint:fix
 
 | Topic               | Link                                                                                                                         |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Studio Patterns** | [docs.sigilweaver.app/developer/contributing/studio](https://docs.sigilweaver.app/developer/contributing/studio)             |
-| **Adding Tools**    | [docs.sigilweaver.app/developer/contributing/adding-tools](https://docs.sigilweaver.app/developer/contributing/adding-tools) |
-| **Code Style**      | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style)     |
-| **Architecture**    | [docs.sigilweaver.app/developer/architecture/frontend](https://docs.sigilweaver.app/developer/architecture/frontend)         |
-| **Testing**         | [docs.sigilweaver.app/developer/testing/frontend](https://docs.sigilweaver.app/developer/testing/frontend)                   |
+| **Studio Patterns** | [sigilweaver.app/docs/developer/contributing/studio](https://sigilweaver.app/docs/developer/contributing/studio)             |
+| **Adding Tools**    | [sigilweaver.app/docs/developer/contributing/adding-tools](https://sigilweaver.app/docs/developer/contributing/adding-tools) |
+| **Code Style**      | [sigilweaver.app/docs/developer/contributing/code-style](https://sigilweaver.app/docs/developer/contributing/code-style)     |
+| **Architecture**    | [sigilweaver.app/docs/developer/architecture/frontend](https://sigilweaver.app/docs/developer/architecture/frontend)         |
+| **Testing**         | [sigilweaver.app/docs/developer/testing/frontend](https://sigilweaver.app/docs/developer/testing/frontend)                   |
 
 ## CLA Requirement
 

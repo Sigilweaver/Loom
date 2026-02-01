@@ -7,7 +7,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_excel.html
  * https://xlsxwriter.readthedocs.io/working_with_tables.html
- * https://docs.sigilweaver.app/user/tools/input-output/output/#excel
+ * https://sigilweaver.app/docs/user/tools/input-output/output/#excel
  *
  * Note: Excel files only support eager writing. The file is written using xlsxwriter.
  * See Sigilweaver documentation for visual reference of all Excel table styles.
@@ -81,7 +81,7 @@ export const EXCEL_OUTPUT_MODE_INFO = {
   badge: "Eager",
 };
 
-export const EXCEL_OUTPUT_DOCUMENTATION_URL = "https://docs.sigilweaver.app/user/tools/input-output/output/#excel";
+export const EXCEL_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#excel";
 
 /**
  * Curated list of popular Excel table styles

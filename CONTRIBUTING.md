@@ -2,7 +2,7 @@
 
 Welcome! This document covers the essentials to get you started.
 
-For comprehensive developer documentation, visit **[docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer)**.
+For comprehensive developer documentation, visit **[sigilweaver.app/docs/developer](https://sigilweaver.app/docs/developer)**.
 
 ## Before You Contribute: The CLA
 
@@ -63,9 +63,9 @@ That's it. The dev script handles dependency installation, database setup, and l
 
 | Area        | Description                       | Documentation                                                              |
 | ----------- | --------------------------------- | -------------------------------------------------------------------------- |
-| **Studio**  | Desktop app (React/Electron)      | [Studio Guide](https://docs.sigilweaver.app/developer/contributing/studio) |
-| **Server**  | Execution engine (Python/FastAPI) | [Server Guide](https://docs.sigilweaver.app/developer/contributing/server) |
-| **Hub**     | Orchestration platform            | [Hub Guide](https://docs.sigilweaver.app/developer/contributing/hub)       |
+| **Studio**  | Desktop app (React/Electron)      | [Studio Guide](https://sigilweaver.app/docs/developer/contributing/studio) |
+| **Server**  | Execution engine (Python/FastAPI) | [Server Guide](https://sigilweaver.app/docs/developer/contributing/server) |
+| **Hub**     | Orchestration platform            | [Hub Guide](https://sigilweaver.app/docs/developer/contributing/hub)       |
 | **Docs**    | Documentation site (Docusaurus)   | [docs/README.md](docs/README.md)                                           |
 | **Website** | Marketing site (Vite)             | [site/README.md](site/README.md)                                           |
 
@@ -75,19 +75,19 @@ That's it. The dev script handles dependency installation, database setup, and l
 
 1. **Fork and clone** the repository
 2. **Create a branch** (`feature/your-feature` or `fix/issue-123`)
-3. **Make your changes** following our [code style guide](https://docs.sigilweaver.app/developer/contributing/code-style)
+3. **Make your changes** following our [code style guide](https://sigilweaver.app/docs/developer/contributing/code-style)
 4. **Test your changes** (`./scripts/test.py`)
 5. **Open a pull request**
 
-For detailed workflow documentation, see [Contributing Workflow](https://docs.sigilweaver.app/developer/contributing/workflow).
+For detailed workflow documentation, see [Contributing Workflow](https://sigilweaver.app/docs/developer/contributing/workflow).
 
 ---
 
 ## Getting Help
 
-- **Documentation**: [docs.sigilweaver.app](https://docs.sigilweaver.app)
+- **Documentation**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
 - **Issues**: [GitHub Issues](https://github.com/sigilweaver/sigilweaver/issues)
-- **Code of Conduct**: [docs.sigilweaver.app/code-of-conduct](https://docs.sigilweaver.app/code-of-conduct)
+- **Code of Conduct**: [sigilweaver.app/docs/code-of-conduct](https://sigilweaver.app/docs/code-of-conduct)
 
 ## License
 

@@ -4,7 +4,7 @@
 
 Enterprise-grade power, accessible to everyone.
 
-[Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/downloads) | [Documentation](https://docs.sigilweaver.app)
+[Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/downloads) | [Documentation](https://sigilweaver.app/docs)
 
 ---
 
@@ -12,11 +12,12 @@ Enterprise-grade power, accessible to everyone.
 
 Sigilweaver is more than a workflow designer - it's a complete data pipeline platform.
 
-**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation. **Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with enterprise-grade security.
+**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation.
+**Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with enterprise-grade security.
 
 Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing enterprise-scale ETL, Sigilweaver meets you where you are.
 
-No row limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
+No artificial limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
 ## Why Sigilweaver?
 
@@ -70,10 +71,10 @@ For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Audience                       | Link                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------ |
-| **Getting Started**            | [docs.sigilweaver.app/user](https://docs.sigilweaver.app/user)           |
-| **Coming from Alteryx/KNIME?** | [Crash Courses](https://docs.sigilweaver.app/user/crash-courses)         |
-| **Developers**                 | [docs.sigilweaver.app/developer](https://docs.sigilweaver.app/developer) |
-| **Architecture Decisions**     | [ADRs](https://docs.sigilweaver.app/developer/architecture/decisions)    |
+| **Getting Started**            | [sigilweaver.app/docs/user](https://sigilweaver.app/docs/user)           |
+| **Coming from Alteryx/KNIME?** | [Crash Courses](https://sigilweaver.app/docs/user/crash-courses)         |
+| **Developers**                 | [sigilweaver.app/docs/developer](https://sigilweaver.app/docs/developer) |
+| **Architecture Decisions**     | [ADRs](https://sigilweaver.app/docs/developer/architecture/decisions)    |
 
 ## License
 

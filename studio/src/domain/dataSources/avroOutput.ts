@@ -6,7 +6,7 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_avro.html
- * https://docs.sigilweaver.app/user/tools/input-output/output/#avro
+ * https://sigilweaver.app/docs/user/tools/input-output/output/#avro
  *
  * Apache Avro is a row-based binary format commonly used in
  * big data ecosystems (Hadoop, Kafka, Spark).
@@ -82,7 +82,7 @@ export const AVRO_OUTPUT_INFO = {
   name: "Apache Avro",
   description:
     "Row-based binary format for big data ecosystems",
-  documentationUrl: "https://docs.sigilweaver.app/user/tools/input-output/output/#avro",
+  documentationUrl: "https://sigilweaver.app/docs/user/tools/input-output/output/#avro",
   note: "Avro does not support streaming writes - data is collected before writing",
   features: [
     "Self-describing with embedded schema",

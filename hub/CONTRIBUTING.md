@@ -1,6 +1,6 @@
 # Contributing to Sigilweaver Hub
 
-For comprehensive development documentation, see **[docs.sigilweaver.app/developer/contributing/hub](https://docs.sigilweaver.app/developer/contributing/hub)**.
+For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/hub](https://sigilweaver.app/docs/developer/contributing/hub)**.
 
 ## Quick Reference
 
@@ -54,12 +54,12 @@ uv run alembic upgrade head
 
 ## Key Documentation
 
-| Topic | Link |
-|-------|------|
-| **Hub Development** | [docs.sigilweaver.app/developer/contributing/hub](https://docs.sigilweaver.app/developer/contributing/hub) |
-| **Server Patterns** | [docs.sigilweaver.app/developer/contributing/server](https://docs.sigilweaver.app/developer/contributing/server) |
-| **Studio Patterns** | [docs.sigilweaver.app/developer/contributing/studio](https://docs.sigilweaver.app/developer/contributing/studio) |
-| **Code Style** | [docs.sigilweaver.app/developer/contributing/code-style](https://docs.sigilweaver.app/developer/contributing/code-style) |
+| Topic               | Link                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Hub Development** | [sigilweaver.app/docs/developer/contributing/hub](https://sigilweaver.app/docs/developer/contributing/hub)               |
+| **Server Patterns** | [sigilweaver.app/docs/developer/contributing/server](https://sigilweaver.app/docs/developer/contributing/server)         |
+| **Studio Patterns** | [sigilweaver.app/docs/developer/contributing/studio](https://sigilweaver.app/docs/developer/contributing/studio)         |
+| **Code Style**      | [sigilweaver.app/docs/developer/contributing/code-style](https://sigilweaver.app/docs/developer/contributing/code-style) |
 
 ## CLA Requirement
 

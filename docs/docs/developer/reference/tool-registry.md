@@ -166,31 +166,31 @@ result = await tool.execute(config, inputs)
 
 ### In/Out
 
-| Type | Description | Sockets |
-|------|-------------|---------|
-| **Input** | Load data from file | `output` |
-| **Output** | Export data to file | `input` |
+| Type       | Description         | Sockets  |
+| ---------- | ------------------- | -------- |
+| **Input**  | Load data from file | `output` |
+| **Output** | Export data to file | `input`  |
 
 ### Preparation
 
-| Type | Description | Sockets |
-|------|-------------|---------|
-| **Filter** | Filter rows by expression | `input` → `output-true`, `output-false` |
-| **Select** | Select/rename/reorder columns | `input` → `output` |
-| **Sort** | Sort rows by columns | `input` → `output` |
-| **Formula** | Add calculated column | `input` → `output` |
+| Type        | Description                   | Sockets                                 |
+| ----------- | ----------------------------- | --------------------------------------- |
+| **Filter**  | Filter rows by expression     | `input` → `output-true`, `output-false` |
+| **Select**  | Select/rename/reorder columns | `input` → `output`                      |
+| **Sort**    | Sort rows by columns          | `input` → `output`                      |
+| **Formula** | Add calculated column         | `input` → `output`                      |
 
 ### Join
 
-| Type | Description | Sockets |
-|------|-------------|---------|
-| **Union** | Combine multiple tables vertically | `input` (multiple) → `output` |
-| **Join** | Join two tables on keys | `input-left`, `input-right` → `output-left`, `output-match`, `output-right` |
+| Type      | Description                        | Sockets                                                                     |
+| --------- | ---------------------------------- | --------------------------------------------------------------------------- |
+| **Union** | Combine multiple tables vertically | `input` (multiple) → `output`                                               |
+| **Join**  | Join two tables on keys            | `input-left`, `input-right` → `output-left`, `output-match`, `output-right` |
 
 ### Aggregate
 
-| Type | Description | Sockets |
-|------|-------------|---------|
+| Type          | Description            | Sockets            |
+| ------------- | ---------------------- | ------------------ |
 | **Summarize** | Group by and aggregate | `input` → `output` |
 
 ---
@@ -315,4 +315,4 @@ The Studio enforces type compatibility during drag-and-drop connections.
 
 ---
 
-Next: [Roadmap](../roadmap) for project direction and priorities.
+Next: [Roadmap](/roadmap) for project direction and priorities.

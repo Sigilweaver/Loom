@@ -74,15 +74,15 @@
             <div class="container relative z-10 px-6 mx-auto text-center hero" id="main-content">
                 <h1 id="hero-heading" class="mb-6 text-5xl font-bold leading-tight md:text-7xl">
                     <span
-                        class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Weave
-                        Data Magic</span>
+                        class="block bg-gradient-to-b from-mystic-300 to-mystic-600 bg-clip-text text-transparent leading-[1.2]">Visual
+                        Data Pipelines</span>
                     <span
-                        class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Into
-                        Reality</span>
+                        class="block bg-gradient-to-b from-gold-300 to-gold-500 bg-clip-text text-transparent leading-[1.2]">Powered
+                        by Python</span>
                 </h1>
                 <p class="max-w-4xl mx-auto mb-8 text-xl md:text-2xl text-mystic-200">
-                    The last ETL tool you'll ever need. Craft powerful data pipelines with the intuitive flow of visual
-                    design.
+                    Sigilweaver is the open-source visual ETL tool for modern data engineering. Build lightning-fast
+                    Polars workflows with a drag-and-drop interface.
                 </p>
                 <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <a href="/downloads.html"
@@ -116,11 +116,11 @@
                             <div class="flex-shrink-0" role="img" aria-label="Crystal ball icon"><i
                                     data-lucide="sparkles"
                                     class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
-                            <h3 class="text-2xl font-bold text-mystic-200">Ultimate Flexibility</h3>
+                            <h3 class="text-2xl font-bold text-mystic-200">Cross-Platform</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Cast your spells anywhere - desktop, web browser, or headless server. Your magic works
-                            offline, on-prem, or in any cloud.
+                            Run your data pipelines anywhere - desktop, web browser, or headless server. Supports local
+                            execution and cloud deployment.
                         </p>
                     </article>
 
@@ -130,11 +130,11 @@
                         <div class="flex items-center mb-4 space-x-4">
                             <div class="flex-shrink-0" role="img" aria-label="Lightning bolt icon"><i data-lucide="zap"
                                     class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
-                            <h3 class="text-2xl font-bold text-mystic-200">Wicked Fast Performance</h3>
+                            <h3 class="text-2xl font-bold text-mystic-200">Polars Performance</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Polars-powered performance blazes through massive datasets with unmatched speed.
-                            Python-first with extensibility built in.
+                            Built on the Polars DataFrame library for blazing fast data processing. Python-first
+                            architecture with native extensibility.
                         </p>
                     </article>
 
@@ -144,11 +144,11 @@
                         <div class="flex items-center mb-4 space-x-4">
                             <div class="flex-shrink-0" role="img" aria-label="Shield icon"><i data-lucide="shield"
                                     class="w-10 h-10 text-gold-400 group-hover:animate-bounce"></i></div>
-                            <h3 class="text-2xl font-bold text-mystic-200">Enterprise-Grade Security</h3>
+                            <h3 class="text-2xl font-bold text-mystic-200">Secure Processing</h3>
                         </div>
                         <p class="leading-relaxed text-mystic-300">
-                            Verbose logging, audit trails, and compliance-ready. Your data never leaves without
-                            permission - perfect for the most sensitive environments.
+                            Enterprise-ready security with verbose logging and audit trails. Your data remains secure
+                            within your infrastructure.
                         </p>
                     </article>
                 </div>
@@ -261,28 +261,29 @@
         </section>
 
         <!-- Use Cases -->
-        <section class="py-20">
+        <section class="py-20" aria-labelledby="use-cases-heading">
             <div class="container px-6 mx-auto">
-                <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Your Spellbook for Any Data
+                <h2 id="use-cases-heading" class="mb-16 text-4xl font-bold text-center md:text-5xl text-mystic-200">Your
+                    Spellbook for Any Data
                     Challenge</h2>
 
                 <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <div class="use-case-card">
+                    <article class="use-case-card">
                         <h3 class="mb-3 text-xl font-bold text-gold-400">Data Engineers</h3>
                         <p class="text-mystic-300">Build production ETL pipelines visually</p>
-                    </div>
-                    <div class="use-case-card">
+                    </article>
+                    <article class="use-case-card">
                         <h3 class="mb-3 text-xl font-bold text-gold-400">Analysts</h3>
                         <p class="text-mystic-300">Create complex transformations without coding</p>
-                    </div>
-                    <div class="use-case-card">
+                    </article>
+                    <article class="use-case-card">
                         <h3 class="mb-3 text-xl font-bold text-gold-400">Enterprises</h3>
                         <p class="text-mystic-300">Maintain compliance while empowering users</p>
-                    </div>
-                    <div class="use-case-card">
+                    </article>
+                    <article class="use-case-card">
                         <h3 class="mb-3 text-xl font-bold text-gold-400">Teams</h3>
                         <p class="text-mystic-300">Version control workflows like code (Git integration)</p>
-                    </div>
+                    </article>
                 </div>
             </div>
         </section>
@@ -354,11 +355,11 @@
                         <p class="mb-6 text-mystic-300">Comprehensive guides and API reference to master your data
                             weaving skills.</p>
                         <div class="space-y-3">
-                            <a href="https://docs.sigilweaver.app/getting-started"
+                            <a href="/docs/getting-started"
                                 class="block px-6 py-3 transition-all rounded-lg bg-mystic-600 hover:bg-mystic-500">
                                 Getting Started Guide
                             </a>
-                            <a href="https://docs.sigilweaver.app/api"
+                            <a href="/docs/api"
                                 class="block px-6 py-3 transition-all border rounded-lg border-mystic-500 hover:border-gold-400">
                                 API Reference
                             </a>
@@ -388,6 +389,53 @@
 
     <!-- Footer (injected by JS component) -->
     <div id="footer-root"></div>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Sigilweaver",
+      "operatingSystem": "Windows, macOS, Linux",
+      "applicationCategory": "DeveloperApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "The visual data pipeline tool you always wished existed. Craft powerful data pipelines with the intuitive flow of visual design.",
+      "softwareRequirements": "Python 3.10+",
+      "featureList": "Visual ETL, Data Processing, Workflow Automation, Polars Integration"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "What is Sigilweaver?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sigilweaver is an open-source visual ETL tool and data pipeline builder that runs on your local machine or server. It allows you to create complex data workflows using a drag-and-drop interface powered by the blazing-fast Polars engine."
+        }
+      }, {
+        "@type": "Question",
+        "name": "Is Sigilweaver free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Sigilweaver is open-source software customized for data engineers and developers."
+        }
+      }, {
+        "@type": "Question",
+        "name": "Does it support Python?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Sigilweaver is built on Python and allows for extensive customization with Python code. It uses Polars for high-performance data manipulation."
+        }
+      }]
+    }
+    </script>
 
     <!-- Scripts -->
     <script type="module" src="/src/main.ts"></script>
