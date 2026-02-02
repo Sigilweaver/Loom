@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Sigilweaver Docs',
-  tagline: 'The visual data pipeline tool you always wished existed',
+  tagline: 'Visual Data Pipelines Powered by Python',
   favicon: 'img/favicon.ico',
 
   // Custom plugins

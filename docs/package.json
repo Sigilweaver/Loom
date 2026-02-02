@@ -7,6 +7,7 @@
     "start": "docusaurus start --port 25809",
     "dev": "docusaurus start --port 25809",
     "build": "docusaurus build",
+    "build:cloudflare": "docusaurus build --out-dir build/docs",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

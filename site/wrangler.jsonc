@@ -3,5 +3,11 @@
     "compatibility_date": "2024-11-26",
     "assets": {
         "directory": "./dist"
-    }
+    },
+    "routes": [
+        {
+            "pattern": "sigilweaver.app/*",
+            "zone_name": "sigilweaver.app"
+        }
+    ]
 }
