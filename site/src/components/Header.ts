@@ -8,7 +8,6 @@ import { NavConfig, navConfig as defaultNavConfig } from '@lib/config';
 export interface HeaderOptions {
   config?: NavConfig;
   currentPath?: string;
-  showAccessibilityToggle?: boolean;
 }
 
 /**
@@ -17,45 +16,7 @@ export interface HeaderOptions {
 export function createHeader(options: HeaderOptions = {}): string {
   const {
     config = defaultNavConfig,
-    showAccessibilityToggle = true,
   } = options;
-
-  const desktopA11yToggle = showAccessibilityToggle ? `
-    <button 
-      id="a11y-toggle" 
-      data-toggle="accessibility"
-      class="flex items-center space-x-2 a11y-toggle" 
-      aria-pressed="false" 
-      title="Enable accessibility mode"
-    >
-      <i data-lucide="zap" class="w-4 h-4 text-mystic-400" aria-hidden="true"></i>
-      <span class="text-xs text-mystic-400">A11y</span>
-      <div class="toggle-switch" aria-hidden="true">
-        <div class="toggle-slider"></div>
-      </div>
-    </button>
-  ` : '';
-
-  const mobileA11yToggle = showAccessibilityToggle ? `
-    <div class="border-t border-mystic-700 pt-3 mt-3">
-      <button 
-        id="a11y-toggle-mobile" 
-        data-toggle="accessibility"
-        class="flex items-center justify-between w-full mobile-link a11y-toggle" 
-        role="menuitem" 
-        aria-pressed="false" 
-        title="Enable accessibility mode"
-      >
-        <span class="flex items-center space-x-2">
-          <i data-lucide="zap" class="w-4 h-4 text-mystic-400" aria-hidden="true"></i>
-          <span class="text-mystic-300">Accessibility Mode</span>
-        </span>
-        <div class="toggle-switch" aria-hidden="true">
-          <div class="toggle-slider"></div>
-        </div>
-      </button>
-    </div>
-  ` : '';
 
   return `
     <!-- Navigation -->
@@ -79,7 +40,6 @@ export function createHeader(options: HeaderOptions = {}): string {
             <a href="${config.ctaButton.href}" class="cta-button">
               ${config.ctaButton.label}
             </a>
-            ${desktopA11yToggle}
           </div>
           <button class="md:hidden text-mystic-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 rounded-md p-1" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-menu">
             <i data-lucide="menu" class="w-6 h-6" aria-hidden="true"></i>
@@ -103,7 +63,6 @@ export function createHeader(options: HeaderOptions = {}): string {
           <a href="${config.ctaButton.href}" class="block cta-button text-center mobile-link" role="menuitem">
             ${config.ctaButton.label}
           </a>
-          ${mobileA11yToggle}
         </div>
       </div>
     </div>

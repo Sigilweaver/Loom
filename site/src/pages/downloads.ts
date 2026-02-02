@@ -4,12 +4,23 @@
 
 import '@styles/main.css';
 import { initializeLayout } from '@lib/layout';
-import { initializeAccessibility } from '@lib/accessibility';
 import { initializeNavigation } from '@lib/navigation';
-import { initializeNodeConnections } from '@lib/node-connections';
+import {
+  type DownloadAsset,
+  type DownloadsData,
+  type ReleasesIndex,
+  type ReleaseInfo,
+  fetchLatestDownloads,
+  fetchDownloadsData,
+  fetchReleasesIndex,
+  detectOS,
+  getOSLabel,
+  findAssetForOS,
+  getOsMeta,
+  truncateHash,
+  formatReleaseDate,
+} from '@lib/downloads';
 
-// API URL for Backblaze-hosted releases index
-const RELEASES_INDEX_URL = 'https://download.sigilweaver.app/releases/index.json';
 const RELEASES_PER_PAGE = 10;
 
 // State for releases pagination
@@ -22,10 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize layout with shared components
   initializeLayout();
   
-  // Initialize core functionality
-  initializeAccessibility();
+  // Initialize navigation
   initializeNavigation();
-  initializeNodeConnections();
   
   // Initialize downloads-specific functionality
   initializeDownloads();
@@ -35,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Downloads page specific functionality
  */
 function initializeDownloads(): void {
-  fetchDownloads();
+  fetchDownloadsPage();
   
   const loadReleasesBtn = document.getElementById('load-releases-btn');
   if (loadReleasesBtn) {
@@ -43,63 +52,18 @@ function initializeDownloads(): void {
   }
 }
 
-// Type definitions for the downloads API
-interface DownloadAsset {
-  os: string;
-  arch: string;
-  kind: string;
-  fileName: string;
-  url: string;
-  size: number;
-  sha256: string;
-}
-
-interface DownloadsData {
-  version: string;
-  variants: {
-    full?: DownloadAsset[];
-    client?: DownloadAsset[];
-    web?: DownloadAsset[];
-  };
-}
-
-interface ReleaseInfo {
-  version: string;
-  date: string;
-}
-
-interface ReleasesIndex {
-  releases: ReleaseInfo[];
-}
-
 /**
  * Fetch and display the latest downloads
- * First fetches the releases index, then gets the latest version's downloads.json
  */
-async function fetchDownloads(): Promise<void> {
+async function fetchDownloadsPage(): Promise<void> {
   const grid = document.getElementById('downloads-grid');
   const versionDisplay = document.getElementById('latest-version');
   
   if (!grid) return;
   
   try {
-    // Fetch releases index to find the latest version
-    const indexResponse = await fetch(RELEASES_INDEX_URL);
-    if (!indexResponse.ok) throw new Error('Failed to fetch releases index');
-    releasesData = await indexResponse.json();
-    
-    if (!releasesData || releasesData.releases.length === 0) {
-      throw new Error('No releases available');
-    }
-    
-    // Get the latest release (first in the list)
-    const latestVersion = releasesData.releases[0].version;
-    
-    // Fetch the downloads.json for the latest version
-    const downloadsUrl = `https://download.sigilweaver.app/releases/${latestVersion}/downloads.json`;
-    const response = await fetch(downloadsUrl);
-    if (!response.ok) throw new Error('Failed to fetch latest downloads');
-    const data: DownloadsData = await response.json();
+    const { data, releasesIndex } = await fetchLatestDownloads();
+    releasesData = releasesIndex;
     
     // Update version display
     if (versionDisplay) {
@@ -141,7 +105,7 @@ async function fetchDownloads(): Promise<void> {
         <p class="text-mystic-400 text-sm">Or check our <a href="https://github.com/sigilweaver/sigilweaver/releases" class="text-gold-400 hover:underline">GitHub Releases</a> page directly.</p>
       </div>
     `;
-    document.getElementById('retry-downloads-btn')?.addEventListener('click', () => fetchDownloads());
+    document.getElementById('retry-downloads-btn')?.addEventListener('click', () => fetchDownloadsPage());
   }
 }
 
@@ -309,51 +273,6 @@ function renderSection(container: HTMLElement, title: string, description: strin
   });
 }
 
-interface OsMeta {
-  name: string;
-  icon: string;
-  note: string;
-}
-
-/**
- * Get OS-specific metadata for display
- */
-function getOsMeta(os: string, fileName: string): OsMeta {
-  const icons: Record<string, string> = {
-    windows: `<img src="https://api.iconify.design/mdi/microsoft-windows.svg?color=%23FDB022" alt="Windows" class="w-8 h-8">`,
-    linux: `<img src="https://api.iconify.design/mdi/linux.svg?color=%23FDB022" alt="Linux" class="w-8 h-8">`,
-    mac: `<img src="https://api.iconify.design/mdi/apple.svg?color=%23FDB022" alt="macOS" class="w-8 h-8">`,
-    web: `<img src="https://api.iconify.design/mdi/web.svg?color=%23FDB022" alt="Web" class="w-8 h-8">`
-  };
-
-  let name = os.charAt(0).toUpperCase() + os.slice(1);
-  let icon = icons.web; // Default
-  let note = '';
-
-  if (os === 'windows') {
-    icon = icons.windows;
-    note = 'Unsigned build: Click "More info" → "Run anyway" if warned.';
-  } else if (os === 'linux') {
-    icon = icons.linux;
-    if (fileName.endsWith('.AppImage')) {
-      name = 'Linux (AppImage)';
-      note = 'Portable: chmod +x and run.';
-    } else if (fileName.endsWith('.snap')) {
-      name = 'Linux (Snap)';
-      note = 'Requires snapd.';
-    }
-  } else if (os === 'mac' || os === 'darwin' || os === 'macos') {
-    icon = icons.mac;
-    name = 'macOS';
-    note = 'Unsigned: Right-click → Open to bypass security check.';
-  } else if (os === 'web') {
-    name = 'Web Bundle';
-    note = 'Static files for hosting.';
-  }
-
-  return { name, icon, note };
-}
-
 /**
  * Update the hero button based on detected OS
  */
@@ -364,24 +283,9 @@ function updateHeroButton(data: DownloadsData): void {
 
   if (!btn) return;
 
-  let bestMatch: DownloadAsset | undefined;
-  let osLabel = 'Linux';
-
-  // Helper to find asset in full variants
-  const findAsset = (os: string, ext: string): DownloadAsset | undefined => {
-    return data.variants.full?.find(a => a.os === os && a.fileName.endsWith(ext));
-  };
-
-  if (/Windows/i.test(ua)) {
-    bestMatch = findAsset('windows', '.exe');
-    osLabel = 'Windows';
-  } else if (/Mac|Macintosh/i.test(ua)) {
-    bestMatch = data.variants.full?.find(a => a.os === 'mac' || a.os === 'darwin');
-    osLabel = 'macOS';
-  } else if (/Linux/i.test(ua)) {
-    bestMatch = findAsset('linux', '.AppImage');
-    osLabel = 'Linux';
-  }
+  const os = detectOS(ua);
+  const osLabel = getOSLabel(os);
+  const bestMatch = findAssetForOS(data, os);
 
   if (bestMatch) {
     btn.href = bestMatch.url;
@@ -403,7 +307,7 @@ function updateHeroButton(data: DownloadsData): void {
 
 /**
  * Load previous releases from the releases index
- * Reuses releasesData if already fetched by fetchDownloads()
+ * Reuses releasesData if already fetched by fetchDownloadsPage()
  */
 async function loadReleases(): Promise<void> {
   const button = document.getElementById('load-releases-btn') as HTMLButtonElement | null;
@@ -415,14 +319,12 @@ async function loadReleases(): Promise<void> {
   
   // Show loading state
   button.disabled = true;
-  button.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Loading...';
+  button.innerHTML = '<span class="inline-block mr-2">⏳</span> Loading...';
   
   try {
     // Reuse releasesData if already fetched, otherwise fetch it
     if (!releasesData) {
-      const response = await fetch(RELEASES_INDEX_URL);
-      if (!response.ok) throw new Error('Failed to fetch releases');
-      releasesData = await response.json();
+      releasesData = await fetchReleasesIndex();
     }
     
     // Hide button, show releases section
@@ -487,11 +389,7 @@ function renderReleasesPage(): void {
  */
 function renderReleaseItem(release: ReleaseInfo): string {
   const isExpanded = expandedReleases.has(release.version);
-  const releaseDate = new Date(release.date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const releaseDate = formatReleaseDate(release.date);
   
   return `
     <div class="bg-mystic-800/50 rounded-xl border border-mystic-600/50 overflow-hidden" data-release="${release.version}">
@@ -510,7 +408,7 @@ function renderReleaseItem(release: ReleaseInfo): string {
         </div>
         
         <div class="release-downloads ${isExpanded ? '' : 'hidden'}" id="downloads-${release.version}">
-          ${isExpanded ? '<div class="text-center py-4"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gold-500"></div></div>' : ''}
+          ${isExpanded ? '<div class="text-center py-4"><div class="inline-block rounded-full h-6 w-6 border-t-2 border-b-2 border-gold-500"></div></div>' : ''}
         </div>
       </div>
     </div>
@@ -628,15 +526,11 @@ async function toggleReleaseDownloads(version: string): Promise<void> {
     if (container.querySelector('.downloads-loaded')) return;
     
     // Show loading state
-    container.innerHTML = '<div class="text-center py-4"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gold-500"></div></div>';
+    container.innerHTML = '<div class="text-center py-4"><div class="inline-block rounded-full h-6 w-6 border-t-2 border-b-2 border-gold-500"></div></div>';
     
     // Load downloads
     try {
-      const url = `https://download.sigilweaver.app/releases/${version}/downloads.json`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch release downloads');
-      
-      const data: DownloadsData = await response.json();
+      const data = await fetchDownloadsData(version);
       container.innerHTML = renderReleaseDownloads(data);
       
     } catch (error) {
@@ -718,14 +612,6 @@ function renderReleaseVariant(title: string, assets: DownloadAsset[]): string {
   
   html += '</div></div>';
   return html;
-}
-
-/**
- * Truncate a hash string to show only the start and end
- */
-function truncateHash(hash: string, startChars = 8, endChars = 8): string {
-  if (hash.length <= startChars + endChars) return hash;
-  return `${hash.slice(0, startChars)}...${hash.slice(-endChars)}`;
 }
 
 /**

@@ -5,4 +5,4 @@
 
 export { createHeader, renderHeader, type HeaderOptions } from './Header';
 export { createFooter, renderFooter, defaultFooterConfig, type FooterOptions, type FooterConfig } from './Footer';
-export { createFloatingElements, createSkipLink, type FloatingElementsOptions } from './FloatingElements';
+export { createSkipLink } from './SkipLink';

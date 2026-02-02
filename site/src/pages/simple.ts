@@ -5,7 +5,6 @@
 
 import '@styles/main.css';
 import { initializeLayout } from '@lib/layout';
-import { initializeAccessibility } from '@lib/accessibility';
 import { initializeNavigation } from '@lib/navigation';
 import { simpleNavConfig } from '@lib/config';
 import { createIcons, Clipboard, Heart } from 'lucide';
@@ -13,11 +12,9 @@ import { createIcons, Clipboard, Heart } from 'lucide';
 // Initialize the page with simple navigation
 document.addEventListener('DOMContentLoaded', () => {
   initializeLayout({
-    header: { config: simpleNavConfig, showAccessibilityToggle: true },
-    floatingElements: false, // No background animations for simple pages
+    header: { config: simpleNavConfig },
   });
 
-  initializeAccessibility();
   initializeNavigation();
 
   // Initialize icons (including Heart for footer)

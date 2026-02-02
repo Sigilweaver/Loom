@@ -3,12 +3,11 @@
  * Handles dynamic component injection and page setup
  */
 
-import { createHeader, createFooter, createFloatingElements, createSkipLink, HeaderOptions, FooterOptions } from '@components/index';
+import { createHeader, createFooter, createSkipLink, HeaderOptions, FooterOptions } from '@components/index';
 
 export interface LayoutOptions {
   header?: HeaderOptions | false;
   footer?: FooterOptions | false;
-  floatingElements?: boolean;
   skipLink?: boolean;
 }
 
@@ -20,7 +19,6 @@ export function initializeLayout(options: LayoutOptions = {}): void {
   const {
     header = {},
     footer = {},
-    floatingElements = true,
     skipLink = true,
   } = options;
 
@@ -30,27 +28,16 @@ export function initializeLayout(options: LayoutOptions = {}): void {
     document.body.insertAdjacentHTML('afterbegin', skipLinkHtml);
   }
 
-  // Insert floating elements after skip link
-  if (floatingElements) {
-    const floatingHtml = createFloatingElements();
-    const skipLinkEl = document.querySelector('a[href="#main-content"]');
-    if (skipLinkEl) {
-      skipLinkEl.insertAdjacentHTML('afterend', floatingHtml);
-    } else {
-      document.body.insertAdjacentHTML('afterbegin', floatingHtml);
-    }
-  }
-
   // Insert header
   if (header !== false) {
     const headerContainer = document.getElementById('header-root');
     if (headerContainer) {
       headerContainer.innerHTML = createHeader(header);
     } else {
-      // Insert header after floating elements or at start
-      const floatingEl = document.querySelector('.floating-elements');
-      if (floatingEl) {
-        floatingEl.insertAdjacentHTML('afterend', createHeader(header));
+      // Insert header after skip link
+      const skipLinkEl = document.querySelector('a[href="#main-content"]');
+      if (skipLinkEl) {
+        skipLinkEl.insertAdjacentHTML('afterend', createHeader(header));
       } else {
         document.body.insertAdjacentHTML('afterbegin', createHeader(header));
       }
