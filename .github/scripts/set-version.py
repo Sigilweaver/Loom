@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Set version in package.json and pyproject.toml from git tag.
+Set version in package.json, pyproject.toml, and tauri.conf.json from git tag.
 
 Used in GitHub Actions to inject version from git tags into the build.
 
@@ -55,6 +55,46 @@ def set_package_json_version(version: str, package_json_path: Path) -> bool:
         return False
     
     print(f"Updated package.json version: {old_version} -> {version}")
+    return True
+
+
+def set_tauri_config_version(version: str, tauri_config_path: Path) -> bool:
+    """
+    Set version in tauri.conf.json.
+    
+    Args:
+        version: Version string (e.g., '0.3.3-alpha')
+        tauri_config_path: Path to tauri.conf.json file
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    if not tauri_config_path.exists():
+        print(f"WARNING: {tauri_config_path} not found, skipping")
+        return True  # Not an error, just skip
+    
+    # Read tauri.conf.json
+    try:
+        with open(tauri_config_path, 'r') as f:
+            config_data = json.load(f)
+    except Exception as e:
+        print(f"ERROR: Failed to read {tauri_config_path}: {e}")
+        return False
+    
+    # Update version
+    old_version = config_data.get('version', 'unknown')
+    config_data['version'] = version
+    
+    # Write back with proper formatting
+    try:
+        with open(tauri_config_path, 'w') as f:
+            json.dump(config_data, f, indent=4)
+            f.write('\n')  # Add trailing newline
+    except Exception as e:
+        print(f"ERROR: Failed to write {tauri_config_path}: {e}")
+        return False
+    
+    print(f"Updated tauri.conf.json version: {old_version} -> {version}")
     return True
 
 
@@ -128,20 +168,24 @@ def main():
     if version.startswith('v'):
         version = version[1:]
     
-    # Find package.json and pyproject.toml (assume we're in .github/scripts/)
+    # Find config files (assume we're in .github/scripts/)
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent
     
     package_json = project_root / 'studio' / 'package.json'
     pyproject_toml = project_root / 'server' / 'pyproject.toml'
+    tauri_config = project_root / 'studio' / 'tauri' / 'tauri.conf.json'
     
     success = True
     
-    # Update both files
+    # Update all version files
     if not set_package_json_version(version, package_json):
         success = False
     
     if not set_pyproject_version(version, pyproject_toml):
+        success = False
+    
+    if not set_tauri_config_version(version, tauri_config):
         success = False
     
     return 0 if success else 1

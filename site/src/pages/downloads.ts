@@ -79,6 +79,11 @@ async function fetchDownloadsPage(): Promise<void> {
       renderSection(grid, 'Full Application (Recommended)', 'Includes everything you need to run Sigilweaver locally.', data.variants.full);
     }
 
+    // Render Tauri Downloads (Lightweight Native)
+    if (data.variants.tauri && data.variants.tauri.length > 0) {
+      renderSection(grid, 'Lightweight Native (Tauri)', 'Native desktop app with smaller footprint. Requires separate backend server.', data.variants.tauri);
+    }
+
     // Render Client Downloads
     if (data.variants.client && data.variants.client.length > 0) {
       renderSection(grid, 'Client Only', 'Connect to an existing Sigilweaver backend.', data.variants.client);
@@ -553,6 +558,11 @@ function renderReleaseDownloads(data: DownloadsData): string {
   // Full variant
   if (data.variants.full && data.variants.full.length > 0) {
     html += renderReleaseVariant('Full Application', data.variants.full);
+  }
+  
+  // Tauri variant
+  if (data.variants.tauri && data.variants.tauri.length > 0) {
+    html += renderReleaseVariant('Lightweight Native (Tauri)', data.variants.tauri);
   }
   
   // Client variant
