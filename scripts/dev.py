@@ -3,9 +3,10 @@
 Sigilweaver Development Script
 
 Starts development servers for Studio, Server, Hub, Docs, and/or Site.
+Dependencies are automatically installed when missing.
 
 Usage:
-    ./scripts/dev.py                    # Start Studio in web mode only
+    ./scripts/dev.py                    # Start all core components (auto-installs deps)
     ./scripts/dev.py --server           # Server only
     ./scripts/dev.py --studio           # Studio (web mode)
     ./scripts/dev.py --studio-electron  # Studio as Electron desktop app
@@ -16,6 +17,9 @@ Usage:
     ./scripts/dev.py --studio --server  # Multiple components
     ./scripts/dev.py --hub-auth         # Specified components with Hub authentication enabled
     ./scripts/dev.py --all              # Start all core components (Server, Studio, Hub)
+    
+    # Force reinstall dependencies (useful after branch switch)
+    ./scripts/dev.py --server --install
 """
 
 import argparse
@@ -187,28 +191,109 @@ def cleanup_stale_processes(ports: list[int]) -> None:
         time.sleep(1)  # Give OS time to release ports
 
 
+def install_server(repo_root: Path) -> bool:
+    """Install server Python dependencies using uv."""
+    print_info("Installing server dependencies...")
+    server_dir = repo_root / "server"
+    result = subprocess.run(
+        ["uv", "sync", "--extra", "dev"],
+        cwd=server_dir,
+    )
+    if result.returncode != 0:
+        print_error("Failed to install server dependencies")
+        return False
+    print_success("Server dependencies installed")
+    return True
+
+
+def install_studio(repo_root: Path) -> bool:
+    """Install studio Node.js dependencies."""
+    print_info("Installing studio dependencies...")
+    studio_dir = repo_root / "studio"
+    result = subprocess.run(["npm", "install"], cwd=studio_dir)
+    if result.returncode != 0:
+        print_error("Failed to install studio dependencies")
+        return False
+    print_success("Studio dependencies installed")
+    return True
+
+
+def install_hub_backend(repo_root: Path) -> bool:
+    """Install hub backend Python dependencies."""
+    print_info("Installing hub backend dependencies...")
+    hub_dir = repo_root / "hub"
+    result = subprocess.run(
+        ["uv", "sync", "--extra", "dev"],
+        cwd=hub_dir / "backend",
+    )
+    if result.returncode != 0:
+        print_error("Failed to install hub backend dependencies")
+        return False
+    print_success("Hub backend dependencies installed")
+    return True
+
+
+def install_hub_frontend(repo_root: Path) -> bool:
+    """Install hub frontend Node.js dependencies."""
+    print_info("Installing hub frontend dependencies...")
+    hub_dir = repo_root / "hub"
+    result = subprocess.run(["npm", "install"], cwd=hub_dir / "frontend")
+    if result.returncode != 0:
+        print_error("Failed to install hub frontend dependencies")
+        return False
+    print_success("Hub frontend dependencies installed")
+    return True
+
+
+def install_hub(repo_root: Path) -> bool:
+    """Install hub backend and frontend dependencies."""
+    backend_ok = install_hub_backend(repo_root)
+    frontend_ok = install_hub_frontend(repo_root)
+    return backend_ok and frontend_ok
+
+
+def install_docs(repo_root: Path) -> bool:
+    """Install docs Node.js dependencies."""
+    print_info("Installing docs dependencies...")
+    docs_dir = repo_root / "docs"
+    result = subprocess.run(["npm", "install"], cwd=docs_dir)
+    if result.returncode != 0:
+        print_error("Failed to install docs dependencies")
+        return False
+    print_success("Docs dependencies installed")
+    return True
+
+
+def install_site(repo_root: Path) -> bool:
+    """Install site Node.js dependencies."""
+    print_info("Installing site dependencies...")
+    site_dir = repo_root / "site"
+    result = subprocess.run(["npm", "install"], cwd=site_dir)
+    if result.returncode != 0:
+        print_error("Failed to install site dependencies")
+        return False
+    print_success("Site dependencies installed")
+    return True
+
+
 def check_server_setup(repo_root: Path) -> bool:
-    """Check if server is set up with uv."""
+    """Check if server is set up with uv. Auto-installs if missing."""
     lock_path = repo_root / "server" / "uv.lock"
     venv_path = repo_root / "server" / ".venv"
     if not lock_path.exists() or not venv_path.exists():
-        print_error("Server not set up!")
-        print_warning("Please set up the server first:")
-        print("  cd server")
-        print("  uv sync --all-extras")
-        return False
+        print_warning("Server dependencies not found, installing...")
+        if not install_server(repo_root):
+            return False
     return True
 
 
 def check_studio_setup(repo_root: Path) -> bool:
-    """Check if studio node_modules exists."""
+    """Check if studio node_modules exists. Auto-installs if missing."""
     node_modules = repo_root / "studio" / "node_modules"
     if not node_modules.exists():
-        print_error("Studio dependencies not installed!")
-        print_warning("Please set up the studio first:")
-        print("  cd studio")
-        print("  npm install")
-        return False
+        print_warning("Studio dependencies not found, installing...")
+        if not install_studio(repo_root):
+            return False
     return True
 
 
@@ -385,11 +470,9 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
     backend_venv = hub_dir / "backend" / ".venv"
     backend_lock = hub_dir / "backend" / "uv.lock"
     if not backend_venv.exists() or not backend_lock.exists():
-        print_error("Hub backend not set up!")
-        print_warning("Please set up the hub backend first:")
-        print("  cd hub/backend")
-        print("  uv sync --all-extras")
-        backend_ready = False
+        print_warning("Hub backend dependencies not found, installing...")
+        if not install_hub_backend(repo_root):
+            backend_ready = False
     
     # Ensure PostgreSQL is running (auto-start if needed)
     if not ensure_postgres_running(repo_root):
@@ -402,36 +485,30 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
     # Check frontend
     frontend_modules = hub_dir / "frontend" / "node_modules"
     if not frontend_modules.exists():
-        print_error("Hub frontend dependencies not installed!")
-        print_warning("Please set up the hub frontend first:")
-        print("  cd hub/frontend")
-        print("  npm install")
-        frontend_ready = False
+        print_warning("Hub frontend dependencies not found, installing...")
+        if not install_hub_frontend(repo_root):
+            frontend_ready = False
     
     return backend_ready, frontend_ready
 
 
 def check_docs_setup(repo_root: Path) -> bool:
-    """Check if docs node_modules exists."""
+    """Check if docs node_modules exists. Auto-installs if missing."""
     node_modules = repo_root / "docs" / "node_modules"
     if not node_modules.exists():
-        print_error("Docs dependencies not installed!")
-        print_warning("Please set up the docs first:")
-        print("  cd docs")
-        print("  npm install")
-        return False
+        print_warning("Docs dependencies not found, installing...")
+        if not install_docs(repo_root):
+            return False
     return True
 
 
 def check_site_setup(repo_root: Path) -> bool:
-    """Check if site node_modules exists."""
+    """Check if site node_modules exists. Auto-installs if missing."""
     node_modules = repo_root / "site" / "node_modules"
     if not node_modules.exists():
-        print_error("Site dependencies not installed!")
-        print_warning("Please set up the site first:")
-        print("  cd site")
-        print("  npm install")
-        return False
+        print_warning("Site dependencies not found, installing...")
+        if not install_site(repo_root):
+            return False
     return True
 
 
@@ -982,6 +1059,11 @@ Examples:
         action="store_true",
         help="Start marketing website (Vite)"
     )
+    parser.add_argument(
+        "--install",
+        action="store_true",
+        help="Force reinstall dependencies for selected components (then exit)"
+    )
     
     args = parser.parse_args()
     
@@ -1008,11 +1090,11 @@ Examples:
         run_hub = args.hub
         run_docs = args.docs
         run_site = args.site
-    # Default: run studio in web mode only
+    # Default: run all core components (server, studio, hub)
     else:
-        run_server = False
+        run_server = True
         run_studio = True
-        run_hub = False
+        run_hub = True
         run_docs = False
         run_site = False
     
@@ -1022,6 +1104,29 @@ Examples:
     
     # Get repo root
     repo_root = get_repo_root()
+    
+    # Handle --install mode: install dependencies and exit
+    if args.install:
+        print_banner()
+        print_info("Installing dependencies...")
+        success = True
+        
+        if run_server:
+            success = install_server(repo_root) and success
+        if run_studio:
+            success = install_studio(repo_root) and success
+        if run_hub:
+            success = install_hub(repo_root) and success
+        if run_docs:
+            success = install_docs(repo_root) and success
+        if run_site:
+            success = install_site(repo_root) and success
+        
+        if success:
+            print_success("All dependencies installed!")
+        else:
+            print_error("Some dependencies failed to install")
+        return 0 if success else 1
     
     # Print banner
     print_banner()
