@@ -47,7 +47,12 @@ export function getOsMeta(os: string, fileName: string): OsMeta {
 
   if (os === 'windows') {
     icon = icons.windows;
-    note = 'Unsigned build: Click "More info" → "Run anyway" if warned.';
+    if (fileName.endsWith('.msi')) {
+      name = 'Windows (MSI)';
+      note = 'MSI installer for enterprise deployment.';
+    } else {
+      note = 'Unsigned build: Click "More info" → "Run anyway" if warned.';
+    }
   } else if (os === 'linux') {
     icon = icons.linux;
     if (fileName.endsWith('.AppImage')) {
@@ -56,11 +61,27 @@ export function getOsMeta(os: string, fileName: string): OsMeta {
     } else if (fileName.endsWith('.snap')) {
       name = 'Linux (Snap)';
       note = 'Requires snapd.';
+    } else if (fileName.endsWith('.deb')) {
+      name = 'Linux (DEB)';
+      note = 'For Debian/Ubuntu: sudo dpkg -i file.deb';
+    } else if (fileName.endsWith('.rpm')) {
+      name = 'Linux (RPM)';
+      note = 'For Fedora/RHEL: sudo rpm -i file.rpm';
     }
   } else if (os === 'mac' || os === 'darwin' || os === 'macos') {
     icon = icons.mac;
-    name = 'macOS';
-    note = 'Unsigned: Right-click → Open to bypass security check.';
+    if (fileName.includes('arm64')) {
+      name = 'macOS (Apple Silicon)';
+    } else if (fileName.includes('x64')) {
+      name = 'macOS (Intel)';
+    } else {
+      name = 'macOS';
+    }
+    if (fileName.endsWith('.app.tar.gz')) {
+      note = 'Extract and move to Applications folder.';
+    } else {
+      note = 'Unsigned: Right-click → Open to bypass security check.';
+    }
   } else if (os === 'web') {
     name = 'Web Bundle';
     note = 'Static files for hosting.';

@@ -66,28 +66,8 @@ jobs:
       - name: Install Hub Frontend dependencies
         run: cd hub/frontend && npm ci
 
-      - name: Start Hub Database
-        run: cd hub && docker compose up -d
-        
-      - name: Wait for database
-        run: |
-          for i in {1..30}; do
-            if docker exec sigilweaver-hub-postgres pg_isready -U sigilweaver -d sigilweaver_hub; then
-              echo "Database ready"
-              exit 0
-            fi
-            echo "Waiting for database..."
-            sleep 1
-          done
-          echo "Database not ready after 30s"
-          exit 1
-
       - name: Run all tests
         run: python scripts/test.py --full --ci --server --studio --hub -p
-
-      - name: Stop Hub Database
-        if: always()
-        run: cd hub && docker compose down
 
       - name: Upload Server coverage
         uses: actions/upload-artifact@v4

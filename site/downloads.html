@@ -128,6 +128,8 @@
                                 <ul class="list-disc list-inside text-mystic-400 space-y-1">
                                     <li><strong>Full Application:</strong> Complete desktop app with bundled backend
                                         (Python/Polars runtime included)</li>
+                                    <li><strong>Lightweight Native (Tauri):</strong> Smaller native app using system webview,
+                                        requires separate backend server</li>
                                     <li><strong>Client Only:</strong> Frontend-only build that connects to a separate
                                         backend server</li>
                                     <li><strong>Web Version:</strong> Static files for self-hosting the web UI</li>
@@ -137,9 +139,13 @@
                                 <h4 class="font-semibold text-mystic-300 mb-2">Formats:</h4>
                                 <ul class="list-disc list-inside text-mystic-400 space-y-1">
                                     <li><strong>.exe (Windows):</strong> Standard Windows installer</li>
+                                    <li><strong>.msi (Windows):</strong> MSI installer for enterprise deployment</li>
                                     <li><strong>.AppImage (Linux):</strong> Portable executable - make it executable
                                         with <code class="bg-mystic-900/50 px-1 rounded">chmod +x</code></li>
+                                    <li><strong>.deb (Linux):</strong> Debian/Ubuntu package</li>
+                                    <li><strong>.rpm (Linux):</strong> Fedora/RHEL package</li>
                                     <li><strong>.snap (Linux):</strong> Snap package for snap-enabled distributions</li>
+                                    <li><strong>.dmg (macOS):</strong> Disk image installer</li>
                                     <li><strong>.zip (Web):</strong> Static files ready for deployment</li>
                                 </ul>
                             </div>

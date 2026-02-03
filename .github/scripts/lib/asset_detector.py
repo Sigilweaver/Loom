@@ -36,9 +36,17 @@ def detect_asset_type(filename: str) -> Dict[str, str]:
         else:
             return {'os': 'windows', 'id': 'windowsInstaller', 'kind': 'installer'}
     
+    # Windows MSI installer (Tauri)
+    elif filename.endswith('.msi'):
+        return {'os': 'windows', 'id': 'windowsMsi', 'kind': 'installer'}
+    
     # macOS disk images
     elif filename.endswith('.dmg'):
         return {'os': 'macos', 'id': 'macDmg', 'kind': 'image'}
+    
+    # macOS app bundle tarball (Tauri)
+    elif filename.endswith('.app.tar.gz'):
+        return {'os': 'macos', 'id': 'macAppTarGz', 'kind': 'archive'}
     
     # Linux AppImage
     elif filename.endswith('.AppImage') or filename.endswith('.appimage'):
@@ -47,6 +55,14 @@ def detect_asset_type(filename: str) -> Dict[str, str]:
     # Linux Snap
     elif filename.endswith('.snap'):
         return {'os': 'linux', 'id': 'linuxSnap', 'kind': 'image'}
+    
+    # Linux DEB package (Tauri)
+    elif filename.endswith('.deb'):
+        return {'os': 'linux', 'id': 'linuxDeb', 'kind': 'package'}
+    
+    # Linux RPM package (Tauri)
+    elif filename.endswith('.rpm'):
+        return {'os': 'linux', 'id': 'linuxRpm', 'kind': 'package'}
     
     # Web archive
     elif filename.endswith('.zip') and 'web' in name_lower:

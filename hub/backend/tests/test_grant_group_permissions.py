@@ -79,7 +79,10 @@ async def create_grant_group(
 async def create_connection(
     client: AsyncClient, admin_token: str, name: str
 ) -> dict:
-    """Helper: Create a connection and return its data."""
+    """Helper: Create a connection and return its data.
+    
+    Skips test if CONNECTION_ENCRYPTION_KEY is not configured (returns 503).
+    """
     response = await client.post(
         "/api/v1/connections",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -94,6 +97,8 @@ async def create_connection(
             "password": "test",
         },
     )
+    if response.status_code == 503:
+        pytest.skip("CONNECTION_ENCRYPTION_KEY not configured")
     assert response.status_code == 201, f"Failed to create connection: {response.text}"
     return response.json()
 

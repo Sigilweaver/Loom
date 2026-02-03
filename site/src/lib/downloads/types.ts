@@ -18,6 +18,7 @@ export interface DownloadsData {
   variants: {
     full?: DownloadAsset[];
     client?: DownloadAsset[];
+    tauri?: DownloadAsset[];
     web?: DownloadAsset[];
   };
 }

@@ -100,6 +100,7 @@ class ManifestBuilder:
         full_assets = []
         client_assets = []
         web_assets = []
+        tauri_assets = []
         
         for file in self.assets_dir.iterdir():
             if not file.is_file():
@@ -117,6 +118,10 @@ class ManifestBuilder:
                 asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
                     web_assets.append(asset_info)
+            elif is_variant(file.name, 'Tauri'):
+                asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
+                if asset_info:
+                    tauri_assets.append(asset_info)
             else:
                 asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
@@ -129,6 +134,7 @@ class ManifestBuilder:
             'variants': {
                 'full': full_assets,
                 'client': client_assets,
+                'tauri': tauri_assets,
                 'web': web_assets
             }
         }
