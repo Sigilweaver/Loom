@@ -77,7 +77,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='backend',  # Must match Electron's expectation: backend.exe
+    name='server',  # Must match Electron's expectation: server.exe
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
