@@ -1,9 +1,0 @@
-{
-    "name": "Your Name",
-    "email": "your@email.com",
-    "aliases": {
-        "st": "status",
-        "co": "checkout",
-        "br": "branch"
-    }
-}

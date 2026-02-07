@@ -1,8 +1,0 @@
-# Personal/Local ignores (not part of the project's .gitignore)
-# These patterns are configured via git config --global core.excludesFile
-# and apply to all repositories on your machine.
-
-# Example patterns:
-# scratch/
-# notes.md
-# .myide/
