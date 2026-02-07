@@ -99,6 +99,31 @@ DEV_PORTS = {
 }
 
 
+def read_dotenv(path: Path) -> dict[str, str]:
+    """Read a .env file and return a dict of key=value pairs.
+    
+    Handles quoting (single/double), inline comments, and skips blanks/comments.
+    Does NOT handle multi-line values.
+    """
+    env_vars: dict[str, str] = {}
+    if not path.exists():
+        return env_vars
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        # Strip surrounding quotes
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        env_vars[key] = value
+    return env_vars
+
+
 def get_repo_root() -> Path:
     """Find the repository root directory."""
     script_dir = Path(__file__).parent.resolve()
@@ -582,8 +607,14 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         env["HUB_URL"] = "http://localhost:25802"  # Hub backend port
         # Development server token - Server will auto-register with Hub on startup
         env["HUB_SERVER_TOKEN"] = "dev-server-token"
-        # Registration secret - must match Hub's SERVER_REGISTRATION_SECRET
-        env["HUB_REGISTRATION_SECRET"] = "dev-registration-secret"
+        # Registration secret - sourced from Hub's .env so they always match
+        hub_env = read_dotenv(repo_root / "hub" / "backend" / ".env")
+        reg_secret = hub_env.get("SERVER_REGISTRATION_SECRET", "")
+        if reg_secret:
+            env["HUB_REGISTRATION_SECRET"] = reg_secret
+        else:
+            print_warning("  No SERVER_REGISTRATION_SECRET in hub/backend/.env")
+            print_warning("  Server may fail to register with Hub")
         print_success("  Hub auth mode enabled (validating tokens with Hub)")
         print_success("  Server will auto-register with Hub on startup")
     else:
@@ -774,13 +805,9 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
     ]
     
     # Set environment variables for Hub
+    # Secrets (CONNECTION_ENCRYPTION_KEY, SERVER_REGISTRATION_SECRET, etc.)
+    # are read from hub/backend/.env by pydantic-settings — don't override here.
     env = os.environ.copy()
-    # Development encryption key for Hub connections (valid Fernet key)
-    # In production, generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-    env["CONNECTION_ENCRYPTION_KEY"] = "xFvKugJ1oWmzFdB_MaNc0M0MJZhcZ9IVcRWf76dm85c="
-    # Development registration secret - servers must provide this to register
-    # In production, generate a secure random string
-    env["SERVER_REGISTRATION_SECRET"] = "dev-registration-secret"
     
     try:
         hub_backend_process = subprocess.Popen(
