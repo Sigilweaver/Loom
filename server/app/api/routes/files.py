@@ -134,9 +134,10 @@ async def get_browse_context(
             detail=result.error or "Invalid browse token",
         )
 
+    fp = result.file_paths or []
     return BrowseContext(
         user_id=result.user_id,
-        file_paths=result.file_paths or [],
+        file_paths=fp,
     )
 
 

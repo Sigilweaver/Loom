@@ -17,6 +17,7 @@ from app.domain.datasources.ipc import IPCDataSource
 from app.domain.datasources.json import JSONDataSource
 from app.domain.datasources.ods import ODSDataSource
 from app.domain.datasources.parquet import ParquetDataSource
+from app.domain.datasources.yxdb import YxdbDataSource
 from app.utils.errors import DataSourceError
 
 
@@ -32,6 +33,7 @@ class DataSourceFactory:
         "json": JSONDataSource,
         "ods": ODSDataSource,
         "parquet": ParquetDataSource,
+        "yxdb": YxdbDataSource,
         "postgresql": PostgreSQLDataSource,
         "mysql": MySQLDataSource,
         "sqlite": SQLiteDataSource,
@@ -53,6 +55,7 @@ class DataSourceFactory:
         ".jsonl": "json",  # Newline-delimited JSON
         ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
         ".parquet": "parquet",
+        ".yxdb": "yxdb",  # Alteryx YXDB format (via SigilYX)
         ".arrow": "ipc",  # Apache Arrow IPC format
         ".ipc": "ipc",  # IPC format
         ".feather": "ipc",  # Feather v2 (same as Arrow IPC)

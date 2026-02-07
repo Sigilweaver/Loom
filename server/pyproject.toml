@@ -18,6 +18,7 @@ dependencies = [
     "cryptography>=41.0.0",
     "pyarrow>=22.0.0",
     "httpx>=0.28.1",
+    "sigilyx",
 ]
 
 [project.optional-dependencies]
@@ -60,3 +61,6 @@ warn_unused_configs = true
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+
+[tool.uv.sources]
+sigilyx = { path = "../SigilYX", editable = true }

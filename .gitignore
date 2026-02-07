@@ -83,6 +83,8 @@ docker/.secrets/
 # ───────────────────────────────────────────────────────────────────────────────
 # IDE & Editors
 # ───────────────────────────────────────────────────────────────────────────────
+.vscode/
+.devcontainer/
 .idea/
 *.swp
 *.swo
@@ -121,3 +123,5 @@ coverage/
 *.lcov
 .nyc_output/
 docker/.env
+SigilYX/
+obsidian/

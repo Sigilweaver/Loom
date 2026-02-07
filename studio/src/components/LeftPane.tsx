@@ -31,6 +31,8 @@ import { ExcelOutputConfiguration } from "./config/inout/ExcelOutputConfiguratio
 import { IpcOutputConfiguration } from "./config/inout/IpcOutputConfiguration";
 import { JsonOutputConfiguration } from "./config/inout/JsonOutputConfiguration";
 import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfiguration";
+import { YxdbConfiguration } from "./config/inout/YxdbConfiguration";
+import { YxdbOutputConfiguration } from "./config/inout/YxdbOutputConfiguration";
 // Shell components
 import ToolHeader from "./ToolHeader";
 import ResizablePanel from "./shell/ResizablePanel";
@@ -337,6 +339,21 @@ export default function LeftPane() {
                       newConfig.filePath = existingFilePath;
                     }
                     handleToolConfigChange(selectedTool.id, newConfig);
+                  } else if (dataSource.id === "yxdb") {
+                    // YXDB has no mode selection (always eager read via SigilYX)
+                    const newConfig: ToolConfig = {
+                      category: "file" as const,
+                      type: "yxdb" as const,
+                    };
+                    // Preserve existing file path if any
+                    const existingFilePath = selectedTool.config?.filePath;
+                    if (
+                      existingFilePath !== undefined &&
+                      existingFilePath !== null
+                    ) {
+                      newConfig.filePath = existingFilePath;
+                    }
+                    handleToolConfigChange(selectedTool.id, newConfig);
                   } else if (dataSource.id === "postgresql") {
                     // PostgreSQL database connection
                     const newConfig: ToolConfig = {
@@ -460,6 +477,15 @@ export default function LeftPane() {
                   handleToolConfigChange(selectedTool.id, config)
                 }
               />
+            ) : selectedTool.config.category === "file" &&
+              selectedTool.config.type === "yxdb" ? (
+              /* YXDB Configuration Panel */
+              <YxdbConfiguration
+                config={selectedTool.config}
+                onChange={(config) =>
+                  handleToolConfigChange(selectedTool.id, config)
+                }
+              />
             ) : selectedTool.config.category === "database" &&
               selectedTool.config.type === "postgresql" ? (
               /* PostgreSQL Configuration Panel */
@@ -573,6 +599,13 @@ export default function LeftPane() {
                       compression: "uncompressed", // Default compression
                     };
                     handleToolConfigChange(selectedTool.id, newConfig);
+                  } else if (dataSource.id === "yxdb") {
+                    // YXDB output (always eager - no streaming)
+                    const newConfig: ToolConfig = {
+                      category: "file" as const,
+                      type: "yxdb" as const,
+                    };
+                    handleToolConfigChange(selectedTool.id, newConfig);
                   }
                 }}
                 selectedId={selectedTool.config?.type as string}
@@ -630,6 +663,15 @@ export default function LeftPane() {
               selectedTool.config.type === "avro" ? (
               /* Avro Output Configuration Panel */
               <AvroOutputConfiguration
+                config={selectedTool.config}
+                onChange={(config) =>
+                  handleToolConfigChange(selectedTool.id, config)
+                }
+              />
+            ) : selectedTool.config.category === "file" &&
+              selectedTool.config.type === "yxdb" ? (
+              /* YXDB Output Configuration Panel */
+              <YxdbOutputConfiguration
                 config={selectedTool.config}
                 onChange={(config) =>
                   handleToolConfigChange(selectedTool.id, config)

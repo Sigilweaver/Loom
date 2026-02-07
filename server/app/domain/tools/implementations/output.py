@@ -62,6 +62,8 @@ class OutputTool(BaseTool):
             await self._save_ipc(lf, config)
         elif output_type == "avro":
             await self._save_avro(lf, config)
+        elif output_type == "yxdb":
+            await self._save_yxdb(lf, config)
         else:
             raise ToolError(f"Unsupported output type: {output_type}")
 
@@ -317,6 +319,33 @@ class OutputTool(BaseTool):
 
         return kwargs
 
+    async def _save_yxdb(
+        self, lf: pl.LazyFrame, config: dict[str, Any]
+    ) -> None:
+        """Save to YXDB (Alteryx Database) format using SigilYX.
+
+        YXDB is always an eager write — the format requires knowing
+        record count upfront and uses row-based LZF-compressed blocks.
+        """
+        import sigilyx
+
+        destination = config.get("destination")
+        if not destination:
+            raise ToolError("YXDB output config missing 'destination' field")
+
+        # Security: Validate destination path against allowed paths (Hub mode enforcement)
+        validate_file_path_for_write(destination)
+
+        # Ensure destination directory exists
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # sink_yxdb collects the LazyFrame and writes to YXDB in one call
+            sigilyx.sink_yxdb(str(dest_path), lf)
+        except Exception as e:
+            raise ToolError(f"Failed to write YXDB: {e!s}") from e
+
     async def _save_excel(
         self, lf: pl.LazyFrame, config: dict[str, Any]
     ) -> None:
@@ -485,7 +514,7 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["avro", "csv", "excel", "ipc", "json", "parquet"]:
+        if output_type and output_type not in ["avro", "csv", "excel", "ipc", "json", "parquet", "yxdb"]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -709,6 +738,13 @@ class OutputTool(BaseTool):
             opts_str = f", {', '.join(options)}" if options else ""
 
             lines.append(f'{input_var}.collect().write_avro("{escaped_path}"{opts_str})')
+
+        elif output_type == "yxdb":
+            escaped_path = PythonCodeGenerator.escape_path(destination)
+            lines.append("import sigilyx")
+            lines.append(
+                f'sigilyx.sink_yxdb("{escaped_path}", {input_var})'
+            )
 
         else:
             lines.append(

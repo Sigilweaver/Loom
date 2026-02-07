@@ -62,6 +62,13 @@ const DATA_SOURCES: DataSource[] = [
     enabled: true,
   },
   {
+    id: "yxdb",
+    name: "YXDB",
+    category: "file",
+    description: "Alteryx YXDB database file (.yxdb) via SigilYX",
+    enabled: true,
+  },
+  {
     id: "ods",
     name: "ODS",
     category: "file",
@@ -139,6 +146,7 @@ const getIconUrl = (dataSourceId: string, _currentTheme: string): string => {
     json: "json",
     ipc: "apachearrow",
     avro: "apacheavro", // Use dedicated Avro icon
+    yxdb: "yxdb",
     ods: "libreoffice",
     sqlite: "sqlite",
     postgresql: "postgresql",
