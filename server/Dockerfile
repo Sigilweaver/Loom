@@ -3,7 +3,8 @@
 # Sigilweaver Server - Production Dockerfile
 # =============================================================================
 # Multi-stage build for minimal image size:
-#   Stage 1: Build dependencies (Python/uv)
+#   Stage 0: Build SigilYX wheel (Rust compilation via maturin)
+#   Stage 1: Build Python dependencies
 #   Stage 2: Production runtime
 #
 # Build with: docker build --build-arg VERSION=1.0.0 -t sigilweaver-server .
@@ -15,7 +16,36 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # =============================================================================
-# Stage 1: Build dependencies
+# Stage 0: Build SigilYX wheel
+# =============================================================================
+# SigilYX is a private repo (github.com/sigilweaver/SigilYX) built with
+# maturin (Rust + Python). We clone it using a build secret and compile
+# a wheel so the builder stage can install it without Rust.
+FROM python:3.11.9-slim-bookworm AS sigilyx-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (minimal profile — only rustc + cargo)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain stable --profile minimal
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Install maturin to build the Python wheel
+RUN pip install --no-cache-dir maturin
+
+WORKDIR /build
+# Clone SigilYX using the GitHub token passed as a build secret
+RUN --mount=type=secret,id=github_token \
+    git clone --depth 1 \
+    https://x-access-token:$(cat /run/secrets/github_token)@github.com/sigilweaver/SigilYX.git
+RUN cd SigilYX && maturin build --release --strip -o /wheels/
+
+# =============================================================================
+# Stage 1: Build Python dependencies
 # =============================================================================
 FROM python:3.11.9-slim-bookworm AS builder
 
@@ -30,12 +60,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv for fast dependency resolution
 COPY --link --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
 
+# Copy pre-built SigilYX wheel from stage 0
+COPY --from=sigilyx-builder /wheels/ /tmp/wheels/
+
 # Copy dependency files
 COPY server/pyproject.toml server/uv.lock ./
 
-# Create virtual environment and install dependencies with cache mount
+# Export pinned requirements (excluding sigilyx — installed from wheel),
+# then install everything into a virtual environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv export --frozen --no-dev --no-emit-project --no-emit-package sigilyx \
+    -o requirements.txt && \
+    uv venv .venv && \
+    uv pip install --python .venv/bin/python \
+    -r requirements.txt /tmp/wheels/sigilyx*.whl
 
 # =============================================================================
 # Stage 2: Production runtime

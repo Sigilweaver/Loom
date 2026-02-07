@@ -43,13 +43,23 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version-file: 'server/.python-version'
+          python-version-file: "server/.python-version"
+
+      - name: Checkout SigilYX
+        uses: actions/checkout@v4
+        with:
+          repository: sigilweaver/SigilYX
+          token: ${{ secrets.SIGILYX_TOKEN }}
+          path: SigilYX
+
+      - name: Setup Rust (for SigilYX)
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: |
             studio/package-lock.json
             hub/frontend/package-lock.json
@@ -108,7 +118,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: studio/package-lock.json
 
       - name: Install dependencies
@@ -124,4 +134,3 @@ jobs:
           path: studio/dist/**
           if-no-files-found: warn
           retention-days: 7
-
