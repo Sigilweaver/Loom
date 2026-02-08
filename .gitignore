@@ -125,3 +125,6 @@ coverage/
 docker/.env
 SigilYX/
 obsidian/
+sigilweaver.com/
+sigilweaver-holdings.com/
+.github/copilot-prompts/
