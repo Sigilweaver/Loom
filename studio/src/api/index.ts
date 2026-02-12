@@ -22,6 +22,7 @@ export {
   // Execution functions - same signatures as backend.ts but Hub-aware
   previewTool,
   getToolSchema,
+  getToolMetadata,
   profileColumns,
   previewAllTools,
   executeWorkflow,
@@ -67,7 +68,6 @@ export type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerialize
 
 export {
   // These call the server directly regardless of mode
-  getToolMetadata,
   getPolarsFunctions,
   previewCode,
   healthCheck,

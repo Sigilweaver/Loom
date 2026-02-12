@@ -5,7 +5,6 @@
 import { useState, useCallback } from 'react';
 import {
   // Non-execution functions (don't need Hub routing)
-  getToolMetadata,
   getPolarsFunctions,
   previewCode,
   BackendError,
@@ -22,6 +21,7 @@ import {
   previewTool,
   previewAllTools,
   getToolSchema,
+  getToolMetadata,
   executeWorkflow,
   needsHubLogin,
 } from './execution';

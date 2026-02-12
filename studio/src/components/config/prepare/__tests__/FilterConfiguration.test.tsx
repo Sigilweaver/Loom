@@ -21,8 +21,16 @@ describe('FilterConfiguration', () => {
   const mockFetchMetadata = vi.fn();
   const mockFetchFunctions = vi.fn();
 
+  // Default config: Basic mode (new tool)
   const defaultConfig: ToolConfig = {
     expression: '',
+    _emit: {},
+  };
+
+  // Advanced mode config for tests that need the editable CodeEditor
+  const advancedConfig: ToolConfig = {
+    expression: '',
+    mode: 'Custom',
     _emit: {},
   };
 
@@ -87,12 +95,48 @@ describe('FilterConfiguration', () => {
       );
 
       expect(screen.getByText('Filter Expression')).toBeInTheDocument();
+      // In Basic mode, the read-only expression preview editor is rendered
       expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+    });
+
+    it('renders basic mode by default for new tools', () => {
+      renderWithTheme(
+        <FilterConfiguration
+          config={defaultConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      expect(screen.getByText('Expression Preview')).toBeInTheDocument();
+      // In basic mode with no columns, shows connect-data message
+      expect(screen.getByText('Connect a data source to add filter conditions')).toBeInTheDocument();
+    });
+
+    it('renders advanced mode when mode is Custom', () => {
+      renderWithTheme(
+        <FilterConfiguration
+          config={advancedConfig}
+          onChange={mockOnChange}
+          toolId="tool-1"
+          tools={defaultTools}
+          wires={defaultWires}
+          workflowMeta={defaultMeta}
+        />
+      );
+
+      // Advanced mode shows examples, not the expression builder
+      expect(screen.getByText('Example Expressions:')).toBeInTheDocument();
+      expect(screen.queryByText('Add condition')).not.toBeInTheDocument();
     });
   });
 
   describe('Config Value Display', () => {
     it('displays existing expression value', () => {
+      // Config with expression and no conditions → backward compat → Advanced mode
       const configWithValue: ToolConfig = {
         expression: "pl.col('age') > 18",
         _emit: {},
@@ -135,12 +179,12 @@ describe('FilterConfiguration', () => {
   });
 
   describe('User Interactions', () => {
-    it('calls onChange when expression changes', async () => {
+    it('calls onChange when expression changes in advanced mode', async () => {
       const user = userEvent.setup();
-      
+
       renderWithTheme(
         <FilterConfiguration
-          config={defaultConfig}
+          config={advancedConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -162,10 +206,10 @@ describe('FilterConfiguration', () => {
 
     it('updates _emit map when expression changes', async () => {
       const user = userEvent.setup();
-      
+
       renderWithTheme(
         <FilterConfiguration
-          config={defaultConfig}
+          config={advancedConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -189,6 +233,7 @@ describe('FilterConfiguration', () => {
       const user = userEvent.setup();
       const configWithEmit: ToolConfig = {
         expression: 'existing_expr',
+        mode: 'Custom',
         someOtherField: 'value',
         _emit: { someOtherField: true, expression: false },
       };
@@ -218,10 +263,10 @@ describe('FilterConfiguration', () => {
 
     it('handles rapid expression changes', async () => {
       const user = userEvent.setup();
-      
+
       renderWithTheme(
         <FilterConfiguration
-          config={defaultConfig}
+          config={advancedConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -539,7 +584,7 @@ describe('FilterConfiguration', () => {
 
       renderWithTheme(
         <FilterConfiguration
-          config={defaultConfig}
+          config={advancedConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -618,7 +663,7 @@ describe('FilterConfiguration', () => {
     });
 
     it('handles multiline expressions', () => {
-      const multilineExpression = `(pl.col('age') > 18) & 
+      const multilineExpression = `(pl.col('age') > 18) &
 (pl.col('status') == 'active') &
 (pl.col('score') > 50)`;
 

@@ -55,7 +55,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     category: 'preparation',
     defaultConfig: {
       expression: '',
-      mode: 'Custom',
+      mode: 'Basic',
+      conditions: [],
+      combinator: 'and',
     },
     sockets: [
       { id: FilterSockets.INPUT, direction: 'input' },

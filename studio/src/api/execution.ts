@@ -206,8 +206,34 @@ export async function executeWorkflow(
   return backend.executeWorkflow(workflow, targetToolId, forceRefresh, context);
 }
 
-/**
- * Profile columns for a tool's output
+/** Get metadata (columns) for a tool's input socket
+ *
+ * Same signature as backend.getToolMetadata - Hub routing is handled internally.
+ *
+ * @param toolId - The ID of the tool to get metadata for
+ * @param workflow - The complete workflow definition
+ * @param socketId - Optional socket ID to get columns for
+ * @param context - Optional request context for logging
+ * @returns Metadata including columns from input sockets
+ */
+export async function getToolMetadata(
+  toolId: string,
+  workflow: WorkflowJSON,
+  socketId?: string,
+  context?: backend.RequestContext
+): Promise<backend.MetadataResponse> {
+  if (isHubMode()) {
+    return executeViaHub(workflow, '/api/workflow/tool/metadata', {
+      tool_id: toolId,
+      workflow,
+      socket_id: socketId,
+    });
+  }
+
+  return backend.getToolMetadata(toolId, workflow, socketId, context);
+}
+
+/** Profile columns for a tool's output
  *
  * Same signature as backend.profileColumns - Hub routing is handled internally.
  *
