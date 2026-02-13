@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ENGINE,
   Tool,
   ToolConfig,
   Wire,
@@ -585,6 +586,151 @@ describe("WorkflowSerializer", () => {
 
       expect(tools).toHaveLength(0);
       expect(wires).toHaveLength(0);
+    });
+  });
+
+  describe("engine support", () => {
+    it("should omit engine from tools when it matches the workflow default", () => {
+      const meta = createTestMeta();
+      meta.defaultEngine = DEFAULT_ENGINE;
+      const tool: Tool = {
+        ...createTestTool(),
+        engine: DEFAULT_ENGINE,
+      };
+
+      const json = WorkflowSerializer.toJSON([tool], [], meta);
+      const parsed = JSON.parse(json);
+
+      // engine should be omitted since it matches the default
+      expect(parsed.tools[0].engine).toBeUndefined();
+    });
+
+    it("should include engine on tools when it differs from the workflow default", () => {
+      const meta = createTestMeta();
+      meta.defaultEngine = DEFAULT_ENGINE;
+      const tool: Tool = {
+        ...createTestTool(),
+        engine: "contrib/dbt",
+      };
+
+      const json = WorkflowSerializer.toJSON([tool], [], meta);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.tools[0].engine).toBe("contrib/dbt");
+    });
+
+    it("should serialize defaultEngine in meta", () => {
+      const meta = createTestMeta();
+      meta.defaultEngine = DEFAULT_ENGINE;
+
+      const json = WorkflowSerializer.toJSON([], [], meta);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.meta.defaultEngine).toBe(DEFAULT_ENGINE);
+    });
+
+    it("should serialize engines block when provided", () => {
+      const meta = createTestMeta();
+      const engines = {
+        "sigilweaver/polars": {},
+        "contrib/dbt": { project: "my_project", profile: "dev" },
+      };
+
+      const json = WorkflowSerializer.toJSON([], [], meta, engines);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.engines).toBeDefined();
+      expect(parsed.engines["contrib/dbt"].project).toBe("my_project");
+    });
+
+    it("should omit engines block when empty", () => {
+      const json = WorkflowSerializer.toJSON([], [], createTestMeta(), {});
+      const parsed = JSON.parse(json);
+
+      expect(parsed.engines).toBeUndefined();
+    });
+
+    it("should round-trip engine fields correctly", () => {
+      const meta = createTestMeta();
+      meta.defaultEngine = DEFAULT_ENGINE;
+      const tools = [
+        { ...createTestTool("t1"), engine: "contrib/dbt" },
+        { ...createTestTool("t2") }, // no engine - inherits default
+      ];
+      const engines = { "contrib/dbt": { project: "test" } };
+
+      const json = WorkflowSerializer.toJSON(tools, [], meta, engines);
+      const result = WorkflowSerializer.fromJSON(json);
+
+      expect(result.meta.defaultEngine).toBe(DEFAULT_ENGINE);
+      expect(result.engines).toBeDefined();
+      expect(result.engines!["contrib/dbt"]).toEqual({ project: "test" });
+      // Tool with non-default engine preserved
+      expect(result.tools.find(t => t.id === "t1")?.engine).toBe("contrib/dbt");
+      // Tool with default engine omitted
+      expect(result.tools.find(t => t.id === "t2")?.engine).toBeUndefined();
+    });
+
+    it("should validate engine field on tools as string", () => {
+      const data = {
+        version: "1.0",
+        meta: createTestMeta(),
+        tools: [{
+          id: "t1", type: "Filter", x: 0, y: 0,
+          config: {}, sockets: [{ id: "input", direction: "input" }],
+          engine: 123, // invalid - should be string
+        }],
+        wires: [],
+      };
+
+      const result = WorkflowSerializer.validate(data);
+      expect(result.valid).toBe(false);
+      expect(result.errors?.[0]).toContain("engine");
+    });
+
+    it("should validate defaultEngine in meta as string", () => {
+      const data = {
+        version: "1.0",
+        meta: { ...createTestMeta(), defaultEngine: 42 },
+        tools: [],
+        wires: [],
+      };
+
+      const result = WorkflowSerializer.validate(data);
+      expect(result.valid).toBe(false);
+      expect(result.errors?.[0]).toContain("defaultEngine");
+    });
+
+    it("should validate engines block as object", () => {
+      const data = {
+        version: "1.0",
+        meta: createTestMeta(),
+        tools: [],
+        wires: [],
+        engines: "not an object",
+      };
+
+      const result = WorkflowSerializer.validate(data);
+      expect(result.valid).toBe(false);
+      expect(result.errors?.[0]).toContain("engines");
+    });
+
+    it("should accept workflow without any engine fields (backward compat)", () => {
+      const data = {
+        version: "1.0",
+        meta: {
+          name: "Legacy",
+          description: "",
+          author: "",
+          workflowId: "legacy-1",
+          created: "2025-01-01T00:00:00Z",
+        },
+        tools: [],
+        wires: [],
+      };
+
+      const result = WorkflowSerializer.validate(data);
+      expect(result.valid).toBe(true);
     });
   });
 });

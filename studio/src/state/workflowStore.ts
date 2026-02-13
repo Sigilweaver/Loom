@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ENGINE,
   Tool,
   ToolConfig,
   Wire,
@@ -82,6 +83,7 @@ const createDefaultMeta = (): WorkflowMeta => {
     author: getAuthor(),
     workflowId: uuidv4(),
     created: new Date().toISOString(),
+    defaultEngine: DEFAULT_ENGINE,
   };
 };
 
