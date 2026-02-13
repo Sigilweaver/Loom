@@ -399,16 +399,34 @@ Workflows are saved as `.swwf` files (JSON):
 
 ```json
 {
-  "version": "2.0",
+  "version": "1.0",
   "meta": {
     "name": "My Workflow",
     "author": "User",
-    "created": "2024-01-15T..."
+    "created": "2024-01-15T...",
+    "defaultEngine": "sigilweaver/polars"
   },
-  "tools": [...],
-  "wires": [...]
+  "tools": [
+    {
+      "id": "abc",
+      "type": "Filter",
+      "engine": "sigilweaver/polars",
+      "x": 100, "y": 200,
+      "config": { ... },
+      "sockets": [ ... ]
+    }
+  ],
+  "wires": [...],
+  "engines": {
+    "sigilweaver/polars": {}
+  }
 }
 ```
+
+Key engine-related fields:
+- `meta.defaultEngine`: The default engine for all tools in the workflow (optional, defaults to `"sigilweaver/polars"`).
+- `tool.engine`: Per-tool engine override. Omitted during serialization when it matches the workflow default.
+- `engines`: Optional block for engine-specific configuration.
 
 The `domain/workflow/services/WorkflowSerializer.ts` handles serialization/deserialization with validation.
 

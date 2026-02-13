@@ -119,7 +119,11 @@ These constants are validated by type contract tests that ensure Studio and Serv
 All tools inherit from `BaseTool`:
 
 ```python
+from app.api.models.workflow import DEFAULT_ENGINE
+
 class BaseTool(ABC):
+    engine: str = DEFAULT_ENGINE  # "sigilweaver/polars" by default
+
     @abstractmethod
     async def execute(
         self, 
@@ -176,9 +180,12 @@ class ToolRegistry:
     @classmethod
     def register(cls, tool_type: str, tool_class: Type[BaseTool]):
         cls._tools[tool_type] = tool_class
+        # Also registers under engine-qualified key:
+        # e.g., "sigilweaver/polars::Filter"
     
     @classmethod
-    def get(cls, tool_type: str) -> BaseTool:
+    def get(cls, tool_type: str, engine: str | None = None) -> BaseTool:
+        # Tries "{engine}::{tool_type}" first, then plain "{tool_type}"
         return cls._tools[tool_type]()
 ```
 
@@ -333,6 +340,8 @@ This handles:
 2. Initialize `CacheManager` for the workflow
 3. Determine execution mode (sequential or parallel)
 4. For each tool (or level of tools):
+   - Resolve engine via `workflow.get_engine_for_tool(tool)` (precedence: `tool.engine` > `meta.defaultEngine` > `DEFAULT_ENGINE`)
+   - Look up tool implementation via `ToolRegistry.get(tool.type, engine=engine)`
    - Compute lineage hash via `CacheManager`
    - Check cache for blocking tools
    - If cache hit: use cached output, skip execution

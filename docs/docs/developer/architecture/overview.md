@@ -139,9 +139,13 @@ The tool system uses a decorator-based registry:
 ```python
 @register_tool("Filter")
 class FilterTool(BaseTool):
+    engine = "sigilweaver/polars"  # Default engine
+
     async def execute(self, config, inputs):
         # Transformation logic
 ```
+
+Each tool declares its execution engine. The executor resolves the engine per-tool using the precedence chain: `tool.engine` > `meta.defaultEngine` > `DEFAULT_ENGINE`.
 
 Socket IDs are defined as constants in both frontend and backend to prevent mismatches:
 ```python

@@ -82,12 +82,18 @@ Workflows are saved as `.swwf` files:
   "version": "1.0",
   "meta": {
     "name": "My Workflow",
-    "author": "User"
+    "author": "User",
+    "defaultEngine": "sigilweaver/polars"
   },
   "tools": [...],
-  "wires": [...]
+  "wires": [...],
+  "engines": {}
 }
 ```
+
+- `meta.defaultEngine`: The execution engine for all tools (defaults to `"sigilweaver/polars"`).
+- Tools can override with a per-tool `engine` field.
+- `engines`: Optional block for engine-specific configuration.
 
 ## For Developers
 

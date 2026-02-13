@@ -12,12 +12,17 @@ export type FieldValue =
   | Record<string, unknown>[]
   | Record<string, unknown>;
 
+/** Default engine identifier for tools that don't specify one */
+export const DEFAULT_ENGINE = "sigilweaver/polars";
+
 export interface WorkflowMeta {
   name: string;
   description: string;
   author: string;
   workflowId: string;
   created: string;
+  /** Default engine for all tools in this workflow. Omit to use DEFAULT_ENGINE. */
+  defaultEngine?: string;
 }
 
 /**
@@ -42,6 +47,8 @@ export interface Socket {
 export interface Tool {
   id: string;
   type: string;
+  /** Execution engine for this tool. Omit to inherit from WorkflowMeta.defaultEngine. */
+  engine?: string;
   x: number;
   y: number;
   config: ToolConfig;

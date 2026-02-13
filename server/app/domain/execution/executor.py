@@ -33,6 +33,7 @@ class WorkflowExecutor:
     def __init__(self) -> None:
         self.results: dict[str, dict[str, pl.LazyFrame]] = {}
         self.archive_dir: Path | None = None
+        self._default_engine: str = "sigilweaver/polars"
 
     async def execute_workflow(
         self,
@@ -55,6 +56,9 @@ class WorkflowExecutor:
         """
         start_time = time.time()
         execution_log = self._create_execution_log(target_tool_id, preview_limit, force_refresh)
+
+        # Store default engine for tool resolution
+        self._default_engine = workflow.meta.default_engine
 
         # Initialize archive if enabled
         self._init_archive(workflow, execution_log)
@@ -159,7 +163,8 @@ class WorkflowExecutor:
     ) -> dict[str, Any]:
         """Get output schema for a tool without full execution."""
         tool = self._get_tool(workflow, tool_id)
-        tool_impl = ToolRegistry.get(tool.type)
+        engine = workflow.get_engine_for_tool(tool)
+        tool_impl = ToolRegistry.get(tool.type, engine=engine)
 
         # Execute upstream tools to get input schemas
         cache_mgr = CacheManager(workflow.meta.workflow_id)
@@ -473,7 +478,8 @@ class WorkflowExecutor:
 
         # Execute tool
         try:
-            tool_impl = ToolRegistry.get(tool.type)
+            engine = tool.get_engine(self._default_engine)
+            tool_impl = ToolRegistry.get(tool.type, engine=engine)
             outputs = await tool_impl.execute(tool.config, inputs)
         except Exception as e:
             raise ExecutionError(f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}") from e

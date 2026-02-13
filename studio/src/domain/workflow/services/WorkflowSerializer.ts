@@ -7,16 +7,25 @@
  * File Format: .swwf v2.0 (JSON)
  */
 
-import { Tool, ToolConfig, Wire, WorkflowMeta } from "@domain/workflow/entities/workflow";
+import { DEFAULT_ENGINE, Tool, ToolConfig, Wire, WorkflowMeta } from "@domain/workflow/entities/workflow";
 
 /**
- * JSON workflow file format (v2.0)
+ * Engine-specific configuration block.
+ * Holds connection details, project paths, or other config
+ * specific to an execution engine.
+ */
+export type EngineConfig = Record<string, unknown>;
+
+/**
+ * JSON workflow file format
  */
 export interface WorkflowJSON {
   version: string;
   meta: WorkflowMeta;
   tools: Tool[];
   wires: Wire[];
+  /** Optional engine-specific configuration, keyed by engine ID */
+  engines?: Record<string, EngineConfig>;
 }
 
 /**
@@ -121,7 +130,7 @@ export class WorkflowSerializer {
    * const json = WorkflowSerializer.toJSON(tools, wires, meta);
    * fs.writeFile('workflow.swwf', json);
    */
-  static toJSON(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
+  static toJSON(tools: Tool[], wires: Wire[], meta: WorkflowMeta, engines?: Record<string, EngineConfig>): string {
     // Filter configs based on _emit map (only include fields marked for emission)
     const cleanTools = tools.map((tool) => {
       const emit = tool.config._emit as Record<string, unknown> | undefined;
@@ -130,18 +139,31 @@ export class WorkflowSerializer {
         emit
       );
 
-      return {
+      const serialized: Record<string, unknown> = {
         ...tool,
         config: filteredConfig,
       };
+
+      // Only include engine if it differs from the workflow default
+      const workflowDefault = meta.defaultEngine ?? DEFAULT_ENGINE;
+      if (!tool.engine || tool.engine === workflowDefault) {
+        delete serialized.engine;
+      }
+
+      return serialized;
     });
 
     const workflow: WorkflowJSON = {
       version: this.VERSION,
       meta,
-      tools: cleanTools,
+      tools: cleanTools as unknown as Tool[],
       wires,
     };
+
+    // Only include engines block if it has content
+    if (engines && Object.keys(engines).length > 0) {
+      workflow.engines = engines;
+    }
 
     // Pretty print with 2-space indentation for readability
     return JSON.stringify(workflow, null, 2);
@@ -162,6 +184,7 @@ export class WorkflowSerializer {
     tools: Tool[];
     wires: Wire[];
     meta: WorkflowMeta;
+    engines?: Record<string, EngineConfig>;
   } {
     try {
       const data = JSON.parse(json) as WorkflowJSON;
@@ -174,11 +197,22 @@ export class WorkflowSerializer {
         );
       }
 
-      return {
+      const result: {
+        tools: Tool[];
+        wires: Wire[];
+        meta: WorkflowMeta;
+        engines?: Record<string, EngineConfig>;
+      } = {
         tools: data.tools,
         wires: data.wires,
         meta: data.meta,
       };
+
+      if (data.engines) {
+        result.engines = data.engines;
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof SyntaxError) {
         throw new Error(`Invalid JSON: ${error.message}`);
@@ -229,6 +263,10 @@ export class WorkflowSerializer {
       if (!meta.workflowId) {
         errors.push("Missing required field: meta.workflowId");
       }
+      // defaultEngine is optional, but if present must be a string
+      if (meta.defaultEngine !== undefined && typeof meta.defaultEngine !== "string") {
+        errors.push('Field "meta.defaultEngine" must be a string if present');
+      }
     }
 
     if (!workflow.tools) {
@@ -248,6 +286,9 @@ export class WorkflowSerializer {
           errors.push(`Tool at index ${index} missing required field: id`);
         if (!t.type)
           errors.push(`Tool at index ${index} missing required field: type`);
+        // engine is optional, but if present must be a string
+        if (t.engine !== undefined && typeof t.engine !== "string")
+          errors.push(`Tool at index ${index} field "engine" must be a string if present`);
         if (typeof t.x !== "number")
           errors.push(`Tool at index ${index} field "x" must be a number`);
         if (typeof t.y !== "number")
@@ -332,6 +373,13 @@ export class WorkflowSerializer {
       });
     }
 
+    // Validate optional engines block
+    if (workflow.engines !== undefined) {
+      if (typeof workflow.engines !== "object" || workflow.engines === null || Array.isArray(workflow.engines)) {
+        errors.push('Field "engines" must be an object if present');
+      }
+    }
+
     if (errors.length === 0) {
       return { valid: true, errors: undefined };
     }
@@ -355,6 +403,7 @@ export class WorkflowSerializer {
       author: "",
       workflowId: `wf_${Date.now()}`,
       created: new Date().toISOString(),
+      defaultEngine: DEFAULT_ENGINE,
     };
 
     return this.toJSON([], [], meta);

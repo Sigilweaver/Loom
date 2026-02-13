@@ -6,6 +6,7 @@ from typing import Any
 import polars as pl
 
 from app.api.models.common import DataSchema
+from app.api.models.workflow import DEFAULT_ENGINE
 
 
 class BaseTool(ABC):
@@ -15,7 +16,13 @@ class BaseTool(ABC):
     Tools receive Polars LazyFrames as inputs and return LazyFrames as outputs.
     All execution is lazy by default - collection happens only when needed
     (for preview or final output).
+
+    Each tool declares its engine via the `engine` class attribute. This is
+    used by the ToolRegistry for namespaced lookups and by the executor to
+    detect cross-engine wire boundaries.
     """
+
+    engine: str = DEFAULT_ENGINE
 
     @abstractmethod
     async def execute(

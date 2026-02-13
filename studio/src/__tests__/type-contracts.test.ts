@@ -15,6 +15,7 @@ import type {
   Wire,
   WorkflowMeta,
 } from "../domain/workflow/entities/workflow";
+import { DEFAULT_ENGINE } from "../domain/workflow/entities/workflow";
 import {
   CommonSockets,
   FilterSockets,
@@ -275,6 +276,95 @@ describe("Type Contracts", () => {
       expect(parsed.tools[0]!.type).toBe("Input");
       expect(parsed.tools[1]!.type).toBe("Filter");
       expect(parsed.tools[2]!.type).toBe("Output");
+    });
+  });
+
+  describe("Engine Field Contracts", () => {
+    test("defaultEngine field is accepted in meta", () => {
+      const meta: WorkflowMeta = {
+        ...baseMeta,
+        defaultEngine: DEFAULT_ENGINE,
+      };
+
+      const json = WorkflowSerializer.toJSON([], [], meta);
+      const parsed: WorkflowJSON = JSON.parse(json);
+
+      expect(parsed.meta.defaultEngine).toBe(DEFAULT_ENGINE);
+    });
+
+    test("engine field on tool is preserved when different from default", () => {
+      const tools: Tool[] = [
+        {
+          id: "dbt-1",
+          type: "Model",
+          engine: "contrib/dbt",
+          x: 0,
+          y: 0,
+          config: {},
+          sockets: [{ id: CommonSockets.OUTPUT, direction: "output" }],
+        },
+      ];
+
+      const json = WorkflowSerializer.toJSON(tools, [], {
+        ...baseMeta,
+        defaultEngine: DEFAULT_ENGINE,
+      });
+      const parsed: WorkflowJSON = JSON.parse(json);
+
+      expect(parsed.tools[0]!.engine).toBe("contrib/dbt");
+    });
+
+    test("engine field is omitted when matching workflow default", () => {
+      const tools: Tool[] = [
+        {
+          id: "filter-1",
+          type: "Filter",
+          engine: DEFAULT_ENGINE,
+          x: 0,
+          y: 0,
+          config: { _emit: {} },
+          sockets: [{ id: CommonSockets.INPUT, direction: "input" }],
+        },
+      ];
+
+      const json = WorkflowSerializer.toJSON(tools, [], {
+        ...baseMeta,
+        defaultEngine: DEFAULT_ENGINE,
+      });
+      const parsed: WorkflowJSON = JSON.parse(json);
+
+      // Should be omitted since it matches the default
+      expect(parsed.tools[0]!.engine).toBeUndefined();
+    });
+
+    test("engines block serializes when provided", () => {
+      const engines = {
+        "contrib/dbt": { project: "analytics", profile: "dev" },
+      };
+
+      const json = WorkflowSerializer.toJSON([], [], baseMeta, engines);
+      const parsed: WorkflowJSON = JSON.parse(json);
+
+      expect(parsed.engines).toBeDefined();
+      expect(parsed.engines!["contrib/dbt"]).toEqual({
+        project: "analytics",
+        profile: "dev",
+      });
+    });
+
+    test("workflow without engine fields is still valid (backward compat)", () => {
+      // Simulate a v1.0 workflow with no engine fields
+      const legacyJson = JSON.stringify({
+        version: "1.0",
+        meta: baseMeta,
+        tools: [],
+        wires: [],
+      });
+
+      const result = WorkflowSerializer.fromJSON(legacyJson);
+      expect(result.tools).toEqual([]);
+      expect(result.meta.defaultEngine).toBeUndefined();
+      expect(result.engines).toBeUndefined();
     });
   });
 });
