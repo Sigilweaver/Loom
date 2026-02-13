@@ -168,7 +168,7 @@ export function FormulaConfiguration({
       // Build config with both GUI state and server-compatible flat format
       const newConfig: ToolConfig = {
         ...config,
-        operations: newOps,
+        operations: newOps as unknown as Record<string, unknown>[],
         // Server-compatible format: top-level operations array
         // The server reads config.operations[].column_name / .expression
       };

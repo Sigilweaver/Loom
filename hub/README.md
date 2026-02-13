@@ -100,15 +100,27 @@ Running Hub on a Raspberry Pi or home server works great:
 ```yaml
 # docker-compose.homelab.yml
 services:
+  postgres:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: sigilweaver_hub
+      POSTGRES_USER: sigilweaver
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
   hub:
     image: sigilweaver/hub:latest
     ports:
       - "8080:25802"
-    volumes:
-      - hub_data:/app/data
     environment:
-      DATABASE_URL: sqlite:///./data/hub.db
+      DATABASE_URL: postgresql+asyncpg://sigilweaver:${POSTGRES_PASSWORD}@postgres:5432/sigilweaver_hub
       SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
 ```
 
 Tips:

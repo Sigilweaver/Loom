@@ -43,8 +43,7 @@ const PIVOT_AGGREGATIONS: AggregationInfo[] = [
   { value: "median", label: "Median", numericOnly: true },
   { value: "min", label: "Min", numericOnly: false },
   { value: "max", label: "Max", numericOnly: false },
-  { value: "count", label: "Count", numericOnly: false },
-  { value: "len", label: "Length", numericOnly: false },
+  { value: "len", label: "Count", numericOnly: false },
 ];
 
 interface PivotConfigurationProps {

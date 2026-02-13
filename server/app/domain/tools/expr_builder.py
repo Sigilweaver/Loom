@@ -806,7 +806,7 @@ class PivotOperation:
 
     # Valid aggregation functions for pivot
     VALID_AGGREGATIONS: set[str] = field(default_factory=lambda: {
-        "first", "last", "sum", "mean", "median", "min", "max", "count", "len"
+        "first", "last", "sum", "mean", "median", "min", "max", "len"
     }, repr=False)
 
     def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:

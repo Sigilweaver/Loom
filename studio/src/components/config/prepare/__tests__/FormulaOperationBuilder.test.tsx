@@ -221,7 +221,7 @@ describe("FormulaOperationBuilder interactions", () => {
     await user.selectOptions(sourceSelect, "quantity");
 
     expect(mockOnChange).toHaveBeenCalledTimes(1);
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     expect(updated.sourceColumn).toBe("quantity");
   });
 
@@ -242,7 +242,7 @@ describe("FormulaOperationBuilder interactions", () => {
     await user.selectOptions(opSelect, "round");
 
     expect(mockOnChange).toHaveBeenCalledTimes(1);
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     expect(updated.operationId).toBe("round");
     // Should auto-generate column name
     expect(updated.columnName).toBe("price_rounded");
@@ -268,7 +268,7 @@ describe("FormulaOperationBuilder interactions", () => {
     const opSelect = screen.getAllByRole("combobox")[1]!;
     await user.selectOptions(opSelect, "abs");
 
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     expect(updated.columnName).toBe("price_abs");
   });
 
@@ -291,7 +291,7 @@ describe("FormulaOperationBuilder interactions", () => {
     const opSelect = screen.getAllByRole("combobox")[1]!;
     await user.selectOptions(opSelect, "abs");
 
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     // Should NOT overwrite the manual name
     expect(updated.columnName).toBe("my_custom_name");
   });
@@ -313,7 +313,7 @@ describe("FormulaOperationBuilder interactions", () => {
 
     // Should call onChange at least once for the keystroke
     expect(mockOnChange).toHaveBeenCalled();
-    const firstCall = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const firstCall = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     expect(firstCall.columnName).toBe("t");
     expect(firstCall.columnNameEdited).toBe(true);
   });
@@ -338,7 +338,7 @@ describe("FormulaOperationBuilder interactions", () => {
     const sourceSelect = screen.getAllByRole("combobox")[0]!;
     await user.selectOptions(sourceSelect, "name"); // String column
 
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     // "add" is numeric-only, not valid for string → should be cleared
     expect(updated.operationId).toBe("");
   });
@@ -363,7 +363,7 @@ describe("FormulaOperationBuilder interactions", () => {
     const sourceSelect = screen.getAllByRole("combobox")[0]!;
     await user.selectOptions(sourceSelect, "name"); // String column
 
-    const updated = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const updated = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     // "cast" has applicableTypes: ["any"], should stay
     expect(updated.operationId).toBe("cast");
   });
@@ -392,7 +392,7 @@ describe("FormulaOperationBuilder interactions", () => {
 
     expect(mockOnChange).toHaveBeenCalled();
     // First call should have the param updated (appending "3" to "2" → "23")
-    const firstCall = mockOnChange.mock.calls[0][0] as FormulaOperationConfig;
+    const firstCall = mockOnChange.mock.calls[0]![0] as FormulaOperationConfig;
     expect(firstCall.params.exponent).toBe("23");
     expect(firstCall.expression).toContain("pow");
   });
