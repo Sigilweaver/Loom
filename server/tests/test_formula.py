@@ -7,6 +7,10 @@ from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.implementations.formula import FormulaTool
 
 
+# ============================================================================
+# Legacy single-operation tests (backward compatibility)
+# ============================================================================
+
 @pytest.mark.asyncio
 async def test_formula_arithmetic():
     """Test arithmetic expressions"""
@@ -249,6 +253,302 @@ async def test_formula_invalid_expression():
         result["output"].collect()
 
 
+# ============================================================================
+# Multi-operation tests (new format)
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation():
+    """Test multiple operations in a single Formula tool"""
+    tool = FormulaTool()
+
+    df = pl.LazyFrame({
+        "price": [10.0, 20.0, 30.0],
+        "quantity": [2, 3, 4],
+    })
+
+    config = {
+        "operations": [
+            {
+                "column_name": "total",
+                "expression": "pl.col('price') * pl.col('quantity')",
+            },
+            {
+                "column_name": "total_with_tax",
+                "expression": "pl.col('total') * 1.1",
+            },
+        ],
+    }
+
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
+
+    assert "total" in output.columns
+    assert "total_with_tax" in output.columns
+    assert output["total"].to_list() == [20.0, 60.0, 120.0]
+    # total_with_tax should reference the column created by operation 1
+    assert output["total_with_tax"].to_list() == [22.0, 66.0, 132.0]
+
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation_chaining():
+    """Test that later operations can reference columns from earlier operations"""
+    tool = FormulaTool()
+
+    df = pl.LazyFrame({
+        "value": [100, 200, 300],
+    })
+
+    config = {
+        "operations": [
+            {
+                "column_name": "doubled",
+                "expression": "pl.col('value') * 2",
+            },
+            {
+                "column_name": "quadrupled",
+                "expression": "pl.col('doubled') * 2",
+            },
+            {
+                "column_name": "label",
+                "expression": "pl.when(pl.col('quadrupled') > 500).then(pl.lit('big')).otherwise(pl.lit('small'))",
+            },
+        ],
+    }
+
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
+
+    assert output.columns == ["value", "doubled", "quadrupled", "label"]
+    assert output["doubled"].to_list() == [200, 400, 600]
+    assert output["quadrupled"].to_list() == [400, 800, 1200]
+    assert output["label"].to_list() == ["small", "big", "big"]
+
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation_schema():
+    """Test schema accumulates across multiple operations"""
+    tool = FormulaTool()
+
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="a", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="b", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
+
+    config = {
+        "operations": [
+            {
+                "column_name": "c",
+                "expression": "pl.col('a') + pl.col('b')",
+            },
+            {
+                "column_name": "d",
+                "expression": "pl.col('a') > 0",
+            },
+        ],
+    }
+
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    output_schema = result["output"]
+
+    column_names = [col.name for col in output_schema.columns]
+    assert column_names == ["a", "b", "c", "d"]
+    assert len(output_schema.columns) == 4
+
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation_replace_and_add():
+    """Test mixing column replacement and addition in multi-operation"""
+    tool = FormulaTool()
+
+    df = pl.LazyFrame({
+        "price": [10.0, 20.0],
+        "name": ["foo", "bar"],
+    })
+
+    config = {
+        "operations": [
+            {
+                "column_name": "price",
+                "expression": "pl.col('price') * 1.1",
+            },
+            {
+                "column_name": "name_upper",
+                "expression": "pl.col('name').str.to_uppercase()",
+            },
+        ],
+    }
+
+    result = await tool.execute(config, {"input": df})
+    output = result["output"].collect()
+
+    assert output.columns == ["price", "name", "name_upper"]
+    assert output["price"].to_list() == [11.0, 22.0]
+    assert output["name_upper"].to_list() == ["FOO", "BAR"]
+
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation_validation():
+    """Test validation for multi-operation config"""
+    tool = FormulaTool()
+
+    # Valid multi-operation
+    errors = await tool.validate_config({
+        "operations": [
+            {"column_name": "a", "expression": "pl.col('x') + 1"},
+            {"column_name": "b", "expression": "pl.col('y') + 2"},
+        ],
+    })
+    assert len(errors) == 0
+
+    # Missing column_name in one operation
+    errors = await tool.validate_config({
+        "operations": [
+            {"column_name": "", "expression": "pl.col('x') + 1"},
+        ],
+    })
+    assert len(errors) > 0
+    assert any("column_name" in e for e in errors)
+
+    # Missing expression in one operation
+    errors = await tool.validate_config({
+        "operations": [
+            {"column_name": "a", "expression": ""},
+        ],
+    })
+    assert len(errors) > 0
+    assert any("expression" in e for e in errors)
+
+
+@pytest.mark.asyncio
+async def test_formula_validation_catches_syntax_errors():
+    """Test that validate_config catches expression syntax errors"""
+    tool = FormulaTool()
+
+    errors = await tool.validate_config({
+        "column_name": "test",
+        "expression": "pl.col('a') ++ invalid_syntax",
+    })
+    assert len(errors) > 0
+    assert any("nvalid expression" in e for e in errors)
+
+
+@pytest.mark.asyncio
+async def test_formula_multi_operation_error_in_middle():
+    """Test that an error in one operation gives a clear message"""
+    tool = FormulaTool()
+
+    df = pl.LazyFrame({"x": [1, 2, 3]})
+
+    config = {
+        "operations": [
+            {"column_name": "a", "expression": "pl.col('x') + 1"},
+            {"column_name": "", "expression": "pl.col('a') + 1"},
+        ],
+    }
+
+    with pytest.raises(Exception, match="Operation 2"):
+        await tool.execute(config, {"input": df})
+
+
+# ============================================================================
+# Schema type inference tests
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_formula_schema_type_inference_arithmetic():
+    """Test that arithmetic expression infers numeric type"""
+    tool = FormulaTool()
+
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="price", dtype=PolarsDataType.FLOAT64, nullable=True),
+            ColumnSchema(name="qty", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
+
+    config = {
+        "column_name": "total",
+        "expression": "pl.col('price') * pl.col('qty')",
+    }
+
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    total_col = next(c for c in result["output"].columns if c.name == "total")
+
+    # Should infer Float64 (not default STRING)
+    assert total_col.dtype == PolarsDataType.FLOAT64
+
+
+@pytest.mark.asyncio
+async def test_formula_schema_type_inference_boolean():
+    """Test that comparison expression infers Boolean type"""
+    tool = FormulaTool()
+
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="age", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
+
+    config = {
+        "column_name": "is_adult",
+        "expression": "pl.col('age') >= 18",
+    }
+
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    col = next(c for c in result["output"].columns if c.name == "is_adult")
+    assert col.dtype == PolarsDataType.BOOLEAN
+
+
+@pytest.mark.asyncio
+async def test_formula_schema_type_inference_string():
+    """Test that string expression infers String type"""
+    tool = FormulaTool()
+
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
+        ]
+    )
+
+    config = {
+        "column_name": "name_upper",
+        "expression": "pl.col('name').str.to_uppercase()",
+    }
+
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    col = next(c for c in result["output"].columns if c.name == "name_upper")
+    assert col.dtype == PolarsDataType.STRING
+
+
+@pytest.mark.asyncio
+async def test_formula_schema_type_inference_fallback():
+    """Test that inference falls back to STRING on unparseable expression"""
+    tool = FormulaTool()
+
+    input_schema = DataSchema(
+        columns=[
+            ColumnSchema(name="x", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
+
+    config = {
+        "column_name": "result",
+        "expression": "this is not valid python",
+    }
+
+    # Should not crash - falls back to STRING
+    result = await tool.get_output_schema(config, {"input": input_schema})
+    col = next(c for c in result["output"].columns if c.name == "result")
+    assert col.dtype == PolarsDataType.STRING
+
+
+# ============================================================================
+# Code generation tests
+# ============================================================================
+
 class TestFormulaCodeGeneration:
     """Tests for FormulaTool.to_python_code()"""
 
@@ -319,3 +619,30 @@ class TestFormulaCodeGeneration:
         assert "pl.col('price') * 1.1" in lines[0]
         assert '.alias("price")' in lines[0]
         assert output_vars == {"output": "df_adj"}
+
+    def test_code_gen_multi_operation(self):
+        """Test code generation for multi-operation config"""
+        tool = FormulaTool()
+        config = {
+            "operations": [
+                {
+                    "column_name": "total",
+                    "expression": "pl.col('price') * pl.col('qty')",
+                },
+                {
+                    "column_name": "tax",
+                    "expression": "pl.col('total') * 0.1",
+                },
+            ],
+        }
+        input_vars = {"input": "df_in"}
+
+        lines, output_vars = tool.to_python_code("calc", config, input_vars)
+
+        # Should produce two lines with intermediate variable
+        assert len(lines) == 2
+        assert "with_columns" in lines[0]
+        assert "with_columns" in lines[1]
+        assert '.alias("total")' in lines[0]
+        assert '.alias("tax")' in lines[1]
+        assert output_vars == {"output": "df_calc"}
