@@ -15,6 +15,8 @@ interface CodeEditorProps {
   placeholder?: string;
   columns?: ColumnSchema[];
   polarsFunctions?: PolarsFunctionsResponse | null;
+  /** When provided, renders a small "?" docs link in the bottom-right corner of the editor. */
+  docsUrl?: string;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -27,6 +29,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   placeholder,
   columns = [],
   polarsFunctions = null,
+  docsUrl,
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
@@ -477,6 +480,33 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   return (
     <div className="monaco-editor-wrapper">
+      {docsUrl && (
+        <div className="flex justify-end px-2 py-1 bg-theme-surface-elevated border-b border-theme-border-secondary">
+          <a
+            href={docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Expression docs"
+            className="inline-flex items-center gap-1 text-[10px] text-theme-text-tertiary hover:text-theme-text-secondary transition-colors"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Docs
+          </a>
+        </div>
+      )}
       <Editor
         height={height}
         language={language}

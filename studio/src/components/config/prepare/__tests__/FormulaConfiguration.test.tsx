@@ -22,6 +22,7 @@ describe('FormulaConfiguration', () => {
   const mockFetchFunctions = vi.fn();
 
   const defaultConfig: ToolConfig = {
+    operations: [],
     column_name: '',
     expression: '',
     _emit: {},
@@ -75,7 +76,7 @@ describe('FormulaConfiguration', () => {
   });
 
   describe('Initial Rendering', () => {
-    it('renders formula configuration UI', () => {
+    it('renders formula configuration UI with header', () => {
       renderWithTheme(
         <FormulaConfiguration
           config={defaultConfig}
@@ -87,12 +88,11 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('Target Column')).toBeInTheDocument();
-      expect(screen.getByText('Formula Expression')).toBeInTheDocument();
-      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+      expect(screen.getByText('Formula')).toBeInTheDocument();
+      expect(screen.getByText(/Create or transform columns/)).toBeInTheDocument();
     });
 
-    it('renders target column dropdown', () => {
+    it('shows empty state with add operation button when no operations', () => {
       renderWithTheme(
         <FormulaConfiguration
           config={defaultConfig}
@@ -104,12 +104,11 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('Target Column')).toBeInTheDocument();
-      // Default should show "(New Column)" option selected
-      expect(screen.getByText('(New Column)')).toBeInTheDocument();
+      expect(screen.getByText('No operations defined yet')).toBeInTheDocument();
+      expect(screen.getByText('Add operation')).toBeInTheDocument();
     });
 
-    it('shows column name input when new column is selected', () => {
+    it('renders add operation button', () => {
       renderWithTheme(
         <FormulaConfiguration
           config={defaultConfig}
@@ -121,63 +120,22 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      expect(screen.getByText('New Column Name')).toBeInTheDocument();
-      const input = screen.getByPlaceholderText('result');
-      expect(input).toBeInTheDocument();
-    });
-
-    it('hides column name input when replacing existing column', () => {
-      const configWithReplace: ToolConfig = {
-        ...defaultConfig,
-        column_name: 'existing_col',
-      };
-
-      // Need to mock metadata with that column for UI to show it as "replace"
-      const mockColumns = [
-        { name: 'existing_col', dtype: 'Float64', nullable: false },
-      ];
-      const mockMetadata = {
-        tool_id: 'tool-1',
-        socket_id: 'input',
-        columns: mockColumns,
-        inputs: { input: mockColumns },
-      };
-
-      vi.mocked(hooks.useMetadata).mockReturnValue({
-        metadata: mockMetadata,
-        columns: mockColumns,
-        loading: false,
-        error: null,
-        fetchMetadata: mockFetchMetadata,
-      });
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={configWithReplace}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      // Column name input should not be visible when replacing
-      expect(screen.queryByText('New Column Name')).not.toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('result')).not.toBeInTheDocument();
+      const addBtn = screen.getByText('Add operation');
+      expect(addBtn).toBeInTheDocument();
     });
   });
 
-  describe('Config Value Display', () => {
-    it('displays existing column name value', () => {
-      const configWithValue: ToolConfig = {
-        ...defaultConfig,
-        column_name: 'calculated_field',
+  describe('Legacy Config Migration', () => {
+    it('migrates legacy single-operation config to new format', () => {
+      const legacyConfig: ToolConfig = {
+        column_name: 'total',
+        expression: "pl.col('price') * pl.col('qty')",
+        _emit: {},
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithValue}
+          config={legacyConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -186,71 +144,15 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      const input = screen.getByDisplayValue('calculated_field');
-      expect(input).toBeInTheDocument();
-    });
-
-    it('displays existing expression value', () => {
-      const configWithValue: ToolConfig = {
-        ...defaultConfig,
-        expression: "pl.col('price') * 1.1",
-      };
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={configWithValue}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      const editor = screen.getByTestId('monaco-editor');
-      expect(editor).toHaveValue("pl.col('price') * 1.1");
-    });
-
-    it('shows available columns in dropdown when metadata is available', () => {
-      const mockColumns = [
-        { name: 'price', dtype: 'Float64', nullable: false },
-        { name: 'quantity', dtype: 'Int64', nullable: true },
-      ];
-      const mockMetadata = {
-        tool_id: 'tool-1',
-        socket_id: 'input',
-        columns: mockColumns,
-        inputs: { input: mockColumns },
-      };
-
-      vi.mocked(hooks.useMetadata).mockReturnValue({
-        metadata: mockMetadata,
-        columns: mockColumns,
-        loading: false,
-        error: null,
-        fetchMetadata: mockFetchMetadata,
-      });
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      // The dropdown should exist with target column options
-      expect(screen.getByText('Target Column')).toBeInTheDocument();
+      // Should show the migrated operation (in advanced mode since it's legacy)
+      expect(screen.getByText('total')).toBeInTheDocument();
     });
   });
 
   describe('User Interactions', () => {
-    it('calls onChange when column name changes', async () => {
+    it('calls onChange when add operation is clicked', async () => {
       const user = userEvent.setup();
-      
+
       renderWithTheme(
         <FormulaConfiguration
           config={defaultConfig}
@@ -262,56 +164,50 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      const input = screen.getByPlaceholderText('result');
-      await user.type(input, 'total');
+      const addBtn = screen.getByText('Add operation');
+      await user.click(addBtn);
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
       const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      expect(lastCall.column_name).toBe('total');
-      // _emit should mark column_name for emission since it differs from default ""
-      expect(lastCall._emit?.column_name).toBe(true);
+      expect(lastCall.operations).toBeDefined();
+      expect(lastCall.operations.length).toBe(1);
     });
+  });
 
-    it('calls onChange when expression changes', async () => {
-      const user = userEvent.setup();
-      
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, 'x');
-
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalled();
-      });
-
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      expect(lastCall.expression).toBe('x');
-      // _emit should mark expression for emission since it differs from default ""
-      expect(lastCall._emit?.expression).toBe(true);
-    });
-
-    it('preserves existing config values when updating expression', async () => {
-      const user = userEvent.setup();
-      const configWithValues: ToolConfig = {
-        column_name: 'existing',
-        expression: 'existing_expr',
+  describe('Multi-Operation', () => {
+    it('renders multiple operations as cards', () => {
+      const multiOpConfig: ToolConfig = {
+        operations: [
+          {
+            id: 'op-1',
+            operationId: '',
+            sourceColumn: '',
+            params: {},
+            columnName: 'total',
+            columnNameEdited: true,
+            mode: 'advanced',
+            expression: "pl.col('a') + pl.col('b')",
+          },
+          {
+            id: 'op-2',
+            operationId: '',
+            sourceColumn: '',
+            params: {},
+            columnName: 'doubled',
+            columnNameEdited: true,
+            mode: 'advanced',
+            expression: "pl.col('total') * 2",
+          },
+        ],
+        _emit: {},
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithValues}
+          config={multiOpConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -320,33 +216,33 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, 'x');
-
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalled();
-      });
-
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      // column_name should be preserved when editing expression
-      expect(lastCall.column_name).toBe('existing');
-      expect(lastCall.expression).toBe('existing_exprx');
-      // BOTH should be in _emit since both differ from defaults
-      expect(lastCall._emit?.column_name).toBe(true);
-      expect(lastCall._emit?.expression).toBe(true);
+      expect(screen.getByText('total')).toBeInTheDocument();
+      expect(screen.getByText('doubled')).toBeInTheDocument();
+      // Position badges
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText('2')).toBeInTheDocument();
     });
 
-    it('preserves column_name when setting expression', async () => {
-      const user = userEvent.setup();
-      // Start with config that has column_name set
-      const configWithColumn: ToolConfig = {
-        column_name: 'calculated',
-        expression: '',
+    it('shows add operation button below existing operations', () => {
+      const singleOpConfig: ToolConfig = {
+        operations: [
+          {
+            id: 'op-1',
+            operationId: '',
+            sourceColumn: '',
+            params: {},
+            columnName: 'total',
+            columnNameEdited: true,
+            mode: 'advanced',
+            expression: "pl.col('a')",
+          },
+        ],
+        _emit: {},
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithColumn}
+          config={singleOpConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -355,59 +251,7 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      // Type in expression - this should preserve the existing column_name
-      const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, "x");
-
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalled();
-      });
-
-      // Verify column_name is preserved when editing expression
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      // column_name should be preserved
-      expect(lastCall.column_name).toBe('calculated');
-      // Both fields should be in _emit since they differ from defaults
-      expect(lastCall._emit?.column_name).toBe(true);
-      expect(lastCall._emit?.expression).toBe(true);
-    });
-
-    it('builds correct _emit when editing loaded workflow without _emit', async () => {
-      const user = userEvent.setup();
-      // This simulates a workflow loaded from JSON - has values but NO _emit
-      // The handler should rebuild _emit based on what differs from defaults
-      const loadedWorkflowConfig: ToolConfig = {
-        column_name: 'total_price',
-        expression: "pl.col('price') * pl.col('qty')",
-        // NO _emit field! This is what happens when loading from JSON
-      };
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={loadedWorkflowConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      // User makes a small change to the expression
-      const editor = screen.getByTestId('monaco-editor');
-      await user.type(editor, " ");  // Just add a space
-
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalled();
-      });
-
-      // The key assertion: _emit should be rebuilt with BOTH fields
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      expect(lastCall.expression).toBe("pl.col('price') * pl.col('qty') ");
-      expect(lastCall.column_name).toBe('total_price');
-      // Both should be in _emit since they differ from default ""
-      expect(lastCall._emit?.expression).toBe(true);
-      expect(lastCall._emit?.column_name).toBe(true);
+      expect(screen.getByText('Add operation')).toBeInTheDocument();
     });
   });
 
@@ -448,7 +292,6 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      // With no input connection, should not fetch metadata
       expect(mockFetchMetadata).not.toHaveBeenCalled();
     });
 
@@ -495,11 +338,11 @@ describe('FormulaConfiguration', () => {
       const initialWires: Wire[] = [
         {
           from: { tool: 'tool-0', socket: 'output' },
-          to: { tool: 'tool-1', socket: 'input' }, // Wire to tool-1
+          to: { tool: 'tool-1', socket: 'input' },
         },
         {
           from: { tool: 'tool-0', socket: 'output' },
-          to: { tool: 'tool-2', socket: 'input' }, // Different tool
+          to: { tool: 'tool-2', socket: 'input' },
         },
       ];
 
@@ -524,7 +367,7 @@ describe('FormulaConfiguration', () => {
         ...initialWires,
         {
           from: { tool: 'tool-3', socket: 'output' },
-          to: { tool: 'tool-4', socket: 'input' }, // Still not tool-1
+          to: { tool: 'tool-4', socket: 'input' },
         },
       ];
 
@@ -541,42 +384,7 @@ describe('FormulaConfiguration', () => {
         </ThemeProvider>
       );
 
-      // Should not trigger another fetch since wires to tool-1 didn't change
       expect(mockFetchMetadata).not.toHaveBeenCalled();
-    });
-
-    it('passes columns to CodeEditor when metadata is available', () => {
-      const mockColumns = [
-        { name: 'age', dtype: 'Int64', nullable: false },
-        { name: 'name', dtype: 'String', nullable: true },
-      ];
-      const mockMetadata = {
-        tool_id: 'tool-1',
-        socket_id: 'input',
-        columns: mockColumns,
-        inputs: { input: mockColumns },
-      };
-
-      vi.mocked(hooks.useMetadata).mockReturnValue({
-        metadata: mockMetadata,
-        columns: mockColumns,
-        loading: false,
-        error: null,
-        fetchMetadata: mockFetchMetadata,
-      });
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
     });
   });
 
@@ -632,53 +440,18 @@ describe('FormulaConfiguration', () => {
 
       expect(mockFetchFunctions).not.toHaveBeenCalled();
     });
-
-    it('passes functions to CodeEditor when available', () => {
-      const mockFunctions = {
-        table_level: [
-          {
-            name: 'pl.col',
-            signature: 'pl.col(name: str)',
-            description: 'Reference a column',
-            snippet: "pl.col('${1}')",
-            category: 'table',
-          },
-        ],
-        column_methods: { all: [], string: [], numeric: [], datetime: [], list: [] },
-      };
-
-      vi.mocked(hooks.usePolarsFunctions).mockReturnValue({
-        functions: mockFunctions,
-        loading: false,
-        error: null,
-        fetchFunctions: mockFetchFunctions,
-      });
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
-    });
   });
 
   describe('Edge Cases', () => {
-    it('handles undefined column_name', () => {
-      const configWithUndefined: ToolConfig = {
-        expression: '',
+    it('handles empty operations array', () => {
+      const emptyConfig: ToolConfig = {
+        operations: [],
         _emit: {},
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithUndefined}
+          config={emptyConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -687,19 +460,17 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      const input = screen.getByPlaceholderText('result');
-      expect(input).toHaveValue('');
+      expect(screen.getByText('No operations defined yet')).toBeInTheDocument();
     });
 
-    it('handles undefined expression', () => {
-      const configWithUndefined: ToolConfig = {
-        column_name: 'test',
+    it('handles config with no operations or legacy fields', () => {
+      const bareConfig: ToolConfig = {
         _emit: {},
       };
 
       renderWithTheme(
         <FormulaConfiguration
-          config={configWithUndefined}
+          config={bareConfig}
           onChange={mockOnChange}
           toolId="tool-1"
           tools={defaultTools}
@@ -708,91 +479,7 @@ describe('FormulaConfiguration', () => {
         />
       );
 
-      const editor = screen.getByTestId('monaco-editor');
-      expect(editor).toHaveValue('');
-    });
-
-    it('handles complex expressions with special characters', () => {
-      const configWithComplex: ToolConfig = {
-        column_name: 'test',
-        expression: "pl.when(pl.col('name') == 'O\\'Brien').then(pl.lit(1)).otherwise(pl.lit(0))",
-        _emit: {},
-      };
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={configWithComplex}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      const editor = screen.getByTestId('monaco-editor');
-      expect(editor).toHaveValue(configWithComplex.expression as string);
-    });
-
-    it('handles multiline expressions', () => {
-      const multilineExpression = `pl.when(pl.col('age') > 18)
-  .then(pl.lit('adult'))
-  .otherwise(pl.lit('minor'))`;
-
-      const configWithMultiline: ToolConfig = {
-        column_name: 'category',
-        expression: multilineExpression,
-        _emit: {},
-      };
-
-      renderWithTheme(
-        <FormulaConfiguration
-          config={configWithMultiline}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      const editor = screen.getByTestId('monaco-editor');
-      expect(editor).toHaveValue(multilineExpression);
-    });
-  });
-
-  describe('Required Field Indicators', () => {
-    it('marks column name as required', () => {
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      // The required indicator is part of the ConfigText component description
-      const label = screen.getByText('New Column Name');
-      expect(label).toBeInTheDocument();
-    });
-
-    it('marks expression as required', () => {
-      renderWithTheme(
-        <FormulaConfiguration
-          config={defaultConfig}
-          onChange={mockOnChange}
-          toolId="tool-1"
-          tools={defaultTools}
-          wires={defaultWires}
-          workflowMeta={defaultMeta}
-        />
-      );
-
-      const label = screen.getByText('Formula Expression');
-      expect(label.textContent).toContain('*');
+      expect(screen.getByText('No operations defined yet')).toBeInTheDocument();
     });
   });
 

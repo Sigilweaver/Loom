@@ -7,7 +7,6 @@ import {
   WorkflowMeta,
 } from "@domain/workflow/entities/workflow";
 import { CodeEditor } from "@components/common/CodeEditor";
-import { HelpLink } from "@components/common/HelpLink";
 import { Switch } from "@components/ui/Switch";
 import { usePolarsFunctions } from "@api/hooks";
 import { useToolConfiguration } from "@hooks/useToolConfiguration";
@@ -276,15 +275,9 @@ export function FilterConfiguration({
         {/* Expression Section Header with Mode Toggle */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <label className="block text-sm font-medium text-theme-text-primary">
-                Filter Expression
-              </label>
-              <HelpLink
-                url={EXPRESSION_DOCS_URL}
-                label="Expression syntax help"
-              />
-            </div>
+            <label className="block text-sm font-medium text-theme-text-primary">
+              Filter Expression
+            </label>
             <Switch
               checked={isAdvanced}
               onCheckedChange={handleModeToggle}
@@ -334,6 +327,7 @@ export function FilterConfiguration({
                   placeholder="pl.col('age') > 18"
                   columns={columns}
                   polarsFunctions={functions}
+                  docsUrl={EXPRESSION_DOCS_URL}
                 />
               </div>
               <p className="text-xs text-theme-text-tertiary">

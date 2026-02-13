@@ -100,6 +100,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: Calculator,
     category: 'preparation',
     defaultConfig: {
+      operations: [],
       expression: '',
       column_name: '',
     },
