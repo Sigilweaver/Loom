@@ -98,3 +98,32 @@ Sigilweaver validates connections as you work:
 |--------|-----------|-------------|
 | `input` | Input | Data to summarize |
 | `output` | Output | Aggregated results |
+
+### Sample Tool
+
+| Socket | Direction | Description |
+|--------|-----------|-------------|
+| `input` | Input | Data to sample from |
+| `output` | Output | Sampled rows |
+
+### Unique Tool
+
+| Socket | Direction | Description |
+|--------|-----------|-------------|
+| `input` | Input | Data to deduplicate |
+| `U` (output-unique) | Output | Unique rows |
+| `D` (output-duplicate) | Output | Duplicate rows |
+
+### Pivot Tool
+
+| Socket | Direction | Description |
+|--------|-----------|-------------|
+| `input` | Input | Data to pivot |
+| `output` | Output | Pivoted (wide-format) data |
+
+### Unpivot Tool
+
+| Socket | Direction | Description |
+|--------|-----------|-------------|
+| `input` | Input | Data to unpivot |
+| `output` | Output | Unpivoted (long-format) data |

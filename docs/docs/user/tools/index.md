@@ -26,8 +26,8 @@ Transform and clean data:
 | [Filter](./preparation/filter) | Split data based on a condition |
 | [Select](./preparation/select) | Choose, rename, reorder, and cast columns |
 | [Sort](./preparation/sort) | Order rows by column values |
-| [Formula](./preparation/formula) | Create or replace calculated columns |
-
+| [Formula](./preparation/formula) | Create or replace calculated columns || [Sample](./preparation/sample) | Take a subset of rows (first N, random, etc.) |
+| [Unique](./preparation/unique) | Remove duplicate rows |
 ### Join
 
 Combine datasets:
@@ -43,8 +43,8 @@ Summarize data:
 
 | Tool | Purpose |
 |------|---------|
-| [Summarize](./aggregate/summarize) | Group data and calculate aggregations |
-
+| [Summarize](./aggregate/summarize) | Group data and calculate aggregations || [Pivot](./aggregate/pivot) | Reshape data from long to wide format |
+| [Unpivot](./aggregate/unpivot) | Reshape data from wide to long format |
 ## Common Concepts
 
 ### Sockets
@@ -75,6 +75,10 @@ All tools use Polars' lazy evaluation. Operations are not executed immediately -
 | Remove or rename columns | [Select](./preparation/select) |
 | Order my data | [Sort](./preparation/sort) |
 | Calculate a new column | [Formula](./preparation/formula) |
+| Take a random sample | [Sample](./preparation/sample) |
+| Remove duplicates | [Unique](./preparation/unique) |
 | Stack two tables | [Union](./join/union) |
 | Match rows between tables | [Join](./join/join-tool) |
 | Calculate totals by group | [Summarize](./aggregate/summarize) |
+| Reshape long to wide | [Pivot](./aggregate/pivot) |
+| Reshape wide to long | [Unpivot](./aggregate/unpivot) |

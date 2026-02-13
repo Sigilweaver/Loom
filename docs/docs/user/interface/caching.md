@@ -18,12 +18,13 @@ These operations are automatically cached because they need to process all your 
 |-----------|-----------------|
 | **Sort** | Must scan all rows to determine the final order |
 | **Summarize** | Must see all rows in each group to calculate totals |
-| **Join** | Must compare both datasets to find matches |
-| **Database Input** | Avoids repeated queries to your database server |
+| **Join** | Must compare both datasets to find matches || **Unique** | Must track seen values across all rows |
+| **Pivot** | Must scan all rows to determine column headers |
+| **Sample** (some modes) | Last N, Random, Random Percent, and First Percent require full scan || **Database Input** | Avoids repeated queries to your database server |
 
 ### What Doesn't Get Cached
 
-Streaming operations like **Filter**, **Select**, and **Formula** don't need caching - they can process data row-by-row without seeing everything first.
+Streaming operations like **Filter**, **Select**, **Formula**, **Union**, and **Unpivot** don't need caching - they can process data row-by-row without seeing everything first. **Sample** in First N or Every N mode is also streaming.
 
 ## Example: Editing Downstream
 

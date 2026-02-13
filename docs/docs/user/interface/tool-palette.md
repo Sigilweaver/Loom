@@ -32,8 +32,8 @@ The most commonly used tools for quick access:
 
 | Tool | Icon | Purpose |
 |------|------|---------|
-| **Input** | 📂 | Load data from CSV or Parquet files |
-| **Output** | 💾 | Save data to CSV or Parquet files |
+| **Input** | 📂 | Load data from files or databases |
+| **Output** | 💾 | Save data to files |
 
 ### Preparation
 
@@ -43,6 +43,8 @@ The most commonly used tools for quick access:
 | **Select** | ✅ | Choose, rename, reorder, and cast columns |
 | **Sort** | 🔢 | Order rows by column values |
 | **Formula** | 🧮 | Create or replace calculated columns |
+| **Sample** | 🎲 | Take a subset of rows |
+| **Unique** | 🔑 | Remove duplicate rows |
 
 ### Join
 
@@ -56,6 +58,8 @@ The most commonly used tools for quick access:
 | Tool | Icon | Purpose |
 |------|------|---------|
 | **Summarize** | 📊 | Group data and calculate aggregations |
+| **Pivot** | 🔄 | Reshape data from long to wide format |
+| **Unpivot** | 📐 | Reshape data from wide to long format |
 
 ## Adding Tools to Canvas
 

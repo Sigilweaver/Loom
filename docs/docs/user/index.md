@@ -48,9 +48,9 @@ Reference documentation for every tool:
 | Category | Tools |
 |----------|-------|
 | **Input/Output** | [Input](./tools/input-output/input), [Output](./tools/input-output/output) |
-| **Preparation** | [Filter](./tools/preparation/filter), [Select](./tools/preparation/select), [Sort](./tools/preparation/sort), [Formula](./tools/preparation/formula) |
+| **Preparation** | [Filter](./tools/preparation/filter), [Select](./tools/preparation/select), [Sort](./tools/preparation/sort), [Formula](./tools/preparation/formula), [Sample](./tools/preparation/sample), [Unique](./tools/preparation/unique) |
 | **Join** | [Union](./tools/join/union), [Join](./tools/join/join-tool) |
-| **Aggregate** | [Summarize](./tools/aggregate/summarize) |
+| **Aggregate** | [Summarize](./tools/aggregate/summarize), [Pivot](./tools/aggregate/pivot), [Unpivot](./tools/aggregate/unpivot) |
 
 ## Core Concepts
 

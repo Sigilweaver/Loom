@@ -144,24 +144,24 @@ def test_filter_works():
 
 ```bash
 # All tests
-python ./scripts/test.py
+./scripts/test.py
 
 # Backend only
-cd backend && pytest
+cd server && uv run pytest
 
 # Frontend only
-cd frontend && npm test
+cd studio && npm test
 
 # With coverage
-cd backend && pytest --cov=app --cov-report=html
-cd frontend && npm run test:coverage
+cd server && uv run pytest --cov=app --cov-report=html
+cd studio && npm run test:coverage
 
 # Specific file
-cd backend && pytest tests/test_filter.py -v
-cd frontend && npm test FilterConfig
+cd server && uv run pytest tests/test_filter.py -v
+cd studio && npm test FilterConfig
 
 # Watch mode (frontend)
-cd frontend && npm run test:watch
+cd studio && npm run test:watch
 ```
 
 ## Coverage Goals

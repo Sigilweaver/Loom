@@ -24,12 +24,24 @@ The Studio is a React application wrapped in Electron for desktop deployment. It
 studio/src/
 ├── components/         # React components
 │   ├── Canvas.tsx      # Main workflow canvas (Xyflow wrapper)
-│   ├── ToolPalette.tsx # Drag-and-drop tool library
-│   ├── ConfigurationPanel.tsx  # Selected tool config
-│   ├── FilterConfiguration.tsx # Tool config components
-│   ├── SelectConfiguration.tsx # (named *Configuration.tsx)
+│   ├── LeftPane.tsx    # Tool palette + config panel container
+│   ├── ToolHeader.tsx  # Tool header display
+│   ├── ConfigErrorBoundary.tsx  # Error boundary for config panels
+│   ├── ErrorBoundary.tsx        # Global error boundary
+│   ├── canvas/         # Canvas-related subcomponents
+│   ├── common/         # Shared component utilities
+│   ├── config/         # Tool config components (by category)
+│   │   ├── inout/      # Input/Output configs
+│   │   ├── prepare/    # Filter, Select, Sort, Formula configs
+│   │   ├── join/       # Join, Union configs
+│   │   ├── aggregate/  # Summarize, Pivot, Unpivot configs
+│   │   └── layout/     # Layout utilities for configs
+│   ├── icons/          # Custom icon components
 │   ├── primitives/     # Reusable config UI primitives
-│   └── ui/             # Shared UI components
+│   ├── shell/          # Application shell (titlebar, menus)
+│   ├── ui/             # Shared UI components
+│   ├── viewer/         # Data viewer components
+│   └── workflow/       # Workflow-related components
 │
 ├── state/              # Zustand stores
 │   ├── workflowStore.ts   # Tools, wires, selection
@@ -37,7 +49,10 @@ studio/src/
 │   ├── tabStore.ts        # Multi-tab workflows
 │   ├── uiStore.ts         # UI preferences
 │   ├── settingsStore.ts   # Persisted settings
-│   └── connectionStore.ts # Database connections
+│   ├── connectionStore.ts # Database connections
+│   ├── executionStore.ts  # Execution state and progress
+│   ├── clipboardStore.ts  # Copy/paste operations
+│   └── runtimeLogStore.ts # Runtime log messages
 │
 ├── domain/             # Pure TypeScript business logic
 │   └── workflow/
@@ -49,14 +64,16 @@ studio/src/
 │   ├── hooks.ts        # React hooks for API calls
 │   ├── cache.ts        # Request caching
 │   ├── connectionResolver.ts  # Resolve connections before execution
-│   └── serverConnections.ts   # Server connection API client
+│   ├── execution.ts    # Execution API client
+│   ├── hub.ts          # Hub API client
+│   └── index.ts        # API barrel exports
 │
 ├── data/
 │   └── tools.ts        # Tool definitions registry
 │
 ├── types/              # TypeScript interfaces
 ├── utils/              # Shared utilities
-└── themes/             # Theme definitions
+└── themes/             # Theme definitions (light, dark, sigilweaver, + extended)
 ```
 
 ## State Management
@@ -313,14 +330,15 @@ Dynamic configuration panel for the selected tool:
 
 ### Tool Config Components
 
-Each tool type has a config component in `components/panels/`:
+Each tool type has a config component in `components/config/`, organized by category:
 
 ```
-panels/
-├── FilterConfig.tsx
-├── SelectConfig.tsx
-├── FormulaConfig.tsx
-└── ...
+config/
+├── inout/          # Input, Output tool configs
+├── prepare/        # Filter, Select, Sort, Formula, Sample, Unique configs
+├── join/           # Join, Union configs
+├── aggregate/      # Summarize, Pivot, Unpivot configs
+└── layout/         # Shared layout utilities for config panels
 ```
 
 These are pure UI. They render form fields and emit config changes. The workflowStore handles persistence.
@@ -334,11 +352,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     type: 'Filter',           // Must match backend @register_tool name
     name: 'Filter',           // Display name
-    icon: '🔍',               // Emoji for now, SVG later
+    icon: Filter,             // Lucide icon component
     category: 'preparation',  // Tool palette category
     defaultConfig: {
       expression: '',
-      mode: 'Custom',
+      mode: 'Basic',
+      conditions: [],
+      combinator: 'and',
     },
     sockets: [
       { id: 'input', direction: 'input' },
@@ -365,7 +385,7 @@ export async function getToolSchema(
   toolId: string, 
   workflow: WorkflowJSON
 ): Promise<SchemaResponse> {
-  const response = await fetch('/api/schema/', {
+  const response = await fetch('/api/workflow/tool/schema', {
     method: 'POST',
     body: JSON.stringify({ tool_id: toolId, workflow }),
   });

@@ -11,7 +11,7 @@ Servers are stateless executors that run workflows. When properly configured, se
 Configure a server to register with Hub by setting environment variables:
 
 - `HUB_URL` - Hub's address (e.g., `http://hub.internal:25802`)
-- `SERVER_REGISTRATION_SECRET` - Shared secret (must match Hub's configuration)
+- `HUB_REGISTRATION_SECRET` - Shared secret (must match Hub's `SERVER_REGISTRATION_SECRET`)
 
 On startup, the server registers itself with Hub. No manual registration required.
 

@@ -32,9 +32,8 @@ flowchart TB
 Everything lives in one repository. This isn't arbitrary. It solves real problems.
 
 ```
-app/
-├── server/               # Python: FastAPI + Polars (Server)
-│   ├── app/
+server/                   # Python: FastAPI + Polars (Server)
+├── app/
 │   │   ├── api/          # REST endpoints
 │   │   │   ├── routes/   # Route handlers
 │   │   │   └── models/   # Pydantic request/response schemas
@@ -43,33 +42,33 @@ app/
 │   │   │   ├── workflow/ # Execution engine
 │   │   │   └── datasources/  # CSV, Parquet handlers
 │   │   └── utils/        # Shared utilities
-│   └── tests/            # pytest suite
-│
-├── studio/               # TypeScript: React + Electron (Studio)
-│   ├── src/
+└── tests/                # pytest suite
+
+studio/                   # TypeScript: React + Electron (Studio)
+├── src/
 │   │   ├── components/   # React components
 │   │   ├── state/        # Zustand stores
 │   │   ├── domain/       # Pure TS business logic
 │   │   ├── api/          # Server client
 │   │   ├── data/         # Tool definitions
 │   │   └── types/        # TypeScript interfaces
-│   ├── electron/         # Main process
-│   └── tests/            # Vitest suite
-│
-├── hub/                  # Hub orchestration platform
-│   ├── backend/          # Python: FastAPI + PostgreSQL
-│   │   ├── app/
-│   │   │   ├── api/      # REST endpoints
-│   │   │   ├── db/       # Models & migrations
-│   │   │   └── domain/   # Business logic
-│   │   └── tests/
-│   └── frontend/         # TypeScript: React + Vite
-│       └── src/
-│           ├── pages/    # Page components
-│           └── api/      # API client
-│
-├── scripts/              # Build and dev utilities
-└── docs/                 # Project documentation
+├── electron/             # Main process
+└── tests/                # Vitest suite
+
+hub/                      # Hub orchestration platform
+├── backend/              # Python: FastAPI + PostgreSQL
+│   ├── app/
+│   │   ├── api/          # REST endpoints
+│   │   ├── db/           # Models & migrations
+│   │   └── domain/       # Business logic
+│   └── tests/
+└── frontend/             # TypeScript: React + Vite
+    └── src/
+        ├── pages/        # Page components
+        └── api/          # API client
+
+scripts/                  # Build and dev utilities
+docs/                     # Project documentation
 ```
 
 ## Why This Architecture?
@@ -117,6 +116,10 @@ State is split across multiple Zustand stores:
 - `tabStore`: Multi-tab workflows
 - `uiStore`: UI preferences (minimap, snap-to-grid)
 - `settingsStore`: Persisted settings
+- `executionStore`: Execution state and progress
+- `connectionStore`: Database connections
+- `clipboardStore`: Copy/paste operations
+- `runtimeLogStore`: Runtime log messages
 
 ## Backend Architecture
 

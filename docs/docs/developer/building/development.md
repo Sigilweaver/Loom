@@ -11,7 +11,7 @@ Daily patterns for working on Sigilweaver.
 The recommended approach:
 
 ```bash
-# From app/ directory
+# From repo root
 ./scripts/dev.py
 ```
 
@@ -23,18 +23,18 @@ If you need more control:
 
 ```bash
 # Terminal 1: Backend (using uv)
-cd backend
+cd server
 uv run uvicorn app.main:app --reload --port 25811
 # Runs at http://localhost:25811
 
 # Terminal 2: Frontend (Vite)
-cd frontend
+cd studio
 npm run dev
 # Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional)
-cd frontend
-npm run electron
+cd studio
+npm run dev:electron
 # Opens desktop window
 ```
 
@@ -56,7 +56,7 @@ For testing desktop-specific features:
 
 ```bash
 npm run dev       # Start Vite first
-npm run electron  # Then Electron
+npm run dev:electron  # Then Electron
 ```
 
 The Electron window loads from the Vite dev server, so you still get hot reload.
@@ -66,7 +66,7 @@ The Electron window loads from the Vite dev server, so you still get hot reload.
 For API development:
 
 ```bash
-cd backend
+cd server
 uv run uvicorn app.main:app --reload
 ```
 
@@ -88,7 +88,7 @@ No manual restart needed for most changes.
 1. Create `server/app/domain/tools/implementations/my_tool.py`
 2. Add import to `server/app/domain/tools/implementations/__init__.py`
 3. Add definition to `studio/src/data/tools.ts`
-4. Create config panel `studio/src/components/MyToolConfiguration.tsx`
+4. Create config panel in `studio/src/components/config/<category>/MyToolConfiguration.tsx`
 5. Test with `./scripts/test.py`
 
 See [Adding Tools](../contributing/adding-tools) for details.
@@ -99,10 +99,10 @@ See [Adding Tools](../contributing/adding-tools) for details.
 # Add breakpoints in code
 import pdb; pdb.set_trace()
 
-# Or use logging
-import logging
-logger = logging.getLogger(__name__)
-logger.debug(f"Value: {value}")
+# Or use structured logging
+import structlog
+logger = structlog.get_logger(__name__)
+logger.debug("Value", value=value)
 ```
 
 View logs in the terminal where uvicorn is running.
@@ -124,7 +124,7 @@ console.log(useWorkflowStore.getState());
 ### Running Tests
 
 ```bash
-# All tests (from app/)
+# All tests (from repo root)
 ./scripts/test.py
 
 # Server only
@@ -170,12 +170,12 @@ Outputs to `studio/dist/`. See [Packaging](./packaging) for details.
 
 ### Server Virtual Environment
 
-Always activate the venv before running Server commands:
+Use `uv` to run Server commands:
 
 ```bash
 cd server
-source .venv/bin/activate
-# Now pip, pytest, uvicorn work correctly
+uv run pytest tests/
+uv run uvicorn app.main:app --reload
 ```
 
 ### Frontend Path Aliases
@@ -232,11 +232,11 @@ cat my_workflow.swwf | jq .
 # Check Python version
 python --version  # Needs 3.11+
 
-# Check venv is activated
-which python  # Should point to .venv/bin/python
+# Check uv is installed
+uv --version
 
 # Reinstall dependencies
-pip install -e ".[dev]"
+cd server && uv sync --all-extras
 ```
 
 ### Frontend won't start
@@ -263,7 +263,7 @@ rm -rf node_modules/.vitest
 
 ### Electron shows blank window
 
-The Vite dev server must be running first. Start `npm run dev`, wait for "ready in XXms", then run `npm run electron`.
+The Vite dev server must be running first. Start `npm run dev`, wait for "ready in XXms", then run `npm run dev:electron`.
 
 ---
 

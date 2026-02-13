@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Input
 
-Load data from files into your workflow.
+Load data from files or databases into your workflow.
 
 ## Sockets
 
@@ -213,12 +213,107 @@ When you export Python code or view workflow JSON, credentials are stripped or r
 PostgreSQL queries are lazily evaluated like file sources. The query is executed when you preview data or run the workflow, not when you configure the tool.
 :::
 
+### MySQL
+
+Query data directly from MySQL databases.
+
+**MySQL Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Connection | (required) | Select a configured database connection |
+| Query | (required) | SQL query to execute |
+
+Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections) for details.
+
+### SQLite
+
+Query data from SQLite database files.
+
+**SQLite Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Connection | (required) | Select a configured database connection |
+| Query | (required) | SQL query to execute |
+
+:::note SQLite Connections
+SQLite connections point to a `.db` or `.sqlite` file on disk rather than a remote server. The file must be accessible from where Sigilweaver Server is running.
+:::
+
+### MSSQL
+
+Query data from Microsoft SQL Server databases.
+
+**MSSQL Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Connection | (required) | Select a configured database connection |
+| Query | (required) | SQL query to execute |
+
+Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections) for details.
+
+### JSON
+
+JSON data files. Sigilweaver supports two JSON formats, auto-detected by file extension:
+
+| Format | Extensions | Reading Mode | Description |
+|--------|-----------|-------------|-------------|
+| **Standard JSON** | `.json` | Eager (Read) | Array of objects |
+| **NDJSON** | `.jsonl`, `.ndjson` | Lazy (Scan) | Newline-delimited JSON |
+
+**JSON Options (standard .json):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the JSON file |
+| Infer Schema Length | `100` | Rows to sample for type inference |
+
+**NDJSON Options (.jsonl, .ndjson):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the NDJSON file |
+| Infer Schema Length | `100` | Rows to sample for type inference |
+| N Rows | (all) | Limit number of rows to read |
+| Batch Size | (default) | Processing batch size |
+| Low Memory | `false` | Reduce memory usage at cost of speed |
+| Rechunk | `false` | Rechunk to contiguous memory |
+| Ignore Errors | `false` | Skip rows with parsing errors |
+
+:::tip NDJSON for Large Files
+If your JSON data is large, use NDJSON format (`.jsonl` or `.ndjson`) for lazy streaming support. Standard `.json` files must be loaded entirely into memory.
+:::
+
+### YXDB
+
+Alteryx database files (.yxdb). Read using [SigilYX](https://github.com/sigilweaver/sigilyx), a high-performance Rust-based reader.
+
+**Reading Mode:**
+
+YXDB files only support eager reading (the entire file is loaded into memory). The row-based LZF compression used by the format prevents partial reads.
+
+**YXDB Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the YXDB file |
+| N Rows | (all) | Limit number of rows to read |
+
+:::note YXDB Support
+Sigilweaver supports all 17 YXDB field types including Bool, Int16/32/64, Float, Double, FixedDecimal, String/WString/VString/VWString, Date, Time, DateTime, Blob, and SpatialObj. Blob and SpatialObj fields are read as strings.
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
-2. Select the data source type (CSV, Excel, Parquet, IPC/Arrow, Avro, or ODS)
-3. Choose the file using the file picker
-4. Configure format-specific options as needed
+2. Select the data source type:
+   - **File sources**: CSV, Excel, Parquet, IPC/Arrow, Avro, ODS, JSON/NDJSON, or YXDB
+   - **Database sources**: PostgreSQL, MySQL, SQLite, or MSSQL
+3. For file sources, choose the file using the file picker
+4. For database sources, select a connection and write a SQL query
+5. Configure format-specific options as needed
 
 ## Examples
 
@@ -280,12 +375,14 @@ PostgreSQL queries are lazily evaluated like file sources. The query is executed
 
 ## Notes
 
-- **Lazy loading** (Scan mode) is recommended for CSV, Parquet, and IPC/Arrow when working with large files
-- **Excel, Avro, and ODS files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
+- **Lazy loading** (Scan mode) is recommended for CSV, Parquet, IPC/Arrow, and NDJSON when working with large files
+- **Excel, Avro, ODS, standard JSON, and YXDB files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
 - **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
+- **NDJSON** (`.jsonl`, `.ndjson`) supports lazy scanning unlike standard `.json` files
+- **YXDB** is read using SigilYX's Rust core for high performance
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
 - **ODS** is read-only in Sigilweaver (Polars limitation) - use Excel Output or convert to other formats for saving
-- **PostgreSQL** queries are executed lazily and return results as a Polars LazyFrame
+- **All database types** (PostgreSQL, MySQL, SQLite, MSSQL) use the connectorx engine for high-performance reads
 - **Database credentials** are never stored in workflow files - only connection IDs are saved
 - **Schema inference** may not always be accurate - use Select to cast types if needed
 - **File paths** must be accessible from where Sigilweaver is running

@@ -26,10 +26,13 @@ server/app/
 │   ├── router.py        # Route aggregation
 │   ├── routes/          # Endpoint handlers
 │   │   ├── health.py    # Health check
-│   │   ├── schema.py    # Schema inference
-│   │   ├── preview.py   # Data preview
-│   │   ├── execute.py   # Workflow execution
-│   │   └── connections.py  # Connection CRUD
+│   │   ├── workflow.py  # Workflow execution, schema, preview
+│   │   ├── datasource.py   # Data source inspection
+│   │   ├── connections.py  # Connection CRUD
+│   │   ├── archive.py      # Execution archive
+│   │   ├── cache.py        # Cache management
+│   │   ├── files.py        # File browsing
+│   │   └── polars.py       # Polars introspection
 │   └── models/          # Pydantic schemas
 │       ├── workflow.py  # Workflow, Tool, Wire
 │       ├── common.py    # DataSchema, DataPreview
@@ -200,9 +203,13 @@ from app.domain.tools.implementations import (
     select,
     sort,
     formula,
+    sample,
+    unique,
     join,
     union,
     summarize,
+    pivot,
+    unpivot,
 )
 ```
 
@@ -452,10 +459,16 @@ class DatasourceFactory:
     @staticmethod
     def create(path: str) -> Datasource:
         ext = Path(path).suffix.lower()
-        if ext == ".csv":
+        # Supports: CSV, TSV, Excel, Parquet, JSON, Avro, IPC/Arrow,
+        #           ODS, YXDB, and database connections (PostgreSQL,
+        #           MySQL, SQLite, MSSQL)
+        if ext in [".csv", ".tsv", ".tab", ".txt"]:
             return CSVDatasource(path)
         elif ext in [".parquet", ".pq"]:
             return ParquetDatasource(path)
+        elif ext in [".xlsx", ".xls", ".xlsb"]:
+            return ExcelDatasource(path)
+        # ... etc
         raise ValueError(f"Unsupported file type: {ext}")
 ```
 

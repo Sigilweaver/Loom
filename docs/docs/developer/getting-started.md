@@ -42,11 +42,11 @@ git clone https://github.com/sigilweaver/sigilweaver.git
 cd sigilweaver
 
 # Backend setup (uses uv, not pip)
-cd backend
+cd server
 uv sync --all-extras
 
 # Frontend setup
-cd ../frontend
+cd ../studio
 npm install
 ```
 
@@ -82,7 +82,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 The recommended approach:
 
 ```bash
-# From app/ directory - starts both backend and frontend
+# From repo root - starts both backend and frontend
 ./scripts/dev.py
 ```
 
@@ -90,30 +90,30 @@ Or manually:
 
 ```bash
 # Terminal 1: Backend (using uv)
-cd backend
+cd server
 uv run uvicorn app.main:app --reload --port 25811
 # Runs at http://localhost:25811
 
 # Terminal 2: Frontend
-cd frontend
+cd studio
 npm run dev
 # Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional, for desktop app testing)
-cd frontend
-npm run electron
+cd studio
+npm run dev:electron
 ```
 
 The frontend dev server proxies API calls to the backend, so you need both running.
 
 ## Hub Development
 
-Hub is the orchestration platform for managing workflows across multiple servers. It lives inside the app directory at `app/hub/`.
+Hub is the orchestration platform for managing workflows across multiple servers. It lives at the top level in `hub/`.
 
 ### Hub Setup
 
 ```bash
-# From app/hub/ directory
+# From hub/ directory
 
 # Start PostgreSQL (required for Hub)
 docker compose up -d
@@ -153,12 +153,12 @@ Electron should have started, but you can also open http://localhost:25810 in yo
 ### Run Tests
 
 ```bash
-# All tests (from app/ directory)
+# All tests (from repo root)
 ./scripts/test.py
 
 # Or individually
-cd backend && uv run pytest tests/
-cd frontend && npm test
+cd server && uv run pytest tests/
+cd studio && npm test
 ```
 
 If tests pass, you're ready to contribute.
@@ -166,7 +166,7 @@ If tests pass, you're ready to contribute.
 ## Daily Workflow
 
 ```bash
-# Start development (from app/)
+# Start development (from repo root)
 ./scripts/dev.py
 
 # Run tests before committing
@@ -179,7 +179,7 @@ If tests pass, you're ready to contribute.
 ## Project Structure Overview
 
 ```
-app/
+sigilweaver/
 ├── server/            # Python (FastAPI + Polars)
 │   ├── app/          # Application code
 │   │   ├── api/      # REST endpoints
@@ -214,7 +214,7 @@ Check that the Server is actually running on port 25811. The Vite dev server pro
 
 ### Electron window is blank
 
-The Electron app needs the Vite dev server running first. Start `npm run dev`, wait for it to be ready, then run `npm run electron`.
+The Electron app needs the Vite dev server running first. Start `npm run dev`, wait for it to be ready, then run `npm run dev:electron`.
 
 ### Tests fail on Windows
 

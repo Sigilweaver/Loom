@@ -36,8 +36,14 @@ hub/
 │   │   │   ├── database.py       # Session management
 │   │   │   └── migrations/       # Alembic migrations
 │   │   └── domain/
-│   │       ├── auth/             # Authentication logic
-│   │       └── connections/      # Credential encryption
+│   │       ├── audit/             # Audit trail logging
+│   │       ├── auth/              # Authentication logic
+│   │       ├── capabilities/      # Feature capability checks
+│   │       ├── connections/       # Credential encryption
+│   │       ├── executions/        # Workflow execution management
+│   │       ├── schedules/         # Execution scheduling
+│   │       ├── servers/           # Server registration and management
+│   │       └── workflows/         # Workflow storage and versioning
 │   └── tests/
 │       ├── test_grant_group_routes.py
 │       ├── test_grant_group_permissions.py
@@ -267,8 +273,14 @@ export async function removeGrantGroupFromGroup(groupId: string, grantGroupId: s
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
+| `DashboardTab` | `pages/admin/DashboardTab.tsx` | Overview dashboard |
+| `UsersTab` | `pages/admin/UsersTab.tsx` | Manage users |
 | `GroupsTab` | `pages/admin/GroupsTab.tsx` | Manage user groups, assign grant groups |
 | `GrantGroupsTab` | `pages/admin/GrantGroupsTab.tsx` | Manage grant groups, assign connections |
 | `ConnectionsTab` | `pages/admin/ConnectionsTab.tsx` | Manage connections |
+| `ServersTab` | `pages/admin/ServersTab.tsx` | Manage registered servers |
+| `ActivityTab` | `pages/admin/ActivityTab.tsx` | View audit trail and activity |
+| `SettingsPage` | `pages/admin/SettingsPage.tsx` | Hub settings |
+| `SettingsPage` | `pages/admin/SettingsPage.tsx` | Hub settings |
 
 The sidebar follows the hierarchy: Users → User Groups → Grant Groups → Connections

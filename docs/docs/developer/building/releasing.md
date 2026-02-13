@@ -80,11 +80,8 @@ jobs:
       - name: Build Server
         run: |
           cd server
-          pip install -e ".[build]"
-          pyinstaller sigilweaver.spec
-      
-      - name: Build Studio
-        run: |
+            uv sync --all-extras
+            uv run pyinstaller sigilweaver.spec
           cd studio
           npm ci
           npm run build

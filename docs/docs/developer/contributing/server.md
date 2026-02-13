@@ -367,19 +367,19 @@ Run `mypy app/` to catch type errors before committing.
 ## Logging
 
 ```python
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 async def execute(self, config, inputs):
-    logger.debug(f"Executing with config: {config}")
+    logger.debug("Executing with config", config=config)
     
     try:
         result = do_thing()
-        logger.info(f"Execution successful: {result.count()} rows")
+        logger.info("Execution successful", row_count=result.count())
     except Exception as e:
-        logger.error(f"Execution failed: {e}")
+        logger.error("Execution failed", error=str(e))
         raise
 ```
 
@@ -388,6 +388,8 @@ Log levels:
 - `INFO`: Normal operations
 - `WARNING`: Unexpected but handled
 - `ERROR`: Failures
+
+**Note**: Use `structlog`, not stdlib `logging`. Structlog provides structured key-value logging.
 
 ---
 

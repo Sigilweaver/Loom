@@ -40,7 +40,7 @@ See the [Administrator Guide](/admin/connections) for details on how Hub connect
 1. Click **Add Connection** in the Connection Manager
 2. Fill in the connection details:
    - **Name**: A descriptive name for the connection
-   - **Type**: Database type (currently PostgreSQL)
+   - **Type**: Database type (PostgreSQL, MySQL, SQLite, or MSSQL)
    - **Host**: Database server hostname or IP
    - **Port**: Database port (default: 5432 for PostgreSQL)
    - **Database**: Name of the database to connect to
@@ -77,7 +77,7 @@ Hub connections cannot be deleted by users - contact your administrator.
 
 1. Add an **Input** tool to your workflow
 2. Select **Database** as the data source category
-3. Choose **PostgreSQL** as the database type
+3. Choose the database type (PostgreSQL, MySQL, SQLite, or MSSQL)
 4. Select your connection from the dropdown
 5. Enter your SQL query
 6. The query results are available as output

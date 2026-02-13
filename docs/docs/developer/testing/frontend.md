@@ -613,7 +613,7 @@ describe('API Integration', () => {
   it('fetches schema from backend', async () => {
     const workflow = createTestWorkflow();
     
-    const response = await fetch('/api/schema/', {
+      const response = await fetch('/api/workflow/tool/schema', {
       method: 'POST',
       body: JSON.stringify({ tool_id: 'filter', workflow }),
     });

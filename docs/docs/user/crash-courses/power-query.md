@@ -22,6 +22,8 @@ If you're used to Power Query (in Excel or Power BI), you understand the value o
 | Append Queries | Union tool | Stack tables vertically |
 | Add Column (Custom) | Formula tool | Create calculated columns |
 | Sort | Sort tool | Order rows |
+| Pivot Columns | Pivot tool | Reshape long to wide |
+| Unpivot Columns | Unpivot tool | Reshape wide to long |
 
 ## Common Tasks
 

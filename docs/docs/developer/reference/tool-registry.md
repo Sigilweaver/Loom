@@ -39,10 +39,11 @@ Every tool needs a Studio definition in `studio/src/data/tools.ts`:
 interface ToolDefinition {
   type: string;           // Must match Server tool type
   name: string;           // Display name in palette
-  icon: string;           // Emoji for palette/node
+  icon: LucideIcon;       // Lucide React icon component
   category: ToolCategory; // "inout" | "preparation" | "join" | "aggregate"
   defaultConfig: ToolConfig;
   sockets: Socket[];
+  docsUrl?: string;       // Link to documentation page
 }
 ```
 
@@ -63,17 +64,20 @@ interface Socket {
 {
   type: 'Filter',
   name: 'Filter',
-  icon: '🔍',
+  icon: Filter,
   category: 'preparation',
   defaultConfig: {
     expression: '',
-    mode: 'Custom',
+    mode: 'Basic',
+    conditions: [],
+    combinator: 'and',
   },
   sockets: [
     { id: 'input', direction: 'input' },
     { id: 'output-true', direction: 'output', type: 'T' },
     { id: 'output-false', direction: 'output', type: 'F' }
-  ]
+  ],
+  docsUrl: 'https://sigilweaver.app/docs/user/tools/preparation/filter',
 }
 ```
 
@@ -241,12 +245,14 @@ The `.swwf` workflow format includes these engine-related fields:
 
 ### Preparation
 
-| Type        | Description                   | Sockets                                 |
-| ----------- | ----------------------------- | --------------------------------------- |
-| **Filter**  | Filter rows by expression     | `input` → `output-true`, `output-false` |
-| **Select**  | Select/rename/reorder columns | `input` → `output`                      |
-| **Sort**    | Sort rows by columns          | `input` → `output`                      |
-| **Formula** | Add calculated column         | `input` → `output`                      |
+| Type        | Description                   | Sockets                                    |
+| ----------- | ----------------------------- | ------------------------------------------ |
+| **Filter**  | Filter rows by expression     | `input` → `output-true`, `output-false`    |
+| **Select**  | Select/rename/reorder columns | `input` → `output`                         |
+| **Sort**    | Sort rows by columns          | `input` → `output`                         |
+| **Formula** | Add calculated column         | `input` → `output`                         |
+| **Sample**  | Sample subset of rows         | `input` → `output`                         |
+| **Unique**  | Deduplicate rows              | `input` → `output-unique`, `output-duplicate` |
 
 ### Join
 
@@ -257,9 +263,11 @@ The `.swwf` workflow format includes these engine-related fields:
 
 ### Aggregate
 
-| Type          | Description            | Sockets            |
-| ------------- | ---------------------- | ------------------ |
-| **Summarize** | Group by and aggregate | `input` → `output` |
+| Type          | Description                       | Sockets            |
+| ------------- | --------------------------------- | ------------------ |
+| **Summarize** | Group by and aggregate            | `input` → `output` |
+| **Pivot**     | Reshape data (rows to columns)    | `input` → `output` |
+| **Unpivot**   | Reshape data (columns to rows)    | `input` → `output` |
 
 ---
 
@@ -283,11 +291,13 @@ Each tool has its own config shape. Here are the key ones:
 ```json
 {
   "expression": "pl.col('value') > 100",
-  "mode": "Custom"
+  "mode": "Basic",
+  "conditions": [],
+  "combinator": "and"
 }
 ```
 
-The expression is raw Polars syntax evaluated on the backend.
+The `mode` can be `"Basic"` (UI-driven conditions) or `"Custom"` (raw Polars expression). In Basic mode, `conditions` and `combinator` drive the filter. In Custom mode, `expression` is raw Polars syntax evaluated on the backend.
 
 ### Select
 
@@ -357,6 +367,57 @@ Join types: `inner`, `left`, `right`, `outer`, `cross`.
 
 Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Var`.
 
+### Pivot
+
+```json
+{
+  "on": "category",
+  "index": ["date"],
+  "values": "amount",
+  "aggregateFunction": "first"
+}
+```
+
+Aggregate functions: `first`, `sum`, `mean`, `min`, `max`, `count`, `last`, `len`.
+
+### Unpivot
+
+```json
+{
+  "on": ["col_a", "col_b"],
+  "index": ["id"],
+  "variableName": "variable",
+  "valueName": "value"
+}
+```
+
+Reshapes wide data to long format: selected columns become rows.
+
+### Sample
+
+```json
+{
+  "mode": "FirstN",
+  "n": 100,
+  "percent": 10.0,
+  "offset": 0,
+  "seed": null
+}
+```
+
+Modes: `FirstN` (first N rows), `LastN` (last N rows), `Random` (random sample by count or percent).
+
+### Unique
+
+```json
+{
+  "columns": ["id", "name"],
+  "mode": "First"
+}
+```
+
+Modes: `First` (keep first occurrence), `Last` (keep last occurrence), `None` (drop all duplicates).
+
 ---
 
 ## Adding a New Tool
@@ -364,7 +425,7 @@ Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Va
 See [Adding Tools](../contributing/adding-tools) for a complete guide. The key steps:
 
 1. Add `ToolDefinition` to `studio/src/data/tools.ts`
-2. Create config panel component in `studio/src/components/tools/`
+2. Create config panel component in `studio/src/components/config/`
 3. Create implementation in `server/app/domain/tools/implementations/`
 4. Register with `@register_tool("YourTool")` decorator
 5. Import in `server/app/domain/tools/register.py`

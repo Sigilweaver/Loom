@@ -45,8 +45,7 @@ cd studio && npm run build:mac
 
 ```bash
 cd server
-source .venv/bin/activate
-pip install -e ".[build]"  # Includes PyInstaller
+uv sync --all-extras  # Includes PyInstaller
 ../scripts/build_server.sh
 ```
 
@@ -224,11 +223,11 @@ Verify:
 The backend executable must exist at build time:
 
 ```bash
-# Build backend first
-cd backend && ./build_executable.sh
+# Build server first
+cd server && ./build_executable.sh
 
-# Then build frontend
-cd frontend && npm run build:linux
+# Then build studio
+cd studio && npm run build:linux
 ```
 
 ### Large build size

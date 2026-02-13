@@ -34,7 +34,7 @@ Click the "Fit View" button in the canvas controls to automatically zoom and pan
 Click on a tool to select it. The selected tool:
 
 - Shows a highlighted border
-- Opens its configuration in the right panel
+- Opens its configuration in the left panel
 - Can be moved, copied, or deleted
 
 ### Multi-Selection

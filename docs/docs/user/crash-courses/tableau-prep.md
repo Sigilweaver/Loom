@@ -22,7 +22,8 @@ If you're familiar with Tableau Prep Builder, you already understand visual data
 | Aggregate | Summarize tool | Group and calculate aggregations |
 | Join | Join tool | Combine datasets on key columns |
 | Union | Union tool | Stack datasets vertically |
-| Pivot | *(Coming soon)* | Planned for future release |
+| Pivot | Pivot tool | Reshape long to wide |
+| Pivot (reverse) | Unpivot tool | Reshape wide to long |
 
 ## Common Tasks
 

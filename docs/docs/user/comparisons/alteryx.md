@@ -40,7 +40,7 @@ In Sigilweaver, Python is the native tongue. Writing a custom tool is just writi
 ## Migration Path
 
 We are building tools to help migrate Alteryx concepts to Sigilweaver.
-- **Input Data** -> **File Input**
+- **Input Data** -> **Input Tool**
 - **Select** -> **Select Tool**
 - **Filter** -> **Filter Tool**
 - **Formula** -> **Formula Tool**

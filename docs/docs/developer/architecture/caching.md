@@ -75,11 +75,11 @@ flowchart LR
 
 | File | Purpose |
 |------|---------|
-| `app/server/app/domain/execution/cache_manager.py` | `CacheManager` class - caching decisions and lineage |
-| `app/server/app/domain/execution/cache.py` | `BlockingToolCache` class - disk storage |
-| `app/server/app/domain/execution/executor.py` | Uses `CacheManager` in `_execute_tool_with_cache` |
-| `app/server/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
-| `app/server/app/config.py` | `cache_enabled` and `cache_path` settings |
+| `server/app/domain/execution/cache_manager.py` | `CacheManager` class - caching decisions and lineage |
+| `server/app/domain/execution/cache.py` | `BlockingToolCache` class - disk storage |
+| `server/app/domain/execution/executor.py` | Uses `CacheManager` in `_execute_tool_with_cache` |
+| `server/app/domain/tools/base.py` | `is_blocking()` and `should_cache()` methods |
+| `server/app/config.py` | `cache_enabled` and `cache_path` settings |
 
 ## CacheManager
 
@@ -256,12 +256,16 @@ class InputTool(BaseTool):
 | Sort | `True` | `True` | Always cached |
 | Summarize | `True` | `True` | Always cached |
 | Join | `True` | `True` | All 3 output sockets cached |
+| Pivot | `True` | `True` | Always cached |
+| Unique | `True` | `True` | Always cached |
 | Input (file) | `False` | `False` | Polars scans lazily |
 | Input (database) | `False` | `True` | Avoid repeated DB queries |
 | Filter | `False` | `False` | Streaming-compatible |
 | Select | `False` | `False` | Streaming-compatible |
 | Formula | `False` | `False` | Streaming-compatible |
+| Sample | Conditional | Conditional | Blocking for `LastN`, `Random`, `RandomPercent`, `FirstPercent` modes; streaming for `FirstN`, `EveryN` |
 | Union | `False` | `False` | Streaming-compatible |
+| Unpivot | `False` | `False` | Streaming-compatible |
 
 ## Executor Integration
 
@@ -441,7 +445,7 @@ This means:
 Cache behavior is tested in `app/server/tests/test_cache.py`:
 
 ```bash
-cd app && ./scripts/test.py -k test_cache
+./scripts/test.py -k test_cache
 ```
 
 Key test classes:

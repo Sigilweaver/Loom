@@ -22,8 +22,8 @@ Health check endpoint.
   "message": "Sigilweaver Backend is running",
   "python_version": "3.11.5",
   "platform": "Linux 6.5.0",
-  "polars_version": "0.20.10",
-  "max_preview_rows": 1000
+  "polars_version": "1.20.0",
+  "max_preview_rows": 10000
 }
 ```
 
@@ -168,8 +168,8 @@ Profile columns for a tool's input data. Computes statistical profiles for data 
 
 **Available Metrics:**
 - Basic: `count`, `null_count`, `null_percent`, `unique_count`
-- Numeric: `min`, `max`, `mean`, `median`, `std`
-- String quality: `whitespace_leading`, `whitespace_trailing`, `contains_linebreaks`, `contains_non_ascii`
+- Numeric: `min`, `max`, `mean`, `median`, `std`, `min_values`, `max_values`
+- String quality: `empty_count`, `whitespace_leading`, `whitespace_trailing`, `contains_linebreaks`, `contains_non_ascii`
 - Distribution: `top_values`
 
 **Response:**
@@ -307,8 +307,8 @@ List supported file types.
 **Response:**
 ```json
 {
-  "source_types": ["csv", "tsv"],
-  "file_extensions": [".csv", ".tsv"]
+  "source_types": ["avro", "csv", "excel", "ipc", "json", "ods", "parquet", "yxdb", "postgresql", "mysql", "sqlite", "mssql"],
+  "file_extensions": [".avro", ".csv", ".tsv", ".tab", ".txt", ".xlsx", ".xls", ".xlsb", ".ods", ".json", ".jsonl", ".ndjson", ".parquet", ".yxdb", ".arrow", ".ipc", ".feather"]
 }
 ```
 

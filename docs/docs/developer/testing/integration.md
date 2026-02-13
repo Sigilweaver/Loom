@@ -240,14 +240,12 @@ jobs:
       
       - name: Install backend
         run: |
-          cd backend
-          pip install -e ".[dev]"
-      
-      - name: Install frontend
-        run: |
-          cd frontend
-          npm ci
-      
+            cd server
+            uv sync --all-extras
+        
+        - name: Install frontend
+          run: |
+            cd studio
       - name: Run integration tests
         run: ./scripts/test_integration.sh
 ```

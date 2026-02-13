@@ -46,6 +46,7 @@ For tools with multiple outputs (like Filter with T/F or Join with L/J/R), tabs 
 |------|-------------|
 | Filter | `T` (matching rows), `F` (non-matching rows) |
 | Join | `L` (unmatched left), `J` (matched), `R` (unmatched right) |
+| Unique | `U` (unique rows), `D` (duplicate rows) |
 | Other tools | Single `output` tab |
 
 ## Resizing the Panel

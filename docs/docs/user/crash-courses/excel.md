@@ -38,7 +38,7 @@ If you're an Excel power user ready to move beyond spreadsheet limits, Sigilweav
 | Filter (Data tab) | Filter tool | Keep/remove rows by condition |
 | Hide columns | Select tool | Choose which columns to keep |
 | Sort (Data tab) | Sort tool | Order rows by column values |
-| Pivot Table | Summarize tool | Group data and aggregate |
+| Pivot Table | Summarize / Pivot tool | Group data, aggregate, or reshape |
 | VLOOKUP/XLOOKUP | Join tool | Combine two tables by key |
 | Copy/Paste to stack data | Union tool | Stack datasets vertically |
 | Save As | Output tool | Save results to file |

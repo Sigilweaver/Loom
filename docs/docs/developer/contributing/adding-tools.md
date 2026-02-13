@@ -95,12 +95,14 @@ And add it to the `__all__` list in the same file. The import triggers the `@reg
 Add the tool to `studio/src/data/tools.ts`:
 
 ```typescript
+import { Wrench } from 'lucide-react';
+
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // ... existing tools
   {
     type: 'MyTool',           // Must match @register_tool("MyTool")
     name: 'My Tool',          // Display name in UI
-    icon: '🔧',               // Emoji for now
+    icon: Wrench,             // Lucide icon component
     category: 'preparation',  // inout | preparation | join | aggregate
     defaultConfig: {
       min_age: 0,
@@ -115,28 +117,44 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 
 ### Create a Config Panel
 
-If your tool needs custom configuration UI, create a config panel:
+If your tool needs custom configuration UI, create a config panel in the appropriate category directory:
 
 ```typescript
-// studio/src/components/MyToolConfiguration.tsx
+// studio/src/components/config/prepare/MyToolConfiguration.tsx
 
-import { Tool } from '@/domain/workflow/entities/workflow';
+import { useToolConfiguration } from '@/hooks/useToolConfiguration';
+import { CommonSockets } from '@domain/workflow/constants/socketIds';
 
 interface Props {
-  tool: Tool;
-  onConfigChange: (config: Partial<Tool['config']>) => void;
+  toolId: string;
+  config: Record<string, any>;
+  onChange: (config: Record<string, any>) => void;
+  tools: Tool[];
+  wires: Wire[];
+  workflowMeta: WorkflowMeta;
 }
 
-export function MyToolConfig({ tool, onConfigChange }: Props) {
+export function MyToolConfiguration({ toolId, config, onChange, tools, wires, workflowMeta }: Props) {
+  const { columns, loading, hasInput, updateField } = useToolConfiguration({
+    toolId,
+    socketId: CommonSockets.INPUT,
+    tools,
+    wires,
+    workflowMeta,
+    config,
+    onChange,
+  });
+
   return (
     <div className="space-y-4">
       <label className="block">
         <span className="text-sm font-medium">Minimum Age</span>
         <input
           type="number"
-          value={tool.config.min_age ?? 0}
-          onChange={(e) => onConfigChange({ min_age: Number(e.target.value) })}
+          value={config.min_age ?? 0}
+          onChange={(e) => updateField('min_age', Number(e.target.value))}
           className="mt-1 block w-full rounded border px-3 py-2"
+          disabled={!hasInput || loading}
         />
       </label>
     </div>
@@ -144,11 +162,16 @@ export function MyToolConfig({ tool, onConfigChange }: Props) {
 }
 ```
 
-Then register it in `ConfigurationPanel.tsx`:
+Then register it in `studio/src/data/toolConfigComponents.tsx`:
 
 ```typescript
-case 'MyTool':
-  return <MyToolConfig tool={tool} onConfigChange={handleConfigChange} />;
+import { MyToolConfiguration } from '@/components/config/prepare/MyToolConfiguration';
+
+// Add to the TOOL_CONFIG_REGISTRY:
+export const TOOL_CONFIG_REGISTRY: Record<string, ToolConfigEntry> = {
+  // ... existing entries
+  MyTool: { component: MyToolConfiguration },
+};
 ```
 
 ### Simple Tools
@@ -213,34 +236,34 @@ async def test_my_tool_validates_config():
 
 ### Studio Tests
 
-Create `studio/src/components/panels/config/__tests__/MyToolConfig.test.tsx`:
+Create `studio/src/components/config/prepare/__tests__/MyToolConfiguration.test.tsx`:
 
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { MyToolConfig } from '../MyToolConfig';
+import { MyToolConfiguration } from '../MyToolConfiguration';
 
-describe('MyToolConfig', () => {
-  const mockTool = {
-    id: 'test-1',
-    type: 'MyTool',
-    x: 0,
-    y: 0,
+describe('MyToolConfiguration', () => {
+  const defaultProps = {
+    toolId: 'test-1',
     config: { min_age: 10 },
-    sockets: [],
+    onChange: vi.fn(),
+    tools: [],
+    wires: [],
+    workflowMeta: { name: 'Test', defaultEngine: 'sigilweaver/polars' },
   };
 
   it('renders current value', () => {
-    render(<MyToolConfig tool={mockTool} onConfigChange={() => {}} />);
+    render(<MyToolConfiguration {...defaultProps} />);
     expect(screen.getByRole('spinbutton')).toHaveValue(10);
   });
 
-  it('calls onConfigChange when value changes', () => {
-    const onConfigChange = vi.fn();
-    render(<MyToolConfig tool={mockTool} onConfigChange={onConfigChange} />);
+  it('calls onChange when value changes', () => {
+    const onChange = vi.fn();
+    render(<MyToolConfiguration {...defaultProps} onChange={onChange} />);
     
     fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '25' } });
-    expect(onConfigChange).toHaveBeenCalledWith({ min_age: 25 });
+    expect(onChange).toHaveBeenCalled();
   });
 });
 ```
@@ -323,7 +346,7 @@ async def get_output_schema(self, config, input_schemas):
 Before submitting a PR for a new tool:
 
 - [ ] Backend implementation with `@register_tool`
-- [ ] Registered in `register.py`
+- [ ] Registered in `__init__.py`
 - [ ] Frontend definition in `tools.ts`
 - [ ] Config panel (if needed)
 - [ ] Server tests

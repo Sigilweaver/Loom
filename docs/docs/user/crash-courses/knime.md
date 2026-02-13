@@ -23,6 +23,7 @@ If you're a KNIME user, you already understand node-based workflows and the powe
 | Concatenate | Union tool | Stack tables vertically |
 | Math Formula | Formula tool | Create calculated columns |
 | Sorter | Sort tool | Order rows by columns |
+| Database Reader | Input tool (Database) | Query PostgreSQL, MySQL, SQLite, MSSQL |
 
 ## Common Tasks
 
@@ -178,7 +179,6 @@ Let's build a typical KNIME pattern: load data, filter, create a calculated colu
 Sigilweaver is focused on data transformation, so it doesn't have:
 - Machine learning nodes
 - Statistical analysis
-- Database connectors (yet - planned)
 - R/Python scripting nodes
 - Interactive visualizations
 
