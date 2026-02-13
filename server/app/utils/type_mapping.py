@@ -61,7 +61,8 @@ def schema_from_polars(df: pl.DataFrame | pl.LazyFrame) -> DataSchema:
     """
     columns = []
 
-    for name, dtype in df.schema.items():
+    schema = df.collect_schema() if isinstance(df, pl.LazyFrame) else df.schema
+    for name, dtype in schema.items():
         columns.append(
             ColumnSchema(
                 name=name,

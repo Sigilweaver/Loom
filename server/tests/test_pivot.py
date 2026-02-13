@@ -192,15 +192,15 @@ class TestPivotToolAggregation:
         assert q1_val == 125.0
 
     @pytest.mark.asyncio
-    async def test_aggregation_count(
+    async def test_aggregation_len(
         self, pivot_tool: PivotTool, long_data_with_duplicates: pl.LazyFrame
     ):
-        """Test pivot with count aggregation."""
+        """Test pivot with len aggregation."""
         config = {
             "on": "quarter",
             "index": ["id"],
             "values": "sales",
-            "aggregateFunction": "count",
+            "aggregateFunction": "len",
         }
         result = await pivot_tool.execute(config, {"input": long_data_with_duplicates})
 
@@ -423,5 +423,5 @@ class TestPivotAggregationList:
 
     def test_all_aggregations_defined(self):
         """Test that all expected aggregations are defined."""
-        expected = {"first", "last", "sum", "mean", "median", "min", "max", "count", "len"}
+        expected = {"first", "last", "sum", "mean", "median", "min", "max", "len"}
         assert set(PIVOT_AGGREGATIONS.keys()) == expected

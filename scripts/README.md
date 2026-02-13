@@ -46,6 +46,7 @@ Utility scripts for building, testing, and running Sigilweaver.
 **Usage**:
 ```bash
 ./scripts/dev.py                    # Start all (Server, Studio, Hub)
+./scripts/dev.py --all              # Same as above (explicit)
 ./scripts/dev.py --server           # Server only
 ./scripts/dev.py --studio           # Studio only
 ./scripts/dev.py --hub              # Hub (backend + frontend)
@@ -54,11 +55,13 @@ Utility scripts for building, testing, and running Sigilweaver.
 ./scripts/dev.py --studio-electron  # All + launch Electron desktop app
 ./scripts/dev.py --studio-tauri     # All + launch Tauri desktop app
 ./scripts/dev.py --hub-auth         # All with Hub authentication enabled
+./scripts/dev.py --install          # Force reinstall dependencies (then exit)
 ```
 
 **Ports**:
 | Service      | Port                   |
 | ------------ | ---------------------- |
+| PostgreSQL   | localhost:25801        |
 | Server       | http://localhost:25811 |
 | Studio       | http://localhost:25810 |
 | Hub Backend  | http://localhost:25802 |
@@ -181,11 +184,11 @@ B2_APPLICATION_KEY=xxx
 ./scripts/build.py --platform linux     # Build for Linux
 ./scripts/build.py --platform win       # Build for Windows
 ./scripts/build.py --platform mac       # Build for macOS
-./scripts/build.py --backend-only       # Build backend only
-./scripts/build.py --frontend-only      # Build frontend only
+./scripts/build.py --server-only       # Build server only
+./scripts/build.py --studio-only       # Build studio only (assumes server already built)
 ./scripts/build.py --clean              # Clean artifacts before building
 ```
-- Final packages: `frontend/dist/` (AppImage, DMG, exe, etc.)
+- Final packages: `studio/dist/` (AppImage, DMG, exe, etc.)
 
 **Examples**:
 ```bash
@@ -201,11 +204,11 @@ B2_APPLICATION_KEY=xxx
 # Build for macOS (on Mac only)
 ./scripts/build.py --platform mac
 
-# Quick backend iteration
-./scripts/build.py --backend-only
+# Quick server iteration
+./scripts/build.py --server-only
 
-# Rebuild frontend after backend change
-./scripts/build.py --frontend-only
+# Rebuild studio after server change
+./scripts/build.py --studio-only
 
 # Clean build
 ./scripts/build.py --clean

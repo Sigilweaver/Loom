@@ -10,7 +10,7 @@ export interface FilterCondition {
   column: string;
   operator: string;
   value: string;
-  comment?: string;
+  comment?: string | undefined;
 }
 
 export type Combinator = "and" | "or";
@@ -23,7 +23,7 @@ export interface FilterConditionItem {
   operator: string;
   value: string;
   /** Optional inline comment shown as # comment in generated expression */
-  comment?: string;
+  comment?: string | undefined;
 }
 
 /** A group of items sharing a combinator */
@@ -33,7 +33,7 @@ export interface FilterGroup {
   combinator: Combinator;
   children: FilterItem[];
   /** Optional comment shown above the group expression */
-  comment?: string;
+  comment?: string | undefined;
 }
 
 /** A node in the filter tree */
@@ -205,7 +205,7 @@ function conditionToExpression(
 /** An expression part with optional inline comment */
 interface ExprPart {
   expr: string;
-  comment?: string;
+  comment?: string | undefined;
 }
 
 /** Generate a Polars expression from a filter group tree */
@@ -651,8 +651,8 @@ function ConditionGroup({
     (childId: string, updates: Partial<FilterConditionItem>) => {
       onChange({
         ...group,
-        children: group.children.map((c) =>
-          c.id === childId ? { ...c, ...updates } : c
+        children: group.children.map((c): FilterItem =>
+          c.id === childId ? { ...c, ...updates } as FilterItem : c
         ),
       });
     },

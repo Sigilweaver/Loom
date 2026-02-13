@@ -21,15 +21,14 @@ PIVOT_AGGREGATIONS = {
     "median": "Median",
     "min": "Min",
     "max": "Max",
-    "count": "Count",
-    "len": "Length",
+    "len": "Count",
 }
 
 # Aggregations that only work on numeric columns
 NUMERIC_ONLY_AGGREGATIONS = {"sum", "mean", "median"}
 
 # Aggregations that work on any type
-UNIVERSAL_AGGREGATIONS = {"first", "last", "min", "max", "count", "len"}
+UNIVERSAL_AGGREGATIONS = {"first", "last", "min", "max", "len"}
 
 
 @register_tool("Pivot")
