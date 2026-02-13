@@ -22,6 +22,9 @@ const config: Config = {
   // Mermaid diagram support
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
   themes: ['@docusaurus/theme-mermaid'],
 
@@ -35,7 +38,6 @@ const config: Config = {
   projectName: 'sigilweaver-docs',
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang.

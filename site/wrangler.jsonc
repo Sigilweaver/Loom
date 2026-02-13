@@ -1,5 +1,5 @@
 {
-    "name": "sigilweaver-website",
+    "name": "sigilweaver-app",
     "compatibility_date": "2024-11-26",
     "assets": {
         "directory": "./dist"
