@@ -11,6 +11,10 @@ import {
   type FormulaOperationConfig,
   createEmptyOperation,
 } from "./FormulaOperationBuilder";
+import ExpressionAssist from "@components/ai/ExpressionAssist";
+import FormulaAssist from "@components/ai/FormulaAssist";
+import type { BasicFormulaOperation } from '../../../ai/agent';
+import { ALL_OPERATIONS } from "./formulaOperations";
 
 // ---------------------------------------------------------------------------
 // Config shape
@@ -312,6 +316,34 @@ export function FormulaConfiguration({
     setDragOverIndex(null);
   }, [dragIndex, dragOverIndex, operations, updateOperations]);
 
+  // Build a concise operation catalog string for the AI prompt
+  const operationCatalog = useMemo(() => {
+    return ALL_OPERATIONS.map(
+      (op) => `${op.id}: ${op.label} (${op.category})${op.params?.length ? ` — params: ${op.params.map((p) => p.key).join(', ')}` : ''}`
+    ).join('\n');
+  }, []);
+
+  /**
+   * Handle AI-generated basic formula operations.
+   * Converts BasicFormulaOperation[] into FormulaOperationConfig[] and merges them.
+   */
+  const handleAIFormulaResult = useCallback(
+    (aiOps: BasicFormulaOperation[]) => {
+      const newOps: FormulaOperationConfig[] = aiOps.map((aiOp) => ({
+        id: crypto.randomUUID(),
+        operationId: aiOp.operationId,
+        sourceColumn: aiOp.sourceColumn ?? '',
+        params: aiOp.params ?? {},
+        columnName: aiOp.columnName ?? '',
+        columnNameEdited: !!aiOp.columnName,
+        mode: 'basic' as const,
+        expression: '',
+      }));
+      updateOperations([...operations, ...newOps]);
+    },
+    [operations, updateOperations]
+  );
+
   // Build target column options for advanced mode dropdown
   const targetColumnOptions = useMemo(() => {
     const options = [
@@ -343,6 +375,13 @@ export function FormulaConfiguration({
             </p>
           </div>
         </div>
+
+        {/* AI Formula Assist */}
+        <FormulaAssist
+          columns={columns.map((c) => ({ name: c.name, dtype: c.dtype, nullable: c.nullable }))}
+          operationCatalog={operationCatalog}
+          onOperationsGenerated={handleAIFormulaResult}
+        />
 
         {/* Operations List */}
         {operations.length === 0 ? (
@@ -522,6 +561,12 @@ export function FormulaConfiguration({
                                 docsUrl={EXPRESSION_DOCS_URL}
                               />
                             </div>
+                            <ExpressionAssist
+                              columns={columns.map((c) => ({ name: c.name, dtype: c.dtype, nullable: c.nullable }))}
+                              toolType="Formula"
+                              onExpressionGenerated={(expr) => handleExpressionChange(op.id, expr)}
+                              polarsFunctions={functions?.table_level?.map((f) => f.name)}
+                            />
                           </div>
                         </div>
                       ) : (

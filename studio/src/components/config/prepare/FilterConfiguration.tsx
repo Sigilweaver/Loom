@@ -12,13 +12,18 @@ import { usePolarsFunctions } from "@api/hooks";
 import { useToolConfiguration } from "@hooks/useToolConfiguration";
 import { EXPRESSION_DOCS_URL } from "@data/tools";
 import { CommonSockets } from "@domain/workflow/constants/socketIds";
+import ExpressionAssist from "@components/ai/ExpressionAssist";
+import FilterAssist from "@components/ai/FilterAssist";
+import type { BasicFilterResult } from '../../../ai/agent';
 import {
   FilterExpressionBuilder,
   generateGroupExpression,
   legacyToGroup,
   groupToLegacy,
   type FilterCondition,
+  type FilterConditionItem,
   type FilterGroup,
+  type FilterItem,
   type Combinator,
 } from "./FilterExpressionBuilder";
 
@@ -258,6 +263,52 @@ export function FilterConfiguration({
     [config, onChange]
   );
 
+  /**
+   * Handle AI-generated basic filter conditions.
+   * Converts BasicFilterResult into a FilterGroup and feeds it into handleGroupChange.
+   */
+  const handleAIFilterResult = useCallback(
+    (result: BasicFilterResult) => {
+      // Build children from flat conditions
+      const children: FilterItem[] = (result.conditions ?? []).map((c): FilterConditionItem => ({
+        id: crypto.randomUUID(),
+        type: 'condition',
+        column: c.column,
+        operator: c.operator,
+        value: c.value ?? '',
+      }));
+
+      // Build sub-groups
+      if (result.groups) {
+        for (const g of result.groups) {
+          const subGroup: FilterGroup = {
+            id: crypto.randomUUID(),
+            type: 'group',
+            combinator: (g.combinator as Combinator) || 'and',
+            children: g.conditions.map((c): FilterConditionItem => ({
+              id: crypto.randomUUID(),
+              type: 'condition',
+              column: c.column,
+              operator: c.operator,
+              value: c.value ?? '',
+            })),
+          };
+          children.push(subGroup);
+        }
+      }
+
+      const newGroup: FilterGroup = {
+        id: crypto.randomUUID(),
+        type: 'group',
+        combinator: (result.combinator as Combinator) || 'and',
+        children,
+      };
+
+      handleGroupChange(newGroup);
+    },
+    [handleGroupChange]
+  );
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4 overflow-y-auto space-y-4">
@@ -288,6 +339,10 @@ export function FilterConfiguration({
           {/* Basic Mode: Condition Group Builder + Expression Preview */}
           {!isAdvanced && (
             <>
+              <FilterAssist
+                columns={columns.map((c) => ({ name: c.name, dtype: c.dtype, nullable: c.nullable }))}
+                onConditionsGenerated={handleAIFilterResult}
+              />
               <FilterExpressionBuilder
                 group={currentGroup}
                 onGroupChange={handleGroupChange}
@@ -330,6 +385,12 @@ export function FilterConfiguration({
                   docsUrl={EXPRESSION_DOCS_URL}
                 />
               </div>
+              <ExpressionAssist
+                columns={columns.map((c) => ({ name: c.name, dtype: c.dtype, nullable: c.nullable }))}
+                toolType="Filter"
+                onExpressionGenerated={handleExpressionChange}
+                polarsFunctions={functions?.table_level?.map((f) => f.name)}
+              />
               <p className="text-xs text-theme-text-tertiary">
                 Write a Polars expression that returns True/False for each row
               </p>

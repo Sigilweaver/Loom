@@ -48,6 +48,7 @@ interface UIState {
   positionMenuOpen: boolean;
   positionMenuCoords: { x: number; y: number } | null;
   workflowViewerVisible: boolean;
+  aiChatVisible: boolean;
   activeToolTab: ToolCategory;
   leftPaneTab: LeftPaneTab;
   favoriteTools: string[]; // Array of tool type names that are favorites
@@ -67,6 +68,8 @@ interface UIState {
   openPositionMenu: (coords: { x: number; y: number }) => void;
   closePositionMenu: () => void;
   setWorkflowViewerVisible: (visible: boolean) => void;
+  setAIChatVisible: (visible: boolean) => void;
+  toggleAIChat: () => void;
   setActiveToolTab: (tab: ToolCategory) => void;
   setLeftPaneTab: (tab: LeftPaneTab) => void;
   toggleFavoriteTool: (toolType: string) => void;
@@ -153,6 +156,10 @@ export const useUIStore = create<UIState>()((set, get) => ({
   workflowViewerVisible: false,
   setWorkflowViewerVisible: (visible) =>
     set({ workflowViewerVisible: visible }),
+
+  aiChatVisible: false,
+  setAIChatVisible: (visible) => set({ aiChatVisible: visible }),
+  toggleAIChat: () => set((s) => ({ aiChatVisible: !s.aiChatVisible })),
 
   activeToolTab: "favorites",
   setActiveToolTab: (tab) => set({ activeToolTab: tab }),

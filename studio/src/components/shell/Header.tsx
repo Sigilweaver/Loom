@@ -4,6 +4,7 @@ import { useWorkflowStore } from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { useExecutionStore } from "@state/executionStore";
 import { useSettingsStore } from "@state/settingsStore";
+import { useAIStore } from "@state/aiStore";
 import { useWorkflowExecute } from "@api/hooks";
 import { previewAllTools } from "@api/execution";
 import { clearBackendWorkflowCache } from "@api/backend";
@@ -12,6 +13,7 @@ import { cacheAllPreviews } from "@api/cache";
 import { platform, hasNativeDialogs } from "@platform";
 import { createLogger } from "@utils/logger";
 import SigilWeaverLogo from "./SigilWeaverLogo";
+import { Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -53,6 +55,9 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   const setWorkflowViewerVisible = useUIStore(
     (s) => s.setWorkflowViewerVisible
   );
+  const aiChatVisible = useUIStore((s) => s.aiChatVisible);
+  const toggleAIChat = useUIStore((s) => s.toggleAIChat);
+  const aiEnabled = useAIStore((s) => s.enabled);
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
   const bypassCache = useUIStore((s) => s.bypassCache);
@@ -573,6 +578,25 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
             >
               {workflowViewerVisible ? "Hide Code" : "View Code"}
             </button>
+
+            {aiEnabled && (
+            <button
+              onClick={toggleAIChat}
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors border
+                ${aiChatVisible
+                  ? "bg-theme-header-btn-viewcode-bg-active border-theme-header-btn-viewcode-border-active text-theme-header-btn-viewcode-text-active"
+                  : "bg-theme-header-btn-viewcode-bg border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text"
+                }
+                hover:bg-theme-header-btn-viewcode-bg-hover hover:border-theme-header-btn-viewcode-border-hover hover:text-theme-header-btn-viewcode-text-hover
+                disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled`}
+              title={aiChatVisible ? "Hide AI Assistant" : "Show AI Assistant"}
+            >
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                {aiChatVisible ? "Hide AI" : "AI"}
+              </span>
+            </button>
+            )}
 
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
 

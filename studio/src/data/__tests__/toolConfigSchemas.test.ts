@@ -111,7 +111,7 @@ describe('toolConfigSchemas', () => {
     it('Filter schema has correct mode enum', () => {
       const schema = getToolConfigSchema('Filter')!;
       expect(schema.fields.mode!.enum).toContain('Basic');
-      expect(schema.fields.mode!.enum).toContain('Advanced');
+      expect(schema.fields.mode!.enum).toContain('Custom');
     });
 
     it('Join schema has correct joinType enum', () => {

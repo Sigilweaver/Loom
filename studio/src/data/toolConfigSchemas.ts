@@ -124,33 +124,42 @@ const FILTER_SCHEMA: ToolConfigSchema = {
   description: 'Filter rows based on conditions. Has two outputs: matching rows (True) and non-matching rows (False).',
   fields: {
     mode: {
-      description: 'Configuration mode',
+      description: 'Configuration mode. Do not set manually — it is set automatically.',
       type: 'enum',
-      enum: ['Basic', 'Advanced'] as const,
+      enum: ['Basic', 'Custom'] as const,
       default: 'Basic',
     },
     expression: {
-      description: 'Polars filter expression (Advanced mode). Example: (pl.col("Age") > 18) & (pl.col("Fare") < 100)',
+      description: 'Polars filter expression. Auto-generated from conditions — do not set manually.',
       type: 'string',
       default: '',
     },
     conditions: {
-      description: 'Filter conditions (Basic mode)',
+      description: 'Filter conditions (Basic mode). Set conditions here and the expression will be auto-generated.',
       type: 'array',
       items: {
         column: { description: 'Column name to filter on', type: 'string', required: true },
         operator: {
           description: 'Comparison operator',
           type: 'enum',
-          enum: ['equals', 'not_equals', 'greater_than', 'less_than', 'greater_equal', 'less_equal', 'contains', 'not_contains', 'starts_with', 'ends_with', 'is_null', 'is_not_null', 'in', 'not_in'] as const,
+          enum: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'contains', 'not_contains', 'starts_with', 'ends_with', 'is_null', 'is_not_null'] as const,
           required: true,
         },
-        value: { description: 'Value to compare against', type: 'string' },
+        value: { description: 'Value to compare against (omit for is_null/is_not_null)', type: 'string' },
+      },
+      default: [],
+    },
+    groups: {
+      description: 'Sub-groups for complex logic. Each group has its own conditions and combinator. Top-level conditions and groups are combined by the top-level combinator. Example: to express (A) AND (B OR C), put A in conditions and B,C in a group with combinator "or".',
+      type: 'array',
+      items: {
+        conditions: { description: 'Conditions within the group', type: 'array' },
+        combinator: { description: 'How to combine conditions within the group (and/or)', type: 'enum', enum: ['and', 'or'] as const },
       },
       default: [],
     },
     combinator: {
-      description: 'How to combine multiple conditions',
+      description: 'How to combine top-level conditions and groups',
       type: 'enum',
       enum: ['and', 'or'] as const,
       default: 'and',

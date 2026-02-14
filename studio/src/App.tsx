@@ -12,11 +12,14 @@ import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
 import WorkflowViewer from "./components/workflow/WorkflowViewer";
+import AIChatPanel from "./components/ai/AIChatPanel";
+import ResizablePanel from "./components/shell/ResizablePanel";
 import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import { initializeAuth } from "./api/backend";
+import { useAIStore } from "@state/aiStore";
 import { closeAllWorkflowCaches } from "./api/cache";
 import { initHubClient, hasHubClient } from "./api/hub";
 import { triggerHubConnectionsRefresh } from "./hooks/useAllConnections";
@@ -47,6 +50,8 @@ function App() {
   // UI notifications and state via store
   const showNotification = useUIStore((s) => s.showNotification);
   const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
+  const aiChatVisible = useUIStore((s) => s.aiChatVisible);
+  const setAIChatVisible = useUIStore((s) => s.setAIChatVisible);
 
   // Load settings on mount and sync with uiStore, then create initial tab
   useEffect(() => {
@@ -89,6 +94,9 @@ function App() {
       if (tabs.length === 0) {
         createTab("Untitled Workflow");
       }
+
+      // Load AI settings
+      useAIStore.getState().loadAISettings();
     };
 
     initSettings();
@@ -332,6 +340,13 @@ function App() {
 
                   {/* Workflow Viewer Side Panel - computes JSON internally */}
                   {workflowViewerVisible && <WorkflowViewer />}
+
+                  {/* AI Chat Panel */}
+                  {aiChatVisible && (
+                    <ResizablePanel defaultWidth={380} minWidth={300} maxWidth={600}>
+                      <AIChatPanel onClose={() => setAIChatVisible(false)} />
+                    </ResizablePanel>
+                  )}
                 </div>
               </ReactFlowProvider>
             </div>
