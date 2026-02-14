@@ -41,9 +41,9 @@ Drag **Input** tool → Pick your file → Preview data
 Click column header dropdown → Filter values OR Home → Remove Rows → Custom Filter
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write expression like `pl.col("sales") > 1000` → Use T (true) output
+Drag **Filter** tool → Use the visual condition builder to pick columns, operators, and values → Use T (true) output
 
-**Key difference:** Power Query uses clickable filters. Sigilweaver uses [Polars expressions](../expressions/basics) - more powerful but requires learning syntax.
+**Key difference:** Power Query uses clickable column filters. Sigilweaver's Filter tool has a **visual builder** (Basic mode) that works similarly - pick a column, choose an operator, enter a value. For advanced logic, **Custom mode** lets you write Polars expressions directly.
 
 ### Selecting/Removing Columns
 
@@ -59,7 +59,9 @@ Drag **Select** tool → Check columns to keep → Configure rename/reorder/cast
 Add Column → Custom Column → Enter M formula like `[Price] * [Quantity]`
 
 **Sigilweaver:**  
-Drag **Formula** tool → Expression: `pl.col("price") * pl.col("quantity")` → Name output column
+Drag **Formula** tool → Pick a source column → Choose from 50+ built-in operations (Multiply, Round, Uppercase, etc.) → Name output column
+
+For advanced calculations, switch any operation to **Custom mode** and write Polars expressions like `pl.col("price") * pl.col("quantity")`.
 
 ### Grouping and Aggregating
 
@@ -87,7 +89,7 @@ Drag **Union** tool → Wire multiple inputs → Stack vertically
 
 ## Key Differences
 
-### 1. M Language vs. Polars Expressions
+### 1. M Language vs. Visual Builders and Polars Expressions
 
 Power Query uses **M language** for custom operations:
 ```m
@@ -95,7 +97,7 @@ Power Query uses **M language** for custom operations:
 = if [Status] = "Active" then [Price] else 0
 ```
 
-Sigilweaver uses **Polars expressions** (Python-like syntax):
+Sigilweaver's **Basic mode** uses visual builders - no coding needed. Pick a column, choose an operation, enter parameters. For advanced logic, **Custom mode** uses **Polars expressions** (Python-like syntax):
 ```python
 pl.col("sales") * 1.1
 
@@ -104,7 +106,7 @@ pl.when(pl.col("status") == "Active")
   .otherwise(0)
 ```
 
-The [Expressions Guide](../expressions/basics) has everything you need to learn Polars syntax.
+The [Expressions Guide](../expressions/basics) covers Custom mode syntax for when you need it.
 
 ### 2. Visual Canvas vs. Applied Steps List
 
@@ -143,12 +145,12 @@ Let's replicate a common Power Query task: load sales data, filter for current y
 
 2. **Filter for current year:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("year") == 2024`
+   - In Basic mode: pick `year`, choose `equals`, type `2024`
    - Use the **T** (true) output
 
 3. **Calculate profit margin:**
    - Drag **Formula** tool, wire from Filter's T output
-   - Expression: `(pl.col("revenue") - pl.col("cost")) / pl.col("revenue") * 100`
+   - In Custom mode (this calculation is more complex): `(pl.col("revenue") - pl.col("cost")) / pl.col("revenue") * 100`
    - Output column name: `profit_margin`
 
 4. **Group by region:**
@@ -173,7 +175,7 @@ Let's replicate a common Power Query task: load sales data, filter for current y
 ## Next Steps
 
 - **[Interface Guide](../interface/canvas)** - Learn the canvas, tool palette, and wiring
-- **[Expressions Basics](../expressions/basics)** - Master Polars expressions (like M language, but Python-based)
+- **[Expressions Basics](../expressions/basics)** - Learn Polars expressions for Custom mode (like M language, but Python-based)
 - **[Tools Reference](../tools/)** - Detailed documentation for every tool
 
 If you're comfortable with Power Query's step-by-step transformations, you'll adapt quickly. The visual canvas makes complex workflows easier to understand than scrolling through Applied Steps.

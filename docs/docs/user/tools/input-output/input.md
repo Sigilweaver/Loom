@@ -24,7 +24,6 @@ Comma-separated values and other delimited text files.
 |------|-------------|----------|
 | **Scan** | Lazy loading, streams data | Large files, memory efficiency |
 | **Read** | Eager loading, loads entire file | Small files, when you need all data upfront |
-| **Batched** | Processes in chunks like Dask | Very large files |
 
 **CSV Options:**
 
@@ -36,9 +35,17 @@ Comma-separated values and other delimited text files.
 | Quote Character | `"` | Character used to quote fields |
 | Encoding | `utf-8` | File encoding |
 | Skip Rows | `0` | Number of rows to skip at the start |
+| Skip Rows After Header | `0` | Rows to skip after the header row |
+| N Rows | (all) | Limit number of rows to read |
 | Infer Schema Length | `100` | Rows to sample for type inference |
 | Try Parse Dates | `false` | Attempt to parse date columns |
 | Ignore Errors | `false` | Skip rows with parsing errors |
+| Truncate Ragged Lines | `false` | Truncate lines that are too long instead of erroring |
+| Comment Prefix | (none) | Character that marks comment lines to skip |
+| Null Values | (none) | String(s) to interpret as null |
+| Decimal Comma | `false` | Use comma as decimal separator (European format) |
+| Low Memory | `false` | Reduce memory usage at cost of speed |
+| Rechunk | `false` | Rechunk to contiguous memory after reading |
 
 ### Excel
 
@@ -85,6 +92,19 @@ Columnar binary format with embedded schema.
 | Columns | (all) | Specific columns to load |
 | Use Statistics | `true` | Use file statistics for optimization |
 | Parallel | `auto` | Parallel reading strategy |
+| Low Memory | `false` | Reduce memory usage at cost of speed |
+| Cache | `true` | Cache scan result (scan mode only) |
+| Rechunk | `false` | Rechunk to contiguous memory |
+| Retries | `2` | Number of retries on I/O errors |
+
+**Advanced Parquet Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Row Index Name | (none) | Add a row index column with this name |
+| Row Index Offset | `0` | Start row index at this value |
+| Hive Partitioning | `false` | Infer partition columns from directory structure |
+| Parse Hive Dates | `true` | Try to parse date columns from Hive partitions |
 
 ### IPC / Arrow
 
@@ -292,7 +312,7 @@ Alteryx database files (.yxdb). Read using [SigilYX](https://github.com/sigilwea
 
 **Reading Mode:**
 
-YXDB files only support eager reading (the entire file is loaded into memory). The row-based LZF compression used by the format prevents partial reads.
+YXDB files are read eagerly (the entire file is loaded into memory). The row-based LZF compression used by the format prevents partial reads or predicate pushdown. The result is wrapped in a LazyFrame for workflow compatibility, so subsequent operations (filter, select, join) are still composed lazily.
 
 **YXDB Options:**
 

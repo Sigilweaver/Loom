@@ -4,12 +4,10 @@
  * Based on Polars Python API:
  * - polars.scan_csv (lazy evaluation)
  * - polars.read_csv (eager read)
- * - polars.read_csv_batched (batched reader)
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.scan_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html
- * https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv_batched.html
  * https://sigilweaver.app/docs/user/tools/input-output/input/#csv
  */
 
@@ -21,7 +19,7 @@ export type { PolarsDataType };
 /**
  * CSV Reading Mode
  */
-export type CSVMode = "scan" | "read" | "batched";
+export type CSVMode = "scan" | "read";
 
 /**
  * Quote Character Options
@@ -87,9 +85,6 @@ export interface PolarsCsvConfig {
 
   // === Inference ===
   infer_schema_length: number | null; // Rows for type inference (null = all)
-
-  // === Batch Reading (batched mode only) ===
-  batch_size: number | null; // Rows per batch (null = auto)
 
   // === Chunking (read mode only) ===
   n_threads: number | null; // Parallel parsing threads (null = auto)
@@ -190,34 +185,6 @@ export const CSV_DEFAULTS: Record<CSVMode, Partial<PolarsCsvConfig>> = {
     truncate_ragged_lines: false,
     decimal_comma: false,
   },
-  batched: {
-    mode: "batched",
-    source: "",
-    separator: ",",
-    has_header: true,
-    columns: null,
-    new_columns: null,
-    dtypes: null,
-    schema: null,
-    skip_rows: 0,
-    skip_rows_after_header: 0,
-    infer_schema_length: 100,
-    batch_size: null,
-    rechunk: true,
-    quote_char: '"',
-    eol_char: "\n",
-    encoding: "utf8",
-    null_values: null,
-    missing_utf8_is_empty_string: false,
-    ignore_errors: false,
-    try_parse_dates: false,
-    with_column_names: null,
-    comment_prefix: null,
-    row_index_name: null,
-    row_index_offset: 0,
-    truncate_ragged_lines: false,
-    decimal_comma: false,
-  },
 };
 
 /**
@@ -238,12 +205,6 @@ export const CSV_MODE_INFO: Record<
     description: "Loads entire CSV into memory immediately",
     useCase:
       "Best for: Small to medium files, when you need all data in memory",
-  },
-  batched: {
-    name: "Batched Read",
-    description: "Reads CSV in chunks/batches for memory-efficient processing",
-    useCase:
-      "Best for: Very large files that don't fit in memory, streaming workflows",
   },
 };
 
@@ -339,16 +300,6 @@ export function validateCsvConfig(config: Partial<PolarsCsvConfig>): {
     errors.push("n_rows must be > 0 or null");
   }
 
-  // Validate batch_size (batched mode)
-  if (
-    config.mode === "batched" &&
-    config.batch_size !== null &&
-    config.batch_size !== undefined &&
-    config.batch_size <= 0
-  ) {
-    errors.push("batch_size must be > 0 or null");
-  }
-
   // Validate infer_schema_length
   if (
     config.infer_schema_length !== null &&
@@ -412,7 +363,6 @@ function deepEqual(a: unknown, b: unknown): boolean {
 const MODE_SPECIFIC_PARAMS: Record<CSVMode, Set<string>> = {
   scan: new Set(["cache", "low_memory"]),
   read: new Set(["n_threads"]),
-  batched: new Set(["batch_size"]),
 };
 
 /**

@@ -32,5 +32,5 @@ If you're coming from another tool (Pandas, dbt, Informatica, etc.), start with 
 Once you've completed your crash course, continue to:
 
 - **[Interface Guide](../interface/canvas)** - Deep dive into the canvas, tool palette, and wiring
-- **[Expressions](../expressions/basics)** - Master the Polars expression language
+- **[Expressions](../expressions/basics)** - Learn Polars expression syntax (for Custom mode)
 - **[Tools Reference](../tools/)** - Detailed documentation for every tool

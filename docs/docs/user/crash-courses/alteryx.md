@@ -40,9 +40,9 @@ Drag **Input** tool → Pick your file → Preview after execution
 Drag Filter tool → Build expression with GUI → True/False outputs
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write Polars expression like `pl.col("amount") > 100` → T/F outputs
+Drag **Filter** tool → Use the **visual condition builder** to pick columns, operators, and values → T/F outputs
 
-**Key difference:** Sigilweaver uses code-based expressions instead of Alteryx's expression builder GUI. More concise, but requires learning the [Polars syntax](../expressions/basics).
+The Filter tool's **Basic mode** goes beyond Alteryx's expression builder. While Alteryx limits you to a single condition, Sigilweaver lets you add multiple conditions with AND/OR logic and even nested condition groups (up to 3 levels deep) - all visually. For advanced users, **Custom mode** lets you write Polars expressions directly.
 
 ### Creating Calculated Columns
 
@@ -50,7 +50,9 @@ Drag **Filter** tool → Write Polars expression like `pl.col("amount") > 100` �
 Drag Formula tool → Name new column → Build expression
 
 **Sigilweaver:**  
-Drag **Formula** tool → Write expression like `pl.col("price") * 1.1` → Name the output column
+Drag **Formula** tool → Pick a source column → Choose an operation from 50+ built-in options → Name the output column
+
+Unlike Alteryx, where every formula requires hand-written expressions, Sigilweaver's Formula tool has a **Basic mode** with a visual operation builder covering Math, Text, Date/Time, Null Handling, and Conditional logic. Multiple operations can be added to a single Formula node, and later operations can reference columns created by earlier ones. **Custom mode** is available for expressions that go beyond the built-in operations.
 
 Both tools create new columns or replace existing ones.
 
@@ -86,7 +88,7 @@ Drag **Join** tool → Wire left (L) and right (R) inputs → Configure keys →
 
 Alteryx uses its own expression language with functions like `[Field1] + [Field2]` and `IF-THEN-ELSE`.
 
-Sigilweaver uses **Polars expressions**:
+Sigilweaver's **Basic mode** uses visual builders - you won't see any code. But when you need Custom mode, expressions use **Polars syntax**:
 
 ```python
 # Column reference
@@ -101,7 +103,7 @@ pl.when(pl.col("status") == "active")
   .otherwise(0)
 ```
 
-The [Expressions Guide](../expressions/basics) covers everything you need.
+The [Expressions Guide](../expressions/basics) covers everything you need for Custom mode.
 
 ### 2. Lazy Evaluation
 
@@ -110,14 +112,17 @@ Alteryx executes tools as you run the workflow. Sigilweaver uses **lazy evaluati
 - Operations are only executed when needed (preview or save)
 - Enables processing datasets larger than memory
 
-### 3. No Visual GUI Builders
+### 3. Visual Builders
 
-Alteryx has visual configuration for many operations (Select Records, Expression Builder, etc.). Sigilweaver relies more on text-based configuration:
-- Faster for experienced users
-- More concise and reproducible
-- Requires learning expression syntax upfront
+Alteryx has visual configuration for some operations, but it's limited. The Filter tool's expression builder only supports a single condition - anything more complex requires hand-written expressions. The Formula tool has no visual builder at all.
 
-### 4. Cross-Platform Desktop App
+Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple conditions with AND/OR logic, nested groups, type-aware operators, and inline comments - all visually. The Formula tool's **Basic mode** offers **50+ built-in operations** through dropdowns and parameter inputs - no expression syntax required. **Custom mode** lets power users write Polars expressions directly for advanced logic.
+
+### 4. YXDB File Support
+
+Sigilweaver can natively read Alteryx `.yxdb` files using [SigilYX](https://github.com/sigilweaver/sigilyx), our open-source Rust-based reader. Just select YXDB as your input format - all 17 YXDB field types are supported. This makes migrating your existing Alteryx data seamless.
+
+### 5. Cross-Platform Desktop App
 
 Alteryx is Windows-only. Sigilweaver runs natively on **Linux, macOS, and Windows**.
 
@@ -134,12 +139,12 @@ Let's build a common Alteryx pattern: load transaction data, filter for complete
 
 2. **Filter for completed orders:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("order_status") == "completed"`
+   - In Basic mode: pick `order_status`, choose `equals`, type `completed`
    - Use the **T** output for next step
 
 3. **Calculate revenue:**
    - Drag **Formula** tool, wire from Filter's T output
-   - Expression: `pl.col("price") * pl.col("quantity")`
+   - In Basic mode: pick `price` as source, choose **Multiply** operation, select `quantity` as the second column
    - Output column name: `revenue`
 
 4. **Summarize by product:**
@@ -160,7 +165,7 @@ Alteryx is fast. Sigilweaver is also fast. It's built on **Polars**, a Rust-base
 ## Next Steps
 
 - **[Interface Guide](../interface/canvas)** - Canvas navigation, shortcuts, and tips
-- **[Expressions Basics](../expressions/basics)** - Learn Polars expression syntax
+- **[Expressions Basics](../expressions/basics)** - Learn Polars expression syntax (for Custom mode)
 - **[Tools Reference](../tools/)** - Detailed docs for every tool
 
-If you're comfortable with Alteryx workflows, you'll adapt to Sigilweaver quickly. The main learning curve is the expression language, but it becomes second nature with practice.
+If you're comfortable with Alteryx workflows, you'll adapt to Sigilweaver quickly. The visual builders in Filter and Formula actually go beyond what Alteryx offers - and Custom mode is there whenever you need even more power.

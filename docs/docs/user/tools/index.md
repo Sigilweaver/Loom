@@ -23,11 +23,13 @@ Transform and clean data:
 
 | Tool | Purpose |
 |------|---------|
-| [Filter](./preparation/filter) | Split data based on a condition |
+| [Filter](./preparation/filter) | Split data based on a condition (visual builder or expressions) |
 | [Select](./preparation/select) | Choose, rename, reorder, and cast columns |
 | [Sort](./preparation/sort) | Order rows by column values |
-| [Formula](./preparation/formula) | Create or replace calculated columns || [Sample](./preparation/sample) | Take a subset of rows (first N, random, etc.) |
+| [Formula](./preparation/formula) | Create or replace calculated columns (50+ built-in operations) |
+| [Sample](./preparation/sample) | Take a subset of rows (first N, random, etc.) |
 | [Unique](./preparation/unique) | Remove duplicate rows |
+
 ### Join
 
 Combine datasets:
@@ -43,8 +45,10 @@ Summarize data:
 
 | Tool | Purpose |
 |------|---------|
-| [Summarize](./aggregate/summarize) | Group data and calculate aggregations || [Pivot](./aggregate/pivot) | Reshape data from long to wide format |
+| [Summarize](./aggregate/summarize) | Group data and calculate aggregations |
+| [Pivot](./aggregate/pivot) | Reshape data from long to wide format |
 | [Unpivot](./aggregate/unpivot) | Reshape data from wide to long format |
+
 ## Common Concepts
 
 ### Sockets
@@ -71,10 +75,10 @@ All tools use Polars' lazy evaluation. Operations are not executed immediately -
 | Load a CSV file | [Input](./input-output/input) |
 | Query a database | [Input](./input-output/input) (Database) |
 | Save results | [Output](./input-output/output) |
-| Keep only certain rows | [Filter](./preparation/filter) |
+| Keep only certain rows | [Filter](./preparation/filter) (visual builder or custom expression) |
 | Remove or rename columns | [Select](./preparation/select) |
 | Order my data | [Sort](./preparation/sort) |
-| Calculate a new column | [Formula](./preparation/formula) |
+| Calculate a new column | [Formula](./preparation/formula) (50+ built-in operations, no coding needed) |
 | Take a random sample | [Sample](./preparation/sample) |
 | Remove duplicates | [Unique](./preparation/unique) |
 | Stack two tables | [Union](./join/union) |

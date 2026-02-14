@@ -4,6 +4,10 @@ sidebar_position: 1
 
 # Expression Basics
 
+:::info Most users won't need this page
+The **Filter** and **Formula** tools both have **visual builders** (Basic mode) that let you create conditions and calculations entirely through dropdowns - no coding required. This page covers the **Custom mode** expression syntax for users who need more advanced logic.
+:::
+
 Sigilweaver uses [Polars expressions](https://docs.pola.rs/user-guide/expressions/) for filtering data and creating calculated columns. Don't worry if you've never written code - **the editor guides you with autocomplete**.
 
 ## You Don't Need to Memorize Anything

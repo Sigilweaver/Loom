@@ -38,9 +38,9 @@ Drag **Input** tool → Pick your file → Preview after execution
 Drag Select Rows widget → Choose conditions visually
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write expression like `pl.col("class") == "A"` → True/False outputs
+Drag **Filter** tool → Use the visual condition builder to pick columns, operators, and values → True/False outputs
 
-**Key difference:** Orange uses GUI builders. Sigilweaver uses [Polars expressions](../expressions/basics) - more powerful but requires learning syntax.
+Sigilweaver's Filter tool has a **visual builder** (Basic mode) similar to Orange's approach - pick a column, choose an operator, enter a value. **Custom mode** is available for writing Polars expressions directly.
 
 ### Selecting Features (Columns)
 
@@ -56,7 +56,9 @@ Drag **Select** tool → Check columns to keep → Configure rename, reorder, or
 Drag Feature Constructor widget → Define new feature with expression
 
 **Sigilweaver:**  
-Drag **Formula** tool → Expression: `pl.col("height") / pl.col("weight")` → Name output column
+Drag **Formula** tool → Pick a source column → Choose from 50+ built-in operations → Name output column
+
+For advanced calculations, switch to **Custom mode** and write expressions like `pl.col("height") / pl.col("weight")`.
 
 ### Grouping and Aggregating
 
@@ -95,7 +97,7 @@ Think of Sigilweaver as handling the **data wrangling phase** before you move to
 
 Orange uses visual builders and simple Python-like expressions.
 
-Sigilweaver uses **Polars expressions** (Python-based):
+Sigilweaver also has **visual builders** (Basic mode) for the Filter and Formula tools - most operations can be done entirely through dropdowns and parameter inputs. For advanced logic, **Custom mode** lets you write Polars expressions (Python-based):
 
 ```python
 # Filter rows
@@ -122,7 +124,7 @@ The [Expressions Guide](../expressions/basics) covers the syntax in detail.
 **Sigilweaver** is designed for:
 - Data analysts who need repeatable pipelines
 - Anyone preparing data for downstream analysis
-- Users comfortable with expressions but who prefer visual workflow structure
+- Users who want visual builders for common operations, with the option to write expressions for advanced logic
 
 ### 4. Performance and Scale
 
@@ -144,12 +146,12 @@ Let's build a simple Orange-style workflow: load data, filter, create a calculat
 
 2. **Filter for specific species:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("species") == "versicolor"`
+   - In Basic mode: pick `species`, choose `equals`, type `versicolor`
    - Use the **T** (true) output
 
 3. **Calculate sepal ratio:**
    - Drag **Formula** tool, wire from Filter's T output
-   - Expression: `pl.col("sepal_length") / pl.col("sepal_width")`
+   - In Basic mode: pick `sepal_length` as source, choose **Divide** operation, select `sepal_width`
    - Output column name: `sepal_ratio`
 
 4. **Aggregate statistics:**
@@ -189,4 +191,4 @@ This separation keeps each tool doing what it does best.
 - **[Expressions Basics](../expressions/basics)** - Master Polars expression syntax
 - **[Tools Reference](../tools/)** - Detailed documentation for every tool
 
-If you like Orange's visual approach, you'll feel comfortable with Sigilweaver's canvas. The main learning curve is expressions - they're more powerful than Orange's GUI builders once you get the hang of them.
+If you like Orange's visual approach, you'll feel comfortable with Sigilweaver's canvas. The Filter and Formula tools now have visual builders that work similarly to Orange's approach, and Custom mode is there whenever you need more power.

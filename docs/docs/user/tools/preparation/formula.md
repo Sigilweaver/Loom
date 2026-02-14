@@ -4,16 +4,66 @@ sidebar_position: 4
 
 # Formula
 
-Create or replace calculated columns using Polars expressions.
+Create or replace calculated columns using visual operation builders or Polars expressions.
 
 ## Sockets
 
 | Socket | Direction | Description |
 |--------|-----------|-------------|
 | `input` | Input | Data to transform |
-| `output` | Output | Data with new/updated column |
+| `output` | Output | Data with new/updated column(s) |
 
 ## Configuration
+
+Each Formula tool can contain **multiple operations** - add as many as you need in a single node. Operations run sequentially, so later operations can reference columns created by earlier ones.
+
+Each operation has two modes:
+
+| Mode | Description |
+|------|-------------|
+| **Basic** (default) | Visual builder with dropdowns - no coding required |
+| **Custom** | Write Polars expressions directly for advanced logic |
+
+:::tip No coding required
+The Basic mode provides **50+ built-in operations** across math, text, dates, type casting, null handling, and conditional logic. Most data transformations can be done entirely through dropdowns and parameter inputs - no expression syntax needed.
+:::
+
+## Basic Mode (Visual Builder)
+
+The visual builder walks you through each operation step by step:
+
+1. **Pick a source column** from the dropdown
+2. **Choose an operation** - the list filters to show only operations compatible with your column's data type
+3. **Set parameters** - each operation shows relevant inputs (values, column pickers, format strings, etc.)
+4. **Name the output column** - a sensible default is generated automatically, or enter your own
+
+An expression preview at the bottom shows the generated Polars code.
+
+### Available Operations
+
+| Category | Operations |
+|----------|------------|
+| **Math** | Add, Subtract, Multiply, Divide, Modulo, Power, Round, Floor, Ceiling, Absolute Value, Square Root, Logarithm, Clip, Negate, Percent of Total, Cumulative Sum, Rank |
+| **Text** | Uppercase, Lowercase, Title Case, Trim, Replace, Substring, Pad, String Length, Contains, Starts With, Ends With, Extract (Regex), Split & Get, Concatenate Columns |
+| **Date/Time** | Extract Year/Month/Day/Hour/Minute/Second, Day of Week, Truncate, Format Date, Date Difference |
+| **Type Casting** | Cast Type, Parse Date from String, Parse DateTime from String |
+| **Null Handling** | Fill Null (Value), Fill Null (Strategy: forward/backward/mean/min/max/zero), Coalesce, Is Null, Is Not Null |
+| **Conditional** | If/Then/Else, Map/Replace Values |
+| **Other** | Row Number, Literal Value, Shift (Lag/Lead) |
+
+### Multiple Operations
+
+A single Formula node can hold multiple operations:
+
+- Click **Add Operation** to add more
+- **Drag and drop** to reorder
+- **Collapse/expand** individual operations to keep things tidy
+- **Duplicate** an operation to create a variation
+- Each operation can independently use Basic or Custom mode
+
+## Custom Mode (Advanced)
+
+Switch any operation to Custom mode to write Polars expressions directly. This is useful when you need logic that goes beyond the built-in operations.
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -21,28 +71,24 @@ Create or replace calculated columns using Polars expressions.
 | New Column Name | If new | Name for the new column (only when creating new) |
 | Formula Expression | Yes | Polars expression defining the column value |
 
-:::tip Using the Expression Editor
-The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics) for a step-by-step guide.
-:::
-
 ## Creating a New Column
+
+In **Basic mode**, select a source column and operation - the output column name is generated automatically. In **Custom mode**:
 
 1. Select "(New Column)" from the Target Column dropdown
 2. Enter a name for the new column
-3. Write the expression that calculates the value
-
-The new column is added to the end of the dataset.
+3. Write the expression
 
 ## Replacing an Existing Column
 
+In **Basic mode**, the output column name defaults to the source column - just leave it as-is to replace in place. In **Custom mode**:
+
 1. Select the column name from the Target Column dropdown
-2. Write the expression that calculates the new value
+2. Write the expression
 
-The column is replaced in place, maintaining its position in the column order.
+### Expression Examples
 
-## Expression Examples
-
-### Arithmetic
+#### Arithmetic
 
 ```python
 # Calculate total from quantity and unit price
@@ -119,8 +165,10 @@ pl.col("primary").fill_null(pl.col("fallback"))
 - **Column naming**: If you create a column with the same name as an existing column, it replaces that column
 - **Expression must be valid**: Invalid expressions show an error in configuration
 - **Output type**: The formula determines the output column's data type automatically
+- **Operation chaining**: Operations within a Formula node run sequentially - operation 2 can reference a column created by operation 1
+- **Mode mixing**: Each operation in a multi-operation Formula can independently use Basic or Custom mode
 
 ## Related
 
-- [Expression Basics](../../expressions/basics) - How to write expressions
+- [Expression Basics](../../expressions/basics) - How to write expressions (for Custom mode)
 - [Common Operations](../../expressions/common-operations) - Frequently used operations
