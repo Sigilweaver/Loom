@@ -37,10 +37,18 @@ In Alteryx, Python is a "tool" that spins up a separate Jupyter notebook or requ
 
 In Sigilweaver, Python is the native tongue. Writing a custom tool is just writing a Python function that accepts a Polars DataFrame.
 
+### 4. Visual Builders
+Alteryx's Filter tool has a basic expression builder, but it's limited to a single condition. For anything more complex, you're writing code. Alteryx's Formula tool has no visual builder at all - every formula requires hand-written expressions.
+
+Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple conditions with AND/OR logic, nested condition groups (up to 3 levels deep), type-aware operators, and inline comments - all through a visual interface. The Formula tool's **Basic mode** offers **50+ built-in operations** (math, text, dates, null handling, conditionals, and more) through dropdowns and parameter inputs. Most users will never need to write a line of code. **Custom mode** is there for power users who want to write Polars expressions directly.
+
+### 5. YXDB File Support
+Switching from Alteryx? Your `.yxdb` data files work out of the box. Sigilweaver reads them natively using [SigilYX](https://github.com/sigilweaver/sigilyx), a high-performance open-source Rust reader that supports all 17 YXDB field types.
+
 ## Migration Path
 
 We are building tools to help migrate Alteryx concepts to Sigilweaver.
-- **Input Data** -> **Input Tool**
+- **Input Data** -> **Input Tool** (including native `.yxdb` file support)
 - **Select** -> **Select Tool**
-- **Filter** -> **Filter Tool**
-- **Formula** -> **Formula Tool**
+- **Filter** -> **Filter Tool** (with visual condition builder)
+- **Formula** -> **Formula Tool** (with 50+ built-in operations)

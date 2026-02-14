@@ -110,7 +110,6 @@ export const CsvConfiguration: React.FC<CsvConfigurationProps> = ({
   const cache = config.cache as boolean | undefined;
   const low_memory = config.low_memory as boolean | undefined;
   const n_threads = config.n_threads as number | undefined;
-  const batch_size = config.batch_size as number | undefined;
 
   const separatorOptions: ConfigSelectOption[] = [
     { value: ",", label: "Comma (,)", description: "Standard CSV format" },
@@ -133,7 +132,6 @@ export const CsvConfiguration: React.FC<CsvConfigurationProps> = ({
   const modeOptions: ConfigSelectOption[] = [
     { value: "scan", label: CSV_MODE_INFO.scan.name },
     { value: "read", label: CSV_MODE_INFO.read.name },
-    { value: "batched", label: CSV_MODE_INFO.batched.name },
   ];
 
   return (
@@ -603,40 +601,6 @@ export const CsvConfiguration: React.FC<CsvConfigurationProps> = ({
                   step={1}
                   integerOnly
                   unit="threads"
-                />
-
-                <ConfigBoolean
-                  value={rechunk ?? true}
-                  onChange={(value, emitPatch, shouldEmit) =>
-                    updateConfig("rechunk", value, emitPatch, shouldEmit)
-                  }
-                  label="Rechunk"
-                  description="Reallocate to contiguous memory after parsing"
-                  defaultValue={true}
-                  configKey="rechunk"
-                />
-              </div>
-            )}
-
-            {mode === "batched" && (
-              <div className="space-y-4">
-                <h5 className="text-xs font-semibold tracking-wide uppercase text-theme-text-secondary">
-                  Batched Read Options
-                </h5>
-
-                <ConfigNumber
-                  value={batch_size}
-                  onChange={(value, emitPatch, shouldEmit) =>
-                    updateConfig("batch_size", value, emitPatch, shouldEmit)
-                  }
-                  configKey="batch_size"
-                  label="Batch Size"
-                  description="Rows per batch (leave empty for auto)"
-                  placeholder="Auto"
-                  min={100}
-                  step={1000}
-                  integerOnly
-                  unit="rows"
                 />
 
                 <ConfigBoolean

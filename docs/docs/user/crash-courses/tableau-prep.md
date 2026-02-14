@@ -41,9 +41,9 @@ Drag **Input** tool → Pick your file → Preview shows after execution
 Add Clean Step → Filter tab → Select field and condition
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write expression like `pl.col("age") > 18` → True/False outputs split the data
+Drag **Filter** tool → Use the visual condition builder to pick columns, operators, and values → True/False outputs split the data
 
-**Key difference:** Sigilweaver uses Polars expressions instead of a GUI builder. This is more powerful but requires learning the syntax (see [Expressions Guide](../expressions/basics)).
+Sigilweaver's Filter tool has a **visual builder** (Basic mode) that works similarly to Tableau Prep's approach. For advanced logic, **Custom mode** lets you write Polars expressions (see [Expressions Guide](../expressions/basics)).
 
 ### Selecting/Renaming Columns
 
@@ -73,7 +73,7 @@ Drag **Join** tool → Wire left and right inputs → Configure keys and suffix 
 
 ### 1. Expression Language
 
-Tableau Prep uses visual builders for most operations. Sigilweaver uses **Polars expressions** for filtering and formulas:
+Tableau Prep uses visual builders for most operations. Sigilweaver offers the **same approach**: the Filter and Formula tools both have **visual builders** (Basic mode) with dropdowns, type-aware operators, and 50+ built-in formula operations. For advanced logic, **Custom mode** lets you write Polars expressions:
 
 ```python
 # Filter example
@@ -113,7 +113,7 @@ Let's recreate a simple Tableau Prep flow: load sales data, filter for active cu
 
 2. **Filter for active customers:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("status") == "active"`
+   - In Basic mode: pick `status`, choose `equals`, type `active`
    - Wire from the **T** (true) output for next step
 
 3. **Calculate total by region:**
@@ -133,4 +133,4 @@ Let's recreate a simple Tableau Prep flow: load sales data, filter for active cu
 - **[Expressions Basics](../expressions/basics)** - Master the expression syntax
 - **[Tools Reference](../tools/)** - Explore all available tools
 
-The visual paradigm is similar to Tableau Prep, so you'll feel at home quickly. The main learning curve is expressions, but they unlock more power than click-based builders.
+The visual paradigm is similar to Tableau Prep, so you'll feel at home quickly. The visual builders in Filter and Formula work much like Tableau Prep's approach, and Custom mode is there when you need more power.

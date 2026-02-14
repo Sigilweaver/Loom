@@ -61,9 +61,9 @@ Drag **Input** tool → Pick your file → Preview data
 Select header row → Data → Filter → Click dropdown → Choose values
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write expression like `pl.col("sales") > 1000`
+Drag **Filter** tool → Use the visual condition builder to pick columns, operators, and values
 
-**Key difference:** Excel uses clickable filters. Sigilweaver uses expressions - more powerful and repeatable. See [Expressions Guide](../expressions/basics).
+**Key difference:** Excel uses clickable filters. Sigilweaver's Filter tool has a **visual builder** (Basic mode) that works similarly - pick a column, choose an operator, enter a value. For advanced logic, **Custom mode** lets you write Polars expressions directly.
 
 ### Creating Calculated Columns
 
@@ -71,7 +71,9 @@ Drag **Filter** tool → Write expression like `pl.col("sales") > 1000`
 Click cell in new column → Type formula like `=A2*B2` → Drag down
 
 **Sigilweaver:**  
-Drag **Formula** tool → Expression: `pl.col("price") * pl.col("quantity")` → Name the output column (e.g., `revenue`)
+Drag **Formula** tool → Pick a source column → Choose from 50+ built-in operations (Multiply, Round, Uppercase, etc.) → Name the output column (e.g., `revenue`)
+
+For advanced calculations, switch to **Custom mode** and write expressions like `pl.col("price") * pl.col("quantity")`.
 
 **Advantage:** No dragging formulas down thousands of rows - the expression applies to the entire column automatically.
 
@@ -135,12 +137,12 @@ Let's replicate a common Excel task: load sales data, filter for completed order
 
 2. **Filter for completed orders:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("order_status") == "completed"`
+   - In Basic mode: pick `order_status`, choose `equals`, type `completed`
    - Use the **T** (true) output for next step
 
 3. **Calculate revenue:**
    - Drag **Formula** tool, wire from Filter's T output
-   - Expression: `pl.col("price") * pl.col("quantity")`
+   - In Basic mode: pick `price` as source, choose **Multiply** operation, select `quantity` as the second column
    - Output column name: `revenue`
 
 4. **Summarize by region:**
@@ -160,7 +162,7 @@ Let's replicate a common Excel task: load sales data, filter for completed order
 
 ### 1. Formulas Apply to Entire Columns
 
-In Excel, you write `=A2*B2` and drag down. In Sigilweaver, you write `pl.col("price") * pl.col("quantity")` once and it applies to all rows automatically.
+In Excel, you write `=A2*B2` and drag down. In Sigilweaver, you pick the **Multiply** operation in the Formula tool's visual builder, and it applies to all rows automatically. In Custom mode, `pl.col("price") * pl.col("quantity")` does the same thing.
 
 ### 2. No Manual Steps
 
@@ -170,17 +172,17 @@ Excel workflows often involve clicking, filtering, copying, pasting. Sigilweaver
 
 Excel loads data into the application. Sigilweaver processes data from files and saves results back to files - data never "lives" in the application.
 
-### 4. Expressions Instead of Cell References
+### 4. Visual Builders Instead of Cell References
 
-Excel formulas use cell references (`A2`, `B5`). Sigilweaver uses **column names**:
+Excel formulas use cell references (`A2`, `B5`). Sigilweaver's **Basic mode** uses visual builders - pick a column, choose an operation, done. In **Custom mode**, you use column names:
 
 ```python
 # Excel: =A2*B2
-# Sigilweaver: 
+# Sigilweaver (Custom mode): 
 pl.col("price") * pl.col("quantity")
 ```
 
-The [Expressions Guide](../expressions/basics) covers everything you need.
+The [Expressions Guide](../expressions/basics) covers Custom mode syntax for when you need it.
 
 ## When to Use Excel vs. Sigilweaver
 
@@ -202,7 +204,7 @@ The [Expressions Guide](../expressions/basics) covers everything you need.
 ## Next Steps
 
 - **[Interface Guide](../interface/canvas)** - Learn the visual canvas and workflow building
-- **[Expressions Basics](../expressions/basics)** - Master Polars expressions (like Excel formulas, but for columns)
+- **[Expressions Basics](../expressions/basics)** - Learn Polars expressions for Custom mode (like Excel formulas, but for columns)
 - **[Tools Reference](../tools/)** - Detailed docs for every tool
 
-Excel is great for what it does, but when you hit its limits, Sigilweaver is the next step. The visual workflow keeps things approachable, and expressions give you the power to handle complex transformations at scale.
+Excel is great for what it does, but when you hit its limits, Sigilweaver is the next step. The visual builders in Filter and Formula keep things approachable - most users never need to write expressions. And Custom mode is there when you need more power.

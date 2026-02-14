@@ -34,13 +34,16 @@ Comma-separated values and other delimited text files.
 | Destination | (required) | Path for the output file |
 | Separator | `,` | Field delimiter |
 | Include Header | `true` | Write column names as first row |
+| Include BOM | `false` | Write UTF-8 byte-order mark at start of file |
 | Quote Character | `"` | Character used to quote fields |
 | Quote Style | `necessary` | When to quote fields |
 | Line Terminator | `\n` | End-of-line character(s) |
 | Null Value | (empty) | String to represent null values |
 | Date Format | (ISO) | Format for date columns |
 | Datetime Format | (ISO) | Format for datetime columns |
+| Time Format | (ISO) | Format for time columns |
 | Float Precision | (full) | Decimal places for floats |
+| Float Scientific | (auto) | Use scientific notation for floats |
 
 ### Parquet
 
@@ -61,6 +64,7 @@ Columnar binary format, efficient for analytics.
 | Compression | `zstd` | Compression algorithm (zstd, snappy, lz4, gzip, none) |
 | Compression Level | (default) | Compression level (algorithm-specific) |
 | Row Group Size | (default) | Rows per row group |
+| Data Page Size | (default) | Size of data pages within row groups |
 | Statistics | `true` | Write column statistics |
 
 ### IPC / Arrow
@@ -80,6 +84,7 @@ Apache Arrow's native binary format (.arrow, .ipc, .feather). Fastest format for
 |--------|---------|-------------|
 | Destination | (required) | Path for the output file (.arrow, .ipc, or .feather) |
 | Compression | `uncompressed` | Compression (uncompressed, lz4, or zstd) |
+| Compat Level | (newest) | Arrow IPC compatibility level for older consumers |
 
 :::tip When to Use IPC/Arrow
 - **Intermediate files**: Use IPC for temporary data between pipeline stages
@@ -154,11 +159,55 @@ Use Avro when:
 For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
 :::
 
+### JSON / NDJSON
+
+JSON data files. The format is auto-detected by file extension.
+
+| Format | Extensions | Writing Mode | Description |
+|--------|-----------|-------------|-------------|
+| **Standard JSON** | `.json` | Write (eager) | Array of objects or column-oriented |
+| **NDJSON** | `.jsonl`, `.ndjson` | Sink (streaming) or Write | Newline-delimited JSON |
+
+**JSON Options (standard .json):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Destination | (required) | Path for the output file |
+| Row Oriented | `true` | Write as array of row objects (vs column-oriented) |
+
+**NDJSON Options (.jsonl, .ndjson):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Destination | (required) | Path for the output file |
+
+:::tip NDJSON for Large Files
+Use NDJSON format (`.jsonl` or `.ndjson`) for streaming sink support. Standard `.json` files must be collected into memory before writing.
+:::
+
+### YXDB
+
+Alteryx database files (.yxdb). Written using [SigilYX](https://github.com/sigilweaver/sigilyx).
+
+**Writing Mode:**
+
+YXDB only supports eager writing (data is collected before writing).
+
+**YXDB Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Destination | (required) | Path for the output file (.yxdb) |
+
+:::tip Alteryx Compatibility
+Use YXDB output when sharing data with Alteryx users or migrating pipelines. SigilYX writes standard YXDB files that Alteryx Designer can read natively.
+:::
+
 ## Configuration
 
 1. Add an Output tool to the canvas
 2. Connect an input wire from an upstream tool
-3. Select the output format (CSV, Excel, Parquet, IPC/Arrow, JSON, or Avro)
+3. Select the output format (CSV, Excel, Parquet, IPC/Arrow, JSON/NDJSON, Avro, or YXDB)
 4. Choose the destination path
 5. Configure format-specific options as needed
 
@@ -200,12 +249,29 @@ For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
 3. Enter the destination file path (e.g., `/path/to/output.avro`)
 4. Choose compression (uncompressed for speed, snappy or deflate for smaller files)
 
+### Saving to JSON
+
+1. Wire data into the Output tool
+2. Select "JSON" as the output format
+3. Enter the destination file path:
+   - Use `.json` for standard JSON (array of objects)
+   - Use `.jsonl` or `.ndjson` for newline-delimited JSON (streaming support)
+4. For standard JSON, choose row-oriented (array of objects) or column-oriented output
+
+### Saving to YXDB
+
+1. Wire data into the Output tool
+2. Select "YXDB" as the output format
+3. Enter the destination file path (e.g., `/path/to/output.yxdb`)
+
 ## Notes
 
 - **Destination directories** are created automatically if they don't exist
-- **Sink mode** is recommended for large datasets to minimize memory usage (CSV, Parquet, IPC, JSON/NDJSON)
-- **Excel and Avro** do not support streaming - data is collected before writing
+- **Sink mode** is recommended for large datasets to minimize memory usage (CSV, Parquet, IPC, NDJSON)
+- **Excel, Avro, standard JSON, and YXDB** do not support streaming - data is collected before writing
 - **IPC/Arrow** is the fastest format - use it when speed is critical
 - **Excel files** are best for business reporting and sharing with non-technical users
+- **YXDB files** are compatible with Alteryx Designer for easy data sharing
+- **NDJSON** (`.jsonl`, `.ndjson`) supports streaming sink unlike standard `.json` files
 - **Overwriting**: Existing files at the destination path will be overwritten
 - **Execution**: Output tools only write files when the workflow is executed (not during preview)

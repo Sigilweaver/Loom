@@ -49,7 +49,7 @@ export class WorkflowSerializer {
    * Always includes structural fields regardless of emission:
    * - category: Data source category (file, database, etc.)
    * - type: Data source type (csv, parquet, etc.)
-   * - csvMode: CSV reading mode (scan, read, batched)
+   * - csvMode: CSV reading mode (scan, read)
    * - source: File path for Input tools (critical for execution)
    * - destination: File path for Output tools (critical for execution)
    *

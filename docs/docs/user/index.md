@@ -31,7 +31,7 @@ Learn how to navigate Studio:
 
 ### [Expressions](./expressions/basics)
 
-Master the expression language used in Filter and Formula tools. Don't worry - the editor has full autocomplete, so you don't need to memorize anything:
+The expression language used in the Custom/Advanced mode of Filter and Formula tools. Most users won't need this - the visual builders handle the vast majority of use cases. But when you need more power, the expression editor has full autocomplete:
 
 - **[Basics](./expressions/basics)** - Autocomplete, column references, and operators
 - **[Syntax Rules](./expressions/syntax-rules)** - Parentheses, multi-line expressions, and gotchas
@@ -74,7 +74,7 @@ A workflow is a directed acyclic graph (DAG) of tools connected by wires:
 
 ### Expressions
 
-Many tools use Polars expressions for configuration. Expressions let you:
+Many tools use Polars expressions for configuration. The **Filter** and **Formula** tools provide **visual builders** (Basic mode) that handle most use cases without any coding. For advanced logic, **Custom mode** lets you write expressions directly:
 
 - Reference columns: `pl.col("column_name")`
 - Apply transformations: `pl.col("price") * 1.1`

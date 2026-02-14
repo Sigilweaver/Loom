@@ -16,12 +16,17 @@ Split data into rows that match or don't match a condition.
 
 ## Configuration
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| Filter Expression | Yes | Polars expression that returns true/false for each row |
+The Filter tool has two modes:
 
-:::tip Using the Expression Editor
-The expression editor provides **autocomplete for column names and Polars methods**. Press Tab after typing `pl.col("` to see your columns, or press `.` + Tab after any expression to see available methods. See [Expression Basics](../../expressions/basics) for a step-by-step guide.
+| Mode | Description |
+|------|-------------|
+| **Basic** (default) | Visual condition builder - no coding required |
+| **Custom** | Write Polars expressions directly for advanced logic |
+
+Toggle between modes using the switch at the top of the configuration panel.
+
+:::tip No coding required
+Most users will never need to leave Basic mode. The visual builder handles single conditions, multiple conditions with AND/OR logic, and even nested condition groups - all through dropdowns and text inputs.
 :::
 
 ## How It Works
@@ -33,9 +38,45 @@ The Filter tool evaluates your expression against each row:
 
 Both outputs are always available - you can wire to either or both depending on your needs.
 
-## Expression Examples
+## Basic Mode (Visual Builder)
 
-### Simple Comparisons
+The visual builder lets you construct filter conditions entirely through dropdowns and inputs:
+
+1. **Pick a column** from the dropdown (auto-populated from your data)
+2. **Choose an operator** - the available operators adapt to the column's data type:
+   - **Numeric**: equals, not equals, greater than, less than, etc.
+   - **Text**: equals, contains, starts with, ends with, etc.
+   - **Boolean**: is true, is false
+   - **Date/Time**: equals, is after, is before, etc.
+   - **All types**: is null, is not null
+3. **Enter a value** to compare against
+
+### Adding Multiple Conditions
+
+Click **Add Condition** to add more rules. Use the **ALL / ANY** toggle to switch between AND and OR logic:
+
+- **ALL match** (AND) - every condition must be true
+- **ANY match** (ANY) - at least one condition must be true
+
+### Nested Groups
+
+For more complex logic, click **Add Group** to create a nested condition group (up to 3 levels deep). Nested groups automatically default to the opposite combinator for clarity - e.g., an AND group inside an OR group.
+
+### Comments
+
+Each condition or group can have an optional comment to document your reasoning.
+
+### Expression Preview
+
+The bottom of the panel shows a read-only preview of the generated Polars expression, so you can see exactly what will be executed.
+
+## Custom Mode (Advanced)
+
+Switch to Custom mode to write Polars expressions directly. This is useful for complex logic that goes beyond what the visual builder supports. The editor provides **autocomplete for column names and Polars methods**.
+
+### Expression Examples
+
+#### Simple Comparisons
 
 ```python
 # Rows where age is over 18
@@ -48,7 +89,7 @@ pl.col("status") == "active"
 (pl.col("price") >= 10) & (pl.col("price") <= 100)
 ```
 
-### Multiple Conditions
+#### Multiple Conditions
 
 ```python
 # AND - all conditions must be true
@@ -58,7 +99,7 @@ pl.col("status") == "active"
 (pl.col("status") == "active") | (pl.col("status") == "pending")
 ```
 
-### String Matching
+#### String Matching
 
 ```python
 # Contains substring
@@ -71,7 +112,7 @@ pl.col("name").str.to_lowercase().str.contains("john")
 pl.col("product_code").str.starts_with("ABC")
 ```
 
-### Null Handling
+#### Null Handling
 
 ```python
 # Filter out nulls
@@ -81,7 +122,7 @@ pl.col("value").is_not_null()
 pl.col("value").is_null()
 ```
 
-### Negation
+#### Negation
 
 ```python
 # NOT - invert a boolean column
@@ -110,8 +151,9 @@ Wire both outputs to different downstream paths to process matching and non-matc
 - **Empty expression**: If no expression is provided, all rows go to `T` output
 - **Invalid expression**: Configuration error is shown, tool won't execute
 - **Schema unchanged**: Filter doesn't add, remove, or rename columns - only filters rows
+- **Mode switching**: Switching from Basic to Custom preserves the generated expression. Switching back to Basic preserves the visual builder state
 
 ## Related
 
-- [Expression Basics](../../expressions/basics) - How to write expressions
+- [Expression Basics](../../expressions/basics) - How to write expressions (for Custom mode)
 - [Syntax Rules](../../expressions/syntax-rules) - Parentheses and multi-line rules

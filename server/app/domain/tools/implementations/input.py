@@ -46,7 +46,7 @@ class InputTool(BaseTool):
         - type: "csv" | "parquet" | "postgresql" | etc.
         - source: file path or connection URI
         - For files:
-          - csvMode: "scan" | "read" | "batched" (for CSV)
+          - csvMode: "scan" | "read" (for CSV)
           - parquetMode: "scan" | "read" (for Parquet)
           - ... other source-specific config
         - For databases:

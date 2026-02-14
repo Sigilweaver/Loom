@@ -41,9 +41,9 @@ Drag **Input** tool → Pick your file → Click to preview data
 Drag Row Filter node → Choose column and condition
 
 **Sigilweaver:**  
-Drag **Filter** tool → Write expression like `pl.col("value") > 100` → True/False outputs
+Drag **Filter** tool → Use the visual condition builder to pick columns, operators, and values → True/False outputs
 
-**Key difference:** KNIME uses GUI configuration. Sigilweaver uses [Polars expressions](../expressions/basics) - more concise but requires learning syntax.
+Sigilweaver's Filter tool has a **visual builder** (Basic mode) that works similarly to KNIME's approach - pick a column, choose an operator, enter a value. For advanced logic, **Custom mode** lets you write Polars expressions directly.
 
 ### Selecting Columns
 
@@ -59,7 +59,9 @@ Drag **Select** tool → Check columns to keep → Optionally rename, reorder, o
 Drag Math Formula or Column Expressions node → Build formula
 
 **Sigilweaver:**  
-Drag **Formula** tool → Expression: `pl.col("a") + pl.col("b")` → Name output column
+Drag **Formula** tool → Pick a source column → Choose from 50+ built-in operations → Name output column
+
+For advanced calculations, switch to **Custom mode** and write expressions like `pl.col("a") + pl.col("b")`.
 
 ### Aggregating Data
 
@@ -107,7 +109,7 @@ Think of Sigilweaver as doing what KNIME does *before* you get to machine learni
 
 KNIME uses its own expression syntax and visual builders.
 
-Sigilweaver uses **Polars expressions** (Python-like):
+Sigilweaver also has **visual builders** (Basic mode) for the Filter and Formula tools - most operations can be done entirely through dropdowns and parameter inputs. For advanced logic, **Custom mode** lets you write Polars expressions (Python-like):
 
 ```python
 # Filter
@@ -122,7 +124,7 @@ pl.when(pl.col("status") == "active")
   .otherwise(0)
 ```
 
-See the [Expressions Guide](../expressions/basics) for complete documentation.
+The [Expressions Guide](../expressions/basics) covers Custom mode syntax for when you need it.
 
 ### 3. Execution Model
 
@@ -155,12 +157,12 @@ Let's build a typical KNIME pattern: load data, filter, create a calculated colu
 
 2. **Filter rows:**
    - Drag **Filter** tool, wire from Input
-   - Expression: `pl.col("country") == "USA"`
+   - In Basic mode: pick `country`, choose `equals`, type `USA`
    - Use the **T** (true) output
 
 3. **Calculate discount price:**
    - Drag **Formula** tool, wire from Filter's T output
-   - Expression: `pl.col("price") * 0.9`
+   - In Basic mode: pick `price` as source, choose **Multiply** operation, enter `0.9`
    - Output column name: `discounted_price`
 
 4. **Aggregate by category:**
@@ -187,7 +189,7 @@ If you need those features, KNIME is still your best bet. But for pure **data wr
 ## Next Steps
 
 - **[Interface Guide](../interface/canvas)** - Learn canvas navigation and shortcuts
-- **[Expressions Basics](../expressions/basics)** - Master Polars expression syntax
+- **[Expressions Basics](../expressions/basics)** - Learn Polars expression syntax (for Custom mode)
 - **[Tools Reference](../tools/)** - Detailed docs for every tool
 
-If you're comfortable with KNIME's node-based approach, Sigilweaver will feel familiar. The main difference is learning Polars expressions instead of KNIME's GUI builders - but expressions are more powerful and faster to use once you know them.
+If you're comfortable with KNIME's node-based approach, Sigilweaver will feel familiar. The Filter and Formula tools have visual builders that work similarly to KNIME's approach, and Custom mode is there whenever you need more power.
