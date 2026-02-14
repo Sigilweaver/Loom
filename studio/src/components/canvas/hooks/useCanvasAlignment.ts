@@ -1,65 +1,35 @@
-import {
-  alignHorizontally as doAlignH,
-  alignVertically as doAlignV,
-  distributeHorizontally as doDistH,
-  distributeVertically as doDistV,
-  type PositionUpdate,
-} from "@utils/alignDistribute";
-import type { Node } from "@xyflow/react";
+import { autoLayout } from "@domain/workflow/services/autoLayout";
+import { useWorkflowStore } from "@state/workflowStore";
 import { useCallback } from "react";
 
 export interface UseCanvasAlignmentParams {
-  getNodes: () => Node[];
-  snap: (x: number, y: number) => { x: number; y: number };
   onToolMove: (id: string, x: number, y: number) => void;
   onBeginTransaction: () => void;
   onCommitTransaction: () => void;
 }
 
 /**
- * Hook that provides alignment and distribution operations for selected nodes.
+ * Hook that provides auto-layout for the workflow canvas.
+ *
+ * Uses topological sort to arrange tools left-to-right following the DAG
+ * structure, with parallel branches stacked vertically.
  */
 export function useCanvasAlignment({
-  getNodes,
-  snap,
   onToolMove,
   onBeginTransaction,
   onCommitTransaction,
 }: UseCanvasAlignmentParams) {
-  const applyPositions = useCallback(
-    (updates: PositionUpdate[]) => {
-      if (!updates.length) return;
-      onBeginTransaction();
-      updates.forEach((u) => onToolMove(u.id, u.x, u.y));
-      onCommitTransaction();
-    },
-    [onBeginTransaction, onCommitTransaction, onToolMove]
-  );
+  const doAutoLayout = useCallback(() => {
+    const { tools, wires } = useWorkflowStore.getState();
+    if (tools.length === 0) return;
 
-  const alignHorizontally = useCallback(() => {
-    const updates = doAlignH(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
+    const { positions } = autoLayout(tools, wires);
+    if (positions.length === 0) return;
 
-  const alignVertically = useCallback(() => {
-    const updates = doAlignV(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
+    onBeginTransaction();
+    positions.forEach((p) => onToolMove(p.id, p.x, p.y));
+    onCommitTransaction();
+  }, [onToolMove, onBeginTransaction, onCommitTransaction]);
 
-  const distributeHorizontally = useCallback(() => {
-    const updates = doDistH(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
-
-  const distributeVertically = useCallback(() => {
-    const updates = doDistV(getNodes(), snap);
-    applyPositions(updates);
-  }, [getNodes, snap, applyPositions]);
-
-  return {
-    alignHorizontally,
-    alignVertically,
-    distributeHorizontally,
-    distributeVertically,
-  } as const;
+  return { autoLayout: doAutoLayout } as const;
 }

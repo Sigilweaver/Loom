@@ -215,13 +215,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
 
   // === Alignment hook ===
   const {
-    alignHorizontally,
-    alignVertically,
-    distributeHorizontally,
-    distributeVertically,
+    autoLayout,
   } = useCanvasAlignment({
-    getNodes,
-    snap,
     onToolMove: handleToolMove,
     onBeginTransaction: handleBeginTransaction,
     onCommitTransaction: handleCommitTransaction,
@@ -363,16 +358,12 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
           actionsCoords={actionsCoords}
           onCloseActions={closeActionsMenu}
           hasSelection={getNodes().some((n) => n.selected)}
-          multiSelection={getNodes().filter((n) => n.selected).length > 1}
           hasClipboard={!!useClipboardStore.getState().clipboard}
           onCopy={doCopy}
           onCut={doCut}
           onPaste={doPaste}
           onDelete={doDelete}
-          onAlignH={alignHorizontally}
-          onAlignV={alignVertically}
-          onDistH={distributeHorizontally}
-          onDistV={distributeVertically}
+          onAutoLayout={autoLayout}
           edgeMenuOpen={edgeMenuOpen && !!edgeMenuEdge}
           edgeMenuCoords={edgeMenuCoords}
           onCloseEdgeMenu={closeEdgeMenu}

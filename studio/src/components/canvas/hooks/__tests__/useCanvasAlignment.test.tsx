@@ -1,49 +1,40 @@
 import { renderHook } from "@testing-library/react";
-import type { Node } from "@xyflow/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useCanvasAlignment,
   type UseCanvasAlignmentParams,
 } from "../useCanvasAlignment";
 
-// Mock align/distribute utilities
-vi.mock("@utils/alignDistribute", () => ({
-  alignHorizontally: vi.fn(() => []),
-  alignVertically: vi.fn(() => []),
-  distributeHorizontally: vi.fn(() => []),
-  distributeVertically: vi.fn(() => []),
+// Mock the autoLayout utility
+vi.mock("@domain/workflow/services/autoLayout", () => ({
+  autoLayout: vi.fn(() => ({ positions: [] })),
 }));
 
-import {
-  alignHorizontally as doAlignH,
-  alignVertically as doAlignV,
-  distributeHorizontally as doDistH,
-  distributeVertically as doDistV,
-} from "@utils/alignDistribute";
+// Mock workflowStore
+vi.mock("@state/workflowStore", () => ({
+  useWorkflowStore: {
+    getState: vi.fn(() => ({
+      tools: [],
+      wires: [],
+    })),
+  },
+}));
+
+import { autoLayout } from "@domain/workflow/services/autoLayout";
+import { useWorkflowStore } from "@state/workflowStore";
 
 describe("useCanvasAlignment", () => {
   let params: UseCanvasAlignmentParams;
-  let getNodes: () => Node[];
-  let snap: (x: number, y: number) => { x: number; y: number };
   let onToolMove: ReturnType<typeof vi.fn>;
   let onBeginTransaction: ReturnType<typeof vi.fn>;
   let onCommitTransaction: ReturnType<typeof vi.fn>;
-  let mockNodes: Node[];
 
   beforeEach(() => {
-    mockNodes = [
-      { id: "n1", position: { x: 0, y: 0 }, selected: true } as Node,
-      { id: "n2", position: { x: 100, y: 100 }, selected: true } as Node,
-    ];
-    getNodes = vi.fn(() => mockNodes);
-    snap = vi.fn((x, y) => ({ x, y }));
     onToolMove = vi.fn();
     onBeginTransaction = vi.fn();
     onCommitTransaction = vi.fn();
 
     params = {
-      getNodes,
-      snap,
       onToolMove,
       onBeginTransaction,
       onCommitTransaction,
@@ -52,82 +43,60 @@ describe("useCanvasAlignment", () => {
     vi.clearAllMocks();
   });
 
-  describe("alignHorizontally", () => {
-    it("should call align utility and apply positions", () => {
-      vi.mocked(doAlignH).mockReturnValue([
-        { id: "n1", x: 50, y: 0 },
-        { id: "n2", x: 50, y: 100 },
-      ]);
+  it("should call autoLayout with tools and wires from store", () => {
+    const mockTools = [{ id: "A" }, { id: "B" }];
+    const mockWires = [{ from: { tool: "A", socket: "output" }, to: { tool: "B", socket: "input" } }];
+    vi.mocked(useWorkflowStore.getState).mockReturnValue({
+      tools: mockTools,
+      wires: mockWires,
+    } as ReturnType<typeof useWorkflowStore.getState>);
 
-      const { result } = renderHook(() => useCanvasAlignment(params));
-      result.current.alignHorizontally();
-
-      expect(doAlignH).toHaveBeenCalledWith(mockNodes, snap);
-      expect(onBeginTransaction).toHaveBeenCalled();
-      expect(onToolMove).toHaveBeenCalledWith("n1", 50, 0);
-      expect(onToolMove).toHaveBeenCalledWith("n2", 50, 100);
-      expect(onCommitTransaction).toHaveBeenCalled();
+    vi.mocked(autoLayout).mockReturnValue({
+      positions: [
+        { id: "A", x: 100, y: 100 },
+        { id: "B", x: 380, y: 100 },
+      ],
     });
 
-    it("should not call handlers if no updates", () => {
-      vi.mocked(doAlignH).mockReturnValue([]);
+    const { result } = renderHook(() => useCanvasAlignment(params));
+    result.current.autoLayout();
 
-      const { result } = renderHook(() => useCanvasAlignment(params));
-      result.current.alignHorizontally();
-
-      expect(onBeginTransaction).not.toHaveBeenCalled();
-      expect(onToolMove).not.toHaveBeenCalled();
-      expect(onCommitTransaction).not.toHaveBeenCalled();
-    });
+    expect(autoLayout).toHaveBeenCalledWith(mockTools, mockWires);
+    expect(onBeginTransaction).toHaveBeenCalled();
+    expect(onToolMove).toHaveBeenCalledWith("A", 100, 100);
+    expect(onToolMove).toHaveBeenCalledWith("B", 380, 100);
+    expect(onCommitTransaction).toHaveBeenCalled();
   });
 
-  describe("alignVertically", () => {
-    it("should call align utility and apply positions", () => {
-      vi.mocked(doAlignV).mockReturnValue([
-        { id: "n1", x: 0, y: 50 },
-        { id: "n2", x: 100, y: 50 },
-      ]);
+  it("should not call handlers if no tools", () => {
+    vi.mocked(useWorkflowStore.getState).mockReturnValue({
+      tools: [],
+      wires: [],
+    } as unknown as ReturnType<typeof useWorkflowStore.getState>);
 
-      const { result } = renderHook(() => useCanvasAlignment(params));
-      result.current.alignVertically();
+    const { result } = renderHook(() => useCanvasAlignment(params));
+    result.current.autoLayout();
 
-      expect(doAlignV).toHaveBeenCalledWith(mockNodes, snap);
-      expect(onBeginTransaction).toHaveBeenCalled();
-      expect(onToolMove).toHaveBeenCalledWith("n1", 0, 50);
-      expect(onToolMove).toHaveBeenCalledWith("n2", 100, 50);
-      expect(onCommitTransaction).toHaveBeenCalled();
-    });
+    expect(autoLayout).not.toHaveBeenCalled();
+    expect(onBeginTransaction).not.toHaveBeenCalled();
+    expect(onToolMove).not.toHaveBeenCalled();
+    expect(onCommitTransaction).not.toHaveBeenCalled();
   });
 
-  describe("distributeHorizontally", () => {
-    it("should call distribute utility and apply positions", () => {
-      vi.mocked(doDistH).mockReturnValue([
-        { id: "n1", x: 0, y: 0 },
-        { id: "n2", x: 100, y: 100 },
-      ]);
+  it("should not call handlers if autoLayout returns empty positions", () => {
+    vi.mocked(useWorkflowStore.getState).mockReturnValue({
+      tools: [{ id: "A" }],
+      wires: [],
+    } as unknown as ReturnType<typeof useWorkflowStore.getState>);
 
-      const { result } = renderHook(() => useCanvasAlignment(params));
-      result.current.distributeHorizontally();
+    vi.mocked(autoLayout).mockReturnValue({ positions: [] });
 
-      expect(doDistH).toHaveBeenCalledWith(mockNodes, snap);
-      expect(onBeginTransaction).toHaveBeenCalled();
-      expect(onCommitTransaction).toHaveBeenCalled();
-    });
-  });
+    const { result } = renderHook(() => useCanvasAlignment(params));
+    result.current.autoLayout();
 
-  describe("distributeVertically", () => {
-    it("should call distribute utility and apply positions", () => {
-      vi.mocked(doDistV).mockReturnValue([
-        { id: "n1", x: 0, y: 0 },
-        { id: "n2", x: 100, y: 100 },
-      ]);
-
-      const { result } = renderHook(() => useCanvasAlignment(params));
-      result.current.distributeVertically();
-
-      expect(doDistV).toHaveBeenCalledWith(mockNodes, snap);
-      expect(onBeginTransaction).toHaveBeenCalled();
-      expect(onCommitTransaction).toHaveBeenCalled();
-    });
+    expect(autoLayout).toHaveBeenCalled();
+    expect(onBeginTransaction).not.toHaveBeenCalled();
+    expect(onToolMove).not.toHaveBeenCalled();
+    expect(onCommitTransaction).not.toHaveBeenCalled();
   });
 });

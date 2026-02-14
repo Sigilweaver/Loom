@@ -9,16 +9,12 @@ interface Props {
   actionsCoords: { x: number; y: number } | null;
   onCloseActions: () => void;
   hasSelection: boolean;
-  multiSelection: boolean;
   hasClipboard: boolean;
   onCopy: () => void;
   onCut: () => void;
   onPaste: () => void;
   onDelete: () => void;
-  onAlignH: () => void;
-  onAlignV: () => void;
-  onDistH: () => void;
-  onDistV: () => void;
+  onAutoLayout: () => void;
 
   // Edge context menu
   edgeMenuOpen: boolean;
@@ -38,16 +34,12 @@ export const CanvasMenus: React.FC<Props> = ({
   actionsCoords,
   onCloseActions,
   hasSelection,
-  multiSelection,
   hasClipboard,
   onCopy,
   onCut,
   onPaste,
   onDelete,
-  onAlignH,
-  onAlignV,
-  onDistH,
-  onDistV,
+  onAutoLayout,
   edgeMenuOpen,
   edgeMenuCoords,
   onCloseEdgeMenu,
@@ -68,12 +60,7 @@ export const CanvasMenus: React.FC<Props> = ({
       items.push({ key: 'cut', label: 'Cut', onClick: onCut, hint: `${mod}+X` });
       if (hasClipboard) items.push({ key: 'paste', label: 'Paste', onClick: onPaste, hint: `${mod}+V` });
       items.push({ key: 'delete', label: 'Delete', onClick: onDelete, hint: 'Del' });
-      if (multiSelection) {
-        items.push({ key: 'align-h', label: 'Align Horizontally', onClick: onAlignH });
-        items.push({ key: 'align-v', label: 'Align Vertically', onClick: onAlignV });
-        items.push({ key: 'dist-h', label: 'Distribute Horizontally', onClick: onDistH });
-        items.push({ key: 'dist-v', label: 'Distribute Vertically', onClick: onDistV });
-      }
+      items.push({ key: 'auto-layout', label: 'Auto Layout', onClick: onAutoLayout });
     } else if (hasClipboard) {
       items.push({ key: 'paste', label: 'Paste', onClick: onPaste, hint: `${mod}+V` });
     }
