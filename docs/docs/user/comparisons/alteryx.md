@@ -15,7 +15,7 @@ Alteryx Designer is defined as the industry standard for visual data preparation
 | ----------------- | ------------------------------------------- | -------------------------- |
 | **Cost**          | **Free / Open Source**                      | $5,195 / user / year       |
 | **Engine**        | [Polars](https://pola.rs) (Rust/Arrow)      | Proprietary C++            |
-| **Execution**     | **Lazy** (Processing optimized at run time) | Eager (Process row-by-row) |
+| **Execution**     | **Lazy** (Predicate pushdown, projection pushdown, query optimization) | Eager (Process row-by-row) |
 | **OS Support**    | Windows, Mac, Linux                         | Windows Only               |
 | **Row Limits**    | Hardware Dependent                          | Hardware Dependent         |
 | **Extensibility** | Native Python                               | Python SDK / R             |
@@ -26,6 +26,25 @@ Alteryx Designer is defined as the industry standard for visual data preparation
 Alteryx uses a row-based engine. If you filter data at the end of your workflow, Alteryx often still reads the entire dataset from the source.
 
 **Sigilweaver uses Lazy Evaluation.** It looks at your entire workflow *before* running it. If you only need the top 100 rows of a sorted calculation, it optimizes the read to only fetch what is necessary.
+
+#### Fast Iteration During Development
+
+When you're building a workflow in Studio, Sigilweaver keeps you in the flow:
+
+- **Partial previews** - Click any tool to preview its output. Sigilweaver only executes the upstream path needed for that tool and collects a small sample of rows, so previews return in milliseconds even on large datasets.
+- **Intermediate result caching** - Results are cached at each step in your workflow. When you tweak a tool's configuration, only that tool and its downstream dependents re-execute. Unchanged upstream steps are served instantly from cache.
+
+This means you spend your time designing logic, not waiting for full re-runs.
+
+#### Full Power in Production
+
+When you run a workflow end-to-end (via the Server or Hub), Sigilweaver leverages the full power of Polars' query optimizer:
+
+- **Predicate pushdown** - Filters are pushed as close to the data source as possible. If your workflow reads a 10 GB CSV and later filters to a single region, Polars will skip reading rows that don't match.
+- **Projection pushdown** - Only the columns actually used downstream are read from disk.
+- **Lazy evaluation across the entire plan** - The whole workflow compiles into a single optimized query plan before any data is touched, eliminating unnecessary intermediate materializations.
+
+The result: development feels interactive and snappy, while production runs are as fast and memory-efficient as hand-tuned code.
 
 ### 2. Licensing and Lock-in
 Alteryx files (`.yxmd`) are XML-based but proprietary. You need Alteryx to run them.
