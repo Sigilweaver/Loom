@@ -3,7 +3,9 @@ name: Build Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -20,10 +22,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Fetch main
         run: git fetch origin main --prune
-      
+
       - name: Check tag commit is on main
         id: gate
         shell: bash
@@ -48,35 +50,35 @@ jobs:
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-server.yml
     with:
-      python-version: '3.13'
+      python-version: "3.13"
 
   build-studio-full:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: [validate-tag-on-main, build-server]
     uses: ./.github/workflows/build-studio-full.yml
     with:
-      node-version: '22'
+      node-version: "22"
 
   build-studio-client:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-studio-client.yml
     with:
-      node-version: '22'
+      node-version: "22"
 
   build-web:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-web.yml
     with:
-      node-version: '22'
+      node-version: "22"
 
   build-studio-tauri:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-studio-tauri.yml
     with:
-      node-version: '22'
+      node-version: "22"
 
   publish-assets:
     name: Publish to GitHub Release
@@ -94,7 +96,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -105,51 +107,51 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          
+
           VERSION="${GITHUB_REF_NAME}"
-          
+
           # Linux Full
           find artifacts/linux-full-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-${VERSION}-x64.AppImage \; || true
           find artifacts/linux-full-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-${VERSION}-x64.snap \; || true
-          
+
           # Linux Client
           find artifacts/linux-client-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}-x64.AppImage \; || true
           find artifacts/linux-client-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}-x64.snap \; || true
-          
+
           # Windows Full
           find artifacts/windows-full-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Setup-${VERSION}.exe \; || true
           find artifacts/windows-full-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Portable-${VERSION}.exe \; || true
-          
+
           # Windows Client
           find artifacts/windows-client-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Client-Setup-${VERSION}.exe \; || true
           find artifacts/windows-client-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Client-Portable-${VERSION}.exe \; || true
-          
+
           # macOS Full
           find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-${VERSION}.dmg \; || true
-          
+
           # macOS Client
           find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}.dmg \; || true
-          
+
           # Web
           cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Web-${VERSION}.zip || true
-          
+
           # Tauri Linux
           find artifacts/linux-tauri-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.AppImage \; || true
           find artifacts/linux-tauri-artifacts -name "*.deb" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.deb \; || true
           find artifacts/linux-tauri-artifacts -name "*.rpm" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.rpm \; || true
-          
+
           # Tauri Windows
           find artifacts/windows-tauri-artifacts -name "*.msi" -exec cp {} release-assets/Sigilweaver-Tauri-Setup-${VERSION}.msi \; || true
           find artifacts/windows-tauri-artifacts -name "*.exe" -exec cp {} release-assets/Sigilweaver-Tauri-Setup-${VERSION}.exe \; || true
-          
+
           # Tauri macOS (Intel)
           find artifacts/macos-tauri-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.dmg \; || true
           find artifacts/macos-tauri-artifacts -name "*.app.tar.gz" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.app.tar.gz \; || true
-          
+
           # Tauri macOS (ARM)
           find artifacts/macos-arm-tauri-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-arm64.dmg \; || true
           find artifacts/macos-arm-tauri-artifacts -name "*.app.tar.gz" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-arm64.app.tar.gz \; || true
-          
+
           echo "Prepared release assets:"
           ls -lh release-assets/ || true
 
@@ -165,9 +167,9 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          
+
           VERSION="${GITHUB_REF_NAME}"
-          
+
           # Check expected files exist
           expected=(
             "Sigilweaver-${VERSION}-x64.AppImage"
@@ -192,7 +194,7 @@ jobs:
             "Sigilweaver-Tauri-${VERSION}-arm64.app.tar.gz"
             "SHA256SUMS.txt"
           )
-          
+
           echo "Validating release assets..."
           for asset in "${expected[@]}"; do
             if [ ! -f "release-assets/$asset" ]; then
@@ -202,7 +204,7 @@ jobs:
               echo "OK: Found $asset"
             fi
           done
-          
+
           if [ $missing -eq 1 ]; then
             echo ""
             echo "WARNING: Some expected assets are missing."
