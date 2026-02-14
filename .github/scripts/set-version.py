@@ -58,9 +58,46 @@ def set_package_json_version(version: str, package_json_path: Path) -> bool:
     return True
 
 
+def make_msi_compatible_version(version: str) -> str:
+    """
+    Convert a semver version to an MSI-compatible version.
+    
+    MSI versions only support numeric pre-release identifiers (max 65535).
+    Non-numeric pre-release identifiers (e.g., 'alpha', 'beta', 'rc1')
+    are stripped to produce a valid MSI version.
+    
+    Args:
+        version: Semver version string (e.g., '0.3.3-alpha', '1.0.0-rc.1')
+        
+    Returns:
+        MSI-compatible version string (e.g., '0.3.3', '1.0.0-1')
+    """
+    # Split off pre-release identifier
+    match = re.match(r'^(\d+\.\d+\.\d+)(?:-(.+))?$', version)
+    if not match:
+        return version  # Can't parse, return as-is
+    
+    base_version = match.group(1)
+    prerelease = match.group(2)
+    
+    if prerelease is None:
+        return base_version
+    
+    # Check if pre-release is purely numeric and <= 65535
+    if prerelease.isdigit() and int(prerelease) <= 65535:
+        return f"{base_version}-{prerelease}"
+    
+    # Non-numeric or out-of-range pre-release: strip it for MSI compatibility
+    print(f"  Stripping non-numeric pre-release '{prerelease}' for MSI compatibility")
+    return base_version
+
+
 def set_tauri_config_version(version: str, tauri_config_path: Path) -> bool:
     """
     Set version in tauri.conf.json.
+    
+    The version is made MSI-compatible by stripping non-numeric pre-release
+    identifiers, since MSI targets require numeric-only identifiers (max 65535).
     
     Args:
         version: Version string (e.g., '0.3.3-alpha')
@@ -81,9 +118,12 @@ def set_tauri_config_version(version: str, tauri_config_path: Path) -> bool:
         print(f"ERROR: Failed to read {tauri_config_path}: {e}")
         return False
     
+    # Make version MSI-compatible
+    tauri_version = make_msi_compatible_version(version)
+    
     # Update version
     old_version = config_data.get('version', 'unknown')
-    config_data['version'] = version
+    config_data['version'] = tauri_version
     
     # Write back with proper formatting
     try:
@@ -94,7 +134,8 @@ def set_tauri_config_version(version: str, tauri_config_path: Path) -> bool:
         print(f"ERROR: Failed to write {tauri_config_path}: {e}")
         return False
     
-    print(f"Updated tauri.conf.json version: {old_version} -> {version}")
+    print(f"Updated tauri.conf.json version: {old_version} -> {tauri_version}" +
+          (f" (from {version})" if tauri_version != version else ""))
     return True
 
 

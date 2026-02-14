@@ -10,7 +10,6 @@
 mod commands;
 
 use commands::{credentials, files, settings};
-use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,7 +43,7 @@ pub fn run() {
         .setup(|app| {
             // Initialize session token on app startup
             credentials::initialize_session(app.handle())?;
-            
+
             #[cfg(debug_assertions)]
             {
                 // Open devtools in debug mode
@@ -52,7 +51,7 @@ pub fn run() {
                     let _ = window.open_devtools();
                 }
             }
-            
+
             Ok(())
         })
         .run(tauri::generate_context!())
