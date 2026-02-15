@@ -8,7 +8,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { ChatMessage as ChatMessageType, ToolCallInfo, MessageSegment } from '@state/aiStore';
-import { User, Bot, ChevronDown, ChevronRight, Wrench } from 'lucide-react';
+import { User, Bot, ChevronDown, ChevronRight, Wrench, ShieldCheck, ShieldAlert } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import clsx from 'clsx';
@@ -32,8 +32,28 @@ interface ChatMessageProps {
   debug?: boolean;
 }
 
+/**
+ * Detect if a message is an audit result by checking content prefix.
+ * Returns { isAudit: true, isWarning, text } if it's an audit message.
+ */
+function parseAuditMessage(msg: ChatMessageType): { isAudit: boolean; isWarning: boolean; text: string } {
+  const content = msg.content ?? '';
+  if (content.startsWith('✅ Audit:') || content.startsWith('⚠️ Audit:')) {
+    const isWarning = content.startsWith('⚠️');
+    const text = content.replace(/^[✅⚠️]\s*Audit:\s*/, '');
+    return { isAudit: true, isWarning, text };
+  }
+  return { isAudit: false, isWarning: false, text: '' };
+}
+
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => {
   const isUser = message.role === 'user';
+  const audit = useMemo(() => parseAuditMessage(message), [message]);
+
+  // Audit messages get a compact, collapsible treatment
+  if (audit.isAudit) {
+    return <AuditMessage isWarning={audit.isWarning} text={audit.text} />;
+  }
 
   return (
     <div className={clsx('flex gap-3 px-4 py-3', isUser ? 'bg-theme-surface-page' : 'bg-theme-surface-elevated')}>
@@ -225,5 +245,49 @@ function summarizeResult(tc: ToolCallInfo): string {
 
   return '';
 }
+
+// ---------------------------------------------------------------------------
+// Audit Message — compact collapsible row for post-turn audit results
+// ---------------------------------------------------------------------------
+
+const AuditMessage: React.FC<{ isWarning: boolean; text: string }> = ({ isWarning, text }) => {
+  // Warnings start expanded; passes start collapsed
+  const [expanded, setExpanded] = useState(isWarning);
+
+  const Icon = isWarning ? ShieldAlert : ShieldCheck;
+  const label = isWarning ? 'Audit Warning' : 'Audit Passed';
+
+  return (
+    <div className="px-4 py-1.5 bg-theme-surface-elevated">
+      <div className={clsx(
+        'border rounded text-xs',
+        isWarning
+          ? 'text-theme-status-warning-text border-theme-status-warning-border'
+          : 'text-theme-text-tertiary border-theme-border-primary',
+      )}>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left"
+        >
+          {expanded ? (
+            <ChevronDown className="w-3 h-3 flex-shrink-0 opacity-60" />
+          ) : (
+            <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-60" />
+          )}
+          <Icon className="w-3 h-3 flex-shrink-0" />
+          <span className="font-medium">{label}</span>
+          {!expanded && (
+            <span className="truncate opacity-70 ml-1">{text}</span>
+          )}
+        </button>
+        {expanded && (
+          <div className="px-2.5 pb-2 text-xs leading-relaxed">
+            {text}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default ChatMessage;

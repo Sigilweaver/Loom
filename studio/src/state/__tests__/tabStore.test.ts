@@ -460,6 +460,18 @@ describe("TabStore", () => {
         expect(tabData?.workflow.tools.length).toBe(1);
       });
 
+      it("syncs tab name with workflow meta name on save", () => {
+        const tabId = useTabStore.getState().createTab("Original Name");
+
+        // Simulate the AI renaming the workflow
+        useWorkflowStore.getState().updateWorkflowMeta({ name: "AI-Renamed Workflow" });
+
+        useTabStore.getState().saveCurrentTab();
+
+        const tab = useTabStore.getState().getTabById(tabId);
+        expect(tab?.name).toBe("AI-Renamed Workflow");
+      });
+
       it("no-ops when no active tab", () => {
         useTabStore.setState({ activeTabId: null });
 

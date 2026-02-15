@@ -574,6 +574,17 @@ export const useTabStore = create<TabState>()(
         set({
           tabData: { ...tabData, [activeTabId]: snapshot },
         });
+
+        // Sync tab name with workflow meta name (e.g. after AI names the workflow)
+        const workflowName = workflowStore.workflowMeta.name;
+        const currentTab = get().tabs.find((t) => t.id === activeTabId);
+        if (currentTab && currentTab.name !== workflowName) {
+          set((state) => ({
+            tabs: state.tabs.map((t) =>
+              t.id === activeTabId ? { ...t, name: workflowName } : t
+            ),
+          }));
+        }
       },
 
       /**

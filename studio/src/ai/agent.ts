@@ -188,11 +188,6 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     store.addMessage(assistantMsg);
     store.addTokenUsage(usage);
 
-    // Run post-turn audit if enabled (async, non-blocking on the main response)
-    if (userPrompt && !abortController.signal.aborted) {
-      await runAudit(userPrompt, assistantMsg);
-    }
-
     // Check if we stopped because we hit the iteration limit.
     // finishReason === 'tool-calls' means the model wanted to make more tool calls
     // but was stopped by our stopWhen condition. We also defensively check the
@@ -200,8 +195,15 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     // may report a different finishReason even when interrupted mid-tool-calling.
     const lastStepToolCalls = steps[steps.length - 1]?.toolCalls ?? [];
     const hitIterationLimit = steps.length >= store.maxIterations;
-    if (finishReason === 'tool-calls' || (hitIterationLimit && lastStepToolCalls.length > 0)) {
+    const stoppedEarly = finishReason === 'tool-calls' || (hitIterationLimit && lastStepToolCalls.length > 0);
+    if (stoppedEarly) {
       store.setStoppedAtLimit(true);
+    }
+
+    // Run post-turn audit only when the agent completed its work naturally
+    // (not when it was stopped at the iteration limit or aborted by the user)
+    if (userPrompt && !abortController.signal.aborted && !stoppedEarly) {
+      await runAudit(userPrompt, assistantMsg);
     }
 
   } catch (err) {

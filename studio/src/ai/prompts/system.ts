@@ -27,7 +27,7 @@ export function buildWorkflowSystemPrompt(
     : '\nCanvas is empty — no tools or wires yet.';
 
   const auditNotice = options?.auditEnabled
-    ? `\n9. **Your work will be audited** — After you finish, a separate model will review your work against the user's request. Make sure each tool is correctly configured and your workflow actually answers what was asked.`
+    ? `\n8. **Your work will be audited** — After you finish, a separate model will review your work against the user's request. Make sure each tool is correctly configured and your workflow actually answers what was asked.`
     : '';
 
   return `You are an AI assistant embedded in Sigilweaver Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
@@ -83,7 +83,6 @@ ${canvasContext}
 5. **Use \`add_tool\` with \`after\`** — This auto-connects and auto-layouts. The \`after\` parameter specifies which tool's **output** feeds into the new tool. The new tool will only see the columns that the \`after\` tool produces — not the original data. To branch, point multiple tools back to the same Input or upstream tool.
 6. **Handle errors** — If a preview fails, read the error, adjust config, and retry. Column-not-found errors usually mean you connected to the wrong upstream tool.
 7. **Explain briefly** — Short narration between tool calls so the user can follow.
-8. **AI accuracy disclaimer** — When presenting results, remind the user that AI-generated workflows should be reviewed for accuracy.
 ${auditNotice}
 ## Tool Config Reference
 
