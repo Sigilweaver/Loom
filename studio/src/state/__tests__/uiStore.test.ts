@@ -10,7 +10,6 @@ describe("uiStore", () => {
       minimapPosition: "bottom-right",
       positionMenuOpen: false,
       positionMenuCoords: null,
-      workflowViewerVisible: false,
       activeToolTab: "favorites",
       bottomPaneOpen: false,
       bottomPaneHeight: 300,
@@ -41,7 +40,6 @@ describe("uiStore", () => {
       expect(state.minimapPosition).toBe("bottom-right");
       expect(state.positionMenuOpen).toBe(false);
       expect(state.positionMenuCoords).toBeNull();
-      expect(state.workflowViewerVisible).toBe(false);
       expect(state.activeToolTab).toBe("favorites");
       expect(state.notification).toEqual({
         message: "",
@@ -490,7 +488,6 @@ describe("uiStore", () => {
         minimapPosition: "top-left",
         positionMenuOpen: true,
         positionMenuCoords: { x: 100, y: 200 },
-        workflowViewerVisible: false,
         activeToolTab: "inout",
         notification: {
           message: "Initial",

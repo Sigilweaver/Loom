@@ -24,6 +24,12 @@ const AISettingsPanel: React.FC = () => {
     expressionModel,
     expressionApiKey,
     expressionBaseUrl,
+    useAudit,
+    useAuditModel,
+    auditProvider,
+    auditModel,
+    auditApiKey,
+    auditBaseUrl,
     updateEnabled,
     updateProvider,
     updateModel,
@@ -35,6 +41,12 @@ const AISettingsPanel: React.FC = () => {
     updateExpressionModel,
     updateExpressionApiKey,
     updateExpressionBaseUrl,
+    updateUseAudit,
+    updateUseAuditModel,
+    updateAuditProvider,
+    updateAuditModel,
+    updateAuditApiKey,
+    updateAuditBaseUrl,
   } = useAIStore();
 
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -281,6 +293,23 @@ const AISettingsPanel: React.FC = () => {
             updateExpressionBaseUrl={updateExpressionBaseUrl}
           />
 
+          {/* Audit Model Override */}
+          <AuditModelSection
+            useAudit={useAudit}
+            useAuditModel={useAuditModel}
+            auditProvider={auditProvider}
+            auditModel={auditModel}
+            auditApiKey={auditApiKey}
+            auditBaseUrl={auditBaseUrl}
+            mainApiKey={apiKey}
+            updateUseAudit={updateUseAudit}
+            updateUseAuditModel={updateUseAuditModel}
+            updateAuditProvider={updateAuditProvider}
+            updateAuditModel={updateAuditModel}
+            updateAuditApiKey={updateAuditApiKey}
+            updateAuditBaseUrl={updateAuditBaseUrl}
+          />
+
           {/* Test Connection */}
           <div>
             <button
@@ -514,6 +543,230 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
                     className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
                   />
                 </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Audit Model Section
+// ---------------------------------------------------------------------------
+
+interface AuditModelSectionProps {
+  useAudit: boolean;
+  useAuditModel: boolean;
+  auditProvider: AIProvider;
+  auditModel: string;
+  auditApiKey: string;
+  auditBaseUrl: string;
+  mainApiKey: string;
+  updateUseAudit: (use: boolean) => Promise<void>;
+  updateUseAuditModel: (use: boolean) => Promise<void>;
+  updateAuditProvider: (provider: AIProvider) => Promise<void>;
+  updateAuditModel: (model: string) => Promise<void>;
+  updateAuditApiKey: (apiKey: string) => Promise<void>;
+  updateAuditBaseUrl: (baseUrl: string) => Promise<void>;
+}
+
+const AuditModelSection: React.FC<AuditModelSectionProps> = ({
+  useAudit,
+  useAuditModel,
+  auditProvider,
+  auditModel,
+  auditApiKey,
+  auditBaseUrl,
+  mainApiKey,
+  updateUseAudit,
+  updateUseAuditModel,
+  updateAuditProvider,
+  updateAuditModel,
+  updateAuditApiKey,
+  updateAuditBaseUrl,
+}) => {
+  const [expanded, setExpanded] = useState(useAudit);
+
+  // Audit model list
+  const [auditModels, setAuditModels] = useState<Array<{ id: string; name?: string }>>([]);
+  const [auditModelsFetching, setAuditModelsFetching] = useState(false);
+
+  const fetchAuditModels = useCallback(async () => {
+    const key = auditApiKey || mainApiKey;
+    if (auditProvider !== 'openai-compatible' && !key) {
+      setAuditModels(PROVIDER_MODELS[auditProvider].map((id) => ({ id })));
+      return;
+    }
+    setAuditModelsFetching(true);
+    try {
+      const models = await fetchProviderModels(auditProvider, key, auditBaseUrl || undefined);
+      setAuditModels(models);
+    } catch {
+      setAuditModels(PROVIDER_MODELS[auditProvider].map((id) => ({ id })));
+    } finally {
+      setAuditModelsFetching(false);
+    }
+  }, [auditProvider, auditApiKey, auditBaseUrl, mainApiKey]);
+
+  useEffect(() => {
+    if (!useAuditModel) return;
+    setAuditModels(PROVIDER_MODELS[auditProvider].map((id) => ({ id })));
+    const key = auditApiKey || mainApiKey;
+    if (auditProvider === 'openai-compatible' || key) {
+      const timer = setTimeout(fetchAuditModels, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [useAuditModel, auditProvider, auditApiKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const auditModelOptions: Array<{ id: string; name?: string }> = auditModels.length > 0
+    ? auditModels
+    : PROVIDER_MODELS[auditProvider].map((id) => ({ id }));
+
+  return (
+    <div className="border border-theme-border-secondary rounded">
+      {/* Toggle header */}
+      <button
+        type="button"
+        onClick={() => {
+          const next = !expanded;
+          setExpanded(next);
+          if (!useAudit && next) {
+            updateUseAudit(true);
+          }
+        }}
+        className="flex items-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-theme-text-primary hover:bg-theme-surface-hover transition-colors rounded"
+      >
+        {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        Post-Turn Audit
+        {useAudit && (
+          <span className="ml-auto text-theme-text-tertiary font-normal truncate max-w-[120px]">
+            {useAuditModel && auditModel ? auditModel : 'main model'}
+          </span>
+        )}
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-3 border-t border-theme-border-secondary">
+          <div className="pt-2">
+            <Checkbox
+              checked={useAudit}
+              onCheckedChange={(checked) => updateUseAudit(checked === true)}
+              label="Enable audit"
+              description="After each agent turn, a second model reviews the work and flags potential issues. Adds one extra LLM call per turn."
+            />
+          </div>
+
+          {useAudit && (
+            <>
+              <div className="pt-1">
+                <Checkbox
+                  checked={useAuditModel}
+                  onCheckedChange={(checked) => updateUseAuditModel(checked === true)}
+                  label="Use separate model"
+                  description="Use a different model for auditing. If unchecked, the main model is used."
+                />
+              </div>
+
+              {useAuditModel && (
+                <>
+                  {/* Provider */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-theme-text-secondary">
+                      Provider
+                    </label>
+                    <select
+                      value={auditProvider}
+                      onChange={(e) => updateAuditProvider(e.target.value as AIProvider)}
+                      className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary"
+                    >
+                      {(Object.keys(PROVIDER_LABELS) as AIProvider[]).map((p) => (
+                        <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Model */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-theme-text-secondary">Model</label>
+                      <button
+                        onClick={fetchAuditModels}
+                        disabled={auditModelsFetching}
+                        className="flex items-center gap-1 text-xs text-theme-text-tertiary hover:text-theme-text-primary disabled:opacity-40"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${auditModelsFetching ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                    {auditModelOptions.length > 0 ? (
+                      <>
+                        <select
+                          value={auditModelOptions.some((m) => m.id === auditModel) ? auditModel : '__custom__'}
+                          onChange={(e) => {
+                            if (e.target.value !== '__custom__') updateAuditModel(e.target.value);
+                          }}
+                          className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary"
+                        >
+                          {auditModelOptions.map((m) => (
+                            <option key={m.id} value={m.id}>{m.id}</option>
+                          ))}
+                          {!auditModelOptions.some((m) => m.id === auditModel) && auditModel && (
+                            <option value="__custom__">Custom: {auditModel}</option>
+                          )}
+                          <option value="__custom__">Enter custom model...</option>
+                        </select>
+                        {!auditModelOptions.some((m) => m.id === auditModel) && (
+                          <input
+                            type="text"
+                            value={auditModel}
+                            onChange={(e) => updateAuditModel(e.target.value)}
+                            placeholder="e.g. gpt-4o-mini"
+                            className="w-full mt-1 px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={auditModel}
+                        onChange={(e) => updateAuditModel(e.target.value)}
+                        placeholder="e.g. gpt-4o-mini"
+                        className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
+                      />
+                    )}
+                  </div>
+
+                  {/* API Key override */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-theme-text-secondary">
+                      API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={auditApiKey}
+                      onChange={(e) => updateAuditApiKey(e.target.value)}
+                      placeholder="Leave blank to use main key"
+                      className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary font-mono"
+                    />
+                  </div>
+
+                  {/* Base URL (openai-compatible) */}
+                  {auditProvider === 'openai-compatible' && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-theme-text-secondary">
+                        Base URL
+                      </label>
+                      <input
+                        type="text"
+                        value={auditBaseUrl}
+                        onChange={(e) => updateAuditBaseUrl(e.target.value)}
+                        placeholder="http://localhost:11434/v1"
+                        className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

@@ -9,6 +9,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { useWorkflowStore } from '@state/workflowStore';
 import { getToolDefinition } from '@data/tools';
+import { listToolTypes } from '@data/toolConfigSchemas';
 import { generateUniqueId } from '@utils/id';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
@@ -307,8 +308,86 @@ export function enrichToolConfig(
   switch (type) {
     case 'Filter': return enrichFilterConfig(config);
     case 'Summarize': return enrichSummarizeConfig(config);
+    case 'Formula': return enrichFormulaConfig(config);
+    case 'Join': return enrichJoinConfig(config);
     default: return config;
   }
+}
+
+/**
+ * Enrich Formula config — normalize the various shapes the agent might produce
+ * into the canonical `operations` array format.
+ *
+ * The agent may send:
+ *   - `formulas: [{ column, expression }]`   (common LLM hallucination)
+ *   - `operations: [{ columnName, expression }]` (camelCase variant)
+ *   - `operations: [{ column_name, expression }]` (correct)
+ *   - top-level `column_name` + `expression` (single-op shorthand)
+ *
+ * All forms are normalized to `operations: [{ column_name, expression }]`.
+ */
+function enrichFormulaConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...config };
+
+  // If the agent used the `formulas` key instead of `operations`, convert it
+  if (Array.isArray(result.formulas) && !Array.isArray(result.operations)) {
+    result.operations = (result.formulas as Array<Record<string, unknown>>).map((f) => ({
+      column_name: f.column_name ?? f.columnName ?? f.column ?? f.name ?? 'new_column',
+      expression: f.expression ?? '',
+    }));
+    delete result.formulas;
+  }
+
+  // Normalize camelCase column names within operations
+  if (Array.isArray(result.operations)) {
+    result.operations = (result.operations as Array<Record<string, unknown>>).map((op) => ({
+      column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
+      expression: op.expression ?? '',
+    }));
+  }
+
+  // If there's a top-level column_name + expression but no operations, wrap it
+  if (
+    !Array.isArray(result.operations) &&
+    (result.column_name || result.columnName) &&
+    result.expression
+  ) {
+    result.operations = [{
+      column_name: result.column_name ?? result.columnName,
+      expression: result.expression,
+    }];
+  }
+
+  // Clean up legacy/hallucinated top-level fields
+  if (Array.isArray(result.operations) && (result.operations as unknown[]).length > 0) {
+    delete result.formulas;
+    // Keep expression/column_name for legacy single-op compat in UI
+  }
+
+  return result;
+}
+
+/**
+ * Enrich Join config — validate that leftKeys and rightKeys are properly set.
+ * If they're present but empty, remove them so the UI shows unconfigured state
+ * instead of silently producing a cross join.
+ */
+function enrichJoinConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...config };
+  const leftKeys = result.leftKeys as string[] | undefined;
+  const rightKeys = result.rightKeys as string[] | undefined;
+
+  // Normalize join type
+  if (result.joinType && typeof result.joinType === 'string') {
+    result.joinType = result.joinType.toLowerCase();
+  }
+
+  // If keys are empty arrays, make sure they're valid
+  // Empty keys + non-cross join type → cross join (data hazard)
+  if (leftKeys && leftKeys.length === 0) delete result.leftKeys;
+  if (rightKeys && rightKeys.length === 0) delete result.rightKeys;
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -331,34 +410,6 @@ async function runAutoLayout(): Promise<void> {
 }
 
 /**
- * Get current canvas state — tools and wires.
- */
-export const getCanvasState = tool({
-  description: 'Get the current canvas state: all tools and wires on the workflow.',
-  inputSchema: z.object({}),
-  execute: async () => {
-    const { tools, wires } = useWorkflowStore.getState();
-    return {
-      tools: tools.map((t) => ({
-        id: t.id,
-        type: t.type,
-        config: Object.fromEntries(
-          Object.entries(t.config).filter(([k]) => k !== '_emit'),
-        ),
-        sockets: t.sockets.map((s) => ({ id: s.id, direction: s.direction })),
-        position: { x: t.x, y: t.y },
-      })),
-      wires: wires.map((w) => ({
-        from: { tool: w.from.tool, socket: w.from.socket },
-        to: { tool: w.to.tool, socket: w.to.socket },
-      })),
-      totalTools: tools.length,
-      totalWires: wires.length,
-    };
-  },
-});
-
-/**
  * Add a tool to the canvas.
  */
 export const addTool = tool({
@@ -366,14 +417,15 @@ export const addTool = tool({
   inputSchema: z.object({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique")'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
-    after: z.string().optional().describe('ID of the tool to connect FROM. The new tool is wired as a downstream consumer. For Filter/Unique sources, defaults to the "true"/"unique" output socket.'),
+    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Summarizes on raw data), always point back to the Input tool ID — not to another Summarize.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
   execute: async ({ type, config, after, fromSocket, toSocket }) => {
     const def = getToolDefinition(type);
     if (!def) {
-      return { success: false, error: `Unknown tool type: ${type}. Use list_tool_types to see available types.` };
+      const available = listToolTypes().map((t) => t.type).join(', ');
+      return { success: false, error: `Unknown tool type: "${type}". Available types: ${available}` };
     }
 
     const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
@@ -399,7 +451,8 @@ export const addTool = tool({
     if (after) {
       const sourceTool = tools.find((t) => t.id === after);
       if (!sourceTool) {
-        return { success: true, toolId: newTool.id, type: newTool.type, warning: `Could not connect: source tool "${after}" not found.` };
+        const available = tools.map((t) => `${t.type} [${t.id}]`).join(', ');
+        return { success: true, toolId: newTool.id, type: newTool.type, warning: `Could not connect: source tool "${after}" not found. Available: ${available}` };
       }
 
       // Resolve output socket on source — default to first output
@@ -435,7 +488,7 @@ export const addTool = tool({
  * Update an existing tool's configuration.
  */
 export const updateTool = tool({
-  description: 'Update the configuration of an existing tool on the canvas.',
+  description: 'Update a tool\'s configuration. For Join: always set leftKeys and rightKeys — empty keys produce a cross join.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to update.'),
     config: z.record(z.string(), z.unknown()).describe('New configuration values to merge with existing config.'),

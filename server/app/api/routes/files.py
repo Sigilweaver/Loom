@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.config import settings
@@ -62,6 +62,25 @@ class StatResponse(BaseModel):
     modified: datetime | None = None
     extension: str | None = None
     read_only: bool = True
+
+
+class SearchResultEntry(BaseModel):
+    """A file matching a search query, with relevance score."""
+
+    name: str
+    path: str
+    size: int | None = None
+    modified: datetime | None = None
+    extension: str | None = None
+    score: float  # 0.0-1.0, higher = better match
+
+
+class SearchResponse(BaseModel):
+    """Response for file search."""
+
+    query: str
+    results: list[SearchResultEntry]
+    total_files_scanned: int
 
 
 class BrowseContext(BaseModel):
@@ -357,3 +376,209 @@ async def stat_path(
             status_code=500,
             detail=f"Cannot stat path: {e}",
         )
+
+
+# --- Fuzzy search ---
+
+# Default data file extensions the search targets
+DATA_EXTENSIONS = frozenset({
+    "csv", "parquet", "xlsx", "xls", "json", "ndjson",
+    "yxdb", "avro", "ipc", "arrow", "ods", "tsv", "db",
+    "sqlite", "sqlite3",
+})
+
+# Hard cap to prevent runaway recursion on huge filesystems
+_MAX_SCAN = 10_000
+
+
+def _fuzzy_score(query: str, name: str) -> float:
+    """Score how well *query* matches *name*.
+
+    Returns 0.0-1.0.  Higher is better.  0.0 means no match.
+
+    Ranking tiers (from best to worst):
+      1.0  -- exact match (ignoring case + extension)
+      0.9  -- name starts with query
+      0.8  -- query is a whole word in the name
+      0.7  -- query is a substring of name
+      0.3+ -- all query chars appear in order (subsequence match, score
+              proportional to how compact the match is)
+      0.0  -- no match
+    """
+    q = query.lower()
+    # Strip extension for matching
+    stem = Path(name).stem.lower()
+
+    if q == stem:
+        return 1.0
+    if stem.startswith(q):
+        return 0.9
+    # Whole-word check: split on common separators
+    words = set(stem.replace("-", "_").replace(".", "_").split("_"))
+    if q in words:
+        return 0.8
+    if q in stem:
+        return 0.7
+
+    # Subsequence match
+    qi = 0
+    first_idx = -1
+    last_idx = -1
+    for si, ch in enumerate(stem):
+        if qi < len(q) and ch == q[qi]:
+            if first_idx == -1:
+                first_idx = si
+            last_idx = si
+            qi += 1
+    if qi == len(q) and len(q) > 0:
+        # Score based on compactness: fewer gaps = higher score
+        span = last_idx - first_idx + 1
+        compactness = len(q) / span  # 1.0 when perfectly compact
+        return 0.3 + 0.35 * compactness
+    return 0.0
+
+
+def _walk_data_files(
+    root: Path,
+    grants: list[FilePathGrant],
+    extensions: frozenset[str],
+    max_files: int = _MAX_SCAN,
+) -> list[tuple[Path, float]]:
+    """Recursively collect data files under *root* that are within grants.
+
+    Returns list of (resolved_path, mtime_ts) tuples.
+    Skips hidden directories (starting with `.`).
+    """
+    results: list[tuple[Path, float]] = []
+
+    def _recurse(directory: Path, depth: int = 0) -> None:
+        if depth > 20 or len(results) >= max_files:
+            return
+        try:
+            for item in sorted(directory.iterdir(), key=lambda p: p.name.lower()):
+                if len(results) >= max_files:
+                    return
+                # Skip hidden
+                if item.name.startswith("."):
+                    continue
+                try:
+                    resolved = item.resolve()
+                    allowed, _ = _is_path_allowed(resolved, grants)
+                    if not allowed:
+                        continue
+                    if resolved.is_dir():
+                        _recurse(resolved, depth + 1)
+                    elif resolved.is_file():
+                        ext = resolved.suffix[1:].lower() if resolved.suffix else ""
+                        if ext in extensions:
+                            results.append((resolved, resolved.stat().st_mtime))
+                except (PermissionError, OSError):
+                    continue
+        except (PermissionError, OSError):
+            return
+
+    _recurse(root)
+    return results
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search_files(
+    query: Annotated[str, Query(description="Search query (filename or keyword)")],
+    ctx: Annotated[BrowseContext, Depends(get_browse_context)],
+    extensions: Annotated[
+        str | None,
+        Query(
+            description=(
+                "Comma-separated file extensions to include "
+                "(default: common data formats)"
+            ),
+        ),
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> SearchResponse:
+    """Search for data files across all granted directories.
+
+    Recursively scans all granted root directories for data files matching
+    the query. Results are ranked by relevance:
+      - Exact name match (highest)
+      - Name starts with query
+      - Query is a word in the filename
+      - Query is a substring
+      - Subsequence match (lowest)
+
+    Args:
+        query: Search text to match against filenames.
+        extensions: Comma-separated extensions to filter (e.g. "csv,parquet").
+                    Defaults to common data file extensions.
+        limit: Max results to return (1-100, default 20).
+
+    Returns:
+        Ranked list of matching files.
+    """
+    if not query or not query.strip():
+        raise HTTPException(status_code=400, detail="Query parameter required")
+
+    query_text = query.strip()
+
+    # Determine target extensions
+    if extensions:
+        ext_set = frozenset(
+            e.strip().lower().lstrip(".")
+            for e in extensions.split(",")
+            if e.strip()
+        )
+    else:
+        ext_set = DATA_EXTENSIONS
+
+    # Collect all data files from all granted roots
+    all_files: list[tuple[Path, float]] = []
+    seen_paths: set[str] = set()
+
+    for grant in ctx.file_paths:
+        grant_path = Path(grant.path).resolve()
+        if not grant_path.exists() or not grant_path.is_dir():
+            continue
+        allowed, _ = _is_path_allowed(grant_path, ctx.file_paths)
+        if not allowed:
+            continue
+
+        files = _walk_data_files(grant_path, ctx.file_paths, ext_set)
+        for fpath, mtime in files:
+            path_str = str(fpath)
+            if path_str not in seen_paths:
+                seen_paths.add(path_str)
+                all_files.append((fpath, mtime))
+
+    total_scanned = len(all_files)
+
+    # Score and rank
+    scored: list[tuple[Path, float, float]] = []  # (path, score, mtime)
+    for fpath, mtime in all_files:
+        score = _fuzzy_score(query_text, fpath.name)
+        if score > 0.0:
+            scored.append((fpath, score, mtime))
+
+    # Sort by score desc, then by modified desc (newest first) as tiebreaker
+    scored.sort(key=lambda t: (-t[1], -t[2]))
+
+    # Build results
+    results: list[SearchResultEntry] = []
+    for fpath, score, mtime in scored[:limit]:
+        try:
+            stat = fpath.stat()
+            results.append(SearchResultEntry(
+                name=fpath.name,
+                path=str(fpath),
+                size=stat.st_size,
+                modified=datetime.fromtimestamp(mtime),
+                extension=fpath.suffix[1:] if fpath.suffix else None,
+                score=round(score, 3),
+            ))
+        except OSError:
+            continue
+
+    return SearchResponse(
+        query=query_text,
+        results=results,
+        total_files_scanned=total_scanned,
+    )

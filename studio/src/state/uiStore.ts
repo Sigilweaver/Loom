@@ -33,7 +33,7 @@ interface NotificationState {
   expiresAt?: number; // timestamp when it should auto-hide
 }
 
-type LeftPaneTab = "tools" | "workflow" | "settings";
+type LeftPaneTab = "tools" | "workflow" | "settings" | "ai";
 
 export interface ViewportState {
   x: number;
@@ -47,8 +47,8 @@ interface UIState {
   minimapPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   positionMenuOpen: boolean;
   positionMenuCoords: { x: number; y: number } | null;
-  workflowViewerVisible: boolean;
-  aiChatVisible: boolean;
+  /** Debug mode — shows AI tool call details expanded by default */
+  debugMode: boolean;
   activeToolTab: ToolCategory;
   leftPaneTab: LeftPaneTab;
   favoriteTools: string[]; // Array of tool type names that are favorites
@@ -67,9 +67,8 @@ interface UIState {
   setMinimapPosition: (pos: UIState["minimapPosition"]) => void;
   openPositionMenu: (coords: { x: number; y: number }) => void;
   closePositionMenu: () => void;
-  setWorkflowViewerVisible: (visible: boolean) => void;
-  setAIChatVisible: (visible: boolean) => void;
   toggleAIChat: () => void;
+  setDebugMode: (debug: boolean) => void;
   setActiveToolTab: (tab: ToolCategory) => void;
   setLeftPaneTab: (tab: LeftPaneTab) => void;
   toggleFavoriteTool: (toolType: string) => void;
@@ -153,13 +152,17 @@ export const useUIStore = create<UIState>()((set, get) => ({
     set({ positionMenuOpen: true, positionMenuCoords: coords }),
   closePositionMenu: () => set({ positionMenuOpen: false }),
 
-  workflowViewerVisible: false,
-  setWorkflowViewerVisible: (visible) =>
-    set({ workflowViewerVisible: visible }),
+  toggleAIChat: () => {
+    const s = get();
+    if (s.leftPaneTab === 'ai') {
+      set({ leftPaneTab: 'tools' });
+    } else {
+      set({ leftPaneTab: 'ai' });
+    }
+  },
 
-  aiChatVisible: false,
-  setAIChatVisible: (visible) => set({ aiChatVisible: visible }),
-  toggleAIChat: () => set((s) => ({ aiChatVisible: !s.aiChatVisible })),
+  debugMode: false,
+  setDebugMode: (debugMode) => set({ debugMode }),
 
   activeToolTab: "favorites",
   setActiveToolTab: (tab) => set({ activeToolTab: tab }),

@@ -2,19 +2,37 @@
  * Chat Message Component
  *
  * Renders a single message in the AI chat panel.
- * Handles user messages, assistant responses, and tool call displays.
+ * Supports interleaved tool calls and text blocks (segments),
+ * with markdown rendering for assistant text.
  */
 
-import React, { useState } from 'react';
-import type { ChatMessage as ChatMessageType, ToolCallInfo } from '@state/aiStore';
+import React, { useState, useMemo } from 'react';
+import type { ChatMessage as ChatMessageType, ToolCallInfo, MessageSegment } from '@state/aiStore';
 import { User, Bot, ChevronDown, ChevronRight, Wrench } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import clsx from 'clsx';
+
+/**
+ * Normalize segments for display.
+ *
+ * agent.ts already emits text before tool-calls within each step, so no
+ * reordering is needed.  An earlier version swapped adjacent tool-calls +
+ * text pairs, but that incorrectly crossed step boundaries (e.g. pulling
+ * step N+1's text ahead of step N's tool calls).  We now return segments
+ * as-is to preserve the correct interleaved order.
+ */
+function normalizeSegments(raw: MessageSegment[]): MessageSegment[] {
+  return raw;
+}
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  /** When true, tool call details are expanded by default (debug mode). */
+  debug?: boolean;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => {
   const isUser = message.role === 'user';
 
   return (
@@ -43,20 +61,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           )}
         </div>
 
-        {/* Tool calls (shown before text for assistant messages) */}
-        {message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="space-y-1">
-            {message.toolCalls.map((tc, i) => (
-              <ToolCallDisplay key={i} toolCall={tc} />
-            ))}
-          </div>
-        )}
-
-        {/* Message text */}
-        {message.content && (
-          <div className="text-sm text-theme-text-primary whitespace-pre-wrap break-words leading-relaxed">
-            {message.content}
-          </div>
+        {/* Interleaved segments (preferred) or legacy flat layout */}
+        {message.segments ? (
+          <SegmentedContent segments={message.segments} debug={debug} />
+        ) : (
+          <LegacyContent message={message} debug={debug} />
         )}
       </div>
     </div>
@@ -64,16 +73,70 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 };
 
 // ---------------------------------------------------------------------------
-// Tool Call Display
+// Segmented Content — interleaved tool calls and text in execution order
 // ---------------------------------------------------------------------------
 
-const ToolCallDisplay: React.FC<{ toolCall: ToolCallInfo }> = ({ toolCall }) => {
-  const [expanded, setExpanded] = useState(false);
+const SegmentedContent: React.FC<{ segments: MessageSegment[]; debug: boolean }> = ({ segments, debug }) => {
+  const normalized = useMemo(() => normalizeSegments(segments), [segments]);
+  return (
+    <div className="space-y-2">
+      {normalized.map((seg, i) =>
+        seg.type === 'tool-calls' ? (
+          <div key={i} className="space-y-1">
+            {seg.toolCalls.map((tc, j) => (
+              <ToolCallDisplay key={j} toolCall={tc} defaultExpanded={debug} />
+            ))}
+          </div>
+        ) : (
+          <MarkdownBlock key={i} content={seg.content} />
+        ),
+      )}
+    </div>
+  );
+};
 
-  // Format tool name for display
+// ---------------------------------------------------------------------------
+// Legacy Content — flat tool calls then text (backward compat for old messages)
+// ---------------------------------------------------------------------------
+
+const LegacyContent: React.FC<{ message: ChatMessageType; debug: boolean }> = ({ message, debug }) => (
+  <>
+    {message.toolCalls && message.toolCalls.length > 0 && (
+      <div className="space-y-1">
+        {message.toolCalls.map((tc, i) => (
+          <ToolCallDisplay key={i} toolCall={tc} defaultExpanded={debug} />
+        ))}
+      </div>
+    )}
+    {message.content && (
+      message.role === 'assistant'
+        ? <MarkdownBlock content={message.content} />
+        : <div className="text-sm text-theme-text-primary whitespace-pre-wrap break-words leading-relaxed">{message.content}</div>
+    )}
+  </>
+);
+
+// ---------------------------------------------------------------------------
+// Markdown Block — renders assistant text as markdown
+// ---------------------------------------------------------------------------
+
+const MarkdownBlock: React.FC<{ content: string }> = ({ content }) => {
+  const plugins = useMemo(() => [remarkGfm], []);
+
+  return (
+    <div className="ai-markdown text-sm text-theme-text-primary leading-relaxed">
+      <ReactMarkdown remarkPlugins={plugins}>{content}</ReactMarkdown>
+    </div>
+  );
+};
+
+const ToolCallDisplay: React.FC<{ toolCall: ToolCallInfo; defaultExpanded?: boolean }> = ({
+  toolCall,
+  defaultExpanded = false,
+}) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
   const displayName = toolCall.toolName.replace(/_/g, ' ');
-
-  // Summarize the result
   const resultSummary = summarizeResult(toolCall);
 
   return (
@@ -128,16 +191,38 @@ function summarizeResult(tc: ToolCallInfo): string {
   if (!tc.result) return '';
   const r = tc.result as Record<string, unknown>;
 
+  // Success with details
   if (r.success === true) {
     if (r.toolId) return `→ ${(r.type as string) ?? 'tool'} (${(r.toolId as string).slice(0, 8)})`;
     if (r.toolCount) return `→ ${r.toolCount} tools, ${r.wireCount} wires`;
+    if (r.removedType) return `→ removed ${r.removedType}`;
+    if (r.updatedFields) return `→ updated ${(r.updatedFields as string[]).join(', ')}`;
     return '→ success';
   }
-  if (r.success === false) return `→ error: ${r.error ?? 'unknown'}`;
+  // Failures
+  if (r.success === false) {
+    if (r.errors) return `→ ${(r.errors as string[]).length} error(s)`;
+    return `→ error: ${r.error ?? 'unknown'}`;
+  }
   if (r.error) return `→ error: ${r.error}`;
-  if (r.columns) return `→ ${(r.columns as unknown[]).length} columns`;
+
+  // Data results
   if (r.rows) return `→ ${(r.rows as unknown[]).length} rows`;
+  if (r.columns) return `→ ${(r.columns as unknown[]).length} columns`;
+  if (r.results) return `→ ${(r.results as unknown[]).length} results`;
   if (r.toolTypes) return `→ ${(r.toolTypes as unknown[]).length} types`;
+  if (r.schema) return '→ schema';
+
+  // Canvas state
+  if (r.totalTools != null) return `→ ${r.totalTools} tools, ${r.totalWires} wires`;
+
+  // File listing
+  if (r.roots) return '→ file roots';
+  if (r.files) return `→ ${r.directory}`;
+
+  // Profiling
+  if (r.rowCount != null && r.columnCount != null) return `→ ${r.rowCount} rows, ${r.columnCount} cols`;
+
   return '';
 }
 

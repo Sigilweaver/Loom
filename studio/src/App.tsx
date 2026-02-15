@@ -11,9 +11,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
-import WorkflowViewer from "./components/workflow/WorkflowViewer";
-import AIChatPanel from "./components/ai/AIChatPanel";
-import ResizablePanel from "./components/shell/ResizablePanel";
 import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -49,9 +46,6 @@ function App() {
 
   // UI notifications and state via store
   const showNotification = useUIStore((s) => s.showNotification);
-  const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
-  const aiChatVisible = useUIStore((s) => s.aiChatVisible);
-  const setAIChatVisible = useUIStore((s) => s.setAIChatVisible);
 
   // Load settings on mount and sync with uiStore, then create initial tab
   useEffect(() => {
@@ -324,29 +318,12 @@ function App() {
               {/* Left Pane - Tool Palette and Configuration */}
               <LeftPane />
 
-              {/* Main Content Area - Canvas, Workflow Viewer, and Bottom Pane */}
+              {/* Main Content Area */}
               <ReactFlowProvider>
-                <div className="flex flex-1 overflow-hidden">
-                  {/* Canvas and Bottom Pane - with TabBar above */}
-                  <div className="flex flex-1 flex-col overflow-hidden">
-                    {/* Tab Bar - positioned above canvas, only spans canvas area */}
-                    <TabBar />
-
-                    <Canvas ref={canvasRef} />
-
-                    {/* Bottom Pane for Preview/Logs */}
-                    <BottomPane />
-                  </div>
-
-                  {/* Workflow Viewer Side Panel - computes JSON internally */}
-                  {workflowViewerVisible && <WorkflowViewer />}
-
-                  {/* AI Chat Panel */}
-                  {aiChatVisible && (
-                    <ResizablePanel defaultWidth={380} minWidth={300} maxWidth={600}>
-                      <AIChatPanel onClose={() => setAIChatVisible(false)} />
-                    </ResizablePanel>
-                  )}
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <TabBar />
+                  <Canvas ref={canvasRef} />
+                  <BottomPane />
                 </div>
               </ReactFlowProvider>
             </div>

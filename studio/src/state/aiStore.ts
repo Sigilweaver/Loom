@@ -38,6 +38,20 @@ export interface AISettings {
   expressionApiKey: string;
   /** Base URL for expression assist (falls back to main baseUrl) */
   expressionBaseUrl: string;
+
+  // -- Optional audit model --
+  /** When true, agent output is audited after each turn */
+  useAudit: boolean;
+  /** When true, audit uses a separate model instead of the main one */
+  useAuditModel: boolean;
+  /** Provider for audit (falls back to main provider) */
+  auditProvider: AIProvider;
+  /** Model for audit (falls back to main model) */
+  auditModel: string;
+  /** API key for audit (falls back to main key) */
+  auditApiKey: string;
+  /** Base URL for audit (falls back to main baseUrl) */
+  auditBaseUrl: string;
 }
 
 export type ChatRole = 'user' | 'assistant' | 'tool';
@@ -48,12 +62,22 @@ export interface ToolCallInfo {
   result?: unknown;
 }
 
+/**
+ * A single segment of an assistant message, enabling interleaved
+ * tool-call blocks and text blocks in the order they actually occurred.
+ */
+export type MessageSegment =
+  | { type: 'tool-calls'; toolCalls: ToolCallInfo[] }
+  | { type: 'text'; content: string };
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
   content: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
+  /** Interleaved segments (tool calls + text) in execution order */
+  segments?: MessageSegment[];
   /** Token usage for this message (assistant messages only) */
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
 }
@@ -80,6 +104,12 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   expressionModel: '',
   expressionApiKey: '',
   expressionBaseUrl: '',
+  useAudit: false,
+  useAuditModel: false,
+  auditProvider: 'openai',
+  auditModel: '',
+  auditApiKey: '',
+  auditBaseUrl: '',
 };
 
 const DEFAULT_MODELS: Record<AIProvider, string> = {
@@ -105,6 +135,12 @@ interface AIState extends AISettings {
   abortController: AbortController | null;
   /** Accumulated token usage for the current session */
   sessionUsage: TokenUsage;
+  /** Text currently being streamed (partial, before message is finalized) */
+  streamingText: string;
+  /** Segments collected during current stream — interleaved tool calls and text from completed steps */
+  streamingSegments: MessageSegment[];
+  /** Whether the agent stopped because it hit the max iteration limit */
+  stoppedAtLimit: boolean;
 
   // -- Settings actions --
   loadAISettings: () => Promise<void>;
@@ -119,9 +155,18 @@ interface AIState extends AISettings {
   updateExpressionModel: (model: string) => Promise<void>;
   updateExpressionApiKey: (apiKey: string) => Promise<void>;
   updateExpressionBaseUrl: (baseUrl: string) => Promise<void>;
+  updateUseAudit: (use: boolean) => Promise<void>;
+  updateUseAuditModel: (use: boolean) => Promise<void>;
+  updateAuditProvider: (provider: AIProvider) => Promise<void>;
+  updateAuditModel: (model: string) => Promise<void>;
+  updateAuditApiKey: (apiKey: string) => Promise<void>;
+  updateAuditBaseUrl: (baseUrl: string) => Promise<void>;
 
   /** Resolve the effective provider/model/key/url for expression assist */
   getExpressionModelConfig: () => { provider: AIProvider; model: string; apiKey: string; baseUrl: string };
+
+  /** Resolve the effective provider/model/key/url for audit */
+  getAuditModelConfig: () => { provider: AIProvider; model: string; apiKey: string; baseUrl: string };
 
   // -- Chat actions --
   addMessage: (msg: ChatMessage) => void;
@@ -133,6 +178,11 @@ interface AIState extends AISettings {
   cancelGeneration: () => void;
   addTokenUsage: (usage: TokenUsage) => void;
   resetSessionUsage: () => void;
+  setStreamingText: (text: string) => void;
+  appendStreamingText: (delta: string) => void;
+  setStreamingSegments: (segments: MessageSegment[]) => void;
+  addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
+  setStoppedAtLimit: (stopped: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +191,7 @@ interface AIState extends AISettings {
 
 const AI_SETTINGS_KEY = 'sigilweaver-ai-settings';
 const AI_CHAT_HISTORY_KEY = 'sigilweaver-ai-chat-history';
+const AI_STOPPED_AT_LIMIT_KEY = 'sigilweaver-ai-stopped-at-limit';
 
 function loadPersistedSettings(): AISettings {
   try {
@@ -192,6 +243,26 @@ function savePersistedChat(messages: ChatMessage[]): void {
   }
 }
 
+function loadPersistedStoppedAtLimit(): boolean {
+  try {
+    return localStorage.getItem(AI_STOPPED_AT_LIMIT_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function savePersistedStoppedAtLimit(stopped: boolean): void {
+  try {
+    if (stopped) {
+      localStorage.setItem(AI_STOPPED_AT_LIMIT_KEY, 'true');
+    } else {
+      localStorage.removeItem(AI_STOPPED_AT_LIMIT_KEY);
+    }
+  } catch {
+    // Ignore save errors
+  }
+}
+
 function buildAISettings(state: AIState): AISettings {
   return {
     enabled: state.enabled,
@@ -205,6 +276,12 @@ function buildAISettings(state: AIState): AISettings {
     expressionModel: state.expressionModel,
     expressionApiKey: state.expressionApiKey,
     expressionBaseUrl: state.expressionBaseUrl,
+    useAudit: state.useAudit,
+    useAuditModel: state.useAuditModel,
+    auditProvider: state.auditProvider,
+    auditModel: state.auditModel,
+    auditApiKey: state.auditApiKey,
+    auditBaseUrl: state.auditBaseUrl,
   };
 }
 
@@ -219,11 +296,15 @@ export const useAIStore = create<AIState>()((set, get) => ({
   error: null,
   abortController: null,
   sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  streamingText: '',
+  streamingSegments: [],
+  stoppedAtLimit: false,
 
   loadAISettings: async () => {
     const settings = loadPersistedSettings();
     const messages = loadPersistedChat();
-    set({ ...settings, messages });
+    const stoppedAtLimit = loadPersistedStoppedAtLimit();
+    set({ ...settings, messages, stoppedAtLimit });
   },
 
   updateEnabled: async (enabled) => {
@@ -286,6 +367,36 @@ export const useAIStore = create<AIState>()((set, get) => ({
     savePersistedSettings(buildAISettings({ ...get(), expressionBaseUrl }));
   },
 
+  updateUseAudit: async (useAudit) => {
+    set({ useAudit });
+    savePersistedSettings(buildAISettings({ ...get(), useAudit }));
+  },
+
+  updateUseAuditModel: async (useAuditModel) => {
+    set({ useAuditModel });
+    savePersistedSettings(buildAISettings({ ...get(), useAuditModel }));
+  },
+
+  updateAuditProvider: async (auditProvider) => {
+    set({ auditProvider });
+    savePersistedSettings(buildAISettings({ ...get(), auditProvider }));
+  },
+
+  updateAuditModel: async (auditModel) => {
+    set({ auditModel });
+    savePersistedSettings(buildAISettings({ ...get(), auditModel }));
+  },
+
+  updateAuditApiKey: async (auditApiKey) => {
+    set({ auditApiKey });
+    savePersistedSettings(buildAISettings({ ...get(), auditApiKey }));
+  },
+
+  updateAuditBaseUrl: async (auditBaseUrl) => {
+    set({ auditBaseUrl });
+    savePersistedSettings(buildAISettings({ ...get(), auditBaseUrl }));
+  },
+
   getExpressionModelConfig: () => {
     const s = get();
     if (s.useExpressionModel && s.expressionModel) {
@@ -305,6 +416,24 @@ export const useAIStore = create<AIState>()((set, get) => ({
     };
   },
 
+  getAuditModelConfig: () => {
+    const s = get();
+    if (s.useAuditModel && s.auditModel) {
+      return {
+        provider: s.auditProvider,
+        model: s.auditModel,
+        apiKey: s.auditApiKey || s.apiKey,
+        baseUrl: s.auditBaseUrl || s.baseUrl,
+      };
+    }
+    return {
+      provider: s.provider,
+      model: s.model,
+      apiKey: s.apiKey,
+      baseUrl: s.baseUrl,
+    };
+  },
+
   // -- Chat actions --
 
   addMessage: (msg) => {
@@ -315,14 +444,23 @@ export const useAIStore = create<AIState>()((set, get) => ({
     });
   },
 
+
   setMessages: (msgs) => {
     set({ messages: msgs });
     savePersistedChat(msgs);
   },
 
   clearChat: () => {
-    set({ messages: [], error: null, sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } });
+    set({
+      messages: [],
+      error: null,
+      sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      stoppedAtLimit: false,
+      streamingText: '',
+      streamingSegments: [],
+    });
     savePersistedChat([]);
+    savePersistedStoppedAtLimit(false);
   },
 
   setIsGenerating: (isGenerating) => set({ isGenerating }),
@@ -351,5 +489,32 @@ export const useAIStore = create<AIState>()((set, get) => ({
 
   resetSessionUsage: () => {
     set({ sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } });
+  },
+
+  setStreamingText: (streamingText) => set({ streamingText }),
+
+  appendStreamingText: (delta) => {
+    set((s) => ({ streamingText: s.streamingText + delta }));
+  },
+
+  setStreamingSegments: (streamingSegments) => set({ streamingSegments }),
+
+  addStreamingStepSegments: (text, toolCalls) => {
+    set((s) => {
+      const newSegments = [...s.streamingSegments];
+      // Text first (model "says" something), then tool calls (model "does" something)
+      if (text) {
+        newSegments.push({ type: 'text', content: text });
+      }
+      if (toolCalls.length > 0) {
+        newSegments.push({ type: 'tool-calls', toolCalls });
+      }
+      return { streamingSegments: newSegments };
+    });
+  },
+
+  setStoppedAtLimit: (stoppedAtLimit) => {
+    set({ stoppedAtLimit });
+    savePersistedStoppedAtLimit(stoppedAtLimit);
   },
 }));

@@ -41,7 +41,7 @@ describe("system prompt", () => {
 
   it("should include rules and guidelines", () => {
     const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
-    expect(prompt).toContain("Always check column metadata");
+    expect(prompt).toContain("Column names come from the data");
     expect(prompt).toContain("Build reproducible pipelines");
   });
 });

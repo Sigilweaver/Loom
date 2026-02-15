@@ -35,6 +35,8 @@ import {
     ArrowUp,
     AlertCircle,
     Loader2,
+    Search,
+    X,
 } from 'lucide-react';
 import {
     Dialog,
@@ -47,9 +49,11 @@ import {
 import {
     listFileRoots,
     listFiles,
+    searchFiles,
     type RootEntry,
     type FileEntry,
     type ListFilesResponse,
+    type SearchResultEntry,
 } from '../../api/backend';
 import { createLogger } from '../../utils/logger';
 
@@ -162,6 +166,12 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
     // Track if initial load has happened to prevent double-loading in StrictMode
     const [initialized, setInitialized] = useState(false);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResultEntry[]>([]);
+    const [searchMode, setSearchMode] = useState(false);
+    const [searching, setSearching] = useState(false);
+
     // Load roots on open (only once)
     useEffect(() => {
         if (open && !initialized) {
@@ -177,6 +187,10 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
             setEntries([]);
             setSelectedPath(null);
             setError(null);
+            setSearchQuery('');
+            setSearchResults([]);
+            setSearchMode(false);
+            setSearching(false);
         }
     }, [open]);
 
@@ -260,6 +274,38 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
         },
         [loadDirectoryInternal]
     );
+
+    // Search for files by name
+    const executeSearch = useCallback(
+        async (query: string) => {
+            if (!query.trim()) return;
+            setSearching(true);
+            setError(null);
+            setSelectedPath(null);
+            try {
+                const { token, serverUrl: url } = await getToken();
+                const extensions = fileTypes?.join(',');
+                const response = await searchFiles(url, token, query.trim(), extensions, 50);
+                setSearchResults(response.results);
+                setSearchMode(true);
+                logger.debug('Search completed', { query, results: response.results.length, scanned: response.total_files_scanned });
+            } catch (err) {
+                logger.error('Search failed', err);
+                setError(err instanceof Error ? err.message : 'Search failed');
+                setSearchResults([]);
+            } finally {
+                setSearching(false);
+            }
+        },
+        [getToken, fileTypes]
+    );
+
+    const exitSearch = useCallback(() => {
+        setSearchMode(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        setSelectedPath(null);
+    }, []);
 
     // Load directory contents when currentPath changes (user navigation)
     useEffect(() => {
@@ -393,34 +439,91 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
 
                     <div className="w-px h-5 bg-theme-border-primary mx-1" />
 
-                    {/* Breadcrumbs / Path bar */}
-                    <div className="flex-1 flex items-center gap-1 overflow-x-auto text-sm px-2 py-1 bg-theme-bg-primary rounded border border-theme-border-primary">
-                        {currentPath === null ? (
-                            <span className="text-theme-text-tertiary italic">Select a directory...</span>
+                    {/* Search / Breadcrumbs bar */}
+                    <div className="flex-1 flex items-center gap-1 text-sm px-2 py-1 bg-theme-bg-primary rounded border border-theme-border-primary">
+                        {searchMode ? (
+                            <>
+                                <Search className="w-3.5 h-3.5 text-theme-text-tertiary flex-shrink-0" />
+                                <span className="text-theme-text-secondary truncate">
+                                    Results for &ldquo;{searchQuery}&rdquo;
+                                </span>
+                                <button
+                                    onClick={exitSearch}
+                                    className="ml-auto p-0.5 rounded hover:bg-theme-bg-hover text-theme-text-tertiary hover:text-theme-text-primary transition-colors"
+                                    title="Exit search"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </>
                         ) : (
-                            breadcrumbs.map((item, index) => (
-                                <React.Fragment key={item.path}>
-                                    {index > 0 && (
-                                        <ChevronRight className="w-3 h-3 text-theme-text-tertiary flex-shrink-0" />
-                                    )}
-                                    <button
-                                        onClick={() => handleBreadcrumbClick(item.path)}
-                                        className={clsx(
-                                            'px-1 py-0.5 rounded',
-                                            'hover:bg-theme-bg-hover',
-                                            'truncate max-w-[120px]',
-                                            index === breadcrumbs.length - 1
-                                                ? 'text-theme-text-primary font-medium'
-                                                : 'text-theme-text-secondary hover:text-theme-text-primary'
-                                        )}
-                                        title={item.path}
-                                    >
-                                        {item.name}
-                                    </button>
-                                </React.Fragment>
-                            ))
+                            <>
+                                {currentPath === null ? (
+                                    <span className="text-theme-text-tertiary italic">Select a directory...</span>
+                                ) : (
+                                    breadcrumbs.map((item, index) => (
+                                        <React.Fragment key={item.path}>
+                                            {index > 0 && (
+                                                <ChevronRight className="w-3 h-3 text-theme-text-tertiary flex-shrink-0" />
+                                            )}
+                                            <button
+                                                onClick={() => handleBreadcrumbClick(item.path)}
+                                                className={clsx(
+                                                    'px-1 py-0.5 rounded',
+                                                    'hover:bg-theme-bg-hover',
+                                                    'truncate max-w-[120px]',
+                                                    index === breadcrumbs.length - 1
+                                                        ? 'text-theme-text-primary font-medium'
+                                                        : 'text-theme-text-secondary hover:text-theme-text-primary'
+                                                )}
+                                                title={item.path}
+                                            >
+                                                {item.name}
+                                            </button>
+                                        </React.Fragment>
+                                    ))
+                                )}
+                            </>
                         )}
                     </div>
+                </div>
+
+                {/* Search bar */}
+                <div className="flex items-center gap-2 px-4 py-1.5 border-b border-theme-border-primary bg-theme-surface-elevated">
+                    <Search className="w-4 h-4 text-theme-text-tertiary flex-shrink-0" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && searchQuery.trim()) {
+                                executeSearch(searchQuery);
+                            }
+                            if (e.key === 'Escape') {
+                                if (searchMode) {
+                                    exitSearch();
+                                } else {
+                                    setSearchQuery('');
+                                }
+                            }
+                        }}
+                        placeholder="Search files by name..."
+                        className="flex-1 bg-transparent text-sm text-theme-text-primary placeholder-theme-text-tertiary outline-none"
+                    />
+                    {searching && <Loader2 className="w-4 h-4 animate-spin text-theme-text-tertiary flex-shrink-0" />}
+                    {searchQuery && !searching && (
+                        <button
+                            onClick={() => {
+                                if (searchMode) {
+                                    exitSearch();
+                                } else {
+                                    setSearchQuery('');
+                                }
+                            }}
+                            className="p-0.5 rounded hover:bg-theme-bg-hover text-theme-text-tertiary hover:text-theme-text-primary transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Content area */}
@@ -440,14 +543,78 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                     )}
 
                     {/* Loading state */}
-                    {loading && !error && entries.length === 0 && (
+                    {(loading || searching) && !error && entries.length === 0 && !searchMode && (
                         <div className="flex items-center justify-center h-full">
                             <Loader2 className="w-8 h-8 animate-spin text-theme-text-tertiary" />
                         </div>
                     )}
 
+                    {/* Search results */}
+                    {searchMode && !error && (
+                        <div className="p-1">
+                            {searching ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-8 h-8 animate-spin text-theme-text-tertiary" />
+                                </div>
+                            ) : searchResults.length > 0 ? (
+                                <>
+                                    <p className="px-3 py-1 text-xs text-theme-text-tertiary">
+                                        {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                                    </p>
+                                    {searchResults.map((result) => (
+                                        <button
+                                            key={result.path}
+                                            onClick={() => setSelectedPath(result.path)}
+                                            onDoubleClick={() => {
+                                                onSelect(result.path);
+                                                onClose();
+                                            }}
+                                            className={clsx(
+                                                'w-full flex items-center gap-3 px-3 py-1.5 rounded',
+                                                'text-left transition-colors',
+                                                selectedPath === result.path
+                                                    ? 'bg-theme-interactive-accent/15 ring-1 ring-theme-interactive-accent'
+                                                    : 'hover:bg-theme-bg-hover'
+                                            )}
+                                        >
+                                            <File className="w-4 h-4 text-theme-text-tertiary flex-shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-sm text-theme-text-primary truncate block">
+                                                    {result.name}
+                                                </span>
+                                                <span className="text-xs text-theme-text-tertiary truncate block">
+                                                    {result.path}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-theme-text-tertiary w-16 text-right tabular-nums flex-shrink-0">
+                                                {formatFileSize(result.size)}
+                                            </span>
+                                            <span className={clsx(
+                                                'text-xs px-1.5 py-0.5 rounded flex-shrink-0',
+                                                result.score >= 0.9
+                                                    ? 'bg-green-500/15 text-green-400'
+                                                    : result.score >= 0.7
+                                                        ? 'bg-yellow-500/15 text-yellow-400'
+                                                        : 'bg-theme-bg-hover text-theme-text-tertiary'
+                                            )}>
+                                                {Math.round(result.score * 100)}%
+                                            </span>
+                                        </button>
+                                    ))}
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-4 py-12">
+                                    <Search className="w-10 h-10 text-theme-text-tertiary mb-2" />
+                                    <p className="text-theme-text-tertiary">
+                                        No files matching &ldquo;{searchQuery}&rdquo;
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Roots view (when no current path) */}
-                    {!error && !loading && currentPath === null && roots.length > 0 && (
+                    {!error && !loading && !searchMode && currentPath === null && roots.length > 0 && (
                         <div className="p-1">
                             {roots.map((root) => (
                                 <button
@@ -475,7 +642,7 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                     )}
 
                     {/* Directory listing */}
-                    {!error && currentPath !== null && entries.length > 0 && (
+                    {!error && !searchMode && currentPath !== null && entries.length > 0 && (
                         <div className="p-1">
                             {entries.map((entry) => (
                                 <button
@@ -519,7 +686,7 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                     )}
 
                     {/* Empty directory */}
-                    {!error && !loading && currentPath !== null && entries.length === 0 && (
+                    {!error && !loading && !searchMode && currentPath !== null && entries.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-center p-4">
                             <Folder className="w-10 h-10 text-theme-text-tertiary mb-2" />
                             <p className="text-theme-text-tertiary">

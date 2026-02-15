@@ -3,18 +3,18 @@
  *
  * Compiles a simplified workflow specification (produced by the AI agent)
  * into the full Sigilweaver workflow format. This is more token-efficient
- * than having the agent produce full Tool objects with UUIDs and sockets.
+ * than having the agent produce full Tool objects with IDs and sockets.
  *
  * The compiler handles:
  * - Socket injection per tool type
  * - Connection resolution (simple {from, to} into proper Wire format)
  * - Config normalization
  * - Auto-layout (topological sort, position assignment)
- * - Metadata generation (UUIDs, timestamps)
+ * - Metadata generation (IDs, timestamps)
  */
 
-import { v4 as uuid } from 'uuid';
 import { getToolDefinition } from '@data/tools';
+import { generateUniqueId } from '@utils/id';
 import { autoLayout } from '@domain/workflow/services/autoLayout';
 import { enrichToolConfig } from './tools/canvas';
 import type { Tool, Wire, WorkflowMeta, ToolConfig } from '@domain/workflow/entities/workflow';
@@ -76,7 +76,8 @@ export interface CompileResult {
  */
 export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResult {
   const errors: string[] = [];
-  const idMap = new Map<string, string>(); // simplified ID -> UUID
+  const idMap = new Map<string, string>(); // simplified ID -> generated ID
+  const existingIds = new Set<string>();
 
   // 1. Validate and create tools
   const tools: Tool[] = [];
@@ -92,7 +93,8 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
       continue;
     }
 
-    const toolId = uuid();
+    const toolId = generateUniqueId(existingIds);
+    existingIds.add(toolId);
     idMap.set(step.id, toolId);
 
     const config: ToolConfig = { ...def.defaultConfig };
@@ -171,7 +173,7 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
     name: spec.name || 'AI-Generated Workflow',
     description: spec.description || 'Workflow created by AI assistant',
     author: author || 'AI Assistant',
-    workflowId: uuid(),
+    workflowId: crypto.randomUUID(),
     created: new Date().toISOString(),
     defaultEngine: DEFAULT_ENGINE,
   };

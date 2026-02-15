@@ -44,6 +44,7 @@ class JoinTool(BaseTool):
             left_keys=config.get("leftKeys", []),
             right_keys=config.get("rightKeys", []),
             right_suffix=config.get("rightSuffix", "_right"),
+            join_type=config.get("joinType", "inner"),
         )
 
     async def execute(
@@ -153,21 +154,39 @@ class JoinTool(BaseTool):
             if col.name in right_keys:
                 continue
 
+            # For left/outer joins, right columns become nullable (unmatched rows have nulls)
+            is_nullable = col.nullable or join_type in ("left", "outer")
+
             # Add suffix if name conflicts with left column
             if col.name in left_col_names:
                 new_col = ColumnSchema(
                     name=col.name + right_suffix,
                     dtype=col.dtype,
-                    nullable=col.nullable,
+                    nullable=is_nullable,
                 )
                 matched_columns.append(new_col)
             else:
-                matched_columns.append(col)
+                if is_nullable != col.nullable:
+                    matched_columns.append(ColumnSchema(name=col.name, dtype=col.dtype, nullable=is_nullable))
+                else:
+                    matched_columns.append(col)
+
+        # For right/outer joins, left columns become nullable too
+        if join_type in ("right", "outer"):
+            matched_columns = [
+                ColumnSchema(name=c.name, dtype=c.dtype, nullable=True)
+                for c in matched_columns
+            ]
+
+        # For left/outer joins, unmatched_left is empty (included in matched)
+        output_left = empty_schema if join_type in ("left", "outer") else left_schema
+        # For right/outer joins, unmatched_right is empty (included in matched)
+        output_right = empty_schema if join_type in ("right", "outer") else right_schema
 
         return {
-            JoinSockets.OUTPUT_LEFT: left_schema,
+            JoinSockets.OUTPUT_LEFT: output_left,
             JoinSockets.OUTPUT_MATCH: DataSchema(columns=matched_columns),
-            JoinSockets.OUTPUT_RIGHT: right_schema,
+            JoinSockets.OUTPUT_RIGHT: output_right,
         }
 
     def _normalize_schema(

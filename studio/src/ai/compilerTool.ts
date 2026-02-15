@@ -10,26 +10,17 @@ import { z } from 'zod';
 import { compileSpec, type SimplifiedSpec } from './compiler';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useSettingsStore } from '@state/settingsStore';
+import { getToolSchema } from '@api';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('AI:CompilerTool');
 
 /**
  * Build a complete workflow from a simplified spec.
  * Replaces the current canvas contents.
  */
 export const buildWorkflowTool = tool({
-  description: `Build a complete workflow from a simplified specification. This replaces the current canvas contents. Use this for building workflows from scratch rather than modifying existing ones. The spec uses simple IDs for steps and connections — the compiler handles UUID generation, socket injection, and auto-layout.
-
-Example spec:
-{
-  "steps": [
-    { "id": "load", "type": "Input", "config": { "category": "file", "type": "csv", "source": "/data/example.csv" } },
-    { "id": "filter", "type": "Filter", "config": { "expression": "pl.col('Age') > 18" } },
-    { "id": "sort", "type": "Sort", "config": { "sortColumns": [{ "column": "Age", "order": "ascending" }] } }
-  ],
-  "connections": [
-    { "from": "load", "to": "filter" },
-    { "from": "filter", "to": "sort" }
-  ]
-}`,
+  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and inputColumns (first Input tool columns).',
   inputSchema: z.object({
     steps: z.array(z.object({
       id: z.string().describe('Simple ID for referencing in connections'),
@@ -57,11 +48,44 @@ Example spec:
     // Load the compiled workflow onto the canvas
     useWorkflowStore.getState().loadWorkflow(result.tools, result.wires, result.meta);
 
+    // Return the simple-ID → UUID mapping so the agent can reference tools
+    // by their canvas IDs (e.g. for preview_tool_output) without needing
+    // to call get_canvas_state first.
+    const idMap: Record<string, string> = {};
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i]!;
+      const compiled = result.tools[i];
+      if (compiled) {
+        idMap[step.id] = compiled.id;
+      }
+    }
+
+    // Proactively fetch column metadata for Input tools so the agent
+    // knows what columns are available without a separate tool call.
+    let inputColumns: Array<{ name: string; dtype: string }> | undefined;
+    const firstInput = result.tools.find((t) => t.type === 'Input');
+    if (firstInput) {
+      try {
+        const workflow = { version: '1.0' as const, tools: result.tools, wires: result.wires, meta: result.meta };
+        const socket = firstInput.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+        const schemaResult = await getToolSchema(firstInput.id, workflow, socket);
+        inputColumns = schemaResult.data_schema?.columns?.map((c) => ({
+          name: c.name,
+          dtype: c.dtype,
+        }));
+      } catch (err) {
+        // Non-fatal — agent can still call get_column_metadata manually
+        logger.warn('Failed to fetch input columns for build_workflow', err);
+      }
+    }
+
     return {
       success: true,
       toolCount: result.tools.length,
       wireCount: result.wires.length,
       workflowName: result.meta.name,
+      idMap,
+      ...(inputColumns ? { inputColumns } : {}),
     };
   },
 });

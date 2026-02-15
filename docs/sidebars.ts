@@ -27,6 +27,7 @@ const sidebars: SidebarsConfig = {
             'user/interface/connections',
             'user/interface/hub',
             'user/interface/caching',
+            'user/interface/ai-assistant',
           ],
         },
         {
@@ -193,6 +194,7 @@ const sidebars: SidebarsConfig = {
           ],
         },
         'developer/known-issues',
+        'developer/ai-philosophy',
       ],
     },
     'code-of-conduct',

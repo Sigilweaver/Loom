@@ -12,31 +12,77 @@ import { useSettingsStore } from '@state/settingsStore';
 import {
   previewTool,
   getToolSchema,
+  profileColumns,
 } from '@api';
-import { listFiles, listFileRoots } from '@api/backend';
+import { listFiles, listFileRoots, searchFiles, getSessionToken } from '@api/backend';
+import { getHubClient, hasHubClient, initHubClient } from '@api/hub';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AI:DataTools');
+
+/**
+ * Find a tool by ID, returning a helpful error if not found.
+ * Lists available tool IDs so the agent can self-correct.
+ */
+function findToolOrError(toolId: string): { tool: ReturnType<typeof useWorkflowStore.getState>['tools'][number] } | { error: string } {
+  const { tools } = useWorkflowStore.getState();
+  const target = tools.find((t) => t.id === toolId);
+  if (target) return { tool: target };
+
+  const available = tools.map((t) => `  ${t.type} [${t.id}]`).join('\n');
+  return {
+    error: `Tool not found: "${toolId}". Available tools on canvas:\n${available || '  (canvas is empty)'}`,
+  };
+}
+
+/**
+ * Get browse token and server URL based on the current execution mode.
+ *
+ * - Hub mode: requests a single-use browse token from the Hub.
+ * - External mode: uses the session token + configured backend URL.
+ * - Bundled mode: uses session token or empty string + backend URL.
+ */
+async function getBrowseAuth(): Promise<{ token: string; serverUrl: string }> {
+  const { executionMode, backend, hub } = useSettingsStore.getState();
+
+  if (executionMode === 'hub') {
+    // Restore HubClient if lost (e.g. HMR reload)
+    if (!hasHubClient() && hub.sessionToken && hub.url) {
+      initHubClient({ url: hub.url, sessionToken: hub.sessionToken });
+    }
+    if (!hasHubClient()) {
+      throw new Error('Hub client not available — check Hub connection in Settings');
+    }
+    const hubClient = getHubClient();
+    const tokenResponse = await hubClient.requestToken();
+    return { token: tokenResponse.token, serverUrl: tokenResponse.server_endpoint };
+  }
+
+  // External or bundled mode: use session token directly
+  const token = getSessionToken() ?? '';
+  return { token, serverUrl: backend.url };
+}
 
 /**
  * List available data files on the server.
  */
 export const listAvailableFiles = tool({
-  description: 'List available data files on the server. Optionally specify a directory to browse. Returns file names, types, and sizes.',
+  description: 'List data files. Omit directory to see roots, or pass a root to list its files.',
   inputSchema: z.object({
-    directory: z.string().optional().describe('Directory path to browse. Omit to list root directories.'),
+    directory: z.string().optional().describe('A directory path from the roots list. Omit to list available root directories.'),
   }),
   execute: async ({ directory }) => {
-    const settings = useSettingsStore.getState();
-    const serverUrl = settings.backend.url;
-    // Browse token is typically the auth token — use empty string if none
-    const browseToken = '';
-
     try {
+      const { token, serverUrl } = await getBrowseAuth();
+
       if (!directory) {
-        const roots = await listFileRoots(serverUrl, browseToken);
-        return { roots, type: 'roots' };
+        const roots = await listFileRoots(serverUrl, token);
+        return { roots, hint: 'Pass a root as "directory" to list files' };
       }
-      const files = await listFiles(serverUrl, browseToken, directory);
-      return { files, directory, type: 'listing' };
+      const files = await listFiles(serverUrl, token, directory);
+      return { files };
     } catch (err) {
+      logger.error('listAvailableFiles failed', err);
       return { error: err instanceof Error ? err.message : String(err) };
     }
   },
@@ -46,7 +92,7 @@ export const listAvailableFiles = tool({
  * Preview a tool's output data.
  */
 export const previewToolOutput = tool({
-  description: 'Execute a tool and preview its output data. Returns sample rows and schema. Use this to verify that a tool produces correct results.',
+  description: 'Execute a tool and preview its output rows and schema.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to preview.'),
     socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
@@ -54,10 +100,9 @@ export const previewToolOutput = tool({
   }),
   execute: async ({ toolId, socketId, limit }) => {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-    const targetTool = tools.find((t) => t.id === toolId);
-    if (!targetTool) {
-      return { error: `Tool not found: ${toolId}` };
-    }
+    const found = findToolOrError(toolId);
+    if ('error' in found) return found;
+    const targetTool = found.tool;
 
     const socket = socketId
       ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
@@ -83,17 +128,16 @@ export const previewToolOutput = tool({
  * Get column metadata for a tool's output.
  */
 export const getColumnMetadata = tool({
-  description: 'Get column names and data types for a tool\'s output without executing it. Faster than preview — use this to understand the data shape.',
+  description: 'Get column names and types for a tool\'s output without executing. Faster than preview.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to inspect.'),
     socketId: z.string().optional().describe('Socket ID. Defaults to first output socket.'),
   }),
   execute: async ({ toolId, socketId }) => {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-    const targetTool = tools.find((t) => t.id === toolId);
-    if (!targetTool) {
-      return { error: `Tool not found: ${toolId}` };
-    }
+    const found = findToolOrError(toolId);
+    if ('error' in found) return found;
+    const targetTool = found.tool;
 
     const socket = socketId
       ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
@@ -109,6 +153,94 @@ export const getColumnMetadata = tool({
           nullable: c.nullable ?? false,
         })) ?? [],
         toolType: targetTool.type,
+      };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  },
+});
+
+/**
+ * Search for data files by name across all accessible directories.
+ */
+export const searchFilesTool = tool({
+  description: 'Search for data files by name across all directories. Returns paths for Input tool config.',
+  inputSchema: z.object({
+    query: z.string().describe('Search text to match against filenames (e.g. "titanic", "sales_2024").'),
+    extensions: z.string().optional().describe('Comma-separated extensions to filter (e.g. "csv,parquet"). Omit for all data formats.'),
+  }),
+  execute: async ({ query, extensions }) => {
+    try {
+      const { token, serverUrl } = await getBrowseAuth();
+      const result = await searchFiles(serverUrl, token, query, extensions);
+      return {
+        results: result.results.map((r) => ({
+          name: r.name,
+          path: r.path,
+          extension: r.extension,
+          size: r.size,
+          score: r.score,
+        })),
+      };
+    } catch (err) {
+      logger.error('searchFiles failed', err);
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  },
+});
+
+/**
+ * Profile a tool's output data — get statistics (min, max, mean, nulls, top values, etc.)
+ */
+export const profileToolData = tool({
+  description: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output.',
+  inputSchema: z.object({
+    toolId: z.string().describe('The ID of the tool to profile.'),
+    socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
+    columns: z.array(z.string()).optional().describe('Specific columns to profile. Omit to profile all columns.'),
+  }),
+  execute: async ({ toolId, socketId, columns }) => {
+    const { tools, wires, workflowMeta } = useWorkflowStore.getState();
+    const found = findToolOrError(toolId);
+    if ('error' in found) return found;
+    const targetTool = found.tool;
+
+    const socket = socketId
+      ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
+      ?? 'Output';
+
+    try {
+      const workflow = { version: '1.0', tools, wires, meta: workflowMeta };
+      const result = await profileColumns(toolId, workflow, socket, columns);
+
+      // Flatten profile into a concise format for the LLM
+      const columnProfiles = Object.entries(result.columns).map(([name, profile]) => {
+        const summary: Record<string, unknown> = {
+          name,
+          dtype: profile.dtype,
+        };
+        if (profile.count != null) summary.count = profile.count;
+        if (profile.null_count != null && profile.null_count > 0) {
+          summary.nulls = profile.null_count;
+          summary.null_pct = profile.null_percent;
+        }
+        if (profile.unique_count != null) summary.unique = profile.unique_count;
+        if (profile.min != null) summary.min = profile.min;
+        if (profile.max != null) summary.max = profile.max;
+        if (profile.mean != null) summary.mean = Math.round((profile.mean as number) * 100) / 100;
+        if (profile.top_values && profile.top_values.length > 0) {
+          summary.top_values = profile.top_values.slice(0, 5).map((tv) => ({
+            value: tv.value,
+            count: tv.count,
+          }));
+        }
+        return summary;
+      });
+
+      return {
+        rowCount: result.row_count,
+        columnCount: result.column_count,
+        columns: columnProfiles,
       };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
