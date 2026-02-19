@@ -2,8 +2,10 @@
 
 Sigilweaver includes an optional AI assistant that helps you build and understand data workflows using natural language.
 
-:::warning[Always Review AI Output]
-AI-generated workflows may be inaccurate. The assistant can make mistakes about column names, data types, expression syntax, or workflow structure. **Always review the generated tools, wires, and configurations before running a workflow against real data.**
+:::warning[AI Is Not a Substitute for Understanding Your Data]
+The assistant will eventually produce results that are **subtly wrong** — a filter on the wrong column, a join that silently drops rows, an aggregation that looks reasonable but answers a slightly different question than the one you asked. These mistakes pass validation because they are structurally valid; they are just semantically incorrect.
+
+Sigilweaver includes multiple layers of automated validation (schema checks, column verification, config enrichment), but no guardrail catches every mistake. **AI is not a replacement for critical thinking.** Always review the generated tools, wires, and configurations before running a workflow against real data, and verify the output against your expectations.
 :::
 
 ## Enabling the AI Assistant
@@ -66,8 +68,9 @@ Complex workflows may require multiple steps. If the assistant reaches its step 
 
 - Be specific about column names, file paths, and conditions for the best results.
 - You can ask follow-up questions — the assistant remembers the conversation context.
-- Review generated workflows before running them. The assistant may make assumptions about your data.
+- **Review generated workflows before running them.** The assistant may make assumptions about your data that are plausible but wrong. A workflow that runs without errors is not necessarily a workflow that produces correct results.
 - Use the **Workflow** tab to inspect the generated JSON or Python code at any time.
+- When in doubt, break complex requests into smaller steps and verify each one before moving on. A five-step conversation that you verify as you go is more reliable than a single prompt that builds everything at once.
 
 ## Debug Mode
 

@@ -10,6 +10,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UnpivotOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_column_names
 from app.utils.errors import ToolError
 
 
@@ -81,6 +82,20 @@ class UnpivotTool(BaseTool):
         # Ensure on is a list
         if not isinstance(on, list):
             on = [on] if on else []
+
+        # Resolve column name casing against actual schema
+        available_cols = lf.collect_schema().names()
+        resolved_config = dict(config)
+        resolved_on = resolve_column_names(on, available_cols, context="Unpivot on")
+        if resolved_on != on:
+            resolved_config["on"] = resolved_on
+            on = resolved_on
+        index = config.get("index", [])
+        if index:
+            idx_list = index if isinstance(index, list) else [index]
+            resolved_index = resolve_column_names(idx_list, available_cols, context="Unpivot index")
+            resolved_config["index"] = resolved_index
+        config = resolved_config
 
         # Safety check: prevent row explosion
         raise_if_unsafe(check_unpivot_safety(lf, on))

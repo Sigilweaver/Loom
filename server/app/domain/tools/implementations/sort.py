@@ -9,6 +9,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SortColumn, SortOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_column_name
 from app.utils.errors import ToolError
 
 # Valid sort directions
@@ -63,7 +64,25 @@ class SortTool(BaseTool):
             raise ToolError("Sort tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
 
-        op = self._build_operation(config)
+        # Resolve column names case-insensitively against actual schema
+        sort_columns = config.get("sortColumns", [])
+        if sort_columns:
+            available_cols = lf.collect_schema().names()
+            resolved_config = dict(config)
+            resolved_sorts: list[dict[str, Any]] = []
+            for sort_col in sort_columns:
+                resolved_sort = dict(sort_col)
+                col = sort_col.get("column")
+                if col:
+                    resolved_sort["column"] = resolve_column_name(
+                        col, available_cols, context="Sort"
+                    )
+                resolved_sorts.append(resolved_sort)
+            resolved_config["sortColumns"] = resolved_sorts
+            op = self._build_operation(resolved_config)
+        else:
+            op = self._build_operation(config)
+
         result = op.execute(lf)
 
         return {CommonSockets.OUTPUT: result}

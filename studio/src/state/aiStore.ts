@@ -88,6 +88,30 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+/**
+ * A pending follow-up question from the agent.
+ * The agent loop blocks until the user answers, then resumes.
+ */
+export interface PendingQuestionOption {
+  /** Short label shown on the button */
+  label: string;
+  /** Optional description shown below the label */
+  description?: string | undefined;
+  /** When true, visually highlight this as the recommended choice */
+  recommended?: boolean | undefined;
+}
+
+export interface PendingQuestion {
+  /** The question text displayed to the user */
+  question: string;
+  /** Optional predefined options (user can always type custom input) */
+  options: PendingQuestionOption[];
+  /** When true, user can select multiple options */
+  multiSelect: boolean;
+  /** Callback to resolve the agent's tool promise with the user's answer */
+  resolve: (answer: string | string[]) => void;
+}
+
 // ---------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------
@@ -141,6 +165,8 @@ interface AIState extends AISettings {
   streamingSegments: MessageSegment[];
   /** Whether the agent stopped because it hit the max iteration limit */
   stoppedAtLimit: boolean;
+  /** A pending follow-up question from the agent (null when none) */
+  pendingQuestion: PendingQuestion | null;
 
   // -- Settings actions --
   loadAISettings: () => Promise<void>;
@@ -183,6 +209,7 @@ interface AIState extends AISettings {
   setStreamingSegments: (segments: MessageSegment[]) => void;
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
+  setPendingQuestion: (question: PendingQuestion | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -299,6 +326,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
   streamingText: '',
   streamingSegments: [],
   stoppedAtLimit: false,
+  pendingQuestion: null,
 
   loadAISettings: async () => {
     const settings = loadPersistedSettings();
@@ -451,6 +479,11 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
   clearChat: () => {
+    const { pendingQuestion } = get();
+    // Dismiss any pending follow-up question
+    if (pendingQuestion) {
+      set({ pendingQuestion: null });
+    }
     set({
       messages: [],
       error: null,
@@ -470,7 +503,11 @@ export const useAIStore = create<AIState>()((set, get) => ({
   setAbortController: (abortController) => set({ abortController }),
 
   cancelGeneration: () => {
-    const { abortController } = get();
+    const { abortController, pendingQuestion } = get();
+    // If a follow-up question is pending, dismiss it
+    if (pendingQuestion) {
+      set({ pendingQuestion: null });
+    }
     if (abortController) {
       abortController.abort();
       set({ abortController: null, isGenerating: false });
@@ -517,4 +554,6 @@ export const useAIStore = create<AIState>()((set, get) => ({
     set({ stoppedAtLimit });
     savePersistedStoppedAtLimit(stoppedAtLimit);
   },
+
+  setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
 }));

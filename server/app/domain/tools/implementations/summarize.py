@@ -9,6 +9,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_column_name
 from app.utils.errors import ToolError
 
 # Valid aggregation operations with their Polars methods
@@ -151,7 +152,40 @@ class SummarizeTool(BaseTool):
         if not aggregations and not group_by_columns:
             raise ToolError("Either group by columns or aggregations are required")
 
-        op = self._build_operation(config)
+        # Resolve column names case-insensitively against the actual schema.
+        # This prevents hard failures when the AI agent guesses casing wrong
+        # (e.g. "Sex" instead of "sex").
+        available_cols = lf.collect_schema().names()
+
+        # Fix group-by column names in the config copy
+        resolved_config = dict(config)
+        if group_by_columns:
+            resolved_gb: list[str | dict[str, Any]] = []
+            for item in group_by_config:
+                if isinstance(item, str):
+                    resolved_gb.append(resolve_column_name(item, available_cols, context="Summarize groupBy"))
+                elif isinstance(item, dict):
+                    col = item.get("column")
+                    if col:
+                        resolved_item = dict(item)
+                        resolved_item["column"] = resolve_column_name(col, available_cols, context="Summarize groupBy")
+                        resolved_gb.append(resolved_item)
+                    else:
+                        resolved_gb.append(item)
+            resolved_config["groupByColumns"] = resolved_gb
+
+        # Fix aggregation column names
+        if aggregations:
+            resolved_aggs: list[dict[str, Any]] = []
+            for agg in aggregations:
+                resolved_agg = dict(agg)
+                col = agg.get("column")
+                if col:
+                    resolved_agg["column"] = resolve_column_name(col, available_cols, context="Summarize aggregation")
+                resolved_aggs.append(resolved_agg)
+            resolved_config["aggregations"] = resolved_aggs
+
+        op = self._build_operation(resolved_config)
         result = op.execute(lf)
 
         return {CommonSockets.OUTPUT: result}

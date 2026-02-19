@@ -285,17 +285,58 @@ export function autoLayout(
   }
 
   // ------------------------------------------------------------------
-  // Step 4: Assign coordinates
+  // Step 4: Assign coordinates (barycenter-aligned)
+  //
+  // Instead of packing each column densely from row 0, use predecessor
+  // positions to determine ideal y placement.  This keeps downstream
+  // tools horizontally aligned with their upstream connections rather
+  // than being pushed to the top of the canvas.
   // ------------------------------------------------------------------
   const positions: Array<{ id: string; x: number; y: number }> = [];
+  const finalY = new Map<string, number>();
 
   for (const col of sortedCols) {
     const colTools = columns.get(col)!;
-    for (let row = 0; row < colTools.length; row++) {
+
+    // Compute each tool's ideal row from its predecessors' final positions
+    const idealRows: number[] = colTools.map((id) => {
+      const inEdges = incoming.get(id);
+      if (!inEdges || inEdges.length === 0) {
+        // Root or disconnected: use barycenter-sorted position within column
+        return rowOf.get(id) ?? 0;
+      }
+
+      // Average of predecessor final y positions → row index
+      let sum = 0;
+      let count = 0;
+      for (const edge of inEdges) {
+        const predY = finalY.get(edge.target);
+        if (predY !== undefined) {
+          sum += predY;
+          count++;
+        }
+      }
+      if (count > 0) {
+        return Math.max(0, Math.round((sum / count - opts.startY) / opts.verticalSpacing));
+      }
+      return rowOf.get(id) ?? 0;
+    });
+
+    // Resolve collisions: tools are already sorted by barycenter,
+    // so just ensure each row is strictly increasing
+    for (let i = 1; i < idealRows.length; i++) {
+      if (idealRows[i]! <= idealRows[i - 1]!) {
+        idealRows[i] = idealRows[i - 1]! + 1;
+      }
+    }
+
+    for (let i = 0; i < colTools.length; i++) {
+      const y = opts.startY + idealRows[i]! * opts.verticalSpacing;
+      finalY.set(colTools[i]!, y);
       positions.push({
-        id: colTools[row]!,
+        id: colTools[i]!,
         x: opts.startX + col * opts.horizontalSpacing,
-        y: opts.startY + row * opts.verticalSpacing,
+        y,
       });
     }
   }

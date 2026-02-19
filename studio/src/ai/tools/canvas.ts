@@ -11,7 +11,12 @@ import { useWorkflowStore } from '@state/workflowStore';
 import { getToolDefinition } from '@data/tools';
 import { listToolTypes } from '@data/toolConfigSchemas';
 import { generateUniqueId } from '@utils/id';
+import { previewTool } from '@api';
+import { formatAddToolResult } from '../format';
+import { createLogger } from '../../utils/logger';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
+
+const logger = createLogger('AI:CanvasTools');
 
 // ---------------------------------------------------------------------------
 // Filter expression auto-generation
@@ -411,9 +416,11 @@ async function runAutoLayout(): Promise<void> {
 
 /**
  * Add a tool to the canvas.
+ * Auto-previews the tool's output when connected, so the agent immediately
+ * sees whether it executed correctly and what the data looks like.
  */
 export const addTool = tool({
-  description: 'Add a new tool to the workflow canvas. Optionally connect it to an existing tool via "after". Positioning is automatic.',
+  description: 'Add a new tool to the workflow canvas. Optionally connect via "after". Returns inline preview of the tool output when connected.',
   inputSchema: z.object({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique")'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
@@ -452,7 +459,7 @@ export const addTool = tool({
       const sourceTool = tools.find((t) => t.id === after);
       if (!sourceTool) {
         const available = tools.map((t) => `${t.type} [${t.id}]`).join(', ');
-        return { success: true, toolId: newTool.id, type: newTool.type, warning: `Could not connect: source tool "${after}" not found. Available: ${available}` };
+        return { data: formatAddToolResult(newTool.id, newTool.type, false, undefined, `Could not connect: source tool "${after}" not found. Available: ${available}`) };
       }
 
       // Resolve output socket on source — default to first output
@@ -475,11 +482,28 @@ export const addTool = tool({
     // Auto-layout the canvas
     await runAutoLayout();
 
+    // Auto-preview when the tool is connected so the agent immediately sees
+    // if the tool executed correctly and what the output looks like.
+    let preview: { rows: Record<string, unknown>[]; schema: import('@api/backend').ColumnSchema[]; rowCount: number } | undefined;
+    if (connected) {
+      try {
+        const { tools: currentTools, wires: currentWires, workflowMeta } = useWorkflowStore.getState();
+        const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
+        const outputSocket = newTool.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+        const result = await previewTool(newTool.id, workflow, outputSocket, 5);
+        preview = {
+          rows: result.data?.slice(0, 5) ?? [],
+          schema: result.data_schema?.columns ?? [],
+          rowCount: result.row_count ?? 0,
+        };
+      } catch (err) {
+        // Non-fatal — tool was added successfully, preview just failed
+        logger.warn('Inline preview failed for add_tool', err);
+      }
+    }
+
     return {
-      success: true,
-      toolId: newTool.id,
-      type: newTool.type,
-      connected,
+      data: formatAddToolResult(newTool.id, newTool.type, connected, preview),
     };
   },
 });
@@ -506,6 +530,46 @@ export const updateTool = tool({
     const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
     updateToolConfiguration(toolId, mergedConfig);
     return { success: true, toolId, updatedFields: Object.keys(config) };
+  },
+});
+
+/**
+ * Batch-update multiple tools' configurations in one call.
+ * More efficient than calling update_tool repeatedly when fixing
+ * column-name or configuration issues across many tools at once.
+ */
+export const updateTools = tool({
+  description: 'Batch-update multiple tools in one call. Use this instead of multiple update_tool calls when fixing config issues across several tools (e.g. correcting column names after seeing a data profile).',
+  inputSchema: z.object({
+    updates: z.array(z.object({
+      toolId: z.string().describe('The ID of the tool to update.'),
+      config: z.record(z.string(), z.unknown()).describe('New configuration values to merge with existing config.'),
+    })).min(1).describe('Array of tool updates to apply.'),
+  }),
+  execute: async ({ updates }) => {
+    const { tools, updateToolConfiguration } = useWorkflowStore.getState();
+    const results: Array<{ toolId: string; success: boolean; error?: string; updatedFields?: string[] }> = [];
+
+    for (const { toolId, config } of updates) {
+      const existing = tools.find((t) => t.id === toolId);
+      if (!existing) {
+        results.push({ toolId, success: false, error: `Tool not found: ${toolId}` });
+        continue;
+      }
+
+      const resolvedConfig = enrichToolConfig(existing.type, config);
+      const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
+      updateToolConfiguration(toolId, mergedConfig);
+      results.push({ toolId, success: true, updatedFields: Object.keys(config) });
+    }
+
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    return {
+      summary: `Updated ${succeeded}/${updates.length} tools${failed > 0 ? ` (${failed} failed)` : ''}`,
+      results,
+    };
   },
 });
 

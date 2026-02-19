@@ -18,6 +18,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FormulaOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_expression_columns
 from app.utils.errors import ToolError
 from app.utils.expression import parse_polars_expression
 
@@ -169,6 +170,16 @@ class FormulaTool(BaseTool):
                 raise ToolError(f"Operation {i + 1}: missing column name")
             if not op.expr_str:
                 raise ToolError(f"Operation {i + 1}: missing expression")
+
+            # Resolve column name casing in the expression against actual schema.
+            # Re-check schema each iteration since prior ops may add columns.
+            available_cols = lf.collect_schema().names()
+            resolved_expr = resolve_expression_columns(
+                op.expr_str, available_cols, context=f"Formula op {i + 1}"
+            )
+            if resolved_expr != op.expr_str:
+                op = FormulaOperation(column_name=op.column_name, expr_str=resolved_expr)
+
             lf = op.execute(lf)
 
         return {CommonSockets.OUTPUT: lf}

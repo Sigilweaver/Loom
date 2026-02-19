@@ -10,7 +10,10 @@ import { useAIStore, type ToolCallInfo, type MessageSegment, type ChatMessage as
 import { useUIStore } from '@state/uiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { sendAgentMessage } from '../../ai/agent';
+import { buildWorkflowSystemPrompt } from '../../ai/prompts/system';
 import ChatMessage from './ChatMessage';
+import { MarkdownBlock } from './ChatMessage';
+import FollowUpQuestion from './FollowUpQuestion';
 import PromptInput from './PromptInput';
 import { Trash2, Sparkles, PlayCircle, Bot, Wrench, X, Info, Bug, Download } from 'lucide-react';
 
@@ -31,6 +34,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   const streamingText = useAIStore((s) => s.streamingText);
   const streamingSegments = useAIStore((s) => s.streamingSegments);
   const stoppedAtLimit = useAIStore((s) => s.stoppedAtLimit);
+  const pendingQuestion = useAIStore((s) => s.pendingQuestion);
   const debugMode = useUIStore((s) => s.debugMode);
   const setDebugMode = useUIStore((s) => s.setDebugMode);
 
@@ -39,7 +43,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   // Auto-scroll to bottom on new messages or streaming updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, isGenerating, streamingText, streamingSegments.length]);
+  }, [messages.length, isGenerating, streamingText, streamingSegments.length, pendingQuestion]);
 
   const handleSend = useCallback(async (prompt: string) => {
     await sendAgentMessage(prompt);
@@ -165,6 +169,16 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
                   Agent reached the step limit. Click to let it continue.
                 </span>
               </div>
+            )}
+
+            {/* Follow-up question from the agent */}
+            {pendingQuestion && (
+              <FollowUpQuestion
+                question={pendingQuestion.question}
+                options={pendingQuestion.options}
+                multiSelect={pendingQuestion.multiSelect}
+                onAnswer={pendingQuestion.resolve}
+              />
             )}
 
             {/* Error display */}
@@ -293,16 +307,14 @@ const StreamingMessage: React.FC<{ segments: MessageSegment[]; text: string }> =
             ))}
           </div>
         ) : (
-          <div key={i} className="text-sm text-theme-text-primary whitespace-pre-wrap break-words leading-relaxed">
-            {seg.content}
-          </div>
+          <MarkdownBlock key={i} content={seg.content} />
         ),
       )}
 
       {/* Live streaming text from the current (in-progress) step */}
       {text && (
-        <div className="text-sm text-theme-text-primary whitespace-pre-wrap break-words leading-relaxed">
-          {text}
+        <div>
+          <MarkdownBlock content={text} />
           <span className="inline-block w-1.5 h-4 ml-0.5 bg-theme-text-tertiary animate-pulse align-text-bottom" />
         </div>
       )}
@@ -323,7 +335,13 @@ function summarizeStreamingResult(tc: ToolCallInfo): string {
   if (!tc.result) return '';
   const r = tc.result as Record<string, unknown>;
 
-  // Success with details
+  // Compact text format — new format from all tools
+  if (typeof r.data === 'string') {
+    const firstLine = (r.data as string).split('\n')[0] ?? '';
+    return `→ ${firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine}`;
+  }
+
+  // Success with details (legacy)
   if (r.success === true) {
     if (r.toolId) return `→ ${(r.type as string) ?? 'tool'} (${(r.toolId as string).slice(0, 8)})`;
     if (r.toolCount) return `→ ${r.toolCount} tools, ${r.wireCount} wires`;
@@ -338,7 +356,7 @@ function summarizeStreamingResult(tc: ToolCallInfo): string {
   }
   if (r.error) return `→ error: ${(r.error as string) ?? 'unknown'}`;
 
-  // Data results
+  // Data results (legacy)
   if (r.rows) return `→ ${(r.rows as unknown[]).length} rows`;
   if (r.columns) return `→ ${(r.columns as unknown[]).length} columns`;
   if (r.results) return `→ ${(r.results as unknown[]).length} results`;
@@ -352,7 +370,7 @@ function summarizeStreamingResult(tc: ToolCallInfo): string {
   if (r.roots) return '→ file roots';
   if (r.files) return `→ ${r.directory}`;
 
-  // Profiling
+  // Profiling (legacy)
   if (r.rowCount != null && r.columnCount != null) return `→ ${r.rowCount} rows, ${r.columnCount} cols`;
 
   return '';
@@ -364,20 +382,44 @@ export default AIChatPanel;
 // Chat Export
 // ---------------------------------------------------------------------------
 
+/** Tool name → description, matching AGENT_TOOLS in agent.ts */
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  add_tool: 'Add a new tool to the workflow canvas. Optionally connect via "after". Returns inline preview of the tool output when connected.',
+  update_tool: 'Update a tool\'s configuration. For Join: always set leftKeys and rightKeys.',
+  update_tools: 'Batch-update multiple tools in one call. Use instead of multiple update_tool calls when fixing config across several tools.',
+  remove_tool: 'Remove a tool from the canvas. Also removes any wires connected to it.',
+  connect_tools: 'Connect two tools with a wire.',
+  disconnect_tools: 'Remove a wire between two tools.',
+  list_available_files: 'List data files. Omit directory to see roots, or pass a root to list its files.',
+  search_files: 'Search for data files by name across all directories.',
+  preview_tool_output: 'Execute a tool and preview its output as CSV with typed headers.',
+  get_column_metadata: 'Get column names and types for a tool\'s output without executing.',
+  profile_tool_data: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output.',
+  build_workflow: 'Build a complete workflow from a simplified specification. Returns idMap and a data profile.',
+  ask_user: 'Ask the user a clarifying question before proceeding. Pauses the agent loop until the user responds.',
+};
+
 function exportChatLog(messages: ChatMessageType[]): void {
   // Gather context from stores
   const aiState = useAIStore.getState();
   const { tools, wires, workflowMeta } = useWorkflowStore.getState();
 
+  // Build the system prompt exactly as the agent receives it
+  const systemPrompt = buildWorkflowSystemPrompt(tools, wires, workflowMeta, {
+    auditEnabled: aiState.useAudit,
+  });
+
   const lines: string[] = [];
-  lines.push('# AI Chat Log');
+  lines.push('# AI Chat Log (Debug Export)');
   lines.push('');
   lines.push(`Exported: ${new Date().toISOString()}`);
   lines.push(`Messages: ${messages.length}`);
   lines.push('');
 
-  // Session metadata
-  lines.push('## Session Info');
+  // -----------------------------------------------------------------------
+  // 1. Session configuration
+  // -----------------------------------------------------------------------
+  lines.push('## Session Configuration');
   lines.push('');
   lines.push(`| Field | Value |`);
   lines.push(`|-------|-------|`);
@@ -387,16 +429,81 @@ function exportChatLog(messages: ChatMessageType[]): void {
     lines.push(`| Base URL | ${aiState.baseUrl} |`);
   }
   lines.push(`| Max Iterations | ${aiState.maxIterations} |`);
-  if (aiState.sessionUsage.totalTokens > 0) {
-    lines.push(`| Session Tokens | ${aiState.sessionUsage.promptTokens.toLocaleString()} prompt + ${aiState.sessionUsage.completionTokens.toLocaleString()} completion = ${aiState.sessionUsage.totalTokens.toLocaleString()} total |`);
+  lines.push(`| Audit Enabled | ${aiState.useAudit} |`);
+  if (aiState.useAudit && aiState.useAuditModel) {
+    lines.push(`| Audit Model | ${aiState.auditProvider}/${aiState.auditModel} |`);
+  }
+  if (aiState.useExpressionModel) {
+    lines.push(`| Expression Model | ${aiState.expressionProvider}/${aiState.expressionModel} |`);
   }
   if (aiState.stoppedAtLimit) {
     lines.push(`| Status | Stopped at iteration limit |`);
   }
   lines.push('');
 
-  // Workflow state snapshot
-  lines.push('## Workflow State');
+  // Token usage summary
+  const su = aiState.sessionUsage;
+  if (su.totalTokens > 0) {
+    lines.push('### Token Usage Summary');
+    lines.push('');
+    lines.push(`| Metric | Count |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Prompt Tokens | ${su.promptTokens.toLocaleString()} |`);
+    lines.push(`| Completion Tokens | ${su.completionTokens.toLocaleString()} |`);
+    lines.push(`| **Total Tokens** | **${su.totalTokens.toLocaleString()}** |`);
+
+    // Per-turn breakdown
+    const assistantMsgs = messages.filter((m) => m.role === 'assistant' && m.usage);
+    if (assistantMsgs.length > 0) {
+      lines.push('');
+      lines.push('#### Per-Turn Breakdown');
+      lines.push('');
+      lines.push('| Turn | Prompt | Completion | Total | Tool Calls |');
+      lines.push('|------|--------|------------|-------|------------|');
+      let turnIdx = 0;
+      for (const m of assistantMsgs) {
+        turnIdx++;
+        const u = m.usage!;
+        const tcCount = m.toolCalls?.length ?? 0;
+        lines.push(`| ${turnIdx} | ${u.promptTokens.toLocaleString()} | ${u.completionTokens.toLocaleString()} | ${u.totalTokens.toLocaleString()} | ${tcCount} |`);
+      }
+    }
+    lines.push('');
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. Registered tool definitions
+  // -----------------------------------------------------------------------
+  lines.push('## Agent Tool Definitions');
+  lines.push('');
+  lines.push('These are the tools available to the agent during this session:');
+  lines.push('');
+  for (const [name, desc] of Object.entries(TOOL_DESCRIPTIONS)) {
+    lines.push(`- **${name}**: ${desc}`);
+  }
+  lines.push('');
+
+  // -----------------------------------------------------------------------
+  // 3. Full system prompt
+  // -----------------------------------------------------------------------
+  lines.push('## System Prompt');
+  lines.push('');
+  lines.push('The complete system prompt sent to the model (includes canvas state, tool reference, and rules):');
+  lines.push('');
+  lines.push('<details>');
+  lines.push('<summary>Click to expand system prompt</summary>');
+  lines.push('');
+  lines.push('````');
+  lines.push(systemPrompt);
+  lines.push('````');
+  lines.push('');
+  lines.push('</details>');
+  lines.push('');
+
+  // -----------------------------------------------------------------------
+  // 4. Workflow state snapshot
+  // -----------------------------------------------------------------------
+  lines.push('## Workflow State (at export time)');
   lines.push('');
   lines.push(`**${workflowMeta.name}** — ${tools.length} tool(s), ${wires.length} wire(s)`);
   lines.push('');
@@ -426,15 +533,22 @@ function exportChatLog(messages: ChatMessageType[]): void {
   lines.push('---');
   lines.push('');
 
-  // Messages
+  // -----------------------------------------------------------------------
+  // 5. Messages (with full tool I/O and per-message token counts)
+  // -----------------------------------------------------------------------
+  lines.push('## Conversation');
+  lines.push('');
+
   for (const msg of messages) {
     const time = new Date(msg.timestamp).toLocaleTimeString();
     const roleLabel = msg.role === 'user' ? 'User' : 'AI Assistant';
 
-    const usageSuffix = msg.usage
-      ? `(${msg.usage.totalTokens.toLocaleString()} tokens)`
-      : '';
-    lines.push(`## ${roleLabel}  \`${time}\`${usageSuffix ? '  ' + usageSuffix : ''}`);
+    // Build usage badge for assistant messages
+    let usageBadge = '';
+    if (msg.usage) {
+      usageBadge = `  [${msg.usage.promptTokens.toLocaleString()}p + ${msg.usage.completionTokens.toLocaleString()}c = ${msg.usage.totalTokens.toLocaleString()} tokens]`;
+    }
+    lines.push(`### ${roleLabel}  \`${time}\`${usageBadge}`);
     lines.push('');
 
     // Segmented messages (interleaved text + tool calls)
@@ -445,7 +559,7 @@ function exportChatLog(messages: ChatMessageType[]): void {
           lines.push('');
         } else {
           for (const tc of seg.toolCalls) {
-            lines.push(`### Tool Call: \`${tc.toolName}\``);
+            lines.push(`#### Tool: \`${tc.toolName}\``);
             lines.push('');
             lines.push('**Input:**');
             lines.push('```json');
@@ -454,8 +568,11 @@ function exportChatLog(messages: ChatMessageType[]): void {
             lines.push('');
             if (tc.result != null) {
               lines.push('**Output:**');
-              lines.push('```json');
-              lines.push(JSON.stringify(tc.result, null, 2));
+              const resultStr = typeof (tc.result as Record<string, unknown>)?.data === 'string'
+                ? (tc.result as Record<string, unknown>).data as string
+                : JSON.stringify(tc.result, null, 2);
+              lines.push('```');
+              lines.push(resultStr);
               lines.push('```');
               lines.push('');
             }
@@ -469,7 +586,7 @@ function exportChatLog(messages: ChatMessageType[]): void {
         lines.push('');
       }
       for (const tc of msg.toolCalls) {
-        lines.push(`### Tool Call: \`${tc.toolName}\``);
+        lines.push(`#### Tool: \`${tc.toolName}\``);
         lines.push('');
         lines.push('**Input:**');
         lines.push('```json');
@@ -478,8 +595,11 @@ function exportChatLog(messages: ChatMessageType[]): void {
         lines.push('');
         if (tc.result != null) {
           lines.push('**Output:**');
-          lines.push('```json');
-          lines.push(JSON.stringify(tc.result, null, 2));
+          const resultStr = typeof (tc.result as Record<string, unknown>)?.data === 'string'
+            ? (tc.result as Record<string, unknown>).data as string
+            : JSON.stringify(tc.result, null, 2);
+          lines.push('```');
+          lines.push(resultStr);
           lines.push('```');
           lines.push('');
         }

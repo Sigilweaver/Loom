@@ -9,6 +9,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FilterOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import FilterSockets
+from app.utils.columns import resolve_expression_columns
 from app.utils.errors import ToolError
 from app.utils.expression import parse_polars_expression
 
@@ -43,6 +44,16 @@ class FilterTool(BaseTool):
         if isinstance(input_data, list):
             raise ToolError("Filter tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
+
+        # Resolve column name casing in the expression against actual schema
+        expression = config.get("expression", "")
+        if expression:
+            available_cols = lf.collect_schema().names()
+            resolved_expr = resolve_expression_columns(
+                expression, available_cols, context="Filter"
+            )
+            if resolved_expr != expression:
+                config = {**config, "expression": resolved_expr}
 
         op = self._build_operation(config)
         lf_true, lf_false = op.execute(lf)

@@ -10,6 +10,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import JoinSockets
+from app.utils.columns import resolve_column_names
 
 
 @register_tool("Join")
@@ -59,14 +60,29 @@ class JoinTool(BaseTool):
         left_lf = self._normalize_input(left_input)
         right_lf = self._normalize_input(right_input)
 
-        # Safety check: prevent cross join row explosion
+        # Resolve column name casing against actual schemas
         left_keys = config.get("leftKeys", [])
         right_keys = config.get("rightKeys", [])
+        resolved_config = config
+        if left_keys and left_lf is not None:
+            available_left = left_lf.collect_schema().names()
+            resolved_left = resolve_column_names(left_keys, available_left, context="Join leftKeys")
+            if resolved_left != left_keys:
+                resolved_config = {**resolved_config, "leftKeys": resolved_left}
+                left_keys = resolved_left
+        if right_keys and right_lf is not None:
+            available_right = right_lf.collect_schema().names()
+            resolved_right = resolve_column_names(right_keys, available_right, context="Join rightKeys")
+            if resolved_right != right_keys:
+                resolved_config = {**resolved_config, "rightKeys": resolved_right}
+                right_keys = resolved_right
+
+        # Safety check: prevent cross join row explosion
         is_cross_join = not left_keys or not right_keys
         if is_cross_join and left_lf is not None and right_lf is not None:
             raise_if_unsafe(check_cross_join_safety(left_lf, right_lf))
 
-        op = self._build_operation(config)
+        op = self._build_operation(resolved_config)
         unmatched_left, matched, unmatched_right = op.execute(left_lf, right_lf)
 
         return {

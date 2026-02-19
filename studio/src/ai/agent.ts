@@ -14,14 +14,16 @@ import { useWorkflowStore } from '@state/workflowStore';
 import { v4 as uuid } from 'uuid';
 
 // Agent tools
-import { addTool, updateTool, removeTool, connectTools, disconnectTools } from './tools/canvas';
+import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools } from './tools/canvas';
 import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
+import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
 
 // All tools available to the agent
 const AGENT_TOOLS = {
   add_tool: addTool,
   update_tool: updateTool,
+  update_tools: updateTools,
   remove_tool: removeTool,
   connect_tools: connectTools,
   disconnect_tools: disconnectTools,
@@ -31,6 +33,7 @@ const AGENT_TOOLS = {
   get_column_metadata: getColumnMetadata,
   profile_tool_data: profileToolData,
   build_workflow: buildWorkflowTool,
+  ask_user: askUser,
 };
 
 /**
@@ -100,10 +103,20 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     const { streamText, stepCountIs } = await import('ai');
 
     // Run the agent loop with streaming
+    // System prompt is passed as a message (not the `system` param) so we can
+    // attach Anthropic cacheControl. Other providers ignore providerOptions.
     const result = streamText({
       model,
-      system: systemPrompt,
-      messages,
+      messages: [
+        {
+          role: 'system' as const,
+          content: systemPrompt,
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        ...messages,
+      ],
       tools: AGENT_TOOLS,
       stopWhen: stepCountIs(store.maxIterations),
       abortSignal: abortController.signal,
@@ -417,7 +430,11 @@ function buildMessageHistory(
 
 /**
  * Produce a compact summary of a tool result for message history.
- * Avoids sending raw JSON — extracts the key facts instead.
+ * Avoids sending raw output — extracts the key facts instead.
+ *
+ * Most tools now return `{ data: "compact text" }`. For those, we
+ * extract the first line (or truncate) as the summary. Legacy JSON
+ * result shapes are still handled for backward compat.
  */
 function summarizeToolResult(toolName: string, result: unknown): string {
   if (result == null) return '(no result)';
@@ -426,6 +443,14 @@ function summarizeToolResult(toolName: string, result: unknown): string {
   // Error result
   if (r.error) return `error: ${truncateStr(String(r.error), 150)}`;
 
+  // Compact text format — used by preview, add_tool, build_workflow, profile
+  if (typeof r.data === 'string') {
+    // For message history, take just the first line as a summary
+    const firstLine = (r.data as string).split('\n')[0] ?? '';
+    return truncateStr(firstLine, 200);
+  }
+
+  // Legacy JSON result shapes (backward compat)
   switch (toolName) {
     case 'build_workflow':
       return `${r.toolCount} tools, ${r.wireCount} wires` +
@@ -441,6 +466,13 @@ function summarizeToolResult(toolName: string, result: unknown): string {
       return `${r.type} [${r.toolId}]${r.connected ? ' connected' : ''}`;
     case 'update_tool':
       return `updated ${(r.updatedFields as string[] ?? []).join(', ')}`;
+    case 'update_tools':
+      return r.summary ? String(r.summary) : `batch update: ${((r.results as unknown[]) ?? []).length} tools`;
+    case 'ask_user': {
+      const ans = r.answer;
+      const display = Array.isArray(ans) ? (ans as string[]).join(', ') : String(ans ?? '');
+      return `user answered: ${truncateStr(display, 100)}`;
+    }
     case 'remove_tool':
       return `removed ${r.removedType}`;
     case 'connect_tools':

@@ -10,6 +10,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import PivotOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_column_name, resolve_column_names
 from app.utils.errors import ToolError
 
 # Valid aggregation functions for pivot with display labels
@@ -105,6 +106,24 @@ class PivotTool(BaseTool):
             raise ToolError("Pivot requires a column to pivot on")
         if not values:
             raise ToolError("Pivot requires a values column")
+
+        # Resolve column name casing against actual schema
+        available_cols = lf.collect_schema().names()
+        resolved_config = dict(config)
+        resolved_on = resolve_column_name(on, available_cols, context="Pivot on")
+        resolved_values = resolve_column_name(values, available_cols, context="Pivot values")
+        if resolved_on != on or resolved_values != values:
+            resolved_config["on"] = resolved_on
+            resolved_config["values"] = resolved_values
+            on = resolved_on
+        index = config.get("index", [])
+        if index:
+            resolved_index = resolve_column_names(
+                index if isinstance(index, list) else [index],
+                available_cols, context="Pivot index",
+            )
+            resolved_config["index"] = resolved_index
+        config = resolved_config
 
         # Safety check: prevent creating too many columns
         raise_if_unsafe(check_pivot_safety(lf, on))

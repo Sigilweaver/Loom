@@ -10,7 +10,8 @@ import { z } from 'zod';
 import { compileSpec, type SimplifiedSpec } from './compiler';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useSettingsStore } from '@state/settingsStore';
-import { getToolSchema } from '@api';
+import { getToolSchema, profileColumns } from '@api';
+import { formatCompactProfile, type ProfileColumn } from './format';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('AI:CompilerTool');
@@ -18,9 +19,16 @@ const logger = createLogger('AI:CompilerTool');
 /**
  * Build a complete workflow from a simplified spec.
  * Replaces the current canvas contents.
+ * Returns an inline data profile for the first Input tool so the agent
+ * immediately understands the dataset (column types, ranges, nulls, top values).
  */
 export const buildWorkflowTool = tool({
-  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and inputColumns (first Input tool columns).',
+  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and a compact data profile for the first Input tool.',
+  // Cache breakpoint: placed on the last tool so Anthropic caches the full
+  // tool-definition block (all 11 tools). Other providers ignore this.
+  providerOptions: {
+    anthropic: { cacheControl: { type: 'ephemeral' } },
+  },
   inputSchema: z.object({
     steps: z.array(z.object({
       id: z.string().describe('Simple ID for referencing in connections'),
@@ -60,32 +68,63 @@ export const buildWorkflowTool = tool({
       }
     }
 
-    // Proactively fetch column metadata for Input tools so the agent
-    // knows what columns are available without a separate tool call.
-    let inputColumns: Array<{ name: string; dtype: string }> | undefined;
+    // Proactively fetch a data profile for the first Input tool so the agent
+    // immediately understands the dataset — column types, ranges, nulls,
+    // unique counts, and top values for string columns.
+    let inputProfile: string | undefined;
     const firstInput = result.tools.find((t) => t.type === 'Input');
     if (firstInput) {
       try {
         const workflow = { version: '1.0' as const, tools: result.tools, wires: result.wires, meta: result.meta };
         const socket = firstInput.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
-        const schemaResult = await getToolSchema(firstInput.id, workflow, socket);
-        inputColumns = schemaResult.data_schema?.columns?.map((c) => ({
-          name: c.name,
-          dtype: c.dtype,
-        }));
+
+        // Try profile first (richer info), fall back to schema-only
+        try {
+          const profileResult = await profileColumns(firstInput.id, workflow, socket);
+          const profileCols: ProfileColumn[] = Object.entries(profileResult.columns).map(([colName, profile]) => ({
+            name: colName,
+            dtype: profile.dtype,
+            count: profile.count,
+            nulls: profile.null_count != null && profile.null_count > 0 ? profile.null_count : undefined,
+            null_pct: profile.null_percent != null && profile.null_count != null && profile.null_count > 0
+              ? Math.round(profile.null_percent * 10) / 10
+              : undefined,
+            unique: profile.unique_count,
+            min: profile.min,
+            max: profile.max,
+            mean: profile.mean != null ? Math.round((profile.mean as number) * 100) / 100 : undefined,
+            top_values: profile.top_values?.slice(0, 5).map((tv) => ({
+              value: String(tv.value),
+              count: tv.count,
+            })),
+          }));
+          inputProfile = formatCompactProfile(profileResult.row_count, profileResult.column_count, profileCols);
+        } catch {
+          // Profile failed — fall back to schema only
+          const schemaResult = await getToolSchema(firstInput.id, workflow, socket);
+          const cols = schemaResult.data_schema?.columns;
+          if (cols) {
+            inputProfile = `Schema: ${cols.map((c) => `${c.name}:${c.dtype}`).join(', ')}`;
+          }
+        }
       } catch (err) {
-        // Non-fatal — agent can still call get_column_metadata manually
-        logger.warn('Failed to fetch input columns for build_workflow', err);
+        // Non-fatal — agent can still call get_column_metadata or profile_tool_data manually
+        logger.warn('Failed to fetch input profile for build_workflow', err);
       }
     }
 
-    return {
-      success: true,
-      toolCount: result.tools.length,
-      wireCount: result.wires.length,
-      workflowName: result.meta.name,
-      idMap,
-      ...(inputColumns ? { inputColumns } : {}),
-    };
+    // Build compact text result
+    const idMapStr = Object.entries(idMap)
+      .map(([stepId, uuid]) => `  ${stepId} → ${uuid}`)
+      .join('\n');
+
+    const parts: string[] = [];
+    parts.push(`Built "${result.meta.name}": ${result.tools.length} tools, ${result.wires.length} wires`);
+    parts.push(`ID map:\n${idMapStr}`);
+    if (inputProfile) {
+      parts.push(`Input data profile:\n${inputProfile}`);
+    }
+
+    return { data: parts.join('\n\n') };
   },
 });

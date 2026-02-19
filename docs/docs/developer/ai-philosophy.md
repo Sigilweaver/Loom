@@ -2,6 +2,12 @@
 
 This document describes how AI features are designed, validated, and constrained in Sigilweaver. The goal is to make AI genuinely useful for building data workflows while keeping the user firmly in control.
 
+## AI Is Not a Core Feature
+
+Sigilweaver is a visual data pipeline platform. The AI assistant is a convenience layer on top of that platform — it is not the product itself. Every workflow the assistant builds can be built by hand, and the application is fully functional without AI enabled.
+
+This distinction matters for development decisions. AI should be applied where it provides clear, measurable value — eliminating boilerplate that machines handle effortlessly but humans shouldn't waste time on, translating natural language to expressions, explaining unfamiliar workflows. It should **not** be applied to problems that are better solved by good UI design, clear documentation, or deterministic logic. If a feature works reliably without AI, adding AI to it is not an improvement.
+
 ## Core Principles
 
 ### The user is always in charge
@@ -12,9 +18,13 @@ AI is **opt-in and off by default**. No AI features activate until the user expl
 
 The assistant builds workflows using the same tools, wires, and configurations a user would create by hand. It does not introduce hidden logic, custom code blocks, or opaque transformations. If you can't build it manually in the tool palette, the AI can't build it either.
 
-### Validate at every layer
+This also means we do not gate basic functionality behind AI. A user who never enables AI should never feel like they are missing core capabilities.
 
-LLM outputs are inherently probabilistic. Rather than hoping the model gets it right, we validate at every layer:
+### Validate at every layer, but know the limits
+
+LLM outputs are inherently probabilistic. Rather than hoping the model gets it right, we validate at every layer. But validation catches _structural_ errors — malformed schemas, missing fields, invalid connections. It does not catch _semantic_ errors like filtering on the wrong column, choosing the wrong join type, or misinterpreting an ambiguous request. No amount of guardrails eliminates the need for the user to review what the assistant produced.
+
+The validation layers:
 
 | Layer | What it catches |
 | --- | --- |
@@ -85,6 +95,7 @@ The system prompt encodes explicit rules the model must follow:
 3. **Build reproducible pipelines** — results must be computable from the workflow, not from the model doing mental arithmetic.
 4. **Handle errors gracefully** — if a preview fails, read the error, adjust the configuration, and retry.
 5. **Remind the user to review** — the model is instructed to note that AI-generated workflows should be reviewed for accuracy.
+6. **Ask before assuming** — when the user's request is ambiguous, the model should ask a clarifying question rather than guessing. Getting it wrong and rebuilding wastes more time than a one-question pause.
 
 ## Safety Measures
 
@@ -107,6 +118,16 @@ AI features are covered by unit tests:
 - **Provider tests** — Provider abstraction and model resolution
 
 Integration-level testing is done through manual agent sessions with representative workflows, documented in the project's test playbooks.
+
+## When to Add AI (and When Not To)
+
+Before adding AI to a feature, ask:
+
+1. **Does this problem require natural language understanding?** If the input and output are both structured (e.g., reordering columns, toggling a setting), a deterministic UI interaction is simpler, faster, and more reliable.
+2. **Is the AI output verifiable?** The user needs to be able to tell whether the result is correct. If correctness requires domain expertise the user may not have, AI assistance becomes a liability rather than a help.
+3. **What happens when the AI is wrong?** If a wrong answer silently corrupts downstream data, the feature needs stronger guardrails or should not use AI at all.
+
+The bar for adding AI to a new surface should be: "this is clearly better with AI than without, and the failure mode is visible and recoverable."
 
 ## Contributing
 

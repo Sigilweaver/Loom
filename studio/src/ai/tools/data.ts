@@ -14,6 +14,7 @@ import {
   getToolSchema,
   profileColumns,
 } from '@api';
+import { formatPreviewResult, formatCompactProfile, type ProfileColumn } from '../format';
 import { listFiles, listFileRoots, searchFiles, getSessionToken } from '@api/backend';
 import { getHubClient, hasHubClient, initHubClient } from '@api/hub';
 import { createLogger } from '../../utils/logger';
@@ -90,13 +91,14 @@ export const listAvailableFiles = tool({
 
 /**
  * Preview a tool's output data.
+ * Returns compact CSV text instead of JSON to minimize token usage.
  */
 export const previewToolOutput = tool({
-  description: 'Execute a tool and preview its output rows and schema.',
+  description: 'Execute a tool and preview its output as CSV with typed headers.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to preview.'),
     socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
-    limit: z.number().optional().describe('Max rows to return. Default 20.'),
+    limit: z.number().optional().describe('Max rows to return. Default 10.'),
   }),
   execute: async ({ toolId, socketId, limit }) => {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
@@ -109,15 +111,14 @@ export const previewToolOutput = tool({
       ?? 'Output';
 
     try {
+      const effectiveLimit = limit ?? 10;
       const workflow = { version: '1.0', tools, wires, meta: workflowMeta };
-      const result = await previewTool(toolId, workflow, socket, limit ?? 20);
-      const rows = result.data?.slice(0, limit ?? 20) ?? [];
-      return {
-        rows,
-        schema: result.data_schema?.columns ?? [],
-        rowCount: result.row_count ?? rows.length,
-        truncated: rows.length > (limit ?? 20),
-      };
+      const result = await previewTool(toolId, workflow, socket, effectiveLimit);
+      const rows = result.data?.slice(0, effectiveLimit) ?? [];
+      const schema = result.data_schema?.columns ?? [];
+      const rowCount = result.row_count ?? rows.length;
+
+      return { data: formatPreviewResult(rows, schema, rowCount) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
     }
@@ -125,7 +126,7 @@ export const previewToolOutput = tool({
 });
 
 /**
- * Get column metadata for a tool's output.
+ * Get column metadata for a tool's output (schema only, no data).
  */
 export const getColumnMetadata = tool({
   description: 'Get column names and types for a tool\'s output without executing. Faster than preview.',
@@ -191,9 +192,10 @@ export const searchFilesTool = tool({
 
 /**
  * Profile a tool's output data — get statistics (min, max, mean, nulls, top values, etc.)
+ * Returns compact text profile instead of JSON to minimize token usage.
  */
 export const profileToolData = tool({
-  description: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output.',
+  description: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output. Returns compact text.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to profile.'),
     socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
@@ -213,34 +215,27 @@ export const profileToolData = tool({
       const workflow = { version: '1.0', tools, wires, meta: workflowMeta };
       const result = await profileColumns(toolId, workflow, socket, columns);
 
-      // Flatten profile into a concise format for the LLM
-      const columnProfiles = Object.entries(result.columns).map(([name, profile]) => {
-        const summary: Record<string, unknown> = {
-          name,
-          dtype: profile.dtype,
-        };
-        if (profile.count != null) summary.count = profile.count;
-        if (profile.null_count != null && profile.null_count > 0) {
-          summary.nulls = profile.null_count;
-          summary.null_pct = profile.null_percent;
-        }
-        if (profile.unique_count != null) summary.unique = profile.unique_count;
-        if (profile.min != null) summary.min = profile.min;
-        if (profile.max != null) summary.max = profile.max;
-        if (profile.mean != null) summary.mean = Math.round((profile.mean as number) * 100) / 100;
-        if (profile.top_values && profile.top_values.length > 0) {
-          summary.top_values = profile.top_values.slice(0, 5).map((tv) => ({
-            value: tv.value,
-            count: tv.count,
-          }));
-        }
-        return summary;
-      });
+      // Build compact profile columns for the formatter
+      const profileCols: ProfileColumn[] = Object.entries(result.columns).map(([name, profile]) => ({
+        name,
+        dtype: profile.dtype,
+        count: profile.count,
+        nulls: profile.null_count != null && profile.null_count > 0 ? profile.null_count : undefined,
+        null_pct: profile.null_percent != null && profile.null_count != null && profile.null_count > 0
+          ? Math.round(profile.null_percent * 10) / 10
+          : undefined,
+        unique: profile.unique_count,
+        min: profile.min,
+        max: profile.max,
+        mean: profile.mean != null ? Math.round((profile.mean as number) * 100) / 100 : undefined,
+        top_values: profile.top_values?.slice(0, 5).map((tv) => ({
+          value: String(tv.value),
+          count: tv.count,
+        })),
+      }));
 
       return {
-        rowCount: result.row_count,
-        columnCount: result.column_count,
-        columns: columnProfiles,
+        data: formatCompactProfile(result.row_count, result.column_count, profileCols),
       };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };

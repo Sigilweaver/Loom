@@ -140,7 +140,7 @@ const LegacyContent: React.FC<{ message: ChatMessageType; debug: boolean }> = ({
 // Markdown Block — renders assistant text as markdown
 // ---------------------------------------------------------------------------
 
-const MarkdownBlock: React.FC<{ content: string }> = ({ content }) => {
+export const MarkdownBlock: React.FC<{ content: string }> = ({ content }) => {
   const plugins = useMemo(() => [remarkGfm], []);
 
   return (
