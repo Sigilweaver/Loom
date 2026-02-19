@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState } from "react";
 import { getToolsByCategory } from "@data/tools";
 import { ToolCategory } from "@domain/workflow/entities/workflow";
 import { useUIStore } from "@state/uiStore";
+import { setDragToolType } from '@components/canvas/CanvasDragAndDropLayer';
 import { Star, ArrowRightLeft, Wrench, Link, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
 
 const CATEGORIES: { id: ToolCategory; name: string; icon: React.ElementType }[] = [
@@ -59,6 +60,8 @@ export default function ToolPalette() {
   const handleDragStart = (e: React.DragEvent, toolType: string) => {
     e.dataTransfer.setData("application/reactflow", toolType);
     e.dataTransfer.effectAllowed = "move";
+    // Expose tool type for auto-connect preview (can't read getData during dragover)
+    setDragToolType(toolType);
   };
 
   const handleTouchStart = useCallback((e: React.TouchEvent, _toolType: string) => {
@@ -197,6 +200,7 @@ export default function ToolPalette() {
                           <div
                             draggable
                             onDragStart={(e) => handleDragStart(e, tool.type)}
+                            onDragEnd={() => setDragToolType(null)}
                             onTouchStart={(e) => handleTouchStart(e, tool.type)}
                             onTouchMove={(e) => handleTouchMove(e, tool.type)}
                             onTouchEnd={handleTouchEnd}

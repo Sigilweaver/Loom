@@ -12,7 +12,7 @@ import AboutContent from './AboutContent';
 import ConnectionManager from './ConnectionManager';
 import HubLoginDialog from './HubLoginDialog';
 import { Checkbox } from '@components/ui/Checkbox';
-import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles } from 'lucide-react';
+import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick } from 'lucide-react';
 import type { ExecutionMode } from '../../types/settings';
 import { hasHubClient, getHubClient, clearHubClient, initHubClient } from '../../api/hub';
 import { triggerHubConnectionsRefresh } from '../../hooks/useAllConnections';
@@ -76,6 +76,7 @@ const SettingsPane: React.FC = () => {
     hub,
     theme,
     ui,
+    behavior,
     updateAuthor,
     updateExecutionMode,
     updateBackendUrl,
@@ -89,6 +90,8 @@ const SettingsPane: React.FC = () => {
     updateMinimapVisible,
     updateMinimapPosition,
     updateEdgeStyle,
+    updateAutoConnect,
+    updateAutoConnectRadius,
     resetToDefaults,
   } = useSettingsStore();
 
@@ -626,6 +629,49 @@ const SettingsPane: React.FC = () => {
                 </select>
               </div>
             </div>
+          </div>
+        </Section>
+
+        {/* Behavior */}
+        <Section
+          id="behavior"
+          title="Behavior"
+          icon={MousePointerClick}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        >
+          <div className="space-y-4">
+            <Checkbox
+              checked={behavior.autoConnect}
+              onCheckedChange={(checked) => updateAutoConnect(checked === true)}
+              label="Auto-connect on drop"
+              description="Automatically wire new tools to the nearest compatible tool when dropped onto the canvas"
+            />
+
+            {behavior.autoConnect && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                  Detection radius
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={100}
+                    max={600}
+                    step={50}
+                    value={behavior.autoConnectRadius}
+                    onChange={(e) => updateAutoConnectRadius(Number(e.target.value))}
+                    className="flex-1 accent-theme-interactive-accent"
+                  />
+                  <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                    {behavior.autoConnectRadius}px
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-theme-text-tertiary">
+                  How close a tool must be to auto-connect
+                </p>
+              </div>
+            )}
           </div>
         </Section>
 

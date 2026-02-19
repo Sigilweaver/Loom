@@ -159,42 +159,6 @@ export function FilterConfiguration({
   );
   const currentExpression = (config.expression as string) || "";
 
-  // Auto-seed one condition when columns first become available and group is empty
-  const isBasicMode = (config.mode as string | undefined) !== "Custom";
-  useEffect(() => {
-    if (
-      isBasicMode &&
-      columns.length > 0 &&
-      currentGroup.children.length === 0
-    ) {
-      const seeded: FilterGroup = {
-        ...currentGroup,
-        children: [
-          {
-            id: crypto.randomUUID(),
-            type: "condition",
-            column: columns[0]!.name,
-            operator: "eq",
-            value: "",
-          },
-        ],
-      };
-      const expression = generateGroupExpression(seeded, columns);
-      const { conditions, combinator } = groupToLegacy(seeded);
-      const newConfig: ToolConfig = {
-        ...config,
-        conditionGroup: seeded as unknown as Record<string, unknown>,
-        conditions: conditions as unknown as Record<string, unknown>[],
-        combinator,
-        expression,
-      };
-      newConfig._emit = buildFilterEmit(newConfig);
-      onChange(newConfig);
-    }
-    // Only run when columns first become available, not on every config change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columns.length, isBasicMode]);
-
   // Determine mode: backward compat - if no mode set but expression exists, use Custom
   const isAdvanced = useMemo(() => {
     const configMode = config.mode as string | undefined;

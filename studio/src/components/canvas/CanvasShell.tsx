@@ -10,6 +10,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { forwardRef, useCallback } from "react";
 import WorkflowNode from "@components/workflow/WorkflowNode";
+import AutoConnectPreviewEdge from "./AutoConnectPreviewEdge";
 import { CanvasControls } from "./CanvasControls";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import { CanvasMenus } from "./CanvasMenus";
@@ -344,6 +345,7 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
               nodeColor={getNodeColor}
               style={getMinimapStyle()}
             />
+            <AutoConnectPreviewEdge />
           </CanvasSurface>
         </div>
         <CanvasPositionMenu

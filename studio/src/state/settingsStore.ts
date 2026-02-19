@@ -26,6 +26,8 @@ interface SettingsState extends AppSettings {
   updateMinimapVisible: (visible: boolean) => Promise<void>;
   updateMinimapPosition: (position: AppSettings['ui']['minimapPosition']) => Promise<void>;
   updateEdgeStyle: (edgeStyle: AppSettings['ui']['edgeStyle']) => Promise<void>;
+  updateAutoConnect: (autoConnect: boolean) => Promise<void>;
+  updateAutoConnectRadius: (radius: number) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
@@ -54,6 +56,7 @@ function buildSettings(state: SettingsState): AppSettings {
     hub: state.hub,
     theme: state.theme,
     ui: state.ui,
+    behavior: state.behavior,
   };
 }
 
@@ -172,6 +175,20 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     // Trigger edge resync to apply new style
     const { useWorkflowStore } = await import('./workflowStore');
     useWorkflowStore.getState().syncEdges();
+  },
+
+  updateAutoConnect: async (autoConnect) => {
+    const state = get();
+    const newBehavior = { ...state.behavior, autoConnect };
+    set({ behavior: newBehavior });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateAutoConnectRadius: async (autoConnectRadius) => {
+    const state = get();
+    const newBehavior = { ...state.behavior, autoConnectRadius };
+    set({ behavior: newBehavior });
+    await saveToStorage(buildSettings(get()));
   },
 
   resetToDefaults: async () => {

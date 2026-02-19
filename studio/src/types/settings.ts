@@ -62,6 +62,14 @@ export interface AppSettings {
      */
     edgeStyle: 'bezier' | 'straight' | 'step' | 'smoothstep';
   };
+
+  /** Behavior preferences */
+  behavior: {
+    /** Automatically connect new tools to the nearest compatible tool on drop */
+    autoConnect: boolean;
+    /** Maximum distance (in canvas pixels) to search for auto-connect candidates */
+    autoConnectRadius: number;
+  };
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -85,5 +93,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     minimapVisible: true,
     minimapPosition: 'bottom-right',
     edgeStyle: 'bezier',
+  },
+  behavior: {
+    autoConnect: true,
+    autoConnectRadius: 300,
   },
 };
