@@ -498,6 +498,7 @@ class JoinOperation:
     left_keys: list[str] = field(default_factory=list)
     right_keys: list[str] = field(default_factory=list)
     right_suffix: str = "_right"
+    join_type: str = "inner"
 
     def execute(
         self, left_lf: pl.LazyFrame | None, right_lf: pl.LazyFrame | None
@@ -525,30 +526,40 @@ class JoinOperation:
             )
             return empty, matched, empty
 
-        # Inner join for matched rows
+        # Use the configured join type for the matched output
+        how = self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
+
         matched = left_lf.join(
             right_lf,
             left_on=self.left_keys,
             right_on=self.right_keys,
-            how="inner",
+            how=how,
             suffix=self.right_suffix,
+            coalesce=True,
         )
 
-        # Anti-join for unmatched left rows
-        unmatched_left = left_lf.join(
-            right_lf,
-            left_on=self.left_keys,
-            right_on=self.right_keys,
-            how="anti",
-        )
+        # Anti-join for unmatched rows
+        # For left/outer joins, unmatched_left is empty (already included in matched)
+        if how in ("left", "outer"):
+            unmatched_left = empty
+        else:
+            unmatched_left = left_lf.join(
+                right_lf,
+                left_on=self.left_keys,
+                right_on=self.right_keys,
+                how="anti",
+            )
 
-        # Anti-join for unmatched right rows
-        unmatched_right = right_lf.join(
-            left_lf,
-            left_on=self.right_keys,
-            right_on=self.left_keys,
-            how="anti",
-        )
+        # For right/outer joins, unmatched_right is empty (already included in matched)
+        if how in ("right", "outer"):
+            unmatched_right = empty
+        else:
+            unmatched_right = right_lf.join(
+                left_lf,
+                left_on=self.right_keys,
+                right_on=self.left_keys,
+                how="anti",
+            )
 
         return unmatched_left, matched, unmatched_right
 
@@ -589,36 +600,50 @@ class JoinOperation:
         else:
             left_keys_str = repr(self.left_keys)
             right_keys_str = repr(self.right_keys)
+            how = self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
 
-            lines.append("# Join: inner join for matches")
+            lines.append(f"# Join: {how} join for matches")
             lines.append(
                 f"{match_out_var} = {left_var}.join("
                 f"{right_var}, "
                 f"left_on={left_keys_str}, "
                 f"right_on={right_keys_str}, "
-                f'how="inner", '
-                f'suffix="{self.right_suffix}")'
+                f'how="{how}", '
+                f'suffix="{self.right_suffix}", '
+                f"coalesce=True)"
             )
 
-            lines.append("")
-            lines.append("# Join: unmatched left rows (anti-join)")
-            lines.append(
-                f"{left_out_var} = {left_var}.join("
-                f"{right_var}, "
-                f"left_on={left_keys_str}, "
-                f"right_on={right_keys_str}, "
-                f'how="anti")'
-            )
+            if how in ("left", "outer"):
+                lines.append(
+                    f"{left_out_var} = pl.LazyFrame([])  "
+                    f"# unmatched left already in {how} join"
+                )
+            else:
+                lines.append("")
+                lines.append("# Join: unmatched left rows (anti-join)")
+                lines.append(
+                    f"{left_out_var} = {left_var}.join("
+                    f"{right_var}, "
+                    f"left_on={left_keys_str}, "
+                    f"right_on={right_keys_str}, "
+                    f'how="anti")'
+                )
 
-            lines.append("")
-            lines.append("# Join: unmatched right rows (anti-join)")
-            lines.append(
-                f"{right_out_var} = {right_var}.join("
-                f"{left_var}, "
-                f"left_on={right_keys_str}, "
-                f"right_on={left_keys_str}, "
-                f'how="anti")'
-            )
+            if how in ("right", "outer"):
+                lines.append(
+                    f"{right_out_var} = pl.LazyFrame([])  "
+                    f"# unmatched right already in {how} join"
+                )
+            else:
+                lines.append("")
+                lines.append("# Join: unmatched right rows (anti-join)")
+                lines.append(
+                    f"{right_out_var} = {right_var}.join("
+                    f"{left_var}, "
+                    f"left_on={right_keys_str}, "
+                    f"right_on={left_keys_str}, "
+                    f'how="anti")'
+                )
 
         return lines
 

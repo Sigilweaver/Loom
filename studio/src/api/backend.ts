@@ -755,8 +755,10 @@ async function serverRequest<T>(
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${browseToken}`,
   };
+  if (browseToken) {
+    headers['Authorization'] = `Bearer ${browseToken}`;
+  }
 
   try {
     const response = await fetch(url, {
@@ -852,6 +854,66 @@ export async function statFile(
   return serverRequest<StatResponse>(
     serverUrl,
     `/api/files/stat?${params}`,
+    browseToken
+  );
+}
+
+/**
+ * A file search result with relevance score
+ */
+export interface SearchResultEntry {
+  /** File name */
+  name: string;
+  /** Absolute path */
+  path: string;
+  /** File size in bytes */
+  size: number | null;
+  /** Last modified timestamp (ISO string) */
+  modified: string | null;
+  /** File extension without dot */
+  extension: string | null;
+  /** Relevance score 0.0-1.0 (1.0 = exact match) */
+  score: number;
+}
+
+/**
+ * Response from /api/files/search endpoint
+ */
+export interface SearchFilesResponse {
+  /** The search query */
+  query: string;
+  /** Ranked matching files */
+  results: SearchResultEntry[];
+  /** Total data files scanned */
+  total_files_scanned: number;
+}
+
+/**
+ * Search for data files across all accessible directories
+ *
+ * Recursively scans granted root directories and returns files
+ * ranked by fuzzy match relevance to the query.
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse token for authentication
+ * @param query - Search text to match against filenames
+ * @param extensions - Optional comma-separated extensions filter (e.g. "csv,parquet")
+ * @param limit - Max results to return (1-100, default 20)
+ * @returns Ranked list of matching data files
+ */
+export async function searchFiles(
+  serverUrl: string,
+  browseToken: string,
+  query: string,
+  extensions?: string,
+  limit?: number,
+): Promise<SearchFilesResponse> {
+  const params = new URLSearchParams({ query });
+  if (extensions) params.set('extensions', extensions);
+  if (limit !== undefined) params.set('limit', String(limit));
+  return serverRequest<SearchFilesResponse>(
+    serverUrl,
+    `/api/files/search?${params}`,
     browseToken
   );
 }

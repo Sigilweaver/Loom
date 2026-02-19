@@ -12,10 +12,11 @@ import AboutContent from './AboutContent';
 import ConnectionManager from './ConnectionManager';
 import HubLoginDialog from './HubLoginDialog';
 import { Checkbox } from '@components/ui/Checkbox';
-import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw } from 'lucide-react';
+import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles } from 'lucide-react';
 import type { ExecutionMode } from '../../types/settings';
 import { hasHubClient, getHubClient, clearHubClient, initHubClient } from '../../api/hub';
 import { triggerHubConnectionsRefresh } from '../../hooks/useAllConnections';
+import AISettingsPanel from '../ai/AISettingsPanel';
 
 interface SectionProps {
   id: string;
@@ -626,6 +627,17 @@ const SettingsPane: React.FC = () => {
               </div>
             </div>
           </div>
+        </Section>
+
+        {/* AI */}
+        <Section
+          id="ai"
+          title="AI"
+          icon={Sparkles}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        >
+          <AISettingsPanel />
         </Section>
 
         {/* About */}

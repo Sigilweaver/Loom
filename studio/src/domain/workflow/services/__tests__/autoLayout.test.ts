@@ -78,6 +78,28 @@ describe('autoLayout', () => {
     expect(posMap.get('B')!.y).not.toBe(posMap.get('C')!.y);
   });
 
+  it('aligns downstream tools with upstream y position in fan-out', () => {
+    //   A → B → D → F
+    //   A → C → E
+    // F should align with D (same y), not be pushed to the top.
+    const tools = [tool('A'), tool('B'), tool('C'), tool('D'), tool('E'), tool('F')];
+    const wires = [
+      wire('A', 'B'), wire('A', 'C'),
+      wire('B', 'D'), wire('C', 'E'),
+      wire('D', 'F'),
+    ];
+
+    const result = autoLayout(tools, wires);
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // B and D should be on the same row (D follows B in a straight line)
+    expect(posMap.get('D')!.y).toBe(posMap.get('B')!.y);
+    // F should align with D, not jump to the top
+    expect(posMap.get('F')!.y).toBe(posMap.get('D')!.y);
+    // C and E should be on the same row
+    expect(posMap.get('E')!.y).toBe(posMap.get('C')!.y);
+  });
+
   it('respects custom spacing', () => {
     const tools = [tool('A'), tool('B'), tool('C')];
     const wires = [wire('A', 'B'), wire('A', 'C')];

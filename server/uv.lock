@@ -1137,6 +1137,9 @@ requires-dist = [
 ]
 provides-extras = ["arrow", "pandas", "all"]
 
+[package.metadata.requires-dev]
+dev = [{ name = "pyarrow", specifier = ">=21.0.0" }]
+
 [[package]]
 name = "starlette"
 version = "0.50.0"

@@ -49,10 +49,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   const markTabClean = useTabStore((s) => s.markTabClean);
 
   const showNotification = useUIStore((s) => s.showNotification);
-  const workflowViewerVisible = useUIStore((s) => s.workflowViewerVisible);
-  const setWorkflowViewerVisible = useUIStore(
-    (s) => s.setWorkflowViewerVisible
-  );
+  const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const setBottomPaneOpen = useUIStore((s) => s.setBottomPaneOpen);
   const setActiveBottomTab = useUIStore((s) => s.setActiveBottomTab);
   const bypassCache = useUIStore((s) => s.bypassCache);
@@ -111,13 +108,13 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
           showNotification('Workflow validation not yet implemented', 'info');
           break;
         case 'show-workflow-viewer':
-          setWorkflowViewerVisible(true);
+          setLeftPaneTab('workflow');
           break;
         case 'hide-workflow-viewer':
-          setWorkflowViewerVisible(false);
+          setLeftPaneTab('tools');
           break;
         case 'toggle-workflow-viewer':
-          setWorkflowViewerVisible(!workflowViewerVisible);
+          setLeftPaneTab('workflow');
           break;
       }
     });
@@ -361,7 +358,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   };
 
   const handleToggleWorkflowViewer = () => {
-    setWorkflowViewerVisible(!workflowViewerVisible);
+    setLeftPaneTab('workflow');
   };
 
   const handlePreviewWorkflow = async () => {
@@ -558,20 +555,6 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
               title="Save Workflow As... (Ctrl+Shift+S)"
             >
               Save As
-            </button>
-
-            <button
-              onClick={handleToggleWorkflowViewer}
-              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors border
-                ${workflowViewerVisible
-                  ? "bg-theme-header-btn-viewcode-bg-active border-theme-header-btn-viewcode-border-active text-theme-header-btn-viewcode-text-active"
-                  : "bg-theme-header-btn-viewcode-bg border-theme-header-btn-viewcode-border text-theme-header-btn-viewcode-text"
-                }
-                hover:bg-theme-header-btn-viewcode-bg-hover hover:border-theme-header-btn-viewcode-border-hover hover:text-theme-header-btn-viewcode-text-hover
-                disabled:bg-theme-header-btn-viewcode-bg-disabled disabled:border-theme-header-btn-viewcode-border-disabled disabled:text-theme-header-btn-viewcode-text-disabled`}
-              title={workflowViewerVisible ? "Hide Code Viewer (Ctrl+Alt+X)" : "Show Code Viewer (Ctrl+Alt+X)"}
-            >
-              {workflowViewerVisible ? "Hide Code" : "View Code"}
             </button>
 
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>

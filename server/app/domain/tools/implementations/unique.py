@@ -9,6 +9,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UniqueOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import UniqueSockets
+from app.utils.columns import resolve_column_names
 from app.utils.errors import ToolError
 
 # Valid unique modes
@@ -75,6 +76,14 @@ class UniqueTool(BaseTool):
         if isinstance(input_data, list):
             raise ToolError("Unique tool does not support multiple inputs")
         lf: pl.LazyFrame = input_data
+
+        # Resolve column name casing against actual schema
+        columns = config.get("columns", [])
+        if columns and isinstance(columns, list):
+            available_cols = lf.collect_schema().names()
+            resolved_cols = resolve_column_names(columns, available_cols, context="Unique")
+            if resolved_cols != columns:
+                config = {**config, "columns": resolved_cols}
 
         op = self._build_operation(config)
         unique_output, duplicate_output = op.execute(lf)

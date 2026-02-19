@@ -40,9 +40,12 @@ import ToolPalette from "./shell/ToolPalette";
 import SettingsPane from "./shell/SettingsPane";
 // Workflow components
 import WorkflowConfiguration from "./workflow/WorkflowConfiguration";
-import { Settings, LayoutGrid, Sliders } from "lucide-react";
+import WorkflowViewer from "./workflow/WorkflowViewer";
+import AIChatPanel from "./ai/AIChatPanel";
+import { Settings, LayoutGrid, Sliders, Sparkles } from "lucide-react";
 import { getToolConfigEntry } from "@data/toolConfigComponents";
 import { useUIStore } from "@state/uiStore";
+import { useAIStore } from "@state/aiStore";
 
 const logger = createLogger('LeftPane');
 
@@ -55,6 +58,7 @@ export default function LeftPane() {
   const updateWorkflowMeta = useWorkflowStore((s) => s.updateWorkflowMeta);
   const leftPaneTab = useUIStore((s) => s.leftPaneTab);
   const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
+  const aiEnabled = useAIStore((s) => s.enabled);
   const updateToolConfiguration = useWorkflowStore(
     (s) => s.updateToolConfiguration
   );
@@ -141,6 +145,18 @@ export default function LeftPane() {
               <Sliders className="w-4 h-4" />
               <span>Settings</span>
             </button>
+            {aiEnabled && (
+            <button
+              onClick={() => setLeftPaneTab("ai")}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "ai"
+                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>AI</span>
+            </button>
+            )}
           </div>
         </div>
 
@@ -153,8 +169,12 @@ export default function LeftPane() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <SettingsPane />
           </div>
-        ) : (
+        ) : leftPaneTab === "ai" ? (
           <div className="flex-1 flex flex-col overflow-hidden">
+            <AIChatPanel onClose={() => setLeftPaneTab('tools')} embedded />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden overflow-y-auto">
             {/* Workflow Configuration Header */}
             <div className="p-4 border-b bg-theme-surface-elevated border-theme-border-primary">
               <div className="flex items-center space-x-3">
@@ -171,13 +191,18 @@ export default function LeftPane() {
             </div>
 
             {/* Workflow Configuration Content */}
-            <div className="flex-1 p-4 overflow-y-auto">
+            <div className="p-4">
               <WorkflowConfiguration
                 workflowMeta={workflowMeta}
                 toolCount={toolCount}
                 wireCount={wireCount}
                 onWorkflowMetaChange={handleWorkflowMetaChange}
               />
+            </div>
+
+            {/* Code Viewer */}
+            <div className="flex-1 min-h-[200px] border-t border-theme-border-primary">
+              <WorkflowViewer />
             </div>
           </div>
         )}

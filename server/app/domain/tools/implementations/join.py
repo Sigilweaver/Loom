@@ -10,6 +10,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import JoinSockets
+from app.utils.columns import resolve_column_names
 
 
 @register_tool("Join")
@@ -44,6 +45,7 @@ class JoinTool(BaseTool):
             left_keys=config.get("leftKeys", []),
             right_keys=config.get("rightKeys", []),
             right_suffix=config.get("rightSuffix", "_right"),
+            join_type=config.get("joinType", "inner"),
         )
 
     async def execute(
@@ -58,14 +60,29 @@ class JoinTool(BaseTool):
         left_lf = self._normalize_input(left_input)
         right_lf = self._normalize_input(right_input)
 
-        # Safety check: prevent cross join row explosion
+        # Resolve column name casing against actual schemas
         left_keys = config.get("leftKeys", [])
         right_keys = config.get("rightKeys", [])
+        resolved_config = config
+        if left_keys and left_lf is not None:
+            available_left = left_lf.collect_schema().names()
+            resolved_left = resolve_column_names(left_keys, available_left, context="Join leftKeys")
+            if resolved_left != left_keys:
+                resolved_config = {**resolved_config, "leftKeys": resolved_left}
+                left_keys = resolved_left
+        if right_keys and right_lf is not None:
+            available_right = right_lf.collect_schema().names()
+            resolved_right = resolve_column_names(right_keys, available_right, context="Join rightKeys")
+            if resolved_right != right_keys:
+                resolved_config = {**resolved_config, "rightKeys": resolved_right}
+                right_keys = resolved_right
+
+        # Safety check: prevent cross join row explosion
         is_cross_join = not left_keys or not right_keys
         if is_cross_join and left_lf is not None and right_lf is not None:
             raise_if_unsafe(check_cross_join_safety(left_lf, right_lf))
 
-        op = self._build_operation(config)
+        op = self._build_operation(resolved_config)
         unmatched_left, matched, unmatched_right = op.execute(left_lf, right_lf)
 
         return {
@@ -153,21 +170,39 @@ class JoinTool(BaseTool):
             if col.name in right_keys:
                 continue
 
+            # For left/outer joins, right columns become nullable (unmatched rows have nulls)
+            is_nullable = col.nullable or join_type in ("left", "outer")
+
             # Add suffix if name conflicts with left column
             if col.name in left_col_names:
                 new_col = ColumnSchema(
                     name=col.name + right_suffix,
                     dtype=col.dtype,
-                    nullable=col.nullable,
+                    nullable=is_nullable,
                 )
                 matched_columns.append(new_col)
             else:
-                matched_columns.append(col)
+                if is_nullable != col.nullable:
+                    matched_columns.append(ColumnSchema(name=col.name, dtype=col.dtype, nullable=is_nullable))
+                else:
+                    matched_columns.append(col)
+
+        # For right/outer joins, left columns become nullable too
+        if join_type in ("right", "outer"):
+            matched_columns = [
+                ColumnSchema(name=c.name, dtype=c.dtype, nullable=True)
+                for c in matched_columns
+            ]
+
+        # For left/outer joins, unmatched_left is empty (included in matched)
+        output_left = empty_schema if join_type in ("left", "outer") else left_schema
+        # For right/outer joins, unmatched_right is empty (included in matched)
+        output_right = empty_schema if join_type in ("right", "outer") else right_schema
 
         return {
-            JoinSockets.OUTPUT_LEFT: left_schema,
+            JoinSockets.OUTPUT_LEFT: output_left,
             JoinSockets.OUTPUT_MATCH: DataSchema(columns=matched_columns),
-            JoinSockets.OUTPUT_RIGHT: right_schema,
+            JoinSockets.OUTPUT_RIGHT: output_right,
         }
 
     def _normalize_schema(

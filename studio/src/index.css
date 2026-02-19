@@ -41,6 +41,7 @@ code {
   /* never block interactions with nodes */
   pointer-events: none !important;
 }
+
 .sig-lasso-active .react-flow__selection {
   border: 2px solid var(--color-edge-selected-stroke, var(--color-border-focus, #a78bfa)) !important;
   background: color-mix(in oklab, var(--color-edge-selected-stroke, #a78bfa) 12%, transparent);
@@ -54,6 +55,7 @@ code {
   pointer-events: none !important;
   /* draw the outline with a pseudo-element so we can offset & round it */
 }
+
 .react-flow__nodesselection-rect::after {
   content: "";
   position: absolute;
@@ -83,40 +85,57 @@ code {
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--color-edge-default-stroke) !important;
 }
-.react-flow__edge .react-flow__edge-textbg, .react-flow__edge .react-flow__edge-text {
+
+.react-flow__edge .react-flow__edge-textbg,
+.react-flow__edge .react-flow__edge-text {
   fill: var(--color-edge-default-stroke);
 }
+
 .react-flow__edge:hover .react-flow__edge-path,
 .react-flow__edge .react-flow__edge-path:hover {
   stroke: var(--color-edge-default-stroke-hover) !important;
 }
-.react-flow__edge:hover .react-flow__edge-textbg, .react-flow__edge:hover .react-flow__edge-text {
+
+.react-flow__edge:hover .react-flow__edge-textbg,
+.react-flow__edge:hover .react-flow__edge-text {
   fill: var(--color-edge-default-stroke-hover);
 }
+
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--color-edge-selected-stroke) !important;
 }
-.react-flow__edge.selected .react-flow__edge-textbg, .react-flow__edge.selected .react-flow__edge-text {
+
+.react-flow__edge.selected .react-flow__edge-textbg,
+.react-flow__edge.selected .react-flow__edge-text {
   fill: var(--color-edge-selected-stroke);
 }
+
 .react-flow__edge.selected:hover .react-flow__edge-path,
 .react-flow__edge.selected .react-flow__edge-path:hover {
   stroke: var(--color-edge-selected-stroke-hover) !important;
 }
-.react-flow__edge.selected:hover .react-flow__edge-textbg, .react-flow__edge.selected:hover .react-flow__edge-text {
+
+.react-flow__edge.selected:hover .react-flow__edge-textbg,
+.react-flow__edge.selected:hover .react-flow__edge-text {
   fill: var(--color-edge-selected-stroke-hover);
 }
+
 .react-flow__edge.animated .react-flow__edge-path {
   stroke: var(--color-edge-animated-stroke) !important;
 }
-.react-flow__edge.animated .react-flow__edge-textbg, .react-flow__edge.animated .react-flow__edge-text {
+
+.react-flow__edge.animated .react-flow__edge-textbg,
+.react-flow__edge.animated .react-flow__edge-text {
   fill: var(--color-edge-animated-stroke);
 }
+
 .react-flow__edge.animated:hover .react-flow__edge-path,
 .react-flow__edge.animated .react-flow__edge-path:hover {
   stroke: var(--color-edge-animated-stroke-hover) !important;
 }
-.react-flow__edge.animated:hover .react-flow__edge-textbg, .react-flow__edge.animated:hover .react-flow__edge-text {
+
+.react-flow__edge.animated:hover .react-flow__edge-textbg,
+.react-flow__edge.animated:hover .react-flow__edge-text {
   fill: var(--color-edge-animated-stroke-hover);
 }
 
@@ -242,4 +261,127 @@ select option:checked {
   z-index: 9999 !important;
   border: 1px solid var(--color-border-primary, #3f3f46) !important;
   border-radius: 6px !important;
+}
+
+/* ---------------------------------------------------------------------------
+   AI Chat Markdown Styles
+   --------------------------------------------------------------------------- */
+
+.ai-markdown p {
+  margin: 0.25em 0;
+}
+
+.ai-markdown p:first-child {
+  margin-top: 0;
+}
+
+.ai-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-markdown strong {
+  font-weight: 600;
+}
+
+.ai-markdown em {
+  font-style: italic;
+}
+
+.ai-markdown ul,
+.ai-markdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.ai-markdown ul {
+  list-style-type: disc;
+}
+
+.ai-markdown ol {
+  list-style-type: decimal;
+}
+
+.ai-markdown li {
+  margin: 0.15em 0;
+}
+
+.ai-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: var(--color-bg-input, #27272a);
+}
+
+.ai-markdown pre {
+  margin: 0.5em 0;
+  padding: 0.75em;
+  border-radius: 6px;
+  overflow-x: auto;
+  background: var(--color-bg-input, #27272a);
+}
+
+.ai-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.ai-markdown h1,
+.ai-markdown h2,
+.ai-markdown h3,
+.ai-markdown h4,
+.ai-markdown h5,
+.ai-markdown h6 {
+  font-weight: 600;
+  margin: 0.75em 0 0.25em;
+  line-height: 1.3;
+}
+
+.ai-markdown h1 {
+  font-size: 1.15em;
+}
+
+.ai-markdown h2 {
+  font-size: 1.05em;
+}
+
+.ai-markdown h3 {
+  font-size: 1em;
+}
+
+.ai-markdown blockquote {
+  margin: 0.5em 0;
+  padding: 0.25em 0.75em;
+  border-left: 3px solid var(--color-border-primary, #3f3f46);
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.ai-markdown table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+  width: 100%;
+}
+
+.ai-markdown th,
+.ai-markdown td {
+  border: 1px solid var(--color-border-primary, #3f3f46);
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+
+.ai-markdown th {
+  font-weight: 600;
+  background: var(--color-surface-hover, #27272a);
+}
+
+.ai-markdown hr {
+  border: none;
+  border-top: 1px solid var(--color-border-primary, #3f3f46);
+  margin: 0.75em 0;
+}
+
+.ai-markdown a {
+  color: var(--color-interactive-accent, #3b82f6);
+  text-decoration: underline;
 }

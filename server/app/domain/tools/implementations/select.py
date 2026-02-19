@@ -9,6 +9,7 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SelectOperation, build_select_expr
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
+from app.utils.columns import resolve_column_name
 from app.utils.errors import ToolError
 
 # Mapping from PolarsDataType string to actual Polars type for casting
@@ -82,6 +83,22 @@ class SelectTool(BaseTool):
         # If no column configs, pass through unchanged
         if not column_configs:
             return {CommonSockets.OUTPUT: lf}
+
+        # Resolve column name casing in column configs against actual schema
+        available_cols = lf.collect_schema().names()
+        resolved_configs: list[dict[str, Any]] = []
+        needs_resolve = False
+        for col_config in column_configs:
+            resolved_cc = dict(col_config)
+            name = col_config.get("name")
+            if name:
+                resolved_name = resolve_column_name(name, available_cols, context="Select")
+                if resolved_name != name:
+                    resolved_cc["name"] = resolved_name
+                    needs_resolve = True
+            resolved_configs.append(resolved_cc)
+        if needs_resolve:
+            config = {**config, "columnConfigs": resolved_configs}
 
         op = self._build_operation(config)
 
