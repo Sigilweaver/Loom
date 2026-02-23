@@ -67,7 +67,7 @@ export function createTheme(config: ThemeConfig): Theme {
   // Derive header background and accent from config or sensible defaults
   const headerBg = config.headerBackground ?? p.gray[100];
   const accent = config.accentEdge ?? p.brand.primary[isDark ? 400 : 700];
-  const accentHover = p.brand.primary[isDark ? 300 : 700];
+  const accentHover = p.brand.primary[isDark ? 500 : 800];
   const accentAnimated = config.accentEdgeAnimated ?? p.brand.primary[isDark ? 500 : 600];
   
   // WCAG auto-text: picks pure white or black for maximum contrast on a given bg.
@@ -88,6 +88,50 @@ export function createTheme(config: ThemeConfig): Theme {
   const shadowAlpha = isDark ? 0.4 : 0.1;
   const deepShadowAlpha = isDark ? 0.6 : 0.25;
   
+  // ── Header button presets (intent-based hierarchy) ────────────
+  // Light themes always have dark headers, so header buttons need white
+  // text.  Walk from gray[500] upward to find the lightest gray where
+  // autoText picks white — each palette hits this threshold at a
+  // different index (Core Light at 500, Solarized Light not until 800).
+  type GrayIdx = 500 | 600 | 700 | 800 | 900;
+  const hdrIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark
+    ? [500, 400, 600]   // dark themes: mid default, lighter hover, darker active
+    : (() => {
+        const base = ([500, 600, 700, 800] as const).find(
+          i => autoText(p.gray[i]) === '#ffffff',
+        ) ?? 800;
+        return [
+          base,
+          Math.min(base + 100, 900) as GrayIdx,
+          Math.min(base + 200, 950) as GrayIdx,
+        ] as [GrayIdx, GrayIdx, GrayIdx];
+      })();
+  // Secondary header button starts one step lighter than neutral on
+  // dark themes; on light themes it matches neutral (the primary CTA
+  // Run button provides the visual hierarchy instead).
+  const hdrSecIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark
+    ? [400, 300, 500]
+    : hdrIdx;
+
+  // Primary CTA (Run): brand color stands out from the neutral toolbar
+  const headerPrimaryBtn = buildButtonStates({
+    bg: { default: p.brand.primary[isDark ? 400 : 500], hover: p.brand.primary[isDark ? 300 : 600], active: p.brand.primary[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
+    border: { default: p.brand.primary[isDark ? 300 : 600], hover: p.brand.primary[isDark ? 200 : 700], active: p.brand.primary[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
+    text: { default: autoText(p.brand.primary[isDark ? 400 : 500]), hover: autoText(p.brand.primary[isDark ? 300 : 600]), active: autoText(p.brand.primary[isDark ? 500 : 700]), disabled: headerDisabledText },
+  });
+  // Secondary (Preview): slightly lighter neutral to hint at importance
+  const headerSecondaryBtn = buildButtonStates({
+    bg: { default: p.gray[hdrSecIdx[0]], hover: p.gray[hdrSecIdx[1]], active: p.gray[hdrSecIdx[2]], disabled: p.gray[isDark ? 300 : 400] },
+    border: { default: p.gray[isDark ? 300 : hdrSecIdx[1]], hover: p.gray[isDark ? 200 : hdrSecIdx[2]], active: p.gray[isDark ? 400 : Math.min(hdrSecIdx[2] + 100, 900) as GrayIdx], disabled: p.gray[isDark ? 300 : 400] },
+    text: { default: autoText(p.gray[hdrSecIdx[0]]), hover: autoText(p.gray[hdrSecIdx[1]]), active: autoText(p.gray[hdrSecIdx[2]]), disabled: headerDisabledText },
+  });
+  // Neutral (Open, Save, New, View Code etc.): quiet utility buttons
+  const headerNeutralBtn = buildButtonStates({
+    bg: { default: p.gray[hdrIdx[0]], hover: p.gray[hdrIdx[1]], active: p.gray[hdrIdx[2]], disabled: p.gray[isDark ? 300 : 400] },
+    border: { default: p.gray[isDark ? 400 : hdrIdx[1]], hover: p.gray[isDark ? 300 : hdrIdx[2]], active: p.gray[isDark ? 500 : Math.min(hdrIdx[2] + 100, 900) as GrayIdx], disabled: p.gray[isDark ? 300 : 400] },
+    text: { default: autoText(p.gray[hdrIdx[0]]), hover: autoText(p.gray[hdrIdx[1]]), active: autoText(p.gray[hdrIdx[2]]), disabled: headerDisabledText },
+  });
+  
   // For surfaces/backgrounds: dark themes use low indices (50-200), light themes also use low indices
   // For text: dark themes use high indices (700-900), light themes also use high indices
   // This works because light palettes have light colors at low indices and dark colors at high indices
@@ -97,25 +141,27 @@ export function createTheme(config: ThemeConfig): Theme {
   // fall back to a deeper brand.primary index.
   const pageBg = p.gray[50];
   const focusBorder =
-    ratio(luminance(accent), luminance(pageBg)) >= 3.0
+    ratio(luminance(accent), luminance(pageBg)) >= 3.5
       ? accent
       : p.brand.primary[isDark ? 400 : 800];
   
   // ── Edge / wire contrast ──────────────────────────────────────────
-  // Ensure every wire color meets ≥ 3:1 (AA-large) against the canvas.
-  // Walks up the palette scale until the threshold is met.
+  // Ensure every wire color meets ≥ 4.5:1 (AA-normal) against the canvas.
+  // This exceeds the 3:1 WCAG minimum for graphical objects (1.4.11) to
+  // keep wires clearly visible on the pipeline canvas.
   const canvasBg = p.gray[isDark ? 100 : 50];
   const canvasL = luminance(canvasBg);
 
+  const EDGE_CONTRAST = 4.5;
   type PaletteScale = Record<number, string>;
   const ensureEdgeContrast = (color: string, scale: PaletteScale): string => {
-    if (ratio(luminance(color), canvasL) >= 3.0) return color;
+    if (ratio(luminance(color), canvasL) >= EDGE_CONTRAST) return color;
     // Walk through progressively higher-contrast indices
     const indices = isDark
       ? [500, 600, 700, 800, 900] as const
       : [600, 700, 800, 900] as const;
     for (const idx of indices) {
-      if (scale[idx] && ratio(luminance(scale[idx]), canvasL) >= 3.0) return scale[idx];
+      if (scale[idx] && ratio(luminance(scale[idx]), canvasL) >= EDGE_CONTRAST) return scale[idx];
     }
     return isDark ? '#ffffff' : '#000000'; // ultimate fallback
   };
@@ -127,6 +173,21 @@ export function createTheme(config: ThemeConfig): Theme {
   const edgeAnimated = ensureEdgeContrast(accentAnimated, p.brand.primary);
   const edgeInvalid = ensureEdgeContrast(p.semantic.error[isDark ? 400 : 500], p.semantic.error);
   const edgeInvalidHover = ensureEdgeContrast(p.semantic.error[isDark ? 500 : 600], p.semantic.error);
+  
+  // ── Border contrast ────────────────────────────────────────────
+  // Pick the *softest* gray that still meets ≥ 3:1 against the page
+  // background so borders delineate panels without looking busy.
+  const pageBgL = luminance(pageBg);
+  const softBorder = ((): string => {
+    // Start from lighter shades and walk up until 3:1 is met
+    const indices = isDark
+      ? [400, 500, 600, 700, 800] as const
+      : [400, 500, 600, 700, 800] as const;
+    for (const idx of indices) {
+      if (ratio(luminance(p.gray[idx]), pageBgL) >= 3.0) return p.gray[idx];
+    }
+    return p.gray[isDark ? 700 : 800]; // fallback
+  })();
   
   return {
     id,
@@ -152,8 +213,8 @@ export function createTheme(config: ThemeConfig): Theme {
       },
       
       borders: {
-        primary: p.gray[isDark ? 700 : 800],
-        secondary: p.gray[isDark ? 500 : 600],
+        primary: softBorder,
+        secondary: p.gray[isDark ? 300 : 400],
         focus: focusBorder,
         divider: p.gray[isDark ? 300 : 200],
       },
@@ -164,36 +225,16 @@ export function createTheme(config: ThemeConfig): Theme {
         title: { text: autoText(headerBg) },
         metadata: { text: autoText(headerBg), divider: p.gray[500] },
         buttons: {
-          new: buildButtonStates({
-            bg: { default: p.semantic.success[isDark ? 400 : 500], hover: p.semantic.success[isDark ? 300 : 600], active: p.semantic.success[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.semantic.success[isDark ? 300 : 600], hover: p.semantic.success[isDark ? 200 : 700], active: p.semantic.success[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.semantic.success[isDark ? 400 : 500]), hover: autoText(p.semantic.success[isDark ? 300 : 600]), active: autoText(p.semantic.success[isDark ? 500 : 700]), disabled: headerDisabledText },
-          }),
-          import: buildButtonStates({
-            bg: { default: p.brand.primary[isDark ? 400 : 500], hover: p.brand.primary[isDark ? 300 : 600], active: p.brand.primary[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.brand.primary[isDark ? 300 : 600], hover: p.brand.primary[isDark ? 200 : 700], active: p.brand.primary[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.brand.primary[isDark ? 400 : 500]), hover: autoText(p.brand.primary[isDark ? 300 : 600]), active: autoText(p.brand.primary[isDark ? 500 : 700]), disabled: headerDisabledText },
-          }),
-          export: buildButtonStates({
-            bg: { default: p.gray[500], hover: p.gray[isDark ? 400 : 600], active: p.gray[isDark ? 600 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.gray[isDark ? 400 : 600], hover: p.gray[isDark ? 300 : 700], active: p.gray[isDark ? 500 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.gray[500]), hover: autoText(p.gray[isDark ? 400 : 600]), active: autoText(p.gray[isDark ? 600 : 700]), disabled: headerDisabledText },
-          }),
-          viewCode: buildButtonStates({
-            bg: { default: p.brand.secondary[isDark ? 400 : 500], hover: p.brand.secondary[isDark ? 300 : 600], active: p.brand.secondary[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.brand.secondary[isDark ? 300 : 600], hover: p.brand.secondary[isDark ? 200 : 700], active: p.brand.secondary[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.brand.secondary[isDark ? 400 : 500]), hover: autoText(p.brand.secondary[isDark ? 300 : 600]), active: autoText(p.brand.secondary[isDark ? 500 : 700]), disabled: headerDisabledText },
-          }),
-          preview: buildButtonStates({
-            bg: { default: p.semantic.info[isDark ? 400 : 500], hover: p.semantic.info[isDark ? 300 : 600], active: p.semantic.info[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.semantic.info[isDark ? 300 : 600], hover: p.semantic.info[isDark ? 200 : 700], active: p.semantic.info[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.semantic.info[isDark ? 400 : 500]), hover: autoText(p.semantic.info[isDark ? 300 : 600]), active: autoText(p.semantic.info[isDark ? 500 : 700]), disabled: headerDisabledText },
-          }),
-          run: buildButtonStates({
-            bg: { default: p.semantic.error[isDark ? 400 : 500], hover: p.semantic.error[isDark ? 300 : 600], active: p.semantic.error[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
-            border: { default: p.semantic.error[isDark ? 300 : 600], hover: p.semantic.error[isDark ? 200 : 700], active: p.semantic.error[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-            text: { default: autoText(p.semantic.error[isDark ? 400 : 500]), hover: autoText(p.semantic.error[isDark ? 300 : 600]), active: autoText(p.semantic.error[isDark ? 500 : 700]), disabled: headerDisabledText },
-          }),
+          // ── Button intent hierarchy ──────────────────────────
+          // Run  = primary CTA  → brand.primary (stands out)
+          // Preview = secondary → slightly elevated neutral
+          // Everything else     → neutral (utility actions)
+          new: headerNeutralBtn,
+          import: headerNeutralBtn,
+          export: headerNeutralBtn,
+          viewCode: headerNeutralBtn,
+          preview: headerSecondaryBtn,
+          run: headerPrimaryBtn,
         },
         divider: p.gray[500],
         themeSelector: {
@@ -297,8 +338,8 @@ export function createTheme(config: ThemeConfig): Theme {
         header: { background: p.gray[200], text: p.gray[900], icon: p.gray[600] },
         content: { background: p.gray[100], text: p.gray[isDark ? 800 : 900] },
         handles: {
-          input: { background: p.tools.preparation[500], border: p.tools.preparation[isDark ? 400 : 600], connected: accent },
-          output: { background: p.tools.inout[500], border: p.tools.inout[isDark ? 400 : 600], connected: accent },
+          input: { background: p.tools.preparation[isDark ? 500 : 600], border: p.tools.preparation[isDark ? 400 : 700], connected: accent },
+          output: { background: p.tools.inout[isDark ? 500 : 600], border: p.tools.inout[isDark ? 400 : 700], connected: accent },
         },
       },
       

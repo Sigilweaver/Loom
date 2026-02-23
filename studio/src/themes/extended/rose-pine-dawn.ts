@@ -13,6 +13,6 @@ export const rosePineDawnTheme = createTheme({
   description: 'Natural pine and soho vibes (light)',
   palette: rosePineDawnPalette,
   headerBackground: '#575279',
-  accentEdge: '#907AA9',
+  accentEdge: '#7C6897',
   isDark: false,
 });
