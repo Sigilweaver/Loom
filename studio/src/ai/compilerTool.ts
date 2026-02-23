@@ -19,11 +19,11 @@ const logger = createLogger('AI:CompilerTool');
 /**
  * Build a complete workflow from a simplified spec.
  * Replaces the current canvas contents.
- * Returns an inline data profile for the first Input tool so the agent
+ * Returns an inline data profile for the first Read tool so the agent
  * immediately understands the dataset (column types, ranges, nulls, top values).
  */
 export const buildWorkflowTool = tool({
-  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and a compact data profile for the first Input tool.',
+  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and a compact data profile for the first Read tool.',
   // Cache breakpoint: placed on the last tool so Anthropic caches the full
   // tool-definition block (all 11 tools). Other providers ignore this.
   providerOptions: {
@@ -69,7 +69,7 @@ export const buildWorkflowTool = tool({
       }
     }
 
-    // Proactively fetch a data profile for the first Input tool so the agent
+    // Proactively fetch a data profile for the first Read tool so the agent
     // immediately understands the dataset — column types, ranges, nulls,
     // unique counts, and top values for string columns.
     let inputProfile: string | undefined;

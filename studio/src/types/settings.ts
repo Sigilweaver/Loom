@@ -61,6 +61,8 @@ export interface AppSettings {
      * - 'smoothstep': Right-angle lines with rounded corners
      */
     edgeStyle: 'bezier' | 'straight' | 'step' | 'smoothstep';
+    /** Show warning indicators on blocking/semi-blocking tools */
+    showBlockingIndicators: boolean;
   };
 
   /** Behavior preferences */
@@ -105,6 +107,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     minimapVisible: true,
     minimapPosition: 'bottom-right',
     edgeStyle: 'bezier',
+    showBlockingIndicators: true,
   },
   behavior: {
     autoConnect: true,
@@ -117,3 +120,32 @@ export const DEFAULT_SETTINGS: AppSettings = {
     maxHeight: 40,
   },
 };
+
+/**
+ * Deep-merge stored settings with DEFAULT_SETTINGS so that newly added
+ * nested fields (e.g. `ui.showBlockingIndicators`) get their default value
+ * even when the user's persisted `ui` object predates the addition.
+ *
+ * Only merges one level deep (top-level scalars are overwritten, top-level
+ * objects are shallow-merged with their default counterpart).
+ */
+export function mergeWithDefaults(stored: Record<string, unknown>): AppSettings {
+  const merged = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
+  for (const key of Object.keys(stored)) {
+    const defaultVal = merged[key];
+    const storedVal = stored[key];
+    if (
+      defaultVal !== null &&
+      storedVal !== null &&
+      typeof defaultVal === 'object' &&
+      !Array.isArray(defaultVal) &&
+      typeof storedVal === 'object' &&
+      !Array.isArray(storedVal)
+    ) {
+      merged[key] = { ...defaultVal, ...storedVal };
+    } else {
+      merged[key] = storedVal;
+    }
+  }
+  return merged as AppSettings;
+}

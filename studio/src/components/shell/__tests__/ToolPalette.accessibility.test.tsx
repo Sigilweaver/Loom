@@ -43,9 +43,9 @@ describe("ToolPalette accessibility", () => {
 
     // Check category names appear
     expect(screen.getAllByText("Favorites").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("In/Out").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Preparation").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Join").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Aggregate").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Connect").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Compute").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Reshape").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Combine").length).toBeGreaterThanOrEqual(1);
   });
 });

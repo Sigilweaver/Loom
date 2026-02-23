@@ -11,7 +11,7 @@ vi.mock("@data/tools", () => ({
   getToolDefinition: vi.fn((type: string) => ({
     type,
     name: `${type} Tool`,
-    category: "preparation",
+    category: "compute",
     description: "Test tool",
   })),
 }));

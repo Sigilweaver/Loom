@@ -10,7 +10,7 @@ vi.mock("../data/tools", () => ({
     type,
     name: `${type} Tool`,
     icon: "icon",
-    category: "inout",
+    category: "connect",
     defaultConfig: { setting: "default" },
     sockets: [
       { id: 1, direction: "output", multiple: false },

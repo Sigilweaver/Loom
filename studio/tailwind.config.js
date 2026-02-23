@@ -482,10 +482,10 @@ export default {
           "form-success-text": "var(--color-form-success-text)",
 
           // Tool category colors (preserved for visual recognition)
-          "tool-inout": "var(--color-tool-inout)",
-          "tool-preparation": "var(--color-tool-preparation)",
-          "tool-join": "var(--color-tool-join)",
-          "tool-aggregate": "var(--color-tool-aggregate)",
+          "tool-connect": "var(--color-tool-connect)",
+          "tool-compute": "var(--color-tool-compute)",
+          "tool-reshape": "var(--color-tool-reshape)",
+          "tool-combine": "var(--color-tool-combine)",
           "tool-favorites": "var(--color-tool-favorites)",
 
           // Socket colors (consistent across themes)

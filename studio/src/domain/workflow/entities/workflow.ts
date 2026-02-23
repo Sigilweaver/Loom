@@ -71,18 +71,19 @@ export interface ToolDefinition {
   type: string;
   name: string;
   icon: LucideIcon;
-  category: "inout" | "preparation" | "join" | "aggregate";
+  category: "connect" | "compute" | "reshape" | "combine";
   defaultConfig: ToolConfig;
   sockets: Socket[];
   docsUrl?: string;
+  blocking?: boolean;
 }
 
 export type ToolCategory =
   | "favorites"
-  | "inout"
-  | "preparation"
-  | "join"
-  | "aggregate";
+  | "connect"
+  | "compute"
+  | "reshape"
+  | "combine";
 
 export interface ConnectionState {
   isConnecting: boolean;

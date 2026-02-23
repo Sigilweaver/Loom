@@ -2,8 +2,9 @@ import React, { useRef, useCallback, useState } from "react";
 import { getToolsByCategory } from "@data/tools";
 import { ToolCategory } from "@domain/workflow/entities/workflow";
 import { useUIStore } from "@state/uiStore";
+import { useSettingsStore } from "@state/settingsStore";
 import { setDragToolType } from '@components/canvas/CanvasDragAndDropLayer';
-import { Star, ArrowRightLeft, Wrench, Link, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
+import { Star, ArrowRightLeft, Wrench, Link, BarChart3, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 
 const CATEGORIES: { id: ToolCategory; name: string; icon: React.ElementType }[] = [
   {
@@ -11,27 +12,27 @@ const CATEGORIES: { id: ToolCategory; name: string; icon: React.ElementType }[] 
     name: "Favorites",
     icon: Star,
   },
-  { id: "inout", name: "In/Out", icon: ArrowRightLeft },
+  { id: "connect", name: "Connect", icon: ArrowRightLeft },
   {
-    id: "preparation",
-    name: "Preparation",
+    id: "compute",
+    name: "Compute",
     icon: Wrench,
   },
-  { id: "join", name: "Join", icon: Link },
+  { id: "reshape", name: "Reshape", icon: BarChart3 },
   {
-    id: "aggregate",
-    name: "Aggregate",
-    icon: BarChart3,
+    id: "combine",
+    name: "Combine",
+    icon: Link,
   },
 ];
 
 const getCategoryColor = (category: string) => {
   switch (category) {
     case "favorites": return "var(--color-favorites)";
-    case "inout": return "var(--color-tool-inout)";
-    case "preparation": return "var(--color-tool-preparation)";
-    case "join": return "var(--color-tool-join)";
-    case "aggregate": return "var(--color-tool-aggregate)";
+    case "connect": return "var(--color-tool-connect)";
+    case "compute": return "var(--color-tool-compute)";
+    case "reshape": return "var(--color-tool-reshape)";
+    case "combine": return "var(--color-tool-combine)";
     default: return "var(--color-tool-default)";
   }
 };
@@ -50,6 +51,7 @@ export default function ToolPalette() {
   const toggleFavoriteTool = useUIStore((s) => s.toggleFavoriteTool);
   const collapsedCategories = useUIStore((s) => s.collapsedCategories);
   const toggleCategory = useUIStore((s) => s.toggleCategory);
+  const showBlockingIndicators = useSettingsStore((s) => s.ui.showBlockingIndicators);
 
   // Touch drag state
   const [touchDragTool, setTouchDragTool] = useState<string | null>(null);
@@ -205,7 +207,7 @@ export default function ToolPalette() {
                             onTouchMove={(e) => handleTouchMove(e, tool.type)}
                             onTouchEnd={handleTouchEnd}
                             onTouchCancel={handleTouchCancel}
-                            className="flex items-center justify-center p-2 transition-shadow border-2 rounded-lg shadow cursor-move select-none bg-theme-node-default-bg hover:shadow-lg touch-none"
+                            className="relative flex items-center justify-center p-2 transition-shadow border-2 rounded-lg shadow cursor-move select-none bg-theme-node-default-bg hover:shadow-lg touch-none"
                             style={{
                               width: "44px",
                               height: "44px",
@@ -213,6 +215,13 @@ export default function ToolPalette() {
                             }}
                           >
                             <tool.icon className="w-6 h-6" style={{ color: toolColor }} />
+                            {tool.blocking && showBlockingIndicators && (
+                              <AlertTriangle
+                                className="absolute w-2.5 h-2.5 bottom-0.5 right-0.5 opacity-50"
+                                style={{ color: 'var(--color-warning, #d97706)' }}
+                                aria-label="Blocking operation"
+                              />
+                            )}
                           </div>
                           {/* Tool label */}
                           <div
@@ -221,7 +230,7 @@ export default function ToolPalette() {
                               backgroundColor: "var(--color-surface-elevated)",
                               borderColor: toolColor,
                             }}
-                            title={tool.name}
+                            title={tool.blocking && showBlockingIndicators ? `${tool.name} (blocking operation — breaks lazy evaluation)` : tool.name}
                           >
                             {tool.name}
                           </div>
@@ -252,7 +261,7 @@ export default function ToolPalette() {
           className="flex items-center justify-center p-2 border-2 rounded-lg shadow-lg bg-theme-node-default-bg border-theme-border-accent"
         >
           {(() => {
-            const tool = [...getToolsByCategory('inout'), ...getToolsByCategory('preparation'), ...getToolsByCategory('join'), ...getToolsByCategory('aggregate')].find(t => t.type === touchDragTool);
+            const tool = [...getToolsByCategory('connect'), ...getToolsByCategory('compute'), ...getToolsByCategory('reshape'), ...getToolsByCategory('combine')].find(t => t.type === touchDragTool);
             if (tool) {
               const ToolIcon = tool.icon;
               return <ToolIcon className="w-6 h-6" style={{ color: getCategoryColor(tool.category) }} />;

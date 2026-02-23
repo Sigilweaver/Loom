@@ -15,29 +15,29 @@ interface Props {
 
 const CATEGORY_LABELS: Record<ToolCategory, string> = {
   favorites: 'Favorites',
-  inout: 'In/Out',
-  preparation: 'Preparation',
-  join: 'Join',
-  aggregate: 'Aggregate',
+  connect: 'Connect',
+  compute: 'Compute',
+  reshape: 'Reshape',
+  combine: 'Combine',
 };
 
 const CATEGORY_ICONS: Record<ToolCategory, React.ElementType> = {
   favorites: Star,
-  inout: ArrowRightLeft,
-  preparation: Wrench,
-  join: Link,
-  aggregate: BarChart3,
+  connect: ArrowRightLeft,
+  compute: Wrench,
+  reshape: BarChart3,
+  combine: Link,
 };
 
 const CATEGORY_COLORS: Record<ToolCategory, string> = {
   favorites: 'var(--color-favorites)',
-  inout: 'var(--color-tool-inout)',
-  preparation: 'var(--color-tool-preparation)',
-  join: 'var(--color-tool-join)',
-  aggregate: 'var(--color-tool-aggregate)',
+  connect: 'var(--color-tool-connect)',
+  compute: 'var(--color-tool-compute)',
+  reshape: 'var(--color-tool-reshape)',
+  combine: 'var(--color-tool-combine)',
 };
 
-const CATEGORIES: ToolCategory[] = ['favorites', 'inout', 'preparation', 'join', 'aggregate'];
+const CATEGORIES: ToolCategory[] = ['favorites', 'connect', 'compute', 'reshape', 'combine'];
 
 export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelectTool, onClose, filterDirection }) => {
   const favoriteTools = useUIStore((s) => s.favoriteTools);

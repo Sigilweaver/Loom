@@ -165,7 +165,7 @@ export const getColumnMetadata = tool({
  * Search for data files by name across all accessible directories.
  */
 export const searchFilesTool = tool({
-  description: 'Search for data files by name across all directories. Returns paths for Input tool config.',
+  description: 'Search for data files by name across all directories. Returns paths for Read tool config.',
   inputSchema: z.object({
     query: z.string().describe('Search text to match against filenames (e.g. "titanic", "sales_2024").'),
     extensions: z.string().optional().describe('Comma-separated extensions to filter (e.g. "csv,parquet"). Omit for all data formats.'),

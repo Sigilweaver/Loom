@@ -88,6 +88,7 @@ const SettingsPane: React.FC = () => {
     updateTheme,
     updateSnapToGrid,
     updateMinimapVisible,
+    updateShowBlockingIndicators,
     updateMinimapPosition,
     updateEdgeStyle,
     updateAutoConnect,
@@ -599,6 +600,12 @@ const SettingsPane: React.FC = () => {
                   checked={ui.minimapVisible}
                   onCheckedChange={(checked) => updateMinimapVisible(checked === true)}
                   label="Show minimap"
+                />
+
+                <Checkbox
+                  checked={ui.showBlockingIndicators}
+                  onCheckedChange={(checked) => updateShowBlockingIndicators(checked === true)}
+                  label="Show blocking indicators"
                 />
               </div>
             </div>

@@ -26,7 +26,7 @@ import type {
   ConnectionTestResult,
   DatabaseType,
 } from '../types/connections';
-import { DEFAULT_SETTINGS } from '../types/settings';
+import { DEFAULT_SETTINGS, mergeWithDefaults } from '../types/settings';
 
 // =============================================================================
 // File Operations Implementation (Browser)
@@ -67,7 +67,7 @@ const webSettingsOps: SettingsOperations = {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
       try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        return mergeWithDefaults(JSON.parse(stored));
       } catch {
         console.error('Failed to parse settings from localStorage');
         return DEFAULT_SETTINGS;

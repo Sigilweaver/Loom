@@ -12,10 +12,10 @@ vi.mock('@contexts/ThemeContext', () => {
       canvas: { minimap: { viewport: '#VIEWPORT', background: '#000', border: '#111', mask: '#222' }, background: '#fff', grid: { primary: '#333', secondary: '#444' }, controls: { background: '#000', border: '#000', shadow: '#000', button: { default: { background: '', border: '', text: '' }, hover: { background: '', border: '', text: '' }, active: { background: '', border: '', text: '' }, disabled: { background: '', border: '', text: '' } } } },
       palette: {
         tools: {
-          inout: scale('#INOUT'),
-          preparation: scale('#PREP'),
-          join: scale('#JOIN'),
-          aggregate: scale('#AGG'),
+          connect: scale('#CONNECT'),
+          compute: scale('#COMPUTE'),
+          reshape: scale('#RESHAPE'),
+          combine: scale('#COMBINE'),
           favorites: scale('#FAV')
         }
       }
@@ -37,32 +37,32 @@ const makeTool = (id: string, type: string): Tool => ({
 });
 
 describe('UseNodeColor', () => {
-  it('returns in/out category color', () => {
-    const tools = [makeTool('t1', 'Input')]; // Input -> category inout
+  it('returns connect category color', () => {
+    const tools = [makeTool('t1', 'Input')]; // Input -> category connect
     const { result } = renderHook(() => useNodeColor(tools));
   const color = result.current({ id: 't1' } as Partial<Node> as Node);
-    expect(color).toBe('#INOUT');
+    expect(color).toBe('#CONNECT');
   });
 
-  it('returns preparation category color', () => {
-    const tools = [makeTool('t2', 'Filter')]; // Filter -> preparation
+  it('returns compute category color', () => {
+    const tools = [makeTool('t2', 'Filter')]; // Filter -> compute
     const { result } = renderHook(() => useNodeColor(tools));
   const color = result.current({ id: 't2' } as Partial<Node> as Node);
-    expect(color).toBe('#PREP');
+    expect(color).toBe('#COMPUTE');
   });
 
-  it('returns join category color', () => {
+  it('returns combine category color', () => {
     const tools = [makeTool('t3', 'Join')];
     const { result } = renderHook(() => useNodeColor(tools));
   const color = result.current({ id: 't3' } as Partial<Node> as Node);
-    expect(color).toBe('#JOIN');
+    expect(color).toBe('#COMBINE');
   });
 
-  it('returns aggregate category color', () => {
+  it('returns reshape category color', () => {
     const tools = [makeTool('t4', 'Summarize')];
     const { result } = renderHook(() => useNodeColor(tools));
   const color = result.current({ id: 't4' } as Partial<Node> as Node);
-    expect(color).toBe('#AGG');
+    expect(color).toBe('#RESHAPE');
   });
 
   it('falls back when tool id not found', () => {

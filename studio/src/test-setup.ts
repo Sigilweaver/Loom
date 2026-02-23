@@ -2,7 +2,7 @@ import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import React from 'react';
-import { DEFAULT_SETTINGS } from './types/settings';
+import { DEFAULT_SETTINGS, mergeWithDefaults } from './types/settings';
 
 /**
  * Mock platform adapter for tests
@@ -39,7 +39,7 @@ export const mockPlatformSettings = {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
       try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        return mergeWithDefaults(JSON.parse(stored));
       } catch {
         console.error('Failed to parse settings from localStorage');
         return DEFAULT_SETTINGS;

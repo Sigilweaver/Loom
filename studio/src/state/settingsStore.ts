@@ -28,6 +28,7 @@ interface SettingsState extends AppSettings {
   updateEdgeStyle: (edgeStyle: AppSettings['ui']['edgeStyle']) => Promise<void>;
   updateAutoConnect: (autoConnect: boolean) => Promise<void>;
   updateAutoConnectRadius: (radius: number) => Promise<void>;
+  updateShowBlockingIndicators: (show: boolean) => Promise<void>;
   updateCommentsVisible: (visible: boolean) => Promise<void>;
   updateCommentsAlignment: (alignment: AppSettings['comments']['alignment']) => Promise<void>;
   updateCommentsMaxWidth: (maxWidth: number) => Promise<void>;
@@ -193,6 +194,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newBehavior = { ...state.behavior, autoConnectRadius };
     set({ behavior: newBehavior });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateShowBlockingIndicators: async (showBlockingIndicators) => {
+    const state = get();
+    const newUI = { ...state.ui, showBlockingIndicators };
+    set({ ui: newUI });
     await saveToStorage(buildSettings(get()));
   },
 

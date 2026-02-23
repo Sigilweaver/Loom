@@ -28,7 +28,7 @@ import { DEFAULT_ENGINE } from '@domain/workflow/entities/workflow';
 export interface SimplifiedStep {
   /** Agent-assigned ID for referencing in connections (e.g. "load", "filter1") */
   id: string;
-  /** Tool type (e.g. "Input", "Filter", "Formula") */
+  /** Tool type (e.g. "Input", "Filter", "Formula") — uses internal type identifiers */
   type: string;
   /** Tool configuration */
   config?: Record<string, unknown> | undefined;
@@ -41,9 +41,9 @@ export interface SimplifiedConnection {
   from: string;
   /** Target step ID */
   to: string;
-  /** Source socket name (defaults to "Output") */
+  /** Source socket name (defaults to "Output") — socket ID, not tool name */
   fromSocket?: string | undefined;
-  /** Target socket name (defaults to "Input") */
+  /** Target socket name (defaults to "Input") — socket ID, not tool name */
   toSocket?: string | undefined;
 }
 

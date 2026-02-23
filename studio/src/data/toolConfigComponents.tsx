@@ -74,7 +74,7 @@ export type ToolConfigEntry = BaseToolConfigEntry | ContextToolConfigEntry;
 /**
  * Registry mapping tool types to their configuration components
  *
- * Note: Input and Output tools are handled specially in LeftPane
+ * Note: Read and Write tools are handled specially in LeftPane
  * because they have dynamic sub-types (csv, parquet, excel, etc.)
  * that each have their own configuration components.
  */

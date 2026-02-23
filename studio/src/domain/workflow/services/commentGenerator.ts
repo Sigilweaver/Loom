@@ -237,7 +237,7 @@ function generateUniqueComment(config: ToolConfig): string {
 
 function generateUnionComment(config: ToolConfig): string {
   const mode = config.mode as string | undefined;
-  return mode ? `Union ${mode}` : "Union by Name";
+  return mode ? `Concatenate ${mode}` : "Concatenate by Name";
 }
 
 function generateJoinComment(config: ToolConfig): string {

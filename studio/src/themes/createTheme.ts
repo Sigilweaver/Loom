@@ -338,8 +338,8 @@ export function createTheme(config: ThemeConfig): Theme {
         header: { background: p.gray[200], text: p.gray[900], icon: p.gray[600] },
         content: { background: p.gray[100], text: p.gray[isDark ? 800 : 900] },
         handles: {
-          input: { background: p.tools.preparation[isDark ? 500 : 600], border: p.tools.preparation[isDark ? 400 : 700], connected: accent },
-          output: { background: p.tools.inout[isDark ? 500 : 600], border: p.tools.inout[isDark ? 400 : 700], connected: accent },
+          input: { background: p.tools.compute[isDark ? 500 : 600], border: p.tools.compute[isDark ? 400 : 700], connected: accent },
+          output: { background: p.tools.connect[isDark ? 500 : 600], border: p.tools.connect[isDark ? 400 : 700], connected: accent },
         },
       },
       

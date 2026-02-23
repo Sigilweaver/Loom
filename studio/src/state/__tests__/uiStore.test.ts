@@ -488,7 +488,7 @@ describe("uiStore", () => {
         minimapPosition: "top-left",
         positionMenuOpen: true,
         positionMenuCoords: { x: 100, y: 200 },
-        activeToolTab: "inout",
+        activeToolTab: "connect",
         notification: {
           message: "Initial",
           type: "info",

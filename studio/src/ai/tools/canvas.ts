@@ -423,10 +423,10 @@ async function runAutoLayout(): Promise<void> {
 export const addTool = tool({
   description: 'Add a new tool to the workflow canvas. Optionally connect via "after". Returns inline preview of the tool output when connected.',
   inputSchema: z.object({
-    type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique")'),
+    type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique"). Note: Aggregate is type "Summarize", Concatenate is type "Union", Read is type "Input", Write is type "Output", Schema is type "Select", Calculate is type "Formula".'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
     comment: z.string().optional().describe('Brief human-readable comment explaining what this tool does (e.g. "Load raw sales data", "Keep only active customers")'),
-    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Summarizes on raw data), always point back to the Input tool ID — not to another Summarize.'),
+    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID — not to another Aggregate.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
