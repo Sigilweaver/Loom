@@ -102,6 +102,7 @@ ${canvasContext}
    - "Filter to females and children" → clarify: females under 18, or females AND anyone under 18?
    - "Join these tables" → ask which columns to join on if not obvious from context.
    - Do NOT ask when the intent is clear or when you can inspect the data to resolve ambiguity yourself.
+9. **Add comments to tools** — Include a brief \`comment\` on each tool explaining its purpose in the pipeline (e.g. "Load Titanic dataset", "Remove passengers under 18", "Calculate survival rate by class"). Comments appear on the canvas and in generated code.
 ${auditNotice}
 ## Tool Config Reference
 

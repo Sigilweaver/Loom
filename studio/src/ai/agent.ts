@@ -395,8 +395,10 @@ export async function generateBasicFormula(
  * invocation and its result is appended to the content. This ensures the
  * model retains context about what actions it performed when continuing
  * after a turn limit or when referencing earlier turns.
+ *
+ * @internal Exported for testing only.
  */
-function buildMessageHistory(
+export function buildMessageHistory(
   messages: ChatMessage[],
 ): Array<{ role: 'user' | 'assistant'; content: string }> {
   // Only send user and assistant messages (skip tool messages)
@@ -435,8 +437,9 @@ function buildMessageHistory(
  * Most tools now return `{ data: "compact text" }`. For those, we
  * extract the first line (or truncate) as the summary. Legacy JSON
  * result shapes are still handled for backward compat.
+ * @internal Exported for testing only.
  */
-function summarizeToolResult(toolName: string, result: unknown): string {
+export function summarizeToolResult(toolName: string, result: unknown): string {
   if (result == null) return '(no result)';
   const r = result as Record<string, unknown>;
 

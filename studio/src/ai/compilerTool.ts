@@ -34,6 +34,7 @@ export const buildWorkflowTool = tool({
       id: z.string().describe('Simple ID for referencing in connections'),
       type: z.string().describe('Tool type (e.g. "Input", "Filter")'),
       config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration'),
+      comment: z.string().optional().describe('Brief human-readable comment explaining what this step does in the pipeline (e.g. "Remove passengers under 18", "Calculate survival rate by class")'),
     })).describe('Workflow steps'),
     connections: z.array(z.object({
       from: z.string().describe('Source step ID'),
