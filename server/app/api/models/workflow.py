@@ -37,6 +37,7 @@ class Tool(BaseModel):
     id: str
     type: str
     engine: str | None = None
+    comment: str | None = None
     x: float
     y: float
     config: dict[str, Any]

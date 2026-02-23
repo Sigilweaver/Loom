@@ -119,7 +119,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
     definition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)';
 
   return (
-    <div className="flex flex-col items-center">
+    <div style={{ width: `${nodeSize}px`, height: `${nodeSize}px` }}>
       {/* Node container */}
       <div
         className="p-3 transition-shadow border-2 rounded-lg shadow-lg select-none sig-node bg-theme-node-default-bg hover:shadow-xl"
@@ -256,15 +256,6 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           )}
         </Handle>
       ))}
-      </div>
-      
-      {/* Tool label - below node with background */}
-      <div 
-        className="text-[10px] font-medium text-theme-text-primary text-center mt-1 px-1.5 py-0.5 rounded border max-w-[80px] truncate"
-        style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: categoryColor }}
-        title={definition.name}
-      >
-        {definition.name}
       </div>
       
       {/* Socket context menu */}

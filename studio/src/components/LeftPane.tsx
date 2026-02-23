@@ -35,6 +35,7 @@ import { YxdbConfiguration } from "./config/inout/YxdbConfiguration";
 import { YxdbOutputConfiguration } from "./config/inout/YxdbOutputConfiguration";
 // Shell components
 import ToolHeader from "./ToolHeader";
+import ToolCommentEditor from "./workflow/ToolCommentEditor";
 import ResizablePanel from "./shell/ResizablePanel";
 import ToolPalette from "./shell/ToolPalette";
 import SettingsPane from "./shell/SettingsPane";
@@ -62,6 +63,7 @@ export default function LeftPane() {
   const updateToolConfiguration = useWorkflowStore(
     (s) => s.updateToolConfiguration
   );
+  const updateToolComment = useWorkflowStore((s) => s.updateToolComment);
 
   const pushState = useHistoryStore((s) => s.pushState);
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -95,6 +97,14 @@ export default function LeftPane() {
     updateToolConfiguration(toolId, config);
 
     // Mark tab as dirty
+    if (activeTabId) {
+      markTabDirty(activeTabId);
+    }
+  };
+
+  const handleToolCommentChange = (toolId: string, comment: string | undefined) => {
+    pushState(tools, wires, workflowMeta);
+    updateToolComment(toolId, comment);
     if (activeTabId) {
       markTabDirty(activeTabId);
     }
@@ -219,6 +229,7 @@ export default function LeftPane() {
       className="h-full flex flex-col border-r bg-theme-surface-panel border-theme-border-primary"
     >
       <ToolHeader tool={selectedTool} />
+      <ToolCommentEditor tool={selectedTool} onCommentChange={handleToolCommentChange} />
 
       {/* Input tool configuration */}
       {selectedTool.type === "Input" ? (

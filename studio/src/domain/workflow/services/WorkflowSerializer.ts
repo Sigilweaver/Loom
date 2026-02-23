@@ -150,6 +150,11 @@ export class WorkflowSerializer {
         delete serialized.engine;
       }
 
+      // Only include comment when explicitly set (undefined = auto-generate on load)
+      if (tool.comment === undefined) {
+        delete serialized.comment;
+      }
+
       return serialized;
     });
 

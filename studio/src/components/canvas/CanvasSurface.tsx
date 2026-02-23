@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes, type Viewport } from '@xyflow/react';
 import { useSettingsStore } from '../../state/settingsStore';
+import CanvasComments from './CanvasComments';
 
 interface Props {
   nodes: Node[];
@@ -77,6 +78,7 @@ export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapG
       {...handlers}
     >
       {children}
+      <CanvasComments />
       <Background
         variant={BackgroundVariant.Dots}
         gap={snapGrid[0]}
