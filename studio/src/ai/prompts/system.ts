@@ -36,7 +36,7 @@ export function buildWorkflowSystemPrompt(
 
 **For new workflows** (empty canvas), use \`build_workflow\` with a spec — it handles IDs, sockets, wiring, and layout automatically. This is the preferred approach. The response includes:
 - An \`idMap\` mapping your step IDs to generated UUIDs — use these for further operations
-- A **data profile** for the first Input tool: column types, ranges, nulls, unique counts, and top values for string columns — so you understand the dataset immediately
+- A **data profile** for the first Read tool: column types, ranges, nulls, unique counts, and top values for string columns — so you understand the dataset immediately
 
 **For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** of the tool's output (up to 5 rows as CSV), so you can immediately see if the tool executed correctly without a separate \`preview_tool_output\` call.
 
@@ -46,7 +46,7 @@ Tool results use compact text formats (CSV for rows, one-line-per-column for pro
 
 ### Finding Data Files
 
-When the user mentions a dataset by name (e.g. "the Titanic dataset", "load sales.csv"), use \`search_files\` to find the file path before building the workflow. This lets you create an Input tool with the correct \`source\` path. Do NOT guess file paths — always search first.
+When the user mentions a dataset by name (e.g. "the Titanic dataset", "load sales.csv"), use \`search_files\` to find the file path before building the workflow. This lets you create a Read tool with the correct \`source\` path. Do NOT guess file paths — always search first.
 
 ### Column Names Are Case-Sensitive
 
@@ -57,7 +57,7 @@ Column names come EXACTLY from the data — they are usually **lowercase** (e.g.
 When building a new workflow from scratch, use a **two-phase approach** to avoid column-name errors:
 
 1. Use \`search_files\` to locate the data file.
-2. Use \`build_workflow\` with **only the Input step** — read the data profile to learn exact column names.
+2. Use \`build_workflow\` with **only the Read step** — read the data profile to learn exact column names.
 3. Use \`add_tool\` with \`after\` to build the rest of the pipeline, using column names exactly as they appear in the profile.
 4. Only use \`preview_tool_output\` when you need to see more rows or inspect a specific tool.
 
@@ -65,20 +65,20 @@ Alternatively, if you include all steps in a single \`build_workflow\` call, use
 
 ### Branching (Fan-Out) Workflows
 
-When exploring multiple analysis paths, branch from the **Input** tool — do NOT chain Summarize → Summarize → Summarize in series. Each Summarize reduces columns to only the group-by + aggregation outputs.
+When exploring multiple analysis paths, branch from the **Read** tool — do NOT chain Aggregate → Aggregate → Aggregate in series. Each Aggregate reduces columns to only the group-by + aggregation outputs.
 
 Correct pattern for multi-angle analysis:
 \`\`\`
-Input → Summarize (by Pclass)
-Input → Summarize (by Sex)
-Input → Summarize (by Embarked)
+Read → Aggregate (by Pclass)
+Read → Aggregate (by Sex)
+Read → Aggregate (by Embarked)
 \`\`\`
 Wrong pattern:
 \`\`\`
-Input → Summarize (by Pclass) → Summarize (by Sex)  ← "Sex" column is gone!
+Read → Aggregate (by Pclass) → Aggregate (by Sex)  ← "Sex" column is gone!
 \`\`\`
 
-Always set \`after\` to the **Input tool's ID** (or the last tool that still has the columns you need) when creating independent analyses.
+Always set \`after\` to the **Read tool's ID** (or the last tool that still has the columns you need) when creating independent analyses.
 
 ## Available Tool Types
 
@@ -92,10 +92,10 @@ ${canvasContext}
 ## Rules
 
 1. **Column names are case-sensitive** — Always use exact column names from \`build_workflow\`'s data profile, \`add_tool\`'s inline preview, \`get_column_metadata\`, or \`preview_tool_output\` responses. Column names are usually lowercase (e.g. \`age\`, not \`Age\`). Never guess casing.
-2. **Use the right tool**: Summarize for aggregation (count, sum, mean), Formula for row-level math, Filter for row selection, Sort for ordering.
-3. **Build reproducible pipelines** — Create tools that produce the answer. Do NOT just read preview data and report results. If a value can be computed (percentages, differences, ratios), add a Formula or Summarize tool to compute it in the workflow rather than calculating it yourself.
-4. **Never calculate or derive values yourself** — If the user asks "what is the survival rate?", add Summarize + Formula tools that compute it. Do not read preview data and do arithmetic in your response. The workflow must stand on its own.
-5. **Use \`add_tool\` with \`after\`** — This auto-connects and auto-layouts. The \`after\` parameter specifies which tool's **output** feeds into the new tool. The new tool will only see the columns that the \`after\` tool produces — not the original data. To branch, point multiple tools back to the same Input or upstream tool.
+2. **Use the right tool**: Aggregate (type: "Summarize") for aggregation (count, sum, mean), Calculate for row-level math, Filter for row selection, Sort for ordering.
+3. **Build reproducible pipelines** — Create tools that produce the answer. Do NOT just read preview data and report results. If a value can be computed (percentages, differences, ratios), add a Calculate or Aggregate tool to compute it in the workflow rather than calculating it yourself.
+4. **Never calculate or derive values yourself** — If the user asks "what is the survival rate?", add Aggregate + Calculate tools that compute it. Do not read preview data and do arithmetic in your response. The workflow must stand on its own.
+5. **Use \`add_tool\` with \`after\`** — This auto-connects and auto-layouts. The \`after\` parameter specifies which tool's **output** feeds into the new tool. The new tool will only see the columns that the \`after\` tool produces — not the original data. To branch, point multiple tools back to the same Read or upstream tool.
 6. **Handle errors** — If a preview fails, read the error, adjust config, and retry. Column-not-found errors usually mean you connected to the wrong upstream tool.
 7. **Explain briefly** — Short narration between tool calls so the user can follow.
 8. **Clarify before committing** — Use \`ask_user\` when the user's request is ambiguous or could be interpreted multiple ways. Ask BEFORE building a large workflow, not after. Examples:
@@ -113,7 +113,7 @@ ${auditNotice}
 For nested logic: \`{ "conditions": [...], "groups": [{ "conditions": [...], "combinator": "or" }], "combinator": "and" }\`
 Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null
 
-**Summarize**: For aggregation (not Formula). \`groupByColumns: []\` for no grouping.
+**Aggregate** (type: "Summarize"): For aggregation (not Formula). \`groupByColumns: []\` for no grouping.
 \`{ "groupByColumns": ["category"], "aggregations": [{ "column": "amount", "operation": "Sum", "outputName": "Total_Amount" }] }\`
 Operations (PascalCase): Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct. Use \`outputName\` (not alias).
 

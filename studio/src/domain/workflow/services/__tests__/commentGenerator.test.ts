@@ -195,12 +195,12 @@ describe("commentGenerator", () => {
   describe("Union tool", () => {
     it("should show union mode", () => {
       expect(generateComment("Union", { mode: "by Position" })).toBe(
-        "Union by Position"
+        "Concatenate by Position"
       );
     });
 
     it("should default to by Name", () => {
-      expect(generateComment("Union", {})).toBe("Union by Name");
+      expect(generateComment("Union", {})).toBe("Concatenate by Name");
     });
   });
 

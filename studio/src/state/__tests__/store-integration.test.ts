@@ -880,7 +880,7 @@ describe("Store Integration Tests", () => {
       // Set some UI state
       useUIStore.getState().setBottomPaneOpen(true);
       useUIStore.getState().setActiveBottomTab("logs");
-      useUIStore.getState().setActiveToolTab("preparation");
+      useUIStore.getState().setActiveToolTab("compute");
       
       // Perform workflow operations
       useWorkflowStore.getState().addTool(createTestTool("tool1"));
@@ -889,7 +889,7 @@ describe("Store Integration Tests", () => {
       // UI state should be unchanged
       expect(useUIStore.getState().bottomPaneOpen).toBe(true);
       expect(useUIStore.getState().activeBottomTab).toBe("logs");
-      expect(useUIStore.getState().activeToolTab).toBe("preparation");
+      expect(useUIStore.getState().activeToolTab).toBe("compute");
     });
 
     test("should track selected tool in workflow store", () => {

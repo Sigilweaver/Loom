@@ -16,8 +16,8 @@ interface SuggestedPromptsProps {
 /** Capability descriptions shown in the empty state */
 const CAPABILITIES = [
   { label: 'Build workflows', description: 'Create data pipelines from natural language descriptions' },
-  { label: 'Add & configure tools', description: 'Insert inputs, filters, joins, formulas, and more' },
-  { label: 'Write expressions', description: 'Generate Polars expressions for formulas and filters' },
+  { label: 'Add & configure tools', description: 'Insert reads, filters, joins, calculations, and more' },
+  { label: 'Write expressions', description: 'Generate Polars expressions for calculations and filters' },
   { label: 'Explain workflows', description: 'Describe what a workflow does step by step' },
   { label: 'Inspect data', description: 'Preview schemas, profiles, and sample rows' },
 ];
@@ -26,7 +26,7 @@ const CAPABILITIES = [
 const STARTER_PROMPTS = [
   'Build a workflow that filters and sorts a CSV',
   'What does this workflow do?',
-  'Add a formula to calculate a new column',
+  'Add a calculation for a new column',
 ];
 
 /** Contextual prompts when there are tools on the canvas */
@@ -39,15 +39,15 @@ function getContextualPrompts(toolTypes: string[], hasWires: boolean): string[] 
 
   if (toolTypes.includes('Input')) {
     prompts.push('Add a filter to keep only certain rows');
-    prompts.push('Summarize this data by a column');
+    prompts.push('Aggregate this data by a column');
   }
 
   if (toolTypes.length > 0 && !toolTypes.includes('Output')) {
-    prompts.push('Add an output to save the results');
+    prompts.push('Add a write tool to save the results');
   }
 
   prompts.push('What does this workflow do?');
-  prompts.push('Add a formula to calculate a new column');
+  prompts.push('Add a calculation for a new column');
 
   return prompts.slice(0, 3);
 }

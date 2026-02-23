@@ -104,7 +104,7 @@ export interface ColorPalette {
   
   // Tool category colors (preserve visual associations)
   tools: {
-    inout: {
+    connect: {
       50: string;
       100: string;
       200: string;
@@ -116,7 +116,7 @@ export interface ColorPalette {
       800: string;
       900: string;
     };
-    preparation: {
+    compute: {
       50: string;
       100: string;
       200: string;
@@ -128,7 +128,7 @@ export interface ColorPalette {
       800: string;
       900: string;
     };
-    join: {
+    reshape: {
       50: string;
       100: string;
       200: string;
@@ -140,7 +140,7 @@ export interface ColorPalette {
       800: string;
       900: string;
     };
-    aggregate: {
+    combine: {
       50: string;
       100: string;
       200: string;

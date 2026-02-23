@@ -126,10 +126,10 @@ const SocketTabs = () => {
     if (!toolDefinition) return "text-theme-text-primary";
     
     switch (toolDefinition.category) {
-      case "inout": return "text-theme-tool-inout";
-      case "preparation": return "text-theme-tool-preparation";
-      case "join": return "text-theme-tool-join";
-      case "aggregate": return "text-theme-tool-aggregate";
+      case "connect": return "text-theme-tool-connect";
+      case "compute": return "text-theme-tool-compute";
+      case "reshape": return "text-theme-tool-reshape";
+      case "combine": return "text-theme-tool-combine";
       default: return "text-theme-text-primary";
     }
   }, [toolDefinition]);

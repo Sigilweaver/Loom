@@ -1,7 +1,8 @@
 import { Tool } from '../domain/workflow/entities/workflow';
 import { getToolDefinition } from '../data/tools';
 import { HelpLink } from './common/HelpLink';
-import { Settings } from 'lucide-react';
+import { useSettingsStore } from '../state/settingsStore';
+import { Settings, AlertTriangle } from 'lucide-react';
 
 interface ToolHeaderProps {
   tool: Tool;
@@ -9,13 +10,14 @@ interface ToolHeaderProps {
 
 export default function ToolHeader({ tool }: ToolHeaderProps) {
   const toolDefinition = getToolDefinition(tool.type);
+  const showBlockingIndicators = useSettingsStore((s) => s.ui.showBlockingIndicators);
   
   // Category color logic
   const categoryColor = toolDefinition ? (
-    toolDefinition.category === 'inout' ? 'var(--color-tool-inout)' :
-    toolDefinition.category === 'preparation' ? 'var(--color-tool-preparation)' :
-    toolDefinition.category === 'join' ? 'var(--color-tool-join)' :
-    toolDefinition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)'
+    toolDefinition.category === 'connect' ? 'var(--color-tool-connect)' :
+    toolDefinition.category === 'compute' ? 'var(--color-tool-compute)' :
+    toolDefinition.category === 'reshape' ? 'var(--color-tool-reshape)' :
+    toolDefinition.category === 'combine' ? 'var(--color-tool-combine)' : 'var(--color-tool-default)'
   ) : 'var(--color-tool-default)';
 
   return (
@@ -28,7 +30,14 @@ export default function ToolHeader({ tool }: ToolHeaderProps) {
             <Settings className="w-6 h-6" />
           )}
           <div>
-            <h2 className="text-lg font-semibold text-theme-text-primary">{toolDefinition?.name || tool.type}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-lg font-semibold text-theme-text-primary">{toolDefinition?.name || tool.type}</h2>
+              {toolDefinition?.blocking && showBlockingIndicators && (
+                <span title="Blocking operation — materializes the dataframe and breaks lazy evaluation">
+                  <AlertTriangle className="w-4 h-4 opacity-50" style={{ color: 'var(--color-warning, #d97706)' }} />
+                </span>
+              )}
+            </div>
             <p className="text-xs text-theme-text-tertiary">Tool ID: {tool.id}</p>
           </div>
         </div>

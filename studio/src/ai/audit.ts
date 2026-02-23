@@ -82,10 +82,10 @@ WARNING: <one sentence explaining what's wrong or missing>
 Rules:
 - Be concise — one sentence only after PASS: or WARNING:
 - Focus on whether the agent addressed the user's actual request
-- Check that the right tool types were used (e.g. Summarize for aggregation, not Formula)
+- Check that the right tool types were used (e.g. Aggregate for aggregation, not Calculate)
 - Check that the workflow is structurally sound (tools are connected, data flows correctly)
 - Check that tools have descriptive comments. If ${toolsWithoutComments > 0 ? `${toolsWithoutComments} tool(s) lack comments` : 'all tools have comments'}, note it.
-- If the agent created tools for multiple analyses, check they branch correctly from the Input
+- If the agent created tools for multiple analyses, check they branch correctly from the Read
 - Do NOT warn about stylistic choices, naming preferences, or minor variations
 - Do NOT re-examine data correctness — only whether the pipeline design matches the request`;
 

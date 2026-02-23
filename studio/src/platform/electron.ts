@@ -26,7 +26,7 @@ import type {
   ConnectionTestResult,
   DatabaseType,
 } from '../types/connections';
-import { DEFAULT_SETTINGS } from '../types/settings';
+import { DEFAULT_SETTINGS, mergeWithDefaults } from '../types/settings';
 
 // =============================================================================
 // File Operations Implementation
@@ -73,7 +73,7 @@ const electronSettingsOps: SettingsOperations = {
       const stored = localStorage.getItem('sigilweaver-settings');
       if (stored) {
         try {
-          return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+          return mergeWithDefaults(JSON.parse(stored));
         } catch {
           return DEFAULT_SETTINGS;
         }

@@ -26,7 +26,7 @@ import type {
     ConnectionTestResult,
     DatabaseType,
 } from '../types/connections';
-import { DEFAULT_SETTINGS } from '../types/settings';
+import { DEFAULT_SETTINGS, mergeWithDefaults } from '../types/settings';
 
 // Tauri API imports - these are only available when running in Tauri
 // We use dynamic imports to avoid errors in non-Tauri environments
@@ -99,7 +99,7 @@ const tauriSettingsOps: SettingsOperations = {
     async getSettings(): Promise<AppSettings> {
         try {
             const settings = await tauriInvoke<AppSettings>('get_settings');
-            return { ...DEFAULT_SETTINGS, ...settings };
+            return mergeWithDefaults(settings as Record<string, unknown>);
         } catch (e) {
             console.error('[Platform/Tauri] Failed to get settings:', e);
             return DEFAULT_SETTINGS;

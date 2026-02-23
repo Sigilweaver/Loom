@@ -12,10 +12,10 @@ export function useNodeColor(tools: Tool[]) {
     const def = getToolDefinition(tool.type);
     if (!def) return currentTheme.colors.canvas.minimap.viewport;
     switch (def.category) {
-      case 'inout': return currentTheme.colors.palette.tools.inout[500];
-      case 'preparation': return currentTheme.colors.palette.tools.preparation[500];
-      case 'join': return currentTheme.colors.palette.tools.join[500];
-      case 'aggregate': return currentTheme.colors.palette.tools.aggregate[500];
+      case 'connect': return currentTheme.colors.palette.tools.connect[500];
+      case 'compute': return currentTheme.colors.palette.tools.compute[500];
+      case 'reshape': return currentTheme.colors.palette.tools.reshape[500];
+      case 'combine': return currentTheme.colors.palette.tools.combine[500];
       default: return currentTheme.colors.canvas.minimap.viewport;
     }
   }, [tools, currentTheme]);

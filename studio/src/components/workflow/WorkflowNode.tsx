@@ -3,6 +3,8 @@ import { Handle, Position } from '@xyflow/react';
 import { Tool, ToolDefinition, Socket } from '@domain/workflow/entities/workflow';
 import { useSocketPreview } from '@hooks/useSocketPreview';
 import { useSocketProfile } from '@hooks/useSocketProfile';
+import { useSettingsStore } from '@state/settingsStore';
+import { AlertTriangle } from 'lucide-react';
 
 interface SocketContextMenu {
   x: number;
@@ -23,6 +25,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
   const { definition, tool } = data;
   const { previewSocket } = useSocketPreview();
   const { profileSocket } = useSocketProfile();
+  const showBlockingIndicators = useSettingsStore((s) => s.ui.showBlockingIndicators);
   const [contextMenu, setContextMenu] = useState<SocketContextMenu | null>(null);
 
   // Close context menu when clicking outside
@@ -113,10 +116,10 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
 
   // Category border color
   const categoryColor = 
-    definition.category === 'inout' ? 'var(--color-tool-inout)' :
-    definition.category === 'preparation' ? 'var(--color-tool-preparation)' :
-    definition.category === 'join' ? 'var(--color-tool-join)' :
-    definition.category === 'aggregate' ? 'var(--color-tool-aggregate)' : 'var(--color-tool-default)';
+    definition.category === 'connect' ? 'var(--color-tool-connect)' :
+    definition.category === 'compute' ? 'var(--color-tool-compute)' :
+    definition.category === 'reshape' ? 'var(--color-tool-reshape)' :
+    definition.category === 'combine' ? 'var(--color-tool-combine)' : 'var(--color-tool-default)';
 
   return (
     <div style={{ width: `${nodeSize}px`, height: `${nodeSize}px` }}>
@@ -214,6 +217,16 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
       <div className="flex items-center justify-center h-full">
         <definition.icon className="w-6 h-6" style={{ color: categoryColor }} />
       </div>
+
+      {/* Blocking indicator */}
+      {definition.blocking && showBlockingIndicators && (
+        <div
+          className="absolute bottom-1 right-1"
+          title="Blocking operation — materializes the dataframe and breaks lazy evaluation"
+        >
+          <AlertTriangle className="w-3 h-3 opacity-45" style={{ color: 'var(--color-warning, #d97706)' }} />
+        </div>
+      )}
 
       {/* Output handles */}
       {outputSockets.map((socket: Socket, index: number) => (

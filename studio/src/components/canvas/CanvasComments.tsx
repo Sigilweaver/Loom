@@ -36,10 +36,10 @@ function resolveComment(tool: Tool, visible: boolean): string | null {
 /** Category → border color mapping (mirrors WorkflowNode) */
 function getCategoryColor(category: string): string {
   switch (category) {
-    case 'inout': return 'var(--color-tool-inout)';
-    case 'preparation': return 'var(--color-tool-preparation)';
-    case 'join': return 'var(--color-tool-join)';
-    case 'aggregate': return 'var(--color-tool-aggregate)';
+    case 'connect': return 'var(--color-tool-connect)';
+    case 'compute': return 'var(--color-tool-compute)';
+    case 'reshape': return 'var(--color-tool-reshape)';
+    case 'combine': return 'var(--color-tool-combine)';
     default: return 'var(--color-tool-default)';
   }
 }

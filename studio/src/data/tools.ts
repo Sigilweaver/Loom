@@ -19,12 +19,12 @@ import { CommonSockets, FilterSockets, JoinSockets, UnionSockets, UniqueSockets 
 const DOCS_BASE_URL = 'https://sigilweaver.app/docs/user';
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
-  // In/Out Tools
+  // Connect Tools
   {
     type: 'Input',
-    name: 'Input',
+    name: 'Read',
     icon: FileInput,
-    category: 'inout',
+    category: 'connect',
     defaultConfig: {
       placeholder: 'Configuration coming soon...',
     },
@@ -35,9 +35,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     type: 'Output',
-    name: 'Output',
+    name: 'Write',
     icon: FileDown,
-    category: 'inout',
+    category: 'connect',
     defaultConfig: {
       placeholder: 'Configuration coming soon...',
     },
@@ -47,12 +47,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     docsUrl: `${DOCS_BASE_URL}/tools/input-output/output`,
   },
   
-  // Preparation Tools
+  // Compute Tools
   {
     type: 'Filter',
     name: 'Filter',
     icon: Filter,
-    category: 'preparation',
+    category: 'compute',
     defaultConfig: {
       expression: '',
       mode: 'Basic',
@@ -68,9 +68,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     type: 'Select',
-    name: 'Select',
+    name: 'Schema',
     icon: CheckSquare,
-    category: 'preparation',
+    category: 'compute',
     defaultConfig: {
       columnConfigs: [],
     },
@@ -84,7 +84,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Sort',
     name: 'Sort',
     icon: ArrowUpDown,
-    category: 'preparation',
+    category: 'compute',
+    blocking: true,
     defaultConfig: {
       sortColumns: [],
     },
@@ -96,9 +97,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     type: 'Formula',
-    name: 'Formula',
+    name: 'Calculate',
     icon: Calculator,
-    category: 'preparation',
+    category: 'compute',
     defaultConfig: {
       operations: [],
       expression: '',
@@ -114,7 +115,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Sample',
     name: 'Sample',
     icon: FlaskRound,
-    category: 'preparation',
+    category: 'compute',
     defaultConfig: {
       mode: 'FirstN',
       n: 100,
@@ -132,7 +133,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Unique',
     name: 'Unique',
     icon: Fingerprint,
-    category: 'preparation',
+    category: 'compute',
     defaultConfig: {
       columns: [],
       mode: 'First',
@@ -145,12 +146,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     docsUrl: `${DOCS_BASE_URL}/tools/preparation/unique`,
   },
   
-  // Join Tools
+  // Combine Tools
   {
     type: 'Union',
-    name: 'Union',
+    name: 'Concatenate',
     icon: Layers,
-    category: 'join',
+    category: 'combine',
     defaultConfig: {
       mode: 'ByName',
     },
@@ -164,7 +165,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Join',
     name: 'Join',
     icon: SigilweaverIcon,
-    category: 'join',
+    category: 'combine',
+    blocking: true,
     defaultConfig: {
       joinType: 'inner',
       leftKeys: [],
@@ -180,12 +182,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     docsUrl: `${DOCS_BASE_URL}/tools/join/join-tool`,
   },
 
-  // Aggregate Tools
+  // Reshape Tools
   {
     type: 'Summarize',
-    name: 'Summarize',
+    name: 'Aggregate',
     icon: Sigma,
-    category: 'aggregate',
+    category: 'reshape',
+    blocking: true,
     defaultConfig: {
       groupByColumns: [],
       aggregations: [
@@ -207,7 +210,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Pivot',
     name: 'Pivot',
     icon: CornerRightDown,
-    category: 'aggregate',
+    category: 'reshape',
+    blocking: true,
     defaultConfig: {
       on: '',
       index: [],
@@ -224,7 +228,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     type: 'Unpivot',
     name: 'Unpivot',
     icon: CornerLeftUp,
-    category: 'aggregate',
+    category: 'reshape',
+    blocking: true,
     defaultConfig: {
       on: [],
       index: [],

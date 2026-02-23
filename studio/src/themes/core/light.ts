@@ -5,15 +5,14 @@
 
 import { createTheme } from '../createTheme';
 import { lightPalette } from '../palettes';
-import { HEADER_BACKGROUND, BRAND_EDGE, BRAND_EDGE_ANIMATED } from '../tokens/constants';
 
 export const lightTheme = createTheme({
   id: 'light',
   name: 'Light',
   description: 'Clean and bright theme for daytime use',
   palette: lightPalette,
-  headerBackground: HEADER_BACKGROUND,
-  accentEdge: BRAND_EDGE,
-  accentEdgeAnimated: BRAND_EDGE_ANIMATED,
+  headerBackground: '#1e293b',  // slate-800 — professional dark header, no purple
+  accentEdge: '#0284c7',        // sky-600 — punchy sky blue for light bg
+  accentEdgeAnimated: '#0ea5e9', // sky-500
   isDark: false,
 });

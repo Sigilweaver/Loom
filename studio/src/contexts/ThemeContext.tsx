@@ -732,16 +732,19 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-form-error-text", colors.forms.errorText);
   root.style.setProperty("--color-form-success-text", colors.forms.successText);
 
+  // Global semantic warning color (for blocking indicators, etc.)
+  root.style.setProperty("--color-warning", colors.palette.semantic.warning[500]);
+
   // Tool category colors (preserved for visual associations)
-  root.style.setProperty("--color-tool-inout", colors.palette.tools.inout[500]);
+  root.style.setProperty("--color-tool-connect", colors.palette.tools.connect[500]);
   root.style.setProperty(
-    "--color-tool-preparation",
-    colors.palette.tools.preparation[500]
+    "--color-tool-compute",
+    colors.palette.tools.compute[500]
   );
-  root.style.setProperty("--color-tool-join", colors.palette.tools.join[500]);
+  root.style.setProperty("--color-tool-reshape", colors.palette.tools.reshape[500]);
   root.style.setProperty(
-    "--color-tool-aggregate",
-    colors.palette.tools.aggregate[500]
+    "--color-tool-combine",
+    colors.palette.tools.combine[500]
   );
   root.style.setProperty(
     "--color-tool-favorites",
