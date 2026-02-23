@@ -49,6 +49,13 @@ export interface Tool {
   type: string;
   /** Execution engine for this tool. Omit to inherit from WorkflowMeta.defaultEngine. */
   engine?: string;
+  /**
+   * Tool comment displayed on canvas and in generated code.
+   * - undefined: auto-generate from config
+   * - "": user explicitly cleared (no comment shown)
+   * - "text": user-provided custom comment
+   */
+  comment?: string;
   x: number;
   y: number;
   config: ToolConfig;

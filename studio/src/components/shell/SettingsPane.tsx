@@ -12,7 +12,7 @@ import AboutContent from './AboutContent';
 import ConnectionManager from './ConnectionManager';
 import HubLoginDialog from './HubLoginDialog';
 import { Checkbox } from '@components/ui/Checkbox';
-import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick } from 'lucide-react';
+import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick, MessageSquare } from 'lucide-react';
 import type { ExecutionMode } from '../../types/settings';
 import { hasHubClient, getHubClient, clearHubClient, initHubClient } from '../../api/hub';
 import { triggerHubConnectionsRefresh } from '../../hooks/useAllConnections';
@@ -93,6 +93,14 @@ const SettingsPane: React.FC = () => {
     updateAutoConnect,
     updateAutoConnectRadius,
     resetToDefaults,
+  } = useSettingsStore();
+
+  const {
+    comments,
+    updateCommentsVisible,
+    updateCommentsAlignment,
+    updateCommentsMaxWidth,
+    updateCommentsMaxHeight,
   } = useSettingsStore();
 
   // Check Hub login status on mount and when mode changes
@@ -671,6 +679,92 @@ const SettingsPane: React.FC = () => {
                   How close a tool must be to auto-connect
                 </p>
               </div>
+            )}
+          </div>
+        </Section>
+
+        {/* Comments */}
+        <Section
+          id="comments"
+          title="Comments"
+          icon={MessageSquare}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        >
+          <div className="space-y-4">
+            <Checkbox
+              checked={comments.visible}
+              onCheckedChange={(checked) => updateCommentsVisible(checked === true)}
+              label="Show comments on canvas"
+              description="Display auto-generated or custom comments below each tool"
+            />
+
+            {comments.visible && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                    Text Alignment
+                  </label>
+                  <div className="flex overflow-hidden border rounded border-theme-border-primary">
+                    {([
+                      { id: 'left', label: 'Left' },
+                      { id: 'center', label: 'Center' },
+                      { id: 'right', label: 'Right' },
+                    ] as const).map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => updateCommentsAlignment(id)}
+                        className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${comments.alignment === id
+                            ? 'bg-theme-interactive-accent text-white'
+                            : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
+                          }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                    Max Width
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={80}
+                      max={300}
+                      step={10}
+                      value={comments.maxWidth}
+                      onChange={(e) => updateCommentsMaxWidth(Number(e.target.value))}
+                      className="flex-1 accent-theme-interactive-accent"
+                    />
+                    <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                      {comments.maxWidth}px
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                    Max Height
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={16}
+                      max={120}
+                      step={4}
+                      value={comments.maxHeight}
+                      onChange={(e) => updateCommentsMaxHeight(Number(e.target.value))}
+                      className="flex-1 accent-theme-interactive-accent"
+                    />
+                    <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                      {comments.maxHeight}px
+                    </span>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </Section>

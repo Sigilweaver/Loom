@@ -28,6 +28,10 @@ interface SettingsState extends AppSettings {
   updateEdgeStyle: (edgeStyle: AppSettings['ui']['edgeStyle']) => Promise<void>;
   updateAutoConnect: (autoConnect: boolean) => Promise<void>;
   updateAutoConnectRadius: (radius: number) => Promise<void>;
+  updateCommentsVisible: (visible: boolean) => Promise<void>;
+  updateCommentsAlignment: (alignment: AppSettings['comments']['alignment']) => Promise<void>;
+  updateCommentsMaxWidth: (maxWidth: number) => Promise<void>;
+  updateCommentsMaxHeight: (maxHeight: number) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
@@ -57,6 +61,7 @@ function buildSettings(state: SettingsState): AppSettings {
     theme: state.theme,
     ui: state.ui,
     behavior: state.behavior,
+    comments: state.comments,
   };
 }
 
@@ -188,6 +193,34 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newBehavior = { ...state.behavior, autoConnectRadius };
     set({ behavior: newBehavior });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateCommentsVisible: async (visible) => {
+    const state = get();
+    const newComments = { ...state.comments, visible };
+    set({ comments: newComments });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateCommentsAlignment: async (alignment) => {
+    const state = get();
+    const newComments = { ...state.comments, alignment };
+    set({ comments: newComments });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateCommentsMaxWidth: async (maxWidth) => {
+    const state = get();
+    const newComments = { ...state.comments, maxWidth };
+    set({ comments: newComments });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateCommentsMaxHeight: async (maxHeight) => {
+    const state = get();
+    const newComments = { ...state.comments, maxHeight };
+    set({ comments: newComments });
     await saveToStorage(buildSettings(get()));
   },
 

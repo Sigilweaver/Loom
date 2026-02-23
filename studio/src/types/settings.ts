@@ -70,6 +70,18 @@ export interface AppSettings {
     /** Maximum distance (in canvas pixels) to search for auto-connect candidates */
     autoConnectRadius: number;
   };
+
+  /** Tool comment display preferences */
+  comments: {
+    /** Whether comments are visible on the canvas */
+    visible: boolean;
+    /** Text alignment within the comment label */
+    alignment: 'left' | 'center' | 'right';
+    /** Maximum width in pixels for the comment label */
+    maxWidth: number;
+    /** Maximum height in pixels for the comment label */
+    maxHeight: number;
+  };
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -97,5 +109,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   behavior: {
     autoConnect: true,
     autoConnectRadius: 300,
+  },
+  comments: {
+    visible: true,
+    alignment: 'center',
+    maxWidth: 150,
+    maxHeight: 40,
   },
 };

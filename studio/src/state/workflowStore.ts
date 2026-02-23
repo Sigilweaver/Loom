@@ -38,6 +38,7 @@ interface WorkflowState {
   updateTool: (toolId: string, updates: Partial<Omit<Tool, "id">>) => void;
   updateToolPosition: (toolId: string, x: number, y: number) => void;
   updateToolConfiguration: (toolId: string, config: ToolConfig) => void;
+  updateToolComment: (toolId: string, comment: string | undefined) => void;
   batchUpdateToolPositions: (
     updates: Array<{ id: string; x: number; y: number }>
   ) => void;
@@ -224,6 +225,24 @@ export const useWorkflowStore = create<WorkflowState>()(
           if (tool) {
             tool.config = config;
             // If this is the selected tool, update the reference so selectors detect the change
+            if (state.selectedTool?.id === toolId) {
+              state.selectedTool = tool;
+            }
+          }
+          get()._markDirty();
+        });
+      },
+
+      updateToolComment: (toolId, comment) => {
+        set((state) => {
+          const tool = state.tools.find((t) => t.id === toolId);
+          if (tool) {
+            if (comment === undefined) {
+              delete tool.comment;
+            } else {
+              tool.comment = comment;
+            }
+            // Sync selected tool reference
             if (state.selectedTool?.id === toolId) {
               state.selectedTool = tool;
             }

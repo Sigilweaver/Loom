@@ -733,4 +733,65 @@ describe("WorkflowSerializer", () => {
       expect(result.valid).toBe(true);
     });
   });
+
+  describe("comment serialization", () => {
+    it("should strip undefined comment from serialized output", () => {
+      const tool = createTestTool("t1");
+      // comment is undefined by default
+      expect(tool.comment).toBeUndefined();
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const parsed = JSON.parse(json);
+
+      expect(parsed.tools[0].comment).toBeUndefined();
+    });
+
+    it("should preserve explicit empty string comment", () => {
+      const tool: Tool = { ...createTestTool("t1"), comment: "" };
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const parsed = JSON.parse(json);
+
+      expect(parsed.tools[0].comment).toBe("");
+    });
+
+    it("should preserve custom comment text", () => {
+      const tool: Tool = { ...createTestTool("t1"), comment: "Load sales data" };
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const parsed = JSON.parse(json);
+
+      expect(parsed.tools[0].comment).toBe("Load sales data");
+    });
+
+    it("should round-trip undefined comment (auto-generate on load)", () => {
+      const tool = createTestTool("t1");
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const { tools } = WorkflowSerializer.fromJSON(json);
+
+      expect(tools[0]?.comment).toBeUndefined();
+    });
+
+    it("should round-trip empty string comment (user cleared)", () => {
+      const tool: Tool = { ...createTestTool("t1"), comment: "" };
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const { tools } = WorkflowSerializer.fromJSON(json);
+
+      expect(tools[0]?.comment).toBe("");
+    });
+
+    it("should round-trip custom comment text", () => {
+      const tool: Tool = {
+        ...createTestTool("t1"),
+        comment: "Multi-line\ncomment text",
+      };
+
+      const json = WorkflowSerializer.toJSON([tool], [], createTestMeta());
+      const { tools } = WorkflowSerializer.fromJSON(json);
+
+      expect(tools[0]?.comment).toBe("Multi-line\ncomment text");
+    });
+  });
 });

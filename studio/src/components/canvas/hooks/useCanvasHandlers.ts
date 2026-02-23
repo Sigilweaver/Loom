@@ -47,14 +47,14 @@ export function getSocketWorldPosition(
   } else if (total === 2) {
     sy = tool.y + (index === 0 ? NODE_CENTER - SOCKET_SPACING : NODE_CENTER + SOCKET_SPACING);
   } else if (total === 3) {
-    const offsets = [-SOCKET_SPACING, 0, SOCKET_SPACING];
-    sy = tool.y + NODE_CENTER + offsets[index];
+    const offsets = [-SOCKET_SPACING, 0, SOCKET_SPACING] as const;
+    sy = tool.y + NODE_CENTER + (offsets[index] ?? 0);
   } else if (total === 4) {
-    const offsets = [-21, -7, 7, 21];
-    sy = tool.y + NODE_CENTER + offsets[index];
+    const offsets = [-21, -7, 7, 21] as const;
+    sy = tool.y + NODE_CENTER + (offsets[index] ?? 0);
   } else if (total === 5) {
-    const offsets = [-21, -7, 0, 7, 21];
-    sy = tool.y + NODE_CENTER + offsets[index];
+    const offsets = [-21, -7, 0, 7, 21] as const;
+    sy = tool.y + NODE_CENTER + (offsets[index] ?? 0);
   } else {
     const margin = 8;
     const available = NODE_SIZE - margin * 2;
@@ -155,7 +155,7 @@ export function findAutoConnectWire(
 
   // Pick closest socket pair
   candidates.sort((a, b) => a.distance - b.distance);
-  return candidates[0].wire;
+  return candidates[0]?.wire ?? null;
 }
 
 /**

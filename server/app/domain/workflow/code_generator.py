@@ -51,7 +51,17 @@ class PythonCodeGenerator:
         # Generate code for each tool
         for tool_id in execution_order:
             tool = self.tool_map[tool_id]
-            lines.append(f"# {tool.type}: {tool_id}")
+            comment_header = f"# {tool.type}: {tool_id}"
+            if tool.comment:
+                # Emit multiline comments with # prefix on each line
+                comment_lines = tool.comment.split("\n")
+                if len(comment_lines) == 1:
+                    comment_header += f" -- {tool.comment}"
+                else:
+                    comment_header += "\n" + "\n".join(
+                        f"# {line}" for line in comment_lines
+                    )
+            lines.append(comment_header)
 
             try:
                 tool_lines = self._generate_tool_code(tool)
