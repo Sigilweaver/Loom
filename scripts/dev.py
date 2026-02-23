@@ -148,6 +148,11 @@ def print_warning(message: str) -> None:
     print(f"{YELLOW}{message}{NC}")
 
 
+def print_info(message: str) -> None:
+    """Print an info message in blue."""
+    print(f"{BLUE}{message}{NC}")
+
+
 def print_success(message: str) -> None:
     """Print a success message in green."""
     print(f"{GREEN}{message}{NC}")
@@ -301,13 +306,92 @@ def install_site(repo_root: Path) -> bool:
     return True
 
 
+def get_venv_python(venv_path: Path) -> Path:
+    """Return the platform-appropriate Python executable inside a venv."""
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "python.exe"
+    return venv_path / "bin" / "python"
+
+
+def venv_needs_sync(project_dir: Path) -> bool:
+    """Check whether a uv-managed venv needs to be created or updated.
+
+    Returns True when:
+      - .venv or uv.lock does not exist (first run / fresh clone)
+      - pyproject.toml is newer than the venv directory (deps changed)
+      - The venv Python binary is missing or not runnable (e.g. venv was
+        created inside a dev container but we are now on the host, or
+        vice-versa)
+    """
+    venv_path = project_dir / ".venv"
+    lock_path = project_dir / "uv.lock"
+    pyproject_path = project_dir / "pyproject.toml"
+
+    if not venv_path.exists() or not lock_path.exists():
+        return True
+
+    # Verify the Python binary inside the venv is actually executable in
+    # the current environment.  A venv created in a dev container will
+    # have symlinks / paths that don't resolve on the host (and vice-versa).
+    python_path = get_venv_python(venv_path)
+    if not python_path.exists():
+        return True
+    try:
+        result = subprocess.run(
+            [str(python_path), "-c", "import sys"],
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return True
+    except (OSError, subprocess.TimeoutExpired):
+        return True
+
+    # If pyproject.toml or uv.lock was modified after the venv was last
+    # touched, dependencies likely changed (e.g. branch switch).
+    try:
+        venv_mtime = venv_path.stat().st_mtime
+        if pyproject_path.exists() and pyproject_path.stat().st_mtime > venv_mtime:
+            return True
+        if lock_path.stat().st_mtime > venv_mtime:
+            return True
+    except OSError:
+        return True
+
+    return False
+
+
+def sync_venv(project_dir: Path, label: str) -> bool:
+    """Run `uv sync --extra dev` for a project and touch .venv on success."""
+    print_info(f"Syncing {label} virtual environment...")
+    result = subprocess.run(
+        ["uv", "sync", "--extra", "dev"],
+        cwd=project_dir,
+    )
+    if result.returncode != 0:
+        print_error(f"Failed to sync {label} dependencies")
+        return False
+    # Touch the venv so the mtime check passes next time
+    try:
+        (project_dir / ".venv").touch()
+    except OSError:
+        pass
+    print_success(f"{label} environment is up to date")
+    return True
+
+
 def check_server_setup(repo_root: Path) -> bool:
-    """Check if server is set up with uv. Auto-installs if missing."""
-    lock_path = repo_root / "server" / "uv.lock"
-    venv_path = repo_root / "server" / ".venv"
-    if not lock_path.exists() or not venv_path.exists():
-        print_warning("Server dependencies not found, installing...")
-        if not install_server(repo_root):
+    """Check if server venv is set up and current. Auto-syncs if needed."""
+    server_dir = repo_root / "server"
+    if venv_needs_sync(server_dir):
+        venv_path = server_dir / ".venv"
+        if not venv_path.exists():
+            print_warning("Server virtual environment not found, creating...")
+        elif not get_venv_python(venv_path).exists():
+            print_warning("Server venv was built for a different environment, recreating...")
+        else:
+            print_warning("Server dependencies may have changed, syncing...")
+        if not sync_venv(server_dir, "Server"):
             return False
     return True
 
@@ -446,7 +530,7 @@ def run_hub_migrations(repo_root: Path) -> bool:
         True if migrations succeeded, False otherwise.
     """
     hub_backend_dir = repo_root / "hub" / "backend"
-    venv_python = hub_backend_dir / ".venv" / "bin" / "python"
+    venv_python = get_venv_python(hub_backend_dir / ".venv")
     
     if not venv_python.exists():
         print_error("Hub backend venv not found, skipping migrations")
@@ -492,11 +576,16 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
     frontend_ready = True
     
     # Check backend
-    backend_venv = hub_dir / "backend" / ".venv"
-    backend_lock = hub_dir / "backend" / "uv.lock"
-    if not backend_venv.exists() or not backend_lock.exists():
-        print_warning("Hub backend dependencies not found, installing...")
-        if not install_hub_backend(repo_root):
+    hub_backend_dir = hub_dir / "backend"
+    if venv_needs_sync(hub_backend_dir):
+        venv_path = hub_backend_dir / ".venv"
+        if not venv_path.exists():
+            print_warning("Hub backend virtual environment not found, creating...")
+        elif not get_venv_python(venv_path).exists():
+            print_warning("Hub backend venv was built for a different environment, recreating...")
+        else:
+            print_warning("Hub backend dependencies may have changed, syncing...")
+        if not sync_venv(hub_backend_dir, "Hub backend"):
             backend_ready = False
     
     # Ensure PostgreSQL is running (auto-start if needed)
@@ -538,11 +627,8 @@ def check_site_setup(repo_root: Path) -> bool:
 
 
 def get_python_executable(repo_root: Path) -> Path:
-    """Get the Python executable path from the virtual environment."""
-    venv_path = repo_root / "server" / ".venv"
-    if sys.platform == "win32":
-        return venv_path / "Scripts" / "python.exe"
-    return venv_path / "bin" / "python"
+    """Get the Python executable path from the server virtual environment."""
+    return get_venv_python(repo_root / "server" / ".venv")
 
 
 def get_npm_command() -> str:
@@ -789,11 +875,7 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
     print_success("Starting Hub backend...")
     
     hub_backend_dir = repo_root / "hub" / "backend"
-    venv_path = hub_backend_dir / ".venv"
-    if sys.platform == "win32":
-        python_path = venv_path / "Scripts" / "python.exe"
-    else:
-        python_path = venv_path / "bin" / "python"
+    python_path = get_venv_python(hub_backend_dir / ".venv")
     
     cmd = [
         str(python_path),

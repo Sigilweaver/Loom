@@ -17,6 +17,7 @@ import { getToolDefinition } from '@data/tools';
 import { generateUniqueId } from '@utils/id';
 import { autoLayout } from '@domain/workflow/services/autoLayout';
 import { enrichToolConfig } from './tools/canvas';
+import { generateComment } from '@domain/workflow/services/commentGenerator';
 import type { Tool, Wire, WorkflowMeta, ToolConfig } from '@domain/workflow/entities/workflow';
 import { DEFAULT_ENGINE } from '@domain/workflow/entities/workflow';
 
@@ -31,6 +32,8 @@ export interface SimplifiedStep {
   type: string;
   /** Tool configuration */
   config?: Record<string, unknown> | undefined;
+  /** Brief human-readable comment explaining what this step does */
+  comment?: string | undefined;
 }
 
 export interface SimplifiedConnection {
@@ -106,6 +109,9 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
       }
     }
 
+    // Resolve comment: use agent-provided, or auto-generate from config
+    const resolvedComment = step.comment || generateComment(def.type, config) || undefined;
+
     tools.push({
       id: toolId,
       type: def.type,
@@ -113,6 +119,7 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
       y: 0,
       config,
       sockets: [...def.sockets],
+      ...(resolvedComment ? { comment: resolvedComment } : {}),
     });
   }
 

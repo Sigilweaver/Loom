@@ -14,6 +14,7 @@ import { generateUniqueId } from '@utils/id';
 import { previewTool } from '@api';
 import { formatAddToolResult } from '../format';
 import { createLogger } from '../../utils/logger';
+import { generateComment } from '@domain/workflow/services/commentGenerator';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
 const logger = createLogger('AI:CanvasTools');
@@ -424,11 +425,12 @@ export const addTool = tool({
   inputSchema: z.object({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique")'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
+    comment: z.string().optional().describe('Brief human-readable comment explaining what this tool does (e.g. "Load raw sales data", "Keep only active customers")'),
     after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Summarizes on raw data), always point back to the Input tool ID — not to another Summarize.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
-  execute: async ({ type, config, after, fromSocket, toSocket }) => {
+  execute: async ({ type, config, comment, after, fromSocket, toSocket }) => {
     const def = getToolDefinition(type);
     if (!def) {
       const available = listToolTypes().map((t) => t.type).join(', ');
@@ -438,8 +440,10 @@ export const addTool = tool({
     const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
     const existingIds = new Set(tools.map((t) => t.id));
 
-    // Enrich tool-specific configs for UI compatibility
+    // Resolve comment: use agent-provided, or auto-generate from config
     const resolvedConfig = config ? enrichToolConfig(type, config) : config;
+    const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
+    const resolvedComment = comment || generateComment(def.type, finalConfig) || undefined;
 
     // Temporary position — auto-layout will fix it
     const newTool: Tool = {
@@ -447,8 +451,9 @@ export const addTool = tool({
       type: def.type,
       x: 0,
       y: 0,
-      config: { ...def.defaultConfig, ...resolvedConfig } as ToolConfig,
+      config: finalConfig,
       sockets: [...def.sockets],
+      ...(resolvedComment ? { comment: resolvedComment } : {}),
     };
 
     storeAddTool(newTool);
@@ -512,24 +517,35 @@ export const addTool = tool({
  * Update an existing tool's configuration.
  */
 export const updateTool = tool({
-  description: 'Update a tool\'s configuration. For Join: always set leftKeys and rightKeys — empty keys produce a cross join.',
+  description: 'Update a tool\'s configuration and/or comment. For Join: always set leftKeys and rightKeys — empty keys produce a cross join.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to update.'),
-    config: z.record(z.string(), z.unknown()).describe('New configuration values to merge with existing config.'),
+    config: z.record(z.string(), z.unknown()).optional().describe('New configuration values to merge with existing config.'),
+    comment: z.string().optional().describe('New comment for the tool. Replaces the existing comment.'),
   }),
-  execute: async ({ toolId, config }) => {
-    const { tools, updateToolConfiguration } = useWorkflowStore.getState();
+  execute: async ({ toolId, config, comment }) => {
+    const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const existing = tools.find((t) => t.id === toolId);
     if (!existing) {
       return { success: false, error: `Tool not found: ${toolId}` };
     }
 
-    // Enrich tool-specific configs for UI compatibility
-    const resolvedConfig = enrichToolConfig(existing.type, config);
+    const updatedFields: string[] = [];
 
-    const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
-    updateToolConfiguration(toolId, mergedConfig);
-    return { success: true, toolId, updatedFields: Object.keys(config) };
+    if (config) {
+      // Enrich tool-specific configs for UI compatibility
+      const resolvedConfig = enrichToolConfig(existing.type, config);
+      const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
+      updateToolConfiguration(toolId, mergedConfig);
+      updatedFields.push(...Object.keys(config));
+    }
+
+    if (comment !== undefined) {
+      updateToolComment(toolId, comment || undefined);
+      updatedFields.push('comment');
+    }
+
+    return { success: true, toolId, updatedFields };
   },
 });
 
@@ -543,24 +559,36 @@ export const updateTools = tool({
   inputSchema: z.object({
     updates: z.array(z.object({
       toolId: z.string().describe('The ID of the tool to update.'),
-      config: z.record(z.string(), z.unknown()).describe('New configuration values to merge with existing config.'),
+      config: z.record(z.string(), z.unknown()).optional().describe('New configuration values to merge with existing config.'),
+      comment: z.string().optional().describe('New comment for the tool.'),
     })).min(1).describe('Array of tool updates to apply.'),
   }),
   execute: async ({ updates }) => {
-    const { tools, updateToolConfiguration } = useWorkflowStore.getState();
+    const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const results: Array<{ toolId: string; success: boolean; error?: string; updatedFields?: string[] }> = [];
 
-    for (const { toolId, config } of updates) {
+    for (const { toolId, config, comment } of updates) {
       const existing = tools.find((t) => t.id === toolId);
       if (!existing) {
         results.push({ toolId, success: false, error: `Tool not found: ${toolId}` });
         continue;
       }
 
-      const resolvedConfig = enrichToolConfig(existing.type, config);
-      const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
-      updateToolConfiguration(toolId, mergedConfig);
-      results.push({ toolId, success: true, updatedFields: Object.keys(config) });
+      const updatedFields: string[] = [];
+
+      if (config) {
+        const resolvedConfig = enrichToolConfig(existing.type, config);
+        const mergedConfig = { ...existing.config, ...resolvedConfig } as ToolConfig;
+        updateToolConfiguration(toolId, mergedConfig);
+        updatedFields.push(...Object.keys(config));
+      }
+
+      if (comment !== undefined) {
+        updateToolComment(toolId, comment || undefined);
+        updatedFields.push('comment');
+      }
+
+      results.push({ toolId, success: true, updatedFields });
     }
 
     const succeeded = results.filter((r) => r.success).length;

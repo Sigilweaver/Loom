@@ -48,8 +48,12 @@ export async function runAudit(
     // Build context for the auditor
     const { tools, wires } = useWorkflowStore.getState();
     const canvasSummary = tools.length > 0
-      ? tools.map((t) => `  ${t.type} [${t.id.slice(0, 8)}]`).join('\n')
+      ? tools.map((t) => {
+          const commentNote = t.comment ? ` // "${t.comment}"` : ' // (no comment)';
+          return `  ${t.type} [${t.id.slice(0, 8)}]${commentNote}`;
+        }).join('\n')
       : '  (empty canvas)';
+    const toolsWithoutComments = tools.filter((t) => !t.comment).length;
     const wireSummary = wires.length > 0
       ? wires.map((w) => {
           const from = tools.find((t) => t.id === w.from.tool);
@@ -80,6 +84,7 @@ Rules:
 - Focus on whether the agent addressed the user's actual request
 - Check that the right tool types were used (e.g. Summarize for aggregation, not Formula)
 - Check that the workflow is structurally sound (tools are connected, data flows correctly)
+- Check that tools have descriptive comments. If ${toolsWithoutComments > 0 ? `${toolsWithoutComments} tool(s) lack comments` : 'all tools have comments'}, note it.
 - If the agent created tools for multiple analyses, check they branch correctly from the Input
 - Do NOT warn about stylistic choices, naming preferences, or minor variations
 - Do NOT re-examine data correctness — only whether the pipeline design matches the request`;

@@ -208,4 +208,33 @@ describe("compileSpec", () => {
     expect(result.tools).toHaveLength(0);
     expect(result.wires).toHaveLength(0);
   });
+
+  it("should propagate agent-provided comments to compiled tools", () => {
+    const spec: SimplifiedSpec = {
+      steps: [
+        { id: "load", type: "Input", config: { category: "file", type: "csv", source: "/data/test.csv" }, comment: "Load raw sales data" },
+        { id: "filter", type: "Filter", config: { expression: "pl.col('age') > 18" }, comment: "Keep adult customers" },
+      ],
+      connections: [{ from: "load", to: "filter" }],
+    };
+
+    const result = compileSpec(spec);
+    expect(result.success).toBe(true);
+    expect(result.tools![0]!.comment).toBe("Load raw sales data");
+    expect(result.tools![1]!.comment).toBe("Keep adult customers");
+  });
+
+  it("should auto-generate comments when agent does not provide them", () => {
+    const spec: SimplifiedSpec = {
+      steps: [
+        { id: "load", type: "Input", config: { category: "file", type: "csv", source: "/data/test.csv" } },
+      ],
+      connections: [],
+    };
+
+    const result = compileSpec(spec);
+    expect(result.success).toBe(true);
+    // Should have an auto-generated comment from the comment generator
+    expect(result.tools![0]!.comment).toBeTruthy();
+  });
 });
