@@ -798,7 +798,7 @@ List available models from an LLM provider.
 }
 ```
 
-### POST /api/ai/proxy/{provider}/{path}
+### POST /api/ai/proxy/\{provider\}/\{path\}
 
 Streaming reverse proxy for LLM API calls. Forwards the request to the provider, preserving headers, body, and SSE streaming.
 
