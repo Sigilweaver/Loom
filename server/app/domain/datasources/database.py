@@ -245,26 +245,26 @@ class DatabaseDataSource(DataSource):
 class PostgreSQLDataSource(DatabaseDataSource):
     """PostgreSQL-specific data source."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(database_type="postgresql")
 
 
 class MySQLDataSource(DatabaseDataSource):
     """MySQL-specific data source."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(database_type="mysql")
 
 
 class SQLiteDataSource(DatabaseDataSource):
     """SQLite-specific data source."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(database_type="sqlite")
 
 
 class MsSQLDataSource(DatabaseDataSource):
     """Microsoft SQL Server-specific data source."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(database_type="mssql")

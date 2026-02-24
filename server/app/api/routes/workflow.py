@@ -67,7 +67,7 @@ def _set_file_paths_context(hub_result: AuthorizationResult | None) -> Generator
         allowed_paths_context.reset(token)
 
 
-def _parse_workflow(workflow_json: dict) -> Workflow:
+def _parse_workflow(workflow_json: dict[str, Any]) -> Workflow:
     """Parse raw workflow JSON into Pydantic model.
 
     This is done AFTER hub validation to ensure the hash is computed
@@ -92,7 +92,7 @@ def _parse_workflow(workflow_json: dict) -> Workflow:
 
 
 async def _authorize_hub_request(
-    workflow_json: dict,
+    workflow_json: dict[str, Any],
     authorization: str | None,
     request_type: str = "execute",
 ) -> AuthorizationResult | None:
@@ -150,7 +150,7 @@ async def _authorize_hub_request(
     return result
 
 
-def _extract_hub_connections(workflow_json: dict) -> list[str]:
+def _extract_hub_connections(workflow_json: dict[str, Any]) -> list[str]:
     """Extract hub-owned connection IDs from raw workflow JSON.
 
     Hub can return both database credentials and filesystem grants tied to
@@ -190,7 +190,7 @@ def _clamp_preview_limit(requested: int | None) -> int:
 class ExecuteWorkflowRequest(BaseModel):
     """Request to execute a workflow"""
 
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     target_tool_id: str | None = Field(
         None, description="Optional: Execute up to this tool (null = execute all)"
     )
@@ -206,7 +206,7 @@ class ExecuteToolRequest(BaseModel):
     """Request to execute a single tool"""
 
     tool_id: str = Field(description="Tool ID to execute")
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Output socket ID to return data for")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview"
@@ -220,7 +220,7 @@ class ToolSchemaRequest(BaseModel):
     """Request to get tool output schema"""
 
     tool_id: str = Field(description="Tool ID to get schema for")
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Output socket ID to get schema for")
 
 
@@ -228,7 +228,7 @@ class ToolMetadataRequest(BaseModel):
     """Request to get tool metadata for autocomplete"""
 
     tool_id: str = Field(description="Tool ID to get metadata for")
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str | None = Field(
         None, description="Optional: Specific input socket ID to get columns for"
     )
@@ -238,7 +238,7 @@ class ToolProfileRequest(BaseModel):
     """Request to profile columns for a tool's input data"""
 
     tool_id: str = Field(description="Tool ID to profile input for")
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Input socket ID to profile")
     columns: list[str] | None = Field(
         None,
@@ -532,7 +532,7 @@ async def profile_tool_input(
 class PreviewAllRequest(BaseModel):
     """Request to preview all tools in one request"""
 
-    workflow: dict = Field(description="Full workflow JSON (raw dict for hash integrity)")
+    workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     preview_limit: int | None = Field(
         None, description="Optional: Limit rows returned in preview per tool"
     )
@@ -596,7 +596,7 @@ async def preview_all_tools(
 class PreviewCodeRequest(BaseModel):
     """Request to generate Python code preview"""
 
-    workflow: dict = Field(description="Workflow JSON to generate code for")
+    workflow: dict[str, Any] = Field(description="Workflow JSON to generate code for")
 
 
 class PreviewCodeResponse(BaseModel):

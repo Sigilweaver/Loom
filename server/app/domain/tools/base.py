@@ -153,4 +153,4 @@ class BaseTool(ABC):
         Returns:
             True if output should be cached, False otherwise
         """
-        return self.is_blocking()
+        return self.is_blocking(config)

@@ -10,7 +10,7 @@ network level in production (e.g., only accessible from server IPs).
 
 import logging
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -97,7 +97,7 @@ class AuthorizeRequest(BaseModel):
     request_type: Literal["execute", "preview", "browse"] = Field(
         ..., description="Type of operation being requested"
     )
-    workflow: dict | None = Field(
+    workflow: dict[str, Any] | None = Field(
         None, description="Workflow JSON (required for execute/preview)"
     )
     path: str | None = Field(

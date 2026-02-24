@@ -110,7 +110,7 @@ class HubClient:
                     )
                     return None
 
-                data = response.json()
+                data: dict[str, Any] = response.json()
                 logger.info(f"Successfully registered with Hub: {endpoint_url}")
                 return data
 
@@ -137,7 +137,7 @@ class HubClient:
         server_token: str,
         request_type: Literal["execute", "preview", "browse"],
         connection_ids: list[str] | None = None,
-        workflow: dict | None = None,
+        workflow: dict[str, Any] | None = None,
         path: str | None = None,
         timeout: float = 10.0,
     ) -> AuthorizationResult:

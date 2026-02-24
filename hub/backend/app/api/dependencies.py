@@ -1,6 +1,7 @@
 """FastAPI dependencies for authentication and authorization"""
 
-from typing import Annotated
+from collections.abc import Callable, Coroutine
+from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,7 +93,7 @@ CurrentUser = Annotated[SessionInfo, Depends(get_current_user)]
 OptionalUser = Annotated[SessionInfo | None, Depends(get_optional_user)]
 
 
-def require_role(*allowed_roles: Role | str):
+def require_role(*allowed_roles: Role | str) -> Callable[..., Coroutine[Any, Any, SessionInfo]]:
     """Create a dependency that requires specific roles.
 
     Args:
@@ -120,7 +121,7 @@ def require_role(*allowed_roles: Role | str):
     return dependency
 
 
-def require_min_role(min_role: Role | str):
+def require_min_role(min_role: Role | str) -> Callable[..., Coroutine[Any, Any, SessionInfo]]:
     """Create a dependency that requires a minimum role level.
 
     Uses the role hierarchy to check if the user's role is at least

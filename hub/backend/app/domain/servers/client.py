@@ -3,6 +3,7 @@
 import json
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
@@ -85,7 +86,7 @@ class ServerClient:
             logger.warning("Unexpected error polling %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
-    async def execute(self, workflow_content: bytes) -> dict | ServerError:
+    async def execute(self, workflow_content: bytes) -> dict[str, Any] | ServerError:
         """Execute a workflow on this server.
 
         Args:
@@ -107,7 +108,8 @@ class ServerClient:
                 )
 
                 if response.status_code == 200:
-                    return response.json()
+                    result: dict[str, Any] = response.json()
+                    return result
                 else:
                     # Include response body for better error messages
                     try:
@@ -131,7 +133,7 @@ class ServerClient:
             logger.error("Execution error on %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
-    async def get_connections(self) -> list[dict] | ServerError:
+    async def get_connections(self) -> list[dict[str, Any]] | ServerError:
         """Get available connections from the server.
 
         Returns:
@@ -145,7 +147,8 @@ class ServerClient:
                 )
 
                 if response.status_code == 200:
-                    return response.json()
+                    connections: list[dict[str, Any]] = response.json()
+                    return connections
                 else:
                     return ServerError(
                         message=f"Failed to get connections: {response.status_code}",

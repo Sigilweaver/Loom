@@ -204,9 +204,10 @@ async def proxy_llm_request(
         # Normalize: strip trailing slashes to avoid double-slash in URL
         base_url = base_url.rstrip("/")
     else:
-        base_url = PROVIDER_URLS.get(provider)
-        if not base_url:
+        resolved_url = PROVIDER_URLS.get(provider)
+        if not resolved_url:
             raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+        base_url = resolved_url
 
     upstream_url = f"{base_url}/{path}"
 

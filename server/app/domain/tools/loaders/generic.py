@@ -44,12 +44,12 @@ class GenericLoader(FileLoader):
             kwargs = {k: v for k, v in kwargs.items() if k in self.spec.read_only_keys}
 
         # Load data
-        if mode == "scan" and self.spec.supports_scan:
+        if mode == "scan" and self.spec.supports_scan and self.spec.scan_func:
             func = getattr(pl, self.spec.scan_func)
-            lf = func(source, **kwargs)
+            lf: pl.LazyFrame = func(source, **kwargs)
         else:
             func = getattr(pl, self.spec.read_func)
-            df = func(source, **kwargs)
+            df: pl.DataFrame = func(source, **kwargs)
             lf = df.lazy()
 
         # Apply post-load column selection if needed

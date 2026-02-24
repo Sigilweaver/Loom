@@ -34,7 +34,7 @@ try:
     from botocore.exceptions import ClientError
 except ImportError:
     print("Warning: boto3 not installed. List command requires boto3.")
-    print("Install with: pip install boto3")
+    print("Install with: uv add boto3")
     boto3 = None
 
 

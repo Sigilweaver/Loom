@@ -6,7 +6,7 @@
  * validated workflow execution.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Plus,
   Database,
@@ -681,7 +681,7 @@ export function ConnectionsTab() {
   const [checkingAll, setCheckingAll] = useState(false);
   const [typeFilter, setTypeFilter] = useState<ConnectionType | "all">("all");
 
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -693,11 +693,11 @@ export function ConnectionsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter]);
 
   useEffect(() => {
     fetchConnections();
-  }, [typeFilter]);
+  }, [fetchConnections]);
 
   const handleAddConnection = () => {
     setEditingConnection(null);

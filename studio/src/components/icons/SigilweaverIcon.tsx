@@ -12,7 +12,7 @@ export const SigilweaverIcon = React.forwardRef<SVGSVGElement, SigilweaverIconPr
     size = 24, 
     color = 'currentColor', 
     strokeWidth = 2,
-    absoluteStrokeWidth,
+    absoluteStrokeWidth: _absoluteStrokeWidth,
     ...rest 
   }, ref) => {
     const sizeValue = typeof size === 'number' ? `${size}px` : size;

@@ -38,9 +38,9 @@ interface ChatMessageProps {
  */
 function parseAuditMessage(msg: ChatMessageType): { isAudit: boolean; isWarning: boolean; text: string } {
   const content = msg.content ?? '';
-  if (content.startsWith('✅ Audit:') || content.startsWith('⚠️ Audit:')) {
-    const isWarning = content.startsWith('⚠️');
-    const text = content.replace(/^[✅⚠️]\s*Audit:\s*/, '');
+  if (content.startsWith('\u2705 Audit:') || content.startsWith('\u26A0\uFE0F Audit:')) {
+    const isWarning = content.startsWith('\u26A0\uFE0F');
+    const text = content.replace(/^(?:\u2705|\u26A0\uFE0F)\s*Audit:\s*/, '');
     return { isAudit: true, isWarning, text };
   }
   return { isAudit: false, isWarning: false, text: '' };

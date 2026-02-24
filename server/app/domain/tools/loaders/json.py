@@ -24,7 +24,7 @@ class JsonLoader(FileLoader):
     Uses GenericLoader internally with the appropriate spec.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._json_loader = GenericLoader(LOADER_SPECS["json"])
         self._ndjson_loader = GenericLoader(LOADER_SPECS["ndjson"])
 

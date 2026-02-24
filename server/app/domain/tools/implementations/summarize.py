@@ -80,7 +80,7 @@ class SummarizeTool(BaseTool):
     - includeNulls: bool - whether to include null values in grouping (default: False)
     """
 
-    def is_blocking(self) -> bool:
+    def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Summarize is blocking - must see all rows per group."""
         return True
 

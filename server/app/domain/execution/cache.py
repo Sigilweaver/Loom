@@ -154,8 +154,8 @@ class BlockingToolCache:
                 # Remove corrupted cache file
                 try:
                     path.unlink(missing_ok=True)
-                except Exception:
-                    pass
+                except Exception as cleanup_err:
+                    logger.debug(f"Failed to remove corrupted cache file {path}: {cleanup_err}")
                 return None
         return None
 
@@ -191,8 +191,8 @@ class BlockingToolCache:
             # Clean up temp file if it exists
             try:
                 temp_path.unlink(missing_ok=True)
-            except Exception:
-                pass
+            except Exception as cleanup_err:
+                logger.debug(f"Failed to clean up temp cache file {temp_path}: {cleanup_err}")
             raise
 
     def invalidate_tool(self, tool_id: str) -> None:
@@ -455,8 +455,8 @@ def get_global_cache_stats(cache_root: Path) -> dict[str, Any]:
                 try:
                     file_count += 1
                     total_size += cache_file.stat().st_size
-                except Exception:
-                    pass
+                except Exception as stat_err:
+                    logger.debug(f"Failed to stat cache file {cache_file}: {stat_err}")
     except Exception as e:
         logger.warning(f"Error getting cache stats: {e}")
 

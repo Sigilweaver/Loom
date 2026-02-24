@@ -50,7 +50,7 @@ class WorkflowFileStore:
                          Uses settings.workflow_storage_path if None.
         """
         self.storage_path = Path(
-            storage_path or getattr(settings, "workflow_storage_path", "./workflows")
+            storage_path or str(getattr(settings, "workflow_storage_path", "./workflows"))
         )
         # Create storage directory if it doesn't exist
         self.storage_path.mkdir(parents=True, exist_ok=True)

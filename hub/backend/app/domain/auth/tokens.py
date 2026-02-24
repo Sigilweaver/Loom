@@ -39,11 +39,11 @@ class TokenStore:
     Thread-safe via asyncio.Lock for concurrent access.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the token store."""
         self._tokens: dict[str, ServerTokenData] = {}
         self._lock = asyncio.Lock()
-        self._cleanup_task: asyncio.Task | None = None
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
         """Start the background cleanup task."""

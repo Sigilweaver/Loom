@@ -229,15 +229,21 @@ class ColumnProfiler:
 
                 case ProfileMetrics.MEAN:
                     val = col.mean()
-                    return round(val, 4) if val is not None else None
+                    if val is None:
+                        return None
+                    return round(float(val), 4)  # type: ignore[arg-type]
 
                 case ProfileMetrics.MEDIAN:
                     val = col.median()
-                    return round(val, 4) if val is not None else None
+                    if val is None:
+                        return None
+                    return round(float(val), 4)  # type: ignore[arg-type]
 
                 case ProfileMetrics.STD:
                     val = col.std()
-                    return round(val, 4) if val is not None else None
+                    if val is None:
+                        return None
+                    return round(float(val), 4)  # type: ignore[arg-type]
 
                 case ProfileMetrics.EMPTY_COUNT:
                     return self._count_empty_strings(col)
@@ -288,7 +294,7 @@ class ColumnProfiler:
             return 0
         # Values that are empty strings
         is_empty = non_null.str.len_chars() == 0
-        return is_empty.sum()
+        return int(is_empty.sum())
 
     def _count_whitespace_leading(self, col: pl.Series) -> int:
         """Count values with leading whitespace."""
@@ -297,7 +303,7 @@ class ColumnProfiler:
             return 0
         # Values that differ when left-stripped
         has_leading = non_null.str.strip_chars_start() != non_null
-        return has_leading.sum()
+        return int(has_leading.sum())
 
     def _count_whitespace_trailing(self, col: pl.Series) -> int:
         """Count values with trailing whitespace."""
@@ -306,7 +312,7 @@ class ColumnProfiler:
             return 0
         # Values that differ when right-stripped
         has_trailing = non_null.str.strip_chars_end() != non_null
-        return has_trailing.sum()
+        return int(has_trailing.sum())
 
     def _count_linebreaks(self, col: pl.Series) -> int:
         """Count values containing line breaks (newline, carriage return)."""
@@ -315,7 +321,7 @@ class ColumnProfiler:
             return 0
         # Check for \n or \r
         has_breaks = non_null.str.contains(r"[\n\r]")
-        return has_breaks.sum()
+        return int(has_breaks.sum())
 
     def _count_non_ascii(self, col: pl.Series) -> int:
         """Count values containing non-ASCII characters (including ZWSP, etc)."""
@@ -325,7 +331,7 @@ class ColumnProfiler:
         # Match any character outside ASCII printable range (0x20-0x7E)
         # This catches ZWSP (U+200B), other zero-width chars, emojis, etc.
         has_non_ascii = non_null.str.contains(r"[^\x20-\x7E]")
-        return has_non_ascii.sum()
+        return int(has_non_ascii.sum())
 
     def _compute_top_values(self, col: pl.Series) -> list[dict[str, Any]]:
         """Compute top N most frequent values."""

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -501,7 +501,7 @@ class AuditEvent(Base):
     )
 
     # Event-specific data (small - IDs and outcomes only)
-    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
 
     # Integrity
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -548,10 +548,10 @@ class ExecutionRecord(Base):
     error_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
 
     # Connections used (for filtering: "show me all executions using connection X")
-    connection_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    connection_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     # === Rich JSONB details ===
-    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
 
     # Relationships
     execution: Mapped["Execution"] = relationship("Execution")

@@ -384,7 +384,7 @@ async def add_connection_to_grant_group(
     connection_id: UUID,
     admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, str]:
     """Add a connection to a grant group. Requires admin role."""
     # Verify grant group exists
     grant_group = await db.get(GrantGroup, grant_group_id)

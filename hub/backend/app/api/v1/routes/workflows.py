@@ -147,7 +147,7 @@ async def list_workflows(
 
     if user_level > auditor_level:
         # Regular user - force filter to own workflows
-        filter_by = user.username
+        filter_by: str | None = user.username
     else:
         # Auditor+ - can see all, optionally filter
         filter_by = uploaded_by
@@ -171,7 +171,7 @@ async def list_workflows(
 )
 async def upload_workflow(
     user: SessionInfo = RequireUser,
-    file: Annotated[UploadFile, File(description="The .swwf workflow file")] = None,
+    file: Annotated[UploadFile | None, File(description="The .swwf workflow file")] = None,
     db: AsyncSession = Depends(get_db),
     folder_path: str = Form(default="/"),
     tags: str = Form(default=""),  # Comma-separated
@@ -185,7 +185,7 @@ async def upload_workflow(
     - folder_path: Virtual folder path (default: "/")
     - tags: Comma-separated list of tags
     """
-    if not file.filename or not file.filename.endswith(".swwf"):
+    if not file or not file.filename or not file.filename.endswith(".swwf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be a .swwf workflow file",
@@ -361,7 +361,7 @@ async def download_workflow(
 async def update_workflow_file(
     workflow_id: UUID,
     user: SessionInfo = RequireUser,
-    file: Annotated[UploadFile, File(description="The updated .swwf workflow file")] = None,
+    file: Annotated[UploadFile | None, File(description="The updated .swwf workflow file")] = None,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowMetadata:
     """Replace a workflow file. Requires user role.
@@ -369,7 +369,7 @@ async def update_workflow_file(
     Uploads a new file version, updating metadata from the new file.
     Users can only update their own workflows.
     """
-    if not file.filename or not file.filename.endswith(".swwf"):
+    if not file or not file.filename or not file.filename.endswith(".swwf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be a .swwf workflow file",

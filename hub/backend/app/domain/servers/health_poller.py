@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,8 +19,8 @@ logger = logging.getLogger(__name__)
 class HealthPoller:
     """Background task that periodically polls all servers for health status"""
 
-    def __init__(self):
-        self._task: asyncio.Task | None = None
+    def __init__(self) -> None:
+        self._task: asyncio.Task[None] | None = None
         self._running = False
         # Track consecutive failures per server for exponential backoff
         self._failure_counts: dict[str, int] = {}
@@ -113,7 +114,7 @@ class HealthPoller:
             if old_status != "offline":
                 logger.warning("Server %s is now offline: %s", server.name, result.message)
 
-    async def poll_single_server(self, server_id: str) -> dict:
+    async def poll_single_server(self, server_id: str) -> dict[str, Any]:
         """Poll a single server immediately (for manual refresh).
 
         Args:
