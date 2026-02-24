@@ -12,6 +12,7 @@ The simplified flow:
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from app.config import Settings
 from app.db.models import Server
@@ -82,7 +83,7 @@ class CapabilityIssuer:
         )
 
     @staticmethod
-    def extract_hub_connections(workflow: dict) -> list[str]:
+    def extract_hub_connections(workflow: dict[str, Any]) -> list[str]:
         """Extract hub-owned connection IDs from workflow.
 
         Scans all tools in the workflow for inputs with owner='hub'

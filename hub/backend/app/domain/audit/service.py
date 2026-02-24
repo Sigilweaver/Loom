@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import desc, select
@@ -47,7 +48,7 @@ class AuditService:
         client_ip: str | None = None,
         user_agent: str | None = None,
         server_id: UUID | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> AuditEvent:
         """Create an immutable audit event with hash chain.
 
@@ -151,7 +152,7 @@ class AuditService:
         row = result.first()
         return row[0] if row else None
 
-    async def verify_chain(self, limit: int = 1000) -> dict:
+    async def verify_chain(self, limit: int = 1000) -> dict[str, Any]:
         """Verify hash chain integrity for recent events.
 
         Checks that each event's hash correctly includes the previous
@@ -195,7 +196,7 @@ class AuditService:
                     "first_event_id": str(events[0].id),
                     "last_event_id": str(event.id),
                     "error": f"Chain broken at event {event.id}: "
-                    f"expected previous_hash {expected_previous[:16]}..., "
+                    f"expected previous_hash {expected_previous[:16] if expected_previous else 'None'}..., "
                     f"got {event.previous_hash[:16] if event.previous_hash else 'None'}...",
                 }
 

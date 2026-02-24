@@ -327,7 +327,7 @@ class OutputTool(BaseTool):
         YXDB is always an eager write — the format requires knowing
         record count upfront and uses row-based LZF-compressed blocks.
         """
-        import sigilyx
+        import sigilyx  # type: ignore[import-untyped]
 
         destination = config.get("destination")
         if not destination:

@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -58,4 +59,4 @@ class ExecutionResult(BaseModel):
     success: bool
     error_message: str | None = None
     duration_seconds: float | None = None
-    outputs: dict | None = None
+    outputs: dict[str, Any] | None = None

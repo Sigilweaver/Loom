@@ -8,8 +8,8 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
+from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
 from sqlalchemy import select
 
 from app.db.database import async_session_maker
@@ -27,7 +27,7 @@ class Scheduler:
     Jobs are persisted in the database and reloaded on startup.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._scheduler: AsyncIOScheduler | None = None
         self._running = False
 
@@ -203,7 +203,8 @@ class Scheduler:
 
         job = self._scheduler.get_job(str(schedule_id))
         if job:
-            return job.next_run_time
+            next_time: datetime | None = job.next_run_time
+            return next_time
         return None
 
     def pause_schedule(self, schedule_id: UUID) -> None:

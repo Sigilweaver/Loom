@@ -390,7 +390,7 @@ async def assign_grant_group_to_group(
     grant_group_id: UUID,
     admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, str]:
     """Assign a grant group to a user group. Requires admin role."""
     # Verify user group exists
     user_group = await db.get(Group, group_id)

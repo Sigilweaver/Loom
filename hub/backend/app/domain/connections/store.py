@@ -144,7 +144,7 @@ class ConnectionStore:
         if conn.type == ConnectionType.DATABASE.value and conn.database_config:
             db_cfg = conn.database_config
             database_config = DatabaseConfig(
-                db_type=db_cfg.db_type,
+                db_type=DatabaseType(db_cfg.db_type),
                 host=db_cfg.host,
                 port=db_cfg.port,
                 database=db_cfg.database,

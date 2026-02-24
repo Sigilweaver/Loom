@@ -7,7 +7,7 @@
  * - Assigning grant groups to user groups
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Users,
   Plus,
@@ -254,31 +254,31 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddGrantGroup, setShowAddGrantGroup] = useState(false);
 
-  const fetchMembers = async () => {
-    setLoadingMembers(true);
-    try {
-      const response = await listGroupMembers(group.id);
-      setMembers(response.members);
-    } catch (err) {
-      console.error("Failed to load members:", err);
-    } finally {
-      setLoadingMembers(false);
-    }
-  };
-
-  const fetchGrantGroups = async () => {
-    setLoadingGrantGroups(true);
-    try {
-      const response = await listGroupGrantGroups(group.id);
-      setGrantGroups(response.grant_groups);
-    } catch (err) {
-      console.error("Failed to load grant groups:", err);
-    } finally {
-      setLoadingGrantGroups(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchMembers = async () => {
+      setLoadingMembers(true);
+      try {
+        const response = await listGroupMembers(group.id);
+        setMembers(response.members);
+      } catch (err) {
+        console.error("Failed to load members:", err);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+
+    const fetchGrantGroups = async () => {
+      setLoadingGrantGroups(true);
+      try {
+        const response = await listGroupGrantGroups(group.id);
+        setGrantGroups(response.grant_groups);
+      } catch (err) {
+        console.error("Failed to load grant groups:", err);
+      } finally {
+        setLoadingGrantGroups(false);
+      }
+    };
+
     fetchMembers();
     fetchGrantGroups();
   }, [group.id]);
@@ -662,7 +662,7 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
   const [error, setError] = useState<string | null>(null);
 
   // Admin-level roles that cannot be added to groups
-  const adminRoles = new Set(["owner", "admin", "auditor"]);
+  const adminRoles = useMemo(() => new Set(["owner", "admin", "auditor"]), []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -682,7 +682,7 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
       }
     };
     fetchUsers();
-  }, [existingMembers]);
+  }, [existingMembers, adminRoles]);
 
   const handleAddUser = async (user: UserResponse) => {
     setAdding(user.id);

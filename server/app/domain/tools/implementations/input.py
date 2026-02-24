@@ -24,7 +24,7 @@ class InputTool(BaseTool):
     For database sources, the source is a connection URI with embedded credentials.
     """
 
-    def is_blocking(self) -> bool:
+    def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Input tools are not blocking - file inputs are lazy."""
         return False
 
@@ -69,11 +69,7 @@ class InputTool(BaseTool):
         # Use LoaderFactory to get appropriate loader and load data
         loader = LoaderFactory.create(source_type)
 
-        # Database loaders expect the source (URI) as first argument
-        if LoaderFactory.is_database_type(source_type):
-            lf = await loader.load(source, config)
-        else:
-            lf = await loader.load(config)
+        lf = await loader.load(config)
 
         # Return on output socket
         return {CommonSockets.OUTPUT: lf}

@@ -181,7 +181,7 @@ async def list_schedules(
 
     if user_level > auditor_level:
         # Regular user - force filter to own schedules
-        filter_by = user.username
+        filter_by: str | None = user.username
     else:
         # Auditor+ - can see all, optionally filter
         filter_by = created_by

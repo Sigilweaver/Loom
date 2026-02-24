@@ -7,7 +7,7 @@ and use them for both runtime execution and Python code generation.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
 
@@ -527,7 +527,11 @@ class JoinOperation:
             return empty, matched, empty
 
         # Use the configured join type for the matched output
-        how = self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
+        how: Literal["inner", "left", "right", "full", "semi", "anti", "cross", "outer"] = (
+            self.join_type  # type: ignore[assignment]
+            if self.join_type in ("inner", "left", "right", "outer")
+            else "inner"
+        )
 
         matched = left_lf.join(
             right_lf,
@@ -841,14 +845,14 @@ class PivotOperation:
         performs the pivot on the DataFrame, then returns as a LazyFrame.
         The PivotTool is_blocking() returns True to ensure proper execution.
         """
-        agg_func = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
+        agg_func: str = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
         # Pivot requires eager execution - collect, pivot, return lazy
         df = lf.collect()
         result = df.pivot(
             on=self.on,
             index=self.index if self.index else None,
             values=self.values,
-            aggregate_function=agg_func,
+            aggregate_function=agg_func,  # type: ignore[arg-type]
         )
         return result.lazy()
 

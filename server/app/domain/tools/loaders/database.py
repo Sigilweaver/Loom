@@ -43,15 +43,14 @@ class DatabaseLoader(FileLoader):
 
     async def load(
         self,
-        source: str,
         config: dict[str, Any],
     ) -> pl.LazyFrame:
         """
         Execute a SQL query against a database connection.
 
         Args:
-            source: Connection URI (e.g., postgresql://user:pass@host:port/db)
             config: Configuration dict containing:
+                - source: Connection URI (e.g., postgresql://user:pass@host:port/db)
                 - query: SQL query to execute (required)
 
         Returns:
@@ -60,6 +59,10 @@ class DatabaseLoader(FileLoader):
         Raises:
             ToolError: If query fails or connection cannot be established
         """
+        source = config.get("source", "")
+        if not source:
+            raise ToolError("Database connection URI is required")
+
         query = config.get("query")
         if not query:
             raise ToolError("SQL query is required for database loading")
@@ -103,20 +106,18 @@ class DatabaseLoader(FileLoader):
 
     async def load_eager(
         self,
-        source: str,
         config: dict[str, Any],
     ) -> pl.DataFrame:
         """
         Execute a SQL query and return a DataFrame directly.
 
         Args:
-            source: Connection URI
-            config: Configuration dict containing query
+            config: Configuration dict containing source URI and query
 
         Returns:
             DataFrame containing query results
         """
-        lf = await self.load(source, config)
+        lf = await self.load(config)
         return lf.collect()
 
     def build_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:

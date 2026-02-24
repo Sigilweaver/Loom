@@ -7,7 +7,7 @@ Not affiliated with Alteryx, Inc.
 from typing import Any
 
 import polars as pl
-import sigilyx
+import sigilyx  # type: ignore[import-untyped]
 
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
@@ -34,7 +34,7 @@ class YxdbLoader(FileLoader):
 
         try:
             # scan_yxdb returns a LazyFrame directly
-            lf = sigilyx.scan_yxdb(source)
+            lf: pl.LazyFrame = sigilyx.scan_yxdb(source)
 
             # Apply n_rows limit if specified
             n_rows = config.get("n_rows")

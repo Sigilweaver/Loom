@@ -317,13 +317,13 @@ async def list_user_groups(
         )
 
     # Get groups for this user
-    result = await db.execute(
+    groups_result = await db.execute(
         select(Group)
         .join(UserGroup)
         .where(UserGroup.user_id == user_id)
         .order_by(Group.name)
     )
-    groups = result.scalars().all()
+    groups = groups_result.scalars().all()
 
     return UserGroupListResponse(
         groups=[

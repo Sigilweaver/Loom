@@ -397,9 +397,10 @@ class WorkflowExecutor:
             )
 
             # Execute tools at this level concurrently
+            raw_results: list[dict[str, Any] | BaseException]
             if len(level_tools) == 1:
                 # Single tool - no need for gather
-                results = [await self._execute_single_tool_tracked(
+                raw_results = [await self._execute_single_tool_tracked(
                     level_tools[0], plan, cache_mgr
                 )]
             else:
@@ -412,14 +413,14 @@ class WorkflowExecutor:
                             tool_id, plan, cache_mgr
                         )
 
-                results = await asyncio.gather(
+                raw_results = await asyncio.gather(
                     *[limited_execute(tid) for tid in level_tools],
                     return_exceptions=True,
                 )
 
             # Process results
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
+            for i, result in enumerate(raw_results):
+                if isinstance(result, BaseException):
                     # Re-raise the first exception encountered
                     raise result
                 tool_logs.append(result)

@@ -29,7 +29,7 @@ class SortTool(BaseTool):
         - nullsFirst: bool - whether nulls should come first (default: False)
     """
 
-    def is_blocking(self) -> bool:
+    def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Sort is blocking - must see all rows to determine order."""
         return True
 

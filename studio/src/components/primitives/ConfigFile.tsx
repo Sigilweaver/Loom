@@ -9,6 +9,9 @@ import { getHubClient, hasHubClient, initHubClient } from "../../api/hub";
 import { getSessionToken } from "../../api/backend";
 import { RemoteFileBrowser } from "../common/RemoteFileBrowser";
 import { Globe } from "lucide-react";
+import { createLogger } from "@utils/logger";
+
+const logger = createLogger("ConfigFile");
 
 export interface FileFilter {
   name: string;
@@ -112,7 +115,7 @@ export const ConfigFile: React.FC<ConfigFileProps> = ({
       // Hub mode: get browse token from Hub
       // Restore client from settings if it was lost (e.g., HMR reload)
       if (!hasHubClient() && hubSessionToken && hubUrl) {
-        console.log("[ConfigFile] Restoring HubClient from settings");
+        logger.info("Restoring HubClient from settings");
         initHubClient({ url: hubUrl, sessionToken: hubSessionToken });
       }
       if (!hasHubClient()) {

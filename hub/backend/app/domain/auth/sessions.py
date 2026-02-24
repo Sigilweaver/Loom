@@ -182,7 +182,8 @@ class SessionManager:
         )
         await self.db.commit()
 
-        return result.rowcount > 0
+        deleted: int = result.rowcount  # type: ignore[attr-defined]
+        return deleted > 0
 
     async def invalidate_all_user_sessions(self, user_id: uuid.UUID) -> int:
         """Invalidate all sessions for a user (logout everywhere).
@@ -198,7 +199,8 @@ class SessionManager:
         )
         await self.db.commit()
 
-        return result.rowcount
+        count: int = result.rowcount  # type: ignore[attr-defined]
+        return count
 
     async def get_user_sessions(self, user_id: uuid.UUID) -> list[Session]:
         """Get all active sessions for a user.
@@ -237,4 +239,5 @@ class SessionManager:
         )
         await self.db.commit()
 
-        return result.rowcount
+        count: int = result.rowcount  # type: ignore[attr-defined]
+        return count

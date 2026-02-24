@@ -124,6 +124,7 @@ class WorkflowParser:
             raise ParseError(f"File content is not valid UTF-8: {e}")
 
         try:
-            return json.loads(text)
+            data: dict[str, Any] = json.loads(text)
+            return data
         except json.JSONDecodeError as e:
             raise ParseError(f"File content is not valid JSON: {e}")

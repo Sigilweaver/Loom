@@ -4,6 +4,7 @@ Provides endpoints for triggering and tracking workflow executions.
 """
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -139,7 +140,7 @@ async def list_executions(
 
     if user_level > auditor_level:
         # Regular user - force filter to own executions
-        filter_by = user.username
+        filter_by: str | None = user.username
     else:
         # Auditor+ - can see all, optionally filter
         filter_by = triggered_by
@@ -328,7 +329,7 @@ async def get_execution_code(
     execution_id: UUID,
     _auditor: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """Get generated code for an execution.
 
     Requires auditor role or higher.
@@ -352,7 +353,7 @@ async def get_execution_plans(
     execution_id: UUID,
     _auditor: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """Get query plans for an execution.
 
     Requires auditor role or higher.
@@ -376,7 +377,7 @@ async def get_execution_connections(
     execution_id: UUID,
     _auditor: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """Get connection operations for an execution.
 
     Requires auditor role or higher.
@@ -400,7 +401,7 @@ async def get_execution_logs(
     execution_id: UUID,
     _auditor: SessionInfo = RequireAuditor,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """Get logs for an execution.
 
     Requires auditor role or higher.

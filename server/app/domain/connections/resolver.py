@@ -148,7 +148,7 @@ class ConnectionResolver:
             return False
         # Must be server-owned
         owner = tool.config.get("owner", "client")
-        return owner == "server"
+        return bool(owner == "server")
 
     def _find_hub_connections(self, workflow: Workflow) -> dict[str, str]:
         """
@@ -178,7 +178,7 @@ class ConnectionResolver:
             return False
         # Must be hub-owned
         owner = tool.config.get("owner", "client")
-        return owner == "hub"
+        return bool(owner == "hub")
 
     def _validate_hub_connections_provided(
         self,
@@ -302,6 +302,10 @@ class ConnectionResolver:
             New Tool with resolved connection URI in config
         """
         connection_id = tool.config.get("connectionId")
+        if not connection_id or not isinstance(connection_id, str):
+            raise ExecutionError(
+                f"Tool {tool.id}: Missing or invalid connectionId"
+            )
 
         uri = self.store.build_connection_uri(connection_id)
         if not uri:

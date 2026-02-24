@@ -1,6 +1,7 @@
 """Pydantic schemas for execution records and audit events."""
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field  # noqa: I001
@@ -24,7 +25,7 @@ class ExecutionReportSchema(BaseModel):
     output_bytes: int | None = Field(None, description="Output size in bytes")
     error_type: str | None = Field(None, description="Error type if failed")
     connection_ids: list[str] = Field(default_factory=list, description="Connection IDs used")
-    details: dict = Field(default_factory=dict, description="Rich execution details")
+    details: dict[str, Any] = Field(default_factory=dict, description="Rich execution details")
 
 
 # =============================================================================
@@ -47,7 +48,7 @@ class ExecutionRecordResponse(BaseModel):
     output_bytes: int | None
     error_type: str | None
     connection_ids: list[str]
-    details: dict
+    details: dict[str, Any]
 
 
 class ExecutionRecordSummary(BaseModel):
@@ -91,7 +92,7 @@ class AuditEventResponse(BaseModel):
     client_ip: str | None
     user_agent: str | None
     server_id: UUID | None
-    details: dict
+    details: dict[str, Any]
     event_hash: str
     previous_hash: str | None
 

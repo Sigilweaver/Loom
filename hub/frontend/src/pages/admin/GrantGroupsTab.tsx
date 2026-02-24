@@ -246,19 +246,18 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
     const [loading, setLoading] = useState(true);
     const [showAddConnection, setShowAddConnection] = useState(false);
 
-    const fetchDetail = async () => {
-        setLoading(true);
-        try {
-            const response = await getGrantGroup(grantGroup.id);
-            setDetail(response);
-        } catch (err) {
-            console.error("Failed to load grant group details:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchDetail = async () => {
+            setLoading(true);
+            try {
+                const response = await getGrantGroup(grantGroup.id);
+                setDetail(response);
+            } catch (err) {
+                console.error("Failed to load grant group details:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchDetail();
     }, [grantGroup.id]);
 

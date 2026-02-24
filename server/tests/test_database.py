@@ -389,8 +389,7 @@ class TestDatabaseLoader:
 
         loader = DatabaseLoader()
         result = await loader.load(
-            "postgresql://user:pass@localhost/db",
-            {"query": "SELECT * FROM users"}
+            {"source": "postgresql://user:pass@localhost/db", "query": "SELECT * FROM users"}
         )
 
         assert result == mock_lazy
@@ -403,8 +402,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="query is required"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {}
+                {"source": "postgresql://user:pass@localhost/db"}
             )
 
     @pytest.mark.asyncio
@@ -414,8 +412,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="cannot be empty"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {"query": "   "}
+                {"source": "postgresql://user:pass@localhost/db", "query": "   "}
             )
 
     @pytest.mark.asyncio
@@ -428,8 +425,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="Cannot connect to postgresql"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {"query": "SELECT 1"}
+                {"source": "postgresql://user:pass@localhost/db", "query": "SELECT 1"}
             )
 
     @pytest.mark.asyncio
@@ -442,8 +438,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="Authentication failed"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {"query": "SELECT 1"}
+                {"source": "postgresql://user:pass@localhost/db", "query": "SELECT 1"}
             )
 
     @pytest.mark.asyncio
@@ -456,8 +451,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="Database does not exist"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {"query": "SELECT 1"}
+                {"source": "postgresql://user:pass@localhost/db", "query": "SELECT 1"}
             )
 
     @pytest.mark.asyncio
@@ -470,8 +464,7 @@ class TestDatabaseLoader:
 
         with pytest.raises(ToolError, match="SQL syntax error"):
             await loader.load(
-                "postgresql://user:pass@localhost/db",
-                {"query": "SELEKT * FROM users"}
+                {"source": "postgresql://user:pass@localhost/db", "query": "SELEKT * FROM users"}
             )
 
     @pytest.mark.asyncio
@@ -486,8 +479,7 @@ class TestDatabaseLoader:
 
         loader = DatabaseLoader()
         result = await loader.load_eager(
-            "postgresql://user:pass@localhost/db",
-            {"query": "SELECT 1"}
+            {"source": "postgresql://user:pass@localhost/db", "query": "SELECT 1"}
         )
 
         assert result == mock_df

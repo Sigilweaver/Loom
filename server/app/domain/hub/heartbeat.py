@@ -45,12 +45,12 @@ class HeartbeatManager:
         self.interval_seconds = interval_seconds
         self.initial_retry_interval = initial_retry_interval
         self.max_initial_retries = max_initial_retries
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         self._running = False
         self._registered = False
         self._initial_registration_attempts = 0
 
-        # Initialize Hub client
+        self.hub_client: HubClient | None
         try:
             self.hub_client = HubClient()
         except ValueError as e:

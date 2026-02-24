@@ -6,6 +6,7 @@ Periodically tests all connections and updates their health status.
 import asyncio
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import quote_plus
 
 from sqlalchemy import select
@@ -24,8 +25,8 @@ CONNECTION_CHECK_INTERVAL_SECONDS = 3600
 class ConnectionHealthPoller:
     """Background task that periodically tests all connections for health status."""
 
-    def __init__(self):
-        self._task: asyncio.Task | None = None
+    def __init__(self) -> None:
+        self._task: asyncio.Task[None] | None = None
         self._running = False
 
     async def start(self) -> None:
@@ -235,7 +236,7 @@ class ConnectionHealthPoller:
         except Exception as e:
             return False, f"Error checking path: {e}"
 
-    async def check_single_connection(self, connection_id: str) -> dict:
+    async def check_single_connection(self, connection_id: str) -> dict[str, Any]:
         """Check a single connection immediately (for manual refresh).
 
         Args:
@@ -269,7 +270,7 @@ class ConnectionHealthPoller:
                 "last_error": connection.last_error,
             }
 
-    async def check_all_now(self) -> dict:
+    async def check_all_now(self) -> dict[str, Any]:
         """Check all connections immediately.
 
         Returns:

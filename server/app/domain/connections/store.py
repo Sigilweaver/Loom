@@ -155,7 +155,7 @@ class ConnectionStore:
 
         try:
             decrypted = self._fernet.decrypt(encrypted.encode())
-            return json.loads(decrypted.decode())
+            return dict(json.loads(decrypted.decode()))
         except InvalidToken:
             raise EncryptionKeyError("Failed to decrypt credentials - key may have changed")
 
@@ -169,8 +169,8 @@ class ConnectionStore:
             host=conn.host,
             port=conn.port,
             database=conn.database,
-            createdAt=conn.created_at,
-            updatedAt=conn.updated_at,
+            created_at=conn.created_at,
+            updated_at=conn.updated_at,
         )
 
     def list_connections(self) -> list[ConnectionInfo]:

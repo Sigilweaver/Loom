@@ -8,7 +8,7 @@ Not affiliated with Alteryx, Inc.
 
 from typing import Any
 
-import sigilyx
+import sigilyx  # type: ignore[import-untyped]
 
 from app.api.models.common import ColumnSchema, DataPreview, DataSchema, PolarsDataType
 from app.domain.datasources.base import DataSource

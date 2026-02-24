@@ -19,7 +19,7 @@ module.exports = {
     "max-lines": "off",
     complexity: "off",
     "@typescript-eslint/consistent-type-imports": "off",
-    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true }],
     "no-restricted-imports": "off",
     "react-hooks/exhaustive-deps": "off",
   },

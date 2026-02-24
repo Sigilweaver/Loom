@@ -29,7 +29,7 @@ try:
     import boto3
     from botocore.exceptions import ClientError
 except ImportError:
-    print("Error: boto3 not installed. Install with: pip install boto3")
+    print("Error: boto3 not installed. Install with: uv add boto3")
     sys.exit(1)
 
 

@@ -348,7 +348,7 @@ class ExecutionService:
                         user_id="hub-system",  # Hub-triggered executions use system user
                         server=server,
                     )
-                    auth_token = server_token.token
+                    auth_token: str | None = server_token.token
                 except Exception as e:
                     logger.warning(
                         "Failed to issue server token, using server auth_token: %s", e

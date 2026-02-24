@@ -264,7 +264,7 @@ async def test_connection(connection_id: str) -> ConnectionTestResult:
         return ConnectionTestResult(
             success=True,
             message=f"Successfully connected to {resolved.name}",
-            latencyMs=latency_ms,
+            latency_ms=latency_ms,
         )
     except Exception as e:
         error_msg = str(e)
