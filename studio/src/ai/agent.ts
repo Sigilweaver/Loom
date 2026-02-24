@@ -433,10 +433,14 @@ export async function generateBasicFormula(
 /**
  * Convert chat messages to the format expected by the Vercel AI SDK.
  *
+ * Uses **token-budgeted packing** instead of a fixed message count.
+ * Estimates token usage per message and packs as many recent messages
+ * as fit within the budget, ensuring the most recent context is always
+ * included.
+ *
  * For assistant messages that include tool calls, a summary of each tool
  * invocation and its result is appended to the content. This ensures the
- * model retains context about what actions it performed when continuing
- * after a turn limit or when referencing earlier turns.
+ * model retains context about what actions it performed.
  *
  * @internal Exported for testing only.
  */
@@ -444,13 +448,24 @@ export function buildMessageHistory(
   messages: ChatMessage[],
 ): Array<{ role: 'user' | 'assistant'; content: string }> {
   // Only send user and assistant messages (skip tool messages)
-  // Keep the last N messages to avoid exceeding context limits
-  const MAX_HISTORY = 40;
   const relevant = messages
-    .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .slice(-MAX_HISTORY);
+    .filter((m) => m.role === 'user' || m.role === 'assistant');
 
-  return relevant.map((m) => {
+  // Token budget for message history (approximate chars ÷ 4 ≈ tokens)
+  // Reserve ~60k tokens for history, which is comfortable for most models
+  const TOKEN_BUDGET = 60_000;
+  // Rough estimate: 1 token ≈ 4 characters (conservative for English text)
+  const CHARS_PER_TOKEN = 4;
+  const CHAR_BUDGET = TOKEN_BUDGET * CHARS_PER_TOKEN;
+
+  // Build formatted messages from most recent first, stopping when budget is exhausted
+  const formatted: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  let charCount = 0;
+
+  for (let i = relevant.length - 1; i >= 0; i--) {
+    const m = relevant[i]!;
+    let content: string;
+
     if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
       const toolSummaries = m.toolCalls.map((tc) => {
         const resultSummary = summarizeToolResult(tc.toolName, tc.result);
@@ -458,18 +473,28 @@ export function buildMessageHistory(
       }).join('\n');
 
       const textPart = m.content && m.content !== '(No response)' ? m.content : '';
-      const content = textPart
+      content = textPart
         ? `${textPart}\n\n${toolSummaries}`
         : toolSummaries;
-
-      return { role: 'assistant' as const, content };
+    } else {
+      content = m.content;
     }
 
-    return {
+    const msgChars = content.length;
+
+    // Always include the most recent message (first iteration)
+    if (formatted.length > 0 && charCount + msgChars > CHAR_BUDGET) {
+      break;
+    }
+
+    charCount += msgChars;
+    formatted.unshift({
       role: m.role as 'user' | 'assistant',
-      content: m.content,
-    };
-  });
+      content,
+    });
+  }
+
+  return formatted;
 }
 
 /**

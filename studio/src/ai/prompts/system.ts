@@ -2,16 +2,81 @@
  * System Prompt — Workflow Agent
  *
  * Constructs the system prompt for the agentic workflow builder.
- * Includes canvas context, available tools, and behavioral guidelines.
+ *
+ * **Token optimization**: The prompt is split into static and dynamic sections.
+ * Static instructions (tool reference, rules) are cacheable across turns.
+ * Dynamic context (canvas state, formula catalog) is injected only when relevant.
+ * The formula catalog is conditionally included only when the canvas uses or
+ * may need Formula tools.
  */
 
 import type { Tool, Wire, WorkflowMeta } from '@domain/workflow/entities/workflow';
 import { listToolTypes } from '@data/toolConfigSchemas';
 import { buildFormulaCatalogForPrompt } from './formulaCatalog';
 
+// ---------------------------------------------------------------------------
+// Static prompt sections (cacheable, identical across turns)
+// ---------------------------------------------------------------------------
+
+const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
+
+## How to Build Workflows
+
+**For new workflows** (empty canvas), use \`build_workflow\` with a spec — it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Read tool.
+
+**For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** (up to 5 rows as CSV).
+
+### Key Patterns
+- **Data format**: Compact text (CSV rows, one-line profiles), typed headers like \`ColName:type?\`
+- **Finding files**: Use \`search_files\` before building — never guess paths
+- **Column names are case-sensitive**: Usually lowercase. Use names from profiles/metadata only.
+- **Two-phase builds**: search_files → build_workflow (Read only) → read profile → add_tool with exact column names
+- **Branching**: Fan-out from Read — do NOT chain Aggregates in series (columns get dropped)
+
+## Rules
+1. Column names are case-sensitive — use exact names from data profiles/metadata
+2. Right tool for the job: Aggregate (type: "Summarize") for aggregation, Formula for row-level math, Filter for row selection
+3. Build reproducible pipelines — never calculate values yourself, add tools instead
+4. Use \`add_tool\` with \`after\` (auto-connects, auto-layouts)
+5. Handle errors — if preview fails, read the error, adjust config, retry
+6. Explain briefly between tool calls
+7. Use \`ask_user\` when genuinely ambiguous — ask BEFORE building, not after
+8. ALWAYS add comments to every tool — a workflow without comments is incomplete`;
+
+const TOOL_CONFIG_REFERENCE = `## Tool Config Reference
+
+**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` — types: csv, parquet, yxdb, xlsx, json
+**Filter**: \`{ "conditions": [{ "column": "col", "operator": "gt", "value": "18" }], "combinator": "and" }\` — Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null. Nested: add \`groups\` array.
+**Aggregate** (type: "Summarize"): \`{ "groupByColumns": ["cat"], "aggregations": [{ "column": "amt", "operation": "Sum", "outputName": "total" }] }\` — Ops: Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct
+**Formula**: Prefer structured ops: \`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "qty" }, "columnName": "unit_price" }] }\` — Raw Polars fallback: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
+**Sort**: \`{ "sortColumns": [{ "column": "created_at", "order": "descending" }] }\`
+**Join**: \`{ "joinType": "inner", "leftKeys": ["customer_id"], "rightKeys": ["id"] }\` — Types: inner, left, right, outer, cross. Sockets: input-left, input-right, output-match (default), output-left, output-right. ALWAYS set keys.
+**Output**: \`{ "type": "csv", "path": "/path/to/output.csv" }\`
+
+## Sockets
+Most tools: input → output. Non-default: Filter: output-true (default), output-false | Join: input-left, input-right, output-match (default) | Unique: output-unique (default), output-duplicate`;
+
+/**
+ * Short tail reminder appended after dynamic context.
+ * Reinforces critical rules without repeating the full prompt.
+ */
+const TAIL_REMINDER = `
+
+Remember: column names are case-sensitive (usually lowercase), always add comments, use structured tool configs, never calculate values yourself.`;
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
  * Build the system prompt for the workflow agent.
  * Includes current canvas state so the agent can see what already exists.
+ *
+ * Token optimization:
+ * - Static instructions are separated from dynamic context for Anthropic cache control
+ * - Formula catalog is only included when relevant (canvas has Formula tools, or canvas is empty/small)
+ * - Canvas state uses compact serialization (truncated configs, abbreviated IDs)
+ * - Tail reminder reinforces key rules in ~20 tokens instead of repeating full instructions
  */
 export function buildWorkflowSystemPrompt(
   tools: Tool[],
@@ -19,133 +84,52 @@ export function buildWorkflowSystemPrompt(
   meta: WorkflowMeta,
   options?: { auditEnabled?: boolean },
 ): string {
+  const parts: string[] = [];
+
+  // 1. Static instructions (cacheable)
+  parts.push(STATIC_INSTRUCTIONS);
+
+  // 2. Audit notice (conditional)
+  if (options?.auditEnabled) {
+    parts.push('\n9. **Your work will be audited** — A separate model will review your output. Ensure correct tool types, connections, and comments.');
+  }
+
+  // 3. Available tool types (semi-static, changes rarely)
   const toolTypeSummary = listToolTypes()
     .map((t) => `  - ${t.type}: ${t.description}`)
     .join('\n');
+  parts.push(`\n## Available Tool Types\n\n${toolTypeSummary}`);
 
-  const formulaCatalog = buildFormulaCatalogForPrompt();
+  // 4. Tool config reference (static)
+  parts.push(`\n${TOOL_CONFIG_REFERENCE}`);
 
+  // 5. Formula catalog (conditional — only when relevant)
+  // Include when: canvas is empty (new workflow), has <10 tools (early building), or has Formula tools
+  const hasFormulaTools = tools.some((t) => t.type === 'Formula');
+  const includeFormulaCatalog = tools.length === 0 || tools.length < 10 || hasFormulaTools;
+  if (includeFormulaCatalog) {
+    const formulaCatalog = buildFormulaCatalogForPrompt();
+    parts.push(`\nAvailable Formula operations (use operationId):\n${formulaCatalog}`);
+  }
+
+  // 6. Dynamic canvas context
   const canvasContext = tools.length > 0
     ? `\nCurrent canvas has ${tools.length} tool(s) and ${wires.length} wire(s):\n${formatCanvasState(tools, wires)}`
     : '\nCanvas is empty — no tools or wires yet.';
+  parts.push(`\n## Current Workflow\n\nName: ${meta.name}${canvasContext}`);
 
-  const auditNotice = options?.auditEnabled
-    ? `\n10. **Your work will be audited** — After you finish, a separate model will review your work against the user's request. Make sure each tool is correctly configured and your workflow actually answers what was asked.`
-    : '';
+  // 7. Tail reminder (compact rule reinforcement)
+  parts.push(TAIL_REMINDER);
 
-  return `You are an AI assistant embedded in Sigilweaver Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
+  return parts.join('\n');
+}
 
-## How to Build Workflows
-
-**For new workflows** (empty canvas), use \`build_workflow\` with a spec — it handles IDs, sockets, wiring, and layout automatically. This is the preferred approach. The response includes:
-- An \`idMap\` mapping your step IDs to generated UUIDs — use these for further operations
-- A **data profile** for the first Read tool: column types, ranges, nulls, unique counts, and top values for string columns — so you understand the dataset immediately
-
-**For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** of the tool's output (up to 5 rows as CSV), so you can immediately see if the tool executed correctly without a separate \`preview_tool_output\` call.
-
-### Data Format
-
-Tool results use compact text formats (CSV for rows, one-line-per-column for profiles) instead of JSON to minimize token usage. Preview data uses typed CSV headers like \`ColName:type?\` where \`?\` means nullable.
-
-### Finding Data Files
-
-When the user mentions a dataset by name (e.g. "the Titanic dataset", "load sales.csv"), use \`search_files\` to find the file path before building the workflow. This lets you create a Read tool with the correct \`source\` path. Do NOT guess file paths — always search first.
-
-### Column Names Are Case-Sensitive
-
-Column names come EXACTLY from the data — they are usually **lowercase** (e.g. \`age\`, \`pclass\`, \`survived\`), not title-case. Never guess casing. Always use names from the data profile or \`get_column_metadata\`.
-
-### Standard Workflow Pattern
-
-When building a new workflow from scratch, use a **two-phase approach** to avoid column-name errors:
-
-1. Use \`search_files\` to locate the data file.
-2. Use \`build_workflow\` with **only the Read step** — read the data profile to learn exact column names.
-3. Use \`add_tool\` with \`after\` to build the rest of the pipeline, using column names exactly as they appear in the profile.
-4. Only use \`preview_tool_output\` when you need to see more rows or inspect a specific tool.
-
-Alternatively, if you include all steps in a single \`build_workflow\` call, use the **exact column names from the data profile** that is returned. If any tools error due to column name mismatches, use \`update_tools\` (batch) to fix them all at once instead of individual \`update_tool\` calls.
-
-### Branching (Fan-Out) Workflows
-
-When exploring multiple analysis paths, branch from the **Read** tool — do NOT chain Aggregate → Aggregate → Aggregate in series. Each Aggregate reduces columns to only the group-by + aggregation outputs.
-
-Correct pattern for multi-angle analysis:
-\`\`\`
-Read → Aggregate (by Pclass)
-Read → Aggregate (by Sex)
-Read → Aggregate (by Embarked)
-\`\`\`
-Wrong pattern:
-\`\`\`
-Read → Aggregate (by Pclass) → Aggregate (by Sex)  ← "Sex" column is gone!
-\`\`\`
-
-Always set \`after\` to the **Read tool's ID** (or the last tool that still has the columns you need) when creating independent analyses.
-
-## Available Tool Types
-
-${toolTypeSummary}
-
-## Current Workflow
-
-Name: ${meta.name}
-${canvasContext}
-
-## Rules
-
-1. **Column names are case-sensitive** — Always use exact column names from \`build_workflow\`'s data profile, \`add_tool\`'s inline preview, \`get_column_metadata\`, or \`preview_tool_output\` responses. Column names are usually lowercase (e.g. \`age\`, not \`Age\`). Never guess casing.
-2. **Use the right tool**: Aggregate (type: "Summarize") for aggregation (count, sum, mean), Calculate for row-level math, Filter for row selection, Sort for ordering.
-3. **Build reproducible pipelines** — Create tools that produce the answer. Do NOT just read preview data and report results. If a value can be computed (percentages, differences, ratios), add a Calculate or Aggregate tool to compute it in the workflow rather than calculating it yourself.
-4. **Never calculate or derive values yourself** — If the user asks "what is the survival rate?", add Aggregate + Calculate tools that compute it. Do not read preview data and do arithmetic in your response. The workflow must stand on its own.
-5. **Use \`add_tool\` with \`after\`** — This auto-connects and auto-layouts. The \`after\` parameter specifies which tool's **output** feeds into the new tool. The new tool will only see the columns that the \`after\` tool produces — not the original data. To branch, point multiple tools back to the same Read or upstream tool.
-6. **Handle errors** — If a preview fails, read the error, adjust config, and retry. Column-not-found errors usually mean you connected to the wrong upstream tool.
-7. **Explain briefly** — Short narration between tool calls so the user can follow.
-8. **Clarify before committing** — Use \`ask_user\` when the user's request is ambiguous or could be interpreted multiple ways. Ask BEFORE building a large workflow, not after. Examples:
-   - "Filter to females and children" → clarify: females under 18, or females AND anyone under 18?
-   - "Join these tables" → ask which columns to join on if not obvious from context.
-   - Do NOT ask when the intent is clear or when you can inspect the data to resolve ambiguity yourself.
-9. **ALWAYS add comments to every tool** — Every \`add_tool\` and \`build_workflow\` step MUST include a \`comment\` explaining its purpose in plain language (e.g. "Load Titanic dataset", "Remove passengers under 18", "Calculate survival rate by class"). Comments appear on the canvas and help users understand the pipeline. A workflow without comments is incomplete.
-${auditNotice}
-## Tool Config Reference
-
-**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` — types: csv, parquet, yxdb, xlsx, json
-
-**Filter**: Use structured conditions (expression auto-generated). All values are strings.
-\`{ "conditions": [{ "column": "age", "operator": "gt", "value": "18" }], "combinator": "and" }\`
-For nested logic: \`{ "conditions": [...], "groups": [{ "conditions": [...], "combinator": "or" }], "combinator": "and" }\`
-Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null
-
-**Aggregate** (type: "Summarize"): For aggregation (not Formula). \`groupByColumns: []\` for no grouping.
-\`{ "groupByColumns": ["category"], "aggregations": [{ "column": "amount", "operation": "Sum", "outputName": "Total_Amount" }] }\`
-Operations (PascalCase): Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct. Use \`outputName\` (not alias).
-
-**Formula**: Use structured operations (GUI-editable, expression auto-generated). Prefer basic operations over raw Polars.
-\`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "quantity" }, "columnName": "unit_price" }] }\`
-Multiple operations: \`{ "operations": [{ "operationId": "round", "sourceColumn": "score", "params": { "decimals": "2" }, "columnName": "score_rounded" }, { "operationId": "uppercase", "sourceColumn": "name", "params": {}, "columnName": "name_upper" }] }\`
-For complex expressions not covered by built-in operations, use raw Polars: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
-
-Available Formula operations (use operationId):
-${formulaCatalog}
-
-**Sort**: \`{ "sortColumns": [{ "column": "created_at", "order": "descending" }] }\`
-
-**Join**: Connect left via \`input-left\`, right via \`input-right\`. ALWAYS set leftKeys and rightKeys — empty keys = cross join.
-\`{ "joinType": "inner", "leftKeys": ["customer_id"], "rightKeys": ["id"] }\`
-Types: inner (default), left, right, outer, cross. Outputs: output-match (default), output-left, output-right.
-
-**Output**: \`{ "type": "csv", "path": "/path/to/output.csv" }\`
-
-## Sockets
-
-Most tools: \`input\` → \`output\`. \`add_tool\` with \`after\` resolves sockets automatically.
-Non-default sockets (only specify when connecting to these):
-- Filter: **output-true** (default), output-false
-- Join: input-left, input-right, **output-match** (default), output-left, output-right
-- Unique: **output-unique** (default), output-duplicate
-
-Defaults are bolded — you only need to specify \`fromSocket\`/\`toSocket\` when connecting to a non-default socket.
-`;
+/**
+ * Get just the static portion of the system prompt (for Anthropic cache control).
+ * This is the content that doesn't change between turns and can be cached.
+ */
+export function getStaticPromptPrefix(): string {
+  return STATIC_INSTRUCTIONS;
 }
 
 /**
@@ -171,17 +155,31 @@ function stripInternalIds(value: unknown): unknown {
 
 /**
  * Format current canvas state for inclusion in the system prompt.
+ * Uses compact serialization: abbreviated IDs, truncated config values,
+ * and tool comments for faster agent comprehension.
  */
 function formatCanvasState(tools: Tool[], wires: Wire[]): string {
   // Keys that are UI-internal duplicates or not useful to the agent
   const HIDDEN_CONFIG_KEYS = new Set(['_emit', 'actions', 'conditionGroup', 'mode', 'placeholder']);
+  // Max chars for a single config value (truncate long expressions/arrays)
+  const MAX_VALUE_LEN = 80;
 
   const toolLines = tools.map((t) => {
-    const configSummary = Object.entries(t.config)
-      .filter(([k]) => !HIDDEN_CONFIG_KEYS.has(k))
-      .map(([k, v]) => `${k}=${JSON.stringify(stripInternalIds(v))}`)
-      .join(', ');
-    return `  [${t.id.slice(0, 8)}] ${t.type} — ${configSummary || '(default config)'}`;
+    const configEntries = Object.entries(t.config)
+      .filter(([k]) => !HIDDEN_CONFIG_KEYS.has(k));
+
+    // Compact config: key=value pairs, values truncated
+    const configParts: string[] = [];
+    for (const [k, v] of configEntries) {
+      const raw = JSON.stringify(stripInternalIds(v));
+      const value = raw.length > MAX_VALUE_LEN
+        ? raw.slice(0, MAX_VALUE_LEN) + '...'
+        : raw;
+      configParts.push(`${k}=${value}`);
+    }
+    const configStr = configParts.join(', ') || '(default)';
+    const commentStr = t.comment ? ` // ${t.comment}` : '';
+    return `  [${t.id.slice(0, 8)}] ${t.type} — ${configStr}${commentStr}`;
   });
 
   const wireLines = wires.map((w) => {

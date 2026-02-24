@@ -245,20 +245,23 @@ describe("buildMessageHistory", () => {
     expect(result[0]!.content).toContain("[add_tool → Filter [2] connected]");
   });
 
-  it("should limit history to MAX_HISTORY (40) messages", () => {
+  it("should limit history by token budget, not fixed count", () => {
     const messages: ChatMessage[] = [];
-    for (let i = 0; i < 50; i++) {
+    // Create messages with ~1000 chars each (~250 tokens)
+    // With a 60k token budget (~240k chars), about 240 messages should fit
+    for (let i = 0; i < 300; i++) {
       messages.push(msg({
         role: i % 2 === 0 ? "user" : "assistant",
-        content: `Message ${i}`,
+        content: "x".repeat(1000) + ` Message ${i}`,
       }));
     }
 
     const result = buildMessageHistory(messages);
-    expect(result).toHaveLength(40);
-    // Should keep the last 40
-    expect(result[0]!.content).toBe("Message 10");
-    expect(result[39]!.content).toBe("Message 49");
+    // Should include many messages but not all 300
+    expect(result.length).toBeGreaterThan(40); // More than old fixed limit
+    expect(result.length).toBeLessThan(300);
+    // Should keep the most recent messages
+    expect(result[result.length - 1]!.content).toContain("Message 299");
   });
 
   it("should handle assistant messages without tool calls", () => {

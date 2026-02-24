@@ -55,7 +55,36 @@ describe("system prompt", () => {
   it("should emphasize comment requirement", () => {
     const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
     expect(prompt).toContain("ALWAYS add comments to every tool");
-    expect(prompt).toContain("MUST include a `comment`");
+    expect(prompt).toContain("comments is incomplete");
+  });
+
+  it("should conditionally include formula catalog for empty canvas", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
+    expect(prompt).toContain("Available Formula operations");
+  });
+
+  it("should include formula catalog when Formula tools are present", () => {
+    const tools: Tool[] = [
+      makeTool("t1", "Formula", { operations: [] }),
+    ];
+    const prompt = buildWorkflowSystemPrompt(tools, [], makeMetadata());
+    expect(prompt).toContain("Available Formula operations");
+  });
+
+  it("should include tail reminder", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
+    expect(prompt).toContain("Remember:");
+    expect(prompt).toContain("column names are case-sensitive");
+  });
+
+  it("should include audit notice when enabled", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata(), { auditEnabled: true });
+    expect(prompt).toContain("Your work will be audited");
+  });
+
+  it("should not include audit notice when disabled", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata(), { auditEnabled: false });
+    expect(prompt).not.toContain("Your work will be audited");
   });
 });
 
