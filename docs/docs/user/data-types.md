@@ -25,7 +25,6 @@ Sigilweaver uses Polars data types. Understanding these types helps you work wit
 
 | Type | Size | Precision | Use Case |
 |------|------|-----------|----------|
-| `Float16` | 2 bytes | ~3 digits | Machine learning, memory-constrained |
 | `Float32` | 4 bytes | ~7 digits | Graphics, less precision needed |
 | `Float64` | 8 bytes | ~15 digits | Most decimal numbers, scientific data |
 

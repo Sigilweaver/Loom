@@ -37,7 +37,7 @@ npm run lint:fix
 npm run type-check
 ```
 
-Configuration lives in `.eslintrc` and `tsconfig.json`. ESLint + Prettier handle:
+Configuration lives in `.eslintrc.cjs` and `tsconfig.json`. ESLint + Prettier handle:
 - Import sorting
 - Line length (100 chars)
 - Quote style (single)

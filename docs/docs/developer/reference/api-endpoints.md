@@ -18,7 +18,7 @@ Health check endpoint.
 ```json
 {
   "status": "healthy",
-  "version": "0.3.0",
+  "version": "0.0.0-dev",
   "message": "Sigilweaver Backend is running",
   "python_version": "3.11.5",
   "platform": "Linux 6.5.0",
@@ -26,6 +26,8 @@ Health check endpoint.
   "max_preview_rows": 10000
 }
 ```
+
+*Values shown are examples; actual values reflect the running environment.*
 
 Used by the frontend to verify the backend is running and compatible.
 
@@ -669,6 +671,35 @@ List directory contents.
 }
 ```
 
+### GET /api/files/search
+
+Search for data files across all granted directories. Results are ranked by fuzzy relevance (exact match > starts with > word match > substring > subsequence).
+
+**Query Parameters:**
+- `query` *(required)*: Search text to match against filenames
+- `extensions` *(optional)*: Comma-separated file extensions to include (e.g. `csv,parquet`). Defaults to common data formats.
+- `limit` *(optional)*: Max results to return, 1-100 (default: 20)
+
+**Response:**
+```json
+{
+  "query": "sales",
+  "results": [
+    {
+      "name": "sales_2025.csv",
+      "path": "/data/shared/sales_2025.csv",
+      "size": 2048,
+      "modified": "2025-06-10T14:00:00Z",
+      "extension": "csv",
+      "score": 0.9
+    }
+  ],
+  "total_files_scanned": 150
+}
+```
+
+---
+
 ### GET /api/files/stat
 
 Get file or directory information.
@@ -703,7 +734,7 @@ Get available Polars functions for autocomplete.
 **Response:**
 ```json
 {
-  "polars_version": "0.20.10",
+  "polars_version": "1.20.0",
   "table_level": ["pl.col", "pl.lit", "pl.when", "pl.concat"],
   "column_methods": {
     "all": ["alias", "cast", "fill_null", "is_null"],
@@ -727,6 +758,64 @@ Clear cached function list.
   "message": "Cache cleared, next request will re-introspect"
 }
 ```
+
+---
+
+## AI
+
+Reverse proxy for LLM provider API calls. Solves CORS restrictions when Studio runs in web mode. Supports streaming SSE for progressive token display.
+
+:::note
+In Electron mode, Studio calls LLM providers directly. These proxy endpoints are used when Studio runs in a browser.
+:::
+
+Supported providers: `openai`, `anthropic`, `google`, `mistral`, `openai-compatible`.
+
+### POST /api/ai/models
+
+List available models from an LLM provider.
+
+**Request:**
+```json
+{
+  "provider": "openai",
+  "api_key": "sk-...",
+  "base_url": null
+}
+```
+
+- `provider` *(required)*: One of the supported providers above
+- `api_key` *(optional)*: API key for authentication
+- `base_url` *(optional)*: Custom base URL (required for `openai-compatible`)
+
+**Response:**
+```json
+{
+  "models": [
+    { "id": "gpt-4o", "name": null, "owned_by": "openai" },
+    { "id": "gpt-4o-mini", "name": null, "owned_by": "openai" }
+  ]
+}
+```
+
+### POST /api/ai/proxy/{provider}/{path}
+
+Streaming reverse proxy for LLM API calls. Forwards the request to the provider, preserving headers, body, and SSE streaming.
+
+**Path Parameters:**
+- `provider`: Provider name (e.g., `anthropic`, `openai`)
+- `path`: The upstream API path (e.g., `v1/messages`, `v1/chat/completions`)
+
+**Query Parameters:**
+- `base_url` *(optional)*: Required for `openai-compatible` provider (e.g., `http://localhost:11434`)
+
+**Usage:**
+Instead of calling `https://api.anthropic.com/v1/messages`, call:
+```
+POST http://localhost:25811/api/ai/proxy/anthropic/v1/messages
+```
+
+The request body, headers (including `Authorization`), and response are forwarded transparently. Streaming responses (`text/event-stream`) are proxied chunk-by-chunk.
 
 ---
 

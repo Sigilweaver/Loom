@@ -25,7 +25,7 @@ The Summarize tool shows a table of all available columns. For each column, sele
 | **Median** | Calculate median value | Numeric only |
 | **Min** | Find minimum value | Any type |
 | **Max** | Find maximum value | Any type |
-| **Count** | Count non-null values | Any type |
+| **Count** | Count all values (including nulls) | Any type |
 | **Count Distinct** | Count unique values | Any type |
 | **First** | Get first value in group | Any type |
 | **Last** | Get last value in group | Any type |

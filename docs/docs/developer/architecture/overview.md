@@ -120,6 +120,8 @@ State is split across multiple Zustand stores:
 - `connectionStore`: Database connections
 - `clipboardStore`: Copy/paste operations
 - `runtimeLogStore`: Runtime log messages
+- `aiStore`: AI assistant state management
+- `autoConnectPreviewStore`: Auto-connection preview state
 
 ## Backend Architecture
 

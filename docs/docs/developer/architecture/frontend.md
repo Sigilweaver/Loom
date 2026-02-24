@@ -52,7 +52,9 @@ studio/src/
 │   ├── connectionStore.ts # Database connections
 │   ├── executionStore.ts  # Execution state and progress
 │   ├── clipboardStore.ts  # Copy/paste operations
-│   └── runtimeLogStore.ts # Runtime log messages
+│   ├── runtimeLogStore.ts # Runtime log messages
+│   ├── aiStore.ts         # AI assistant state
+│   └── autoConnectPreviewStore.ts # Auto-connection preview
 │
 ├── domain/             # Pure TypeScript business logic
 │   └── workflow/
@@ -73,7 +75,7 @@ studio/src/
 │
 ├── types/              # TypeScript interfaces
 ├── utils/              # Shared utilities
-└── themes/             # Theme definitions (light, dark, sigilweaver, + extended)
+└── themes/             # Theme definitions (4 core + 23 extended = 27 total)
 ```
 
 ## State Management
@@ -156,9 +158,11 @@ Persisted settings (survives restart):
 ```typescript
 interface SettingsState {
   author: string;
+  theme: {
+    id: string;   // Theme ID (e.g. 'sigilweaver', 'dracula', 'nord')
+  };
   ui: {
-    theme: 'light' | 'dark' | 'sigilweaver';
-    edgeStyle: 'bezier' | 'straight' | 'smoothstep';
+    edgeStyle: 'bezier' | 'straight' | 'step' | 'smoothstep';
     // ...
   };
 }
