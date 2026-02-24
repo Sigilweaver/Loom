@@ -569,8 +569,12 @@ export const addTool = tool({
           rowCount: result.row_count ?? 0,
         };
       } catch (err) {
-        // Non-fatal — tool was added successfully, preview just failed
+        // Surface preview failure so the agent can self-correct
+        const previewError = err instanceof Error ? err.message : String(err);
         logger.warn('Inline preview failed for add_tool', err);
+        return {
+          data: formatAddToolResult(newTool.id, newTool.type, connected, undefined, `Preview failed: ${previewError}`),
+        };
       }
     }
 

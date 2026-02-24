@@ -12,6 +12,7 @@ import { runAudit } from './audit';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { v4 as uuid } from 'uuid';
+import { z } from 'zod';
 
 // Agent tools
 import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools } from './tools/canvas';
@@ -327,8 +328,33 @@ export async function generateBasicFilter(
     const text = (response.text ?? '').trim();
     // Strip markdown code fences if present
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned) as BasicFilterResult;
-    return { result: parsed };
+    const parsed = JSON.parse(cleaned);
+
+    // Schema-validate the parsed output
+    const filterSchema = z.object({
+      conditions: z.array(z.object({
+        column: z.string(),
+        operator: z.string(),
+        value: z.string().optional(),
+      })),
+      groups: z.array(z.object({
+        conditions: z.array(z.object({
+          column: z.string(),
+          operator: z.string(),
+          value: z.string().optional(),
+        })),
+        combinator: z.string().optional(),
+      })).optional(),
+      combinator: z.string(),
+    });
+
+    const validated = filterSchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+      return { error: `Invalid filter structure from AI: ${issues}` };
+    }
+
+    return { result: validated.data as BasicFilterResult };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -377,8 +403,24 @@ export async function generateBasicFormula(
 
     const text = (response.text ?? '').trim();
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned) as BasicFormulaOperation[];
-    return { result: parsed };
+    const parsed = JSON.parse(cleaned);
+
+    // Schema-validate the parsed output
+    const formulaOpSchema = z.object({
+      operationId: z.string(),
+      sourceColumn: z.string(),
+      params: z.record(z.string(), z.string()).default({}),
+      columnName: z.string(),
+    });
+    const formulaArraySchema = z.array(formulaOpSchema);
+
+    const validated = formulaArraySchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+      return { error: `Invalid formula structure from AI: ${issues}` };
+    }
+
+    return { result: validated.data as BasicFormulaOperation[] };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -484,8 +526,8 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
     case 'profile_tool_data':
       return `${r.rowCount} rows, ${r.columnCount} cols profiled`;
     case 'list_available_files':
-      if (r.roots) return `roots: ${(r.roots as string[]).join(', ')}`;
-      return `${((r.files as unknown[]) ?? []).length} files`;
+      if (r.roots) return `${(r.roots as string[]).length} roots: ${(r.roots as string[]).join(', ')}`;
+      return `${r.count ?? ((r.files as unknown[]) ?? []).length} files in ${r.directory ?? 'unknown'}`;
     default:
       return truncateStr(JSON.stringify(r), 200);
   }

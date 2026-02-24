@@ -137,13 +137,13 @@ describe("summarizeToolResult", () => {
   });
 
   it("should summarize list_available_files with roots", () => {
-    const result = { roots: ["/data", "/uploads"] };
-    expect(summarizeToolResult("list_available_files", result)).toBe("roots: /data, /uploads");
+    const result = { roots: ["/data", "/uploads"], count: 2 };
+    expect(summarizeToolResult("list_available_files", result)).toBe("2 roots: /data, /uploads");
   });
 
   it("should summarize list_available_files with files", () => {
-    const result = { files: ["a.csv", "b.csv", "c.csv"] };
-    expect(summarizeToolResult("list_available_files", result)).toBe("3 files");
+    const result = { directory: "/data", files: ["a.csv", "b.csv", "c.csv"], count: 3 };
+    expect(summarizeToolResult("list_available_files", result)).toBe("3 files in /data");
   });
 
   it("should fall back to JSON for unknown tool names", () => {
