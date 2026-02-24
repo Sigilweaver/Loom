@@ -3,6 +3,11 @@
  *
  * Manages AI feature state: provider settings, chat messages, agent invocation.
  * AI is off by default. Zero AI code loads unless the user enables it.
+ *
+ * **Tab-scoped sessions**: Chat messages, pending questions, generation state,
+ * and token usage are isolated per tab. When the user switches tabs, the current
+ * AI session is saved and the target tab's session is restored. Settings
+ * (provider, model, API key) remain global — they apply to all tabs.
  */
 
 import { create } from 'zustand';
@@ -89,6 +94,19 @@ export interface TokenUsage {
 }
 
 /**
+ * Serializable snapshot of a tab's AI session state.
+ * Stored in tabStore's TabData when switching tabs.
+ * Does NOT include non-serializable fields (abortController, pendingQuestion resolve).
+ */
+export interface TabAISession {
+  messages: ChatMessage[];
+  sessionUsage: TokenUsage;
+  stoppedAtLimit: boolean;
+  /** Error message from last generation, if any */
+  error: string | null;
+}
+
+/**
  * A pending follow-up question from the agent.
  * The agent loop blocks until the user answers, then resumes.
  */
@@ -168,6 +186,12 @@ interface AIState extends AISettings {
   /** A pending follow-up question from the agent (null when none) */
   pendingQuestion: PendingQuestion | null;
 
+  // -- Multi-agent / per-tab concurrency --
+  /** Tab ID that owns the currently running agent (null when idle) */
+  agentTabId: string | null;
+  /** Per-tab queues of pending prompts, keyed by tab ID */
+  runQueues: Record<string, string[]>;
+
   // -- Settings actions --
   loadAISettings: () => Promise<void>;
   updateEnabled: (enabled: boolean) => Promise<void>;
@@ -210,6 +234,24 @@ interface AIState extends AISettings {
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
   setPendingQuestion: (question: PendingQuestion | null) => void;
+
+  // -- Multi-agent / per-tab concurrency --
+  /** Set which tab owns the currently running agent. */
+  setAgentTabId: (tabId: string | null) => void;
+  /** Enqueue a prompt for the given tab when an agent is already running. */
+  enqueuePrompt: (tabId: string, prompt: string) => void;
+  /** Dequeue the next prompt for the given tab. Returns undefined if empty. */
+  dequeuePrompt: (tabId: string) => string | undefined;
+  /** Clear the run queue for a tab (e.g. on tab close). */
+  clearRunQueue: (tabId: string) => void;
+  /** Get the queue length for a tab. */
+  getQueueLength: (tabId?: string) => number;
+
+  // -- Tab session management --
+  /** Snapshot the current AI session for saving to a tab. */
+  snapshotSession: () => TabAISession;
+  /** Restore an AI session from a tab snapshot. Cancels any in-progress generation. */
+  restoreSession: (session: TabAISession | undefined) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -327,6 +369,8 @@ export const useAIStore = create<AIState>()((set, get) => ({
   streamingSegments: [],
   stoppedAtLimit: false,
   pendingQuestion: null,
+  agentTabId: null,
+  runQueues: {},
 
   loadAISettings: async () => {
     const settings = loadPersistedSettings();
@@ -503,14 +547,18 @@ export const useAIStore = create<AIState>()((set, get) => ({
   setAbortController: (abortController) => set({ abortController }),
 
   cancelGeneration: () => {
-    const { abortController, pendingQuestion } = get();
+    const { abortController, pendingQuestion, agentTabId } = get();
     // If a follow-up question is pending, dismiss it
     if (pendingQuestion) {
       set({ pendingQuestion: null });
     }
     if (abortController) {
       abortController.abort();
-      set({ abortController: null, isGenerating: false });
+      set({ abortController: null, isGenerating: false, agentTabId: null });
+    }
+    // Clear the run queue for the tab that was running
+    if (agentTabId) {
+      get().clearRunQueue(agentTabId);
     }
   },
 
@@ -556,4 +604,95 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
+
+  // -- Multi-agent / per-tab concurrency --
+
+  setAgentTabId: (agentTabId) => set({ agentTabId }),
+
+  enqueuePrompt: (tabId, prompt) => {
+    set((s) => ({
+      runQueues: {
+        ...s.runQueues,
+        [tabId]: [...(s.runQueues[tabId] ?? []), prompt],
+      },
+    }));
+  },
+
+  dequeuePrompt: (tabId) => {
+    const queue = get().runQueues[tabId];
+    if (!queue || queue.length === 0) return undefined;
+    const [next, ...rest] = queue;
+    set((s) => ({
+      runQueues: { ...s.runQueues, [tabId]: rest },
+    }));
+    return next;
+  },
+
+  clearRunQueue: (tabId) => {
+    set((s) => {
+      const { [tabId]: _, ...rest } = s.runQueues;
+      return { runQueues: rest };
+    });
+  },
+
+  getQueueLength: (tabId) => {
+    const id = tabId ?? get().agentTabId;
+    if (!id) return 0;
+    return get().runQueues[id]?.length ?? 0;
+  },
+
+  // -- Tab session management --
+
+  snapshotSession: () => {
+    const s = get();
+    return {
+      messages: s.messages,
+      sessionUsage: { ...s.sessionUsage },
+      stoppedAtLimit: s.stoppedAtLimit,
+      error: s.error,
+    };
+  },
+
+  restoreSession: (session) => {
+    // Cancel any in-progress generation before switching contexts
+    const { abortController, pendingQuestion } = get();
+    if (pendingQuestion) {
+      set({ pendingQuestion: null });
+    }
+    if (abortController) {
+      abortController.abort();
+    }
+
+    if (session) {
+      set({
+        messages: session.messages,
+        sessionUsage: session.sessionUsage,
+        stoppedAtLimit: session.stoppedAtLimit,
+        error: session.error,
+        isGenerating: false,
+        abortController: null,
+        agentTabId: null,
+        streamingText: '',
+        streamingSegments: [],
+        pendingQuestion: null,
+      });
+    } else {
+      // No session for this tab — start fresh
+      set({
+        messages: [],
+        sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        stoppedAtLimit: false,
+        error: null,
+        isGenerating: false,
+        abortController: null,
+        agentTabId: null,
+        streamingText: '',
+        streamingSegments: [],
+        pendingQuestion: null,
+      });
+    }
+    // Persist the new active session's chat
+    savePersistedChat(get().messages);
+    savePersistedStoppedAtLimit(get().stoppedAtLimit);
+  },
 }));

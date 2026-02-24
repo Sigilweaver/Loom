@@ -29,6 +29,7 @@ import { useWorkflowStore } from "./workflowStore";
 import { useHistoryStore, type WorkflowSnapshot as HistoryWorkflowSnapshot } from "./historyStore";
 import { useSettingsStore } from "./settingsStore";
 import { useUIStore } from "./uiStore";
+import { useAIStore, type TabAISession } from "./aiStore";
 import { v4 as uuidv4 } from "uuid";
 import { clearWorkflowCache } from "../api/cache";
 
@@ -71,12 +72,14 @@ export interface ViewportState {
 }
 
 /**
- * Complete tab data (workflow + history + viewport)
+ * Complete tab data (workflow + history + viewport + AI session)
  */
 export interface TabData {
   workflow: WorkflowSnapshot;
   history: HistorySnapshot;
   viewport?: ViewportState;
+  /** Per-tab AI chat session (messages, usage, state) */
+  aiSession?: TabAISession;
 }
 
 /**
@@ -290,6 +293,9 @@ export const useTabStore = create<TabState>()(
             tabData: newTabData,
           };
         });
+
+        // Clean up per-tab AI run queue
+        useAIStore.getState().clearRunQueue(tabId);
 
         // Clear all caches for this workflow
         if (workflowId) {
@@ -557,6 +563,7 @@ export const useTabStore = create<TabState>()(
         const workflowStore = useWorkflowStore.getState();
         const historyStore = useHistoryStore.getState();
         const uiStore = useUIStore.getState();
+        const aiStore = useAIStore.getState();
 
         const snapshot: TabData = {
           workflow: {
@@ -569,6 +576,7 @@ export const useTabStore = create<TabState>()(
             future: deepClone(historyStore.future),
           },
           ...(uiStore.viewport ? { viewport: deepClone(uiStore.viewport) } : {}),
+          aiSession: deepClone(aiStore.snapshotSession()),
         };
 
         set({
@@ -622,6 +630,9 @@ export const useTabStore = create<TabState>()(
 
         // Load viewport state
         useUIStore.getState().setViewport(data.viewport || null);
+
+        // Load AI session state (tab-scoped chat history, usage, etc.)
+        useAIStore.getState().restoreSession(data.aiSession);
 
         // Sync tab name with workflow meta name
         const workflowName = data.workflow.workflowMeta.name;

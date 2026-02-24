@@ -15,9 +15,34 @@ import { previewTool } from '@api';
 import { formatAddToolResult } from '../format';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
+import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
+import { getAgentTabId } from '../agent';
+import { useTabStore } from '@state/tabStore';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
 const logger = createLogger('AI:CanvasTools');
+
+// ---------------------------------------------------------------------------
+// Canvas write guard — prevents agent from modifying the wrong tab's canvas
+// ---------------------------------------------------------------------------
+
+/**
+ * Check that the running agent owns the currently active canvas tab.
+ * Returns an error object if the tab has changed since the agent started,
+ * or null if the agent is safe to proceed.
+ */
+function checkTabOwnership(): { success: false; error: string } | null {
+  const agentTab = getAgentTabId();
+  if (!agentTab) return null; // No agent context (e.g. direct tool call in tests)
+  const activeTab = useTabStore.getState().activeTabId;
+  if (activeTab !== agentTab) {
+    return {
+      success: false,
+      error: 'Canvas write blocked: user switched to a different tab while the agent was running. Retry when the original tab is active.',
+    };
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Filter expression auto-generation
@@ -321,16 +346,75 @@ export function enrichToolConfig(
 }
 
 /**
+ * Resolve a structured basic-mode formula operation from the AI agent.
+ *
+ * Takes an operation with `operationId`, `sourceColumn`, `params`, `columnName`
+ * and resolves it through the formula operations catalog to produce a full
+ * FormulaOperationConfig with the generated Polars expression.
+ *
+ * This allows the user to edit the operation via the GUI (Basic mode)
+ * instead of needing to understand the raw Polars expression.
+ *
+ * Falls back to raw expression format if the operationId is not found.
+ */
+function resolveBasicFormulaOperation(op: Record<string, unknown>): Record<string, unknown> {
+  const operationId = op.operationId as string;
+  const sourceColumn = (op.sourceColumn as string) ?? '';
+  const params = (op.params as Record<string, string>) ?? {};
+  const columnName = (op.columnName as string)
+    ?? (op.column_name as string)
+    ?? '';
+
+  const opDef = OPERATIONS_BY_ID[operationId];
+  if (!opDef) {
+    // Unknown operation — fall back to raw expression if provided
+    logger.warn(`Unknown formula operation: "${operationId}", falling back to raw mode`);
+    return {
+      column_name: columnName || 'new_column',
+      expression: (op.expression as string) ?? '',
+    };
+  }
+
+  // Fill in default param values for any params the agent omitted
+  const resolvedParams: Record<string, string> = {};
+  for (const paramDef of opDef.params) {
+    resolvedParams[paramDef.key] = params[paramDef.key] ?? paramDef.defaultValue ?? '';
+  }
+
+  // Generate the Polars expression via the catalog
+  const expression = opDef.toExpression(sourceColumn, resolvedParams);
+
+  // Auto-generate column name if not provided
+  const resolvedColumnName = columnName || opDef.toColumnName(sourceColumn, resolvedParams);
+
+  // Return full GUI state so FormulaConfiguration can render in Basic mode
+  return {
+    id: crypto.randomUUID(),
+    operationId,
+    sourceColumn,
+    params: resolvedParams,
+    columnName: resolvedColumnName,
+    column_name: resolvedColumnName,
+    columnNameEdited: !!columnName,
+    mode: 'basic',
+    expression,
+  };
+}
+
+/**
  * Enrich Formula config — normalize the various shapes the agent might produce
  * into the canonical `operations` array format.
  *
  * The agent may send:
+ *   - Structured operations: `[{ operationId, sourceColumn, params, columnName }]` (preferred)
+ *   - Raw expressions: `[{ column_name, expression }]`
  *   - `formulas: [{ column, expression }]`   (common LLM hallucination)
  *   - `operations: [{ columnName, expression }]` (camelCase variant)
- *   - `operations: [{ column_name, expression }]` (correct)
  *   - top-level `column_name` + `expression` (single-op shorthand)
  *
- * All forms are normalized to `operations: [{ column_name, expression }]`.
+ * Structured operations are resolved via the formula operations catalog
+ * (toExpression) and stored with full GUI state so the user can edit
+ * them in Basic mode without dealing with raw Polars.
  */
 function enrichFormulaConfig(config: Record<string, unknown>): Record<string, unknown> {
   const result = { ...config };
@@ -344,12 +428,19 @@ function enrichFormulaConfig(config: Record<string, unknown>): Record<string, un
     delete result.formulas;
   }
 
-  // Normalize camelCase column names within operations
+  // Process operations array
   if (Array.isArray(result.operations)) {
-    result.operations = (result.operations as Array<Record<string, unknown>>).map((op) => ({
-      column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
-      expression: op.expression ?? '',
-    }));
+    result.operations = (result.operations as Array<Record<string, unknown>>).map((op) => {
+      // Check if this is a structured basic-mode operation (has operationId)
+      if (op.operationId && typeof op.operationId === 'string') {
+        return resolveBasicFormulaOperation(op);
+      }
+      // Raw expression format — normalize field names
+      return {
+        column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
+        expression: op.expression ?? '',
+      };
+    });
   }
 
   // If there's a top-level column_name + expression but no operations, wrap it
@@ -425,12 +516,15 @@ export const addTool = tool({
   inputSchema: z.object({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique"). Note: Aggregate is type "Summarize", Concatenate is type "Union", Read is type "Input", Write is type "Output", Schema is type "Select", Calculate is type "Formula".'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
-    comment: z.string().optional().describe('Brief human-readable comment explaining what this tool does (e.g. "Load raw sales data", "Keep only active customers")'),
+    comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this tool does in the pipeline. Every tool must have a comment (e.g. "Load raw sales data", "Keep only active customers", "Calculate profit margin per product"). Comments help users understand the workflow.'),
     after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID — not to another Aggregate.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
   execute: async ({ type, config, comment, after, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const def = getToolDefinition(type);
     if (!def) {
       const available = listToolTypes().map((t) => t.type).join(', ');
@@ -502,8 +596,12 @@ export const addTool = tool({
           rowCount: result.row_count ?? 0,
         };
       } catch (err) {
-        // Non-fatal — tool was added successfully, preview just failed
+        // Surface preview failure so the agent can self-correct
+        const previewError = err instanceof Error ? err.message : String(err);
         logger.warn('Inline preview failed for add_tool', err);
+        return {
+          data: formatAddToolResult(newTool.id, newTool.type, connected, undefined, `Preview failed: ${previewError}`),
+        };
       }
     }
 
@@ -524,6 +622,9 @@ export const updateTool = tool({
     comment: z.string().optional().describe('New comment for the tool. Replaces the existing comment.'),
   }),
   execute: async ({ toolId, config, comment }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const existing = tools.find((t) => t.id === toolId);
     if (!existing) {
@@ -564,6 +665,9 @@ export const updateTools = tool({
     })).min(1).describe('Array of tool updates to apply.'),
   }),
   execute: async ({ updates }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const results: Array<{ toolId: string; success: boolean; error?: string; updatedFields?: string[] }> = [];
 
@@ -610,6 +714,9 @@ export const removeTool = tool({
     toolId: z.string().describe('The ID of the tool to remove.'),
   }),
   execute: async ({ toolId }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, removeTool: remove } = useWorkflowStore.getState();
     const existing = tools.find((t) => t.id === toolId);
     if (!existing) {
@@ -634,6 +741,9 @@ export const connectTools = tool({
     toSocket: z.string().optional().describe('Input socket ID on the target tool. Defaults to the first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, addWire } = useWorkflowStore.getState();
     const fromTool = tools.find((t) => t.id === fromToolId);
     const toTool = tools.find((t) => t.id === toToolId);
@@ -673,6 +783,9 @@ export const disconnectTools = tool({
     toSocket: z.string().optional().describe('Input socket ID. Defaults to first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, wires, removeWire } = useWorkflowStore.getState();
     const fromTool = tools.find((t) => t.id === fromToolId);
     const toTool = tools.find((t) => t.id === toToolId);
@@ -705,5 +818,252 @@ export const disconnectTools = tool({
     );
     await runAutoLayout();
     return { success: true };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Batch canvas operations — transactional multi-step mutations
+// ---------------------------------------------------------------------------
+
+/**
+ * Operation schemas for batch_canvas_ops
+ */
+const batchOpSchema = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('add'),
+    /** Temporary ID for referencing this tool in later ops within the same batch */
+    refId: z.string().optional().describe('Temporary reference ID for later ops in this batch (e.g. "filter1"). Use this to connect or update tools added in this same batch.'),
+    type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Summarize")'),
+    config: z.record(z.string(), z.unknown()).optional(),
+    comment: z.string().optional().describe('Brief human-readable comment for this tool.'),
+    after: z.string().optional().describe('ID or refId of upstream tool to connect to.'),
+    fromSocket: z.string().optional(),
+    toSocket: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('connect'),
+    from: z.string().describe('ID or refId of source tool.'),
+    to: z.string().describe('ID or refId of target tool.'),
+    fromSocket: z.string().optional(),
+    toSocket: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('update'),
+    toolId: z.string().describe('ID or refId of tool to update.'),
+    config: z.record(z.string(), z.unknown()).optional(),
+    comment: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('remove'),
+    toolId: z.string().describe('ID or refId of tool to remove.'),
+  }),
+]);
+
+/**
+ * Batch canvas operations in a single tool call.
+ * Adds, connects, updates, and removes tools transactionally with layout
+ * deferred to the end. Returns an idMap of refIds to canvas IDs plus
+ * an optional preview summary of the last added tool.
+ */
+export const batchCanvasOps = tool({
+  description: 'Execute multiple canvas operations (add, connect, update, remove) in a single call. ' +
+    'Use this instead of separate add_tool/connect_tools/update_tool calls when building or modifying ' +
+    'multiple tools at once. Defers layout until the end. Returns an id map and optional preview. ' +
+    'Use "refId" on add ops to reference newly-added tools in later ops within the same batch.',
+  inputSchema: z.object({
+    operations: z.array(batchOpSchema).min(1).describe('Array of operations to execute in order.'),
+    previewLast: z.boolean().optional().describe('When true, previews the output of the last added tool.'),
+  }),
+  execute: async ({ operations, previewLast }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
+    const idMap: Record<string, string> = {}; // refId → actual canvas ID
+    const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
+
+    // Resolve a tool ID that may be a refId or an actual canvas ID
+    const resolveId = (idOrRef: string): string => {
+      return idMap[idOrRef] ?? idOrRef;
+    };
+
+    let lastAddedToolId: string | undefined;
+
+    for (const operation of operations) {
+      try {
+        switch (operation.op) {
+          case 'add': {
+            const def = getToolDefinition(operation.type);
+            if (!def) {
+              results.push({ op: 'add', success: false, error: `Unknown type: "${operation.type}"` });
+              continue;
+            }
+
+            const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
+            const existingIds = new Set(tools.map((t) => t.id));
+
+            const resolvedConfig = operation.config ? enrichToolConfig(operation.type, operation.config) : undefined;
+            const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
+            const resolvedComment = operation.comment || generateComment(def.type, finalConfig) || undefined;
+
+            const newTool: Tool = {
+              id: generateUniqueId(existingIds),
+              type: def.type,
+              x: 0,
+              y: 0,
+              config: finalConfig,
+              sockets: [...def.sockets],
+              ...(resolvedComment ? { comment: resolvedComment } : {}),
+            };
+
+            storeAddTool(newTool);
+
+            // Register refId mapping
+            if (operation.refId) {
+              idMap[operation.refId] = newTool.id;
+            }
+            lastAddedToolId = newTool.id;
+
+            // Auto-connect if "after" is specified
+            if (operation.after) {
+              const afterId = resolveId(operation.after);
+              const currentTools = useWorkflowStore.getState().tools;
+              const sourceTool = currentTools.find((t) => t.id === afterId);
+              if (sourceTool) {
+                const outputSocket = operation.fromSocket
+                  ?? sourceTool.sockets.find((s) => s.direction === 'output')?.id;
+                const inputSocket = operation.toSocket
+                  ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
+                if (outputSocket && inputSocket) {
+                  addWire({
+                    from: { tool: afterId, socket: outputSocket },
+                    to: { tool: newTool.id, socket: inputSocket },
+                  });
+                }
+              }
+            }
+
+            results.push({ op: 'add', success: true, toolId: newTool.id });
+            break;
+          }
+
+          case 'connect': {
+            const fromId = resolveId(operation.from);
+            const toId = resolveId(operation.to);
+            const { tools, addWire } = useWorkflowStore.getState();
+            const fromTool = tools.find((t) => t.id === fromId);
+            const toTool = tools.find((t) => t.id === toId);
+
+            if (!fromTool || !toTool) {
+              results.push({ op: 'connect', success: false, error: `Tool not found: ${!fromTool ? fromId : toId}` });
+              continue;
+            }
+
+            const outputSocket = operation.fromSocket
+              ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+            const inputSocket = operation.toSocket
+              ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
+
+            if (outputSocket && inputSocket) {
+              addWire({
+                from: { tool: fromId, socket: outputSocket },
+                to: { tool: toId, socket: inputSocket },
+              });
+              results.push({ op: 'connect', success: true });
+            } else {
+              results.push({ op: 'connect', success: false, error: 'Could not resolve sockets' });
+            }
+            break;
+          }
+
+          case 'update': {
+            const toolId = resolveId(operation.toolId);
+            const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
+            const existing = tools.find((t) => t.id === toolId);
+            if (!existing) {
+              results.push({ op: 'update', success: false, toolId, error: `Tool not found: ${toolId}` });
+              continue;
+            }
+
+            if (operation.config) {
+              const resolvedConfig = enrichToolConfig(existing.type, operation.config);
+              updateToolConfiguration(toolId, { ...existing.config, ...resolvedConfig } as ToolConfig);
+            }
+            if (operation.comment !== undefined) {
+              updateToolComment(toolId, operation.comment || undefined);
+            }
+            results.push({ op: 'update', success: true, toolId });
+            break;
+          }
+
+          case 'remove': {
+            const toolId = resolveId(operation.toolId);
+            const { tools, removeTool: remove } = useWorkflowStore.getState();
+            const existing = tools.find((t) => t.id === toolId);
+            if (!existing) {
+              results.push({ op: 'remove', success: false, error: `Tool not found: ${toolId}` });
+              continue;
+            }
+            remove(toolId);
+            results.push({ op: 'remove', success: true, toolId });
+            break;
+          }
+        }
+      } catch (err) {
+        results.push({
+          op: operation.op,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    // Defer layout to end of batch
+    await runAutoLayout();
+
+    // Build summary
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+    const parts: string[] = [];
+    parts.push(`Batch: ${succeeded}/${operations.length} ops succeeded${failed > 0 ? ` (${failed} failed)` : ''}`);
+
+    // Report id map
+    if (Object.keys(idMap).length > 0) {
+      parts.push('ID map: ' + Object.entries(idMap).map(([ref, id]) => `${ref} → ${id}`).join(', '));
+    }
+
+    // Report failures
+    const failures = results.filter((r) => !r.success);
+    if (failures.length > 0) {
+      parts.push('Errors: ' + failures.map((r) => `${r.op}: ${r.error}`).join('; '));
+    }
+
+    // Optional preview of last added tool
+    if (previewLast && lastAddedToolId) {
+      try {
+        const { tools: currentTools, wires: currentWires, workflowMeta } = useWorkflowStore.getState();
+        const lastTool = currentTools.find((t) => t.id === lastAddedToolId);
+        if (lastTool) {
+          const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
+          const outputSocket = lastTool.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+          const result = await previewTool(lastAddedToolId!, workflow, outputSocket, 5);
+          const rows = result.data?.slice(0, 5) ?? [];
+          const schema = result.data_schema?.columns ?? [];
+          const rowCount = result.row_count ?? rows.length;
+          if (rows.length > 0) {
+            parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
+            parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
+          }
+        }
+      } catch (err) {
+        const previewError = err instanceof Error ? err.message : String(err);
+        parts.push(`Preview failed: ${previewError}`);
+      }
+    }
+
+    return {
+      data: parts.join('\n'),
+      idMap,
+      results,
+    };
   },
 });

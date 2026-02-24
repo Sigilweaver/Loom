@@ -21,7 +21,10 @@ import { useSettingsStore } from '@state/settingsStore';
 function getProxyBaseURL(provider: string, userBaseUrl?: string): string {
   const serverUrl = useSettingsStore.getState().backend.url;
   if (provider === 'openai-compatible' && userBaseUrl) {
-    return `${serverUrl}/api/ai/proxy/${provider}?base_url=${encodeURIComponent(userBaseUrl)}`;
+    // Strip trailing slashes and any trailing /v1 from user-supplied URL
+    // (the SDK appends /v1 itself, so duplicates would break the path)
+    const normalizedUrl = userBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
+    return `${serverUrl}/api/ai/proxy/${provider}?base_url=${encodeURIComponent(normalizedUrl)}`;
   }
   return `${serverUrl}/api/ai/proxy/${provider}`;
 }

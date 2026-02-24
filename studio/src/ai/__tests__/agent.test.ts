@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildMessageHistory, summarizeToolResult } from "../agent";
+import { buildMessageHistory, summarizeToolResult, getAgentTabId, classifyError } from "../agent";
+import { useAIStore } from "@state/aiStore";
 import type { ChatMessage } from "@state/aiStore";
 
 // ---------------------------------------------------------------------------
@@ -137,13 +138,13 @@ describe("summarizeToolResult", () => {
   });
 
   it("should summarize list_available_files with roots", () => {
-    const result = { roots: ["/data", "/uploads"] };
-    expect(summarizeToolResult("list_available_files", result)).toBe("roots: /data, /uploads");
+    const result = { roots: ["/data", "/uploads"], count: 2 };
+    expect(summarizeToolResult("list_available_files", result)).toBe("2 roots: /data, /uploads");
   });
 
   it("should summarize list_available_files with files", () => {
-    const result = { files: ["a.csv", "b.csv", "c.csv"] };
-    expect(summarizeToolResult("list_available_files", result)).toBe("3 files");
+    const result = { directory: "/data", files: ["a.csv", "b.csv", "c.csv"], count: 3 };
+    expect(summarizeToolResult("list_available_files", result)).toBe("3 files in /data");
   });
 
   it("should fall back to JSON for unknown tool names", () => {
@@ -245,20 +246,23 @@ describe("buildMessageHistory", () => {
     expect(result[0]!.content).toContain("[add_tool → Filter [2] connected]");
   });
 
-  it("should limit history to MAX_HISTORY (40) messages", () => {
+  it("should limit history by token budget, not fixed count", () => {
     const messages: ChatMessage[] = [];
-    for (let i = 0; i < 50; i++) {
+    // Create messages with ~1000 chars each (~250 tokens)
+    // With a 60k token budget (~240k chars), about 240 messages should fit
+    for (let i = 0; i < 300; i++) {
       messages.push(msg({
         role: i % 2 === 0 ? "user" : "assistant",
-        content: `Message ${i}`,
+        content: "x".repeat(1000) + ` Message ${i}`,
       }));
     }
 
     const result = buildMessageHistory(messages);
-    expect(result).toHaveLength(40);
-    // Should keep the last 40
-    expect(result[0]!.content).toBe("Message 10");
-    expect(result[39]!.content).toBe("Message 49");
+    // Should include many messages but not all 300
+    expect(result.length).toBeGreaterThan(40); // More than old fixed limit
+    expect(result.length).toBeLessThan(300);
+    // Should keep the most recent messages
+    expect(result[result.length - 1]!.content).toContain("Message 299");
   });
 
   it("should handle assistant messages without tool calls", () => {
@@ -272,5 +276,74 @@ describe("buildMessageHistory", () => {
 
   it("should handle empty message list", () => {
     expect(buildMessageHistory([])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getAgentTabId
+// ---------------------------------------------------------------------------
+
+describe("getAgentTabId", () => {
+  it("should return null when no agent is running", () => {
+    useAIStore.getState().setAgentTabId(null);
+    expect(getAgentTabId()).toBeNull();
+  });
+
+  it("should return the tab ID set by setAgentTabId", () => {
+    useAIStore.getState().setAgentTabId("tab-42");
+    expect(getAgentTabId()).toBe("tab-42");
+    // Cleanup
+    useAIStore.getState().setAgentTabId(null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// classifyError
+// ---------------------------------------------------------------------------
+
+describe("classifyError", () => {
+  it("should classify 401 as auth error", () => {
+    const result = classifyError("HTTP 401 Unauthorized");
+    expect(result.category).toBe("auth");
+    expect(result.retryable).toBe(false);
+    expect(result.displayMessage).toContain("API key");
+  });
+
+  it("should classify invalid api key as auth error", () => {
+    const result = classifyError("Invalid API key provided");
+    expect(result.category).toBe("auth");
+    expect(result.retryable).toBe(false);
+  });
+
+  it("should classify 429 as rate-limit", () => {
+    const result = classifyError("HTTP 429: Too Many Requests");
+    expect(result.category).toBe("rate-limit");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify 503 as overloaded", () => {
+    const result = classifyError("HTTP 503 Service Temporarily Unavailable");
+    expect(result.category).toBe("overloaded");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify connection errors as network", () => {
+    const result = classifyError("Could not connect to anthropic");
+    expect(result.category).toBe("network");
+    expect(result.retryable).toBe(true);
+    expect(result.displayMessage).toContain("Sigilweaver Server");
+  });
+
+  it("should classify ECONNREFUSED as network", () => {
+    const result = classifyError("fetch failed: ECONNREFUSED");
+    expect(result.category).toBe("network");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify unknown errors with original message", () => {
+    const result = classifyError("Something unexpected happened");
+    expect(result.category).toBe("unknown");
+    expect(result.retryable).toBe(false);
+    expect(result.displayMessage).toBe("Something unexpected happened");
   });
 });

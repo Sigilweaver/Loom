@@ -11,10 +11,12 @@ import { buildExpressionPrompt, buildBasicFilterPrompt, buildBasicFormulaPrompt 
 import { runAudit } from './audit';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
+import { useTabStore } from '@state/tabStore';
 import { v4 as uuid } from 'uuid';
+import { z } from 'zod';
 
 // Agent tools
-import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools } from './tools/canvas';
+import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
 import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
@@ -27,6 +29,7 @@ const AGENT_TOOLS = {
   remove_tool: removeTool,
   connect_tools: connectTools,
   disconnect_tools: disconnectTools,
+  batch_canvas_ops: batchCanvasOps,
   list_available_files: listAvailableFiles,
   search_files: searchFilesTool,
   preview_tool_output: previewToolOutput,
@@ -37,13 +40,35 @@ const AGENT_TOOLS = {
 };
 
 /**
+ * Get the tab ID that currently owns the running agent.
+ * Canvas tools use this to verify they're writing to the correct tab.
+ * Returns null when no agent is running.
+ */
+export function getAgentTabId(): string | null {
+  return useAIStore.getState().agentTabId;
+}
+
+/**
  * Send a message to the AI agent and get a response.
  * Uses streamText for real-time streaming of text and tool calls.
+ *
+ * **Per-tab concurrency**: Only one agent run is allowed per tab at a time.
+ * If the agent is already generating, the prompt is queued and will be
+ * sent automatically when the current run finishes.
  *
  * @param userPrompt - The user's message, or undefined to continue from where the agent left off.
  */
 export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   const store = useAIStore.getState();
+  const tabId = useTabStore.getState().activeTabId;
+
+  // --- Re-entrancy guard: one run per tab at a time ---
+  if (store.isGenerating) {
+    if (userPrompt && tabId) {
+      store.enqueuePrompt(tabId, userPrompt);
+    }
+    return;
+  }
 
   if (!store.enabled) {
     store.setError('AI features are not enabled. Enable them in Settings.');
@@ -75,6 +100,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   const abortController = new AbortController();
   store.setAbortController(abortController);
   store.setIsGenerating(true);
+  store.setAgentTabId(tabId);
   store.setError(null);
   store.setStreamingText('');
   store.setStreamingSegments([]);
@@ -224,23 +250,109 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.setError('Generation cancelled.');
     } else {
       const message = err instanceof Error ? err.message : String(err);
-      store.setError(`Agent error: ${message}`);
+      const classified = classifyError(message);
+      store.setError(`Agent error: ${classified.displayMessage}`);
 
       // Add error as assistant message so user sees it in chat
       const errorMsg: ChatMessage = {
         id: uuid(),
         role: 'assistant',
-        content: `Error: ${message}`,
+        content: `Error: ${classified.displayMessage}`,
         timestamp: Date.now(),
       };
       store.addMessage(errorMsg);
     }
   } finally {
+    // Capture the tab this agent was running on before clearing state
+    const finishedTabId = useAIStore.getState().agentTabId;
+
     store.setIsGenerating(false);
     store.setAbortController(null);
+    store.setAgentTabId(null);
     store.setStreamingText('');
     store.setStreamingSegments([]);
+
+    // Auto-dequeue: if there's a queued prompt for this tab and the tab
+    // is still active, send it automatically.
+    if (finishedTabId) {
+      const activeTab = useTabStore.getState().activeTabId;
+      if (activeTab === finishedTabId) {
+        const next = useAIStore.getState().dequeuePrompt(finishedTabId);
+        if (next) {
+          // Fire-and-forget — don't await to avoid recursive stack growth
+          void sendAgentMessage(next);
+        }
+      }
+    }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Error classification
+// ---------------------------------------------------------------------------
+
+interface ClassifiedError {
+  category: 'auth' | 'rate-limit' | 'network' | 'overloaded' | 'unknown';
+  displayMessage: string;
+  retryable: boolean;
+}
+
+/**
+ * Classify an error message into a user-friendly category.
+ * Helps users understand whether to fix config, wait, or retry.
+ */
+export function classifyError(message: string): ClassifiedError {
+  const lower = message.toLowerCase();
+
+  // Authentication / authorization errors
+  if (lower.includes('401') || lower.includes('403') || lower.includes('invalid api key')
+      || lower.includes('unauthorized') || lower.includes('authentication')
+      || lower.includes('permission denied')) {
+    return {
+      category: 'auth',
+      displayMessage: 'Authentication failed — check your API key in Settings → AI.',
+      retryable: false,
+    };
+  }
+
+  // Rate limiting
+  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')
+      || lower.includes('quota exceeded')) {
+    return {
+      category: 'rate-limit',
+      displayMessage: 'Rate limited by provider — wait a moment and try again.',
+      retryable: true,
+    };
+  }
+
+  // Provider overloaded
+  if (lower.includes('503') || lower.includes('overloaded') || lower.includes('capacity')
+      || lower.includes('temporarily unavailable')) {
+    return {
+      category: 'overloaded',
+      displayMessage: 'Provider temporarily overloaded — try again in a few seconds.',
+      retryable: true,
+    };
+  }
+
+  // Network / connection errors
+  if (lower.includes('502') || lower.includes('504') || lower.includes('could not connect')
+      || lower.includes('econnrefused') || lower.includes('enotfound')
+      || lower.includes('network') || lower.includes('timeout')
+      || lower.includes('fetch failed') || lower.includes('econnreset')) {
+    return {
+      category: 'network',
+      displayMessage: `Connection error: ${message}. Is the Sigilweaver Server running?`,
+      retryable: true,
+    };
+  }
+
+  // Unknown
+  return {
+    category: 'unknown',
+    displayMessage: message,
+    retryable: false,
+  };
 }
 
 /**
@@ -327,8 +439,33 @@ export async function generateBasicFilter(
     const text = (response.text ?? '').trim();
     // Strip markdown code fences if present
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned) as BasicFilterResult;
-    return { result: parsed };
+    const parsed = JSON.parse(cleaned);
+
+    // Schema-validate the parsed output
+    const filterSchema = z.object({
+      conditions: z.array(z.object({
+        column: z.string(),
+        operator: z.string(),
+        value: z.string().optional(),
+      })),
+      groups: z.array(z.object({
+        conditions: z.array(z.object({
+          column: z.string(),
+          operator: z.string(),
+          value: z.string().optional(),
+        })),
+        combinator: z.string().optional(),
+      })).optional(),
+      combinator: z.string(),
+    });
+
+    const validated = filterSchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+      return { error: `Invalid filter structure from AI: ${issues}` };
+    }
+
+    return { result: validated.data as BasicFilterResult };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -377,8 +514,24 @@ export async function generateBasicFormula(
 
     const text = (response.text ?? '').trim();
     const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned) as BasicFormulaOperation[];
-    return { result: parsed };
+    const parsed = JSON.parse(cleaned);
+
+    // Schema-validate the parsed output
+    const formulaOpSchema = z.object({
+      operationId: z.string(),
+      sourceColumn: z.string(),
+      params: z.record(z.string(), z.string()).default({}),
+      columnName: z.string(),
+    });
+    const formulaArraySchema = z.array(formulaOpSchema);
+
+    const validated = formulaArraySchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+      return { error: `Invalid formula structure from AI: ${issues}` };
+    }
+
+    return { result: validated.data as BasicFormulaOperation[] };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -391,10 +544,14 @@ export async function generateBasicFormula(
 /**
  * Convert chat messages to the format expected by the Vercel AI SDK.
  *
+ * Uses **token-budgeted packing** instead of a fixed message count.
+ * Estimates token usage per message and packs as many recent messages
+ * as fit within the budget, ensuring the most recent context is always
+ * included.
+ *
  * For assistant messages that include tool calls, a summary of each tool
  * invocation and its result is appended to the content. This ensures the
- * model retains context about what actions it performed when continuing
- * after a turn limit or when referencing earlier turns.
+ * model retains context about what actions it performed.
  *
  * @internal Exported for testing only.
  */
@@ -402,13 +559,24 @@ export function buildMessageHistory(
   messages: ChatMessage[],
 ): Array<{ role: 'user' | 'assistant'; content: string }> {
   // Only send user and assistant messages (skip tool messages)
-  // Keep the last N messages to avoid exceeding context limits
-  const MAX_HISTORY = 40;
   const relevant = messages
-    .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .slice(-MAX_HISTORY);
+    .filter((m) => m.role === 'user' || m.role === 'assistant');
 
-  return relevant.map((m) => {
+  // Token budget for message history (approximate chars ÷ 4 ≈ tokens)
+  // Reserve ~60k tokens for history, which is comfortable for most models
+  const TOKEN_BUDGET = 60_000;
+  // Rough estimate: 1 token ≈ 4 characters (conservative for English text)
+  const CHARS_PER_TOKEN = 4;
+  const CHAR_BUDGET = TOKEN_BUDGET * CHARS_PER_TOKEN;
+
+  // Build formatted messages from most recent first, stopping when budget is exhausted
+  const formatted: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  let charCount = 0;
+
+  for (let i = relevant.length - 1; i >= 0; i--) {
+    const m = relevant[i]!;
+    let content: string;
+
     if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
       const toolSummaries = m.toolCalls.map((tc) => {
         const resultSummary = summarizeToolResult(tc.toolName, tc.result);
@@ -416,18 +584,28 @@ export function buildMessageHistory(
       }).join('\n');
 
       const textPart = m.content && m.content !== '(No response)' ? m.content : '';
-      const content = textPart
+      content = textPart
         ? `${textPart}\n\n${toolSummaries}`
         : toolSummaries;
-
-      return { role: 'assistant' as const, content };
+    } else {
+      content = m.content;
     }
 
-    return {
+    const msgChars = content.length;
+
+    // Always include the most recent message (first iteration)
+    if (formatted.length > 0 && charCount + msgChars > CHAR_BUDGET) {
+      break;
+    }
+
+    charCount += msgChars;
+    formatted.unshift({
       role: m.role as 'user' | 'assistant',
-      content: m.content,
-    };
-  });
+      content,
+    });
+  }
+
+  return formatted;
 }
 
 /**
@@ -471,6 +649,12 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
       return `updated ${(r.updatedFields as string[] ?? []).join(', ')}`;
     case 'update_tools':
       return r.summary ? String(r.summary) : `batch update: ${((r.results as unknown[]) ?? []).length} tools`;
+    case 'batch_canvas_ops': {
+      const opsResults = (r.results as Array<{ success: boolean }>) ?? [];
+      const succeeded = opsResults.filter((o) => o.success).length;
+      const mapEntries = r.idMap ? Object.keys(r.idMap as Record<string, string>).length : 0;
+      return `batch: ${succeeded}/${opsResults.length} ops${mapEntries > 0 ? `, ${mapEntries} refs` : ''}`;
+    }
     case 'ask_user': {
       const ans = r.answer;
       const display = Array.isArray(ans) ? (ans as string[]).join(', ') : String(ans ?? '');
@@ -484,8 +668,8 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
     case 'profile_tool_data':
       return `${r.rowCount} rows, ${r.columnCount} cols profiled`;
     case 'list_available_files':
-      if (r.roots) return `roots: ${(r.roots as string[]).join(', ')}`;
-      return `${((r.files as unknown[]) ?? []).length} files`;
+      if (r.roots) return `${(r.roots as string[]).length} roots: ${(r.roots as string[]).join(', ')}`;
+      return `${r.count ?? ((r.files as unknown[]) ?? []).length} files in ${r.directory ?? 'unknown'}`;
     default:
       return truncateStr(JSON.stringify(r), 200);
   }

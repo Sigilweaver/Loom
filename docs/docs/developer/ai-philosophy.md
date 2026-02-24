@@ -65,14 +65,24 @@ The assistant works with any OpenAI-compatible API. Provider selection, model ch
 
 ### Structured tool calling
 
-The assistant communicates with the canvas exclusively through a fixed set of tools:
+The assistant communicates with the canvas exclusively through a fixed set of 14 tools:
 
-- `add_tool` / `remove_tool` / `update_tool` — Modify the canvas
-- `add_wire` / `remove_wire` — Connect tools
+**Canvas mutation:**
+- `add_tool` / `remove_tool` / `update_tool` / `update_tools` — Single or batch tool modifications
+- `connect_tools` / `disconnect_tools` — Wire management
+- `batch_canvas_ops` — Execute multiple canvas operations (add, connect, update, remove) in one call with cross-references
+
+**Data inspection:**
+- `preview_tool_output` / `get_column_metadata` / `profile_tool_data` — Read and profile data from tool outputs
+
+**File discovery:**
+- `list_available_files` / `search_files` — Browse and search the data directory
+
+**Workflow building:**
 - `build_workflow` — Compile a multi-step workflow description in one shot
-- `preview_tool_output` / `get_column_metadata` / `profile_tool_data` — Read data
-- `search_files` — Discover available files
-- `get_tool_schema` — Look up configuration schemas
+
+**User interaction:**
+- `ask_user` — Present clarifying questions with optional predefined choices
 
 Each tool has a Zod schema that validates the LLM's arguments before execution. If validation fails, the error is returned to the model so it can self-correct.
 
@@ -106,7 +116,11 @@ The system prompt encodes explicit rules the model must follow:
 | **Hop-by-hop header stripping** | The proxy strips `origin`, `referer`, `proxy-authorization`, and other sensitive headers before forwarding to the LLM provider |
 | **Request timeouts** | 300-second upstream timeout; 15-second timeout for model listing |
 | **Abort support** | Users can cancel generation at any time via the stop button |
-| **Context window management** | Chat history is capped at 40 messages to prevent context overflow errors |
+| **Context window management** | Token-budgeted history packing (~60k tokens) ensures older messages are trimmed before context overflow |
+| **Per-tab isolation** | Each tab has its own chat session, run queue, and cancel semantics |
+| **Canvas write guard** | Agent tool calls verify tab ownership before mutating the canvas, preventing cross-tab writes |
+| **Streaming proxy** | Server proxy preserves SSE streaming end-to-end for progressive token display |
+| **Error classification** | Errors are categorized (auth, rate-limit, network, overloaded) with user-friendly messages |
 | **Lazy loading** | AI SDK modules are only imported when AI is enabled — non-AI users pay zero bundle cost |
 
 ## Testing
@@ -114,8 +128,12 @@ The system prompt encodes explicit rules the model must follow:
 AI features are covered by unit tests:
 
 - **Compiler tests** — Valid compilation, unknown tool types, duplicate IDs, invalid connections, UUID generation, socket injection, auto-layout, config merging
-- **Prompt construction tests** — System prompt assembly with dynamic context
+- **Prompt construction tests** — System prompt assembly, conditional formula catalog, dynamic context injection
 - **Provider tests** — Provider abstraction and model resolution
+- **Agent tests** — Message history budgeting, tool result summarization, error classification, re-entrancy guard
+- **AI store tests** — Tab session snapshot/restore, multi-agent run queues, concurrency guardrails
+- **Enrichment tests** — Filter, formula, and join config normalization
+- **Tool-registry parity test** — Validates AGENT_TOOLS keys match TOOL_DESCRIPTIONS keys (prevents UI/runtime drift)
 
 Integration-level testing is done through manual agent sessions with representative workflows, documented in the project's test playbooks.
 

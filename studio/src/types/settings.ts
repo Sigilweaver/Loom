@@ -147,5 +147,5 @@ export function mergeWithDefaults(stored: Record<string, unknown>): AppSettings 
       merged[key] = storedVal;
     }
   }
-  return merged as AppSettings;
+  return merged as unknown as AppSettings;
 }

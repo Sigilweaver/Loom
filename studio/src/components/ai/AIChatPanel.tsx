@@ -35,6 +35,11 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   const streamingSegments = useAIStore((s) => s.streamingSegments);
   const stoppedAtLimit = useAIStore((s) => s.stoppedAtLimit);
   const pendingQuestion = useAIStore((s) => s.pendingQuestion);
+  const agentTabId = useAIStore((s) => s.agentTabId);
+  const queueLength = useAIStore((s) => {
+    const tabId = agentTabId ?? '';
+    return s.runQueues[tabId]?.length ?? 0;
+  });
   const debugMode = useUIStore((s) => s.debugMode);
   const setDebugMode = useUIStore((s) => s.setDebugMode);
 
@@ -199,6 +204,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
           onSend={handleSend}
           onCancel={cancelGeneration}
           isGenerating={isGenerating}
+          queueLength={queueLength}
           disabled={!enabled}
         />
         <a
@@ -390,6 +396,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   remove_tool: 'Remove a tool from the canvas. Also removes any wires connected to it.',
   connect_tools: 'Connect two tools with a wire.',
   disconnect_tools: 'Remove a wire between two tools.',
+  batch_canvas_ops: 'Execute multiple canvas operations (add, connect, update, remove) in a single call with deferred layout.',
   list_available_files: 'List data files. Omit directory to see roots, or pass a root to list its files.',
   search_files: 'Search for data files by name across all directories.',
   preview_tool_output: 'Execute a tool and preview its output as CSV with typed headers.',

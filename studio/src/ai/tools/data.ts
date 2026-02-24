@@ -78,10 +78,25 @@ export const listAvailableFiles = tool({
 
       if (!directory) {
         const roots = await listFileRoots(serverUrl, token);
-        return { roots, hint: 'Pass a root as "directory" to list files' };
+        const rootList = Array.isArray(roots) ? roots : [];
+        return {
+          roots: rootList,
+          count: rootList.length,
+          hint: rootList.length > 0
+            ? 'Pass a root as "directory" to list files'
+            : 'No data directories found — check server data path configuration',
+        };
       }
       const files = await listFiles(serverUrl, token, directory);
-      return { files };
+      const fileList = Array.isArray(files) ? files : [];
+      return {
+        directory,
+        files: fileList,
+        count: fileList.length,
+        hint: fileList.length === 0
+          ? `No data files found in "${directory}". Try a different directory or use search_files.`
+          : undefined,
+      };
     } catch (err) {
       logger.error('listAvailableFiles failed', err);
       return { error: err instanceof Error ? err.message : String(err) };
