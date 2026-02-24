@@ -349,6 +349,177 @@ describe("enrichFormulaConfig", () => {
     const ops = result.operations as Array<Record<string, unknown>>;
     expect(ops[0]!.column_name).toBe("myCol");
   });
+
+  // ---- Structured basic-mode operations (operationId-based) ----
+
+  it("should resolve structured multiply operation to Polars expression", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "multiply",
+          sourceColumn: "price",
+          params: { mode: "value", operand: "2" },
+          columnName: "price_doubled",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops).toHaveLength(1);
+    expect(ops[0]!.operationId).toBe("multiply");
+    expect(ops[0]!.sourceColumn).toBe("price");
+    expect(ops[0]!.mode).toBe("basic");
+    expect(ops[0]!.expression).toBe('pl.col("price") * 2');
+    expect(ops[0]!.columnName).toBe("price_doubled");
+    expect(ops[0]!.column_name).toBe("price_doubled");
+  });
+
+  it("should resolve structured uppercase operation", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "uppercase",
+          sourceColumn: "name",
+          params: {},
+          columnName: "name_upper",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops).toHaveLength(1);
+    expect(ops[0]!.mode).toBe("basic");
+    expect(ops[0]!.expression).toBe('pl.col("name").str.to_uppercase()');
+    expect(ops[0]!.columnName).toBe("name_upper");
+  });
+
+  it("should resolve structured round operation with params", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "round",
+          sourceColumn: "score",
+          params: { decimals: "3" },
+          columnName: "score_rounded",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops[0]!.expression).toBe('pl.col("score").round(3)');
+  });
+
+  it("should resolve structured divide-by-column operation", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "divide",
+          sourceColumn: "total",
+          params: { mode: "column", operand: "quantity" },
+          columnName: "unit_price",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops[0]!.expression).toBe('pl.col("total") / pl.col("quantity")');
+    expect(ops[0]!.mode).toBe("basic");
+  });
+
+  it("should auto-generate column name when not provided in structured op", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "abs",
+          sourceColumn: "delta",
+          params: {},
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops[0]!.columnName).toBe("delta_abs");
+    expect(ops[0]!.column_name).toBe("delta_abs");
+  });
+
+  it("should fill default params when agent omits them", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "round",
+          sourceColumn: "value",
+          params: {},
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    // Default decimals is "2"
+    expect(ops[0]!.expression).toBe('pl.col("value").round(2)');
+    const params = ops[0]!.params as Record<string, string>;
+    expect(params.decimals).toBe("2");
+  });
+
+  it("should fall back to raw expression for unknown operationId", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "nonexistent_op",
+          sourceColumn: "x",
+          params: {},
+          columnName: "result",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops[0]!.column_name).toBe("result");
+    // No mode field for raw fallback
+    expect(ops[0]!.mode).toBeUndefined();
+  });
+
+  it("should handle mixed structured and raw operations", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "multiply",
+          sourceColumn: "price",
+          params: { mode: "value", operand: "1.1" },
+          columnName: "price_adj",
+        },
+        {
+          column_name: "custom",
+          expression: "pl.col('a') / pl.col('b').sum()",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops).toHaveLength(2);
+    // First: structured → basic mode
+    expect(ops[0]!.mode).toBe("basic");
+    expect(ops[0]!.operationId).toBe("multiply");
+    // Second: raw expression → no mode
+    expect(ops[1]!.column_name).toBe("custom");
+    expect(ops[1]!.expression).toBe("pl.col('a') / pl.col('b').sum()");
+  });
+
+  it("should handle no-source-column operations like row_number", () => {
+    const config = {
+      operations: [
+        {
+          operationId: "row_number",
+          sourceColumn: "",
+          params: {},
+          columnName: "row_num",
+        },
+      ],
+    };
+    const result = enrichToolConfig("Formula", config);
+    const ops = result.operations as Array<Record<string, unknown>>;
+    expect(ops[0]!.expression).toBe("pl.int_range(pl.len())");
+    expect(ops[0]!.columnName).toBe("row_num");
+  });
 });
 
 describe("enrichJoinConfig", () => {

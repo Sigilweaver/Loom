@@ -7,6 +7,7 @@
 
 import type { Tool, Wire, WorkflowMeta } from '@domain/workflow/entities/workflow';
 import { listToolTypes } from '@data/toolConfigSchemas';
+import { buildFormulaCatalogForPrompt } from './formulaCatalog';
 
 /**
  * Build the system prompt for the workflow agent.
@@ -22,12 +23,14 @@ export function buildWorkflowSystemPrompt(
     .map((t) => `  - ${t.type}: ${t.description}`)
     .join('\n');
 
+  const formulaCatalog = buildFormulaCatalogForPrompt();
+
   const canvasContext = tools.length > 0
     ? `\nCurrent canvas has ${tools.length} tool(s) and ${wires.length} wire(s):\n${formatCanvasState(tools, wires)}`
     : '\nCanvas is empty — no tools or wires yet.';
 
   const auditNotice = options?.auditEnabled
-    ? `\n8. **Your work will be audited** — After you finish, a separate model will review your work against the user's request. Make sure each tool is correctly configured and your workflow actually answers what was asked.`
+    ? `\n10. **Your work will be audited** — After you finish, a separate model will review your work against the user's request. Make sure each tool is correctly configured and your workflow actually answers what was asked.`
     : '';
 
   return `You are an AI assistant embedded in Sigilweaver Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
@@ -102,7 +105,7 @@ ${canvasContext}
    - "Filter to females and children" → clarify: females under 18, or females AND anyone under 18?
    - "Join these tables" → ask which columns to join on if not obvious from context.
    - Do NOT ask when the intent is clear or when you can inspect the data to resolve ambiguity yourself.
-9. **Add comments to tools** — Include a brief \`comment\` on each tool explaining its purpose in the pipeline (e.g. "Load Titanic dataset", "Remove passengers under 18", "Calculate survival rate by class"). Comments appear on the canvas and in generated code.
+9. **ALWAYS add comments to every tool** — Every \`add_tool\` and \`build_workflow\` step MUST include a \`comment\` explaining its purpose in plain language (e.g. "Load Titanic dataset", "Remove passengers under 18", "Calculate survival rate by class"). Comments appear on the canvas and help users understand the pipeline. A workflow without comments is incomplete.
 ${auditNotice}
 ## Tool Config Reference
 
@@ -117,8 +120,13 @@ Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_
 \`{ "groupByColumns": ["category"], "aggregations": [{ "column": "amount", "operation": "Sum", "outputName": "Total_Amount" }] }\`
 Operations (PascalCase): Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct. Use \`outputName\` (not alias).
 
-**Formula**: Row-level Polars expressions. Multiple operations allowed.
-\`{ "operations": [{ "column_name": "unit_price", "expression": "pl.col('total') / pl.col('quantity')" }] }\`
+**Formula**: Use structured operations (GUI-editable, expression auto-generated). Prefer basic operations over raw Polars.
+\`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "quantity" }, "columnName": "unit_price" }] }\`
+Multiple operations: \`{ "operations": [{ "operationId": "round", "sourceColumn": "score", "params": { "decimals": "2" }, "columnName": "score_rounded" }, { "operationId": "uppercase", "sourceColumn": "name", "params": {}, "columnName": "name_upper" }] }\`
+For complex expressions not covered by built-in operations, use raw Polars: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
+
+Available Formula operations (use operationId):
+${formulaCatalog}
 
 **Sort**: \`{ "sortColumns": [{ "column": "created_at", "order": "descending" }] }\`
 

@@ -15,6 +15,7 @@ import { previewTool } from '@api';
 import { formatAddToolResult } from '../format';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
+import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
 const logger = createLogger('AI:CanvasTools');
@@ -321,16 +322,75 @@ export function enrichToolConfig(
 }
 
 /**
+ * Resolve a structured basic-mode formula operation from the AI agent.
+ *
+ * Takes an operation with `operationId`, `sourceColumn`, `params`, `columnName`
+ * and resolves it through the formula operations catalog to produce a full
+ * FormulaOperationConfig with the generated Polars expression.
+ *
+ * This allows the user to edit the operation via the GUI (Basic mode)
+ * instead of needing to understand the raw Polars expression.
+ *
+ * Falls back to raw expression format if the operationId is not found.
+ */
+function resolveBasicFormulaOperation(op: Record<string, unknown>): Record<string, unknown> {
+  const operationId = op.operationId as string;
+  const sourceColumn = (op.sourceColumn as string) ?? '';
+  const params = (op.params as Record<string, string>) ?? {};
+  const columnName = (op.columnName as string)
+    ?? (op.column_name as string)
+    ?? '';
+
+  const opDef = OPERATIONS_BY_ID[operationId];
+  if (!opDef) {
+    // Unknown operation — fall back to raw expression if provided
+    logger.warn(`Unknown formula operation: "${operationId}", falling back to raw mode`);
+    return {
+      column_name: columnName || 'new_column',
+      expression: (op.expression as string) ?? '',
+    };
+  }
+
+  // Fill in default param values for any params the agent omitted
+  const resolvedParams: Record<string, string> = {};
+  for (const paramDef of opDef.params) {
+    resolvedParams[paramDef.key] = params[paramDef.key] ?? paramDef.defaultValue ?? '';
+  }
+
+  // Generate the Polars expression via the catalog
+  const expression = opDef.toExpression(sourceColumn, resolvedParams);
+
+  // Auto-generate column name if not provided
+  const resolvedColumnName = columnName || opDef.toColumnName(sourceColumn, resolvedParams);
+
+  // Return full GUI state so FormulaConfiguration can render in Basic mode
+  return {
+    id: crypto.randomUUID(),
+    operationId,
+    sourceColumn,
+    params: resolvedParams,
+    columnName: resolvedColumnName,
+    column_name: resolvedColumnName,
+    columnNameEdited: !!columnName,
+    mode: 'basic',
+    expression,
+  };
+}
+
+/**
  * Enrich Formula config — normalize the various shapes the agent might produce
  * into the canonical `operations` array format.
  *
  * The agent may send:
+ *   - Structured operations: `[{ operationId, sourceColumn, params, columnName }]` (preferred)
+ *   - Raw expressions: `[{ column_name, expression }]`
  *   - `formulas: [{ column, expression }]`   (common LLM hallucination)
  *   - `operations: [{ columnName, expression }]` (camelCase variant)
- *   - `operations: [{ column_name, expression }]` (correct)
  *   - top-level `column_name` + `expression` (single-op shorthand)
  *
- * All forms are normalized to `operations: [{ column_name, expression }]`.
+ * Structured operations are resolved via the formula operations catalog
+ * (toExpression) and stored with full GUI state so the user can edit
+ * them in Basic mode without dealing with raw Polars.
  */
 function enrichFormulaConfig(config: Record<string, unknown>): Record<string, unknown> {
   const result = { ...config };
@@ -344,12 +404,19 @@ function enrichFormulaConfig(config: Record<string, unknown>): Record<string, un
     delete result.formulas;
   }
 
-  // Normalize camelCase column names within operations
+  // Process operations array
   if (Array.isArray(result.operations)) {
-    result.operations = (result.operations as Array<Record<string, unknown>>).map((op) => ({
-      column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
-      expression: op.expression ?? '',
-    }));
+    result.operations = (result.operations as Array<Record<string, unknown>>).map((op) => {
+      // Check if this is a structured basic-mode operation (has operationId)
+      if (op.operationId && typeof op.operationId === 'string') {
+        return resolveBasicFormulaOperation(op);
+      }
+      // Raw expression format — normalize field names
+      return {
+        column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
+        expression: op.expression ?? '',
+      };
+    });
   }
 
   // If there's a top-level column_name + expression but no operations, wrap it
@@ -425,7 +492,7 @@ export const addTool = tool({
   inputSchema: z.object({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique"). Note: Aggregate is type "Summarize", Concatenate is type "Union", Read is type "Input", Write is type "Output", Schema is type "Select", Calculate is type "Formula".'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
-    comment: z.string().optional().describe('Brief human-readable comment explaining what this tool does (e.g. "Load raw sales data", "Keep only active customers")'),
+    comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this tool does in the pipeline. Every tool must have a comment (e.g. "Load raw sales data", "Keep only active customers", "Calculate profit margin per product"). Comments help users understand the workflow.'),
     after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID — not to another Aggregate.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),

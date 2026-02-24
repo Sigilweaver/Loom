@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildWorkflowSystemPrompt } from "../prompts/system";
 import { buildExpressionPrompt } from "../prompts/expression";
+import { buildFormulaCatalogForPrompt } from "../prompts/formulaCatalog";
 import type { Tool, Wire, WorkflowMeta, FieldValue, EmissionMap } from "@domain/workflow/entities/workflow";
 
 describe("system prompt", () => {
@@ -43,6 +44,18 @@ describe("system prompt", () => {
     const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
     expect(prompt).toContain("Column names are case-sensitive");
     expect(prompt).toContain("Build reproducible pipelines");
+  });
+
+  it("should include formula operation catalog", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
+    expect(prompt).toContain("operationId");
+    expect(prompt).toContain("Available Formula operations");
+  });
+
+  it("should emphasize comment requirement", () => {
+    const prompt = buildWorkflowSystemPrompt([], [], makeMetadata());
+    expect(prompt).toContain("ALWAYS add comments to every tool");
+    expect(prompt).toContain("MUST include a `comment`");
   });
 });
 
@@ -105,3 +118,45 @@ function makeTool(id: string, type: string, config: Record<string, FieldValue | 
     ],
   };
 }
+
+describe("formula catalog for prompt", () => {
+  it("should include math operations", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("Math:");
+    expect(catalog).toContain("add(");
+    expect(catalog).toContain("multiply(");
+    expect(catalog).toContain("round(");
+  });
+
+  it("should include text operations", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("Text:");
+    expect(catalog).toContain("uppercase()");
+    expect(catalog).toContain("lowercase()");
+    expect(catalog).toContain("replace(");
+  });
+
+  it("should include datetime operations", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("Date / Time:");
+    expect(catalog).toContain("dt_year()");
+  });
+
+  it("should include type annotations for non-any operations", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("[numeric]");
+    expect(catalog).toContain("[string]");
+  });
+
+  it("should note no-sourceColumn operations", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("row_number");
+    expect(catalog).toContain("*no sourceColumn*");
+  });
+
+  it("should include param usage hints", () => {
+    const catalog = buildFormulaCatalogForPrompt();
+    expect(catalog).toContain("mode");
+    expect(catalog).toContain("operand");
+  });
+});
