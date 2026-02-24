@@ -3,6 +3,11 @@
  *
  * Manages AI feature state: provider settings, chat messages, agent invocation.
  * AI is off by default. Zero AI code loads unless the user enables it.
+ *
+ * **Tab-scoped sessions**: Chat messages, pending questions, generation state,
+ * and token usage are isolated per tab. When the user switches tabs, the current
+ * AI session is saved and the target tab's session is restored. Settings
+ * (provider, model, API key) remain global — they apply to all tabs.
  */
 
 import { create } from 'zustand';
@@ -86,6 +91,19 @@ export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+}
+
+/**
+ * Serializable snapshot of a tab's AI session state.
+ * Stored in tabStore's TabData when switching tabs.
+ * Does NOT include non-serializable fields (abortController, pendingQuestion resolve).
+ */
+export interface TabAISession {
+  messages: ChatMessage[];
+  sessionUsage: TokenUsage;
+  stoppedAtLimit: boolean;
+  /** Error message from last generation, if any */
+  error: string | null;
 }
 
 /**
@@ -210,6 +228,12 @@ interface AIState extends AISettings {
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
   setPendingQuestion: (question: PendingQuestion | null) => void;
+
+  // -- Tab session management --
+  /** Snapshot the current AI session for saving to a tab. */
+  snapshotSession: () => TabAISession;
+  /** Restore an AI session from a tab snapshot. Cancels any in-progress generation. */
+  restoreSession: (session: TabAISession | undefined) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -556,4 +580,57 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
+
+  // -- Tab session management --
+
+  snapshotSession: () => {
+    const s = get();
+    return {
+      messages: s.messages,
+      sessionUsage: { ...s.sessionUsage },
+      stoppedAtLimit: s.stoppedAtLimit,
+      error: s.error,
+    };
+  },
+
+  restoreSession: (session) => {
+    // Cancel any in-progress generation before switching contexts
+    const { abortController, pendingQuestion } = get();
+    if (pendingQuestion) {
+      set({ pendingQuestion: null });
+    }
+    if (abortController) {
+      abortController.abort();
+    }
+
+    if (session) {
+      set({
+        messages: session.messages,
+        sessionUsage: session.sessionUsage,
+        stoppedAtLimit: session.stoppedAtLimit,
+        error: session.error,
+        isGenerating: false,
+        abortController: null,
+        streamingText: '',
+        streamingSegments: [],
+        pendingQuestion: null,
+      });
+    } else {
+      // No session for this tab — start fresh
+      set({
+        messages: [],
+        sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        stoppedAtLimit: false,
+        error: null,
+        isGenerating: false,
+        abortController: null,
+        streamingText: '',
+        streamingSegments: [],
+        pendingQuestion: null,
+      });
+    }
+    // Persist the new active session's chat
+    savePersistedChat(get().messages);
+    savePersistedStoppedAtLimit(get().stoppedAtLimit);
+  },
 }));

@@ -264,4 +264,132 @@ describe("aiStore", () => {
       expect(useAIStore.getState().provider).toBe("openai");
     });
   });
+
+  describe("tab session management", () => {
+    it("should snapshot current session state", () => {
+      useAIStore.getState().addMessage({
+        id: "msg-1",
+        role: "user",
+        content: "Build a filter",
+        timestamp: 1000,
+      });
+      useAIStore.getState().addTokenUsage({
+        promptTokens: 100,
+        completionTokens: 50,
+        totalTokens: 150,
+      });
+      useAIStore.getState().setStoppedAtLimit(true);
+      useAIStore.getState().setError("test error");
+
+      const snapshot = useAIStore.getState().snapshotSession();
+      expect(snapshot.messages).toHaveLength(1);
+      expect(snapshot.messages[0]?.content).toBe("Build a filter");
+      expect(snapshot.sessionUsage.totalTokens).toBe(150);
+      expect(snapshot.stoppedAtLimit).toBe(true);
+      expect(snapshot.error).toBe("test error");
+    });
+
+    it("should restore session from snapshot", () => {
+      // Set up initial state
+      useAIStore.getState().addMessage({
+        id: "msg-1",
+        role: "user",
+        content: "Tab 1 message",
+        timestamp: 1000,
+      });
+
+      // Create a snapshot for Tab 2
+      const tab2Session = {
+        messages: [
+          { id: "msg-2", role: "user" as const, content: "Tab 2 message", timestamp: 2000 },
+          { id: "msg-3", role: "assistant" as const, content: "Tab 2 response", timestamp: 2001 },
+        ],
+        sessionUsage: { promptTokens: 200, completionTokens: 100, totalTokens: 300 },
+        stoppedAtLimit: false,
+        error: null,
+      };
+
+      // Restore Tab 2's session
+      useAIStore.getState().restoreSession(tab2Session);
+
+      const state = useAIStore.getState();
+      expect(state.messages).toHaveLength(2);
+      expect(state.messages[0]?.content).toBe("Tab 2 message");
+      expect(state.sessionUsage.totalTokens).toBe(300);
+      expect(state.stoppedAtLimit).toBe(false);
+      expect(state.error).toBeNull();
+      expect(state.isGenerating).toBe(false);
+      expect(state.streamingText).toBe("");
+    });
+
+    it("should restore to empty state when session is undefined", () => {
+      // Set up state
+      useAIStore.getState().addMessage({
+        id: "msg-1",
+        role: "user",
+        content: "Hello",
+        timestamp: 1000,
+      });
+      useAIStore.getState().setError("old error");
+
+      // Restore undefined (new tab with no history)
+      useAIStore.getState().restoreSession(undefined);
+
+      const state = useAIStore.getState();
+      expect(state.messages).toEqual([]);
+      expect(state.sessionUsage.totalTokens).toBe(0);
+      expect(state.error).toBeNull();
+      expect(state.isGenerating).toBe(false);
+    });
+
+    it("should cancel in-progress generation on restore", () => {
+      const controller = new AbortController();
+      const abortSpy = vi.spyOn(controller, "abort");
+      useAIStore.getState().setAbortController(controller);
+      useAIStore.getState().setIsGenerating(true);
+
+      useAIStore.getState().restoreSession(undefined);
+
+      expect(abortSpy).toHaveBeenCalled();
+      expect(useAIStore.getState().isGenerating).toBe(false);
+      expect(useAIStore.getState().abortController).toBeNull();
+    });
+
+    it("should roundtrip snapshot and restore", () => {
+      // Build up session state
+      useAIStore.getState().addMessage({
+        id: "msg-1",
+        role: "user",
+        content: "Create a workflow",
+        timestamp: 1000,
+      });
+      useAIStore.getState().addMessage({
+        id: "msg-2",
+        role: "assistant",
+        content: "Built 3 tools",
+        timestamp: 1001,
+        toolCalls: [{ toolName: "add_tool", args: { type: "Input" } }],
+        usage: { promptTokens: 50, completionTokens: 25, totalTokens: 75 },
+      });
+      useAIStore.getState().addTokenUsage({
+        promptTokens: 50,
+        completionTokens: 25,
+        totalTokens: 75,
+      });
+
+      // Snapshot
+      const snapshot = useAIStore.getState().snapshotSession();
+
+      // Clear state
+      useAIStore.getState().clearChat();
+      expect(useAIStore.getState().messages).toEqual([]);
+
+      // Restore
+      useAIStore.getState().restoreSession(snapshot);
+      const state = useAIStore.getState();
+      expect(state.messages).toHaveLength(2);
+      expect(state.messages[1]?.toolCalls).toHaveLength(1);
+      expect(state.sessionUsage.totalTokens).toBe(75);
+    });
+  });
 });
