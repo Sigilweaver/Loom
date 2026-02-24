@@ -99,7 +99,7 @@ const tauriSettingsOps: SettingsOperations = {
     async getSettings(): Promise<AppSettings> {
         try {
             const settings = await tauriInvoke<AppSettings>('get_settings');
-            return mergeWithDefaults(settings as Record<string, unknown>);
+            return mergeWithDefaults(settings as unknown as Record<string, unknown>);
         } catch (e) {
             console.error('[Platform/Tauri] Failed to get settings:', e);
             return DEFAULT_SETTINGS;

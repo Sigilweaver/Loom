@@ -93,7 +93,7 @@ export function createTheme(config: ThemeConfig): Theme {
   // text.  Walk from gray[500] upward to find the lightest gray where
   // autoText picks white — each palette hits this threshold at a
   // different index (Core Light at 500, Solarized Light not until 800).
-  type GrayIdx = 500 | 600 | 700 | 800 | 900;
+  type GrayIdx = 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
   const hdrIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark
     ? [500, 400, 600]   // dark themes: mid default, lighter hover, darker active
     : (() => {

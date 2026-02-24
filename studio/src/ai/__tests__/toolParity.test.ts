@@ -5,69 +5,92 @@
  * map stay in sync. This prevents drift where a tool is added to the agent
  * but not described in the UI (or vice versa).
  *
- * Imported dynamically to avoid pulling in heavy AI SDK dependencies.
+ * Strategy: Read the source files at test time and extract object keys via
+ * regex. This avoids importing the modules (which pull in heavy AI SDK deps)
+ * while still catching real drift automatically — no hardcoded canonical list
+ * that a developer could forget to update.
  */
 
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// We import only the keys, not the full tool definitions.
-// The AGENT_TOOLS object is in agent.ts and TOOL_DESCRIPTIONS is in AIChatPanel.tsx.
-// Rather than importing those modules (which pull in heavy deps), we define
-// the expected canonical set and verify both against it.
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Canonical list of all agent tools as of the last update.
- * Update this list when adding or removing tools.
+ * Extract object keys from a source file section.
+ * Matches lines like `  key_name: someValue,` within the first
+ * occurrence of `const <objectName> = {` ... `};`.
  */
-const CANONICAL_TOOLS = [
-  'add_tool',
-  'update_tool',
-  'update_tools',
-  'remove_tool',
-  'connect_tools',
-  'disconnect_tools',
-  'batch_canvas_ops',
-  'list_available_files',
-  'search_files',
-  'preview_tool_output',
-  'get_column_metadata',
-  'profile_tool_data',
-  'build_workflow',
-  'ask_user',
-] as const;
+function extractObjectKeys(source: string, objectName: string): string[] {
+  // Find the object declaration and its body
+  const pattern = new RegExp(
+    `(?:const|let|var)\\s+${objectName}\\s*(?::[^=]+=|=)\\s*\\{([^}]+)\\}`,
+    's',
+  );
+  const match = source.match(pattern);
+  if (!match) return [];
+
+  const body = match[1]!;
+  const keys: string[] = [];
+  // Match keys like `  key_name:` (with optional quotes)
+  for (const line of body.split('\n')) {
+    const keyMatch = line.match(/^\s+['"]?([a-z][a-z0-9_]*)['"]?\s*:/);
+    if (keyMatch) {
+      keys.push(keyMatch[1]!);
+    }
+  }
+  return keys;
+}
+
+// Read source files once
+const agentSource = readFileSync(resolve(__dirname, '../agent.ts'), 'utf-8');
+const chatPanelSource = readFileSync(
+  resolve(__dirname, '../../components/ai/AIChatPanel.tsx'),
+  'utf-8',
+);
+
+const agentToolKeys = extractObjectKeys(agentSource, 'AGENT_TOOLS');
+const toolDescriptionKeys = extractObjectKeys(chatPanelSource, 'TOOL_DESCRIPTIONS');
 
 describe('tool-registry parity', () => {
-  it('should have the expected number of canonical tools', () => {
-    // Update this assertion when adding/removing tools
-    expect(CANONICAL_TOOLS).toHaveLength(14);
+  it('should extract AGENT_TOOLS keys from source', () => {
+    expect(agentToolKeys.length).toBeGreaterThan(0);
   });
 
-  it('should have no duplicate entries in the canonical list', () => {
-    const uniqueSet = new Set(CANONICAL_TOOLS);
-    expect(uniqueSet.size).toBe(CANONICAL_TOOLS.length);
+  it('should extract TOOL_DESCRIPTIONS keys from source', () => {
+    expect(toolDescriptionKeys.length).toBeGreaterThan(0);
   });
 
-  it('AGENT_TOOLS should match the canonical set', async () => {
-    // Dynamic import to avoid loading AI SDK at test init
-    const agentModule = await import('../agent');
+  it('AGENT_TOOLS and TOOL_DESCRIPTIONS should have the same keys', () => {
+    const agentSet = new Set(agentToolKeys);
+    const descSet = new Set(toolDescriptionKeys);
 
-    // The AGENT_TOOLS object isn't directly exported, but we can access
-    // the tool names through the summarizeToolResult function or by
-    // importing and checking the module. We use a different approach:
-    // read the source file and extract the keys.
-    //
-    // Since we can't easily import AGENT_TOOLS without triggering AI SDK
-    // imports, we verify by checking that summarizeToolResult handles
-    // every canonical tool name without throwing.
-    for (const tool of CANONICAL_TOOLS) {
-      // summarizeToolResult should handle any tool name gracefully
-      const result = agentModule.summarizeToolResult(tool, { success: true });
+    const missingFromDescriptions = agentToolKeys.filter((k) => !descSet.has(k));
+    const extraInDescriptions = toolDescriptionKeys.filter((k) => !agentSet.has(k));
+
+    expect(missingFromDescriptions).toEqual([]);
+    expect(extraInDescriptions).toEqual([]);
+    expect(agentToolKeys.sort()).toEqual(toolDescriptionKeys.sort());
+  });
+
+  it('should have no duplicate entries in either registry', () => {
+    expect(new Set(agentToolKeys).size).toBe(agentToolKeys.length);
+    expect(new Set(toolDescriptionKeys).size).toBe(toolDescriptionKeys.length);
+  });
+
+  it('summarizeToolResult should handle every registered tool', async () => {
+    // Dynamic import — only loads the summarize function
+    const { summarizeToolResult } = await import('../agent');
+    for (const tool of agentToolKeys) {
+      const result = summarizeToolResult(tool, { success: true });
       expect(typeof result).toBe('string');
     }
   });
 
-  it('canonical tool names should be valid identifiers with underscores', () => {
-    for (const tool of CANONICAL_TOOLS) {
+  it('tool names should be valid snake_case identifiers', () => {
+    for (const tool of agentToolKeys) {
       expect(tool).toMatch(/^[a-z][a-z0-9_]*$/);
     }
   });

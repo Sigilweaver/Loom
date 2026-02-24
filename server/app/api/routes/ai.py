@@ -264,7 +264,11 @@ async def proxy_llm_request(
 
     # Determine if the response is a stream (SSE or chunked)
     content_type = upstream_resp.headers.get("content-type", "")
-    is_stream = "text/event-stream" in content_type or "chunked" in upstream_resp.headers.get("transfer-encoding", "")
+    transfer_enc = upstream_resp.headers.get("transfer-encoding", "")
+    is_stream = (
+        "text/event-stream" in content_type
+        or "chunked" in transfer_enc
+    )
 
     if is_stream:
         # Stream SSE chunks to the client as they arrive

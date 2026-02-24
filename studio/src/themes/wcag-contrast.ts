@@ -22,9 +22,9 @@ export function parseColor(color: string): [number, number, number] {
     const hex = c.slice(1);
     if (hex.length === 3 || hex.length === 4) {
       return [
-        parseInt(hex[0] + hex[0], 16),
-        parseInt(hex[1] + hex[1], 16),
-        parseInt(hex[2] + hex[2], 16),
+        parseInt(hex[0]! + hex[0]!, 16),
+        parseInt(hex[1]! + hex[1]!, 16),
+        parseInt(hex[2]! + hex[2]!, 16),
       ];
     }
     if (hex.length === 6 || hex.length === 8) {
@@ -42,9 +42,9 @@ export function parseColor(color: string): [number, number, number] {
   );
   if (rgbMatch) {
     return [
-      parseInt(rgbMatch[1], 10),
-      parseInt(rgbMatch[2], 10),
-      parseInt(rgbMatch[3], 10),
+      parseInt(rgbMatch[1]!, 10),
+      parseInt(rgbMatch[2]!, 10),
+      parseInt(rgbMatch[3]!, 10),
     ];
   }
 
@@ -56,11 +56,11 @@ export function parseColor(color: string): [number, number, number] {
  * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
  */
 export function relativeLuminance(color: string): number {
-  const [r, g, b] = parseColor(color).map((c) => {
+  const channels = parseColor(color).map((c) => {
     const s = c / 255;
     return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
 }
 
 /**
@@ -117,7 +117,7 @@ export function isStaticColor(color: string): boolean {
   if (c.startsWith('rgba') && c.includes(',')) {
     // Check if alpha < 1
     const alphaMatch = c.match(/,\s*([\d.]+)\s*\)$/);
-    if (alphaMatch && parseFloat(alphaMatch[1]) < 1) return false;
+    if (alphaMatch && parseFloat(alphaMatch[1]!) < 1) return false;
   }
   return true;
 }
