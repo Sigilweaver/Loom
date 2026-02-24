@@ -15,7 +15,7 @@ import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 
 // Agent tools
-import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools } from './tools/canvas';
+import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
 import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
@@ -28,6 +28,7 @@ const AGENT_TOOLS = {
   remove_tool: removeTool,
   connect_tools: connectTools,
   disconnect_tools: disconnectTools,
+  batch_canvas_ops: batchCanvasOps,
   list_available_files: listAvailableFiles,
   search_files: searchFilesTool,
   preview_tool_output: previewToolOutput,
@@ -538,6 +539,12 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
       return `updated ${(r.updatedFields as string[] ?? []).join(', ')}`;
     case 'update_tools':
       return r.summary ? String(r.summary) : `batch update: ${((r.results as unknown[]) ?? []).length} tools`;
+    case 'batch_canvas_ops': {
+      const opsResults = (r.results as Array<{ success: boolean }>) ?? [];
+      const succeeded = opsResults.filter((o) => o.success).length;
+      const mapEntries = r.idMap ? Object.keys(r.idMap as Record<string, string>).length : 0;
+      return `batch: ${succeeded}/${opsResults.length} ops${mapEntries > 0 ? `, ${mapEntries} refs` : ''}`;
+    }
     case 'ask_user': {
       const ans = r.answer;
       const display = Array.isArray(ans) ? (ans as string[]).join(', ') : String(ans ?? '');

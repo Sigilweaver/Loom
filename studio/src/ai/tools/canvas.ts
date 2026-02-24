@@ -778,3 +778,247 @@ export const disconnectTools = tool({
     return { success: true };
   },
 });
+
+// ---------------------------------------------------------------------------
+// Batch canvas operations — transactional multi-step mutations
+// ---------------------------------------------------------------------------
+
+/**
+ * Operation schemas for batch_canvas_ops
+ */
+const batchOpSchema = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('add'),
+    /** Temporary ID for referencing this tool in later ops within the same batch */
+    refId: z.string().optional().describe('Temporary reference ID for later ops in this batch (e.g. "filter1"). Use this to connect or update tools added in this same batch.'),
+    type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Summarize")'),
+    config: z.record(z.string(), z.unknown()).optional(),
+    comment: z.string().optional().describe('Brief human-readable comment for this tool.'),
+    after: z.string().optional().describe('ID or refId of upstream tool to connect to.'),
+    fromSocket: z.string().optional(),
+    toSocket: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('connect'),
+    from: z.string().describe('ID or refId of source tool.'),
+    to: z.string().describe('ID or refId of target tool.'),
+    fromSocket: z.string().optional(),
+    toSocket: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('update'),
+    toolId: z.string().describe('ID or refId of tool to update.'),
+    config: z.record(z.string(), z.unknown()).optional(),
+    comment: z.string().optional(),
+  }),
+  z.object({
+    op: z.literal('remove'),
+    toolId: z.string().describe('ID or refId of tool to remove.'),
+  }),
+]);
+
+/**
+ * Batch canvas operations in a single tool call.
+ * Adds, connects, updates, and removes tools transactionally with layout
+ * deferred to the end. Returns an idMap of refIds to canvas IDs plus
+ * an optional preview summary of the last added tool.
+ */
+export const batchCanvasOps = tool({
+  description: 'Execute multiple canvas operations (add, connect, update, remove) in a single call. ' +
+    'Use this instead of separate add_tool/connect_tools/update_tool calls when building or modifying ' +
+    'multiple tools at once. Defers layout until the end. Returns an id map and optional preview. ' +
+    'Use "refId" on add ops to reference newly-added tools in later ops within the same batch.',
+  inputSchema: z.object({
+    operations: z.array(batchOpSchema).min(1).describe('Array of operations to execute in order.'),
+    previewLast: z.boolean().optional().describe('When true, previews the output of the last added tool.'),
+  }),
+  execute: async ({ operations, previewLast }) => {
+    const idMap: Record<string, string> = {}; // refId → actual canvas ID
+    const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
+
+    // Resolve a tool ID that may be a refId or an actual canvas ID
+    const resolveId = (idOrRef: string): string => {
+      return idMap[idOrRef] ?? idOrRef;
+    };
+
+    let lastAddedToolId: string | undefined;
+
+    for (const operation of operations) {
+      try {
+        switch (operation.op) {
+          case 'add': {
+            const def = getToolDefinition(operation.type);
+            if (!def) {
+              results.push({ op: 'add', success: false, error: `Unknown type: "${operation.type}"` });
+              continue;
+            }
+
+            const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
+            const existingIds = new Set(tools.map((t) => t.id));
+
+            const resolvedConfig = operation.config ? enrichToolConfig(operation.type, operation.config) : undefined;
+            const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
+            const resolvedComment = operation.comment || generateComment(def.type, finalConfig) || undefined;
+
+            const newTool: Tool = {
+              id: generateUniqueId(existingIds),
+              type: def.type,
+              x: 0,
+              y: 0,
+              config: finalConfig,
+              sockets: [...def.sockets],
+              ...(resolvedComment ? { comment: resolvedComment } : {}),
+            };
+
+            storeAddTool(newTool);
+
+            // Register refId mapping
+            if (operation.refId) {
+              idMap[operation.refId] = newTool.id;
+            }
+            lastAddedToolId = newTool.id;
+
+            // Auto-connect if "after" is specified
+            if (operation.after) {
+              const afterId = resolveId(operation.after);
+              const currentTools = useWorkflowStore.getState().tools;
+              const sourceTool = currentTools.find((t) => t.id === afterId);
+              if (sourceTool) {
+                const outputSocket = operation.fromSocket
+                  ?? sourceTool.sockets.find((s) => s.direction === 'output')?.id;
+                const inputSocket = operation.toSocket
+                  ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
+                if (outputSocket && inputSocket) {
+                  addWire({
+                    from: { tool: afterId, socket: outputSocket },
+                    to: { tool: newTool.id, socket: inputSocket },
+                  });
+                }
+              }
+            }
+
+            results.push({ op: 'add', success: true, toolId: newTool.id });
+            break;
+          }
+
+          case 'connect': {
+            const fromId = resolveId(operation.from);
+            const toId = resolveId(operation.to);
+            const { tools, addWire } = useWorkflowStore.getState();
+            const fromTool = tools.find((t) => t.id === fromId);
+            const toTool = tools.find((t) => t.id === toId);
+
+            if (!fromTool || !toTool) {
+              results.push({ op: 'connect', success: false, error: `Tool not found: ${!fromTool ? fromId : toId}` });
+              continue;
+            }
+
+            const outputSocket = operation.fromSocket
+              ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+            const inputSocket = operation.toSocket
+              ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
+
+            if (outputSocket && inputSocket) {
+              addWire({
+                from: { tool: fromId, socket: outputSocket },
+                to: { tool: toId, socket: inputSocket },
+              });
+              results.push({ op: 'connect', success: true });
+            } else {
+              results.push({ op: 'connect', success: false, error: 'Could not resolve sockets' });
+            }
+            break;
+          }
+
+          case 'update': {
+            const toolId = resolveId(operation.toolId);
+            const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
+            const existing = tools.find((t) => t.id === toolId);
+            if (!existing) {
+              results.push({ op: 'update', success: false, toolId, error: `Tool not found: ${toolId}` });
+              continue;
+            }
+
+            if (operation.config) {
+              const resolvedConfig = enrichToolConfig(existing.type, operation.config);
+              updateToolConfiguration(toolId, { ...existing.config, ...resolvedConfig } as ToolConfig);
+            }
+            if (operation.comment !== undefined) {
+              updateToolComment(toolId, operation.comment || undefined);
+            }
+            results.push({ op: 'update', success: true, toolId });
+            break;
+          }
+
+          case 'remove': {
+            const toolId = resolveId(operation.toolId);
+            const { tools, removeTool: remove } = useWorkflowStore.getState();
+            const existing = tools.find((t) => t.id === toolId);
+            if (!existing) {
+              results.push({ op: 'remove', success: false, error: `Tool not found: ${toolId}` });
+              continue;
+            }
+            remove(toolId);
+            results.push({ op: 'remove', success: true, toolId });
+            break;
+          }
+        }
+      } catch (err) {
+        results.push({
+          op: operation.op,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    // Defer layout to end of batch
+    await runAutoLayout();
+
+    // Build summary
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+    const parts: string[] = [];
+    parts.push(`Batch: ${succeeded}/${operations.length} ops succeeded${failed > 0 ? ` (${failed} failed)` : ''}`);
+
+    // Report id map
+    if (Object.keys(idMap).length > 0) {
+      parts.push('ID map: ' + Object.entries(idMap).map(([ref, id]) => `${ref} → ${id}`).join(', '));
+    }
+
+    // Report failures
+    const failures = results.filter((r) => !r.success);
+    if (failures.length > 0) {
+      parts.push('Errors: ' + failures.map((r) => `${r.op}: ${r.error}`).join('; '));
+    }
+
+    // Optional preview of last added tool
+    if (previewLast && lastAddedToolId) {
+      try {
+        const { tools: currentTools, wires: currentWires, workflowMeta } = useWorkflowStore.getState();
+        const lastTool = currentTools.find((t) => t.id === lastAddedToolId);
+        if (lastTool) {
+          const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
+          const outputSocket = lastTool.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+          const result = await previewTool(lastAddedToolId!, workflow, outputSocket, 5);
+          const rows = result.data?.slice(0, 5) ?? [];
+          const schema = result.data_schema?.columns ?? [];
+          const rowCount = result.row_count ?? rows.length;
+          if (rows.length > 0) {
+            parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
+            parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
+          }
+        }
+      } catch (err) {
+        const previewError = err instanceof Error ? err.message : String(err);
+        parts.push(`Preview failed: ${previewError}`);
+      }
+    }
+
+    return {
+      data: parts.join('\n'),
+      idMap,
+      results,
+    };
+  },
+});

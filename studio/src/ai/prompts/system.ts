@@ -32,6 +32,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Stu
 - **Column names are case-sensitive**: Usually lowercase. Use names from profiles/metadata only.
 - **Two-phase builds**: search_files → build_workflow (Read only) → read profile → add_tool with exact column names
 - **Branching**: Fan-out from Read — do NOT chain Aggregates in series (columns get dropped)
+- **Batch builds**: Use \`batch_canvas_ops\` to add+connect multiple tools in one call. Assign \`refId\` strings to reference new tools within the same batch (e.g. add tool with refId "t1", then connect from "t1" to another). Layout runs once at the end.
 
 ## Rules
 1. Column names are case-sensitive — use exact names from data profiles/metadata
