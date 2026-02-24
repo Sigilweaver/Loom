@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMessageHistory, summarizeToolResult, getAgentTabId } from "../agent";
+import { buildMessageHistory, summarizeToolResult, getAgentTabId, classifyError } from "../agent";
 import { useAIStore } from "@state/aiStore";
 import type { ChatMessage } from "@state/aiStore";
 
@@ -294,5 +294,56 @@ describe("getAgentTabId", () => {
     expect(getAgentTabId()).toBe("tab-42");
     // Cleanup
     useAIStore.getState().setAgentTabId(null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// classifyError
+// ---------------------------------------------------------------------------
+
+describe("classifyError", () => {
+  it("should classify 401 as auth error", () => {
+    const result = classifyError("HTTP 401 Unauthorized");
+    expect(result.category).toBe("auth");
+    expect(result.retryable).toBe(false);
+    expect(result.displayMessage).toContain("API key");
+  });
+
+  it("should classify invalid api key as auth error", () => {
+    const result = classifyError("Invalid API key provided");
+    expect(result.category).toBe("auth");
+    expect(result.retryable).toBe(false);
+  });
+
+  it("should classify 429 as rate-limit", () => {
+    const result = classifyError("HTTP 429: Too Many Requests");
+    expect(result.category).toBe("rate-limit");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify 503 as overloaded", () => {
+    const result = classifyError("HTTP 503 Service Temporarily Unavailable");
+    expect(result.category).toBe("overloaded");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify connection errors as network", () => {
+    const result = classifyError("Could not connect to anthropic");
+    expect(result.category).toBe("network");
+    expect(result.retryable).toBe(true);
+    expect(result.displayMessage).toContain("Sigilweaver Server");
+  });
+
+  it("should classify ECONNREFUSED as network", () => {
+    const result = classifyError("fetch failed: ECONNREFUSED");
+    expect(result.category).toBe("network");
+    expect(result.retryable).toBe(true);
+  });
+
+  it("should classify unknown errors with original message", () => {
+    const result = classifyError("Something unexpected happened");
+    expect(result.category).toBe("unknown");
+    expect(result.retryable).toBe(false);
+    expect(result.displayMessage).toBe("Something unexpected happened");
   });
 });

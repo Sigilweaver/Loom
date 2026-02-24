@@ -250,13 +250,14 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.setError('Generation cancelled.');
     } else {
       const message = err instanceof Error ? err.message : String(err);
-      store.setError(`Agent error: ${message}`);
+      const classified = classifyError(message);
+      store.setError(`Agent error: ${classified.displayMessage}`);
 
       // Add error as assistant message so user sees it in chat
       const errorMsg: ChatMessage = {
         id: uuid(),
         role: 'assistant',
-        content: `Error: ${message}`,
+        content: `Error: ${classified.displayMessage}`,
         timestamp: Date.now(),
       };
       store.addMessage(errorMsg);
@@ -284,6 +285,74 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       }
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Error classification
+// ---------------------------------------------------------------------------
+
+interface ClassifiedError {
+  category: 'auth' | 'rate-limit' | 'network' | 'overloaded' | 'unknown';
+  displayMessage: string;
+  retryable: boolean;
+}
+
+/**
+ * Classify an error message into a user-friendly category.
+ * Helps users understand whether to fix config, wait, or retry.
+ */
+export function classifyError(message: string): ClassifiedError {
+  const lower = message.toLowerCase();
+
+  // Authentication / authorization errors
+  if (lower.includes('401') || lower.includes('403') || lower.includes('invalid api key')
+      || lower.includes('unauthorized') || lower.includes('authentication')
+      || lower.includes('permission denied')) {
+    return {
+      category: 'auth',
+      displayMessage: 'Authentication failed — check your API key in Settings → AI.',
+      retryable: false,
+    };
+  }
+
+  // Rate limiting
+  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')
+      || lower.includes('quota exceeded')) {
+    return {
+      category: 'rate-limit',
+      displayMessage: 'Rate limited by provider — wait a moment and try again.',
+      retryable: true,
+    };
+  }
+
+  // Provider overloaded
+  if (lower.includes('503') || lower.includes('overloaded') || lower.includes('capacity')
+      || lower.includes('temporarily unavailable')) {
+    return {
+      category: 'overloaded',
+      displayMessage: 'Provider temporarily overloaded — try again in a few seconds.',
+      retryable: true,
+    };
+  }
+
+  // Network / connection errors
+  if (lower.includes('502') || lower.includes('504') || lower.includes('could not connect')
+      || lower.includes('econnrefused') || lower.includes('enotfound')
+      || lower.includes('network') || lower.includes('timeout')
+      || lower.includes('fetch failed') || lower.includes('econnreset')) {
+    return {
+      category: 'network',
+      displayMessage: `Connection error: ${message}. Is the Sigilweaver Server running?`,
+      retryable: true,
+    };
+  }
+
+  // Unknown
+  return {
+    category: 'unknown',
+    displayMessage: message,
+    retryable: false,
+  };
 }
 
 /**

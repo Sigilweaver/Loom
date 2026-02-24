@@ -4,12 +4,20 @@ Provides a reverse proxy for LLM provider API calls, solving CORS
 restrictions when Studio runs in web/browser mode. In Electron mode,
 calls go direct; in web mode they route through this proxy.
 
+Streaming: The proxy preserves SSE streaming semantics end-to-end.
+LLM providers send Server-Sent Events; this proxy forwards each chunk
+to Studio as it arrives via ``StreamingResponse``, enabling true
+progressive token display.
+
 Also provides a model listing endpoint for the settings UI.
 """
 
 import logging
+from collections.abc import AsyncIterator
+
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -173,10 +181,15 @@ async def proxy_llm_request(
     request: Request,
 ) -> Response:
     """
-    Reverse proxy for LLM provider API calls.
+    Streaming reverse proxy for LLM provider API calls.
 
     Routes requests to the correct provider base URL, forwarding headers
     and body. This solves CORS restrictions when Studio runs in web mode.
+
+    **Streaming**: When the upstream response has a streaming content-type
+    (``text/event-stream`` or chunked transfer), the proxy streams chunks
+    to the client as they arrive instead of buffering the full response.
+    This preserves SSE semantics for progressive token display.
 
     Usage from Studio:
       Instead of calling https://api.anthropic.com/v1/messages
@@ -188,6 +201,8 @@ async def proxy_llm_request(
     # Resolve base URL
     if provider == "openai-compatible":
         base_url = request.query_params.get("base_url", "http://localhost:11434")
+        # Normalize: strip trailing slashes to avoid double-slash in URL
+        base_url = base_url.rstrip("/")
     else:
         base_url = PROVIDER_URLS.get(provider)
         if not base_url:
@@ -204,23 +219,42 @@ async def proxy_llm_request(
     # Read request body
     body = await request.body()
 
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        try:
-            upstream_resp = await client.request(
+    # Forward query params (minus our internal base_url param)
+    forward_params = {
+        k: v
+        for k, v in request.query_params.items()
+        if k != "base_url"
+    } or None
+
+    # Use a long-lived client for the streaming response.
+    # We CANNOT use `async with` for the client here because the
+    # StreamingResponse sends chunks lazily — the client must stay open
+    # past the lifetime of this coroutine.
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0),
+    )
+
+    try:
+        upstream_resp = await client.send(
+            client.build_request(
                 method=request.method,
                 url=upstream_url,
                 headers=forward_headers,
                 content=body if body else None,
-                params={
-                    k: v
-                    for k, v in request.query_params.items()
-                    if k != "base_url"
-                } or None,
-            )
-        except httpx.ConnectError:
-            raise HTTPException(status_code=502, detail=f"Could not connect to {provider}")
-        except httpx.ReadTimeout:
-            raise HTTPException(status_code=504, detail="Upstream timeout")
+                params=forward_params,
+            ),
+            stream=True,
+        )
+    except httpx.ConnectError:
+        await client.aclose()
+        raise HTTPException(status_code=502, detail=f"Could not connect to {provider}")
+    except httpx.ReadTimeout:
+        await client.aclose()
+        raise HTTPException(status_code=504, detail="Upstream timeout")
+    except Exception as exc:
+        await client.aclose()
+        logger.error("proxy_error provider=%s error=%s", provider, str(exc))
+        raise HTTPException(status_code=502, detail=str(exc))
 
     # Forward response headers, stripping hop-by-hop
     response_headers: dict[str, str] = {}
@@ -228,8 +262,33 @@ async def proxy_llm_request(
         if key.lower() not in _HOP_BY_HOP and key.lower() != "content-encoding":
             response_headers[key] = value
 
-    return Response(
-        content=upstream_resp.content,
-        status_code=upstream_resp.status_code,
-        headers=response_headers,
-    )
+    # Determine if the response is a stream (SSE or chunked)
+    content_type = upstream_resp.headers.get("content-type", "")
+    is_stream = "text/event-stream" in content_type or "chunked" in upstream_resp.headers.get("transfer-encoding", "")
+
+    if is_stream:
+        # Stream SSE chunks to the client as they arrive
+        async def stream_chunks() -> AsyncIterator[bytes]:
+            try:
+                async for chunk in upstream_resp.aiter_bytes():
+                    yield chunk
+            finally:
+                await upstream_resp.aclose()
+                await client.aclose()
+
+        return StreamingResponse(
+            stream_chunks(),
+            status_code=upstream_resp.status_code,
+            headers=response_headers,
+            media_type=content_type,
+        )
+    else:
+        # Non-streaming response — read fully and return
+        content = await upstream_resp.aread()
+        await upstream_resp.aclose()
+        await client.aclose()
+        return Response(
+            content=content,
+            status_code=upstream_resp.status_code,
+            headers=response_headers,
+        )
