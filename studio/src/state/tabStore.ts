@@ -294,6 +294,9 @@ export const useTabStore = create<TabState>()(
           };
         });
 
+        // Clean up per-tab AI run queue
+        useAIStore.getState().clearRunQueue(tabId);
+
         // Clear all caches for this workflow
         if (workflowId) {
           logger.debug("Clearing cache for workflow:", workflowId);

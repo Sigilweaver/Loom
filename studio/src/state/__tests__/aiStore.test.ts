@@ -32,6 +32,8 @@ describe("aiStore", () => {
       error: null,
       abortController: null,
       sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      agentTabId: null,
+      runQueues: {},
     });
   });
 
@@ -390,6 +392,88 @@ describe("aiStore", () => {
       expect(state.messages).toHaveLength(2);
       expect(state.messages[1]?.toolCalls).toHaveLength(1);
       expect(state.sessionUsage.totalTokens).toBe(75);
+    });
+  });
+
+  describe("multi-agent / per-tab concurrency", () => {
+    it("should track agentTabId", () => {
+      expect(useAIStore.getState().agentTabId).toBeNull();
+      useAIStore.getState().setAgentTabId("tab-1");
+      expect(useAIStore.getState().agentTabId).toBe("tab-1");
+      useAIStore.getState().setAgentTabId(null);
+      expect(useAIStore.getState().agentTabId).toBeNull();
+    });
+
+    it("should enqueue and dequeue prompts per tab", () => {
+      useAIStore.getState().enqueuePrompt("tab-1", "first prompt");
+      useAIStore.getState().enqueuePrompt("tab-1", "second prompt");
+      useAIStore.getState().enqueuePrompt("tab-2", "other tab prompt");
+
+      expect(useAIStore.getState().runQueues["tab-1"]).toHaveLength(2);
+      expect(useAIStore.getState().runQueues["tab-2"]).toHaveLength(1);
+
+      const first = useAIStore.getState().dequeuePrompt("tab-1");
+      expect(first).toBe("first prompt");
+      expect(useAIStore.getState().runQueues["tab-1"]).toHaveLength(1);
+
+      const second = useAIStore.getState().dequeuePrompt("tab-1");
+      expect(second).toBe("second prompt");
+      expect(useAIStore.getState().runQueues["tab-1"]).toHaveLength(0);
+
+      // Empty queue returns undefined
+      expect(useAIStore.getState().dequeuePrompt("tab-1")).toBeUndefined();
+    });
+
+    it("should return undefined when dequeuing from non-existent tab", () => {
+      expect(useAIStore.getState().dequeuePrompt("no-such-tab")).toBeUndefined();
+    });
+
+    it("should clear run queue for a specific tab", () => {
+      useAIStore.getState().enqueuePrompt("tab-1", "prompt A");
+      useAIStore.getState().enqueuePrompt("tab-2", "prompt B");
+
+      useAIStore.getState().clearRunQueue("tab-1");
+
+      expect(useAIStore.getState().runQueues["tab-1"]).toBeUndefined();
+      expect(useAIStore.getState().runQueues["tab-2"]).toHaveLength(1);
+    });
+
+    it("should report queue length for a tab", () => {
+      expect(useAIStore.getState().getQueueLength("tab-1")).toBe(0);
+
+      useAIStore.getState().enqueuePrompt("tab-1", "p1");
+      useAIStore.getState().enqueuePrompt("tab-1", "p2");
+
+      // getQueueLength uses agentTabId when no tabId provided
+      useAIStore.getState().setAgentTabId("tab-1");
+      expect(useAIStore.getState().getQueueLength()).toBe(2);
+      expect(useAIStore.getState().getQueueLength("tab-1")).toBe(2);
+    });
+
+    it("should clear agentTabId and queue on cancelGeneration", () => {
+      const controller = new AbortController();
+      useAIStore.getState().setAbortController(controller);
+      useAIStore.getState().setIsGenerating(true);
+      useAIStore.getState().setAgentTabId("tab-1");
+      useAIStore.getState().enqueuePrompt("tab-1", "queued");
+
+      useAIStore.getState().cancelGeneration();
+
+      expect(useAIStore.getState().agentTabId).toBeNull();
+      expect(useAIStore.getState().isGenerating).toBe(false);
+      expect(useAIStore.getState().runQueues["tab-1"]).toBeUndefined();
+    });
+
+    it("should clear agentTabId on restoreSession", () => {
+      useAIStore.getState().setAgentTabId("tab-1");
+      useAIStore.getState().setIsGenerating(true);
+      const controller = new AbortController();
+      useAIStore.getState().setAbortController(controller);
+
+      useAIStore.getState().restoreSession(undefined);
+
+      expect(useAIStore.getState().agentTabId).toBeNull();
+      expect(useAIStore.getState().isGenerating).toBe(false);
     });
   });
 });

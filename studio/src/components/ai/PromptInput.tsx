@@ -12,6 +12,8 @@ interface PromptInputProps {
   onSend: (message: string) => void;
   onCancel?: () => void;
   isGenerating: boolean;
+  /** Number of prompts queued behind the current run */
+  queueLength?: number;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -20,6 +22,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
   onSend,
   onCancel,
   isGenerating,
+  queueLength = 0,
   disabled = false,
   placeholder = 'Describe what you want to build...',
 }) => {
@@ -42,14 +45,15 @@ const PromptInput: React.FC<PromptInputProps> = ({
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
-    if (!trimmed || isGenerating) return;
+    if (!trimmed) return;
+    // Allow sends during generation — they'll be queued by the agent
     onSend(trimmed);
     setValue('');
     // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [value, isGenerating, onSend]);
+  }, [value, onSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -65,8 +69,8 @@ const PromptInput: React.FC<PromptInputProps> = ({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        disabled={disabled || isGenerating}
-        placeholder={placeholder}
+        disabled={disabled}
+        placeholder={isGenerating ? 'Type to queue next message...' : placeholder}
         rows={1}
         className="flex-1 px-3 py-2 text-sm border rounded resize-none
           bg-theme-bg-input border-theme-border-primary text-theme-text-primary
@@ -76,15 +80,34 @@ const PromptInput: React.FC<PromptInputProps> = ({
       />
 
       {isGenerating ? (
-        <button
-          onClick={onCancel}
-          className="flex items-center justify-center w-8 h-8 rounded
-            bg-theme-status-error-bg border border-theme-status-error-border text-theme-status-error-text
-            hover:opacity-80 transition-colors flex-shrink-0"
-          title="Cancel generation"
-        >
-          <Square className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {queueLength > 0 && (
+            <span className="text-[10px] text-theme-text-tertiary px-1" title={`${queueLength} message${queueLength > 1 ? 's' : ''} queued`}>
+              {queueLength}q
+            </span>
+          )}
+          {value.trim() ? (
+            <button
+              onClick={handleSend}
+              className="flex items-center justify-center w-8 h-8 rounded
+                bg-theme-interactive-accent text-theme-text-on-accent
+                hover:opacity-90 transition-colors"
+              title="Queue message (will run after current)"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={onCancel}
+              className="flex items-center justify-center w-8 h-8 rounded
+                bg-theme-status-error-bg border border-theme-status-error-border text-theme-status-error-text
+                hover:opacity-80 transition-colors"
+              title="Cancel generation"
+            >
+              <Square className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       ) : (
         <button
           onClick={handleSend}

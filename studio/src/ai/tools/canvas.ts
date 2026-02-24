@@ -16,9 +16,33 @@ import { formatAddToolResult } from '../format';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
 import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
+import { getAgentTabId } from '../agent';
+import { useTabStore } from '@state/tabStore';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
 const logger = createLogger('AI:CanvasTools');
+
+// ---------------------------------------------------------------------------
+// Canvas write guard — prevents agent from modifying the wrong tab's canvas
+// ---------------------------------------------------------------------------
+
+/**
+ * Check that the running agent owns the currently active canvas tab.
+ * Returns an error object if the tab has changed since the agent started,
+ * or null if the agent is safe to proceed.
+ */
+function checkTabOwnership(): { success: false; error: string } | null {
+  const agentTab = getAgentTabId();
+  if (!agentTab) return null; // No agent context (e.g. direct tool call in tests)
+  const activeTab = useTabStore.getState().activeTabId;
+  if (activeTab !== agentTab) {
+    return {
+      success: false,
+      error: 'Canvas write blocked: user switched to a different tab while the agent was running. Retry when the original tab is active.',
+    };
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Filter expression auto-generation
@@ -498,6 +522,9 @@ export const addTool = tool({
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
   execute: async ({ type, config, comment, after, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const def = getToolDefinition(type);
     if (!def) {
       const available = listToolTypes().map((t) => t.type).join(', ');
@@ -595,6 +622,9 @@ export const updateTool = tool({
     comment: z.string().optional().describe('New comment for the tool. Replaces the existing comment.'),
   }),
   execute: async ({ toolId, config, comment }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const existing = tools.find((t) => t.id === toolId);
     if (!existing) {
@@ -635,6 +665,9 @@ export const updateTools = tool({
     })).min(1).describe('Array of tool updates to apply.'),
   }),
   execute: async ({ updates }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, updateToolConfiguration, updateToolComment } = useWorkflowStore.getState();
     const results: Array<{ toolId: string; success: boolean; error?: string; updatedFields?: string[] }> = [];
 
@@ -681,6 +714,9 @@ export const removeTool = tool({
     toolId: z.string().describe('The ID of the tool to remove.'),
   }),
   execute: async ({ toolId }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, removeTool: remove } = useWorkflowStore.getState();
     const existing = tools.find((t) => t.id === toolId);
     if (!existing) {
@@ -705,6 +741,9 @@ export const connectTools = tool({
     toSocket: z.string().optional().describe('Input socket ID on the target tool. Defaults to the first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, addWire } = useWorkflowStore.getState();
     const fromTool = tools.find((t) => t.id === fromToolId);
     const toTool = tools.find((t) => t.id === toToolId);
@@ -744,6 +783,9 @@ export const disconnectTools = tool({
     toSocket: z.string().optional().describe('Input socket ID. Defaults to first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const { tools, wires, removeWire } = useWorkflowStore.getState();
     const fromTool = tools.find((t) => t.id === fromToolId);
     const toTool = tools.find((t) => t.id === toToolId);
@@ -833,6 +875,9 @@ export const batchCanvasOps = tool({
     previewLast: z.boolean().optional().describe('When true, previews the output of the last added tool.'),
   }),
   execute: async ({ operations, previewLast }) => {
+    const tabErr = checkTabOwnership();
+    if (tabErr) return tabErr;
+
     const idMap: Record<string, string> = {}; // refId → actual canvas ID
     const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
 

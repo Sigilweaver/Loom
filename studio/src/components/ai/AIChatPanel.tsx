@@ -35,6 +35,11 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   const streamingSegments = useAIStore((s) => s.streamingSegments);
   const stoppedAtLimit = useAIStore((s) => s.stoppedAtLimit);
   const pendingQuestion = useAIStore((s) => s.pendingQuestion);
+  const agentTabId = useAIStore((s) => s.agentTabId);
+  const queueLength = useAIStore((s) => {
+    const tabId = agentTabId ?? '';
+    return s.runQueues[tabId]?.length ?? 0;
+  });
   const debugMode = useUIStore((s) => s.debugMode);
   const setDebugMode = useUIStore((s) => s.setDebugMode);
 
@@ -199,6 +204,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
           onSend={handleSend}
           onCancel={cancelGeneration}
           isGenerating={isGenerating}
+          queueLength={queueLength}
           disabled={!enabled}
         />
         <a

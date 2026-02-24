@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildMessageHistory, summarizeToolResult } from "../agent";
+import { buildMessageHistory, summarizeToolResult, getAgentTabId } from "../agent";
+import { useAIStore } from "@state/aiStore";
 import type { ChatMessage } from "@state/aiStore";
 
 // ---------------------------------------------------------------------------
@@ -275,5 +276,23 @@ describe("buildMessageHistory", () => {
 
   it("should handle empty message list", () => {
     expect(buildMessageHistory([])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getAgentTabId
+// ---------------------------------------------------------------------------
+
+describe("getAgentTabId", () => {
+  it("should return null when no agent is running", () => {
+    useAIStore.getState().setAgentTabId(null);
+    expect(getAgentTabId()).toBeNull();
+  });
+
+  it("should return the tab ID set by setAgentTabId", () => {
+    useAIStore.getState().setAgentTabId("tab-42");
+    expect(getAgentTabId()).toBe("tab-42");
+    // Cleanup
+    useAIStore.getState().setAgentTabId(null);
   });
 });

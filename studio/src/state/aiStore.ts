@@ -186,6 +186,12 @@ interface AIState extends AISettings {
   /** A pending follow-up question from the agent (null when none) */
   pendingQuestion: PendingQuestion | null;
 
+  // -- Multi-agent / per-tab concurrency --
+  /** Tab ID that owns the currently running agent (null when idle) */
+  agentTabId: string | null;
+  /** Per-tab queues of pending prompts, keyed by tab ID */
+  runQueues: Record<string, string[]>;
+
   // -- Settings actions --
   loadAISettings: () => Promise<void>;
   updateEnabled: (enabled: boolean) => Promise<void>;
@@ -228,6 +234,18 @@ interface AIState extends AISettings {
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
   setPendingQuestion: (question: PendingQuestion | null) => void;
+
+  // -- Multi-agent / per-tab concurrency --
+  /** Set which tab owns the currently running agent. */
+  setAgentTabId: (tabId: string | null) => void;
+  /** Enqueue a prompt for the given tab when an agent is already running. */
+  enqueuePrompt: (tabId: string, prompt: string) => void;
+  /** Dequeue the next prompt for the given tab. Returns undefined if empty. */
+  dequeuePrompt: (tabId: string) => string | undefined;
+  /** Clear the run queue for a tab (e.g. on tab close). */
+  clearRunQueue: (tabId: string) => void;
+  /** Get the queue length for a tab. */
+  getQueueLength: (tabId?: string) => number;
 
   // -- Tab session management --
   /** Snapshot the current AI session for saving to a tab. */
@@ -351,6 +369,8 @@ export const useAIStore = create<AIState>()((set, get) => ({
   streamingSegments: [],
   stoppedAtLimit: false,
   pendingQuestion: null,
+  agentTabId: null,
+  runQueues: {},
 
   loadAISettings: async () => {
     const settings = loadPersistedSettings();
@@ -527,14 +547,18 @@ export const useAIStore = create<AIState>()((set, get) => ({
   setAbortController: (abortController) => set({ abortController }),
 
   cancelGeneration: () => {
-    const { abortController, pendingQuestion } = get();
+    const { abortController, pendingQuestion, agentTabId } = get();
     // If a follow-up question is pending, dismiss it
     if (pendingQuestion) {
       set({ pendingQuestion: null });
     }
     if (abortController) {
       abortController.abort();
-      set({ abortController: null, isGenerating: false });
+      set({ abortController: null, isGenerating: false, agentTabId: null });
+    }
+    // Clear the run queue for the tab that was running
+    if (agentTabId) {
+      get().clearRunQueue(agentTabId);
     }
   },
 
@@ -581,6 +605,42 @@ export const useAIStore = create<AIState>()((set, get) => ({
 
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
 
+  // -- Multi-agent / per-tab concurrency --
+
+  setAgentTabId: (agentTabId) => set({ agentTabId }),
+
+  enqueuePrompt: (tabId, prompt) => {
+    set((s) => ({
+      runQueues: {
+        ...s.runQueues,
+        [tabId]: [...(s.runQueues[tabId] ?? []), prompt],
+      },
+    }));
+  },
+
+  dequeuePrompt: (tabId) => {
+    const queue = get().runQueues[tabId];
+    if (!queue || queue.length === 0) return undefined;
+    const [next, ...rest] = queue;
+    set((s) => ({
+      runQueues: { ...s.runQueues, [tabId]: rest },
+    }));
+    return next;
+  },
+
+  clearRunQueue: (tabId) => {
+    set((s) => {
+      const { [tabId]: _, ...rest } = s.runQueues;
+      return { runQueues: rest };
+    });
+  },
+
+  getQueueLength: (tabId) => {
+    const id = tabId ?? get().agentTabId;
+    if (!id) return 0;
+    return get().runQueues[id]?.length ?? 0;
+  },
+
   // -- Tab session management --
 
   snapshotSession: () => {
@@ -611,6 +671,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         error: session.error,
         isGenerating: false,
         abortController: null,
+        agentTabId: null,
         streamingText: '',
         streamingSegments: [],
         pendingQuestion: null,
@@ -624,6 +685,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         error: null,
         isGenerating: false,
         abortController: null,
+        agentTabId: null,
         streamingText: '',
         streamingSegments: [],
         pendingQuestion: null,

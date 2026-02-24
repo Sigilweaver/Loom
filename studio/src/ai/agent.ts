@@ -11,6 +11,7 @@ import { buildExpressionPrompt, buildBasicFilterPrompt, buildBasicFormulaPrompt 
 import { runAudit } from './audit';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
+import { useTabStore } from '@state/tabStore';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 
@@ -39,13 +40,35 @@ const AGENT_TOOLS = {
 };
 
 /**
+ * Get the tab ID that currently owns the running agent.
+ * Canvas tools use this to verify they're writing to the correct tab.
+ * Returns null when no agent is running.
+ */
+export function getAgentTabId(): string | null {
+  return useAIStore.getState().agentTabId;
+}
+
+/**
  * Send a message to the AI agent and get a response.
  * Uses streamText for real-time streaming of text and tool calls.
+ *
+ * **Per-tab concurrency**: Only one agent run is allowed per tab at a time.
+ * If the agent is already generating, the prompt is queued and will be
+ * sent automatically when the current run finishes.
  *
  * @param userPrompt - The user's message, or undefined to continue from where the agent left off.
  */
 export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   const store = useAIStore.getState();
+  const tabId = useTabStore.getState().activeTabId;
+
+  // --- Re-entrancy guard: one run per tab at a time ---
+  if (store.isGenerating) {
+    if (userPrompt && tabId) {
+      store.enqueuePrompt(tabId, userPrompt);
+    }
+    return;
+  }
 
   if (!store.enabled) {
     store.setError('AI features are not enabled. Enable them in Settings.');
@@ -77,6 +100,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   const abortController = new AbortController();
   store.setAbortController(abortController);
   store.setIsGenerating(true);
+  store.setAgentTabId(tabId);
   store.setError(null);
   store.setStreamingText('');
   store.setStreamingSegments([]);
@@ -238,10 +262,27 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.addMessage(errorMsg);
     }
   } finally {
+    // Capture the tab this agent was running on before clearing state
+    const finishedTabId = useAIStore.getState().agentTabId;
+
     store.setIsGenerating(false);
     store.setAbortController(null);
+    store.setAgentTabId(null);
     store.setStreamingText('');
     store.setStreamingSegments([]);
+
+    // Auto-dequeue: if there's a queued prompt for this tab and the tab
+    // is still active, send it automatically.
+    if (finishedTabId) {
+      const activeTab = useTabStore.getState().activeTabId;
+      if (activeTab === finishedTabId) {
+        const next = useAIStore.getState().dequeuePrompt(finishedTabId);
+        if (next) {
+          // Fire-and-forget — don't await to avoid recursive stack growth
+          void sendAgentMessage(next);
+        }
+      }
+    }
   }
 }
 
