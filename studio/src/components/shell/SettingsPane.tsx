@@ -12,7 +12,7 @@ import AboutContent from './AboutContent';
 import ConnectionManager from './ConnectionManager';
 import HubLoginDialog from './HubLoginDialog';
 import { Checkbox } from '@components/ui/Checkbox';
-import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick, MessageSquare } from 'lucide-react';
+import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick, MessageSquare, LayoutDashboard } from 'lucide-react';
 import type { ExecutionMode } from '../../types/settings';
 import { hasHubClient, getHubClient, clearHubClient, initHubClient } from '../../api/hub';
 import { triggerHubConnectionsRefresh } from '../../hooks/useAllConnections';
@@ -102,6 +102,14 @@ const SettingsPane: React.FC = () => {
     updateCommentsAlignment,
     updateCommentsMaxWidth,
     updateCommentsMaxHeight,
+  } = useSettingsStore();
+
+  const {
+    layout,
+    updateLayoutAlignment,
+    updateLayoutHorizontalSpacing,
+    updateLayoutVerticalSpacing,
+    updateLayoutGridSnap,
   } = useSettingsStore();
 
   // Check Hub login status on mount and when mode changes
@@ -773,6 +781,110 @@ const SettingsPane: React.FC = () => {
                 </div>
               </>
             )}
+          </div>
+        </Section>
+
+        {/* Layout */}
+        <Section
+          id="layout"
+          title="Auto Layout"
+          icon={LayoutDashboard}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                Alignment
+              </label>
+              <div className="flex overflow-hidden border rounded border-theme-border-primary">
+                {([
+                  { id: 'upstream', label: 'Upstream' },
+                  { id: 'balanced', label: 'Balanced' },
+                  { id: 'downstream', label: 'Downstream' },
+                ] as const).map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => updateLayoutAlignment(id)}
+                    className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                      layout.alignment === id
+                        ? 'bg-theme-interactive-accent text-white'
+                        : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-theme-text-tertiary">
+                {layout.alignment === 'upstream' && 'Align tools with their inputs — keeps linear chains straight'}
+                {layout.alignment === 'balanced' && 'Center tools between inputs and outputs'}
+                {layout.alignment === 'downstream' && 'Align tools with their outputs'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                Horizontal Spacing
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={160}
+                  max={500}
+                  step={20}
+                  value={layout.horizontalSpacing}
+                  onChange={(e) => updateLayoutHorizontalSpacing(Number(e.target.value))}
+                  className="flex-1 accent-theme-interactive-accent"
+                />
+                <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                  {layout.horizontalSpacing}px
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                Vertical Spacing
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={60}
+                  max={300}
+                  step={10}
+                  value={layout.verticalSpacing}
+                  onChange={(e) => updateLayoutVerticalSpacing(Number(e.target.value))}
+                  className="flex-1 accent-theme-interactive-accent"
+                />
+                <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                  {layout.verticalSpacing}px
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-theme-text-primary">
+                Grid Snap
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={40}
+                  step={5}
+                  value={layout.gridSnap}
+                  onChange={(e) => updateLayoutGridSnap(Number(e.target.value))}
+                  className="flex-1 accent-theme-interactive-accent"
+                />
+                <span className="text-xs tabular-nums text-theme-text-secondary w-12 text-right">
+                  {layout.gridSnap === 0 ? 'Off' : `${layout.gridSnap}px`}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-theme-text-tertiary">
+                Snap positions to a pixel grid after layout
+              </p>
+            </div>
           </div>
         </Section>
 

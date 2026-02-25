@@ -33,6 +33,10 @@ interface SettingsState extends AppSettings {
   updateCommentsAlignment: (alignment: AppSettings['comments']['alignment']) => Promise<void>;
   updateCommentsMaxWidth: (maxWidth: number) => Promise<void>;
   updateCommentsMaxHeight: (maxHeight: number) => Promise<void>;
+  updateLayoutAlignment: (alignment: AppSettings['layout']['alignment']) => Promise<void>;
+  updateLayoutHorizontalSpacing: (spacing: number) => Promise<void>;
+  updateLayoutVerticalSpacing: (spacing: number) => Promise<void>;
+  updateLayoutGridSnap: (gridSnap: number) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
@@ -63,6 +67,7 @@ function buildSettings(state: SettingsState): AppSettings {
     ui: state.ui,
     behavior: state.behavior,
     comments: state.comments,
+    layout: state.layout,
   };
 }
 
@@ -229,6 +234,34 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const state = get();
     const newComments = { ...state.comments, maxHeight };
     set({ comments: newComments });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateLayoutAlignment: async (alignment) => {
+    const state = get();
+    const newLayout = { ...state.layout, alignment };
+    set({ layout: newLayout });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateLayoutHorizontalSpacing: async (horizontalSpacing) => {
+    const state = get();
+    const newLayout = { ...state.layout, horizontalSpacing };
+    set({ layout: newLayout });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateLayoutVerticalSpacing: async (verticalSpacing) => {
+    const state = get();
+    const newLayout = { ...state.layout, verticalSpacing };
+    set({ layout: newLayout });
+    await saveToStorage(buildSettings(get()));
+  },
+
+  updateLayoutGridSnap: async (gridSnap) => {
+    const state = get();
+    const newLayout = { ...state.layout, gridSnap };
+    set({ layout: newLayout });
     await saveToStorage(buildSettings(get()));
   },
 

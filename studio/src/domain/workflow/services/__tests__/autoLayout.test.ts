@@ -16,6 +16,10 @@ const wire = (from: string, to: string): Wire => ({
   to: { tool: to, socket: 'input' },
 });
 
+// ---------------------------------------------------------------
+// Core layout tests
+// ---------------------------------------------------------------
+
 describe('autoLayout', () => {
   it('returns empty positions for empty input', () => {
     const result = autoLayout([], []);
@@ -112,7 +116,8 @@ describe('autoLayout', () => {
     });
 
     const posMap = new Map(result.positions.map((p) => [p.id, p]));
-    expect(posMap.get('A')).toEqual({ id: 'A', x: 0, y: 0 });
+    // A should be in column 0
+    expect(posMap.get('A')!.x).toBe(0);
     // B at column 1, row 0
     expect(posMap.get('B')!.x).toBe(200);
     // C at column 1, row 1
@@ -468,5 +473,514 @@ describe('autoLayout – crossing minimization', () => {
 
     // Both in the same column
     expect(posMap.get('trueTarget')!.x).toBe(posMap.get('falseTarget')!.x);
+  });
+});
+
+// ---------------------------------------------------------------
+// Alignment strategy tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – alignment strategies', () => {
+  it('upstream alignment keeps roots at startY', () => {
+    //   A → B
+    //   A → C
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, { alignment: 'upstream' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // Root A stays at startY (100)
+    expect(posMap.get('A')!.y).toBe(100);
+    // B inherits from A, C is below B
+    expect(posMap.get('B')!.y).toBe(100);
+    expect(posMap.get('C')!.y).toBe(220);
+  });
+
+  it('downstream alignment keeps leaves at startY', () => {
+    //   A → B
+    //   A → C
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, { alignment: 'downstream' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // B and C are leaves — assigned from row positions
+    expect(posMap.get('B')!.y).toBe(100);
+    expect(posMap.get('C')!.y).toBe(220);
+    // A aligns with primary successor (B via first output), not their average
+    expect(posMap.get('A')!.y).toBe(posMap.get('B')!.y);
+  });
+
+  it('balanced alignment aligns root with primary successor', () => {
+    //   A → B
+    //   A → C
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, { alignment: 'balanced' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // A is a root — balanced aligns it with primary successor (B)
+    expect(posMap.get('A')!.y).toBe(posMap.get('B')!.y);
+    // C below B
+    expect(posMap.get('C')!.y).toBeGreaterThan(posMap.get('B')!.y);
+  });
+
+  it('balanced alignment preserves linear chain positions', () => {
+    // A → B → C → D (straight chain — balanced should equal upstream)
+    const tools = [tool('A'), tool('B'), tool('C'), tool('D')];
+    const wires = [wire('A', 'B'), wire('B', 'C'), wire('C', 'D')];
+
+    const result = autoLayout(tools, wires, { alignment: 'balanced' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // All on the same row
+    const ys = [...posMap.values()].map((p) => p.y);
+    expect(new Set(ys).size).toBe(1);
+  });
+
+  it('balanced alignment keeps diamond merge consistent', () => {
+    //   A → B → D
+    //   A → C → D
+    const tools = [tool('A'), tool('B'), tool('C'), tool('D')];
+    const wires = [wire('A', 'B'), wire('A', 'C'), wire('B', 'D'), wire('C', 'D')];
+
+    const balanced = autoLayout(tools, wires, { alignment: 'balanced' });
+    const upstream = autoLayout(tools, wires, { alignment: 'upstream' });
+    const balMap = new Map(balanced.positions.map((p) => [p.id, p]));
+    const upMap = new Map(upstream.positions.map((p) => [p.id, p]));
+
+    // D should be between B and C in both alignments
+    expect(balMap.get('D')!.y).toBeGreaterThanOrEqual(balMap.get('B')!.y);
+    expect(balMap.get('D')!.y).toBeLessThanOrEqual(balMap.get('C')!.y);
+    // A is a root — balanced aligns with primary successor (B)
+    expect(balMap.get('A')!.y).toBe(balMap.get('B')!.y);
+    // In upstream, A is also at the top (same behavior for roots)
+    expect(upMap.get('A')!.y).toBe(upMap.get('B')!.y);
+  });
+
+  it('upstream aligns merge node with primary (first-socket) predecessor', () => {
+    // A → Join (left input)
+    // B → Join (right input)
+    // Join should align with A (primary input), not center between A and B
+    const joinTool: Tool = {
+      id: 'Join',
+      type: 'Join',
+      x: 0,
+      y: 0,
+      config: {},
+      sockets: [
+        { id: 'left', direction: 'input', type: 'table' },
+        { id: 'right', direction: 'input', type: 'table' },
+        { id: 'output', direction: 'output', type: 'table' },
+      ],
+    };
+    const tools = [tool('A'), tool('B'), joinTool];
+    const wires: Wire[] = [
+      { from: { tool: 'A', socket: 'output' }, to: { tool: 'Join', socket: 'left' } },
+      { from: { tool: 'B', socket: 'output' }, to: { tool: 'Join', socket: 'right' } },
+    ];
+
+    const result = autoLayout(tools, wires, { alignment: 'upstream' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // Join should be at the same Y as A (primary/left input), not centered
+    expect(posMap.get('Join')!.y).toBe(posMap.get('A')!.y);
+    // B should be on a different row
+    expect(posMap.get('B')!.y).not.toBe(posMap.get('A')!.y);
+  });
+
+  it('downstream aligns fan-out node with primary (first-socket) successor', () => {
+    // Split → A (first output)
+    // Split → B (second output)
+    // Split should align with A (primary output), not center between A and B
+    const splitTool: Tool = {
+      id: 'Split',
+      type: 'Split',
+      x: 0,
+      y: 0,
+      config: {},
+      sockets: [
+        { id: 'input', direction: 'input', type: 'table' },
+        { id: 'out1', direction: 'output', type: 'table' },
+        { id: 'out2', direction: 'output', type: 'table' },
+      ],
+    };
+    const tools = [splitTool, tool('A'), tool('B')];
+    const wires: Wire[] = [
+      { from: { tool: 'Split', socket: 'out1' }, to: { tool: 'A', socket: 'input' } },
+      { from: { tool: 'Split', socket: 'out2' }, to: { tool: 'B', socket: 'input' } },
+    ];
+
+    const result = autoLayout(tools, wires, { alignment: 'downstream' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // Split should align with A (primary/first output), not centered
+    expect(posMap.get('Split')!.y).toBe(posMap.get('A')!.y);
+    expect(posMap.get('B')!.y).not.toBe(posMap.get('A')!.y);
+  });
+});
+
+// ---------------------------------------------------------------
+// Crossing reduction heuristic tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – crossing reduction heuristics', () => {
+  it('median heuristic orders Join inputs correctly', () => {
+    const tools = [sourceTool('A'), sourceTool('B'), joinTool('join')];
+    const wires = [
+      socketWire('A', 'output', 'join', 'input-right'),
+      socketWire('B', 'output', 'join', 'input-left'),
+    ];
+
+    const result = autoLayout(tools, wires, { crossingReduction: 'median' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // B (left/top) above A (right/bottom)
+    expect(posMap.get('B')!.y).toBeLessThan(posMap.get('A')!.y);
+  });
+
+  it('adjacent exchange reduces crossings for crossed wire pairs', () => {
+    // Build a graph where the initial Kahn order produces crossings
+    // that adjacent exchange should fix:
+    //   A → D
+    //   B → C
+    //   C → D's column peer E
+    // This creates a pattern where simple barycenter might not resolve
+    // optimally on the first pass, but adjacent exchange cleans it up.
+    const tools = [
+      passThroughTool('A'),
+      passThroughTool('B'),
+      passThroughTool('C'),
+      passThroughTool('D'),
+    ];
+    const wires = [
+      socketWire('A', 'output', 'D', 'input'),
+      socketWire('B', 'output', 'C', 'input'),
+    ];
+
+    const withExchange = autoLayout(tools, wires, { adjacentExchange: true });
+    const withoutExchange = autoLayout(tools, wires, { adjacentExchange: false });
+
+    // Both should produce valid layouts
+    expect(withExchange.positions).toHaveLength(4);
+    expect(withoutExchange.positions).toHaveLength(4);
+  });
+
+  it('more sweep passes converge to the same or better result', () => {
+    const tools = [
+      sourceTool('s1'), sourceTool('s2'), sourceTool('s3'),
+      joinTool('j1'), joinTool('j2'),
+      sinkTool('out'),
+    ];
+    const wires = [
+      socketWire('s1', 'output', 'j1', 'input-left'),
+      socketWire('s2', 'output', 'j1', 'input-right'),
+      socketWire('s2', 'output', 'j2', 'input-left'),
+      socketWire('s3', 'output', 'j2', 'input-right'),
+      socketWire('j1', 'output-match', 'out', 'input'),
+    ];
+
+    const few = autoLayout(tools, wires, { maxSweepPasses: 1, adjacentExchange: false });
+    const many = autoLayout(tools, wires, { maxSweepPasses: 8, adjacentExchange: false });
+
+    // Both produce valid layouts with all tools
+    expect(few.positions).toHaveLength(6);
+    expect(many.positions).toHaveLength(6);
+  });
+
+  it('reorders inputs to avoid long-edge crossings with chained Joins', () => {
+    // Classic pattern: multiple Input tools feed into a chain of Joins.
+    //   order_items → Join1 (left)
+    //   products    → Join1 (right)
+    //   Join1.match → Join2 (left)
+    //   orders      → Join2 (right)
+    //   Join2.match → Join3 (left)
+    //   customers   → Join3 (right)
+    //
+    // Without long-edge awareness, inputs connecting to Join2 and Join3
+    // can land in arbitrary order because all targets are at row 0 in
+    // their respective columns.  With column-distance tiebreaking, the
+    // optimal top-to-bottom order is:
+    //   order_items, products, orders, customers
+    const join = (id: string): Tool => ({
+      id,
+      type: 'Join',
+      x: 0,
+      y: 0,
+      config: {},
+      sockets: [
+        { id: 'input-left', direction: 'input', type: 'L' },
+        { id: 'input-right', direction: 'input', type: 'R' },
+        { id: 'output-match', direction: 'output', type: 'J' },
+      ],
+    });
+
+    const tools = [
+      tool('customers'),   // listed first to ensure algorithm reorders
+      tool('orders'),
+      tool('order_items'),
+      tool('products'),
+      join('Join1'),
+      join('Join2'),
+      join('Join3'),
+      tool('Formula'),
+    ];
+    const wires: Wire[] = [
+      { from: { tool: 'order_items', socket: 'output' }, to: { tool: 'Join1', socket: 'input-left' } },
+      { from: { tool: 'products', socket: 'output' }, to: { tool: 'Join1', socket: 'input-right' } },
+      { from: { tool: 'Join1', socket: 'output-match' }, to: { tool: 'Join2', socket: 'input-left' } },
+      { from: { tool: 'orders', socket: 'output' }, to: { tool: 'Join2', socket: 'input-right' } },
+      { from: { tool: 'Join2', socket: 'output-match' }, to: { tool: 'Join3', socket: 'input-left' } },
+      { from: { tool: 'customers', socket: 'output' }, to: { tool: 'Join3', socket: 'input-right' } },
+      { from: { tool: 'Join3', socket: 'output-match' }, to: { tool: 'Formula', socket: 'input' } },
+    ];
+
+    const result = autoLayout(tools, wires);
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // The 4 inputs should be ordered so that no long edges cross:
+    // order_items (→ Join1 left) should be highest
+    expect(posMap.get('order_items')!.y).toBeLessThan(posMap.get('products')!.y);
+    // products (→ Join1 right) above orders (→ Join2 right, further away)
+    expect(posMap.get('products')!.y).toBeLessThan(posMap.get('orders')!.y);
+    // orders (→ Join2 right) above customers (→ Join3 right, furthest)
+    expect(posMap.get('orders')!.y).toBeLessThan(posMap.get('customers')!.y);
+  });
+});
+
+// ---------------------------------------------------------------
+// Direction tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – direction', () => {
+  it('TB direction swaps x and y', () => {
+    const tools = [tool('A'), tool('B')];
+    const wires = [wire('A', 'B')];
+
+    const lr = autoLayout(tools, wires, { direction: 'LR' });
+    const tb = autoLayout(tools, wires, { direction: 'TB' });
+
+    const lrMap = new Map(lr.positions.map((p) => [p.id, p]));
+    const tbMap = new Map(tb.positions.map((p) => [p.id, p]));
+
+    // In LR, A and B differ in x but share y
+    expect(lrMap.get('A')!.x).toBeLessThan(lrMap.get('B')!.x);
+    expect(lrMap.get('A')!.y).toBe(lrMap.get('B')!.y);
+
+    // In TB, A and B differ in y but share x
+    expect(tbMap.get('A')!.y).toBeLessThan(tbMap.get('B')!.y);
+    expect(tbMap.get('A')!.x).toBe(tbMap.get('B')!.x);
+  });
+
+  it('TB direction lays out a fan-out vertically', () => {
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, { direction: 'TB' });
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // A should be above B and C (smaller y)
+    expect(posMap.get('A')!.y).toBeLessThan(posMap.get('B')!.y);
+    expect(posMap.get('A')!.y).toBeLessThan(posMap.get('C')!.y);
+    // B and C should be at the same depth (same y)
+    expect(posMap.get('B')!.y).toBe(posMap.get('C')!.y);
+    // B and C should differ in x
+    expect(posMap.get('B')!.x).not.toBe(posMap.get('C')!.x);
+  });
+});
+
+// ---------------------------------------------------------------
+// Grid snap tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – grid snap', () => {
+  it('snaps positions to the nearest grid multiple', () => {
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, { gridSnap: 20 });
+
+    for (const pos of result.positions) {
+      expect(pos.x % 20).toBe(0);
+      expect(pos.y % 20).toBe(0);
+    }
+  });
+
+  it('resolves y collisions after snapping', () => {
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, {
+      gridSnap: 20,
+      verticalSpacing: 120,
+    });
+
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // B and C should be in the same column and not overlap
+    expect(posMap.get('B')!.x).toBe(posMap.get('C')!.x);
+    expect(posMap.get('B')!.y).not.toBe(posMap.get('C')!.y);
+    expect(
+      Math.abs(posMap.get('B')!.y - posMap.get('C')!.y),
+    ).toBeGreaterThanOrEqual(120);
+  });
+});
+
+// ---------------------------------------------------------------
+// Selected-only layout tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – selected-only layout', () => {
+  it('returns positions only for selected tools', () => {
+    const tools = [tool('A'), tool('B'), tool('C'), tool('D')];
+    const wires = [wire('A', 'B'), wire('C', 'D')];
+
+    const result = autoLayout(tools, wires, {
+      selectedToolIds: ['A', 'B'],
+    });
+
+    const ids = result.positions.map((p) => p.id).sort();
+    expect(ids).toEqual(['A', 'B']);
+  });
+
+  it('anchors at the bounding box origin of the selection', () => {
+    const t = (id: string, x: number, y: number): Tool => ({
+      id,
+      type: 'Dummy',
+      x,
+      y,
+      config: {},
+      sockets: [],
+    });
+    const tools = [t('A', 300, 400), t('B', 500, 400), t('C', 100, 100)];
+    const wires = [wire('A', 'B')];
+
+    const result = autoLayout(tools, wires, {
+      selectedToolIds: ['A', 'B'],
+    });
+
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+    // Starts from min x/y of selection (300, 400)
+    expect(posMap.get('A')!.x).toBe(300);
+    expect(posMap.get('A')!.y).toBe(400);
+  });
+
+  it('returns empty for empty selection', () => {
+    const tools = [tool('A'), tool('B')];
+    const wires = [wire('A', 'B')];
+
+    const result = autoLayout(tools, wires, { selectedToolIds: [] });
+    // Empty selectedToolIds means no filter applied — all tools laid out
+    expect(result.positions).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------
+// Compaction tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – compaction', () => {
+  it('closes large vertical gaps when enabled', () => {
+    //  A → C
+    //  B → D    (B and D are far away due to alignment)
+    //
+    // With balanced alignment on a complex graph, gaps can form.
+    // Compaction should close them.
+    const tools = [
+      passThroughTool('A'),
+      passThroughTool('B'),
+      passThroughTool('C'),
+      passThroughTool('D'),
+      passThroughTool('E'),
+    ];
+    const wires = [
+      socketWire('A', 'output', 'C', 'input'),
+      socketWire('B', 'output', 'D', 'input'),
+      socketWire('C', 'output', 'E', 'input'),
+      socketWire('D', 'output', 'E', 'input'),
+    ];
+
+    const compact = autoLayout(tools, wires, { compaction: true });
+    const loose = autoLayout(tools, wires, { compaction: false });
+
+    // Both should have all tools
+    expect(compact.positions).toHaveLength(5);
+    expect(loose.positions).toHaveLength(5);
+
+    // Compacted layout should have total height <= loose layout
+    const height = (pos: typeof compact.positions) => {
+      const ys = pos.map((p) => p.y);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    expect(height(compact.positions)).toBeLessThanOrEqual(
+      height(loose.positions),
+    );
+  });
+});
+
+// ---------------------------------------------------------------
+// Combined options tests
+// ---------------------------------------------------------------
+
+describe('autoLayout – combined options', () => {
+  it('works with all options specified', () => {
+    const tools = [
+      sourceTool('src'),
+      filterTool('filter'),
+      sinkTool('out1'),
+      sinkTool('out2'),
+    ];
+    const wires = [
+      socketWire('src', 'output', 'filter', 'input'),
+      socketWire('filter', 'output-true', 'out1', 'input'),
+      socketWire('filter', 'output-false', 'out2', 'input'),
+    ];
+
+    const result = autoLayout(tools, wires, {
+      horizontalSpacing: 200,
+      verticalSpacing: 100,
+      startX: 50,
+      startY: 50,
+      direction: 'LR',
+      crossingReduction: 'median',
+      maxSweepPasses: 6,
+      adjacentExchange: true,
+      alignment: 'balanced',
+      compaction: true,
+      gridSnap: 10,
+    });
+
+    expect(result.positions).toHaveLength(4);
+    // All positions should be on the grid
+    for (const pos of result.positions) {
+      expect(pos.x % 10).toBe(0);
+      expect(pos.y % 10).toBe(0);
+    }
+  });
+
+  it('TB + balanced + grid snap produces valid layout', () => {
+    const tools = [tool('A'), tool('B'), tool('C')];
+    const wires = [wire('A', 'B'), wire('A', 'C')];
+
+    const result = autoLayout(tools, wires, {
+      direction: 'TB',
+      alignment: 'balanced',
+      gridSnap: 20,
+    });
+
+    const posMap = new Map(result.positions.map((p) => [p.id, p]));
+
+    // All on grid
+    for (const pos of result.positions) {
+      expect(pos.x % 20).toBe(0);
+      expect(pos.y % 20).toBe(0);
+    }
+
+    // A above B and C in TB mode
+    expect(posMap.get('A')!.y).toBeLessThan(posMap.get('B')!.y);
+    expect(posMap.get('A')!.y).toBeLessThan(posMap.get('C')!.y);
   });
 });

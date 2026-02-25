@@ -20,6 +20,20 @@ vi.mock("@state/workflowStore", () => ({
   },
 }));
 
+// Mock settingsStore
+vi.mock("@state/settingsStore", () => ({
+  useSettingsStore: {
+    getState: vi.fn(() => ({
+      layout: {
+        alignment: 'upstream',
+        horizontalSpacing: 280,
+        verticalSpacing: 120,
+        gridSnap: 0,
+      },
+    })),
+  },
+}));
+
 import { autoLayout } from "@domain/workflow/services/autoLayout";
 import { useWorkflowStore } from "@state/workflowStore";
 
@@ -43,7 +57,7 @@ describe("useCanvasAlignment", () => {
     vi.clearAllMocks();
   });
 
-  it("should call autoLayout with tools and wires from store", () => {
+  it("should call autoLayout with tools, wires, and settings-derived options", () => {
     const mockTools = [{ id: "A" }, { id: "B" }];
     const mockWires = [{ from: { tool: "A", socket: "output" }, to: { tool: "B", socket: "input" } }];
     vi.mocked(useWorkflowStore.getState).mockReturnValue({
@@ -61,7 +75,12 @@ describe("useCanvasAlignment", () => {
     const { result } = renderHook(() => useCanvasAlignment(params));
     result.current.autoLayout();
 
-    expect(autoLayout).toHaveBeenCalledWith(mockTools, mockWires);
+    expect(autoLayout).toHaveBeenCalledWith(mockTools, mockWires, {
+      alignment: 'upstream',
+      horizontalSpacing: 280,
+      verticalSpacing: 120,
+      gridSnap: 0,
+    });
     expect(onBeginTransaction).toHaveBeenCalled();
     expect(onToolMove).toHaveBeenCalledWith("A", 100, 100);
     expect(onToolMove).toHaveBeenCalledWith("B", 380, 100);

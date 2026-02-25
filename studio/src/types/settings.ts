@@ -84,6 +84,18 @@ export interface AppSettings {
     /** Maximum height in pixels for the comment label */
     maxHeight: number;
   };
+
+  /** Auto layout preferences */
+  layout: {
+    /** Vertical alignment strategy */
+    alignment: 'upstream' | 'downstream' | 'balanced';
+    /** Horizontal gap between columns in pixels */
+    horizontalSpacing: number;
+    /** Vertical gap between rows in pixels */
+    verticalSpacing: number;
+    /** Snap positions to grid (0 = disabled) */
+    gridSnap: number;
+  };
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -118,6 +130,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
     alignment: 'center',
     maxWidth: 150,
     maxHeight: 40,
+  },
+  layout: {
+    alignment: 'upstream',
+    horizontalSpacing: 280,
+    verticalSpacing: 120,
+    gridSnap: 0,
   },
 };
 
