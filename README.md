@@ -17,6 +17,8 @@ Sigilweaver is more than a workflow designer - it's a complete data pipeline pla
 
 Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing enterprise-scale ETL, Sigilweaver meets you where you are.
 
+Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation — without limiting what experienced users can do.
+
 No artificial limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
 ## Why Sigilweaver?
@@ -31,11 +33,23 @@ Powered by [Polars](https://pola.rs), Sigilweaver builds optimized query plans r
 
 ### No Row Limits
 
-Unlike SaaS tools that throttle you at 10,000 rows, Sigilweaver processes what your hardware can handle. If it fits on your machine, it runs on your machine.
+Unlike SaaS tools that impose artificial limits, Sigilweaver processes what your hardware can handle. If it fits on your machine, it runs on your machine.
 
 ### Visual Clarity, Full Power
 
 See your entire pipeline at a glance - branches, joins, transformations laid out spatially. Inspect data at any node. Debug visually. Understand intuitively.
+
+### No-Code Where You Want It
+
+Formula and Filter tools include visual builders: 50+ built-in operations covering math, text, dates, type conversion, null handling, and conditional logic — all configured through dropdowns with no expression syntax required. Add multiple conditions with AND/OR logic and nested groups in the Filter builder. Need something beyond the built-ins? Switch to Custom mode and write Polars directly. Both modes coexist in the same tool.
+
+### Optional AI, On Your Terms
+
+An AI assistant in Studio can build entire workflows from natural language, write Polars expressions, explain existing pipelines, and inspect data at any step. It's opt-in — the application is fully functional without it. When enabled, AI calls are proxied through your own Server, no data is stored or logged, and local models via Ollama or LM Studio are fully supported.
+
+### Bring Your Existing Work With You
+
+Sigilweaver reads and writes `.yxdb` files natively — the proprietary format used by Alteryx. If you're migrating away from Alteryx, your existing data files are not a dead end. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a Rust library that is **1.2–3x faster than the open-source C++ readers that Alteryx themselves have published**.
 
 ## Our Philosophy
 
@@ -51,11 +65,12 @@ Enterprise grade means "it works when you need it." That's a promise we make to 
 
 ## The Platform
 
-| Component  | What It Does                                                 |
-| ---------- | ------------------------------------------------------------ |
-| **Studio** | Desktop app for visual workflow design (React + Electron)    |
-| **Server** | Execution engine that runs workflows (FastAPI + Polars)      |
-| **Hub**    | Orchestration platform for teams and automation (Full stack) |
+| Component   | What It Does                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Electron/Tauri) |
+| **Server**  | Execution engine that runs workflows (FastAPI + Polars)                                   |
+| **Hub**     | Orchestration platform for teams and automation (Full stack)                              |
+| **SigilYX** | Native `.yxdb` read/write engine (Rust)                        |
 
 Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
 
@@ -72,7 +87,7 @@ For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Audience                       | Link                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------ |
 | **Getting Started**            | [sigilweaver.app/docs/user](https://sigilweaver.app/docs/user)           |
-| **Coming from Alteryx/KNIME?** | [Crash Courses](https://sigilweaver.app/docs/user/crash-courses)         |
+| **Coming from another tool?**  | [Crash Courses](https://sigilweaver.app/docs/user/crash-courses)         |
 | **Developers**                 | [sigilweaver.app/docs/developer](https://sigilweaver.app/docs/developer) |
 | **Architecture Decisions**     | [ADRs](https://sigilweaver.app/docs/developer/architecture/decisions)    |
 

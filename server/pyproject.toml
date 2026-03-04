@@ -59,6 +59,3 @@ plugins = ["pydantic.mypy"]
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
-
-[tool.uv.sources]
-sigilyx = { path = "../SigilYX", editable = true }
