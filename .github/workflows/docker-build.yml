@@ -139,8 +139,6 @@ jobs:
             ${{ env.SERVER_IMAGE }}:latest
             ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.major_minor }}
-          secrets: |
-            github_token=${{ secrets.SIGILYX_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |

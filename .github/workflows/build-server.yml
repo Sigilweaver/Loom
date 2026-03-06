@@ -41,16 +41,6 @@ jobs:
         with:
           python-version-file: "server/.python-version"
 
-      - name: Checkout SigilYX
-        uses: actions/checkout@v4
-        with:
-          repository: sigilweaver/SigilYX
-          token: ${{ secrets.SIGILYX_TOKEN }}
-          path: SigilYX
-
-      - name: Setup Rust (for SigilYX)
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Install server dependencies
         working-directory: server
         shell: bash
