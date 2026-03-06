@@ -167,8 +167,8 @@ By default, `test.py` uses git to detect changed files and only runs tests for a
 Create `.act.secrets` (gitignored) with your secrets for local testing:
 ```
 GITHUB_TOKEN=ghp_xxxx
-B2_APPLICATION_KEY_ID=xxx
-B2_APPLICATION_KEY=xxx
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
 ```
 
 ---
@@ -218,33 +218,33 @@ B2_APPLICATION_KEY=xxx
 
 ## Other Helper Scripts
 
-### `b2.py`
-Manage B2 bucket: list contents and download files via CDN.
+### `r2.py`
+Manage R2 bucket: list contents and download files via CDN.
 
 **Usage**:
 ```bash
 # List bucket contents
-./scripts/b2.py list [path]          # List specific path
-./scripts/b2.py list                 # List root
-./scripts/b2.py list latest/         # List /latest/
-./scripts/b2.py list -r              # Recursive list all files
+./scripts/r2.py list [path]          # List specific path
+./scripts/r2.py list                 # List root
+./scripts/r2.py list latest/         # List /latest/
+./scripts/r2.py list -r              # Recursive list all files
 
 # Download files via CDN
-./scripts/b2.py download [path]      # Download specific path
-./scripts/b2.py download             # Download everything
-./scripts/b2.py download latest/     # Download /latest/ only
-./scripts/b2.py download --dry-run   # Show what would be downloaded
+./scripts/r2.py download [path]      # Download specific path
+./scripts/r2.py download             # Download everything
+./scripts/r2.py download latest/     # Download /latest/ only
+./scripts/r2.py download --dry-run   # Show what would be downloaded
 ```
 
-**Downloads to**: `.untracked/b2/sigilweaver-downloads/`
+**Downloads to**: `.untracked/r2/sigilweaver-downloads/`
 
 **Features**:
-- Uses CDN URL for downloads (no B2 egress fees)
+- Uses CDN URL for downloads
 - Uses S3 API for listing only
 - Skips files that already exist locally with same size
 - Shows download progress
 
-**Requires**: `.env` file with B2 credentials, `boto3` Python package.
+**Requires**: `.env` file with R2 credentials, `boto3` Python package.
 
 ---
 

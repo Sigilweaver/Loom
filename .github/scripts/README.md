@@ -4,7 +4,7 @@ Python-based release upload automation for Sigilweaver.
 
 ## Overview
 
-This directory contains modular Python scripts for uploading release assets to Backblaze B2 (S3-compatible storage). The scripts handle:
+This directory contains modular Python scripts for uploading release assets to Cloudflare R2 (S3-compatible storage). The scripts handle:
 
 - Asset upload to both `latest/` and versioned `releases/{version}/` paths
 - Manifest generation for stable channel and downloads page
@@ -16,11 +16,11 @@ This directory contains modular Python scripts for uploading release assets to B
 
 ```
 .github/scripts/
-├── upload_to_b2.py          # Main CLI entry point
+├── upload_to_r2.py          # Main CLI entry point
 ├── lib/
 │   ├── asset_detector.py    # File type detection (exe -> windows, etc.)
 │   ├── manifest_builder.py  # JSON manifest generation
-│   └── b2_uploader.py       # boto3 S3/B2 upload logic
+│   └── r2_uploader.py       # boto3 S3/R2 upload logic
 ├── tests/
 │   ├── conftest.py          # pytest fixtures
 │   ├── test_asset_detector.py
@@ -33,16 +33,16 @@ This directory contains modular Python scripts for uploading release assets to B
 ### In GitHub Actions
 
 ```yaml
-- name: Upload to B2
+- name: Upload to R2
   run: |
-    python .github/scripts/upload_to_b2.py \
+    python .github/scripts/upload_to_r2.py \
       "${{ github.ref_name }}" \
       release-assets/
   env:
-    B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
-    B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-    B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
-    B2_ENDPOINT_URL: ${{ secrets.B2_ENDPOINT_URL }}
+    R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+    R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+    R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
     GITHUB_SHA: ${{ github.sha }}
 ```
 
@@ -50,13 +50,13 @@ This directory contains modular Python scripts for uploading release assets to B
 
 ```bash
 # Dry-run mode (prints actions without uploading)
-export B2_APPLICATION_KEY_ID="your-key-id"
-export B2_APPLICATION_KEY="your-key"
-export B2_BUCKET_NAME="sigilweaver-downloads"
-export B2_ENDPOINT_URL="s3.us-east-005.backblazeb2.com"
+export R2_ACCESS_KEY_ID="your-access-key-id"
+export R2_SECRET_ACCESS_KEY="your-secret-access-key"
+export R2_BUCKET_NAME="sigilweaver-downloads"
+export R2_ENDPOINT_URL="https://<account_id>.r2.cloudflarestorage.com"
 export GITHUB_SHA="abc123"
 
-python .github/scripts/upload_to_b2.py v0.2.5-test release-assets/ --dry-run
+python .github/scripts/upload_to_r2.py v0.2.5-test release-assets/ --dry-run
 ```
 
 ### Run Tests
@@ -73,16 +73,16 @@ python3 -m pytest tests/ -v
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `B2_APPLICATION_KEY_ID` | B2 application key ID | `00512345678abcdef` |
-| `B2_APPLICATION_KEY` | B2 application key (secret) | `K005...` |
-| `B2_BUCKET_NAME` | B2 bucket name | `sigilweaver-downloads` |
-| `B2_ENDPOINT_URL` | B2 S3-compatible endpoint for uploads | `s3.us-east-005.backblazeb2.com` |
-| `B2_CDN_URL` | Public CDN URL for downloads (optional) | `https://download.sigilweaver.app` |
+| `R2_ACCESS_KEY_ID` | R2 access key ID | `1e6732c65ccfe9...` |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key | `37d33e37ca8ea2...` |
+| `R2_BUCKET_NAME` | R2 bucket name | `sigilweaver-downloads` |
+| `R2_ENDPOINT_URL` | R2 S3-compatible endpoint | `https://<account_id>.r2.cloudflarestorage.com` |
+| `R2_CDN_URL` | Public CDN URL for downloads (optional) | `https://download.sigilweaver.app` |
 | `GITHUB_SHA` | Git commit SHA (optional) | `abc123def456...` |
 
-**Note:** If `B2_CDN_URL` is set, it will be used in manifests for public download URLs instead of the direct B2 endpoint. This allows using a CDN (e.g., Cloudflare) for bandwidth protection while uploading via the S3 API.
+**Note:** If `R2_CDN_URL` is set, it will be used in manifests for public download URLs instead of the direct R2 endpoint.
 
-## B2 Bucket Layout
+## R2 Bucket Layout
 
 After upload, the bucket structure is:
 
@@ -130,7 +130,7 @@ sigilweaver-downloads/
       "arch": "x64",
       "kind": "installer",
       "fileName": "Sigilweaver-Setup-v0.2.5-alpha.exe",
-      "url": "https://sigilweaver-downloads.s3.us-east-005.backblazeb2.com/latest/Sigilweaver-Setup-v0.2.5-alpha.exe",
+      "url": "https://download.sigilweaver.app/latest/Sigilweaver-Setup-v0.2.5-alpha.exe",
       "size": 207000000,
       "sha256": "abc123..."
     }
@@ -186,12 +186,12 @@ Generates JSON manifests:
 - `ManifestBuilder.build_downloads_manifest()` - Downloads page manifest
 - `ManifestBuilder.update_releases_index(existing)` - Update releases index
 
-### `b2_uploader.py`
+### `r2_uploader.py`
 
-Handles B2 uploads via boto3:
-- `B2Uploader.upload_assets(assets_dir, version)` - Upload files
-- `B2Uploader.upload_manifest_atomic(data, key)` - Atomic manifest upload with staging
-- `B2Uploader.download_json(key)` - Download and parse JSON from B2
+Handles R2 uploads via boto3:
+- `R2Uploader.upload_assets(assets_dir, version)` - Upload files
+- `R2Uploader.upload_manifest_atomic(data, key)` - Atomic manifest upload with staging
+- `R2Uploader.download_json(key)` - Download and parse JSON from R2
 
 ## Dependencies
 
@@ -220,34 +220,32 @@ cd .github/scripts
 
 ### "Missing required environment variables"
 
-Ensure all B2 credentials are set in GitHub Secrets and passed as `env:` in the workflow.
+Ensure all R2 credentials are set in GitHub Secrets and passed as `env:` in the workflow.
 
 ### "NoSuchKey" errors
 
 The script creates missing manifests automatically. This is normal for first-time uploads.
 
-### B2 Version Management
-
-The B2 bucket should be configured with "Keep only the last version of the file" in Lifecycle Settings. This ensures B2 automatically deletes old file versions when new ones are uploaded, preventing storage cost accumulation.
+### R2 Version Management
 
 If you need to clean up existing old versions:
 
 ```bash
 # See what versions exist
-python3 .github/scripts/cleanup-b2-versions.py --dry-run
+python3 .github/scripts/cleanup-r2-versions.py --dry-run
 
 # Clean up all old versions
-python3 .github/scripts/cleanup-b2-versions.py
+python3 .github/scripts/cleanup-r2-versions.py
 
 # Clean up only specific prefix
-python3 .github/scripts/cleanup-b2-versions.py --prefix latest/
+python3 .github/scripts/cleanup-r2-versions.py --prefix latest/
 ```
 
 ### Dry-run for debugging
 
 Always test with `--dry-run` first:
 ```bash
-python upload_to_b2.py v0.2.5-test release-assets/ --dry-run
+python upload_to_r2.py v0.2.5-test release-assets/ --dry-run
 ```
 
 This shows what would be uploaded without making actual changes.

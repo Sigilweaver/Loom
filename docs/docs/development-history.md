@@ -287,7 +287,7 @@ This document provides a summarized chronological history of the Sigilweaver pro
 - **File Format** - Adopted `.swwf` extension for workflow files
 - **History Management** - Undo/redo functionality
 - **Branding** - Application named Sigilweaver with custom logo
-- **Backblaze B2** - Asset publishing (migrated from Cloudflare R2)
+- **Cloudflare R2** - Asset publishing
 
 #### Week 1 (Aug 1-9)
 **Project Genesis**

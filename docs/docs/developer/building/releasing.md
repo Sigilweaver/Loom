@@ -42,7 +42,7 @@ When a version tag is pushed:
 1. **Build** runs on all platforms (Linux, Windows, macOS)
 2. **Test** runs full test suite
 3. **Package** creates distributable artifacts
-4. **Upload** pushes to Backblaze B2 CDN
+4. **Upload** pushes to Cloudflare R2 CDN
 5. **Release** creates GitHub release with assets
 
 ## GitHub Actions Workflow
