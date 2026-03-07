@@ -14,12 +14,12 @@ I'm building Sigilweaver with an AI assistant, so I've spent a lot of time think
 There's also a prerequisite nobody talks about: your software has to be fast enough for AI to be useful. If every operation the AI tries takes minutes to validate, the AI hasn't saved anyone any time. It's just moved the waiting from the user's hands to the agent's loop.
 
 :::info TL;DR
-- **AI is not a core feature** — Sigilweaver is fully functional without it. AI is a convenience layer, not the product.
-- **Fast architecture is the prerequisite** — Iterative AI agents only work when each operation takes milliseconds, not minutes. Legacy tools can't support this.
-- **The AI cannot output data** — It builds and previews, never executes. Everything it does is reversible. Blast radius: zero.
-- **Guardrails catch the easy mistakes** — Structural validation is real but limited. Subtle semantic errors like picking the wrong join type or misreading an ambiguous filter sail right through.
-- **AI output should be human-editable** — The agent produces GUI configurations, not raw code. You shouldn't need to learn Polars to fix what the AI got wrong.
-- **AI is not a replacement for thinking** — The moment it starts making analytical decisions for you, you've lost the ability to tell when it's wrong.
+- **AI is not a core feature** - Sigilweaver is fully functional without it. AI is a convenience layer, not the product.
+- **Fast architecture is the prerequisite** - Iterative AI agents only work when each operation takes milliseconds, not minutes. Legacy tools can't support this.
+- **The AI cannot output data** - It builds and previews, never executes. Everything it does is reversible. Blast radius: zero.
+- **Guardrails catch the easy mistakes** - Structural validation is real but limited. Subtle semantic errors like picking the wrong join type or misreading an ambiguous filter sail right through.
+- **AI output should be human-editable** - The agent produces GUI configurations, not raw code. You shouldn't need to learn Polars to fix what the AI got wrong.
+- **AI is not a replacement for thinking** - The moment it starts making analytical decisions for you, you've lost the ability to tell when it's wrong.
 :::
 
 <!--truncate-->
@@ -46,10 +46,10 @@ In Sigilweaver, most operations complete in milliseconds to low seconds. Preview
 
 This wasn't an afterthought. Sigilweaver was designed from the start to minimize breaks in flow for human users:
 
-- **Lazy evaluation** — Only compute what's actually needed. A preview of the last tool in a twenty-step pipeline doesn't execute steps whose outputs aren't required.
-- **Aggressive caching** — Heavy operations like file reads and joins cache their results. Change a tool downstream? The upstream cache is still warm.
-- **Incremental execution** — Modifying one tool in the middle of a pipeline doesn't invalidate everything after it unless the schema actually changed.
-- **Schema from query plans** — Column metadata comes from the logical plan, not from materializing data. The agent gets column names and types without running anything.
+- **Lazy evaluation** - Only compute what's actually needed. A preview of the last tool in a twenty-step pipeline doesn't execute steps whose outputs aren't required.
+- **Aggressive caching** - Heavy operations like file reads and joins cache their results. Change a tool downstream? The upstream cache is still warm.
+- **Incremental execution** - Modifying one tool in the middle of a pipeline doesn't invalidate everything after it unless the schema actually changed.
+- **Schema from query plans** - Column metadata comes from the logical plan, not from materializing data. The agent gets column names and types without running anything.
 
 These are human ergonomics decisions. Dragging a slider or editing an expression should give you feedback in under a second, not after a loading spinner. But they turn out to be exactly what an AI agent needs too. The execution engine is never the bottleneck; the agent's loop runs at the speed of token generation.
 
@@ -83,7 +83,7 @@ I watched this happen firsthand while testing Sigilweaver's agent on a Titanic d
 
 The agent did exactly what was asked. It filtered where sex equals female AND age is under some threshold AND survived equals zero. Every condition applied simultaneously. Structurally perfect. Schema validation passed. Compiler was happy. The output was a clean table with reasonable-looking values.
 
-But what the user actually meant was: women *or* children — who survived. "Women and children" is a group, not two independent AND conditions. "Did not survive" described what they wanted to *analyze*, not necessarily filter to. The common English phrasing doesn't map cleanly to logical operators, and the agent picked the literal interpretation over the intended one.
+But what the user actually meant was: women *or* children - who survived. "Women and children" is a group, not two independent AND conditions. "Did not survive" described what they wanted to *analyze*, not necessarily filter to. The common English phrasing doesn't map cleanly to logical operators, and the agent picked the literal interpretation over the intended one.
 
 The output looked plausible. The row counts were reasonable. Nothing screamed "this is wrong" unless you already knew what the right answer was and compared.
 
