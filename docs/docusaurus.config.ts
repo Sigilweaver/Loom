@@ -35,7 +35,7 @@ const config: Config = {
 
   // GitHub pages deployment config.
   organizationName: 'sigilweaver',
-  projectName: 'sigilweaver-docs',
+  projectName: 'Sigilweaver',
 
   onBrokenLinks: 'throw',
 
@@ -54,7 +54,7 @@ const config: Config = {
           routeBasePath: '/', // Serve docs at root
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/sigilweaver/sigilweaver-docs/tree/main/',
+            'https://github.com/sigilweaver/Sigilweaver/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -63,7 +63,7 @@ const config: Config = {
             xslt: true,
           },
           editUrl:
-            'https://github.com/sigilweaver/sigilweaver-docs/tree/main/',
+            'https://github.com/sigilweaver/Sigilweaver/tree/main/docs/',
           blogTitle: 'Sigilweaver Blog',
           blogDescription: 'Insights on building sustainable open source, data engineering, and workflow automation',
           blogSidebarTitle: 'Recent posts',

@@ -147,7 +147,7 @@ function renderOtherSection(container: HTMLElement, webVariants?: DownloadAsset[
       </div>
       
       <div>
-        <a href="/docs/server/getting-started" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+        <a href="/docs/admin/deployment" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
           <span class="flex items-center justify-center gap-2">
             View Documentation
             <svg class="w-4 h-4 opacity-70 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
