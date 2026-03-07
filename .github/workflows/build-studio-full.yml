@@ -14,13 +14,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: warp-ubuntu-latest-x64-2x
             platform: linux
             artifact-name: linux-full-artifacts
-          - os: windows-latest
+          - os: warp-windows-latest-x64-2x
             platform: win
             artifact-name: windows-full-artifacts
-          - os: macos-latest
+          - os: warp-macos-latest-arm64-6x
             platform: mac
             artifact-name: macos-full-artifacts
     

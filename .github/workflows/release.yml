@@ -75,14 +75,6 @@ jobs:
     with:
       node-version: '22'
 
-  build-studio-tauri:
-    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
-    needs: validate-tag-on-main
-    uses: ./.github/workflows/build-studio-tauri.yml
-    secrets: inherit
-    with:
-      node-version: '22'
-
   publish-assets:
     name: Publish to GitHub Release
     runs-on: ubuntu-latest
@@ -92,7 +84,6 @@ jobs:
       - build-studio-full
       - build-studio-client
       - build-web
-      - build-studio-tauri
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     permissions:
       contents: write
@@ -138,23 +129,6 @@ jobs:
           # Web
           cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Web-${VERSION}.zip || true
           
-          # Tauri Linux
-          find artifacts/linux-tauri-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.AppImage \; || true
-          find artifacts/linux-tauri-artifacts -name "*.deb" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.deb \; || true
-          find artifacts/linux-tauri-artifacts -name "*.rpm" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.rpm \; || true
-          
-          # Tauri Windows
-          find artifacts/windows-tauri-artifacts -name "*.msi" -exec cp {} release-assets/Sigilweaver-Tauri-Setup-${VERSION}.msi \; || true
-          find artifacts/windows-tauri-artifacts -name "*.exe" -exec cp {} release-assets/Sigilweaver-Tauri-Setup-${VERSION}.exe \; || true
-          
-          # Tauri macOS (Intel)
-          find artifacts/macos-tauri-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.dmg \; || true
-          find artifacts/macos-tauri-artifacts -name "*.app.tar.gz" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-x64.app.tar.gz \; || true
-          
-          # Tauri macOS (ARM)
-          find artifacts/macos-arm-tauri-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-arm64.dmg \; || true
-          find artifacts/macos-arm-tauri-artifacts -name "*.app.tar.gz" -exec cp {} release-assets/Sigilweaver-Tauri-${VERSION}-arm64.app.tar.gz \; || true
-          
           echo "Prepared release assets:"
           ls -lh release-assets/ || true
 
@@ -186,15 +160,6 @@ jobs:
             "Sigilweaver-Client-Portable-${VERSION}.exe"
             "Sigilweaver-Client-${VERSION}.dmg"
             "Sigilweaver-Web-${VERSION}.zip"
-            "Sigilweaver-Tauri-${VERSION}-x64.AppImage"
-            "Sigilweaver-Tauri-${VERSION}-x64.deb"
-            "Sigilweaver-Tauri-${VERSION}-x64.rpm"
-            "Sigilweaver-Tauri-Setup-${VERSION}.msi"
-            "Sigilweaver-Tauri-Setup-${VERSION}.exe"
-            "Sigilweaver-Tauri-${VERSION}-x64.dmg"
-            "Sigilweaver-Tauri-${VERSION}-x64.app.tar.gz"
-            "Sigilweaver-Tauri-${VERSION}-arm64.dmg"
-            "Sigilweaver-Tauri-${VERSION}-arm64.app.tar.gz"
             "SHA256SUMS.txt"
           )
           
