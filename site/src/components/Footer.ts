@@ -32,14 +32,14 @@ export const defaultFooterConfig: FooterConfig = {
       links: [
         { label: 'Downloads', href: '/downloads' },
         { label: 'Contributing', href: '/contributing.html' },
-        { label: 'GitHub', href: 'https://github.com/sigilweaver', isExternal: true },
+        { label: 'GitHub', href: 'https://github.com/Sigilweaver', isExternal: true },
       ],
     },
     {
       title: 'Support',
       links: [
         { label: 'Support Email', href: 'mailto:' },
-        { label: 'GitHub Issues', href: 'https://github.com/sigilweaver/sigilweaver/issues', isExternal: true },
+        { label: 'GitHub Issues', href: 'https://github.com/Sigilweaver/Sigilweaver/issues', isExternal: true },
       ],
     },
     {

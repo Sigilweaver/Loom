@@ -62,7 +62,7 @@ Alteryx's Filter tool has a basic expression builder, but it's limited to a sing
 Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple conditions with AND/OR logic, nested condition groups (up to 3 levels deep), type-aware operators, and inline comments - all through a visual interface. The Formula tool's **Basic mode** offers **50+ built-in operations** (math, text, dates, null handling, conditionals, and more) through dropdowns and parameter inputs. Most users will never need to write a line of code. **Custom mode** is there for power users who want to write Polars expressions directly.
 
 ### 5. YXDB File Support
-Switching from Alteryx? Your `.yxdb` data files work out of the box. Sigilweaver reads them natively using [SigilYX](https://github.com/sigilweaver/sigilyx), a high-performance open-source Rust reader that supports all 17 YXDB field types.
+Switching from Alteryx? Your `.yxdb` data files work out of the box. Sigilweaver reads them natively using [SigilYX](https://github.com/Sigilweaver/sigilyx), a high-performance open-source Rust reader that supports all 17 YXDB field types.
 
 ## Migration Path
 

@@ -275,4 +275,4 @@ We'll see in June if the bet pays off.
 
 ---
 
-**Discuss on [GitHub](https://github.com/sigilweaver/sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20building-in-private)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20building-in-private)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

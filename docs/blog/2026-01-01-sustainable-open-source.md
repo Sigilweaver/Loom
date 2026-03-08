@@ -54,7 +54,7 @@ Sigilweaver is split into two legal entities:
 
 **Liability Isolation.** If OpCo gets sued (customer contract dispute, employment issue), the IP in PropCo is protected. The code survives even if the operations don't.
 
-**IP Protection.** Contributors assign copyright to PropCo via a [Contributor License Agreement (CLA)](https://github.com/sigilweaver/sigilweaver/blob/main/CLA.md). This lets PropCo dual-license the code (AGPL to the public, Commercial to enterprises). Without a CLA, you can't do dual licensing - every contributor would need to consent to every commercial deal.
+**IP Protection.** Contributors assign copyright to PropCo via a [Contributor License Agreement (CLA)](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md). This lets PropCo dual-license the code (AGPL to the public, Commercial to enterprises). Without a CLA, you can't do dual licensing - every contributor would need to consent to every commercial deal.
 
 **Future Flexibility.** If Sigilweaver ever generates enough revenue to justify it, PropCo can be rolled into a nonprofit foundation (think Linux Foundation, Apache Foundation). Nonprofits have high overhead and regulatory burden, so we are not doing that prematurely. But the structure makes it possible later.
 
@@ -127,7 +127,7 @@ We are not there yet. But the structure doesn't prevent it.
 
 ## The Contributor License Agreement: The "Poison Pill" Defense
 
-All contributors must sign the [CLA](https://github.com/sigilweaver/sigilweaver/blob/main/CLA.md) before their pull request is merged. This took **weeks** to get right, and to my knowledge, this structure is unique to Sigilweaver.
+All contributors must sign the [CLA](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md) before their pull request is merged. This took **weeks** to get right, and to my knowledge, this structure is unique to Sigilweaver.
 
 ### The Two Failed Models
 
@@ -343,5 +343,5 @@ That's the bet. We'll see how it plays out.
 
 *This post will be updated as I learn more. If you see mistakes, have questions, or want to share your own experience with open source sustainability, I'd genuinely like to hear from you.*
 
-**Discuss on [GitHub](https://github.com/sigilweaver/sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20sustainable-open-source)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20sustainable-open-source)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
 

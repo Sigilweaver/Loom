@@ -199,7 +199,6 @@ const sidebars: SidebarsConfig = {
     },
     'code-of-conduct',
     'roadmap',
-    'development-history',
   ],
 };
 

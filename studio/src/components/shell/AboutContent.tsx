@@ -59,11 +59,11 @@ const AboutContent: React.FC = () => {
           </div>
           <div>
             <a
-              href="https://github.com/sigilweaver/sigilweaver"
+              href="https://github.com/Sigilweaver/Sigilweaver"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://github.com/sigilweaver/sigilweaver"
+              title="https://github.com/Sigilweaver/Sigilweaver"
             >
               GitHub Repository
             </a>
@@ -99,11 +99,11 @@ const AboutContent: React.FC = () => {
           </div>
           <div>
             <a
-              href="https://github.com/sigilweaver/sigilweaver/blob/main/LICENSE"
+              href="https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://github.com/sigilweaver/sigilweaver/blob/main/LICENSE"
+              title="https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE"
             >
               License (AGPL v3)
             </a>

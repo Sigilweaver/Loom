@@ -38,7 +38,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/sigilweaver/sigilweaver.git
+git clone https://github.com/Sigilweaver/Sigilweaver.git
 cd sigilweaver
 
 # Backend setup (uses uv, not pip)

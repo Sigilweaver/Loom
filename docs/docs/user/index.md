@@ -87,7 +87,7 @@ See the [Expressions](./expressions/basics) section for a complete guide.
 
 - [Polars User Guide](https://docs.pola.rs/user-guide/) - Full Polars documentation
 - [Polars Expression Reference](https://docs.pola.rs/user-guide/expressions/) - Complete expression API
-- [GitHub Repository](https://github.com/sigilweaver/sigilweaver) - Source code and issue tracker
+- [GitHub Repository](https://github.com/Sigilweaver/Sigilweaver) - Source code and issue tracker
 
 ## For Administrators
 

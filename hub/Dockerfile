@@ -63,7 +63,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Labels for GitHub Container Registry (OCI standard)
-LABEL org.opencontainers.image.source="https://github.com/sigilweaver/sigilweaver" \
+LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Sigilweaver" \
     org.opencontainers.image.description="Sigilweaver Hub - Multi-user workflow orchestration" \
     org.opencontainers.image.licenses="Proprietary" \
     org.opencontainers.image.version="${VERSION}" \

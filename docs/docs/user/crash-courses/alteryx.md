@@ -120,7 +120,7 @@ Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple con
 
 ### 4. YXDB File Support
 
-Sigilweaver can natively read Alteryx `.yxdb` files using [SigilYX](https://github.com/sigilweaver/sigilyx), our open-source Rust-based reader. Just select YXDB as your input format - all 17 YXDB field types are supported. This makes migrating your existing Alteryx data seamless.
+Sigilweaver can natively read Alteryx `.yxdb` files using [SigilYX](https://github.com/Sigilweaver/sigilyx), our open-source Rust-based reader. Just select YXDB as your input format - all 17 YXDB field types are supported. This makes migrating your existing Alteryx data seamless.
 
 ### 5. Cross-Platform Desktop App
 

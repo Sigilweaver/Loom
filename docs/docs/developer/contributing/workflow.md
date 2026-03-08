@@ -16,7 +16,7 @@ How to go from "I want to help" to "my code is merged."
 
 ### 1. Fork the Repository
 
-Go to [github.com/sigilweaver/sigilweaver](https://github.com/sigilweaver/sigilweaver) and click **Fork** in the top-right corner. This creates your own copy of the repository under your GitHub account.
+Go to [github.com/Sigilweaver/Sigilweaver](https://github.com/Sigilweaver/Sigilweaver) and click **Fork** in the top-right corner. This creates your own copy of the repository under your GitHub account.
 
 ### 2. Clone Your Fork
 
@@ -28,7 +28,7 @@ cd sigilweaver
 Optionally, add the upstream remote so you can pull updates:
 
 ```bash
-git remote add upstream https://github.com/sigilweaver/sigilweaver.git
+git remote add upstream https://github.com/Sigilweaver/Sigilweaver.git
 ```
 
 ### 3. Create a Branch

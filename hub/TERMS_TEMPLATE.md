@@ -215,7 +215,7 @@ Sigilweaver Hub is open-source software provided under the AGPL-3.0 license. We 
 - Are not responsible for how we operate this service
 - Provide the software "as is" without warranties of any kind
 
-See the [Sigilweaver license](https://github.com/sigilweaver/sigilweaver/blob/main/LICENSE.md) for the software's terms.
+See the [Sigilweaver license](https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE.md) for the software's terms.
 
 ## 11. Limitation of Liability
 
