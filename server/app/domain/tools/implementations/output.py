@@ -70,9 +70,7 @@ class OutputTool(BaseTool):
         # Output tools have no outputs
         return {}
 
-    async def _save_csv(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_csv(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to CSV using sink_csv or write_csv based on mode"""
         destination = config.get("destination")
         if not destination:
@@ -104,9 +102,7 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write CSV: {str(e)}") from e
 
-    async def _save_parquet(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_parquet(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to Parquet using sink_parquet or write_parquet based on mode"""
         destination = config.get("destination")
         if not destination:
@@ -138,9 +134,7 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write Parquet: {str(e)}") from e
 
-    async def _save_ipc(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_ipc(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to IPC/Arrow using sink_ipc or write_ipc based on mode
 
         IPC (Inter-Process Communication) is Apache Arrow's native binary format.
@@ -171,8 +165,7 @@ class OutputTool(BaseTool):
                 # Collect then write
                 # write_ipc has fewer parameters than sink_ipc
                 write_kwargs = {
-                    k: v for k, v in ipc_kwargs.items()
-                    if k in {"compression", "compat_level"}
+                    k: v for k, v in ipc_kwargs.items() if k in {"compression", "compat_level"}
                 }
                 df = lf.collect()
                 df.write_ipc(destination, **write_kwargs)
@@ -181,9 +174,7 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write IPC: {str(e)}") from e
 
-    async def _save_avro(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_avro(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to Avro format (always eager - no streaming support)
 
         Apache Avro is a row-based binary format commonly used in
@@ -319,9 +310,7 @@ class OutputTool(BaseTool):
 
         return kwargs
 
-    async def _save_yxdb(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_yxdb(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to YXDB (Alteryx Database) format using SigilYX.
 
         YXDB is always an eager write — the format requires knowing
@@ -346,9 +335,7 @@ class OutputTool(BaseTool):
         except Exception as e:
             raise ToolError(f"Failed to write YXDB: {e!s}") from e
 
-    async def _save_excel(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_excel(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to Excel using write_excel (always eager - no streaming support)"""
         destination = config.get("destination")
         if not destination:
@@ -426,9 +413,7 @@ class OutputTool(BaseTool):
 
         return kwargs
 
-    async def _save_json(
-        self, lf: pl.LazyFrame, config: dict[str, Any]
-    ) -> None:
+    async def _save_json(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to JSON or NDJSON based on file extension and mode
 
         Supports two formats:
@@ -514,7 +499,15 @@ class OutputTool(BaseTool):
 
         # Validate output type
         output_type = config.get("type")
-        if output_type and output_type not in ["avro", "csv", "excel", "ipc", "json", "parquet", "yxdb"]:
+        if output_type and output_type not in [
+            "avro",
+            "csv",
+            "excel",
+            "ipc",
+            "json",
+            "parquet",
+            "yxdb",
+        ]:
             errors.append(f"Unsupported output type: {output_type}")
 
         # Validate CSV mode
@@ -527,8 +520,7 @@ class OutputTool(BaseTool):
         if output_type == "parquet":
             mode = config.get("parquetMode", "sink")
             if mode not in ["sink", "write"]:
-                errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'"
-            )
+                errors.append(f"Invalid Parquet mode: {mode}. Must be 'sink' or 'write'")
 
         # Validate IPC mode
         if output_type == "ipc":
@@ -540,9 +532,7 @@ class OutputTool(BaseTool):
         if output_type == "json":
             destination = config.get("destination", "")
             is_ndjson = (
-                Path(destination).suffix.lower() in {".jsonl", ".ndjson"}
-                if destination
-                else False
+                Path(destination).suffix.lower() in {".jsonl", ".ndjson"} if destination else False
             )
             mode = config.get("jsonMode", "sink")
 
@@ -629,9 +619,9 @@ class OutputTool(BaseTool):
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
                 elif isinstance(value, bool):
-                    options.append(f'{key}={str(value)}')
+                    options.append(f"{key}={str(value)}")
                 elif isinstance(value, (int, float)) and value is not None:
-                    options.append(f'{key}={value}')
+                    options.append(f"{key}={value}")
 
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
@@ -652,9 +642,9 @@ class OutputTool(BaseTool):
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
                 elif isinstance(value, bool):
-                    options.append(f'{key}={str(value)}')
+                    options.append(f"{key}={str(value)}")
                 elif isinstance(value, (int, float)) and value is not None:
-                    options.append(f'{key}={value}')
+                    options.append(f"{key}={value}")
 
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
@@ -673,13 +663,13 @@ class OutputTool(BaseTool):
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
                 elif isinstance(value, bool):
-                    options.append(f'{key}={str(value)}')
+                    options.append(f"{key}={str(value)}")
                 elif isinstance(value, (int, float)) and value is not None:
-                    options.append(f'{key}={value}')
+                    options.append(f"{key}={value}")
                 elif isinstance(value, tuple):
-                    options.append(f'{key}={value}')
+                    options.append(f"{key}={value}")
                 elif value is None:
-                    options.append(f'{key}=None')
+                    options.append(f"{key}=None")
 
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
@@ -700,7 +690,15 @@ class OutputTool(BaseTool):
                     lines.append(f'{input_var}.collect().write_ndjson("{escaped_path}")')
             else:
                 # Standard JSON: only eager write supported
-                lines.append(f'{input_var}.collect().write_json("{escaped_path}")')
+                json_kwargs = self._build_json_kwargs(config, is_ndjson=False)
+                options = []
+                for key, value in json_kwargs.items():
+                    if isinstance(value, bool):
+                        options.append(f"{key}={str(value)}")
+                    elif isinstance(value, str):
+                        options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                opts_str = f", {', '.join(options)}" if options else ""
+                lines.append(f'{input_var}.collect().write_json("{escaped_path}"{opts_str})')
 
         elif output_type == "ipc":
             mode = config.get("ipcMode", "sink")
@@ -713,9 +711,9 @@ class OutputTool(BaseTool):
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
                 elif isinstance(value, bool):
-                    options.append(f'{key}={str(value)}')
+                    options.append(f"{key}={str(value)}")
                 elif isinstance(value, (int, float)) and value is not None:
-                    options.append(f'{key}={value}')
+                    options.append(f"{key}={value}")
 
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
@@ -733,6 +731,10 @@ class OutputTool(BaseTool):
             for key, value in avro_kwargs.items():
                 if isinstance(value, str):
                     options.append(f'{key}="{PythonCodeGenerator.escape_string(value)}"')
+                elif isinstance(value, bool):
+                    options.append(f"{key}={str(value)}")
+                elif isinstance(value, (int, float)) and value is not None:
+                    options.append(f"{key}={value}")
 
             escaped_path = PythonCodeGenerator.escape_path(destination)
             opts_str = f", {', '.join(options)}" if options else ""
@@ -742,9 +744,7 @@ class OutputTool(BaseTool):
         elif output_type == "yxdb":
             escaped_path = PythonCodeGenerator.escape_path(destination)
             lines.append("import sigilyx")
-            lines.append(
-                f'sigilyx.sink_yxdb("{escaped_path}", {input_var})'
-            )
+            lines.append(f'sigilyx.sink_yxdb("{escaped_path}", {input_var})')
 
         else:
             lines.append(

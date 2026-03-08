@@ -89,6 +89,7 @@ LOADER_SPECS: dict[str, LoaderSpec] = {
             "row_index_offset": "row_index_offset",
             "rechunk": "rechunk",
             "low_memory": "low_memory",
+            "cache": "cache",
             "truncate_ragged_lines": "truncate_ragged_lines",
             "decimal_comma": "decimal_comma",
             "missing_utf8_is_empty_string": "missing_utf8_is_empty_string",

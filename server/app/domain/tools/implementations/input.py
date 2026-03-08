@@ -25,7 +25,9 @@ class InputTool(BaseTool):
     """
 
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
-        """Input tools are not blocking - file inputs are lazy."""
+        """Database inputs are blocking (eager read); file inputs are lazy."""
+        if config and config.get("category") == "database":
+            return True
         return False
 
     def should_cache(self, config: dict[str, Any]) -> bool:

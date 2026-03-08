@@ -119,10 +119,11 @@ class DatabaseDataSource(DataSource):
             return DataSchema(columns=columns, row_count=None)
 
         except Exception:
-            # If the LIMIT 0 wrapper fails, try original query with small limit
+            # If the LIMIT 0 wrapper fails, try original query with a small limit
             try:
+                limited_query = f"SELECT * FROM ({query}) AS _schema_fallback LIMIT 1"
                 df = pl.read_database_uri(
-                    query=query,
+                    query=limited_query,
                     uri=source,
                     engine="connectorx",
                 )

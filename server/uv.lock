@@ -1118,27 +1118,16 @@ wheels = [
 
 [[package]]
 name = "sigilyx"
-version = "0.1.1"
+version = "0.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "polars" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/b4/3a/0a7b2d1d97c72c13dd06bfc138ae3c15a34ac03c0272460f99c070b9f792/sigilyx-0.1.3.tar.gz", hash = "sha256:823675d925a1dd7684f06b3da4314b222ba9fb40b28937dec81e6cb5b7bc1dda", size = 133556, upload-time = "2026-03-08T01:54:12.672Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/ef/806656d1a915f50b40ca1517208092f25999ccd073343d32d1deffdb46ef/sigilyx-0.1.1-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:dc2374f42081c1f1719f156383a760a48be50fdf59da4e5eaad5879ff3ff9ce1", size = 5557537, upload-time = "2026-02-25T18:05:04.365Z" },
-    { url = "https://files.pythonhosted.org/packages/9a/76/d0884405911bd83ff8ee4990c633d1fa7cd04d045c2d707fda3094f0496b/sigilyx-0.1.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:1cec099a3d300e7005a5e6b81df99ad14495a8db53f2cc2c758e3a2bb4086eaa", size = 5076367, upload-time = "2026-02-25T18:05:06.141Z" },
-    { url = "https://files.pythonhosted.org/packages/30/80/08ae05a87f81d8f652bd4667711d29c398170213aec8401dd2e75901c2fe/sigilyx-0.1.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3407c8bd344a11fe01ef8da6d4b1b171c97c51cd93f45f53e59608039f235075", size = 5357785, upload-time = "2026-02-25T18:05:07.665Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/cb/89662ab078e614df42370ef18612661f846ac7d7304c0f02a6e91f8dbb48/sigilyx-0.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6eb0e92f838b1cd94a0b54fe7ace9d14b0e2679f33ecf55e7f260ed3e9e412c4", size = 5808341, upload-time = "2026-02-25T18:05:09.479Z" },
-    { url = "https://files.pythonhosted.org/packages/60/47/62f14c81355cd19d4f72c967714b632a61ab802d39694f1fb12f226f9455/sigilyx-0.1.1-cp311-cp311-win_amd64.whl", hash = "sha256:45006d972918f5cae384e788e7bfc458d50b5b1b058331cbbdea4d81f7462bb3", size = 5714700, upload-time = "2026-02-25T18:05:11.108Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/5b/720ebddfa1cd0a137c6f58e6b57348d6c3158aaec79696632d35139c6b02/sigilyx-0.1.1-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:3a4b541365fbc5fb1b9907d2821f987e780aab678c8d5bf16d255317038dd20e", size = 5557723, upload-time = "2026-02-25T18:05:12.861Z" },
-    { url = "https://files.pythonhosted.org/packages/5e/3a/5771bfca450291b7644cc7ac1eb480be353f0b07025ab96b41c0abcddf7b/sigilyx-0.1.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1f6fcd69285e15b8b77be8be7b83bf0607150bbf3bd2e8790a0a7e1f4be699c5", size = 5076475, upload-time = "2026-02-25T18:05:14.352Z" },
-    { url = "https://files.pythonhosted.org/packages/8e/d0/d9e1f0c027461b13a985c601d21c7ad17290fb17fcc4a50b0c9c37316c84/sigilyx-0.1.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:769570e8285ab77a85cb33783632f6f9031aaf8879d0772d6a6cf1846704c6dd", size = 5356894, upload-time = "2026-02-25T18:05:16.062Z" },
-    { url = "https://files.pythonhosted.org/packages/54/77/1b0ad21f88a15dd416b4078a94ffbc992c6470896dd952e87a048e6ec8a1/sigilyx-0.1.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:99f8283151b9527231a40533dba53c4ed20d1bd68435863187406e6d30ab26cf", size = 5807291, upload-time = "2026-02-25T18:05:17.802Z" },
-    { url = "https://files.pythonhosted.org/packages/dd/4f/ae6a0c095d8f071f0861428a2dc64ddf24d6826b3dcc79da67a0338c5d94/sigilyx-0.1.1-cp312-cp312-win_amd64.whl", hash = "sha256:248d9b708c393c384a1631230543aeaeb0b2e4ebe29b982ca289251f5e3fbeae", size = 5714356, upload-time = "2026-02-25T18:05:19.299Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/bb/fc5fac6f77e50b90f5fb78ff2c76b91757192e99d643818c3beeddab6025/sigilyx-0.1.1-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:52a6ae26b80f03dd4f9b414ae20a74b83787578cfe4d1521478f491be18212c0", size = 5557729, upload-time = "2026-02-25T18:05:20.758Z" },
-    { url = "https://files.pythonhosted.org/packages/8b/49/d7b0fb75b7e9ada6f5dd4a9dfe894f1f29060f5fe5ee8e60ba1afd2f94d5/sigilyx-0.1.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7af815c7ee93c5a61eb9ac72dbfc06ca4b69c3794fa30326dcaf82fc00c52d61", size = 5076481, upload-time = "2026-02-25T18:05:22.546Z" },
-    { url = "https://files.pythonhosted.org/packages/57/ee/93fa46f480eae3253c18466ea43d5b602e166e07b80d875f0c59cfdcfd6d/sigilyx-0.1.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:90c9e4dec35eaf349a9cca6b26927ffdb5f0c0d5b2ccd5228a4302671c6e66d3", size = 5356901, upload-time = "2026-02-25T18:05:24.423Z" },
-    { url = "https://files.pythonhosted.org/packages/02/c7/4ba234860aa8ac3de6033cafb289b4cb884034969118dda30da91a9e8799/sigilyx-0.1.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e9e3076d4177a50d7cb8c3d5c8657a41681bd36cc27d1fd01d9d67a97b2040a8", size = 5806899, upload-time = "2026-02-25T18:05:26.161Z" },
-    { url = "https://files.pythonhosted.org/packages/66/37/b72bf4a5b8adf4bfd82685b54cb14f7538f865b4b1919b5ebe4d2581439c/sigilyx-0.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:c53c101f8dda3c265465cba28735febf00d3f1d8e6e0911608e3a32a7e308a0a", size = 5714332, upload-time = "2026-02-25T18:05:27.952Z" },
+    { url = "https://files.pythonhosted.org/packages/48/99/7eaa26b0088d6c8c96dbc94b8db72d9bf06a85cb547530b3ab4a71df607f/sigilyx-0.1.3-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c439b47aeeea34efbcbde1fb480583c7c3a8582e3082d05091902f19e0d5e3df", size = 6466869, upload-time = "2026-03-08T01:54:07.427Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/cb/58c13f9f532e45ace6ac550146c748a17a9ba2db9e1ccfde52b74434c4ff/sigilyx-0.1.3-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:8f7e5a102b4da15e17dae1666aefeb48ca78bb433d19ca680685440682a6e709", size = 5838882, upload-time = "2026-03-08T01:54:09.299Z" },
+    { url = "https://files.pythonhosted.org/packages/84/22/9b8ffb3b632fa2905e52d13da67b1eae49d37f920415804d5648fbd00c81/sigilyx-0.1.3-cp39-abi3-win_amd64.whl", hash = "sha256:e35ef42010b4f84ec5bf41e0f30de0187e8e3b4e91d93ec0f690c68d680b6706", size = 7184021, upload-time = "2026-03-08T01:54:10.846Z" },
 ]
 
 [[package]]
