@@ -18,11 +18,15 @@
     "target": [
       {
         "target": "AppImage",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "snap",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
     ]
   },
@@ -31,18 +35,23 @@
     "target": [
       {
         "target": "nsis",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "portable",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
-    ],
-    "verifyUpdateCodeSignature": false
+    ]
   },
   "mac": {
     "category": "public.app-category.developer-tools",
-    "target": ["dmg"],
+    "target": [
+      "dmg"
+    ],
     "icon": "public/assets/icon-512.png"
   },
   "nsis": {

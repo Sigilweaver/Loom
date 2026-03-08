@@ -5,6 +5,16 @@ All notable changes to Sigilweaver are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
+## [v0.11.1] - 2026-03-08
+
+### Added
+- Windows code signing via Azure Trusted Signing
+
+### Changed
+- Signing secrets scoped to `windows-signing` GitHub environment
+
+---
+
 ## [v0.11.0] - 2026-03-07
 
 The first non-alpha release. This cycle focused on the AI agent for Studio,
@@ -396,6 +406,7 @@ The initial prototype: canvas, tools, theming, and the marketing website.
 
 ---
 
+[v0.11.1]: https://download.sigilweaver.app/releases/v0.11.1/manifest.json
 [v0.11.0]: https://download.sigilweaver.app/releases/v0.11.0/manifest.json
 [v0.10.2-alpha]: https://download.sigilweaver.app/releases/v0.10.2-alpha/manifest.json
 [v0.10.0-alpha]: https://download.sigilweaver.app/releases/v0.10.0-alpha/manifest.json

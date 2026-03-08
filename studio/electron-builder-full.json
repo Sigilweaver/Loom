@@ -26,11 +26,15 @@
     "target": [
       {
         "target": "AppImage",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "snap",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
     ]
   },
@@ -49,8 +53,7 @@
           "x64"
         ]
       }
-    ],
-    "verifyUpdateCodeSignature": false
+    ]
   },
   "nsis": {
     "oneClick": false,
@@ -62,7 +65,9 @@
   },
   "mac": {
     "category": "public.app-category.developer-tools",
-    "target": ["dmg"],
+    "target": [
+      "dmg"
+    ],
     "icon": "public/assets/icon-512.png"
   },
   "snap": {
