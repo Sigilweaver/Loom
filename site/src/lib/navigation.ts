@@ -19,16 +19,17 @@ function initializeSmoothScrolling(): void {
   const navLinks = document.querySelectorAll('a[href^="#"]');
   navLinks.forEach((link) => {
     link.addEventListener('click', (e) => {
-      e.preventDefault();
+      // Re-check href at click time — it may have been updated dynamically
       const href = link.getAttribute('href');
-      if (href) {
-        const target = document.querySelector(href);
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          });
-        }
+      if (!href || !href.startsWith('#')) return;
+
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
       }
     });
   });

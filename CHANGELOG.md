@@ -5,6 +5,21 @@ All notable changes to Sigilweaver are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
+## [v0.11.3] - 2026-03-08
+
+### Fixed
+- Primary download button on website not triggering download — smooth-scroll handler attached at page load called `preventDefault()` even after the hero button's `href` was updated from `#downloads-grid` to the actual download URL
+- Bundled backend not launching in desktop builds — `require("fs")` call in ESM-bundled Electron main process silently failed, preventing server binary detection
+- Server crash on first request in packaged builds (AppImage, NSIS) due to read-only filesystem — data paths (archive, audit, cache, connections) now use writable `userData` directory via environment variables
+- Missing `cwd` in server `spawn()` call caused working directory mismatch in production
+- Backend process early exit not rejecting startup promise — added settled flag pattern so crashes are reported immediately instead of waiting for health check timeout
+
+### Changed
+- Comprehensive startup logging in Electron main process (version, platform, arch, paths, backend lifecycle events)
+- Build script handles host vs. target platform correctly for server binary verification and copy steps
+
+---
+
 ## [v0.11.2] - 2026-03-08
 
 ### Changed
@@ -419,6 +434,7 @@ The initial prototype: canvas, tools, theming, and the marketing website.
 
 ---
 
+[v0.11.3]: https://download.sigilweaver.app/releases/v0.11.3/manifest.json
 [v0.11.2]: https://download.sigilweaver.app/releases/v0.11.2/manifest.json
 [v0.11.1]: https://download.sigilweaver.app/releases/v0.11.1/manifest.json
 [v0.11.0]: https://download.sigilweaver.app/releases/v0.11.0/manifest.json

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, safeStorage } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -133,14 +133,9 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } | n
       : join(serverDir, ".venv", "bin", "python");
 
     // Check if venv exists before trying to use it
-    try {
-      const fs = require("fs");
-      if (!fs.existsSync(venvPython)) {
-        console.log(`[Backend] Python venv not found at: ${venvPython}`);
-        console.log("[Backend] Run 'cd server && uv sync' to set up the server");
-        return null;
-      }
-    } catch {
+    if (!existsSync(venvPython)) {
+      console.log(`[Backend] Python venv not found at: ${venvPython}`);
+      console.log("[Backend] Run 'cd server && uv sync' to set up the server");
       return null;
     }
 
@@ -156,18 +151,16 @@ function getBackendPath(): { command: string; args: string[]; cwd?: string } | n
   const serverExe = join(process.resourcesPath, "server", `server${ext}`);
 
   // Check if server exists (Client build won't have it)
-  try {
-    const fs = require("fs");
-    if (!fs.existsSync(serverExe)) {
-      return null; // Client build - no server bundled
-    }
-  } catch {
-    return null;
+  if (!existsSync(serverExe)) {
+    console.log(`[Backend] Server binary not found at: ${serverExe}`);
+    return null; // Client build - no server bundled
   }
+  console.log(`[Backend] Server binary found at: ${serverExe}`);
 
   return {
     command: serverExe,
     args: [],
+    cwd: join(process.resourcesPath, "server"),
   };
 }
 
@@ -204,59 +197,91 @@ async function startBackend(): Promise<void> {
   }
 
   // Start the bundled server
+  const { command, args, cwd } = backendPath;
+
+  // Generate ephemeral session token for this launch
+  sessionToken = randomUUID();
+
+  // Resolve a writable data directory for the server's working files.
+  // The app resources directory may be read-only (AppImage, NSIS install),
+  // so we use Electron's per-user data directory instead.
+  const serverDataDir = join(app.getPath('userData'), 'server-data');
+
   console.log("[Backend] Starting bundled server (Full build)");
+  console.log(`[Backend] Command: ${command}`);
+  console.log(`[Backend] Working directory: ${cwd ?? "(inherited)"}`);
+  console.log(`[Backend] Server data directory: ${serverDataDir}`);
+  console.log("[Backend] Auth mode: ephemeral");
 
   return new Promise((resolve, reject) => {
-    const { command, args } = backendPath;
+    let settled = false;
 
-    // Generate ephemeral session token for this launch
-    sessionToken = randomUUID();
-    console.log("[Backend] Generated ephemeral session token");
-
-    console.log(`[Backend] Starting: ${command} ${args.join(" ")}`);
-
-    backendProcess = spawn(command, args, {
+    const proc = spawn(command, args, {
+      cwd,
       env: {
         ...process.env,
         PYTHONUNBUFFERED: "1",
         POLARS_VERBOSE: "1",
         // Production: enable ephemeral auth mode with generated token
         AUTH_MODE: "ephemeral",
-        SESSION_TOKEN: sessionToken,
+        SESSION_TOKEN: sessionToken!,
+        // Override server working paths to a writable location.
+        // The server config reads these via pydantic-settings (case-insensitive env vars).
+        ARCHIVE_PATH: join(serverDataDir, "archives"),
+        AUDIT_PATH: join(serverDataDir, "audit"),
+        CACHE_PATH: join(serverDataDir, "cache"),
+        CONNECTION_STORE_PATH: join(serverDataDir, "connections.json"),
       },
     });
+    backendProcess = proc;
 
-    backendProcess.stdout?.on("data", (data: Buffer) => {
+    console.log(`[Backend] Spawned process (pid: ${proc.pid ?? "unknown"})`);
+
+    proc.stdout?.on("data", (data: Buffer) => {
       const message = data.toString().trim();
-      if (message) console.log(`[Backend] ${message}`);
+      if (message) console.log(`[Backend stdout] ${message}`);
     });
 
-    backendProcess.stderr?.on("data", (data: Buffer) => {
+    proc.stderr?.on("data", (data: Buffer) => {
       const message = data.toString().trim();
-      // Uvicorn logs INFO/DEBUG to stderr, only treat ERROR/CRITICAL as actual errors
       if (message) {
         if (message.includes("ERROR") || message.includes("CRITICAL") || message.includes("Traceback")) {
-          console.error(`[Backend Error] ${message}`);
+          console.error(`[Backend stderr] ${message}`);
         } else {
-          console.log(`[Backend] ${message}`);
+          console.log(`[Backend stderr] ${message}`);
         }
       }
     });
 
-    backendProcess.on("error", (error: Error) => {
-      console.error("[Backend] Failed to start:", error);
-      reject(error);
+    proc.on("error", (error: Error) => {
+      console.error("[Backend] Failed to spawn process:", error.message);
+      if (!settled) {
+        settled = true;
+        clearInterval(checkInterval);
+        reject(error);
+      }
     });
 
-    backendProcess.on("exit", (code: number | null) => {
-      console.log(`[Backend] Process exited with code ${code}`);
+    proc.on("exit", (code: number | null, signal: string | null) => {
+      console.log(`[Backend] Process exited (code: ${code}, signal: ${signal})`);
       backendProcess = null;
+      if (!settled) {
+        settled = true;
+        clearInterval(checkInterval);
+        reject(new Error(
+          `Backend process exited unexpectedly (code: ${code}, signal: ${signal})`
+        ));
+      }
     });
 
-    // Wait for backend to be ready (check health endpoint)
+    // Poll health endpoint until the server is accepting requests
     let attempts = 0;
     const maxAttempts = 30; // 15 seconds
     const checkInterval = setInterval(async () => {
+      if (settled) {
+        clearInterval(checkInterval);
+        return;
+      }
       attempts++;
       try {
         const response = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/health/`, {
@@ -265,14 +290,20 @@ async function startBackend(): Promise<void> {
           },
         });
         if (response.ok) {
-          clearInterval(checkInterval);
-          console.log("[Backend] Ready!");
-          resolve();
+          if (!settled) {
+            settled = true;
+            clearInterval(checkInterval);
+            console.log(`[Backend] Health check passed on attempt ${attempts}`);
+            resolve();
+          }
+        } else {
+          console.log(`[Backend] Health check attempt ${attempts}/${maxAttempts} returned ${response.status}`);
         }
       } catch {
-        // Backend not ready yet
-        if (attempts >= maxAttempts) {
+        if (attempts >= maxAttempts && !settled) {
+          settled = true;
           clearInterval(checkInterval);
+          console.error(`[Backend] Health check failed after ${maxAttempts} attempts (${maxAttempts * 0.5}s)`);
           reject(new Error("Backend failed to start within timeout"));
         }
       }
@@ -285,9 +316,12 @@ async function startBackend(): Promise<void> {
  */
 function stopBackend(): void {
   if (backendProcess) {
-    console.log("[Backend] Stopping...");
+    console.log(`[Backend] Stopping server (pid: ${backendProcess.pid ?? "unknown"})...`);
     backendProcess.kill();
     backendProcess = null;
+    console.log("[Backend] Stop signal sent");
+  } else {
+    console.log("[Backend] No backend process to stop");
   }
 }
 
@@ -365,11 +399,15 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  console.log(`[Main] Sigilweaver v${version} starting (platform: ${process.platform}, arch: ${process.arch})`);
+  console.log(`[Main] App path: ${app.getAppPath()}`);
+  console.log(`[Main] Resources path: ${process.resourcesPath}`);
+  console.log(`[Main] User data: ${app.getPath('userData')}`);
+  console.log(`[Main] Dev mode: ${isDev}`);
+
   try {
     // Start backend first
-    console.log("[Main] Starting backend...");
     await startBackend();
-    console.log("[Main] Backend started successfully");
 
     // Then create window
     createWindow();
@@ -378,21 +416,24 @@ app.whenReady().then(async () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
   } catch (error) {
-    console.error("[Main] Failed to start application:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Main] Failed to start application:", message);
     dialog.showErrorBox(
       "Startup Error",
-      "Failed to start the backend server. Please check the logs and try again."
+      `Failed to start the backend server.\n\n${message}\n\nCheck the logs at: ${app.getPath('userData')}`
     );
     app.quit();
   }
 });
 
 app.on("window-all-closed", () => {
+  console.log("[Main] All windows closed");
   stopBackend();
   if (process.platform !== "darwin") app.quit();
 });
 
 app.on("before-quit", () => {
+  console.log("[Main] Application quitting");
   stopBackend();
 });
 
