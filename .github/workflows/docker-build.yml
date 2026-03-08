@@ -23,8 +23,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  HUB_IMAGE: ghcr.io/${{ github.repository_owner }}/sigilweaver-hub
-  SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/sigilweaver-server
 
 jobs:
   # ===========================================================================
@@ -32,7 +30,7 @@ jobs:
   # ===========================================================================
   build-hub:
     name: Build Hub Image
-    runs-on: ubuntu-latest
+    runs-on: warp-ubuntu-latest-x64-2x
     permissions:
       contents: read
       packages: write
@@ -65,9 +63,12 @@ jobs:
           # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
           MAJOR_MINOR="${VERSION%.*}"
+          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-hub"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
+          echo "Image: $IMAGE_NAME"
 
       - name: Build and push Hub image
         uses: docker/build-push-action@v5
@@ -77,9 +78,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.HUB_IMAGE }}:latest
-            ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.major_minor }}
+            ${{ steps.version.outputs.image }}:latest
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.major_minor }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
@@ -92,7 +93,7 @@ jobs:
   # ===========================================================================
   build-server:
     name: Build Server Image
-    runs-on: ubuntu-latest
+    runs-on: warp-ubuntu-latest-x64-2x
     permissions:
       contents: read
       packages: write
@@ -124,9 +125,12 @@ jobs:
           fi
           VERSION="${VERSION#v}"
           MAJOR_MINOR="${VERSION%.*}"
+          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-server"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
+          echo "Image: $IMAGE_NAME"
 
       - name: Build and push Server image
         uses: docker/build-push-action@v5
@@ -136,9 +140,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.SERVER_IMAGE }}:latest
-            ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.SERVER_IMAGE }}:${{ steps.version.outputs.major_minor }}
+            ${{ steps.version.outputs.image }}:latest
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.major_minor }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |

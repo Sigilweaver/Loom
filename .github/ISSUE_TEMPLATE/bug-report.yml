@@ -1,0 +1,85 @@
+name: Bug Report
+description: Report a bug in Sigilweaver
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Studio (desktop app)
+        - Server (execution engine)
+        - Hub (orchestration platform)
+        - Documentation / Website
+        - Build / CI
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which version are you running? (e.g. v0.11.0)
+      placeholder: v0.11.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the issue.
+      placeholder: |
+        1. Open a workflow with...
+        2. Connect...
+        3. Click Preview...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS
+        - Linux
+      multiple: true
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      description: How are you running Studio?
+      options:
+        - Electron (desktop)
+        - Tauri (desktop)
+        - Web browser
+        - Docker
+        - N/A (server / hub only)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Paste any error messages or stack traces. This will be formatted as code automatically.
+      render: shell
