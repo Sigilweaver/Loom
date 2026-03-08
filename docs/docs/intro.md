@@ -10,7 +10,7 @@ slug: /
 Sigilweaver is both a **desktop application** for building visual data workflows and a **self-hostable platform** for collaboration and organization. Design pipelines by dragging tools onto an infinite canvas, wire them together, and watch your data flow.
 
 :::warning Private Beta
-Sigilweaver is currently in **Private Beta**. The codebase is not yet public, but binaries and documentation are published to test the distribution pipeline and gather feedback. Expect rough edges, breaking changes, and evolving APIs. See the [Roadmap](./roadmap) and [Development History](./development-history) for progress and what's coming.
+Sigilweaver is currently in **Private Beta**. The codebase is not yet public, but binaries and documentation are published to test the distribution pipeline and gather feedback. Expect rough edges, breaking changes, and evolving APIs. See the [Roadmap](./roadmap) for progress and what's coming.
 :::
 
 ## The Platform
