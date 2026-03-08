@@ -22,7 +22,7 @@ export function findAssetForOS(
     case 'windows':
       return fullVariants.find(a => a.os === 'windows' && a.fileName.endsWith('.exe'));
     case 'mac':
-      return fullVariants.find(a => a.os === 'mac' || a.os === 'darwin');
+      return fullVariants.find(a => a.os === 'mac' || a.os === 'darwin' || a.os === 'macos');
     case 'linux':
       return fullVariants.find(a => a.os === 'linux' && a.fileName.endsWith('.AppImage'));
     default:
@@ -51,7 +51,7 @@ export function getOsMeta(os: string, fileName: string): OsMeta {
       name = 'Windows (MSI)';
       note = 'MSI installer for enterprise deployment.';
     } else {
-      note = 'Unsigned build: Click "More info" → "Run anyway" if warned.';
+      note = 'Signed installer for Windows x64.';
     }
   } else if (os === 'linux') {
     icon = icons.linux;

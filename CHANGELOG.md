@@ -5,6 +5,15 @@ All notable changes to Sigilweaver are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
+## [v0.11.2] - 2026-03-08
+
+### Fixed
+- Hero download button not working on macOS (OS string mismatch: `mac` vs `macos`)
+- Download links now use `download` attribute for more reliable browser behavior
+- Windows download note updated to reflect signed builds
+
+---
+
 ## [v0.11.1] - 2026-03-08
 
 ### Added
@@ -406,6 +415,7 @@ The initial prototype: canvas, tools, theming, and the marketing website.
 
 ---
 
+[v0.11.2]: https://download.sigilweaver.app/releases/v0.11.2/manifest.json
 [v0.11.1]: https://download.sigilweaver.app/releases/v0.11.1/manifest.json
 [v0.11.0]: https://download.sigilweaver.app/releases/v0.11.0/manifest.json
 [v0.10.2-alpha]: https://download.sigilweaver.app/releases/v0.10.2-alpha/manifest.json

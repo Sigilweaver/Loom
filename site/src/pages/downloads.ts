@@ -188,7 +188,7 @@ function renderOtherSection(container: HTMLElement, webVariants?: DownloadAsset[
         </div>
         
         <div>
-          <a href="${item.url}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+          <a href="${item.url}" download="${item.fileName}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
             <span class="flex items-center justify-center gap-2">
               Download
               <svg class="w-4 h-4 opacity-70 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -253,7 +253,7 @@ function renderSection(container: HTMLElement, title: string, description: strin
       </div>
       
       <div>
-        <a href="${item.url}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
+        <a href="${item.url}" download="${item.fileName}" class="block w-full text-center bg-mystic-600 hover:bg-mystic-500 text-white px-4 py-3 rounded-lg transition-all hover:shadow-lg hover:shadow-mystic-900/20 hover:-translate-y-0.5 mb-4 font-medium group">
           <span class="flex items-center justify-center gap-2">
             Download
             <svg class="w-4 h-4 opacity-70 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -294,6 +294,7 @@ function updateHeroButton(data: DownloadsData): void {
 
   if (bestMatch) {
     btn.href = bestMatch.url;
+    btn.setAttribute('download', bestMatch.fileName);
     btn.innerHTML = `Download for ${osLabel} <span class="block text-sm opacity-75 font-normal">${data.version}</span>`;
     if (detected) detected.textContent = `Detected ${osLabel}. Clicking will download ${bestMatch.fileName}`;
   } else {
@@ -602,7 +603,7 @@ function renderReleaseVariant(title: string, assets: DownloadAsset[]): string {
           </div>
         </div>
         
-        <a href="${asset.url}" class="block text-center bg-mystic-700 hover:bg-mystic-600 text-white px-3 py-2 rounded text-sm transition-colors mb-3 font-medium">
+        <a href="${asset.url}" download="${asset.fileName}" class="block text-center bg-mystic-700 hover:bg-mystic-600 text-white px-3 py-2 rounded text-sm transition-colors mb-3 font-medium">
           Download
         </a>
         
