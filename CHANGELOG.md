@@ -7,6 +7,10 @@ v0.11.0, entries are maintained alongside each release.
 
 ## [v0.11.2] - 2026-03-08
 
+### Changed
+- Docker builds now target amd64 only; removed ARM64/QEMU cross-compilation that caused builds to hang compiling sigilyx from source
+- CI workflow (`ci.yml`) upgraded to WarpBuild runners
+
 ### Fixed
 - Hero download button not working on macOS (OS string mismatch: `mac` vs `macos`)
 - Download links now use `download` attribute for more reliable browser behavior

@@ -1,8 +1,12 @@
 # =============================================================================
 # Sigilweaver Docker Image Build and Push
 # =============================================================================
-# Builds multi-arch (amd64 + arm64) Docker images for Hub and Server
-# and pushes them to GitHub Container Registry (ghcr.io).
+# Builds amd64 Docker images for Hub and Server and pushes them to
+# GitHub Container Registry (ghcr.io).
+#
+# NOTE: ARM64 support removed — sigilyx lacks manylinux wheels, so ARM64
+# builds require compiling Rust from source under QEMU (extremely slow).
+# Re-enable multi-arch once manylinux wheels are published for sigilyx.
 #
 # Triggers:
 #   - On release publish: Builds and pushes with version tags
@@ -39,9 +43,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -75,7 +76,7 @@ jobs:
         with:
           context: .
           file: hub/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.version.outputs.image }}:latest
@@ -101,9 +102,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -137,7 +135,7 @@ jobs:
         with:
           context: .
           file: server/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.version.outputs.image }}:latest
