@@ -54,8 +54,8 @@ Contributing code is just one way to participate in open source.
 
 The CLA will be presented automatically when you open your first pull request. The CLA bot will guide you through the signing process.
 
-If you have questions about the CLA before contributing, please [open a discussion](https://github.com/sigilweaver/sigilweaver/discussions).
+If you have questions about the CLA before contributing, please [open a discussion](https://github.com/Sigilweaver/Sigilweaver/discussions).
 
 ---
 
-You can read the full legal text of the agreement at **[CLA.md](https://github.com/sigilweaver/sigilweaver/blob/main/CLA.md)**.
+You can read the full legal text of the agreement at **[CLA.md](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md)**.

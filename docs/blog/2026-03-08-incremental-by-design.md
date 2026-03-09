@@ -147,4 +147,4 @@ Pick up the salt shaker. Leave the rest of the meal alone.
 
 ---
 
-**Discuss on [GitHub](https://github.com/sigilweaver/sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20incremental-by-design)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20incremental-by-design)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

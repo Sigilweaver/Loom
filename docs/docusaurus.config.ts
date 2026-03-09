@@ -54,7 +54,7 @@ const config: Config = {
           routeBasePath: '/', // Serve docs at root
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/sigilweaver/Sigilweaver/tree/main/docs/',
+            'https://github.com/Sigilweaver/Sigilweaver/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -63,7 +63,7 @@ const config: Config = {
             xslt: true,
           },
           editUrl:
-            'https://github.com/sigilweaver/Sigilweaver/tree/main/docs/',
+            'https://github.com/Sigilweaver/Sigilweaver/tree/main/docs/',
           blogTitle: 'Sigilweaver Blog',
           blogDescription: 'Insights on building sustainable open source, data engineering, and workflow automation',
           blogSidebarTitle: 'Recent posts',
@@ -121,7 +121,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/sigilweaver/sigilweaver',
+          href: 'https://github.com/Sigilweaver/Sigilweaver',
           label: 'GitHub',
           position: 'right',
         },
@@ -135,11 +135,11 @@ const config: Config = {
           items: [
             {
               label: 'GitHub Discussions',
-              href: 'https://github.com/sigilweaver/sigilweaver/discussions',
+              href: 'https://github.com/Sigilweaver/Sigilweaver/discussions',
             },
             {
               label: 'GitHub Issues',
-              href: 'https://github.com/sigilweaver/sigilweaver/issues',
+              href: 'https://github.com/Sigilweaver/Sigilweaver/issues',
             },
           ],
         },
@@ -156,7 +156,7 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/sigilweaver/sigilweaver',
+              href: 'https://github.com/Sigilweaver/Sigilweaver',
             },
           ],
         },

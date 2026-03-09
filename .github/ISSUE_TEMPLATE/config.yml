@@ -4,5 +4,5 @@ contact_links:
     url: https://sigilweaver.app/docs
     about: Check the docs before opening an issue -- your answer might already be there.
   - name: Security Vulnerability
-    url: https://github.com/sigilweaver/sigilweaver/security/advisories/new
+    url: https://github.com/Sigilweaver/Sigilweaver/security/advisories/new
     about: Report security vulnerabilities privately. Do not open a public issue.

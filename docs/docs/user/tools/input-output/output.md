@@ -187,7 +187,7 @@ Use NDJSON format (`.jsonl` or `.ndjson`) for streaming sink support. Standard `
 
 ### YXDB
 
-Alteryx database files (.yxdb). Written using [SigilYX](https://github.com/sigilweaver/sigilyx).
+Alteryx database files (.yxdb). Written using [SigilYX](https://github.com/Sigilweaver/sigilyx).
 
 **Writing Mode:**
 

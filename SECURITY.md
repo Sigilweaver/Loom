@@ -14,7 +14,7 @@ Only the latest release receives security updates.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please report them privately via [GitHub Security Advisories](https://github.com/sigilweaver/sigilweaver/security/advisories/new).
+Instead, please report them privately via [GitHub Security Advisories](https://github.com/Sigilweaver/Sigilweaver/security/advisories/new).
 
 Include:
 - A description of the vulnerability and its potential impact

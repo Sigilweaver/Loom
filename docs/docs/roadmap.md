@@ -40,13 +40,11 @@ Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries
 
 | Feature                    | Description                                    | Priority |
 | -------------------------- | ---------------------------------------------- | -------- |
-| Code Signing               | Eliminate OS warnings on first launch          | High     |
 | Additional Connectors      | Native support for more databases and APIs     | High     |
 | New Tools: Fuzzy Join      | Approximate string matching for joins          | Medium   |
 | New Tools: Network Cluster | Graph-based clustering and community detection | Medium   |
 | New Tools: Python          | Execute arbitrary Python code in workflows     | Medium   |
 | Streaming Preview          | Incremental preview for large datasets         | Medium   |
-| Expression Autocomplete    | Context-aware suggestions in formula editor    | Medium   |
 
 ### Hub
 
@@ -114,4 +112,4 @@ A commercial license is available for organizations that cannot use AGPL-license
 
 ## Version History
 
-For a detailed record of completed work, see the [Development History](./development-history.md).
+For a detailed record of completed work, see `CHANGELOG.md` in the repository root.

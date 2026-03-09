@@ -50,7 +50,7 @@ export const simpleNavConfig: NavConfig = {
   links: [
     { label: 'Home', href: '/' },
     { label: 'Downloads', href: '/downloads' },
-    { label: 'GitHub', href: 'https://github.com/sigilweaver', isExternal: true },
+    { label: 'GitHub', href: 'https://github.com/Sigilweaver', isExternal: true },
   ],
   ctaButton: navConfig.ctaButton,
 };

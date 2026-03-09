@@ -48,8 +48,8 @@ A few honest reasons:
 
 ## Communication
 
-- **Bug reports**: [GitHub Issues](https://github.com/sigilweaver/sigilweaver/issues)
-- **Feature discussions**: [GitHub Discussions](https://github.com/sigilweaver/sigilweaver/discussions)
+- **Bug reports**: [GitHub Issues](https://github.com/Sigilweaver/Sigilweaver/issues)
+- **Feature discussions**: [GitHub Discussions](https://github.com/Sigilweaver/Sigilweaver/discussions)
 - **Questions**: Open an issue or discussion. I prefer public channels so answers help others
 
 ## Guiding Principles

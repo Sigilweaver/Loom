@@ -4,7 +4,7 @@ version = "0.0.0"
 description = "Sigilweaver Studio - Visual Workflow Designer"
 authors = ["Sigilweaver Team"]
 license = "AGPL-3.0"
-repository = "https://github.com/sigilweaver/sigilweaver"
+repository = "https://github.com/Sigilweaver/Sigilweaver"
 edition = "2021"
 
 [lib]

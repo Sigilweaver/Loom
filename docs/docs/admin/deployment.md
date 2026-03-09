@@ -22,7 +22,7 @@ To get Sigilweaver up and running quickly, follow these steps:
 You'll need the `docker-compose.yml` and related configuration files.
 
 ```bash
-git clone https://github.com/sigilweaver/sigilweaver.git
+git clone https://github.com/Sigilweaver/Sigilweaver.git
 cd sigilweaver/docker
 ```
 

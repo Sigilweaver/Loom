@@ -39,7 +39,7 @@ The CLA will be presented automatically when you open your first pull request.
 
 ```bash
 # Clone the repository
-git clone https://github.com/sigilweaver/sigilweaver.git
+git clone https://github.com/Sigilweaver/Sigilweaver.git
 cd sigilweaver
 
 # Start everything (Server + Studio + Hub)
@@ -86,7 +86,7 @@ For detailed workflow documentation, see [Contributing Workflow](https://sigilwe
 ## Getting Help
 
 - **Documentation**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
-- **Issues**: [GitHub Issues](https://github.com/sigilweaver/sigilweaver/issues)
+- **Issues**: [GitHub Issues](https://github.com/Sigilweaver/Sigilweaver/issues)
 - **Code of Conduct**: [sigilweaver.app/docs/code-of-conduct](https://sigilweaver.app/docs/code-of-conduct)
 
 ## License
