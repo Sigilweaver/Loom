@@ -1,6 +1,7 @@
 ---
 slug: incremental-by-design
 title: "Incremental by Design: Why Your Pipeline Shouldn't Start Over"
+description: "How Sigilweaver's caching architecture avoids re-running entire pipelines when you change a single step, and why incremental execution matters."
 authors: [sigilweaver]
 tags: [architecture, performance, philosophy]
 ---

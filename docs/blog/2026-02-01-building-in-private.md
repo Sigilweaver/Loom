@@ -1,6 +1,7 @@
 ---
 slug: building-in-private
 title: "Building in Private: Why I'm Not Shipping Until It's Right"
+description: "Why Sigilweaver is being built in private instead of in public, and why getting infrastructure software right on the first try matters."
 authors: [sigilweaver]
 tags: [philosophy, development, strategy]
 ---

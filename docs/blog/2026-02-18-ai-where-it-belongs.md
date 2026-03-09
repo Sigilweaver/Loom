@@ -1,6 +1,7 @@
 ---
 slug: ai-where-it-belongs
 title: "AI Where It Belongs (and Nowhere Else)"
+description: "How Sigilweaver uses AI for mechanical tasks like boilerplate and exploration, while keeping judgment and domain expertise where they belong — with the user."
 authors: [sigilweaver]
 tags: [ai, philosophy, architecture]
 ---

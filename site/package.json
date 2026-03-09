@@ -5,7 +5,8 @@
   "description": "Sigilweaver website - Weave Data Magic Into Reality",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "sitemap": "node scripts/generate-sitemaps.mjs",
+    "build": "npm run sitemap && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

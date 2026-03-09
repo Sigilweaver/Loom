@@ -1,6 +1,7 @@
 ---
 slug: why-we-built-sigilyx
 title: "Building SigilYX: A Rust Library for Alteryx's .yxdb Format"
+description: "SigilYX is a Rust library with Python bindings that reads and writes Alteryx .yxdb files without requiring an Alteryx installation — 100-200x faster than existing Python alternatives."
 authors: [sigilweaver]
 tags: [open-source, architecture, philosophy]
 ---

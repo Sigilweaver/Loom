@@ -69,6 +69,11 @@ const config: Config = {
           blogSidebarTitle: 'Recent posts',
           blogSidebarCount: 10,
         },
+        sitemap: {
+          changefreq: 'weekly',
+          priority: 0.5,
+          filename: 'sitemap.xml',
+        },
         theme: {
           customCss: './src/css/custom.css',
         },

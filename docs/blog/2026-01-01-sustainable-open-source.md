@@ -1,6 +1,7 @@
 ---
 slug: sustainable-open-source
 title: "Building Sustainable Open Source: Legal Structure, Licensing, and the Long Game"
+description: "How Sigilweaver approaches legal structure, licensing, and business model to build a sustainable open source project that lasts."
 authors: [sigilweaver]
 tags: [open-source, business-model, legal, sustainability]
 ---
