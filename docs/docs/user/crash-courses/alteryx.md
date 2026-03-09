@@ -42,7 +42,7 @@ Drag Filter tool → Build expression with GUI → True/False outputs
 **Sigilweaver:**  
 Drag **Filter** tool → Use the **visual condition builder** to pick columns, operators, and values → T/F outputs
 
-The Filter tool's **Basic mode** goes beyond Alteryx's expression builder. While Alteryx limits you to a single condition, Sigilweaver lets you add multiple conditions with AND/OR logic and even nested condition groups (up to 3 levels deep) - all visually. For advanced users, **Custom mode** lets you write Polars expressions directly.
+The Filter tool's **Basic mode** goes beyond Alteryx's traditional expression builder. While Alteryx has historically limited you to a single condition, Sigilweaver lets you add multiple conditions with AND/OR logic and even nested condition groups (up to 3 levels deep) - all visually. For advanced users, **Custom mode** lets you write Polars expressions directly.
 
 ### Creating Calculated Columns
 
@@ -52,7 +52,7 @@ Drag Formula tool → Name new column → Build expression
 **Sigilweaver:**  
 Drag **Formula** tool → Pick a source column → Choose an operation from 50+ built-in options → Name the output column
 
-Unlike Alteryx, where every formula requires hand-written expressions, Sigilweaver's Formula tool has a **Basic mode** with a visual operation builder covering Math, Text, Date/Time, Null Handling, and Conditional logic. Multiple operations can be added to a single Formula node, and later operations can reference columns created by earlier ones. **Custom mode** is available for expressions that go beyond the built-in operations.
+Unlike Alteryx, where formulas have traditionally required hand-written expressions, Sigilweaver's Formula tool has a **Basic mode** with a visual operation builder covering Math, Text, Date/Time, Null Handling, and Conditional logic. Multiple operations can be added to a single Formula node, and later operations can reference columns created by earlier ones. **Custom mode** is available for expressions that go beyond the built-in operations.
 
 Both tools create new columns or replace existing ones.
 
@@ -107,14 +107,14 @@ The [Expressions Guide](../expressions/basics) covers everything you need for Cu
 
 ### 2. Lazy Evaluation
 
-Alteryx executes tools as you run the workflow. Sigilweaver uses **lazy evaluation**:
+Alteryx has traditionally executed tools eagerly as you run the workflow. Sigilweaver uses **lazy evaluation**:
 - Workflow is optimized before execution
 - Operations are only executed when needed (preview or save)
 - Enables processing datasets larger than memory
 
 ### 3. Visual Builders
 
-Alteryx has visual configuration for some operations, but it's limited. The Filter tool's expression builder only supports a single condition - anything more complex requires hand-written expressions. The Formula tool has no visual builder at all.
+Alteryx has visual configuration for some operations, but it has historically been limited. The Filter tool's expression builder has traditionally supported only a single condition - anything more complex requires hand-written expressions. The Formula tool has no visual builder.
 
 Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple conditions with AND/OR logic, nested groups, type-aware operators, and inline comments - all visually. The Formula tool's **Basic mode** offers **50+ built-in operations** through dropdowns and parameter inputs - no expression syntax required. **Custom mode** lets power users write Polars expressions directly for advanced logic.
 

@@ -40,7 +40,7 @@ That's incremental computation. You modify a step, and only the steps that depen
 
 ## What Legacy Tools Actually Do
 
-Most legacy visual analytics platforms run what I'd call **total re-execution**. You press "Run" and every tool in the pipeline fires, in order, from top to bottom. No caching. No dependency analysis. No concept of "this step's inputs haven't changed, so the output is the same."
+Most legacy visual analytics platforms historically run what I'd call **total re-execution**. You press "Run" and every tool in the pipeline fires, in order, from top to bottom. No caching. No dependency analysis. No concept of "this step's inputs haven't changed, so the output is the same."
 
 This made sense twenty years ago when these architectures were designed. Memory was expensive. Disk was slow. Holding intermediate results in memory for later reuse meant competing for resources with the actual computation. Easier to just run everything fresh and let the OS manage the memory.
 

@@ -17,10 +17,10 @@ This is the story of how it got built - and it starts, unexpectedly, with someon
 
 :::info TL;DR
 - **SigilYX is a Rust-based `.yxdb` reader and writer** with Python bindings, supporting all 17 YXDB field types on Windows, macOS, and Linux.
-- **Existing open-source readers are Windows-only** and require custom glue code - they were released to satisfy GPL obligations, not to serve the data community.
+- **Existing open-source readers are Windows-only** and require custom glue code - they target a different use case than what most Python analysts need.
 - **SIMD-accelerated UTF-16→UTF-8 transcoding** handles the format's biggest bottleneck, with parallel decompression and column construction for wide schemas.
 - **1.2-2× faster than C++ readers, 111-204× faster than pure Python** - benchmarks are fully reproducible with published methodology.
-- **A 32.5 GB file (90M rows) processes in 52.6 seconds using 1.1 GB of RAM** - no other YXDB library can do this.
+- **A 32.5 GB file (90M rows) processes in 52.6 seconds using 1.1 GB of RAM** - to our knowledge, no other open-source YXDB library supports streaming reads at this scale.
 :::
 
 <!--truncate-->
@@ -33,9 +33,7 @@ The trail starts in May 2015, when Ned Harding - Alteryx's co-founder and former
 
 Seven years later, on March 9, 2022 - exactly four years ago today - Alteryx themselves published an updated C++ implementation from their official GitHub organization, also under GPL-3.0. In the four years since, that repository has accumulated 5 stars.
 
-I don't think GitHub stars are a meaningful measure of software quality. But 5 stars in four years, for a format used by tens of thousands of analysts, tells you something about the gap between "technically available" and "practically usable." Both C++ implementations target Windows, produce raw record-level output, and leave you to write your own glue code to whatever framework you actually use. If you're a Python analyst who just wants a DataFrame, the format is open in theory and closed in practice.
-
-These libraries were released to fulfill a legal requirement - R's GPL licensing means certain components must be made available as source. They weren't released with documentation, cross-platform support, integration examples, or any signal of ongoing maintenance. They were released quietly because they had to be, not because anyone expected them to be useful. And they aren't.
+I don't think GitHub stars are a meaningful measure of software quality. But 5 stars in four years, for a format used by tens of thousands of analysts, tells you something about the gap between "technically available" and "practically usable." Both C++ implementations were released under GPL - likely motivated at least in part by the R plugin's GPL licensing requirements. They target Windows, produce raw record-level output, and leave you to write your own glue code to whatever framework you actually use. If you're a Python analyst who just wants a DataFrame, the format is open in theory and closed in practice.
 
 And then there's Tom Larsen. Working independently, Larsen built `.yxdb` readers in Python, Go, Java, .NET, and even wrote an ODBC driver - all released under the MIT license. If you wanted to read a `.yxdb` file in any mainstream language before SigilYX existed, Larsen probably had you covered. This is a truly impressive feat, and I am thankful for his work.
 
@@ -105,7 +103,7 @@ The result is that SigilYX's advantage scales with the amount of work available.
 
 On the Python side, SigilYX's Rust-backed bindings run 111-204× faster than yxdb-py (Tom Larsen's pure-Python implementation). That's not a typo, but it's also not a fair fight. The pure-Python library processes a string-heavy 100K-row file in 10.6 seconds; SigilYX does it in 52 milliseconds. The difference is that SigilYX does all of its work in compiled Rust and hands the result to Python as a finished DataFrame through the Arrow C Data Interface - no row-by-row Python loop, no intermediate copies.
 
-And for the edge case that becomes the whole case in enterprise settings: a 32.5 GB file - 90 million rows - processed in 52.6 seconds using 1.1 GB of peak RAM. Any library that tries to load the entire file will run out of memory on most machines. SigilYX's `scan_yxdb()` streams through it in constant memory. No other YXDB library can do this.
+And for the edge case that becomes the whole case in enterprise settings: a 32.5 GB file - 90 million rows - processed in 52.6 seconds using 1.1 GB of peak RAM. Any library that tries to load the entire file will run out of memory on most machines. SigilYX's `scan_yxdb()` streams through it in constant memory. To our knowledge, no other open-source YXDB library supports this.
 
 The full benchmark suite, methodology (510 lines of it), and reproduction instructions are in the repository. If someone wants to challenge the numbers, everything they need is there.
 

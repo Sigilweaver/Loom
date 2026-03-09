@@ -7,15 +7,19 @@ keywords: [alteryx alternative, free etl tool, visual data pipeline, open source
 
 # Sigilweaver vs Alteryx
 
+:::note Disclaimer
+Alteryx and Alteryx Designer are registered trademarks of Alteryx, Inc. Sigilweaver is not affiliated with, endorsed by, or associated with Alteryx, Inc. Comparisons are based on publicly available information as of March 2026 and may not reflect recent changes to Alteryx's product.
+:::
+
 Alteryx Designer is defined as the industry standard for visual data preparation. Sigilweaver was built to offer a modern, open-source alternative that doesn't compromise on power.
 
 ## At a Glance
 
 | Feature           | Sigilweaver                                 | Alteryx Designer           |
 | ----------------- | ------------------------------------------- | -------------------------- |
-| **Cost**          | **Free / Open Source**                      | $5,195 / user / year       |
+| **Cost**          | **Free / Open Source**                      | ~$5,195 / user / year (as of early 2026) |
 | **Engine**        | [Polars](https://pola.rs) (Rust/Arrow)      | Proprietary C++            |
-| **Execution**     | **Lazy** (Predicate pushdown, projection pushdown, query optimization) | Eager (Process row-by-row) |
+| **Execution**     | **Lazy** (Predicate pushdown, projection pushdown, query optimization) | Traditionally eager (process row-by-row) |
 | **OS Support**    | Windows, Mac, Linux                         | Windows Only               |
 | **Row Limits**    | Hardware Dependent                          | Hardware Dependent         |
 | **Extensibility** | Native Python                               | Python SDK / R             |
@@ -23,7 +27,7 @@ Alteryx Designer is defined as the industry standard for visual data preparation
 ## Key Differences
 
 ### 1. Performance Architecture
-Alteryx uses a row-based engine. If you filter data at the end of your workflow, Alteryx often still reads the entire dataset from the source.
+Alteryx has traditionally used a row-based engine. If you filter data at the end of your workflow, Alteryx may still read the entire dataset from the source.
 
 **Sigilweaver uses Lazy Evaluation.** It looks at your entire workflow *before* running it. If you only need the top 100 rows of a sorted calculation, it optimizes the read to only fetch what is necessary.
 
@@ -57,7 +61,7 @@ In Alteryx, Python is a "tool" that spins up a separate Jupyter notebook or requ
 In Sigilweaver, Python is the native tongue. Writing a custom tool is just writing a Python function that accepts a Polars DataFrame.
 
 ### 4. Visual Builders
-Alteryx's Filter tool has a basic expression builder, but it's limited to a single condition. For anything more complex, you're writing code. Alteryx's Formula tool has no visual builder at all - every formula requires hand-written expressions.
+Alteryx's Filter tool has historically offered a basic expression builder limited to a single condition. For anything more complex, you're typically writing code. Alteryx's Formula tool has no visual builder - every formula requires hand-written expressions.
 
 Sigilweaver goes further. The Filter tool's **Basic mode** supports multiple conditions with AND/OR logic, nested condition groups (up to 3 levels deep), type-aware operators, and inline comments - all through a visual interface. The Formula tool's **Basic mode** offers **50+ built-in operations** (math, text, dates, null handling, conditionals, and more) through dropdowns and parameter inputs. Most users will never need to write a line of code. **Custom mode** is there for power users who want to write Polars expressions directly.
 
