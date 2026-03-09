@@ -233,7 +233,7 @@ Building in private gives me space to:
 
 But I'd be lying if I said there wasn't uncertainty.
 
-At this point, I've pumped significant funds into the project - domain names, legal filings, infrastructure, tools. More significantly, I've invested **hundreds of hours** that I otherwise would have spent with friends, family, or just relaxing. This has been a second full-time job on top of my 45-hour-per-week day job.
+At this point, I've pumped significant funds into the project - domain names, legal filings, infrastructure, tools. More significantly, I've invested **hundreds of hours** that I otherwise would have spent with friends, family, or just relaxing.
 
 I don't know if this will work. I don't know if anyone will use it. I don't know if enterprises will pay for commercial licenses, or if I'll just end up with an over-engineered portfolio project. **That's the risk I accepted when I started.**
 
