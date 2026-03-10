@@ -53,7 +53,7 @@ export const defaultFooterConfig: FooterConfig = {
   ],
   copyright: {
     tagline: `Open source software with <i data-lucide="heart" class="inline-block w-4 h-4 text-purple-400 fill-current align-middle"></i> for the data community.`,
-    text: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC.<br/>Operated under license by Sigilweaver LLC.`,
+    text: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC.<br/>AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
   },
 };
 

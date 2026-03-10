@@ -12,7 +12,7 @@ Strategic direction and planned features for the Sigilweaver platform.
 
 ## Current Status
 
-Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on enterprise features, ecosystem expansion, and polish leading to a v1.0 public release.
+Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and polish leading to a v1.0 public release.
 
 ### What Works Today
 
@@ -96,9 +96,7 @@ Sigilweaver is designed to run wherever your data lives. We will continue to pri
 Every visual workflow compiles to readable, executable Python. This transparency ensures auditability and eliminates vendor lock-in.
 
 ### Open Ecosystem and Licensing
-The entire Sigilweaver suite is **free for all users** under the AGPL-3.0 license. There are no paid tiers, premium features, or usage limits.
-
-A commercial license is available for organizations that cannot use AGPL-licensed software. This license provides the same functionality under different legal terms—it does not unlock additional features. The core platform will always remain open source.
+The entire Sigilweaver suite is **free for all users** under the AGPL-3.0 license. There are no paid tiers, premium features, or usage limits. The core platform will always remain open source.
 
 ---
 

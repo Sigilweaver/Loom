@@ -49,7 +49,7 @@ export function getOsMeta(os: string, fileName: string): OsMeta {
     icon = icons.windows;
     if (fileName.endsWith('.msi')) {
       name = 'Windows (MSI)';
-      note = 'MSI installer for enterprise deployment.';
+      note = 'MSI installer for managed deployment.';
     } else {
       note = 'Signed installer for Windows x64.';
     }

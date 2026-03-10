@@ -6,6 +6,10 @@ authors: [sigilweaver]
 tags: [philosophy, development, strategy]
 ---
 
+:::caution Update — March 2026
+This post references commercial licensing and business model considerations that were never implemented and are no longer being pursued. Sigilweaver is purely AGPL-3.0 with no commercial licensing. See the project README for the current direction.
+:::
+
 # Building in Private: Why I'm Not Shipping Until It's Right
 
 "Build in public" has become gospel in the developer community. Share your journey. Get feedback early. Iterate with users. Ship fast, fix later.

@@ -65,7 +65,7 @@ const config: Config = {
           editUrl:
             'https://github.com/Sigilweaver/Sigilweaver/tree/main/docs/',
           blogTitle: 'Sigilweaver Blog',
-          blogDescription: 'Insights on building sustainable open source, data engineering, and workflow automation',
+          blogDescription: 'Insights on open source development, data engineering, and workflow automation',
           blogSidebarTitle: 'Recent posts',
           blogSidebarCount: 10,
         },
@@ -179,7 +179,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. Operated under license by Sigilweaver LLC.`,
+      copyright: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
     },
     prism: {
       theme: prismThemes.github,

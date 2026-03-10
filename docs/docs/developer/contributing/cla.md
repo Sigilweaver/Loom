@@ -8,7 +8,7 @@ Before your first pull request can be merged, you must sign our **IP Assignment 
 
 ## Why IP Assignment?
 
-Sigilweaver is built to be a permanent, sustainable alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, a single entity needs to be capable of offering commercial licenses to enterprises.
+Sigilweaver is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, a single entity needs unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
 
 However, assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
@@ -18,7 +18,7 @@ This CLA contains a specialized legal structure designed to safeguard the commun
 
 **The Agreement acts as a two-way street:**
 
-1. **You give rights to Sigilweaver Holdings LLC:** This allows the project to offer commercial licenses, which funds development and keeps Sigilweaver independent.
+1. **You give rights to Sigilweaver Holdings LLC:** This gives the project unified copyright ownership, necessary to defend the license and enforce copyleft.
 2. **Sigilweaver Holdings LLC gives a binding Covenant to you:**
    * The project **must** remain available under an OSI-approved Open Source license.
    * The IP **cannot** be transferred to a for-profit third party (via sale, hostile takeover, or lawsuit judgment).
@@ -27,13 +27,12 @@ This CLA contains a specialized legal structure designed to safeguard the commun
 
 If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
-This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the commercial entity ever fails its mission.
+This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
 
 ## What This Means in Practice
 
 * **The project stays open source forever** - No one can close the source  
 * **You can always fork, use, and modify Sigilweaver under the AGPL**  
-* **Development remains funded** without relying on donations or sponsorships  
 * **If the project changes hands**, it goes to a nonprofit, not a corporation  
 * **If anything goes wrong**, ownership reverts to contributors  
 

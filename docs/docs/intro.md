@@ -44,7 +44,5 @@ Use **Studio + Server** for single-user local development. Add **Hub** when you 
 
 Sigilweaver is **AGPL-3.0 licensed**. The entire suite is **completely free for all users**. No hidden costs, no premium tiers, no feature gates.
 
-A commercial license is available exclusively for organizations that cannot use AGPL-licensed software due to legal or corporate policy constraints. The commercial license grants the same functionality under different terms—it does not unlock additional features.
-
 - **Website**: [sigilweaver.app](https://sigilweaver.app)
 - **GitHub**: Coming with v1.0 public release

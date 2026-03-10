@@ -55,7 +55,7 @@ Server supports four authentication modes:
 | `disabled`  | No authentication            | Development            |
 | `ephemeral` | Token generated per session  | Desktop app (Electron) |
 | `static`    | Fixed token from environment | Simple deployments     |
-| `hub`       | Token validated with Hub     | Enterprise/Team        |
+| `hub`       | Token validated with Hub     | Team/Multi-user        |
 
 ### Configuration
 
@@ -76,7 +76,7 @@ AUTH_MODE=disabled
 AUTH_MODE=static
 SESSION_TOKEN=my-secret-token-here
 
-# Hub mode (enterprise)
+# Hub mode (team)
 AUTH_MODE=hub
 HUB_URL=https://hub.example.com
 HUB_SERVER_TOKEN=server-token-from-hub

@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Administrator Guide
 
-Hub is the orchestration platform for Sigilweaver, built for teams and enterprises that need centralized control over workflows, credentials, and user access.
+Hub is the orchestration platform for Sigilweaver, built for teams and organizations that need centralized control over workflows, credentials, and user access.
 
 ## Security First
 

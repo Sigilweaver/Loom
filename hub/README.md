@@ -9,13 +9,13 @@ Hub is what transforms Sigilweaver from a workflow designer into a full platform
 - **Stores workflows** in a central location accessible to your team
 - **Manages servers** across different environments (dev, staging, production)
 - **Schedules automated runs** with cron-like scheduling
-- **Provides access control** with enterprise-grade security
+- **Provides access control** with production-grade security
 
 **You don't need Hub to use Sigilweaver.** Studio can connect directly to a Server for single-user workflows. Hub adds value when you need centralization, automation, or collaboration.
 
-## Philosophy: Enterprise Grade for Everyone
+## Philosophy: Production Grade for Everyone
 
-Hub is built with Zero-Trust security principles and enterprise-grade RBAC, but that doesn't mean it's only for enterprises:
+Hub is built with Zero-Trust security principles and production-grade RBAC, but that doesn't mean it's only for large organizations:
 
 - **Your homelab deserves the same security as a Fortune 500** - Why should your personal data be less protected?
 - **Self-hosting should be easy** - One `docker compose up` and you're running.
@@ -140,4 +140,4 @@ AGPLv3 - See [LICENSE](LICENSE.md).
 
 ---
 
-**Hub is for everyone.** Whether you're managing pipelines for a Fortune 500 or just automating your personal data workflows, you deserve enterprise-grade reliability.
+**Hub is for everyone.** Whether you're managing pipelines for a large organization or just automating your personal data workflows, you deserve production-grade reliability.

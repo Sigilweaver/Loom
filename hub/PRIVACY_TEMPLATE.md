@@ -3,7 +3,7 @@
 > [!CAUTION]
 > **If you deploy Hub for others, you MUST have your own privacy policy and terms of use.**
 >
-> Sigilweaver Hub is enterprise-grade software designed with compliance in mind. It collects
+> Sigilweaver Hub is production-grade software designed with compliance in mind. It collects
 > detailed, immutable audit logs of all user activity — who did what, when, from where. It
 > stores workflow definitions, execution history, administrator-configured credentials, and
 > session data including IP addresses. This data may be highly sensitive depending on the

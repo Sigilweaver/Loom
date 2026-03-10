@@ -2,7 +2,7 @@
 
 **The visual data pipeline platform you always wished existed.**
 
-Enterprise-grade power, accessible to everyone.
+Free and open source. No compromises.
 
 [Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/downloads) | [Documentation](https://sigilweaver.app/docs)
 
@@ -13,9 +13,9 @@ Enterprise-grade power, accessible to everyone.
 Sigilweaver is more than a workflow designer - it's a complete data pipeline platform.
 
 **Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation.
-**Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with enterprise-grade security.
+**Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with robust security.
 
-Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing enterprise-scale ETL, Sigilweaver meets you where you are.
+Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver meets you where you are.
 
 Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation — without limiting what experienced users can do.
 
@@ -25,7 +25,7 @@ No artificial limits. No vendor lock-in. No SaaS subscription required. Just you
 
 ### Zero Trust, Zero Compromise
 
-Your data never leaves your infrastructure. Sigilweaver is designed for **self-hosting from day one**. Run it on your laptop, your homelab, or your enterprise Kubernetes cluster. The architecture is the same - only the scale changes.
+Your data never leaves your infrastructure. Sigilweaver is designed for **self-hosting from day one**. Run it on your laptop, your homelab, or your production Kubernetes cluster. The architecture is the same - only the scale changes.
 
 ### Lazy Evaluation
 
@@ -53,15 +53,15 @@ Sigilweaver reads and writes `.yxdb` files natively — the proprietary format u
 
 ## Our Philosophy
 
-**"Enterprise Grade" does not mean "Enterprise Only."**
+**"Production Grade" does not mean "Complicated."**
 
-We build Sigilweaver with the security, reliability, and scalability that enterprises demand. But we believe those same qualities belong to everyone:
+We build Sigilweaver with the security, reliability, and scalability that serious work demands. But we believe those same qualities belong to everyone:
 
-- **Self-Hosting First**: We actively encourage individuals to run their own Hub. Your personal data pipeline infrastructure should be as robust as a Fortune 500's.
+- **Self-Hosting First**: We actively encourage individuals to run their own Hub. Your personal data pipeline infrastructure should be as robust as anyone else's.
 - **No Artificial Limits**: The same codebase powers a hobbyist's Raspberry Pi and a company's server farm.
-- **Community Ownership**: The AGPL license ensures Sigilweaver remains open forever. No rug-pulls. No sudden "premium tiers."
+- **Community Ownership**: The AGPL license ensures Sigilweaver remains open forever. No rug-pulls. No sudden paywalls.
 
-Enterprise grade means "it works when you need it." That's a promise we make to every user, whether you're processing CSV exports or financial transactions.
+Production grade means "it works when you need it." That's a promise we make to every user, whether you're processing CSV exports or financial transactions.
 
 ## The Platform
 
@@ -99,13 +99,13 @@ Sigilweaver is licensed under the **GNU Affero General Public License v3.0 (AGPL
 - **Copyleft**: If you run a modified version as a network service, you must release your changes under AGPL.
 - **Protection**: Large corporations cannot absorb this project without contributing back.
 
-### Sustainability and the CLA
+### The CLA
 
-Open source needs to be sustainable. Sigilweaver requires contributors to sign a Contributor License Agreement (CLA). This allows the project maintainer to offer commercial licensing options to organizations that need them, which funds continued development.
+Sigilweaver requires contributors to sign a Contributor License Agreement (CLA). This gives Sigilweaver Holdings LLC unified copyright ownership, which is necessary to defend the license and enforce copyleft.
 
 **What this means for you:**
 - The project stays AGPLv3 forever - no one can close the source
-- Development remains funded without relying on donations or sponsorships
+- If the holding company ever violates its open source commitments, IP automatically reverts to contributors
 - You can always use, fork, and modify Sigilweaver under the AGPL
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE.md) for the full AGPL text.
@@ -113,5 +113,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LIC
 ---
 
 <p align="center">
-  <strong>Built for the community. Sustained by the community.</strong>
+  <strong>Built for the community. Owned by the community.</strong>
 </p>

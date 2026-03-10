@@ -4,7 +4,7 @@
 >
 > *The following is a summary of the legal text for convenience only. It is not legally binding. In the event of a conflict, the full text of the Agreement below controls.*
 >
-> 1. **You give us ownership:** You assign the copyright of your code to Sigilweaver Holdings LLC so we can defend the license and offer commercial options to support the project's sustainability.
+> 1. **You give us ownership:** You assign the copyright of your code to Sigilweaver Holdings LLC so we can defend the license and enforce copyleft.
 >
 > 2. **We give you a license:** You get a license back to use your own contribution however you want.
 >

@@ -10,7 +10,7 @@ Sigilweaver requires all contributors to sign an **IP Assignment CLA** before we
 
 ### Why an IP Assignment?
 
-Sigilweaver is built to be a permanent, sustainable alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity capable of offering commercial licenses to enterprises.
+Sigilweaver is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity with unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
 
 However, I know that assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
@@ -19,7 +19,7 @@ However, I know that assigning rights requires trust. **Trust is good, but bindi
 This CLA contains a specialized legal structure designed to safeguard the community. It acts as a "Dead Man's Switch" (or Poison Pill) to ensure the project can never be "captured" or closed-sourced by a third party.
 
 **The Agreement acts as a two-way street:**
-1.  **You give rights to Sigilweaver Holdings LLC:** This allows the project to offer commercial licenses, which funds development and keeps Sigilweaver independent.
+1.  **You give rights to Sigilweaver Holdings LLC:** This gives the project unified copyright ownership, necessary to defend the license and enforce copyleft.
 2.  **Sigilweaver Holdings LLC gives a binding Covenant to you:**
     * The project **must** remain available under an OSI-approved Open Source license.
     * The IP **cannot** be transferred to a for-profit third party (via sale, hostile takeover, or lawsuit judgment).
@@ -27,7 +27,7 @@ This CLA contains a specialized legal structure designed to safeguard the commun
 **The "Teeth" (Reversion Clause):**
 If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
-This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the commercial entity ever fails its mission.
+This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
 
 You can read the full legal text of the agreement at **[CLA.md](./CLA.md)**.
 

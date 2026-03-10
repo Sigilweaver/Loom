@@ -6,6 +6,10 @@ authors: [sigilweaver]
 tags: [open-source, business-model, legal, sustainability]
 ---
 
+:::caution Update — March 2026
+This post was written in January 2026 when Sigilweaver's sustainability model *considered* dual licensing (AGPL + commercial). **That model was never implemented and is no longer being pursued.** No commercial licenses were ever sold. Sigilweaver is purely AGPL-3.0 with no commercial licensing, no paid tiers, and no plans to monetize. The legal structure (PropCo/OpCo, CLA with reversion clause) remains intact for IP protection and copyleft enforcement. This post is preserved as a historical record of the original thinking.
+:::
+
 # Building Sustainable Open Source: Legal Structure, Licensing, and the Long Game
 
 Most open source projects fail not because the code is bad, but because the maintainers burn out or run out of money. We encounter this problem frequently in the ecosystem. We represent Sigilweaver as a long-term project, and that requires deliberate choices about legal structure, licensing, and business model from day one - not as an afterthought when GitHub stars hit 10k.

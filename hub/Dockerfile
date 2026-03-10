@@ -65,7 +65,7 @@ ARG VCS_REF
 # Labels for GitHub Container Registry (OCI standard)
 LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Sigilweaver" \
     org.opencontainers.image.description="Sigilweaver Hub - Multi-user workflow orchestration" \
-    org.opencontainers.image.licenses="Proprietary" \
+    org.opencontainers.image.licenses="AGPL-3.0-only" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.created="${BUILD_DATE}" \
     org.opencontainers.image.revision="${VCS_REF}"
