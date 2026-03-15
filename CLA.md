@@ -11,6 +11,8 @@
 > 3. **The "Poison Pill":** This assignment is conditional. If we ever stop keeping the project Open Source, or if we sell the company to a for-profit corporation, the assignment self-destructs. Your rights automatically revert to you.
 >
 > 4. **The Safety Valve:** We have a strict "No Corporate Sellout" clause, but it includes standard exceptions for family inheritance so the project doesn't break if the founder passes away.
+>
+> 5. **You're legally free to contribute:** You confirm that no agreement (employment, EULA, NDA, etc.) prevents you from making your contribution.
 
 ---
 
@@ -55,7 +57,9 @@ You grant to the Company and to recipients of software distributed by the Compan
 
 ### 6. Representations and Warranties
 
-You represent that you are legally entitled to grant the above assignment and license. If your employer(s) has rights to intellectual property that you create that includes your Contribution, you represent that you have received permission to make Contributions on behalf of that employer, that your employer has waived such rights for your Contributions to the Company, or that your employer has executed a separate Corporate CLA with the Company.
+**6.1 Authority.** You represent that you are legally entitled to grant the above assignment and license. If your employer(s) has rights to intellectual property that you create that includes your Contribution, you represent that you have received permission to make Contributions on behalf of that employer, that your employer has waived such rights for your Contributions to the Company, or that your employer has executed a separate Corporate CLA with the Company.
+
+**6.2 No Legal Impediment.** You represent that You are not party to any agreement, obligation, or order (including but not limited to any employment agreement, end-user license agreement, non-compete, non-disclosure agreement, or court order) that would prohibit, restrict, or conflict with Your making this Contribution, or that would cause this Contribution to infringe or misappropriate any third party's rights. If You become aware of any such impediment after submitting a Contribution, You agree to promptly notify the Company in writing.
 
 ### 7. No Warranty
 
