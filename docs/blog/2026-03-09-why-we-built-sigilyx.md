@@ -1,7 +1,7 @@
 ---
 slug: why-we-built-sigilyx
 title: "Building SigilYX: A Rust Library for Alteryx's .yxdb Format"
-description: "SigilYX is a Rust library with Python bindings that reads and writes Alteryx .yxdb files without requiring an Alteryx installation — 100-200x faster than existing Python alternatives."
+description: "SigilYX is a Rust library with Python bindings that reads and writes Alteryx E1 .yxdb files without requiring an Alteryx installation — 100-200x faster than existing Python alternatives. E2 (AMP) support is in the works."
 authors: [sigilweaver]
 tags: [open-source, architecture, philosophy]
 ---
@@ -17,11 +17,12 @@ I built SigilYX to open them. It's a Rust library with Python bindings that read
 This is the story of how it got built - and it starts, unexpectedly, with someone else's generosity.
 
 :::info TL;DR
-- **SigilYX is a Rust-based `.yxdb` reader and writer** with Python bindings, supporting all 17 YXDB field types on Windows, macOS, and Linux.
+- **SigilYX is a Rust-based `.yxdb` reader and writer** with Python bindings, supporting all 17 YXDB field types on Windows, macOS, and Linux. Today's release covers the **E1 format** — the original engine layout used by Alteryx Designer prior to AMP.
 - **Existing open-source readers are Windows-only** and require custom glue code - they target a different use case than what most Python analysts need.
 - **SIMD-accelerated UTF-16→UTF-8 transcoding** handles the format's biggest bottleneck, with parallel decompression and column construction for wide schemas.
 - **1.2-2× faster than C++ readers, 111-204× faster than pure Python** - benchmarks are fully reproducible with published methodology.
 - **A 32.5 GB file (90M rows) processes in 52.6 seconds using 1.1 GB of RAM** - to our knowledge, no other open-source YXDB library supports streaming reads at this scale.
+- **E2 (AMP) support is next** — Alteryx made AMP the default engine in Designer 2022.1, which means newer workflows produce a different binary layout. E2 development requires a different methodology since no open-source implementations or public reference files exist. We've [documented the process](https://github.com/Sigilweaver/SigilYX/blob/main/SPECIFICATION-E2.md) before writing a single line of E2 code.
 :::
 
 <!--truncate-->
@@ -40,6 +41,8 @@ And then there's Tom Larsen. Working independently, Larsen built `.yxdb` readers
 
 SigilYX's format knowledge comes from studying these implementations. The SPECIFICATION.md in the repository cites all seven reference projects with their authors and licenses. The Rust code is an original implementation - no lines were copied - but the understanding of the binary layout, the field type encodings, the compression framing: that all came from reading openly published source code. I'm building on a foundation that Harding, Larsen, and others laid over the past decade.
 
+It's worth noting: every one of these implementations targets the same format variant. Alteryx's documentation refers to two YXDB engines — **E1** (the original engine) and **E2** (the AMP engine). All existing open-source readers, including Larsen's, handle E1 files only. If you've seen GitHub issues on Larsen's repos from users reporting that their `.yxdb` files fail to parse, it's almost certainly because they were produced by AMP — and E2 uses a different binary layout that no existing reader understands. More on that later.
+
 ## Why Build Another One?
 
 If readers already exist in C++, Python, Go, Java, and .NET - why build one in Rust?
@@ -47,6 +50,8 @@ If readers already exist in C++, Python, Go, Java, and .NET - why build one in R
 Short answer: migration.
 
 I'm building Sigilweaver, a visual data pipeline platform. Its audience includes analysts who currently use - or plan to leave - Alteryx. For those users, migration doesn't start with features or UI comparisons. It starts with data. They have years of `.yxdb` files sitting in shared drives, archive folders, and data pipelines. If Sigilweaver can't read them natively, it's asking analysts to re-export their entire data history before they can even try the product. That's not a migration path - it's a homework assignment.
+
+The E1 format covers a huge proportion of those files. Alteryx Designer used the original engine exclusively until 2019, and many organizations still run workflows with AMP disabled. For migration, E1 is the right place to start.
 
 But there's a less practical reason too. Once I started reading the format specification, I got interested. `.yxdb` is a genuinely well-designed format for mixed-type tabular data. Schema metadata is embedded in the header. Seventeen field types cover everything from booleans to spatial geometries. LZF compression keeps files reasonably sized without slow decompression. There's a reason it's been Alteryx's workhorse format for over a decade - it solves real problems, and it solves them compactly.
 
@@ -56,9 +61,11 @@ The format deserved a modern reader. The existing ones are solid but single-thre
 
 ## Reading Someone Else's Binary Format
 
+Everything that follows describes the **E1** format — the original engine layout. This is the variant that all existing open-source readers target, and the one for which multiple independent reference implementations exist.
+
 There's no official `.yxdb` specification document - no PDF, no RFC, no formal grammar. What exists is source code. So the process of building SigilYX was less "implement a spec" and more "read four different implementations in four different languages and figure out what they agree on."
 
-The broad strokes are straightforward. A `.yxdb` file starts with a 512-byte header, followed by XML metadata encoded in UTF-16LE (a detail that will become relevant and annoying shortly), followed by a sequence of LZF-compressed record blocks. The header tells you how many records exist and where the metadata ends. The XML tells you the schema - field names, types, sizes. The compressed blocks contain the actual data.
+The broad strokes are straightforward. An E1 `.yxdb` file starts with a 512-byte header, followed by XML metadata encoded in UTF-16LE (a detail that will become relevant and annoying shortly), followed by a sequence of LZF-compressed record blocks. The header tells you how many records exist and where the metadata ends. The XML tells you the schema - field names, types, sizes. The compressed blocks contain the actual data.
 
 The details are where it gets interesting.
 
@@ -117,6 +124,26 @@ A few things I'd do again:
 **Credit your sources.** Every open-source YXDB reader I referenced is cited in the specification document, with author and license. The format knowledge chain is: Harding's original C++ (GPL-3.0, 2015) → Alteryx's official OpenYXDB (GPL-3.0, 2022) → Larsen's multi-language readers (MIT) → SigilYX (derived specification, original Rust implementation). No black boxes. If someone wants to trace how I know what byte 64 in the header means, the trail is documented.
 
 **Benchmark honestly, and publish the methodology.** If you claim your library is faster, show your work. Run all competitors on the same data, same machine, same conditions. Publish the results, the scripts, and the methodology. Don't cherry-pick the flattering comparisons - SigilYX ties on narrow numeric data, and I report that alongside the 2× wins on wide schemas. Credibility comes from the results you're not bragging about.
+
+## What About E2?
+
+If you're running a recent version of Alteryx Designer, AMP (Alteryx Multi-threaded Processing) is probably your default engine. AMP was introduced as opt-in in Designer 2019.3 and became the default in Designer 2022.1. When AMP is enabled, workflow outputs are written in a different binary layout that Alteryx calls **E2** (as opposed to the original engine's **E1** format).
+
+This isn't an obscure distinction — it's something every existing YXDB reader has run into. Larsen's readers, which cover five languages and have been the go-to open-source option for years, don't support E2. Users have filed issues on his repositories reporting parse failures on newer `.yxdb` files, and the answer is the same each time: the file was produced by AMP, and the binary layout is different. The E1/E2 split is a real compatibility boundary in the ecosystem.
+
+SigilYX does not read E2 files yet. That's deliberate.
+
+E1 development had an unusually clean foundation: Alteryx themselves published an MIT-licensed C++ reader (OpenYXDB), multiple independent implementations existed in other languages, and hundreds of E1 files were freely available on the public internet. I could study the format by reading open-source code, validate my implementation against reference readers, and benchmark against real implementations. The provenance was clean at every step.
+
+E2 has none of that. No open-source E2 implementations exist — not from Alteryx, not from Larsen, not from anyone. No E2 files have been found on the public internet. No reference readers to validate against. We don't even know whether E2 shares the same header structure as E1, whether it uses the same compression, or whether the record layout is row-oriented or columnar. Building E2 support means deriving the format entirely from binary analysis of independently sourced files — and doing that responsibly requires a level of process that E1 never needed.
+
+So before writing a single line of E2 code, I wrote the process. The [E2 specification document](https://github.com/Sigilweaver/SigilYX/blob/main/SPECIFICATION-E2.md) — committed to version control before any E2 development began — defines strict sourcing rules for obtaining files: no files from Alteryx-controlled properties, no files solicited from anyone bound by the Alteryx EULA, no files created for the purpose of assisting this project. Acceptable sources are limited to files already existing on the public internet for an independent purpose, discovered at arm's length. Every file used must have its provenance documented — source URL, archive URL (archived *before* analysis begins), SHA-256 hash, independence attestation — and sourced files are never committed to the repository.
+
+This is slower than just asking someone to send me a file. But the goal is an auditable record that can withstand scrutiny. File format analysis of lawfully obtained files is protected under DMCA §1201(f) interoperability provisions, but legal protection and responsible practice aren't the same thing. The sourcing rules exist to remove ambiguity about *how* the files were obtained, not just *whether* analysis is legal.
+
+E2 will ship as beta when it's ready, with clear warnings about coverage limitations. There will be no performance benchmarks — there's nothing to benchmark against. The test corpus will be entirely self-generated by SigilYX's own writer. And the methodology documentation will be public from day one, just like the E1 spec.
+
+If you have E2 files you need to read today, I understand the urgency. But building format support on a shaky foundation helps no one long-term. E2 will be done right, or it won't be done yet.
 
 ---
 
