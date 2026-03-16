@@ -54,7 +54,8 @@ def check_pivot_safety(lf: pl.LazyFrame, on_column: str) -> SafetyCheckResult:
                     f"Pivot would create {unique_count:,} columns "
                     f"(limit: {limit:,}). "
                     f"Column '{on_column}' has too many unique values. "
-                    f"Consider filtering your data first or choosing a different column to pivot on."
+                    "Consider filtering your data first or choosing "
+                    "a different column to pivot on."
                 ),
                 actual_value=unique_count,
                 limit_value=limit,

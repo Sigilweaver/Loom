@@ -150,9 +150,9 @@ if __name__ == "__main__":
 
     # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None)
     if sys.stdout is None:
-        sys.stdout = open('NUL', 'w')
+        sys.stdout = open("NUL", "w")
     if sys.stderr is None:
-        sys.stderr = open('NUL', 'w')
+        sys.stderr = open("NUL", "w")
 
     # Run uvicorn server
     uvicorn.run(

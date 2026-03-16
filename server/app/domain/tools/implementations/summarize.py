@@ -44,9 +44,16 @@ UNIVERSAL_AGGREGATIONS = {"Count", "CountDistinct", "First", "Last", "Min", "Max
 def is_numeric_dtype(dtype: str) -> bool:
     """Check if a dtype string represents a numeric type"""
     numeric_types = {
-        "Int8", "Int16", "Int32", "Int64",
-        "UInt8", "UInt16", "UInt32", "UInt64",
-        "Float32", "Float64",
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "UInt8",
+        "UInt16",
+        "UInt32",
+        "UInt64",
+        "Float32",
+        "Float64",
         "Decimal",
     }
     return dtype in numeric_types
@@ -107,11 +114,13 @@ class SummarizeTool(BaseTool):
             operation = agg.get("operation", "Sum")
             output_name = agg.get("outputName", "")
             if column:
-                aggregations.append(AggregationExpr(
-                    column=column,
-                    operation=operation,
-                    output_name=output_name,
-                ))
+                aggregations.append(
+                    AggregationExpr(
+                        column=column,
+                        operation=operation,
+                        output_name=output_name,
+                    )
+                )
 
         return SummarizeOperation(
             group_by_columns=group_by_columns,
@@ -163,12 +172,16 @@ class SummarizeTool(BaseTool):
             resolved_gb: list[str | dict[str, Any]] = []
             for item in group_by_config:
                 if isinstance(item, str):
-                    resolved_gb.append(resolve_column_name(item, available_cols, context="Summarize groupBy"))
+                    resolved_gb.append(
+                        resolve_column_name(item, available_cols, context="Summarize groupBy")
+                    )
                 elif isinstance(item, dict):
                     col = item.get("column")
                     if col:
                         resolved_item = dict(item)
-                        resolved_item["column"] = resolve_column_name(col, available_cols, context="Summarize groupBy")
+                        resolved_item["column"] = resolve_column_name(
+                            col, available_cols, context="Summarize groupBy"
+                        )
                         resolved_gb.append(resolved_item)
                     else:
                         resolved_gb.append(item)
@@ -181,7 +194,9 @@ class SummarizeTool(BaseTool):
                 resolved_agg = dict(agg)
                 col = agg.get("column")
                 if col:
-                    resolved_agg["column"] = resolve_column_name(col, available_cols, context="Summarize aggregation")
+                    resolved_agg["column"] = resolve_column_name(
+                        col, available_cols, context="Summarize aggregation"
+                    )
                 resolved_aggs.append(resolved_agg)
             resolved_config["aggregations"] = resolved_aggs
 
@@ -245,17 +260,21 @@ class SummarizeTool(BaseTool):
             # Determine output dtype
             output_dtype = get_result_dtype(operation, input_dtype)
 
-            output_columns.append(ColumnSchema(
-                name=col_name,
-                dtype=output_dtype,
-                nullable=True,  # Aggregations can produce nulls (e.g., empty groups)
-            ))
+            output_columns.append(
+                ColumnSchema(
+                    name=col_name,
+                    dtype=output_dtype,
+                    nullable=True,  # Aggregations can produce nulls (e.g., empty groups)
+                )
+            )
 
-        return {CommonSockets.OUTPUT: DataSchema(
-            columns=output_columns,
-            row_count=None,  # Row count depends on number of groups
-            file_size_bytes=None,
-        )}
+        return {
+            CommonSockets.OUTPUT: DataSchema(
+                columns=output_columns,
+                row_count=None,  # Row count depends on number of groups
+                file_size_bytes=None,
+            )
+        }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate summarize configuration"""

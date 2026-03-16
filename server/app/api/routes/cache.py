@@ -132,9 +132,7 @@ async def close_workflow_cache(request: WorkflowCacheRequest) -> ClearCacheRespo
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to clear cache on close: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache on close: {str(e)}")
 
 
 @router.post("/close/batch", response_model=BatchClearCacheResponse)
@@ -182,9 +180,7 @@ async def close_workflow_caches_batch(
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to clear caches on close: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to clear caches on close: {str(e)}")
 
 
 @router.get("/stats", response_model=CacheStatsResponse)

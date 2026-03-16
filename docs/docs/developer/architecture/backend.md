@@ -222,6 +222,18 @@ import app.domain.tools.register  # noqa: F401
 
 This ensures all tools are registered before any API request.
 
+### Expression Security
+
+Tools like Filter and Formula accept user-written Polars expressions. These are evaluated via Python's `eval()` with a restricted namespace, but the primary security boundary is **AST validation** (`app/utils/expression.py`):
+
+1. The expression string is parsed with `ast.parse(expression, mode="eval")`
+2. Every AST node is checked against an allowlist of safe types (calls, attributes, comparisons, literals, etc.)
+3. Only `pl`, `True`, `False`, and `None` are permitted as name nodes
+4. Double-underscore (`__`) attribute access is blocked to prevent sandbox escapes
+5. Lambda expressions and comprehensions are rejected
+
+This runs **before** `eval()`, so malformed or malicious expressions never reach the interpreter.
+
 ## Execution Engine
 
 The execution engine orchestrates workflow execution. It has been decomposed into three focused components:

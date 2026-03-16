@@ -48,26 +48,29 @@ class Cast(ExprNode):
     dtype: str  # e.g., "Float64", "Int32"
 
     # Mapping from string to Polars type
-    DTYPE_MAP: dict[str, type] = field(default_factory=lambda: {
-        "Int8": pl.Int8,
-        "Int16": pl.Int16,
-        "Int32": pl.Int32,
-        "Int64": pl.Int64,
-        "UInt8": pl.UInt8,
-        "UInt16": pl.UInt16,
-        "UInt32": pl.UInt32,
-        "UInt64": pl.UInt64,
-        "Float32": pl.Float32,
-        "Float64": pl.Float64,
-        "Boolean": pl.Boolean,
-        "Utf8": pl.Utf8,
-        "String": pl.String,
-        "Date": pl.Date,
-        "Datetime": pl.Datetime,
-        "Time": pl.Time,
-        "Duration": pl.Duration,
-        "Categorical": pl.Categorical,
-    }, repr=False)
+    DTYPE_MAP: dict[str, type] = field(
+        default_factory=lambda: {
+            "Int8": pl.Int8,
+            "Int16": pl.Int16,
+            "Int32": pl.Int32,
+            "Int64": pl.Int64,
+            "UInt8": pl.UInt8,
+            "UInt16": pl.UInt16,
+            "UInt32": pl.UInt32,
+            "UInt64": pl.UInt64,
+            "Float32": pl.Float32,
+            "Float64": pl.Float64,
+            "Boolean": pl.Boolean,
+            "Utf8": pl.Utf8,
+            "String": pl.String,
+            "Date": pl.Date,
+            "Datetime": pl.Datetime,
+            "Time": pl.Time,
+            "Duration": pl.Duration,
+            "Categorical": pl.Categorical,
+        },
+        repr=False,
+    )
 
     def to_polars(self) -> pl.Expr:
         polars_type = self.DTYPE_MAP.get(self.dtype)
@@ -118,10 +121,12 @@ class Filter(ExprNode):
 
     def to_polars(self) -> pl.Expr:
         from app.utils.expression import parse_polars_expression
+
         return parse_polars_expression(self.expr_str)
 
     def to_code(self) -> str:
         from app.utils.expression import normalize_expression
+
         return normalize_expression(self.expr_str)
 
 
@@ -134,15 +139,18 @@ class WithColumns(ExprNode):
 
     def to_polars(self) -> pl.Expr:
         from app.utils.expression import parse_polars_expression
+
         return parse_polars_expression(self.expr_str).alias(self.alias)
 
     def to_code(self) -> str:
         from app.utils.expression import normalize_expression
+
         escaped = self.alias.replace("\\", "\\\\").replace('"', '\\"')
         return f'{normalize_expression(self.expr_str)}.alias("{escaped}")'
 
 
 # Higher-level operation builders
+
 
 @dataclass
 class SelectOperation:
@@ -184,6 +192,7 @@ class FilterOperation:
             return lf, lf.clear()
 
         from app.utils.expression import parse_polars_expression
+
         filter_expr = parse_polars_expression(self.expr_str)
         return lf.filter(filter_expr), lf.filter(~filter_expr)
 
@@ -196,6 +205,7 @@ class FilterOperation:
             ]
 
         from app.utils.expression import normalize_expression
+
         expr_code = normalize_expression(self.expr_str)
         return [
             f"{var_t} = {input_var}.filter({expr_code})",
@@ -216,6 +226,7 @@ class FormulaOperation:
             return lf
 
         from app.utils.expression import parse_polars_expression
+
         expr = parse_polars_expression(self.expr_str)
         return lf.with_columns(expr.alias(self.column_name))
 
@@ -225,16 +236,16 @@ class FormulaOperation:
             return [f"{output_var} = {input_var}"]
 
         from app.utils.expression import normalize_expression
+
         expr_code = normalize_expression(self.expr_str)
         escaped_name = self.column_name.replace("\\", "\\\\").replace('"', '\\"')
-        return [
-            f'{output_var} = {input_var}.with_columns({expr_code}.alias("{escaped_name}"))'
-        ]
+        return [f'{output_var} = {input_var}.with_columns({expr_code}.alias("{escaped_name}"))']
 
 
 @dataclass
 class SortColumn:
     """Configuration for a single sort column."""
+
     column: str
     descending: bool = False
     nulls_last: bool = True
@@ -384,6 +395,7 @@ AGGREGATION_METHODS = {
 @dataclass
 class AggregationExpr:
     """Configuration for a single aggregation."""
+
     column: str
     operation: str
     output_name: str = ""
@@ -604,7 +616,9 @@ class JoinOperation:
         else:
             left_keys_str = repr(self.left_keys)
             right_keys_str = repr(self.right_keys)
-            how = self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
+            how = (
+                self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
+            )
 
             lines.append(f"# Join: {how} join for matches")
             lines.append(
@@ -619,8 +633,7 @@ class JoinOperation:
 
             if how in ("left", "outer"):
                 lines.append(
-                    f"{left_out_var} = pl.LazyFrame([])  "
-                    f"# unmatched left already in {how} join"
+                    f"{left_out_var} = pl.LazyFrame([])  # unmatched left already in {how} join"
                 )
             else:
                 lines.append("")
@@ -635,8 +648,7 @@ class JoinOperation:
 
             if how in ("right", "outer"):
                 lines.append(
-                    f"{right_out_var} = pl.LazyFrame([])  "
-                    f"# unmatched right already in {how} join"
+                    f"{right_out_var} = pl.LazyFrame([])  # unmatched right already in {how} join"
                 )
             else:
                 lines.append("")
@@ -748,9 +760,7 @@ class UniqueOperation:
         duplicate_output = lf.filter(~mask_expr)
         return unique_output, duplicate_output
 
-    def to_code(
-        self, input_var: str, unique_var: str, duplicate_var: str
-    ) -> list[str]:
+    def to_code(self, input_var: str, unique_var: str, duplicate_var: str) -> list[str]:
         """Generate Python code for unique operation."""
         lines: list[str] = []
 
@@ -804,8 +814,8 @@ class UnpivotOperation:
             index_str = ", ".join(f'"{c}"' for c in self.index)
             return [
                 f"{output_var} = {input_var}.unpivot(",
-                f'    on=[{on_str}],',
-                f'    index=[{index_str}],',
+                f"    on=[{on_str}],",
+                f"    index=[{index_str}],",
                 f'    variable_name="{var_escaped}",',
                 f'    value_name="{val_escaped}",',
                 ")",
@@ -813,7 +823,7 @@ class UnpivotOperation:
         else:
             return [
                 f"{output_var} = {input_var}.unpivot(",
-                f'    on=[{on_str}],',
+                f"    on=[{on_str}],",
                 f'    variable_name="{var_escaped}",',
                 f'    value_name="{val_escaped}",',
                 ")",
@@ -834,9 +844,10 @@ class PivotOperation:
     aggregate_function: str = "first"  # How to aggregate duplicate values
 
     # Valid aggregation functions for pivot
-    VALID_AGGREGATIONS: set[str] = field(default_factory=lambda: {
-        "first", "last", "sum", "mean", "median", "min", "max", "len"
-    }, repr=False)
+    VALID_AGGREGATIONS: set[str] = field(
+        default_factory=lambda: {"first", "last", "sum", "mean", "median", "min", "max", "len"},
+        repr=False,
+    )
 
     def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """Execute pivot operation.
@@ -845,7 +856,11 @@ class PivotOperation:
         performs the pivot on the DataFrame, then returns as a LazyFrame.
         The PivotTool is_blocking() returns True to ensure proper execution.
         """
-        agg_func: str = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
+        agg_func: str = (
+            self.aggregate_function
+            if self.aggregate_function in self.VALID_AGGREGATIONS
+            else "first"
+        )
         # Pivot requires eager execution - collect, pivot, return lazy
         df = lf.collect()
         result = df.pivot(
@@ -864,28 +879,36 @@ class PivotOperation:
         """
         on_escaped = self.on.replace("\\", "\\\\").replace('"', '\\"')
         values_escaped = self.values.replace("\\", "\\\\").replace('"', '\\"')
-        agg_func = self.aggregate_function if self.aggregate_function in self.VALID_AGGREGATIONS else "first"
+        agg_func = (
+            self.aggregate_function
+            if self.aggregate_function in self.VALID_AGGREGATIONS
+            else "first"
+        )
 
         lines = [f"_df_pivot_temp = {input_var}.collect()"]
 
         if self.index:
             index_str = ", ".join(f'"{c}"' for c in self.index)
-            lines.extend([
-                f"{output_var} = _df_pivot_temp.pivot(",
-                f'    on="{on_escaped}",',
-                f'    index=[{index_str}],',
-                f'    values="{values_escaped}",',
-                f'    aggregate_function="{agg_func}",',
-                ").lazy()",
-            ])
+            lines.extend(
+                [
+                    f"{output_var} = _df_pivot_temp.pivot(",
+                    f'    on="{on_escaped}",',
+                    f"    index=[{index_str}],",
+                    f'    values="{values_escaped}",',
+                    f'    aggregate_function="{agg_func}",',
+                    ").lazy()",
+                ]
+            )
         else:
-            lines.extend([
-                f"{output_var} = _df_pivot_temp.pivot(",
-                f'    on="{on_escaped}",',
-                f'    values="{values_escaped}",',
-                f'    aggregate_function="{agg_func}",',
-                ").lazy()",
-            ])
+            lines.extend(
+                [
+                    f"{output_var} = _df_pivot_temp.pivot(",
+                    f'    on="{on_escaped}",',
+                    f'    values="{values_escaped}",',
+                    f'    aggregate_function="{agg_func}",',
+                    ").lazy()",
+                ]
+            )
         return lines
 
 

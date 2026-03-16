@@ -8,8 +8,9 @@ is operating in Hub mode. It verifies that:
 4. Paths outside grants are rejected
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 from fastapi import HTTPException
 
 from app.utils.security import (
@@ -72,9 +73,7 @@ class TestFilePathValidationWithContext:
         finally:
             allowed_paths_context.reset(token)
 
-    def test_file_outside_granted_path_fails(
-        self, sample_csv_file: Path, another_csv_file: Path
-    ):
+    def test_file_outside_granted_path_fails(self, sample_csv_file: Path, another_csv_file: Path):
         """A file outside granted paths should raise 403."""
         # Grant only the 'data' directory, but try to access 'other' directory
         grants = [FilePathGrant(path=str(sample_csv_file.parent), read_only=False)]
@@ -99,9 +98,7 @@ class TestFilePathValidationWithContext:
         finally:
             allowed_paths_context.reset(token)
 
-    def test_multiple_grants_allows_any(
-        self, sample_csv_file: Path, another_csv_file: Path
-    ):
+    def test_multiple_grants_allows_any(self, sample_csv_file: Path, another_csv_file: Path):
         """File in any of multiple granted paths should pass."""
         grants = [
             FilePathGrant(path=str(sample_csv_file.parent), read_only=False),

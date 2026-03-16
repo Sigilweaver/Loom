@@ -355,6 +355,7 @@ class TestConnectionAPI:
         monkeypatch.setattr("app.config.settings.auth_mode", "disabled")
 
         from app.main import app
+
         return TestClient(app)
 
     @pytest.fixture
@@ -364,6 +365,7 @@ class TestConnectionAPI:
         monkeypatch.setattr("app.config.settings.auth_mode", "disabled")
 
         from app.main import app
+
         return TestClient(app)
 
     def test_get_status_enabled(self, client_with_store):
@@ -601,6 +603,7 @@ class TestConnectionResolver:
     def resolver(self, store: ConnectionStore):
         """Create a resolver with the test store."""
         from app.domain.connections.resolver import ConnectionResolver
+
         return ConnectionResolver(connection_store=store)
 
     @pytest.fixture
@@ -613,6 +616,7 @@ class TestConnectionResolver:
             Workflow,
             WorkflowMeta,
         )
+
         return Workflow(
             meta=WorkflowMeta(
                 name="Test",
@@ -731,7 +735,10 @@ class TestConnectionResolver:
         resolved_tool = next(t for t in result.tools if t.id == "client_db")
 
         # Source should be unchanged
-        assert resolved_tool.config["source"] == "postgresql://clientuser:clientpass@clienthost:5432/clientdb"
+        assert (
+            resolved_tool.config["source"]
+            == "postgresql://clientuser:clientpass@clienthost:5432/clientdb"
+        )
 
     def test_resolve_fails_for_missing_server_connection(self, resolver, sample_workflow):
         """Should raise error when server connection doesn't exist."""
@@ -816,36 +823,38 @@ class TestConnectionResolver:
         )
 
         # Add two database tools
-        sample_workflow.tools.extend([
-            Tool(
-                id="db1",
-                type="Input",
-                x=0,
-                y=0,
-                config={
-                    "category": "database",
-                    "type": "postgresql",
-                    "connectionId": conn1.id,
-                    "owner": "server",
-                    "query": "SELECT * FROM table1",
-                },
-                sockets=[],
-            ),
-            Tool(
-                id="db2",
-                type="Input",
-                x=100,
-                y=0,
-                config={
-                    "category": "database",
-                    "type": "postgresql",
-                    "connectionId": conn2.id,
-                    "owner": "server",
-                    "query": "SELECT * FROM table2",
-                },
-                sockets=[],
-            ),
-        ])
+        sample_workflow.tools.extend(
+            [
+                Tool(
+                    id="db1",
+                    type="Input",
+                    x=0,
+                    y=0,
+                    config={
+                        "category": "database",
+                        "type": "postgresql",
+                        "connectionId": conn1.id,
+                        "owner": "server",
+                        "query": "SELECT * FROM table1",
+                    },
+                    sockets=[],
+                ),
+                Tool(
+                    id="db2",
+                    type="Input",
+                    x=100,
+                    y=0,
+                    config={
+                        "category": "database",
+                        "type": "postgresql",
+                        "connectionId": conn2.id,
+                        "owner": "server",
+                        "query": "SELECT * FROM table2",
+                    },
+                    sockets=[],
+                ),
+            ]
+        )
 
         # Resolve connections
         result = resolver.resolve_workflow_connections(sample_workflow)

@@ -61,9 +61,7 @@ class LoaderFactory:
             return GenericLoader(LOADER_SPECS[source_type])
 
         available = ", ".join(sorted(cls.list_supported_types()))
-        raise ToolError(
-            f"Unsupported data source type: {source_type}. Available: {available}"
-        )
+        raise ToolError(f"Unsupported data source type: {source_type}. Available: {available}")
 
     @classmethod
     def list_supported_types(cls) -> list[str]:

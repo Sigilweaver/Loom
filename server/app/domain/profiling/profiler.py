@@ -91,9 +91,17 @@ COMPARABLE_METRICS = {
 def _is_numeric_dtype(dtype: pl.DataType) -> bool:
     """Check if a Polars dtype is numeric."""
     numeric_types = (
-        pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-        pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
-        pl.Float32, pl.Float64, pl.Decimal,
+        pl.Int8,
+        pl.Int16,
+        pl.Int32,
+        pl.Int64,
+        pl.UInt8,
+        pl.UInt16,
+        pl.UInt32,
+        pl.UInt64,
+        pl.Float32,
+        pl.Float64,
+        pl.Decimal,
     )
     return isinstance(dtype, numeric_types)
 
@@ -106,11 +114,23 @@ def _is_string_dtype(dtype: pl.DataType) -> bool:
 def _is_comparable_dtype(dtype: pl.DataType) -> bool:
     """Check if a Polars dtype supports min/max comparison."""
     comparable_types = (
-        pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-        pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
-        pl.Float32, pl.Float64, pl.Decimal,
-        pl.Utf8, pl.String,
-        pl.Date, pl.Datetime, pl.Time, pl.Duration,
+        pl.Int8,
+        pl.Int16,
+        pl.Int32,
+        pl.Int64,
+        pl.UInt8,
+        pl.UInt16,
+        pl.UInt32,
+        pl.UInt64,
+        pl.Float32,
+        pl.Float64,
+        pl.Decimal,
+        pl.Utf8,
+        pl.String,
+        pl.Date,
+        pl.Datetime,
+        pl.Time,
+        pl.Duration,
     )
     return isinstance(dtype, comparable_types)
 
@@ -349,10 +369,12 @@ class ColumnProfiler:
         count_col = "count"
 
         for row in top.iter_rows(named=True):
-            result.append({
-                "value": self._serialize_value(row[value_col]),
-                "count": row[count_col],
-            })
+            result.append(
+                {
+                    "value": self._serialize_value(row[value_col]),
+                    "count": row[count_col],
+                }
+            )
 
         return result
 

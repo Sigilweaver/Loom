@@ -16,13 +16,15 @@ def sample_avro(tmp_path: Path) -> Path:
     avro_path = tmp_path / "test_data.avro"
 
     # Create sample data
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to Avro
     df.write_avro(avro_path)
@@ -33,6 +35,7 @@ def sample_avro(tmp_path: Path) -> Path:
 # ========================================
 # AvroDataSource Tests
 # ========================================
+
 
 @pytest.mark.asyncio
 async def test_avro_datasource_inspect(sample_avro: Path):
@@ -82,9 +85,7 @@ async def test_avro_datasource_preview_with_columns(sample_avro: Path):
     """Test AvroDataSource.preview() with column selection"""
     datasource = AvroDataSource()
 
-    preview = await datasource.preview(
-        str(sample_avro), {}, max_rows=100, columns=["name", "age"]
-    )
+    preview = await datasource.preview(str(sample_avro), {}, max_rows=100, columns=["name", "age"])
 
     assert preview.returned_rows == 5
     assert len(preview.data_schema.columns) == 2
@@ -116,6 +117,7 @@ async def test_avro_datasource_validate_config():
 # InputTool with Avro Tests
 # ========================================
 
+
 @pytest.mark.asyncio
 async def test_avro_input_tool_basic(sample_avro: Path):
     """Test InputTool with Avro basic read"""
@@ -143,11 +145,7 @@ async def test_avro_input_with_n_rows(sample_avro: Path):
     """Test InputTool with Avro limiting rows"""
     tool = InputTool()
 
-    config = {
-        "type": "avro",
-        "source": str(sample_avro),
-        "n_rows": 2
-    }
+    config = {"type": "avro", "source": str(sample_avro), "n_rows": 2}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -162,11 +160,7 @@ async def test_avro_input_with_columns(sample_avro: Path):
     """Test InputTool with Avro column selection by name"""
     tool = InputTool()
 
-    config = {
-        "type": "avro",
-        "source": str(sample_avro),
-        "columns": ["name", "age"]
-    }
+    config = {"type": "avro", "source": str(sample_avro), "columns": ["name", "age"]}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -178,6 +172,7 @@ async def test_avro_input_with_columns(sample_avro: Path):
 # ========================================
 # OutputTool with Avro Tests
 # ========================================
+
 
 @pytest.mark.asyncio
 async def test_avro_output_tool_basic(tmp_path: Path, sample_avro: Path):
@@ -222,11 +217,7 @@ async def test_avro_output_with_snappy_compression(tmp_path: Path, sample_avro: 
 
     # Write with snappy compression
     output_path = tmp_path / "output_snappy.avro"
-    output_config = {
-        "type": "avro",
-        "destination": str(output_path),
-        "compression": "snappy"
-    }
+    output_config = {"type": "avro", "destination": str(output_path), "compression": "snappy"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify output
@@ -250,11 +241,7 @@ async def test_avro_output_with_deflate_compression(tmp_path: Path, sample_avro:
 
     # Write with deflate compression
     output_path = tmp_path / "output_deflate.avro"
-    output_config = {
-        "type": "avro",
-        "destination": str(output_path),
-        "compression": "deflate"
-    }
+    output_config = {"type": "avro", "destination": str(output_path), "compression": "deflate"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify output
@@ -278,11 +265,7 @@ async def test_avro_output_with_schema_name(tmp_path: Path, sample_avro: Path):
 
     # Write with schema name
     output_path = tmp_path / "output_named.avro"
-    output_config = {
-        "type": "avro",
-        "destination": str(output_path),
-        "name": "TestDataSchema"
-    }
+    output_config = {"type": "avro", "destination": str(output_path), "name": "TestDataSchema"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify output
@@ -298,12 +281,14 @@ async def test_avro_roundtrip(tmp_path: Path):
     output_tool = OutputTool()
 
     # Create test data
-    original_df = pl.DataFrame({
-        "integers": [1, 2, 3, 4, 5],
-        "floats": [1.1, 2.2, 3.3, 4.4, 5.5],
-        "strings": ["a", "b", "c", "d", "e"],
-        "booleans": [True, False, True, False, True],
-    })
+    original_df = pl.DataFrame(
+        {
+            "integers": [1, 2, 3, 4, 5],
+            "floats": [1.1, 2.2, 3.3, 4.4, 5.5],
+            "strings": ["a", "b", "c", "d", "e"],
+            "booleans": [True, False, True, False, True],
+        }
+    )
 
     # Write to Avro
     avro_path = tmp_path / "roundtrip.avro"
@@ -337,22 +322,18 @@ async def test_avro_roundtrip(tmp_path: Path):
 # Validation Tests
 # ========================================
 
+
 @pytest.mark.asyncio
 async def test_avro_input_validate_config():
     """Test InputTool.validate_config for Avro"""
     tool = InputTool()
 
     # Valid config
-    errors = await tool.validate_config({
-        "type": "avro",
-        "source": "/path/to/file.avro"
-    })
+    errors = await tool.validate_config({"type": "avro", "source": "/path/to/file.avro"})
     assert errors == []
 
     # Missing source
-    errors = await tool.validate_config({
-        "type": "avro"
-    })
+    errors = await tool.validate_config({"type": "avro"})
     assert any("source" in e.lower() for e in errors)
 
 
@@ -362,14 +343,9 @@ async def test_avro_output_validate_config():
     tool = OutputTool()
 
     # Valid config
-    errors = await tool.validate_config({
-        "type": "avro",
-        "destination": "/path/to/output.avro"
-    })
+    errors = await tool.validate_config({"type": "avro", "destination": "/path/to/output.avro"})
     assert errors == []
 
     # Missing destination
-    errors = await tool.validate_config({
-        "type": "avro"
-    })
+    errors = await tool.validate_config({"type": "avro"})
     assert any("destination" in e.lower() for e in errors)

@@ -32,7 +32,6 @@ def make_tool(tool_id: str, tool_type: str, config: dict | None = None) -> Tool:
     )
 
 
-
 class TestExecutionPlan:
     """Tests for ExecutionPlan dataclass."""
 

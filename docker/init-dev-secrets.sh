@@ -20,11 +20,12 @@ echo "Creating development secrets in $SECRETS_DIR..."
 mkdir -p "$SECRETS_DIR"
 chmod 700 "$SECRETS_DIR"
 
-# Generate development secrets (these are NOT secure - for local dev only!)
-echo -n "dev-session-secret-do-not-use-in-production-$(date +%s)" > "$SECRETS_DIR/session_secret"
-echo -n "dev-secret-key-do-not-use-in-production-$(date +%s)" > "$SECRETS_DIR/secret_key"
-echo -n "dev-registration-secret-$(date +%s)" > "$SECRETS_DIR/server_registration_secret"
-echo -n "dev-password" > "$SECRETS_DIR/postgres_password"
+# Generate development secrets using /dev/urandom for proper entropy
+# (These are still for local dev only — but predictable secrets are a bad habit)
+head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/session_secret"
+head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/secret_key"
+head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/server_registration_secret"
+head -c 16 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/postgres_password"
 
 # Generate a valid Fernet key for connection encryption
 # Fernet requires exactly 32 bytes, url-safe base64 encoded

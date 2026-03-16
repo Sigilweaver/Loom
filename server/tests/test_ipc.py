@@ -16,13 +16,15 @@ def sample_ipc(tmp_path: Path) -> Path:
     ipc_path = tmp_path / "test_data.arrow"
 
     # Create sample data
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to IPC
     df.write_ipc(ipc_path)
@@ -65,11 +67,7 @@ async def test_ipc_input_tool_scan_mode(sample_ipc: Path):
     """Test InputTool with IPC in scan mode (lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan"
-    }
+    config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan"}
 
     outputs = await tool.execute(config, {})
 
@@ -88,11 +86,7 @@ async def test_ipc_input_tool_read_mode(sample_ipc: Path):
     """Test InputTool with IPC in read mode (eager -> lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "read"
-    }
+    config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "read"}
 
     outputs = await tool.execute(config, {})
 
@@ -113,7 +107,7 @@ async def test_ipc_input_with_column_selection(sample_ipc: Path):
         "type": "ipc",
         "source": str(sample_ipc),
         "ipcMode": "scan",
-        "columns": ["name", "age"]
+        "columns": ["name", "age"],
     }
 
     outputs = await tool.execute(config, {})
@@ -128,12 +122,7 @@ async def test_ipc_input_with_n_rows(sample_ipc: Path):
     """Test InputTool with IPC limiting rows"""
     tool = InputTool()
 
-    config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan",
-        "n_rows": 2
-    }
+    config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan", "n_rows": 2}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -150,20 +139,12 @@ async def test_ipc_output_tool_sink_mode(tmp_path: Path, sample_ipc: Path):
     output_tool = OutputTool()
 
     # Load test data
-    input_config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan"
-    }
+    input_config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan"}
     inputs = await input_tool.execute(input_config, {})
 
     # Write to new file
     output_path = tmp_path / "output.arrow"
-    output_config = {
-        "type": "ipc",
-        "destination": str(output_path),
-        "ipcMode": "sink"
-    }
+    output_config = {"type": "ipc", "destination": str(output_path), "ipcMode": "sink"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify output file exists and has correct data
@@ -180,20 +161,12 @@ async def test_ipc_output_tool_write_mode(tmp_path: Path, sample_ipc: Path):
     output_tool = OutputTool()
 
     # Load test data
-    input_config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan"
-    }
+    input_config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan"}
     inputs = await input_tool.execute(input_config, {})
 
     # Write to new file
     output_path = tmp_path / "output_eager.arrow"
-    output_config = {
-        "type": "ipc",
-        "destination": str(output_path),
-        "ipcMode": "write"
-    }
+    output_config = {"type": "ipc", "destination": str(output_path), "ipcMode": "write"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify output file exists and has correct data
@@ -209,11 +182,7 @@ async def test_ipc_output_with_compression(tmp_path: Path, sample_ipc: Path):
     output_tool = OutputTool()
 
     # Load test data
-    input_config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan"
-    }
+    input_config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan"}
     inputs = await input_tool.execute(input_config, {})
 
     # Write with zstd compression
@@ -222,7 +191,7 @@ async def test_ipc_output_with_compression(tmp_path: Path, sample_ipc: Path):
         "type": "ipc",
         "destination": str(output_path),
         "ipcMode": "sink",
-        "compression": "zstd"
+        "compression": "zstd",
     }
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
@@ -235,10 +204,7 @@ async def test_ipc_output_with_compression(tmp_path: Path, sample_ipc: Path):
 @pytest.mark.asyncio
 async def test_ipc_roundtrip_all_extensions(tmp_path: Path):
     """Test IPC roundtrip with all supported extensions"""
-    df = pl.DataFrame({
-        "id": [1, 2, 3],
-        "value": ["a", "b", "c"]
-    })
+    df = pl.DataFrame({"id": [1, 2, 3], "value": ["a", "b", "c"]})
 
     extensions = [".arrow", ".ipc", ".feather"]
 
@@ -267,7 +233,7 @@ async def test_ipc_with_row_index(sample_ipc: Path):
         "source": str(sample_ipc),
         "ipcMode": "scan",
         "row_index_name": "row_nr",
-        "row_index_offset": 1
+        "row_index_offset": 1,
     }
 
     outputs = await tool.execute(config, {})
@@ -310,20 +276,12 @@ async def test_ipc_output_creates_parent_dirs(tmp_path: Path, sample_ipc: Path):
     output_tool = OutputTool()
 
     # Load test data
-    input_config = {
-        "type": "ipc",
-        "source": str(sample_ipc),
-        "ipcMode": "scan"
-    }
+    input_config = {"type": "ipc", "source": str(sample_ipc), "ipcMode": "scan"}
     inputs = await input_tool.execute(input_config, {})
 
     # Write to nested path that doesn't exist
     output_path = tmp_path / "nested" / "dir" / "output.arrow"
-    output_config = {
-        "type": "ipc",
-        "destination": str(output_path),
-        "ipcMode": "sink"
-    }
+    output_config = {"type": "ipc", "destination": str(output_path), "ipcMode": "sink"}
     await output_tool.execute(output_config, {"input": inputs["output"]})
 
     # Verify file was created
@@ -341,11 +299,7 @@ def test_ipc_input_code_generation_scan():
     """Test code generation for IPC input with scan mode"""
     tool = InputTool()
 
-    config = {
-        "type": "ipc",
-        "source": "/data/input.arrow",
-        "ipcMode": "scan"
-    }
+    config = {"type": "ipc", "source": "/data/input.arrow", "ipcMode": "scan"}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
@@ -359,11 +313,7 @@ def test_ipc_input_code_generation_read():
     """Test code generation for IPC input with read mode"""
     tool = InputTool()
 
-    config = {
-        "type": "ipc",
-        "source": "/data/input.feather",
-        "ipcMode": "read"
-    }
+    config = {"type": "ipc", "source": "/data/input.feather", "ipcMode": "read"}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
@@ -383,7 +333,7 @@ def test_ipc_input_code_generation_with_options():
         "ipcMode": "scan",
         "n_rows": 100,
         "memory_map": True,
-        "row_index_name": "idx"
+        "row_index_name": "idx",
     }
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
@@ -399,11 +349,7 @@ def test_ipc_output_code_generation_sink():
     """Test code generation for IPC output with sink mode"""
     tool = OutputTool()
 
-    config = {
-        "type": "ipc",
-        "destination": "/data/output.arrow",
-        "ipcMode": "sink"
-    }
+    config = {"type": "ipc", "destination": "/data/output.arrow", "ipcMode": "sink"}
 
     lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 
@@ -416,11 +362,7 @@ def test_ipc_output_code_generation_write():
     """Test code generation for IPC output with write mode"""
     tool = OutputTool()
 
-    config = {
-        "type": "ipc",
-        "destination": "/data/output.ipc",
-        "ipcMode": "write"
-    }
+    config = {"type": "ipc", "destination": "/data/output.ipc", "ipcMode": "write"}
 
     lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 
@@ -438,7 +380,7 @@ def test_ipc_output_code_generation_with_compression():
         "type": "ipc",
         "destination": "/data/output.arrow",
         "ipcMode": "sink",
-        "compression": "zstd"
+        "compression": "zstd",
     }
 
     lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})

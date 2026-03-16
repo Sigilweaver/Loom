@@ -141,6 +141,13 @@ chmod 600 .secrets/*
 
 Secrets are mounted to `/run/secrets/` in containers and read via `*_FILE` environment variables.
 
+The Hub entrypoint supports two patterns for database credentials:
+
+1. **Preferred**: `DATABASE_URL_TEMPLATE` with a `__PASSWORD__` placeholder + `DATABASE_PASSWORD_FILE` pointing to the secret file. The entrypoint substitutes the password at runtime.
+2. **Legacy**: `DATABASE_URL` with an empty password (`user:@host`) + `POSTGRES_PASSWORD` loaded from a secret file. The entrypoint reconstructs the full URL.
+
+Both patterns keep the database password out of `docker inspect` output.
+
 ### Environment Variables (Development)
 
 For development, you can use environment variables in `.env` instead of secrets files.
@@ -156,15 +163,16 @@ The `docker-compose.override.yml` file disables secrets for local development.
 
 ### Optional Environment Variables
 
-| Variable       | Default  | Description                |
-| -------------- | -------- | -------------------------- |
-| `VERSION`      | `latest` | Image version tag          |
-| `HUB_PORT`     | `25802`  | Hub external port          |
-| `LOG_LEVEL`    | `info`   | Logging level              |
-| `LOG_FORMAT`   | `json`   | Log format (text/json)     |
-| `CORS_ORIGINS` | -        | Allowed CORS origins       |
-| `DATABASE_URL` | -        | External PostgreSQL URL    |
-| `SERVER_NAME`  | auto     | Server display name in Hub |
+| Variable       | Default         | Description                                    |
+| -------------- | --------------- | ---------------------------------------------- |
+| `VERSION`      | `latest`        | Image version tag                              |
+| `HUB_PORT`     | `25802`         | Hub external port                              |
+| `ENVIRONMENT`  | `development`   | `production` enforces secret validation at startup |
+| `LOG_LEVEL`    | `info`          | Logging level                                  |
+| `LOG_FORMAT`   | `json`          | Log format (text/json)                         |
+| `CORS_ORIGINS` | -               | Allowed CORS origins                           |
+| `DATABASE_URL` | -               | External PostgreSQL URL                        |
+| `SERVER_NAME`  | auto            | Server display name in Hub                     |
 
 ## Scaling Servers
 
@@ -289,17 +297,22 @@ SCAN=1 ./docker/build.sh
 
 - **Read-only root filesystems** - Containers run with immutable filesystems
 - **Non-root users** - All containers run as `appuser` (UID 1000)
-- **Docker secrets** - Sensitive data stored outside container images
+- **Docker secrets** - Sensitive data stored outside container images; passwords never in `docker inspect`
 - **Network isolation** - Internal network for service-to-service communication
 - **Resource limits** - Memory constraints prevent runaway containers
 - **Health checks** - Automatic restart on failure
 - **Init process** - Proper signal handling via tini
+- **Startup validation** - In production mode (`ENVIRONMENT=production`), Hub rejects default/insecure secrets; in development mode, a warning is logged instead
+- **Cryptographic entropy** - Dev secrets generated with `/dev/urandom`, not timestamps
 
 ## Production Checklist
 
 - [ ] All secrets generated and stored in `.secrets/` directory
 - [ ] `.secrets/` directory has `chmod 700` permissions
 - [ ] Secret files have `chmod 600` permissions
+- [ ] `ENVIRONMENT=production` is set (enforces secret validation at startup)
+- [ ] `SESSION_SECRET` and `SECRET_KEY` are NOT the default `CHANGE_ME_IN_PRODUCTION`
+- [ ] `SERVER_REGISTRATION_SECRET` is set (empty = open server registration)
 - [ ] Using production compose: `docker compose -f docker-compose.yml up -d`
 - [ ] `CORS_ORIGINS` set to your domain(s)
 - [ ] `LOG_FORMAT=json` for log aggregation

@@ -92,9 +92,7 @@ class ConnectionResolver:
 
         # Validate hub connections are provided (fail-fast)
         if hub_connection_refs:
-            self._validate_hub_connections_provided(
-                hub_connection_refs, hub_connections
-            )
+            self._validate_hub_connections_provided(hub_connection_refs, hub_connections)
 
         # Future: Add RBAC authorization check here
         # self._authorize_connections(server_connections, user)
@@ -204,9 +202,7 @@ class ConnectionResolver:
                     "User may not have access to this connection."
                 )
 
-    def _resolve_hub_tool_connection(
-        self, tool: Tool, connection: ResolvedConnection
-    ) -> Tool:
+    def _resolve_hub_tool_connection(self, tool: Tool, connection: ResolvedConnection) -> Tool:
         """
         Resolve a single tool's hub connection using provided credentials.
 
@@ -303,9 +299,7 @@ class ConnectionResolver:
         """
         connection_id = tool.config.get("connectionId")
         if not connection_id or not isinstance(connection_id, str):
-            raise ExecutionError(
-                f"Tool {tool.id}: Missing or invalid connectionId"
-            )
+            raise ExecutionError(f"Tool {tool.id}: Missing or invalid connectionId")
 
         uri = self.store.build_connection_uri(connection_id)
         if not uri:

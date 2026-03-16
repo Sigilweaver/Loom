@@ -47,7 +47,7 @@ services:
   # PostgreSQL (optional - can use external database via DATABASE_URL)
   # ===========================================================================
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.8-alpine3.21
     restart: unless-stopped
     init: true
     environment:
@@ -98,8 +98,12 @@ services:
       - server_registration_secret
       - postgres_password
     environment:
-      # Database (use secret file for password)
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sigilweaver_hub}
+      # Runtime mode — enforces secret validation at startup
+      ENVIRONMENT: production
+
+      # Database — password read from secret file at runtime by entrypoint
+      DATABASE_URL_TEMPLATE: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver}:__PASSWORD__@postgres:5432/${POSTGRES_DB:-sigilweaver_hub}
+      DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
 
       # Security secrets (read from Docker secrets)
       SESSION_SECRET_FILE: /run/secrets/session_secret

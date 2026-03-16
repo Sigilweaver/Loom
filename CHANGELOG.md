@@ -5,6 +5,38 @@ All notable changes to Sigilweaver are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
+## [Unreleased] - Security & Quality Remediation
+
+### Security
+
+- **Expression sandbox hardening (C1)** — Added AST validation before `eval()` in the expression engine to block sandbox escapes (e.g., `__import__`, attribute access to builtins)
+- **Reject default secrets at startup (S1/HUB-1)** — Hub validates `SESSION_SECRET` and `SECRET_KEY` are not `CHANGE_ME_IN_PRODUCTION`; fatal in production (`ENVIRONMENT=production`), warning in development
+- **Constant-time secret comparison (C6)** — Server registration endpoint uses `secrets.compare_digest` instead of `==` to prevent timing attacks
+- **SSRF protection in AI proxy (C3/C4)** — Block requests to private/reserved IP ranges and use a header allowlist instead of forwarding all headers
+- **DDL/DML rejection in database datasource (C2)** — Queries containing `DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `CREATE`, `TRUNCATE`, or `GRANT` are rejected before execution
+- **Database URL password via Docker secrets (INF-1)** — `docker-compose.yml` uses `DATABASE_URL_TEMPLATE` with `__PASSWORD__` placeholder + `DATABASE_PASSWORD_FILE` to keep passwords out of `docker inspect`
+- **Cryptographic entropy for dev secrets (INF-2)** — `init-dev-secrets.sh` uses `/dev/urandom` via `openssl rand` instead of timestamp-based values
+- **Empty registration secret warning (S5/HUB-4)** — Hub logs a warning at startup when `SERVER_REGISTRATION_SECRET` is empty
+
+### Fixed
+
+- **Parallel executor race condition (SRV-3)** — Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
+- **Ruff lint violations (SRV-5/SRV-6)** — Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
+- **Dev startup crash with default secrets** — Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
+
+### Changed
+
+- **Pin PostgreSQL image (INF-4)** — Docker Compose now uses `postgres:16.8-alpine3.21` instead of `postgres:16-alpine` to prevent surprise upgrades
+- **New `ENVIRONMENT` config setting** — Defaults to `development`; set to `production` in `docker-compose.yml` to enforce strict secret validation
+
+### Documentation
+
+- Updated security model docs with expression sandboxing, AI proxy protection, database query safety, and startup secret validation sections
+- Updated backend architecture docs with expression security details
+- Updated deployment guide with `ENVIRONMENT` setting and secret validation behavior
+- Updated connections docs with query safety section
+- Expanded Docker README with secrets management, `ENVIRONMENT` variable, and production checklist items
+
 ## [v0.11.3] - 2026-03-08
 
 ### Fixed

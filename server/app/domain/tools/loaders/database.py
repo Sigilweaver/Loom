@@ -96,9 +96,7 @@ class DatabaseLoader(FileLoader):
                     "Please verify your username and password."
                 )
             elif "does not exist" in error_msg.lower() and "database" in error_msg.lower():
-                raise ToolError(
-                    "Database does not exist. Please verify the database name."
-                )
+                raise ToolError("Database does not exist. Please verify the database name.")
             elif "syntax error" in error_msg.lower():
                 raise ToolError(f"SQL syntax error: {error_msg}")
             else:

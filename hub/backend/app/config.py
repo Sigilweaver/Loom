@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     reload: bool = False
     log_level: str = "info"
     log_format: str = "text"  # "text" or "json"
+    environment: str = "development"  # "development" or "production"
 
     # Static files - serve frontend from this directory (empty = disabled)
     static_files_path: str = ""
@@ -22,7 +23,9 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:25803", "http://localhost:25810"]
 
     # Database
-    database_url: str = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
+    database_url: str = (
+        "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
+    )
 
     # Authentication - Session
     session_secret: str = "CHANGE_ME_IN_PRODUCTION"

@@ -34,6 +34,10 @@ class WorkflowExecutor:
         self.results: dict[str, dict[str, pl.LazyFrame]] = {}
         self.archive_dir: Path | None = None
         self._default_engine: str = "sigilweaver/polars"
+        # Lock guards self.results during parallel execution levels.
+        # Asyncio is single-threaded so dict ops are atomic in practice,
+        # but the lock makes the contract explicit and future-proof.
+        self._results_lock = asyncio.Lock()
 
     async def execute_workflow(
         self,
@@ -113,7 +117,9 @@ class WorkflowExecutor:
     ) -> dict[str, Any]:
         """Execute a single tool and its dependencies."""
         result = await self.execute_workflow(
-            workflow, target_tool_id=tool_id, preview_limit=preview_limit,
+            workflow,
+            target_tool_id=tool_id,
+            preview_limit=preview_limit,
             force_refresh=force_refresh,
         )
 
@@ -278,12 +284,10 @@ class WorkflowExecutor:
 
         # Execute all tools up to and including the target
         target_index = execution_order.index(tool_id)
-        for exec_tool_id in execution_order[:target_index + 1]:
+        for exec_tool_id in execution_order[: target_index + 1]:
             exec_tool = plan.get_tool(exec_tool_id)
             inputs = self._gather_inputs(exec_tool_id, plan)
-            outputs, _ = await self._execute_tool_with_cache(
-                exec_tool, inputs, plan, cache_mgr
-            )
+            outputs, _ = await self._execute_tool_with_cache(exec_tool, inputs, plan, cache_mgr)
             self.results[exec_tool_id] = outputs
 
         # Get the LazyFrame from the tool's output socket
@@ -358,13 +362,15 @@ class WorkflowExecutor:
             if from_cache:
                 cache_hits += 1
 
-            tool_logs.append({
-                "tool_id": tool_id,
-                "tool_type": tool.type,
-                "execution_time_ms": (time.time() - tool_start) * 1000,
-                "status": "success",
-                "from_cache": from_cache,
-            })
+            tool_logs.append(
+                {
+                    "tool_id": tool_id,
+                    "tool_type": tool.type,
+                    "execution_time_ms": (time.time() - tool_start) * 1000,
+                    "status": "success",
+                    "from_cache": from_cache,
+                }
+            )
 
         return tool_logs, cache_hits
 
@@ -400,18 +406,16 @@ class WorkflowExecutor:
             raw_results: list[dict[str, Any] | BaseException]
             if len(level_tools) == 1:
                 # Single tool - no need for gather
-                raw_results = [await self._execute_single_tool_tracked(
-                    level_tools[0], plan, cache_mgr
-                )]
+                raw_results = [
+                    await self._execute_single_tool_tracked(level_tools[0], plan, cache_mgr)
+                ]
             else:
                 # Multiple tools - execute concurrently with semaphore
                 semaphore = asyncio.Semaphore(max_concurrent)
 
                 async def limited_execute(tool_id: str) -> dict[str, Any]:
                     async with semaphore:
-                        return await self._execute_single_tool_tracked(
-                            tool_id, plan, cache_mgr
-                        )
+                        return await self._execute_single_tool_tracked(tool_id, plan, cache_mgr)
 
                 raw_results = await asyncio.gather(
                     *[limited_execute(tid) for tid in level_tools],
@@ -428,8 +432,7 @@ class WorkflowExecutor:
                     cache_hits += 1
 
             logger.debug(
-                f"Level {level_idx + 1} completed in "
-                f"{(time.time() - level_start) * 1000:.1f}ms"
+                f"Level {level_idx + 1} completed in {(time.time() - level_start) * 1000:.1f}ms"
             )
 
         return tool_logs, cache_hits
@@ -444,11 +447,10 @@ class WorkflowExecutor:
         tool_start = time.time()
         tool = plan.get_tool(tool_id)
         inputs = self._gather_inputs(tool_id, plan)
-        outputs, from_cache = await self._execute_tool_with_cache(
-            tool, inputs, plan, cache_mgr
-        )
+        outputs, from_cache = await self._execute_tool_with_cache(tool, inputs, plan, cache_mgr)
 
-        self.results[tool_id] = outputs
+        async with self._results_lock:
+            self.results[tool_id] = outputs
 
         return {
             "tool_id": tool_id,
@@ -596,6 +598,7 @@ class WorkflowExecutor:
             return
         try:
             from app.domain.workflow.archive import WorkflowArchive
+
             archive = WorkflowArchive(settings.archive_path)
             self.archive_dir = archive.create_archive(workflow)
             archive_rel = str(self.archive_dir.relative_to(archive.archive_root))
@@ -626,6 +629,7 @@ class WorkflowExecutor:
         try:
             log_data["execution_time_ms"] = (time.time() - start_time) * 1000
             from app.domain.workflow.archive import WorkflowArchive
+
             archive = WorkflowArchive(settings.archive_path)
             archive.save_execution_log(self.archive_dir, log_data)
         except Exception as e:

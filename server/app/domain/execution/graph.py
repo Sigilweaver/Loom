@@ -66,9 +66,7 @@ class ExecutionGraph:
 
         # Check for cycles
         if len(result) != len(self.dependencies):
-            raise ValidationError(
-                "Workflow contains a cycle. Cannot determine execution order."
-            )
+            raise ValidationError("Workflow contains a cycle. Cannot determine execution order.")
 
         return result
 
@@ -112,12 +110,8 @@ class ExecutionGraph:
 
         # Check all wires reference valid sockets
         for wire in self.workflow.wires:
-            source_tool = next(
-                (t for t in self.workflow.tools if t.id == wire.from_.tool), None
-            )
-            target_tool = next(
-                (t for t in self.workflow.tools if t.id == wire.to.tool), None
-            )
+            source_tool = next((t for t in self.workflow.tools if t.id == wire.from_.tool), None)
+            target_tool = next((t for t in self.workflow.tools if t.id == wire.to.tool), None)
 
             if source_tool:
                 source_socket = next(
@@ -140,8 +134,7 @@ class ExecutionGraph:
                 )
                 if not target_socket:
                     errors.append(
-                        f"Wire references unknown socket {wire.to.socket} "
-                        f"on tool {wire.to.tool}"
+                        f"Wire references unknown socket {wire.to.socket} on tool {wire.to.tool}"
                     )
                 elif target_socket.direction != "input":
                     errors.append(

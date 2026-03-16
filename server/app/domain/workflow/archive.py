@@ -283,6 +283,7 @@ class WorkflowArchive:
                 if dir_date < cutoff_date:
                     # Delete entire date directory
                     import shutil
+
                     shutil.rmtree(date_dir)
                     deleted_count += sum(1 for _ in date_dir.iterdir() if _.is_dir())
                     logger.info(f"Deleted old archive directory: {date_dir}")

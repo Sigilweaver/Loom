@@ -10,41 +10,49 @@ from app.domain.tools.implementations.join import JoinTool
 @pytest.fixture
 def left_dataframe():
     """Create a sample left dataframe for testing."""
-    return pl.LazyFrame({
-        "id": [1, 2, 3, 4],
-        "name": ["Alice", "Bob", "Charlie", "Diana"],
-        "department": ["Engineering", "Sales", "Engineering", "HR"],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "name": ["Alice", "Bob", "Charlie", "Diana"],
+            "department": ["Engineering", "Sales", "Engineering", "HR"],
+        }
+    )
 
 
 @pytest.fixture
 def right_dataframe():
     """Create a sample right dataframe for testing."""
-    return pl.LazyFrame({
-        "id": [2, 3, 5, 6],
-        "salary": [50000, 60000, 55000, 45000],
-        "location": ["NYC", "LA", "Chicago", "Boston"],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [2, 3, 5, 6],
+            "salary": [50000, 60000, 55000, 45000],
+            "location": ["NYC", "LA", "Chicago", "Boston"],
+        }
+    )
 
 
 @pytest.fixture
 def left_schema():
     """Create schema for left dataframe."""
-    return DataSchema(columns=[
-        ColumnSchema(name="id", dtype="Int64", nullable=False),
-        ColumnSchema(name="name", dtype="String", nullable=False),
-        ColumnSchema(name="department", dtype="String", nullable=False),
-    ])
+    return DataSchema(
+        columns=[
+            ColumnSchema(name="id", dtype="Int64", nullable=False),
+            ColumnSchema(name="name", dtype="String", nullable=False),
+            ColumnSchema(name="department", dtype="String", nullable=False),
+        ]
+    )
 
 
 @pytest.fixture
 def right_schema():
     """Create schema for right dataframe."""
-    return DataSchema(columns=[
-        ColumnSchema(name="id", dtype="Int64", nullable=False),
-        ColumnSchema(name="salary", dtype="Int64", nullable=False),
-        ColumnSchema(name="location", dtype="String", nullable=False),
-    ])
+    return DataSchema(
+        columns=[
+            ColumnSchema(name="id", dtype="Int64", nullable=False),
+            ColumnSchema(name="salary", dtype="Int64", nullable=False),
+            ColumnSchema(name="location", dtype="String", nullable=False),
+        ]
+    )
 
 
 class TestJoinToolExecute:
@@ -131,16 +139,20 @@ class TestJoinToolExecute:
     async def test_join_multi_key(self):
         """Test join on multiple key columns."""
         tool = JoinTool()
-        left = pl.LazyFrame({
-            "dept": ["A", "A", "B", "B"],
-            "year": [2022, 2023, 2022, 2023],
-            "budget": [100, 110, 200, 210],
-        })
-        right = pl.LazyFrame({
-            "department": ["A", "B", "C"],
-            "fiscal_year": [2023, 2022, 2023],
-            "headcount": [10, 20, 5],
-        })
+        left = pl.LazyFrame(
+            {
+                "dept": ["A", "A", "B", "B"],
+                "year": [2022, 2023, 2022, 2023],
+                "budget": [100, 110, 200, 210],
+            }
+        )
+        right = pl.LazyFrame(
+            {
+                "department": ["A", "B", "C"],
+                "fiscal_year": [2023, 2022, 2023],
+                "headcount": [10, 20, 5],
+            }
+        )
 
         config = {
             "leftKeys": ["dept", "year"],
@@ -266,14 +278,18 @@ class TestJoinToolOutputSchema:
     async def test_schema_with_conflict_suffix(self):
         """Test schema handles column name conflicts."""
         tool = JoinTool()
-        left_schema = DataSchema(columns=[
-            ColumnSchema(name="id", dtype="Int64", nullable=False),
-            ColumnSchema(name="value", dtype="Int64", nullable=False),
-        ])
-        right_schema = DataSchema(columns=[
-            ColumnSchema(name="id", dtype="Int64", nullable=False),
-            ColumnSchema(name="value", dtype="Int64", nullable=False),
-        ])
+        left_schema = DataSchema(
+            columns=[
+                ColumnSchema(name="id", dtype="Int64", nullable=False),
+                ColumnSchema(name="value", dtype="Int64", nullable=False),
+            ]
+        )
+        right_schema = DataSchema(
+            columns=[
+                ColumnSchema(name="id", dtype="Int64", nullable=False),
+                ColumnSchema(name="value", dtype="Int64", nullable=False),
+            ]
+        )
 
         config = {
             "leftKeys": ["id"],
@@ -403,8 +419,8 @@ class TestJoinCodeGeneration:
 
         # Check we generate inner join
         assert 'how="inner"' in code
-        assert 'left_on=' in code
-        assert 'right_on=' in code
+        assert "left_on=" in code
+        assert "right_on=" in code
 
         # Check anti-joins
         assert 'how="anti"' in code
@@ -428,9 +444,7 @@ class TestJoinCodeGeneration:
         """Test code generation with only left input."""
         tool = JoinTool()
         config = {"leftKeys": ["id"], "rightKeys": ["id"]}
-        lines, output_vars = tool.to_python_code(
-            "join1", config, {"input-left": "df_left"}
-        )
+        lines, output_vars = tool.to_python_code("join1", config, {"input-left": "df_left"})
 
         code = "\n".join(lines)
         # Left passes through, others empty

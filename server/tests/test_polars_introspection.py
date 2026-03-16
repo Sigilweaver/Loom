@@ -214,32 +214,40 @@ class TestGenerateSnippet:
 
     def test_no_params(self):
         """Should generate simple snippet for no-param methods."""
+
         def simple_method():
             pass
+
         sig = inspect.signature(simple_method)
         result = _generate_snippet("test", sig)
         assert result == ".test()"
 
     def test_string_param(self):
         """Should wrap string params in quotes."""
+
         def string_method(pattern: str):
             pass
+
         sig = inspect.signature(string_method)
         result = _generate_snippet("contains", sig)
         assert result == ".contains('${1:pattern}')"
 
     def test_int_param(self):
         """Should use 0 default for int params."""
+
         def int_method(n: int):
             pass
+
         sig = inspect.signature(int_method)
         result = _generate_snippet("limit", sig)
         assert result == ".limit(${1:0})"
 
     def test_prefix_override(self):
         """Should respect prefix parameter."""
+
         def simple_method():
             pass
+
         sig = inspect.signature(simple_method)
         result = _generate_snippet("col", sig, prefix="pl.")
         assert result == "pl.col()"

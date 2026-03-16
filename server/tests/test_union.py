@@ -10,17 +10,9 @@ async def test_union_by_name():
     tool = UnionTool()
 
     # Create two frames with overlapping columns
-    df1 = pl.LazyFrame({
-        "id": [1, 2],
-        "name": ["Alice", "Bob"],
-        "age": [25, 30]
-    })
+    df1 = pl.LazyFrame({"id": [1, 2], "name": ["Alice", "Bob"], "age": [25, 30]})
 
-    df2 = pl.LazyFrame({
-        "id": [3, 4],
-        "name": ["Charlie", "David"],
-        "city": ["New York", "London"]
-    })
+    df2 = pl.LazyFrame({"id": [3, 4], "name": ["Charlie", "David"], "city": ["New York", "London"]})
 
     inputs = {"input": [df1, df2]}
     config = {"mode": "ByName"}
@@ -38,20 +30,15 @@ async def test_union_by_name():
     assert output.filter(pl.col("id") == 3).select("age").item(0, 0) is None
     assert output.filter(pl.col("id") == 1).select("city").item(0, 0) is None
 
+
 @pytest.mark.asyncio
 async def test_union_by_position():
     tool = UnionTool()
 
     # Create two frames with different column names but same structure
-    df1 = pl.LazyFrame({
-        "col1": [1, 2],
-        "col2": ["A", "B"]
-    })
+    df1 = pl.LazyFrame({"col1": [1, 2], "col2": ["A", "B"]})
 
-    df2 = pl.LazyFrame({
-        "other1": [3, 4],
-        "other2": ["C", "D"]
-    })
+    df2 = pl.LazyFrame({"other1": [3, 4], "other2": ["C", "D"]})
 
     inputs = {"input": [df1, df2]}
     config = {"mode": "ByPosition"}
@@ -65,6 +52,7 @@ async def test_union_by_position():
     # Check data was stacked
     assert output["col1"].to_list() == [1, 2, 3, 4]
     assert output["col2"].to_list() == ["A", "B", "C", "D"]
+
 
 @pytest.mark.asyncio
 async def test_union_single_input():
@@ -81,19 +69,24 @@ async def test_union_single_input():
     assert output.height == 1
     assert output.columns == ["a"]
 
+
 @pytest.mark.asyncio
 async def test_union_schema_by_name():
     tool = UnionTool()
 
-    s1 = DataSchema(columns=[
-        ColumnSchema(name="a", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="b", dtype=PolarsDataType.STRING, nullable=True)
-    ])
+    s1 = DataSchema(
+        columns=[
+            ColumnSchema(name="a", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="b", dtype=PolarsDataType.STRING, nullable=True),
+        ]
+    )
 
-    s2 = DataSchema(columns=[
-        ColumnSchema(name="a", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="c", dtype=PolarsDataType.BOOLEAN, nullable=True)
-    ])
+    s2 = DataSchema(
+        columns=[
+            ColumnSchema(name="a", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="c", dtype=PolarsDataType.BOOLEAN, nullable=True),
+        ]
+    )
 
     inputs = {"input": [s1, s2]}
     config = {"mode": "ByName"}

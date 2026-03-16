@@ -9,12 +9,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ConnectionOwner(str, Enum):
     """Who manages the connection credentials."""
+
     SERVER = "server"
     CLIENT = "client"
 
 
 class DatabaseType(str, Enum):
     """Supported database types."""
+
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
     SQLITE = "sqlite"
@@ -27,6 +29,7 @@ class StoredConnection(BaseModel):
 
     This is the internal storage format - credentials are encrypted at rest.
     """
+
     id: str
     name: str
     type: DatabaseType
@@ -45,6 +48,7 @@ class ConnectionInfo(BaseModel):
 
     This is what the API returns - credentials are never exposed.
     """
+
     id: str
     name: str
     type: DatabaseType
@@ -64,6 +68,7 @@ class ResolvedConnection(BaseModel):
 
     This should NEVER leave the server - used only for building connection URIs.
     """
+
     id: str
     name: str
     type: DatabaseType
@@ -76,6 +81,7 @@ class ResolvedConnection(BaseModel):
 
 class CreateConnectionInput(BaseModel):
     """Input for creating a new server connection."""
+
     name: str = Field(min_length=1, max_length=100)
     type: DatabaseType
     host: str = Field(min_length=1, max_length=255)
@@ -87,6 +93,7 @@ class CreateConnectionInput(BaseModel):
 
 class UpdateConnectionInput(BaseModel):
     """Input for updating an existing connection (all fields optional)."""
+
     name: str | None = Field(None, min_length=1, max_length=100)
     host: str | None = Field(None, min_length=1, max_length=255)
     port: int | None = Field(None, ge=1, le=65535)

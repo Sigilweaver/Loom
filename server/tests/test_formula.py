@@ -6,20 +6,22 @@ import pytest
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.implementations.formula import FormulaTool
 
-
 # ============================================================================
 # Legacy single-operation tests (backward compatibility)
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_formula_arithmetic():
     """Test arithmetic expressions"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "price": [10, 20, 30],
-        "quantity": [2, 3, 4],
-    })
+    df = pl.LazyFrame(
+        {
+            "price": [10, 20, 30],
+            "quantity": [2, 3, 4],
+        }
+    )
 
     config = {
         "column_name": "total",
@@ -38,10 +40,12 @@ async def test_formula_replace_column():
     """Test replacing an existing column with a calculated value"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "price": [10.0, 20.0, 30.0],
-        "quantity": [2, 3, 4],
-    })
+    df = pl.LazyFrame(
+        {
+            "price": [10.0, 20.0, 30.0],
+            "quantity": [2, 3, 4],
+        }
+    )
 
     config = {
         "column_name": "price",
@@ -65,11 +69,13 @@ async def test_formula_replace_column_maintains_order():
     """Test that replacing a column maintains the original column order"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "a": [1, 2, 3],
-        "b": [4, 5, 6],
-        "c": [7, 8, 9],
-    })
+    df = pl.LazyFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [4, 5, 6],
+            "c": [7, 8, 9],
+        }
+    )
 
     config = {
         "column_name": "b",
@@ -118,9 +124,11 @@ async def test_formula_comparison():
     """Test comparison expressions"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "age": [25, 35, 45],
-    })
+    df = pl.LazyFrame(
+        {
+            "age": [25, 35, 45],
+        }
+    )
 
     config = {
         "column_name": "is_senior",
@@ -139,9 +147,11 @@ async def test_formula_conditional():
     """Test conditional expressions with pl.when"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "age": [25, 35, 45, 55],
-    })
+    df = pl.LazyFrame(
+        {
+            "age": [25, 35, 45, 55],
+        }
+    )
 
     config = {
         "column_name": "age_group",
@@ -164,9 +174,11 @@ async def test_formula_string_operations():
     """Test string operations"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "name": ["alice", "bob", "charlie"],
-    })
+    df = pl.LazyFrame(
+        {
+            "name": ["alice", "bob", "charlie"],
+        }
+    )
 
     config = {
         "column_name": "name_upper",
@@ -221,18 +233,22 @@ async def test_formula_validation():
     assert any("expression" in e for e in errors)
 
     # Valid config for new column
-    errors = await tool.validate_config({
-        "column_name": "test",
-        "expression": "pl.col('a') + pl.col('b')",
-    })
+    errors = await tool.validate_config(
+        {
+            "column_name": "test",
+            "expression": "pl.col('a') + pl.col('b')",
+        }
+    )
     assert len(errors) == 0
 
     # Valid config with replace flag
-    errors = await tool.validate_config({
-        "column_name": "existing_col",
-        "replace": True,
-        "expression": "pl.col('a') + pl.col('b')",
-    })
+    errors = await tool.validate_config(
+        {
+            "column_name": "existing_col",
+            "replace": True,
+            "expression": "pl.col('a') + pl.col('b')",
+        }
+    )
     assert len(errors) == 0
 
 
@@ -257,15 +273,18 @@ async def test_formula_invalid_expression():
 # Multi-operation tests (new format)
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_formula_multi_operation():
     """Test multiple operations in a single Formula tool"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "price": [10.0, 20.0, 30.0],
-        "quantity": [2, 3, 4],
-    })
+    df = pl.LazyFrame(
+        {
+            "price": [10.0, 20.0, 30.0],
+            "quantity": [2, 3, 4],
+        }
+    )
 
     config = {
         "operations": [
@@ -295,9 +314,11 @@ async def test_formula_multi_operation_chaining():
     """Test that later operations can reference columns from earlier operations"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "value": [100, 200, 300],
-    })
+    df = pl.LazyFrame(
+        {
+            "value": [100, 200, 300],
+        }
+    )
 
     config = {
         "operations": [
@@ -311,7 +332,11 @@ async def test_formula_multi_operation_chaining():
             },
             {
                 "column_name": "label",
-                "expression": "pl.when(pl.col('quadrupled') > 500).then(pl.lit('big')).otherwise(pl.lit('small'))",
+                "expression": (
+                    "pl.when(pl.col('quadrupled') > 500)"
+                    ".then(pl.lit('big'))"
+                    ".otherwise(pl.lit('small'))"
+                ),
             },
         ],
     }
@@ -363,10 +388,12 @@ async def test_formula_multi_operation_replace_and_add():
     """Test mixing column replacement and addition in multi-operation"""
     tool = FormulaTool()
 
-    df = pl.LazyFrame({
-        "price": [10.0, 20.0],
-        "name": ["foo", "bar"],
-    })
+    df = pl.LazyFrame(
+        {
+            "price": [10.0, 20.0],
+            "name": ["foo", "bar"],
+        }
+    )
 
     config = {
         "operations": [
@@ -395,29 +422,35 @@ async def test_formula_multi_operation_validation():
     tool = FormulaTool()
 
     # Valid multi-operation
-    errors = await tool.validate_config({
-        "operations": [
-            {"column_name": "a", "expression": "pl.col('x') + 1"},
-            {"column_name": "b", "expression": "pl.col('y') + 2"},
-        ],
-    })
+    errors = await tool.validate_config(
+        {
+            "operations": [
+                {"column_name": "a", "expression": "pl.col('x') + 1"},
+                {"column_name": "b", "expression": "pl.col('y') + 2"},
+            ],
+        }
+    )
     assert len(errors) == 0
 
     # Missing column_name in one operation
-    errors = await tool.validate_config({
-        "operations": [
-            {"column_name": "", "expression": "pl.col('x') + 1"},
-        ],
-    })
+    errors = await tool.validate_config(
+        {
+            "operations": [
+                {"column_name": "", "expression": "pl.col('x') + 1"},
+            ],
+        }
+    )
     assert len(errors) > 0
     assert any("column_name" in e for e in errors)
 
     # Missing expression in one operation
-    errors = await tool.validate_config({
-        "operations": [
-            {"column_name": "a", "expression": ""},
-        ],
-    })
+    errors = await tool.validate_config(
+        {
+            "operations": [
+                {"column_name": "a", "expression": ""},
+            ],
+        }
+    )
     assert len(errors) > 0
     assert any("expression" in e for e in errors)
 
@@ -427,10 +460,12 @@ async def test_formula_validation_catches_syntax_errors():
     """Test that validate_config catches expression syntax errors"""
     tool = FormulaTool()
 
-    errors = await tool.validate_config({
-        "column_name": "test",
-        "expression": "pl.col('a') ++ invalid_syntax",
-    })
+    errors = await tool.validate_config(
+        {
+            "column_name": "test",
+            "expression": "pl.col('a') ++ invalid_syntax",
+        }
+    )
     assert len(errors) > 0
     assert any("nvalid expression" in e for e in errors)
 
@@ -456,6 +491,7 @@ async def test_formula_multi_operation_error_in_middle():
 # ============================================================================
 # Schema type inference tests
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_formula_schema_type_inference_arithmetic():
@@ -548,6 +584,7 @@ async def test_formula_schema_type_inference_fallback():
 # ============================================================================
 # Code generation tests
 # ============================================================================
+
 
 class TestFormulaCodeGeneration:
     """Tests for FormulaTool.to_python_code()"""

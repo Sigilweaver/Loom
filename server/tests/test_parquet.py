@@ -16,13 +16,15 @@ def sample_parquet(tmp_path: Path) -> Path:
     parquet_path = tmp_path / "test_data.parquet"
 
     # Create sample data
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to Parquet
     df.write_parquet(parquet_path)
@@ -65,11 +67,7 @@ async def test_parquet_input_tool_scan_mode(sample_parquet: Path):
     """Test InputTool with Parquet in scan mode (lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan"
-    }
+    config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan"}
 
     outputs = await tool.execute(config, {})
 
@@ -88,11 +86,7 @@ async def test_parquet_input_tool_read_mode(sample_parquet: Path):
     """Test InputTool with Parquet in read mode (eager -> lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "read"
-    }
+    config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "read"}
 
     outputs = await tool.execute(config, {})
 
@@ -113,7 +107,7 @@ async def test_parquet_input_with_column_selection(sample_parquet: Path):
         "type": "parquet",
         "source": str(sample_parquet),
         "parquetMode": "scan",
-        "columns": ["name", "age"]
+        "columns": ["name", "age"],
     }
 
     outputs = await tool.execute(config, {})
@@ -128,12 +122,7 @@ async def test_parquet_input_with_n_rows(sample_parquet: Path):
     """Test InputTool with Parquet limiting rows"""
     tool = InputTool()
 
-    config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan",
-        "n_rows": 2
-    }
+    config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan", "n_rows": 2}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -150,21 +139,13 @@ async def test_parquet_output_tool_sink_mode(tmp_path: Path, sample_parquet: Pat
     output_tool = OutputTool()
 
     # Read from sample
-    input_config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan"
-    }
+    input_config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan"}
 
     lf = (await input_tool.execute(input_config, {}))["output"]
 
     # Write to output
     output_path = tmp_path / "output.parquet"
-    output_config = {
-        "type": "parquet",
-        "destination": str(output_path),
-        "parquetMode": "sink"
-    }
+    output_config = {"type": "parquet", "destination": str(output_path), "parquetMode": "sink"}
 
     await output_tool.execute(output_config, {"input": lf})
 
@@ -184,21 +165,13 @@ async def test_parquet_output_tool_write_mode(tmp_path: Path, sample_parquet: Pa
     output_tool = OutputTool()
 
     # Read from sample
-    input_config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan"
-    }
+    input_config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan"}
 
     lf = (await input_tool.execute(input_config, {}))["output"]
 
     # Write to output
     output_path = tmp_path / "output_write.parquet"
-    output_config = {
-        "type": "parquet",
-        "destination": str(output_path),
-        "parquetMode": "write"
-    }
+    output_config = {"type": "parquet", "destination": str(output_path), "parquetMode": "write"}
 
     await output_tool.execute(output_config, {"input": lf})
 
@@ -220,11 +193,7 @@ async def test_parquet_roundtrip_with_filter(tmp_path: Path, sample_parquet: Pat
     output_tool = OutputTool()
 
     # Read
-    input_config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan"
-    }
+    input_config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan"}
     lf = (await input_tool.execute(input_config, {}))["output"]
 
     # Filter (age > 30)
@@ -234,11 +203,7 @@ async def test_parquet_roundtrip_with_filter(tmp_path: Path, sample_parquet: Pat
 
     # Write
     output_path = tmp_path / "filtered.parquet"
-    output_config = {
-        "type": "parquet",
-        "destination": str(output_path),
-        "parquetMode": "sink"
-    }
+    output_config = {"type": "parquet", "destination": str(output_path), "parquetMode": "sink"}
     await output_tool.execute(output_config, {"input": filtered_lf})
 
     # Verify
@@ -252,11 +217,7 @@ async def test_parquet_input_get_output_schema(sample_parquet: Path):
     """Test InputTool.get_output_schema() for Parquet"""
     tool = InputTool()
 
-    config = {
-        "type": "parquet",
-        "source": str(sample_parquet),
-        "parquetMode": "scan"
-    }
+    config = {"type": "parquet", "source": str(sample_parquet), "parquetMode": "scan"}
 
     schemas = await tool.get_output_schema(config, {})
 
@@ -274,30 +235,23 @@ async def test_parquet_validate_config():
     output_tool = OutputTool()
 
     # Valid input config
-    input_errors = await input_tool.validate_config({
-        "type": "parquet",
-        "source": "/path/to/file.parquet"
-    })
+    input_errors = await input_tool.validate_config(
+        {"type": "parquet", "source": "/path/to/file.parquet"}
+    )
     assert len(input_errors) == 0
 
     # Invalid input config (missing source)
-    input_errors = await input_tool.validate_config({
-        "type": "parquet"
-    })
+    input_errors = await input_tool.validate_config({"type": "parquet"})
     assert len(input_errors) > 0
 
     # Valid output config
-    output_errors = await output_tool.validate_config({
-        "type": "parquet",
-        "destination": "/path/to/output.parquet",
-        "parquetMode": "sink"
-    })
+    output_errors = await output_tool.validate_config(
+        {"type": "parquet", "destination": "/path/to/output.parquet", "parquetMode": "sink"}
+    )
     assert len(output_errors) == 0
 
     # Invalid output config (bad mode)
-    output_errors = await output_tool.validate_config({
-        "type": "parquet",
-        "destination": "/path/to/output.parquet",
-        "parquetMode": "invalid"
-    })
+    output_errors = await output_tool.validate_config(
+        {"type": "parquet", "destination": "/path/to/output.parquet", "parquetMode": "invalid"}
+    )
     assert len(output_errors) > 0

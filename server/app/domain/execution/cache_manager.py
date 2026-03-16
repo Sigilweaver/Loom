@@ -100,9 +100,7 @@ class CacheManager:
         upstream_ids = plan.get_dependencies(tool.id)
         upstream_keys = [self._lineage_hashes.get(tid, "") for tid in upstream_ids]
 
-        lineage_hash = self._cache.compute_key(
-            tool.id, tool.type, tool.config, upstream_keys
-        )
+        lineage_hash = self._cache.compute_key(tool.id, tool.type, tool.config, upstream_keys)
 
         # Clean up stale cache files that don't match current lineage
         if invalidate_stale:
@@ -154,10 +152,7 @@ class CacheManager:
         output_sockets = [s.id for s in tool.sockets if s.direction == "output"]
 
         # Check if all outputs are cached
-        all_cached = all(
-            self._cache.exists(tool.id, sid, lineage_hash)
-            for sid in output_sockets
-        )
+        all_cached = all(self._cache.exists(tool.id, sid, lineage_hash) for sid in output_sockets)
 
         if not all_cached:
             return None

@@ -37,12 +37,24 @@ def _infer_dtype_from_expression(expr_str: str, input_schema: DataSchema) -> Pol
     try:
         # Build a schema dict for a zero-row frame
         dtype_map: dict[str, type] = {
-            "Int8": pl.Int8, "Int16": pl.Int16, "Int32": pl.Int32, "Int64": pl.Int64,
-            "UInt8": pl.UInt8, "UInt16": pl.UInt16, "UInt32": pl.UInt32, "UInt64": pl.UInt64,
-            "Float32": pl.Float32, "Float64": pl.Float64,
-            "Boolean": pl.Boolean, "String": pl.String, "Utf8": pl.String,
-            "Date": pl.Date, "Datetime": pl.Datetime, "Time": pl.Time,
-            "Duration": pl.Duration, "Categorical": pl.Categorical,
+            "Int8": pl.Int8,
+            "Int16": pl.Int16,
+            "Int32": pl.Int32,
+            "Int64": pl.Int64,
+            "UInt8": pl.UInt8,
+            "UInt16": pl.UInt16,
+            "UInt32": pl.UInt32,
+            "UInt64": pl.UInt64,
+            "Float32": pl.Float32,
+            "Float64": pl.Float64,
+            "Boolean": pl.Boolean,
+            "String": pl.String,
+            "Utf8": pl.String,
+            "Date": pl.Date,
+            "Datetime": pl.Datetime,
+            "Time": pl.Time,
+            "Duration": pl.Duration,
+            "Categorical": pl.Categorical,
             "Decimal": pl.Decimal,
         }
         schema: dict[str, type] = {}
@@ -57,15 +69,23 @@ def _infer_dtype_from_expression(expr_str: str, input_schema: DataSchema) -> Pol
 
         # Map back to PolarsDataType enum
         polars_to_enum: dict[str, PolarsDataType] = {
-            "Int8": PolarsDataType.INT8, "Int16": PolarsDataType.INT16,
-            "Int32": PolarsDataType.INT32, "Int64": PolarsDataType.INT64,
-            "UInt8": PolarsDataType.UINT8, "UInt16": PolarsDataType.UINT16,
-            "UInt32": PolarsDataType.UINT32, "UInt64": PolarsDataType.UINT64,
-            "Float32": PolarsDataType.FLOAT32, "Float64": PolarsDataType.FLOAT64,
+            "Int8": PolarsDataType.INT8,
+            "Int16": PolarsDataType.INT16,
+            "Int32": PolarsDataType.INT32,
+            "Int64": PolarsDataType.INT64,
+            "UInt8": PolarsDataType.UINT8,
+            "UInt16": PolarsDataType.UINT16,
+            "UInt32": PolarsDataType.UINT32,
+            "UInt64": PolarsDataType.UINT64,
+            "Float32": PolarsDataType.FLOAT32,
+            "Float64": PolarsDataType.FLOAT64,
             "Boolean": PolarsDataType.BOOLEAN,
-            "String": PolarsDataType.STRING, "Utf8": PolarsDataType.UTF8,
-            "Date": PolarsDataType.DATE, "Datetime": PolarsDataType.DATETIME,
-            "Time": PolarsDataType.TIME, "Duration": PolarsDataType.DURATION,
+            "String": PolarsDataType.STRING,
+            "Utf8": PolarsDataType.UTF8,
+            "Date": PolarsDataType.DATE,
+            "Datetime": PolarsDataType.DATETIME,
+            "Time": PolarsDataType.TIME,
+            "Duration": PolarsDataType.DURATION,
             "Categorical": PolarsDataType.CATEGORICAL,
         }
         base_name = str(inferred.base_type()) if hasattr(inferred, "base_type") else str(inferred)
@@ -89,9 +109,7 @@ def _normalize_operations(config: dict[str, Any]) -> list[dict[str, str]]:
     if isinstance(ops, list) and len(ops) > 0:
         return [
             {
-                "column_name": str(
-                    op.get("column_name") or op.get("columnName") or ""
-                ),
+                "column_name": str(op.get("column_name") or op.get("columnName") or ""),
                 "expression": str(op.get("expression", "")),
             }
             for op in ops
@@ -214,7 +232,11 @@ class FormulaTool(BaseTool):
                 continue
 
             # Infer type from expression
-            inferred_dtype = _infer_dtype_from_expression(expression, current_schema) if expression else PolarsDataType.STRING
+            inferred_dtype = (
+                _infer_dtype_from_expression(expression, current_schema)
+                if expression
+                else PolarsDataType.STRING
+            )
 
             new_column = ColumnSchema(
                 name=column_name,
@@ -228,8 +250,7 @@ class FormulaTool(BaseTool):
 
             if column_exists:
                 output_columns = [
-                    new_column if col.name == column_name else col
-                    for col in current_schema.columns
+                    new_column if col.name == column_name else col for col in current_schema.columns
                 ]
             else:
                 output_columns = list(current_schema.columns)
@@ -316,4 +337,3 @@ class FormulaTool(BaseTool):
             current_var = out_var
 
         return (all_lines, {CommonSockets.OUTPUT: base_var})
-

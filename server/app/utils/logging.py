@@ -84,9 +84,7 @@ class ExecutionLogger:
 
         if exc_type is not None:
             self.error = str(exc_val)
-            self.logger.error(
-                f"Failed: {self.operation} ({duration_ms:.2f}ms) - {self.error}"
-            )
+            self.logger.error(f"Failed: {self.operation} ({duration_ms:.2f}ms) - {self.error}")
         else:
             self.logger.info(f"Completed: {self.operation} ({duration_ms:.2f}ms)")
 

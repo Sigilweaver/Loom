@@ -1,6 +1,5 @@
 """Test Filter tool implementation"""
 
-
 import polars as pl
 import pytest
 
@@ -27,8 +26,14 @@ def sample_data_csv(tmp_path):
             "age": [25, 30, 35, 40, 45, 28, 32, 50],
             "amount": [100.0, 250.0, 75.0, 500.0, 150.0, 300.0, 50.0, 400.0],
             "status": [
-                "active", "inactive", "active", "active",
-                "inactive", "active", "active", "inactive",
+                "active",
+                "inactive",
+                "active",
+                "active",
+                "inactive",
+                "active",
+                "active",
+                "inactive",
             ],
         }
     )
@@ -413,4 +418,3 @@ class TestFilterCodeGeneration:
         # Expression is wrapped in parentheses
         assert "((pl.col('a') > 10) & (pl.col('b') < 20)" in lines[0]
         assert "~(((pl.col('a') > 10) & (pl.col('b') < 20)" in lines[1]
-

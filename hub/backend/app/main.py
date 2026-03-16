@@ -83,12 +83,40 @@ async def _session_cleanup_loop() -> None:
             logger.error(f"Session cleanup error: {e}")
 
 
+_INSECURE_DEFAULT = "CHANGE_ME_IN_PRODUCTION"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
     import asyncio
 
+    # Reject insecure default secrets — these MUST be changed before deployment
+    _insecure_settings = []
+    if settings.session_secret == _INSECURE_DEFAULT:
+        _insecure_settings.append("SESSION_SECRET")
+    if settings.secret_key == _INSECURE_DEFAULT:
+        _insecure_settings.append("SECRET_KEY")
+    if _insecure_settings:
+        msg = (
+            f"{', '.join(_insecure_settings)} still set to default value. "
+            "Generate secure values before running Hub:\n"
+            '  python3 -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
+        if settings.environment == "production":
+            logger.critical("FATAL: " + msg)
+            raise SystemExit(msg)
+        else:
+            logger.warning(msg + " (ignored in development mode)")
+
     logger.info("Sigilweaver Hub starting up...")
+
+    # Warn about open server registration
+    if not settings.server_registration_secret:
+        logger.warning(
+            "SERVER_REGISTRATION_SECRET is empty — any server can register "
+            "without authentication. Set this secret in production."
+        )
 
     # Initialize server token infrastructure
     token_store = init_token_store()
@@ -160,9 +188,7 @@ if settings.static_files_path:
     static_path = Path(settings.static_files_path)
     if static_path.exists() and static_path.is_dir():
         # Note: Mount at "/" must come after all API routes are registered
-        application.mount(
-            "/", StaticFiles(directory=static_path, html=True), name="static"
-        )
+        application.mount("/", StaticFiles(directory=static_path, html=True), name="static")
         _static_mounted = True
         logger.info(f"Serving static files from {static_path}")
     else:

@@ -29,8 +29,7 @@ class TestNormalizeExpression:
         expr = """(pl.col('price') > 100)  # expensive items
 & (pl.col('qty') >= 3)  # in stock"""
         expected = (
-            "((pl.col('price') > 100)  # expensive items\n"
-            "& (pl.col('qty') >= 3)  # in stock\n)"
+            "((pl.col('price') > 100)  # expensive items\n& (pl.col('qty') >= 3)  # in stock\n)"
         )
         assert normalize_expression(expr) == expected
 
@@ -89,9 +88,7 @@ class TestParsePolarsExpression:
 
     def test_list_operations(self):
         """Parse list operations."""
-        expr = parse_polars_expression(
-            "pl.col('items').str.split(' ').list.contains('value')"
-        )
+        expr = parse_polars_expression("pl.col('items').str.split(' ').list.contains('value')")
         assert isinstance(expr, pl.Expr)
 
     def test_arithmetic(self):
@@ -101,7 +98,7 @@ class TestParsePolarsExpression:
 
     def test_invalid_expression_raises_error(self):
         """Invalid expression raises ToolError."""
-        with pytest.raises(ToolError, match="Failed to parse expression"):
+        with pytest.raises(ToolError, match="Expression syntax error|Failed to parse expression"):
             parse_polars_expression("invalid syntax here")
 
     def test_non_expr_result_raises_error(self):
@@ -124,4 +121,60 @@ class TestParsePolarsExpression:
         # This would fail with normalization disabled because of newlines
         # But the simple case should still work
         expr = parse_polars_expression("pl.col('x') > 0", normalize=False)
+        assert isinstance(expr, pl.Expr)
+
+
+class TestExpressionASTSecurity:
+    """Tests for AST-based expression validation (sandbox escape prevention)."""
+
+    def test_blocks_dunder_class_escape(self):
+        """Block sandbox escape via __class__.__bases__.__subclasses__."""
+        with pytest.raises(ToolError, match="Dunder attribute"):
+            parse_polars_expression("().__class__.__bases__[0].__subclasses__()")
+
+    def test_blocks_dunder_name(self):
+        """Block direct dunder name references."""
+        with pytest.raises(ToolError, match="Dunder name"):
+            parse_polars_expression("__builtins__")
+
+    def test_blocks_import_name(self):
+        """Block __import__ calls."""
+        with pytest.raises(ToolError, match="Dunder name"):
+            parse_polars_expression("__import__('os')")
+
+    def test_blocks_arbitrary_names(self):
+        """Only 'pl' namespace is allowed."""
+        with pytest.raises(ToolError, match="Only 'pl' namespace"):
+            parse_polars_expression("os.system('ls')")
+
+    def test_blocks_lambda(self):
+        """Lambda expressions are not allowed."""
+        with pytest.raises(ToolError, match="Disallowed construct"):
+            parse_polars_expression("(lambda: None)()")
+
+    def test_blocks_comprehension(self):
+        """List comprehensions are not allowed."""
+        with pytest.raises(ToolError, match="Disallowed construct"):
+            parse_polars_expression("[x for x in range(10)]")
+
+    def test_allows_valid_polars_expression(self):
+        """Valid Polars expressions should pass validation."""
+        expr = parse_polars_expression("pl.col('a') > 10")
+        assert isinstance(expr, pl.Expr)
+
+    def test_allows_complex_polars_expression(self):
+        """Complex chained Polars expressions should pass."""
+        expr = parse_polars_expression("(pl.col('a') > 10) & (pl.col('b').str.contains('test'))")
+        assert isinstance(expr, pl.Expr)
+
+    def test_allows_polars_lit(self):
+        """pl.lit() should be allowed."""
+        expr = parse_polars_expression("pl.lit(42)")
+        assert isinstance(expr, pl.Expr)
+
+    def test_allows_polars_when_then(self):
+        """pl.when().then().otherwise() should be allowed."""
+        expr = parse_polars_expression(
+            "pl.when(pl.col('a') > 0).then(pl.lit(1)).otherwise(pl.lit(0))"
+        )
         assert isinstance(expr, pl.Expr)

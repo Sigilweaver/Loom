@@ -146,11 +146,13 @@ class UnpivotTool(BaseTool):
                 output_columns.append(input_column_map[col_name])
 
         # Add variable column (always String)
-        output_columns.append(ColumnSchema(
-            name=variable_name,
-            dtype=PolarsDataType.STRING,
-            nullable=False,
-        ))
+        output_columns.append(
+            ColumnSchema(
+                name=variable_name,
+                dtype=PolarsDataType.STRING,
+                nullable=False,
+            )
+        )
 
         # Determine value column type
         # If all unpivoted columns have same type, use that; otherwise use String
@@ -165,17 +167,21 @@ class UnpivotTool(BaseTool):
             # Mixed types - Polars will supertype, but String is safest guess
             value_dtype = PolarsDataType.STRING
 
-        output_columns.append(ColumnSchema(
-            name=value_name,
-            dtype=value_dtype,
-            nullable=True,
-        ))
+        output_columns.append(
+            ColumnSchema(
+                name=value_name,
+                dtype=value_dtype,
+                nullable=True,
+            )
+        )
 
-        return {CommonSockets.OUTPUT: DataSchema(
-            columns=output_columns,
-            row_count=None,  # Row count changes (multiplied by number of unpivoted columns)
-            file_size_bytes=None,
-        )}
+        return {
+            CommonSockets.OUTPUT: DataSchema(
+                columns=output_columns,
+                row_count=None,  # Row count changes (multiplied by number of unpivoted columns)
+                file_size_bytes=None,
+            )
+        }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate unpivot configuration."""

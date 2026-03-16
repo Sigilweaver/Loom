@@ -81,21 +81,31 @@ async def test_output_csv_write(tmp_path: Path, sample_csv: Path):
     # Create workflow: Input -> Output
     workflow = Workflow(
         tools=[
-            Tool(id="input1", type="Input", x=0, y=0, config={
+            Tool(
+                id="input1",
+                type="Input",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id="output", direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
-            Tool(id="output1", type="Output", x=0, y=0, config={
+            Tool(
+                id="output1",
+                type="Output",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "write",  # Eager mode
                     "include_header": True,
                     "separator": ",",
                 },
-            sockets=[Socket(id="input", direction="input")],
+                sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
@@ -132,19 +142,29 @@ async def test_output_creates_directory(tmp_path: Path, sample_csv: Path):
 
     workflow = Workflow(
         tools=[
-            Tool(id="input1", type="Input", x=0, y=0, config={
+            Tool(
+                id="input1",
+                type="Input",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id="output", direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
-            Tool(id="output1", type="Output", x=0, y=0, config={
+            Tool(
+                id="output1",
+                type="Output",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "sink",
                 },
-            sockets=[Socket(id="input", direction="input")],
+                sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
@@ -178,21 +198,31 @@ async def test_output_with_custom_separator(tmp_path: Path, sample_csv: Path):
 
     workflow = Workflow(
         tools=[
-            Tool(id="input1", type="Input", x=0, y=0, config={
+            Tool(
+                id="input1",
+                type="Input",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id="output", direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
-            Tool(id="output1", type="Output", x=0, y=0, config={
+            Tool(
+                id="output1",
+                type="Output",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "sink",
                     "separator": "\t",  # Tab-separated
                     "include_header": True,
                 },
-            sockets=[Socket(id="input", direction="input")],
+                sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
@@ -234,26 +264,19 @@ async def test_output_validation():
     assert any("destination" in err.lower() for err in errors)
 
     # Invalid output type
-    errors = await tool_class.validate_config({
-        "type": "invalid",
-        "destination": "/tmp/out.csv"
-    })
+    errors = await tool_class.validate_config({"type": "invalid", "destination": "/tmp/out.csv"})
     assert any("unsupported" in err.lower() for err in errors)
 
     # Invalid CSV mode
-    errors = await tool_class.validate_config({
-        "type": "csv",
-        "destination": "/tmp/out.csv",
-        "csvMode": "invalid"
-    })
+    errors = await tool_class.validate_config(
+        {"type": "csv", "destination": "/tmp/out.csv", "csvMode": "invalid"}
+    )
     assert any("mode" in err.lower() for err in errors)
 
     # Valid config
-    errors = await tool_class.validate_config({
-        "type": "csv",
-        "destination": "/tmp/out.csv",
-        "csvMode": "sink"
-    })
+    errors = await tool_class.validate_config(
+        {"type": "csv", "destination": "/tmp/out.csv", "csvMode": "sink"}
+    )
     assert len(errors) == 0
 
 
@@ -265,29 +288,44 @@ async def test_output_in_workflow_pipeline(tmp_path: Path, sample_csv: Path):
     # Create workflow: Input -> Filter -> Output
     workflow = Workflow(
         tools=[
-            Tool(id="input1", type="Input", x=0, y=0, config={
+            Tool(
+                id="input1",
+                type="Input",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "source": str(sample_csv),
                     "csvMode": "scan",
                 },
-            sockets=[Socket(id="output", direction="output")],
+                sockets=[Socket(id="output", direction="output")],
             ),
-            Tool(id="filter1", type="Filter", x=0, y=0, config={
+            Tool(
+                id="filter1",
+                type="Filter",
+                x=0,
+                y=0,
+                config={
                     "expression": "pl.col('age') > 25",
                 },
-            sockets=[
-                Socket(id="input", direction="input"),
-                Socket(id="output-true", direction="output"),  # T output
-                Socket(id="output-false", direction="output"),  # F output
-            ],
+                sockets=[
+                    Socket(id="input", direction="input"),
+                    Socket(id="output-true", direction="output"),  # T output
+                    Socket(id="output-false", direction="output"),  # F output
+                ],
             ),
-            Tool(id="output1", type="Output", x=0, y=0, config={
+            Tool(
+                id="output1",
+                type="Output",
+                x=0,
+                y=0,
+                config={
                     "type": "csv",
                     "destination": str(output_file),
                     "csvMode": "sink",
                     "include_header": True,
                 },
-            sockets=[Socket(id="input", direction="input")],
+                sockets=[Socket(id="input", direction="input")],
             ),
         ],
         wires=[
@@ -512,43 +550,53 @@ async def test_output_excel_validation():
     tool_class = ToolRegistry.get("Output")
 
     # Valid Excel config
-    errors = await tool_class.validate_config({
-        "type": "excel",
-        "destination": "/tmp/out.xlsx",
-    })
+    errors = await tool_class.validate_config(
+        {
+            "type": "excel",
+            "destination": "/tmp/out.xlsx",
+        }
+    )
     assert len(errors) == 0
 
     # Invalid sheet_zoom (too low)
-    errors = await tool_class.validate_config({
-        "type": "excel",
-        "destination": "/tmp/out.xlsx",
-        "sheet_zoom": 5,  # Min is 10
-    })
+    errors = await tool_class.validate_config(
+        {
+            "type": "excel",
+            "destination": "/tmp/out.xlsx",
+            "sheet_zoom": 5,  # Min is 10
+        }
+    )
     assert any("sheet_zoom" in err.lower() for err in errors)
 
     # Invalid sheet_zoom (too high)
-    errors = await tool_class.validate_config({
-        "type": "excel",
-        "destination": "/tmp/out.xlsx",
-        "sheet_zoom": 500,  # Max is 400
-    })
+    errors = await tool_class.validate_config(
+        {
+            "type": "excel",
+            "destination": "/tmp/out.xlsx",
+            "sheet_zoom": 500,  # Max is 400
+        }
+    )
     assert any("sheet_zoom" in err.lower() for err in errors)
 
     # Invalid float_precision
-    errors = await tool_class.validate_config({
-        "type": "excel",
-        "destination": "/tmp/out.xlsx",
-        "float_precision": 20,  # Max is 15
-    })
+    errors = await tool_class.validate_config(
+        {
+            "type": "excel",
+            "destination": "/tmp/out.xlsx",
+            "float_precision": 20,  # Max is 15
+        }
+    )
     assert any("float_precision" in err.lower() for err in errors)
 
     # Valid sheet_zoom and float_precision
-    errors = await tool_class.validate_config({
-        "type": "excel",
-        "destination": "/tmp/out.xlsx",
-        "sheet_zoom": 150,
-        "float_precision": 5,
-    })
+    errors = await tool_class.validate_config(
+        {
+            "type": "excel",
+            "destination": "/tmp/out.xlsx",
+            "sheet_zoom": 150,
+            "float_precision": 5,
+        }
+    )
     assert len(errors) == 0
 
 

@@ -1,4 +1,5 @@
 """Tests for the Unique tool."""
+
 import polars as pl
 import pytest
 
@@ -16,21 +17,25 @@ def unique_tool() -> UniqueTool:
 @pytest.fixture
 def sample_data() -> pl.LazyFrame:
     """Create sample lazy frame for testing."""
-    return pl.LazyFrame({
-        "name": ["Molly", "Molly", "Molly", "Alice", "Bob", "Alice"],
-        "city": ["NYC", "NYC", "LA", "NYC", "LA", "NYC"],
-        "value": [1, 2, 3, 4, 5, 6],
-    })
+    return pl.LazyFrame(
+        {
+            "name": ["Molly", "Molly", "Molly", "Alice", "Bob", "Alice"],
+            "city": ["NYC", "NYC", "LA", "NYC", "LA", "NYC"],
+            "value": [1, 2, 3, 4, 5, 6],
+        }
+    )
 
 
 @pytest.fixture
 def input_schema() -> DataSchema:
     """Create input schema for testing."""
-    return DataSchema(columns=[
-        ColumnSchema(name="name", dtype="String", nullable=True),
-        ColumnSchema(name="city", dtype="String", nullable=True),
-        ColumnSchema(name="value", dtype="Int64", nullable=True),
-    ])
+    return DataSchema(
+        columns=[
+            ColumnSchema(name="name", dtype="String", nullable=True),
+            ColumnSchema(name="city", dtype="String", nullable=True),
+            ColumnSchema(name="value", dtype="Int64", nullable=True),
+        ]
+    )
 
 
 class TestUniqueToolBlocking:
@@ -76,14 +81,14 @@ class TestUniqueToolFirstMode:
         assert len(duplicate_df) == 3
 
     @pytest.mark.asyncio
-    async def test_first_mode_preserves_first_row(
-        self, unique_tool: UniqueTool
-    ):
+    async def test_first_mode_preserves_first_row(self, unique_tool: UniqueTool):
         """First mode preserves the actual first row for each key."""
-        lf = pl.LazyFrame({
-            "name": ["Molly", "Molly", "Molly"],
-            "value": [1, 2, 3],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": ["Molly", "Molly", "Molly"],
+                "value": [1, 2, 3],
+            }
+        )
         config = {"mode": "First", "columns": ["name"]}
         result = await unique_tool.execute(config, {"input": lf})
 
@@ -152,14 +157,14 @@ class TestUniqueToolStrictMode:
         assert len(duplicate_df) == 5
 
     @pytest.mark.asyncio
-    async def test_strict_mode_includes_all_duplicated_rows(
-        self, unique_tool: UniqueTool
-    ):
+    async def test_strict_mode_includes_all_duplicated_rows(self, unique_tool: UniqueTool):
         """Strict mode sends ALL rows with duplicated values to duplicate output."""
-        lf = pl.LazyFrame({
-            "name": ["Molly", "Molly", "Bob"],
-            "value": [1, 2, 3],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": ["Molly", "Molly", "Bob"],
+                "value": [1, 2, 3],
+            }
+        )
         config = {"mode": "Strict", "columns": ["name"]}
         result = await unique_tool.execute(config, {"input": lf})
 
@@ -184,9 +189,7 @@ class TestUniqueToolSchema:
     ):
         """Both outputs have same schema as input."""
         config = {"mode": "First", "columns": ["name"]}
-        result = await unique_tool.get_output_schema(
-            config, {"input": input_schema}
-        )
+        result = await unique_tool.get_output_schema(config, {"input": input_schema})
 
         assert UniqueSockets.OUTPUT_UNIQUE in result
         assert UniqueSockets.OUTPUT_DUPLICATE in result
@@ -201,39 +204,47 @@ class TestUniqueToolValidation:
     @pytest.mark.asyncio
     async def test_valid_config(self, unique_tool: UniqueTool):
         """Valid config passes validation."""
-        errors = await unique_tool.validate_config({
-            "mode": "First",
-            "columns": ["name", "city"],
-        })
+        errors = await unique_tool.validate_config(
+            {
+                "mode": "First",
+                "columns": ["name", "city"],
+            }
+        )
         assert errors == []
 
     @pytest.mark.asyncio
     async def test_invalid_mode(self, unique_tool: UniqueTool):
         """Invalid mode is rejected."""
-        errors = await unique_tool.validate_config({
-            "mode": "Invalid",
-            "columns": [],
-        })
+        errors = await unique_tool.validate_config(
+            {
+                "mode": "Invalid",
+                "columns": [],
+            }
+        )
         assert len(errors) == 1
         assert "Invalid unique mode" in errors[0]
 
     @pytest.mark.asyncio
     async def test_invalid_columns_type(self, unique_tool: UniqueTool):
         """Non-list columns is rejected."""
-        errors = await unique_tool.validate_config({
-            "mode": "First",
-            "columns": "name",  # Should be a list
-        })
+        errors = await unique_tool.validate_config(
+            {
+                "mode": "First",
+                "columns": "name",  # Should be a list
+            }
+        )
         assert len(errors) == 1
         assert "must be a list" in errors[0]
 
     @pytest.mark.asyncio
     async def test_invalid_column_names(self, unique_tool: UniqueTool):
         """Non-string column names are rejected."""
-        errors = await unique_tool.validate_config({
-            "mode": "First",
-            "columns": ["name", 123],  # 123 is not a string
-        })
+        errors = await unique_tool.validate_config(
+            {
+                "mode": "First",
+                "columns": ["name", 123],  # 123 is not a string
+            }
+        )
         assert len(errors) == 1
         assert "must be strings" in errors[0]
 
@@ -305,10 +316,12 @@ class TestUniqueToolEdgeCases:
     @pytest.mark.asyncio
     async def test_all_unique_values(self, unique_tool: UniqueTool):
         """All unique values go to unique output, none to duplicates."""
-        lf = pl.LazyFrame({
-            "name": ["Alice", "Bob", "Charlie"],
-            "value": [1, 2, 3],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": ["Alice", "Bob", "Charlie"],
+                "value": [1, 2, 3],
+            }
+        )
         config = {"mode": "First", "columns": ["name"]}
         result = await unique_tool.execute(config, {"input": lf})
 
@@ -321,10 +334,12 @@ class TestUniqueToolEdgeCases:
     @pytest.mark.asyncio
     async def test_all_same_value(self, unique_tool: UniqueTool):
         """All same values - first to unique, rest to duplicates."""
-        lf = pl.LazyFrame({
-            "name": ["Molly", "Molly", "Molly"],
-            "value": [1, 2, 3],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": ["Molly", "Molly", "Molly"],
+                "value": [1, 2, 3],
+            }
+        )
         config = {"mode": "First", "columns": ["name"]}
         result = await unique_tool.execute(config, {"input": lf})
 
@@ -337,10 +352,12 @@ class TestUniqueToolEdgeCases:
     @pytest.mark.asyncio
     async def test_null_handling(self, unique_tool: UniqueTool):
         """Nulls are treated as equal (multiple nulls = duplicates)."""
-        lf = pl.LazyFrame({
-            "name": [None, None, "Bob"],
-            "value": [1, 2, 3],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": [None, None, "Bob"],
+                "value": [1, 2, 3],
+            }
+        )
         config = {"mode": "First", "columns": ["name"]}
         result = await unique_tool.execute(config, {"input": lf})
 

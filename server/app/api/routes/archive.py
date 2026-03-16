@@ -22,8 +22,7 @@ def _get_archive() -> WorkflowArchive:
     """Get archive instance"""
     if not settings.archive_enabled:
         raise HTTPException(
-            status_code=503,
-            detail="Workflow archiving is disabled in configuration"
+            status_code=503, detail="Workflow archiving is disabled in configuration"
         )
     return WorkflowArchive(settings.archive_path)
 
@@ -53,8 +52,7 @@ async def list_archives(
                 start_dt = datetime.strptime(start_date, "%Y-%m-%d")
             except ValueError:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid start_date format. Use YYYY-MM-DD"
+                    status_code=400, detail="Invalid start_date format. Use YYYY-MM-DD"
                 )
 
         if end_date:
@@ -62,8 +60,7 @@ async def list_archives(
                 end_dt = datetime.strptime(end_date, "%Y-%m-%d")
             except ValueError:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid end_date format. Use YYYY-MM-DD"
+                    status_code=400, detail="Invalid end_date format. Use YYYY-MM-DD"
                 )
 
         # Get archives
@@ -84,10 +81,7 @@ async def list_archives(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to list archives: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list archives: {str(e)}")
 
 
 @router.get("/detail/{archive_path:path}", response_model=ArchiveDetailResponse)
@@ -113,10 +107,7 @@ async def get_archive_detail(archive_path: str) -> ArchiveDetailResponse:
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve archive: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve archive: {str(e)}")
 
 
 @router.post("/cleanup", response_model=CleanupArchivesResponse)
@@ -135,14 +126,11 @@ async def cleanup_archives(request: CleanupArchivesRequest) -> CleanupArchivesRe
 
         return CleanupArchivesResponse(
             deleted_count=deleted_count,
-            message=f"Deleted {deleted_count} archives older than {request.retention_days} days"
+            message=f"Deleted {deleted_count} archives older than {request.retention_days} days",
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to cleanup archives: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup archives: {str(e)}")
 
 
 @router.get("/status")

@@ -72,7 +72,9 @@ class JoinTool(BaseTool):
                 left_keys = resolved_left
         if right_keys and right_lf is not None:
             available_right = right_lf.collect_schema().names()
-            resolved_right = resolve_column_names(right_keys, available_right, context="Join rightKeys")
+            resolved_right = resolve_column_names(
+                right_keys, available_right, context="Join rightKeys"
+            )
             if resolved_right != right_keys:
                 resolved_config = {**resolved_config, "rightKeys": resolved_right}
                 right_keys = resolved_right
@@ -183,15 +185,16 @@ class JoinTool(BaseTool):
                 matched_columns.append(new_col)
             else:
                 if is_nullable != col.nullable:
-                    matched_columns.append(ColumnSchema(name=col.name, dtype=col.dtype, nullable=is_nullable))
+                    matched_columns.append(
+                        ColumnSchema(name=col.name, dtype=col.dtype, nullable=is_nullable)
+                    )
                 else:
                     matched_columns.append(col)
 
         # For right/outer joins, left columns become nullable too
         if join_type in ("right", "outer"):
             matched_columns = [
-                ColumnSchema(name=c.name, dtype=c.dtype, nullable=True)
-                for c in matched_columns
+                ColumnSchema(name=c.name, dtype=c.dtype, nullable=True) for c in matched_columns
             ]
 
         # For left/outer joins, unmatched_left is empty (included in matched)
@@ -205,9 +208,7 @@ class JoinTool(BaseTool):
             JoinSockets.OUTPUT_RIGHT: output_right,
         }
 
-    def _normalize_schema(
-        self, schema: DataSchema | list[DataSchema] | None
-    ) -> DataSchema | None:
+    def _normalize_schema(self, schema: DataSchema | list[DataSchema] | None) -> DataSchema | None:
         """Normalize schema to single DataSchema."""
         if schema is None:
             return None

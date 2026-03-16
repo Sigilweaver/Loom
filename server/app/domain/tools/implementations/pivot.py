@@ -120,7 +120,8 @@ class PivotTool(BaseTool):
         if index:
             resolved_index = resolve_column_names(
                 index if isinstance(index, list) else [index],
-                available_cols, context="Pivot index",
+                available_cols,
+                context="Pivot index",
             )
             resolved_config["index"] = resolved_index
         config = resolved_config
@@ -175,11 +176,13 @@ class PivotTool(BaseTool):
             # This is a limitation - pivot output schema requires data knowledge
             pass
 
-        return {CommonSockets.OUTPUT: DataSchema(
-            columns=output_columns,
-            row_count=None,  # Row count depends on unique index combinations
-            file_size_bytes=None,
-        )}
+        return {
+            CommonSockets.OUTPUT: DataSchema(
+                columns=output_columns,
+                row_count=None,  # Row count depends on unique index combinations
+                file_size_bytes=None,
+            )
+        }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate pivot configuration."""
@@ -209,7 +212,9 @@ class PivotTool(BaseTool):
             all_cols.add(on)
         if values:
             if values in all_cols:
-                errors.append(f"Column '{values}' cannot be used as both values and index/pivot column")
+                errors.append(
+                    f"Column '{values}' cannot be used as both values and index/pivot column"
+                )
 
         aggregate_function = config.get("aggregateFunction", "first")
         if aggregate_function not in PIVOT_AGGREGATIONS:

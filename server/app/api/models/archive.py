@@ -42,10 +42,7 @@ class ArchiveDetailResponse(BaseModel):
 class CleanupArchivesRequest(BaseModel):
     """Request to cleanup old archives"""
 
-    retention_days: int = Field(
-        description="Delete archives older than this many days",
-        gt=0
-    )
+    retention_days: int = Field(description="Delete archives older than this many days", gt=0)
 
 
 class CleanupArchivesResponse(BaseModel):

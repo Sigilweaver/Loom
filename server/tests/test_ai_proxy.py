@@ -120,8 +120,8 @@ class TestStreamingProxy:
     @patch("app.api.routes.ai.httpx.AsyncClient")
     def test_streams_sse_chunks(self, mock_client_cls, client):
         chunks = [
-            b"data: {\"delta\":\"Hello\"}\n\n",
-            b"data: {\"delta\":\" world\"}\n\n",
+            b'data: {"delta":"Hello"}\n\n',
+            b'data: {"delta":" world"}\n\n',
             b"data: [DONE]\n\n",
         ]
         mock_resp = _mock_response(
@@ -206,9 +206,7 @@ class TestProviderURLResolution:
         assert "unknown_provider" in resp.json()["detail"].lower()
 
     @patch("app.api.routes.ai.httpx.AsyncClient")
-    def test_openai_compatible_strips_trailing_slash(
-        self, mock_client_cls, client
-    ):
+    def test_openai_compatible_strips_trailing_slash(self, mock_client_cls, client):
         """Server strips trailing slashes from base_url to avoid double-slash."""
         mock_resp = _mock_response()
         mock_instance = MagicMock()
@@ -219,15 +217,61 @@ class TestProviderURLResolution:
 
         client.post(
             "/api/ai/proxy/openai-compatible/v1/chat/completions"
-            "?base_url=http://localhost:11434/",
+            "?base_url=http://my-llm-server.example.com:11434/",
             json={},
         )
 
         call_kwargs = mock_instance.build_request.call_args
         url = str(call_kwargs)
         # Trailing slash stripped — should NOT produce //v1
-        assert "localhost:11434//v1" not in url
-        assert "localhost:11434/v1" in url
+        assert "example.com:11434//v1" not in url
+        assert "example.com:11434/v1" in url
+
+
+class TestSSRFProtection:
+    """AI proxy must block requests to internal/private networks."""
+
+    def test_blocks_localhost(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions?base_url=http://localhost:11434",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "internal" in resp.json()["detail"].lower()
+
+    def test_blocks_127_0_0_1(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions?base_url=http://127.0.0.1:11434",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "private" in resp.json()["detail"].lower()
+
+    def test_blocks_private_ip(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://192.168.1.100:8080",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_blocks_link_local(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://169.254.169.254/latest/meta-data",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_allows_known_providers(self, client):
+        """Known providers (openai, anthropic, etc.) are not blocked."""
+        # This will fail with 502 (can't connect) not 400 (blocked)
+        resp = client.post(
+            "/api/ai/proxy/openai/v1/chat/completions",
+            json={},
+        )
+        # Should NOT be 400 — known providers bypass SSRF check
+        assert resp.status_code != 400
 
 
 # ---------------------------------------------------------------------------
@@ -242,15 +286,11 @@ class TestProxyErrorHandling:
     def test_connection_refused_returns_502(self, mock_client_cls, client):
         mock_instance = MagicMock()
         mock_instance.build_request = MagicMock(return_value=MagicMock())
-        mock_instance.send = AsyncMock(
-            side_effect=httpx.ConnectError("Connection refused")
-        )
+        mock_instance.send = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
         mock_instance.aclose = AsyncMock()
         mock_client_cls.return_value = mock_instance
 
-        resp = client.post(
-            "/api/ai/proxy/openai/v1/chat/completions", json={}
-        )
+        resp = client.post("/api/ai/proxy/openai/v1/chat/completions", json={})
 
         assert resp.status_code == 502
         assert "connect" in resp.json()["detail"].lower()
@@ -260,15 +300,11 @@ class TestProxyErrorHandling:
     def test_read_timeout_returns_504(self, mock_client_cls, client):
         mock_instance = MagicMock()
         mock_instance.build_request = MagicMock(return_value=MagicMock())
-        mock_instance.send = AsyncMock(
-            side_effect=httpx.ReadTimeout("Read timed out")
-        )
+        mock_instance.send = AsyncMock(side_effect=httpx.ReadTimeout("Read timed out"))
         mock_instance.aclose = AsyncMock()
         mock_client_cls.return_value = mock_instance
 
-        resp = client.post(
-            "/api/ai/proxy/openai/v1/chat/completions", json={}
-        )
+        resp = client.post("/api/ai/proxy/openai/v1/chat/completions", json={})
 
         assert resp.status_code == 504
         assert "timeout" in resp.json()["detail"].lower()
@@ -278,15 +314,11 @@ class TestProxyErrorHandling:
     def test_generic_exception_returns_502(self, mock_client_cls, client):
         mock_instance = MagicMock()
         mock_instance.build_request = MagicMock(return_value=MagicMock())
-        mock_instance.send = AsyncMock(
-            side_effect=RuntimeError("Something broke")
-        )
+        mock_instance.send = AsyncMock(side_effect=RuntimeError("Something broke"))
         mock_instance.aclose = AsyncMock()
         mock_client_cls.return_value = mock_instance
 
-        resp = client.post(
-            "/api/ai/proxy/anthropic/v1/messages", json={}
-        )
+        resp = client.post("/api/ai/proxy/anthropic/v1/messages", json={})
 
         assert resp.status_code == 502
         assert "Something broke" in resp.json()["detail"]

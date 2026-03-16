@@ -4,7 +4,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # Default engine identifier for all tools that don't specify one
 DEFAULT_ENGINE = "sigilweaver/polars"
 
