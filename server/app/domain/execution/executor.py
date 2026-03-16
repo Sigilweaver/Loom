@@ -34,6 +34,10 @@ class WorkflowExecutor:
         self.results: dict[str, dict[str, pl.LazyFrame]] = {}
         self.archive_dir: Path | None = None
         self._default_engine: str = "sigilweaver/polars"
+        # Lock guards self.results during parallel execution levels.
+        # Asyncio is single-threaded so dict ops are atomic in practice,
+        # but the lock makes the contract explicit and future-proof.
+        self._results_lock = asyncio.Lock()
 
     async def execute_workflow(
         self,
@@ -448,7 +452,8 @@ class WorkflowExecutor:
             tool, inputs, plan, cache_mgr
         )
 
-        self.results[tool_id] = outputs
+        async with self._results_lock:
+            self.results[tool_id] = outputs
 
         return {
             "tool_id": tool_id,
