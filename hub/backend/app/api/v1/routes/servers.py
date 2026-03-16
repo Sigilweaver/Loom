@@ -186,9 +186,7 @@ async def register_server(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="X-Registration-Secret header required",
             )
-        if not secrets.compare_digest(
-            x_registration_secret, settings.server_registration_secret
-        ):
+        if not secrets.compare_digest(x_registration_secret, settings.server_registration_secret):
             logger.warning("Server registration attempt with invalid secret")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -515,9 +513,7 @@ async def assign_server_to_group(
     db.add(assignment)
     await db.commit()
 
-    logger.info(
-        f"Assigned server '{server.name}' to group '{group.name}' by {admin.username}"
-    )
+    logger.info(f"Assigned server '{server.name}' to group '{group.name}' by {admin.username}")
 
     # Refresh and return updated groups
     await db.refresh(server)
@@ -586,6 +582,4 @@ async def remove_server_from_group(
     await db.delete(assignment)
     await db.commit()
 
-    logger.info(
-        f"Removed server '{server.name}' from group {group_id} by {admin.username}"
-    )
+    logger.info(f"Removed server '{server.name}' from group {group_id} by {admin.username}")
