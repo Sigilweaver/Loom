@@ -108,6 +108,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Sigilweaver Hub starting up...")
 
+    # Warn about open server registration
+    if not settings.server_registration_secret:
+        logger.warning(
+            "SERVER_REGISTRATION_SECRET is empty — any server can register "
+            "without authentication. Set this secret in production."
+        )
+
     # Initialize server token infrastructure
     token_store = init_token_store()
     init_issuer(token_store, settings)
