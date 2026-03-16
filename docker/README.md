@@ -163,15 +163,16 @@ The `docker-compose.override.yml` file disables secrets for local development.
 
 ### Optional Environment Variables
 
-| Variable       | Default  | Description                |
-| -------------- | -------- | -------------------------- |
-| `VERSION`      | `latest` | Image version tag          |
-| `HUB_PORT`     | `25802`  | Hub external port          |
-| `LOG_LEVEL`    | `info`   | Logging level              |
-| `LOG_FORMAT`   | `json`   | Log format (text/json)     |
-| `CORS_ORIGINS` | -        | Allowed CORS origins       |
-| `DATABASE_URL` | -        | External PostgreSQL URL    |
-| `SERVER_NAME`  | auto     | Server display name in Hub |
+| Variable       | Default         | Description                                    |
+| -------------- | --------------- | ---------------------------------------------- |
+| `VERSION`      | `latest`        | Image version tag                              |
+| `HUB_PORT`     | `25802`         | Hub external port                              |
+| `ENVIRONMENT`  | `development`   | `production` enforces secret validation at startup |
+| `LOG_LEVEL`    | `info`          | Logging level                                  |
+| `LOG_FORMAT`   | `json`          | Log format (text/json)                         |
+| `CORS_ORIGINS` | -               | Allowed CORS origins                           |
+| `DATABASE_URL` | -               | External PostgreSQL URL                        |
+| `SERVER_NAME`  | auto            | Server display name in Hub                     |
 
 ## Scaling Servers
 
@@ -301,7 +302,7 @@ SCAN=1 ./docker/build.sh
 - **Resource limits** - Memory constraints prevent runaway containers
 - **Health checks** - Automatic restart on failure
 - **Init process** - Proper signal handling via tini
-- **Startup validation** - Hub rejects default/insecure secrets and warns on empty registration secrets
+- **Startup validation** - In production mode (`ENVIRONMENT=production`), Hub rejects default/insecure secrets; in development mode, a warning is logged instead
 - **Cryptographic entropy** - Dev secrets generated with `/dev/urandom`, not timestamps
 
 ## Production Checklist
@@ -309,6 +310,7 @@ SCAN=1 ./docker/build.sh
 - [ ] All secrets generated and stored in `.secrets/` directory
 - [ ] `.secrets/` directory has `chmod 700` permissions
 - [ ] Secret files have `chmod 600` permissions
+- [ ] `ENVIRONMENT=production` is set (enforces secret validation at startup)
 - [ ] `SESSION_SECRET` and `SECRET_KEY` are NOT the default `CHANGE_ME_IN_PRODUCTION`
 - [ ] `SERVER_REGISTRATION_SECRET` is set (empty = open server registration)
 - [ ] Using production compose: `docker compose -f docker-compose.yml up -d`

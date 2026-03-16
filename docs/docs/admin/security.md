@@ -52,7 +52,7 @@ sequenceDiagram
 | Code injection via expressions | AST validation allowlist before `eval()` (see below) |
 | SSRF via AI proxy | Private/loopback/link-local IP blocking + DNS resolution check |
 | SQL injection via database tool | DDL/DML keyword rejection before query execution |
-| Default/weak secrets | Hub refuses to start with default secret values |
+| Default/weak secrets | Hub refuses to start with default secret values (production mode) |
 | Timing attacks on secrets | `secrets.compare_digest` for registration secret comparison |
 
 ## Credential Storage
@@ -104,6 +104,8 @@ When users inspect or preview database tables, the query input is validated to r
 
 Hub validates secrets at startup to prevent running with insecure defaults:
 
-- `SESSION_SECRET` and `SECRET_KEY` must not equal `CHANGE_ME_IN_PRODUCTION` (fatal)
+- `SESSION_SECRET` and `SECRET_KEY` must not equal `CHANGE_ME_IN_PRODUCTION`
+  - In **production** (`ENVIRONMENT=production`): fatal — Hub refuses to start
+  - In **development** (default): warning is logged, startup continues
 - Empty `SERVER_REGISTRATION_SECRET` triggers a warning (allows open server registration)
 - Docker entrypoint validates all required environment variables are set
