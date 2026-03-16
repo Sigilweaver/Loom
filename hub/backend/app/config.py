@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     reload: bool = False
     log_level: str = "info"
     log_format: str = "text"  # "text" or "json"
+    environment: str = "development"  # "development" or "production"
 
     # Static files - serve frontend from this directory (empty = disabled)
     static_files_path: str = ""

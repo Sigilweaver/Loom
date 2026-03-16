@@ -99,12 +99,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         _insecure_settings.append("SECRET_KEY")
     if _insecure_settings:
         msg = (
-            f"FATAL: {', '.join(_insecure_settings)} still set to default value. "
+            f"{', '.join(_insecure_settings)} still set to default value. "
             "Generate secure values before running Hub:\n"
-            "  python3 -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            '  python3 -c "import secrets; print(secrets.token_urlsafe(32))"'
         )
-        logger.critical(msg)
-        raise SystemExit(msg)
+        if settings.environment == "production":
+            logger.critical("FATAL: " + msg)
+            raise SystemExit(msg)
+        else:
+            logger.warning(msg + " (ignored in development mode)")
 
     logger.info("Sigilweaver Hub starting up...")
 
@@ -185,9 +188,7 @@ if settings.static_files_path:
     static_path = Path(settings.static_files_path)
     if static_path.exists() and static_path.is_dir():
         # Note: Mount at "/" must come after all API routes are registered
-        application.mount(
-            "/", StaticFiles(directory=static_path, html=True), name="static"
-        )
+        application.mount("/", StaticFiles(directory=static_path, html=True), name="static")
         _static_mounted = True
         logger.info(f"Serving static files from {static_path}")
     else:
