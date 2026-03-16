@@ -8,6 +8,7 @@ Handles database connections for:
 Uses Polars' read_database_uri with connectorx engine.
 """
 
+import re
 from typing import Any
 
 import polars as pl
@@ -20,6 +21,30 @@ from app.api.models.common import (
 )
 from app.domain.datasources.base import DataSource
 from app.utils.errors import DataSourceError
+
+# DDL/DML statements that must not be executed through the data source.
+# Only SELECT queries are permitted.
+_FORBIDDEN_SQL_PATTERN = re.compile(
+    r"\b(DROP|ALTER|CREATE|DELETE|UPDATE|INSERT|TRUNCATE|GRANT|REVOKE|EXEC|EXECUTE|CALL)\b",
+    re.IGNORECASE,
+)
+
+
+def _validate_readonly_query(query: str) -> None:
+    """Reject queries containing DDL or write DML statements.
+
+    Raises:
+        DataSourceError: If the query contains forbidden SQL keywords.
+    """
+    # Strip SQL comments before checking
+    stripped = re.sub(r"--[^\n]*", "", query)
+    stripped = re.sub(r"/\*.*?\*/", "", stripped, flags=re.DOTALL)
+
+    if _FORBIDDEN_SQL_PATTERN.search(stripped):
+        raise DataSourceError(
+            "Only SELECT queries are allowed. DDL and write operations "
+            "(DROP, ALTER, CREATE, DELETE, UPDATE, INSERT, TRUNCATE) are forbidden."
+        )
 
 
 def _dtype_to_polars_type(dtype: pl.DataType) -> PolarsDataType:
@@ -95,6 +120,8 @@ class DatabaseDataSource(DataSource):
         query = config.get("query", "")
         if not query.strip():
             return DataSchema(columns=[], row_count=None)
+
+        _validate_readonly_query(query)
 
         try:
             # Execute query with LIMIT 0 to get schema without data
@@ -174,6 +201,8 @@ class DatabaseDataSource(DataSource):
                 total_rows=0,
                 returned_rows=0,
             )
+
+        _validate_readonly_query(query)
 
         try:
             # For preview, we add LIMIT/OFFSET to the query
