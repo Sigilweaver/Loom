@@ -63,12 +63,23 @@ load_secret_from_file "POSTGRES_PASSWORD"
 # =============================================================================
 # Database URL Construction
 # =============================================================================
-# If DATABASE_URL contains an empty password (from compose substitution with secrets),
-# reconstruct it using the loaded POSTGRES_PASSWORD
+# Preferred: DATABASE_URL_TEMPLATE with __PASSWORD__ placeholder + DATABASE_PASSWORD_FILE
+# Fallback:  DATABASE_URL with empty password (user:@host) + POSTGRES_PASSWORD env var
 
 construct_database_url() {
-    # Check if DATABASE_URL has empty password (pattern: user:@host)
-    if [[ "$DATABASE_URL" =~ :\/\/([^:]+):@([^/]+) ]]; then
+    # Preferred: Build DATABASE_URL from template + secret file
+    if [ -n "$DATABASE_URL_TEMPLATE" ] && [ -n "$DATABASE_PASSWORD_FILE" ] && [ -f "$DATABASE_PASSWORD_FILE" ]; then
+        local password
+        password="$(tr -d '\n' < "$DATABASE_PASSWORD_FILE")"
+        local encoded_password
+        encoded_password=$(printf '%s' "$password" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read(), safe=''))" 2>/dev/null || printf '%s' "$password")
+        export DATABASE_URL="${DATABASE_URL_TEMPLATE//__PASSWORD__/$encoded_password}"
+        echo "Constructed DATABASE_URL from template + secret"
+        return
+    fi
+
+    # Fallback: legacy pattern — DATABASE_URL with empty password (user:@host)
+    if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" =~ :\/\/([^:]+):@([^/]+) ]]; then
         local user="${BASH_REMATCH[1]}"
         local host_and_rest="${BASH_REMATCH[2]}"
         local scheme="${DATABASE_URL%%://*}"
