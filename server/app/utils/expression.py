@@ -4,11 +4,122 @@ Shared logic for parsing and normalizing Polars expression strings.
 Used by Filter, Formula, and other expression-based tools.
 """
 
+import ast
 from typing import Any
 
 import polars as pl
 
 from app.utils.errors import ToolError
+
+
+# AST node types allowed in Polars expressions.
+# This allowlist prevents sandbox escape via dunder attribute access,
+# imports, exec/eval, and other dangerous constructs while permitting
+# legitimate Polars expression chains.
+_ALLOWED_AST_NODES = frozenset({
+    # Literals and basic structures
+    ast.Expression,
+    ast.Constant,
+    ast.Name,
+    ast.List,
+    ast.Tuple,
+    ast.Dict,
+    ast.Set,
+    # Attribute access (validated separately — no dunders)
+    ast.Attribute,
+    # Calls (e.g. pl.col("x"), .str.contains("y"))
+    ast.Call,
+    # Operators
+    ast.UnaryOp,
+    ast.BinOp,
+    ast.BoolOp,
+    ast.Compare,
+    # Operator tokens
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.FloorDiv,
+    ast.Mod,
+    ast.Pow,
+    ast.BitOr,
+    ast.BitAnd,
+    ast.BitXor,
+    ast.Invert,
+    ast.Not,
+    ast.UAdd,
+    ast.USub,
+    ast.And,
+    ast.Or,
+    # Comparisons
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.Is,
+    ast.IsNot,
+    ast.In,
+    ast.NotIn,
+    # Subscript (e.g. indexing)
+    ast.Subscript,
+    ast.Slice,
+    # Starred (e.g. *args in function calls)
+    ast.Starred,
+    # Keyword arguments
+    ast.keyword,
+    # Ternary / conditional expression
+    ast.IfExp,
+    # f-strings (used in some Polars expressions)
+    ast.JoinedStr,
+    ast.FormattedValue,
+    # Load context
+    ast.Load,
+})
+
+
+def _validate_expression_ast(expression: str) -> None:
+    """Validate that a Polars expression contains only safe AST nodes.
+
+    Rejects dunder attribute access (__class__, __subclasses__, etc.),
+    import statements, and any AST node not in the allowlist.
+
+    Raises:
+        ToolError: If the expression contains disallowed constructs.
+    """
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError as e:
+        raise ToolError(f"Expression syntax error: {e}") from e
+
+    for node in ast.walk(tree):
+        node_type = type(node)
+
+        if node_type not in _ALLOWED_AST_NODES:
+            raise ToolError(
+                f"Disallowed construct in expression: {node_type.__name__}"
+            )
+
+        # Block dunder attribute access (e.g. __class__, __subclasses__)
+        if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+            raise ToolError(
+                f"Dunder attribute access is not allowed: {node.attr}"
+            )
+
+        # Block dunder name access (e.g. __import__, __builtins__)
+        if isinstance(node, ast.Name) and node.id.startswith("__"):
+            raise ToolError(
+                f"Dunder name access is not allowed: {node.id}"
+            )
+
+        # Only allow 'pl' as a top-level name reference
+        if isinstance(node, ast.Name) and node.id not in (
+            "pl", "True", "False", "None",
+        ):
+            raise ToolError(
+                f"Only 'pl' namespace is allowed, got: {node.id}"
+            )
 
 
 def normalize_expression(expression: str) -> str:
@@ -88,6 +199,10 @@ def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:
     """
     if normalize:
         expression = normalize_expression(expression)
+
+    # Validate AST before eval — blocks sandbox escape via dunder access,
+    # imports, and any construct outside the allowlist
+    _validate_expression_ast(expression)
 
     # Restricted namespace - only Polars available
     namespace: dict[str, Any] = {
