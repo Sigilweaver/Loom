@@ -51,3 +51,7 @@ Users do **not** see:
 - Username, password
 
 This is intentional - users can use connections without knowing where they point.
+
+## Query Safety
+
+When users inspect or preview data through the database data source, all queries are validated to block destructive SQL operations. Statements containing `DROP`, `ALTER`, `CREATE`, `DELETE`, `UPDATE`, `INSERT`, `TRUNCATE`, `GRANT`, `REVOKE`, or `EXEC`/`EXECUTE` are rejected before reaching the database. This applies to both schema inspection and data preview paths.

@@ -59,6 +59,10 @@ openssl rand -hex 16 > .secrets/postgres_password
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > .secrets/connection_encryption_key
 ```
 
+:::warning Important
+All secrets **must** be changed from their defaults. Hub will refuse to start if `SESSION_SECRET` or `SECRET_KEY` are still set to `CHANGE_ME_IN_PRODUCTION`. If `SERVER_REGISTRATION_SECRET` is empty, Hub will log a warning — any server can register without authentication.
+:::
+
 ### 4. Build and Start
 
 Build the containers and start the stack in detached mode:
