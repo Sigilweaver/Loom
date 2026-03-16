@@ -1,6 +1,7 @@
 """Server registry routes"""
 
 import logging
+import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -185,7 +186,9 @@ async def register_server(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="X-Registration-Secret header required",
             )
-        if x_registration_secret != settings.server_registration_secret:
+        if not secrets.compare_digest(
+            x_registration_secret, settings.server_registration_secret
+        ):
             logger.warning("Server registration attempt with invalid secret")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
