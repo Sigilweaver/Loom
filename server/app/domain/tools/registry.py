@@ -83,11 +83,7 @@ class ToolRegistry:
         """
         if engine:
             prefix = f"{engine}::"
-            return [
-                key.removeprefix(prefix)
-                for key in cls._tools
-                if key.startswith(prefix)
-            ]
+            return [key.removeprefix(prefix) for key in cls._tools if key.startswith(prefix)]
         # Return only unqualified names
         return [key for key in cls._tools if "::" not in key]
 

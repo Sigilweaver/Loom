@@ -172,11 +172,13 @@ class SelectTool(BaseTool):
         if not output_columns:
             raise ToolError("At least one column must be selected")
 
-        return {CommonSockets.OUTPUT: DataSchema(
-            columns=output_columns,
-            row_count=input_schema.row_count,
-            file_size_bytes=None,
-        )}
+        return {
+            CommonSockets.OUTPUT: DataSchema(
+                columns=output_columns,
+                row_count=input_schema.row_count,
+                file_size_bytes=None,
+            )
+        }
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate select configuration"""
@@ -194,8 +196,7 @@ class SelectTool(BaseTool):
 
         # Check that at least one column is selected
         selected_count = sum(
-            1 for cc in column_configs
-            if isinstance(cc, dict) and cc.get("selected", True)
+            1 for cc in column_configs if isinstance(cc, dict) and cc.get("selected", True)
         )
 
         if selected_count == 0:
@@ -224,17 +225,13 @@ class SelectTool(BaseTool):
             # Validate target type if specified
             target_type = col_config.get("targetType")
             if target_type and target_type not in DTYPE_STRING_TO_POLARS:
-                errors.append(
-                    f"Invalid target type '{target_type}' for column '{name}'"
-                )
+                errors.append(f"Invalid target type '{target_type}' for column '{name}'")
 
             # Validate size if specified
             size = col_config.get("size")
             if size is not None:
                 if not isinstance(size, int) or size < 1:
-                    errors.append(
-                        f"Size for column '{name}' must be a positive integer"
-                    )
+                    errors.append(f"Size for column '{name}' must be a positive integer")
 
         return errors
 

@@ -25,11 +25,13 @@ def cache(temp_cache_dir):
 @pytest.fixture
 def sample_lazyframe():
     """Create a sample LazyFrame for testing."""
-    return pl.LazyFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "value": [100.0, 200.0, 150.0, 300.0, 250.0],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "value": [100.0, 200.0, 150.0, 300.0, 250.0],
+        }
+    )
 
 
 class TestBlockingToolCache:
@@ -291,6 +293,7 @@ class TestToolCachingBehavior:
     def test_sort_is_blocking(self):
         """Test that SortTool is marked as blocking."""
         from app.domain.tools.implementations.sort import SortTool
+
         tool = SortTool()
         assert tool.is_blocking() is True
         assert tool.should_cache({}) is True
@@ -298,6 +301,7 @@ class TestToolCachingBehavior:
     def test_summarize_is_blocking(self):
         """Test that SummarizeTool is marked as blocking."""
         from app.domain.tools.implementations.summarize import SummarizeTool
+
         tool = SummarizeTool()
         assert tool.is_blocking() is True
         assert tool.should_cache({}) is True
@@ -305,6 +309,7 @@ class TestToolCachingBehavior:
     def test_join_is_blocking(self):
         """Test that JoinTool is marked as blocking."""
         from app.domain.tools.implementations.join import JoinTool
+
         tool = JoinTool()
         assert tool.is_blocking() is True
         assert tool.should_cache({}) is True
@@ -312,6 +317,7 @@ class TestToolCachingBehavior:
     def test_input_file_not_cached(self):
         """Test that file Input tools are not cached."""
         from app.domain.tools.implementations.input import InputTool
+
         tool = InputTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({"category": "file"}) is False
@@ -319,6 +325,7 @@ class TestToolCachingBehavior:
     def test_input_database_cached(self):
         """Test that database Input tools are cached."""
         from app.domain.tools.implementations.input import InputTool
+
         tool = InputTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({"category": "database"}) is True
@@ -326,6 +333,7 @@ class TestToolCachingBehavior:
     def test_filter_not_blocking(self):
         """Test that FilterTool is not blocking."""
         from app.domain.tools.implementations.filter import FilterTool
+
         tool = FilterTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({}) is False
@@ -333,6 +341,7 @@ class TestToolCachingBehavior:
     def test_select_not_blocking(self):
         """Test that SelectTool is not blocking."""
         from app.domain.tools.implementations.select import SelectTool
+
         tool = SelectTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({}) is False
@@ -340,6 +349,7 @@ class TestToolCachingBehavior:
     def test_formula_not_blocking(self):
         """Test that FormulaTool is not blocking."""
         from app.domain.tools.implementations.formula import FormulaTool
+
         tool = FormulaTool()
         assert tool.is_blocking() is False
         assert tool.should_cache({}) is False
@@ -347,6 +357,7 @@ class TestToolCachingBehavior:
     def test_sample_first_n_not_blocking(self):
         """Test that SampleTool with FirstN mode is not blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "FirstN"}) is False
         assert tool.should_cache({"mode": "FirstN"}) is False
@@ -354,6 +365,7 @@ class TestToolCachingBehavior:
     def test_sample_every_n_not_blocking(self):
         """Test that SampleTool with EveryN mode is not blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "EveryN"}) is False
         assert tool.should_cache({"mode": "EveryN"}) is False
@@ -361,6 +373,7 @@ class TestToolCachingBehavior:
     def test_sample_last_n_is_blocking(self):
         """Test that SampleTool with LastN mode is blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "LastN"}) is True
         assert tool.should_cache({"mode": "LastN"}) is True
@@ -368,6 +381,7 @@ class TestToolCachingBehavior:
     def test_sample_random_is_blocking(self):
         """Test that SampleTool with Random mode is blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "Random"}) is True
         assert tool.should_cache({"mode": "Random"}) is True
@@ -375,6 +389,7 @@ class TestToolCachingBehavior:
     def test_sample_random_percent_is_blocking(self):
         """Test that SampleTool with RandomPercent mode is blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "RandomPercent"}) is True
         assert tool.should_cache({"mode": "RandomPercent"}) is True
@@ -382,6 +397,7 @@ class TestToolCachingBehavior:
     def test_sample_first_percent_is_blocking(self):
         """Test that SampleTool with FirstPercent mode is blocking."""
         from app.domain.tools.implementations.sample import SampleTool
+
         tool = SampleTool()
         assert tool.is_blocking({"mode": "FirstPercent"}) is True
         assert tool.should_cache({"mode": "FirstPercent"}) is True
@@ -447,6 +463,7 @@ class TestTTLCleanup:
     def test_cleanup_old_cache_files_removes_expired(self, temp_cache_dir, sample_lazyframe):
         """Test that cleanup removes files older than retention period."""
         import time
+
         from app.domain.execution.cache import cleanup_old_cache_files
 
         # Create a workflow cache with old file
@@ -457,6 +474,7 @@ class TestTTLCleanup:
         cache_file = cache.cache_path("sort-1", "output", "abc123")
         old_time = time.time() - (8 * 86400)
         import os
+
         os.utime(cache_file, (old_time, old_time))
 
         # Cleanup with 7 day retention
@@ -490,8 +508,9 @@ class TestTTLCleanup:
 
     def test_cleanup_old_cache_files_removes_empty_dirs(self, temp_cache_dir, sample_lazyframe):
         """Test that cleanup removes empty workflow directories."""
-        import time
         import os
+        import time
+
         from app.domain.execution.cache import cleanup_old_cache_files
 
         cache = BlockingToolCache(temp_cache_dir, "to-be-empty")
@@ -615,4 +634,5 @@ class TestFileAccessTime:
         assert access_time > 0
         # Should be recent (within last minute)
         import time
+
         assert time.time() - access_time < 60

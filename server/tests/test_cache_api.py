@@ -58,6 +58,7 @@ class TestCacheAPIRoutes:
     def test_clear_workflow_cache(self, client, temp_cache_dir):
         """Test clearing a specific workflow's cache."""
         import polars as pl
+
         from app.domain.execution.cache import BlockingToolCache
 
         with patch("app.api.routes.cache.settings") as mock_settings:
@@ -71,10 +72,7 @@ class TestCacheAPIRoutes:
             assert cache.exists("tool-1", "output", "key123")
 
             # Clear via API
-            response = client.post(
-                "/api/cache/clear",
-                json={"workflow_id": "test-workflow-123"}
-            )
+            response = client.post("/api/cache/clear", json={"workflow_id": "test-workflow-123"})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "cleared"
@@ -88,10 +86,7 @@ class TestCacheAPIRoutes:
         with patch("app.api.routes.cache.settings") as mock_settings:
             mock_settings.cache_enabled = False
 
-            response = client.post(
-                "/api/cache/clear",
-                json={"workflow_id": "test-workflow"}
-            )
+            response = client.post("/api/cache/clear", json={"workflow_id": "test-workflow"})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "cache_disabled"
@@ -99,6 +94,7 @@ class TestCacheAPIRoutes:
     def test_close_workflow_cache_clears_when_enabled(self, client, temp_cache_dir):
         """Test close endpoint clears cache when setting is enabled."""
         import polars as pl
+
         from app.domain.execution.cache import BlockingToolCache
 
         with patch("app.api.routes.cache.settings") as mock_settings:
@@ -112,10 +108,7 @@ class TestCacheAPIRoutes:
             cache.put("tool-1", "output", "key123", lf)
 
             # Close via API
-            response = client.post(
-                "/api/cache/close",
-                json={"workflow_id": "close-test-workflow"}
-            )
+            response = client.post("/api/cache/close", json={"workflow_id": "close-test-workflow"})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "cleared_on_close"
@@ -126,6 +119,7 @@ class TestCacheAPIRoutes:
     def test_close_workflow_cache_skips_when_disabled(self, client, temp_cache_dir):
         """Test close endpoint skips clear when setting is disabled."""
         import polars as pl
+
         from app.domain.execution.cache import BlockingToolCache
 
         with patch("app.api.routes.cache.settings") as mock_settings:
@@ -139,10 +133,7 @@ class TestCacheAPIRoutes:
             cache.put("tool-1", "output", "key123", lf)
 
             # Close via API
-            response = client.post(
-                "/api/cache/close",
-                json={"workflow_id": "keep-test-workflow"}
-            )
+            response = client.post("/api/cache/close", json={"workflow_id": "keep-test-workflow"})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "close_acknowledged"
@@ -153,6 +144,7 @@ class TestCacheAPIRoutes:
     def test_close_workflow_caches_batch(self, client, temp_cache_dir):
         """Test batch close endpoint clears multiple workflow caches."""
         import polars as pl
+
         from app.domain.execution.cache import BlockingToolCache
 
         with patch("app.api.routes.cache.settings") as mock_settings:
@@ -171,10 +163,7 @@ class TestCacheAPIRoutes:
                 assert cache.cache_dir.exists()
 
             # Close all via batch API
-            response = client.post(
-                "/api/cache/close/batch",
-                json={"workflow_ids": workflows}
-            )
+            response = client.post("/api/cache/close/batch", json={"workflow_ids": workflows})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "cleared_on_close"
@@ -191,10 +180,7 @@ class TestCacheAPIRoutes:
             mock_settings.cache_enabled = True
             mock_settings.cache_clear_on_close = True
 
-            response = client.post(
-                "/api/cache/close/batch",
-                json={"workflow_ids": []}
-            )
+            response = client.post("/api/cache/close/batch", json={"workflow_ids": []})
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "cleared_on_close"
@@ -207,8 +193,7 @@ class TestCacheAPIRoutes:
             mock_settings.cache_clear_on_close = False
 
             response = client.post(
-                "/api/cache/close/batch",
-                json={"workflow_ids": ["wf-1", "wf-2"]}
+                "/api/cache/close/batch", json={"workflow_ids": ["wf-1", "wf-2"]}
             )
             assert response.status_code == 200
             data = response.json()

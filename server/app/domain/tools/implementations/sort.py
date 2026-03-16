@@ -43,11 +43,13 @@ class SortTool(BaseTool):
                 continue
             direction = sort_col.get("direction", "asc")
             nulls_first = sort_col.get("nullsFirst", False)
-            columns.append(SortColumn(
-                column=column,
-                descending=(direction == "desc"),
-                nulls_last=(not nulls_first),
-            ))
+            columns.append(
+                SortColumn(
+                    column=column,
+                    descending=(direction == "desc"),
+                    nulls_last=(not nulls_first),
+                )
+            )
         return SortOperation(columns=columns)
 
     async def execute(
@@ -130,8 +132,7 @@ class SortTool(BaseTool):
 
             if direction not in SORT_DIRECTIONS:
                 errors.append(
-                    f"Invalid sort direction at index {i}: '{direction}'. "
-                    "Must be 'asc' or 'desc'"
+                    f"Invalid sort direction at index {i}: '{direction}'. Must be 'asc' or 'desc'"
                 )
 
             # Check for duplicate columns

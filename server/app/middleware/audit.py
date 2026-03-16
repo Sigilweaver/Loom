@@ -100,11 +100,15 @@ class AuditMiddleware(BaseHTTPMiddleware):
         if settings.audit_enabled:
             deleted = cleanup_old_audit_logs()
             if deleted > 0:
-                self.logger.info(json.dumps({
-                    "type": "cleanup",
-                    "deleted_files": deleted,
-                    "retention_days": settings.audit_retention_days
-                }))
+                self.logger.info(
+                    json.dumps(
+                        {
+                            "type": "cleanup",
+                            "deleted_files": deleted,
+                            "retention_days": settings.audit_retention_days,
+                        }
+                    )
+                )
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -204,8 +208,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 # For workflows, just log tool count and wire count
                 if isinstance(data, dict):
                     if "tools" in data and "wires" in data:
-                        tools_count = len(data.get('tools', []))
-                        wires_count = len(data.get('wires', []))
+                        tools_count = len(data.get("tools", []))
+                        wires_count = len(data.get("wires", []))
                         return f"workflow: {tools_count} tools, {wires_count} wires"
                     # For other objects, list top-level keys
                     keys = list(data.keys())[:5]

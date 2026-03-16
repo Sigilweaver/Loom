@@ -1,9 +1,10 @@
 """Tests for the Pivot tool."""
+
 import polars as pl
 import pytest
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
-from app.domain.tools.implementations.pivot import PivotTool, PIVOT_AGGREGATIONS
+from app.domain.tools.implementations.pivot import PIVOT_AGGREGATIONS, PivotTool
 from app.domain.tools.sockets import CommonSockets
 
 
@@ -16,33 +17,39 @@ def pivot_tool() -> PivotTool:
 @pytest.fixture
 def long_data() -> pl.LazyFrame:
     """Create sample long format data for testing."""
-    return pl.LazyFrame({
-        "id": [1, 1, 1, 2, 2, 2],
-        "name": ["Alice", "Alice", "Alice", "Bob", "Bob", "Bob"],
-        "quarter": ["Q1", "Q2", "Q3", "Q1", "Q2", "Q3"],
-        "sales": [100, 110, 120, 200, 180, 220],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 1, 1, 2, 2, 2],
+            "name": ["Alice", "Alice", "Alice", "Bob", "Bob", "Bob"],
+            "quarter": ["Q1", "Q2", "Q3", "Q1", "Q2", "Q3"],
+            "sales": [100, 110, 120, 200, 180, 220],
+        }
+    )
 
 
 @pytest.fixture
 def long_data_with_duplicates() -> pl.LazyFrame:
     """Create sample data with duplicate pivot keys for aggregation testing."""
-    return pl.LazyFrame({
-        "id": [1, 1, 1, 1, 2, 2],
-        "quarter": ["Q1", "Q1", "Q2", "Q2", "Q1", "Q1"],
-        "sales": [100, 150, 110, 90, 200, 250],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 1, 1, 1, 2, 2],
+            "quarter": ["Q1", "Q1", "Q2", "Q2", "Q1", "Q1"],
+            "sales": [100, 150, 110, 90, 200, 250],
+        }
+    )
 
 
 @pytest.fixture
 def long_schema() -> DataSchema:
     """Create input schema for long format data."""
-    return DataSchema(columns=[
-        ColumnSchema(name="id", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
-        ColumnSchema(name="quarter", dtype=PolarsDataType.STRING, nullable=True),
-        ColumnSchema(name="sales", dtype=PolarsDataType.INT64, nullable=True),
-    ])
+    return DataSchema(
+        columns=[
+            ColumnSchema(name="id", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
+            ColumnSchema(name="quarter", dtype=PolarsDataType.STRING, nullable=True),
+            ColumnSchema(name="sales", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
 
 
 class TestPivotToolBlocking:
@@ -62,9 +69,7 @@ class TestPivotToolBasic:
     """Basic pivot functionality tests."""
 
     @pytest.mark.asyncio
-    async def test_basic_pivot(
-        self, pivot_tool: PivotTool, long_data: pl.LazyFrame
-    ):
+    async def test_basic_pivot(self, pivot_tool: PivotTool, long_data: pl.LazyFrame):
         """Test basic pivot operation."""
         config = {
             "on": "quarter",
@@ -89,9 +94,7 @@ class TestPivotToolBasic:
         assert "Q3" in output_df.columns
 
     @pytest.mark.asyncio
-    async def test_pivot_single_index(
-        self, pivot_tool: PivotTool, long_data: pl.LazyFrame
-    ):
+    async def test_pivot_single_index(self, pivot_tool: PivotTool, long_data: pl.LazyFrame):
         """Test pivot with single index column."""
         config = {
             "on": "quarter",
@@ -109,9 +112,7 @@ class TestPivotToolBasic:
         assert "name" not in output_df.columns
 
     @pytest.mark.asyncio
-    async def test_pivot_requires_index(
-        self, pivot_tool: PivotTool
-    ):
+    async def test_pivot_requires_index(self, pivot_tool: PivotTool):
         """Test that pivot requires at least one index column (Polars requirement)."""
         config = {
             "on": "category",
@@ -247,9 +248,7 @@ class TestPivotToolSchema:
     """Tests for Pivot tool schema inference."""
 
     @pytest.mark.asyncio
-    async def test_output_schema_index_only(
-        self, pivot_tool: PivotTool, long_schema: DataSchema
-    ):
+    async def test_output_schema_index_only(self, pivot_tool: PivotTool, long_schema: DataSchema):
         """Test output schema contains index columns.
 
         Note: Pivot output schema cannot determine pivoted columns without data.
@@ -340,9 +339,7 @@ class TestPivotToolValidation:
         assert len(errors) == 0
 
     @pytest.mark.asyncio
-    async def test_execute_requires_on(
-        self, pivot_tool: PivotTool, long_data: pl.LazyFrame
-    ):
+    async def test_execute_requires_on(self, pivot_tool: PivotTool, long_data: pl.LazyFrame):
         """Test execute raises error without 'on' column."""
         config = {"on": "", "index": ["id"], "values": "sales"}
         with pytest.raises(Exception) as exc_info:
@@ -350,9 +347,7 @@ class TestPivotToolValidation:
         assert "pivot" in str(exc_info.value).lower()
 
     @pytest.mark.asyncio
-    async def test_execute_requires_values(
-        self, pivot_tool: PivotTool, long_data: pl.LazyFrame
-    ):
+    async def test_execute_requires_values(self, pivot_tool: PivotTool, long_data: pl.LazyFrame):
         """Test execute raises error without values column."""
         config = {"on": "quarter", "index": ["id"], "values": ""}
         with pytest.raises(Exception) as exc_info:
@@ -371,9 +366,7 @@ class TestPivotToolCodeGeneration:
             "values": "sales",
             "aggregateFunction": "sum",
         }
-        lines, output_vars = pivot_tool.to_python_code(
-            "pivot_001", config, {"input": "df_input"}
-        )
+        lines, output_vars = pivot_tool.to_python_code("pivot_001", config, {"input": "df_input"})
 
         code = "\n".join(lines)
         assert "pivot" in code
@@ -392,9 +385,7 @@ class TestPivotToolCodeGeneration:
             "values": "value",
             "aggregateFunction": "first",
         }
-        lines, output_vars = pivot_tool.to_python_code(
-            "pivot_002", config, {"input": "df_in"}
-        )
+        lines, output_vars = pivot_tool.to_python_code("pivot_002", config, {"input": "df_in"})
 
         code = "\n".join(lines)
         assert "pivot" in code
@@ -410,9 +401,7 @@ class TestPivotToolCodeGeneration:
             "index": ["id"],
             "values": "val",
         }
-        lines, _ = pivot_tool.to_python_code(
-            "pivot_003", config, {"input": "df"}
-        )
+        lines, _ = pivot_tool.to_python_code("pivot_003", config, {"input": "df"})
 
         code = "\n".join(lines)
         assert "first" in code

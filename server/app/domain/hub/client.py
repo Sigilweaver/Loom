@@ -106,7 +106,8 @@ class HubClient:
 
                 if response.status_code not in (200, 201):
                     logger.error(
-                        f"Hub registration failed with status {response.status_code}: {response.text}"
+                        f"Hub registration failed with status "
+                        f"{response.status_code}: {response.text}"
                     )
                     return None
 
@@ -208,10 +209,12 @@ class HubClient:
                 # Convert file paths
                 file_paths: list[FilePathGrant] = []
                 for fp in data.get("file_paths") or []:
-                    file_paths.append(FilePathGrant(
-                        path=fp["path"],
-                        read_only=fp.get("read_only", True),
-                    ))
+                    file_paths.append(
+                        FilePathGrant(
+                            path=fp["path"],
+                            read_only=fp.get("read_only", True),
+                        )
+                    )
 
                 return AuthorizationResult(
                     authorized=True,
@@ -245,9 +248,7 @@ def get_hub_client() -> HubClient | None:
         return None
 
     if not settings.hub_url or not settings.hub_server_token:
-        logger.warning(
-            "auth_mode=hub but hub_url or hub_server_token not configured"
-        )
+        logger.warning("auth_mode=hub but hub_url or hub_server_token not configured")
         return None
 
     return HubClient()

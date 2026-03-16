@@ -20,13 +20,15 @@ def sample_json(tmp_path: Path) -> Path:
     json_path = tmp_path / "test_data.json"
 
     # Create sample data as array of objects
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to JSON (standard format)
     df.write_json(json_path)
@@ -39,13 +41,15 @@ def sample_ndjson(tmp_path: Path) -> Path:
     """Create a sample NDJSON file for testing"""
     ndjson_path = tmp_path / "test_data.ndjson"
 
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to NDJSON
     df.write_ndjson(ndjson_path)
@@ -60,6 +64,7 @@ def nested_json(tmp_path: Path) -> Path:
 
     # Write nested JSON manually since Polars can't handle nested writes
     import json
+
     data = [
         {"id": 1, "user": {"name": "Alice", "email": "alice@test.com"}, "tags": ["a", "b"]},
         {"id": 2, "user": {"name": "Bob", "email": "bob@test.com"}, "tags": ["c"]},
@@ -75,10 +80,7 @@ def jsonl_file(tmp_path: Path) -> Path:
     """Create a .jsonl file (should be treated as NDJSON)"""
     jsonl_path = tmp_path / "test_data.jsonl"
 
-    df = pl.DataFrame({
-        "id": [1, 2, 3],
-        "value": [10.0, 20.0, 30.0]
-    })
+    df = pl.DataFrame({"id": [1, 2, 3], "value": [10.0, 20.0, 30.0]})
 
     df.write_ndjson(jsonl_path)
 
@@ -172,7 +174,7 @@ async def test_json_input_tool_read_mode(sample_json: Path):
     config = {
         "type": "json",
         "source": str(sample_json),
-        "jsonMode": "read"  # Standard JSON only supports read
+        "jsonMode": "read",  # Standard JSON only supports read
     }
 
     outputs = await tool.execute(config, {})
@@ -193,7 +195,7 @@ async def test_json_input_tool_auto_detects_format(sample_json: Path):
 
     config = {
         "type": "json",
-        "source": str(sample_json)
+        "source": str(sample_json),
         # No jsonMode specified, should default based on extension
     }
 
@@ -214,11 +216,7 @@ async def test_ndjson_input_tool_scan_mode(sample_ndjson: Path):
     """Test InputTool with NDJSON in scan mode (lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": str(sample_ndjson),
-        "jsonMode": "scan"
-    }
+    config = {"type": "json", "source": str(sample_ndjson), "jsonMode": "scan"}
 
     outputs = await tool.execute(config, {})
 
@@ -236,11 +234,7 @@ async def test_ndjson_input_tool_read_mode(sample_ndjson: Path):
     """Test InputTool with NDJSON in read mode (eager -> lazy)"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": str(sample_ndjson),
-        "jsonMode": "read"
-    }
+    config = {"type": "json", "source": str(sample_ndjson), "jsonMode": "read"}
 
     outputs = await tool.execute(config, {})
 
@@ -257,11 +251,7 @@ async def test_jsonl_input_treated_as_ndjson(jsonl_file: Path):
     """Test that .jsonl files are treated as NDJSON"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": str(jsonl_file),
-        "jsonMode": "scan"
-    }
+    config = {"type": "json", "source": str(jsonl_file), "jsonMode": "scan"}
 
     outputs = await tool.execute(config, {})
 
@@ -276,12 +266,7 @@ async def test_ndjson_input_with_n_rows(sample_ndjson: Path):
     """Test InputTool with NDJSON limiting rows"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": str(sample_ndjson),
-        "jsonMode": "scan",
-        "n_rows": 2
-    }
+    config = {"type": "json", "source": str(sample_ndjson), "jsonMode": "scan", "n_rows": 2}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -298,7 +283,7 @@ async def test_ndjson_input_with_row_index(sample_ndjson: Path):
         "type": "json",
         "source": str(sample_ndjson),
         "jsonMode": "scan",
-        "row_index_name": "row_num"
+        "row_index_name": "row_num",
     }
 
     outputs = await tool.execute(config, {})
@@ -319,11 +304,7 @@ async def test_json_input_preserves_nested_structures(nested_json: Path):
     """Test that nested JSON structures are preserved as-is"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": str(nested_json),
-        "jsonMode": "read"
-    }
+    config = {"type": "json", "source": str(nested_json), "jsonMode": "read"}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -347,16 +328,9 @@ async def test_ndjson_output_tool_sink_mode(tmp_path: Path):
     output_path = tmp_path / "output.ndjson"
 
     # Create input LazyFrame
-    lf = pl.DataFrame({
-        "id": [1, 2, 3],
-        "name": ["A", "B", "C"]
-    }).lazy()
+    lf = pl.DataFrame({"id": [1, 2, 3], "name": ["A", "B", "C"]}).lazy()
 
-    config = {
-        "type": "json",
-        "destination": str(output_path),
-        "jsonMode": "sink"
-    }
+    config = {"type": "json", "destination": str(output_path), "jsonMode": "sink"}
 
     await tool.execute(config, {"input": lf})
 
@@ -375,16 +349,9 @@ async def test_ndjson_output_tool_write_mode(tmp_path: Path):
     tool = OutputTool()
     output_path = tmp_path / "output.ndjson"
 
-    lf = pl.DataFrame({
-        "id": [1, 2, 3],
-        "name": ["A", "B", "C"]
-    }).lazy()
+    lf = pl.DataFrame({"id": [1, 2, 3], "name": ["A", "B", "C"]}).lazy()
 
-    config = {
-        "type": "json",
-        "destination": str(output_path),
-        "jsonMode": "write"
-    }
+    config = {"type": "json", "destination": str(output_path), "jsonMode": "write"}
 
     await tool.execute(config, {"input": lf})
 
@@ -400,15 +367,12 @@ async def test_json_output_tool_standard_format(tmp_path: Path):
     tool = OutputTool()
     output_path = tmp_path / "output.json"
 
-    lf = pl.DataFrame({
-        "id": [1, 2, 3],
-        "name": ["A", "B", "C"]
-    }).lazy()
+    lf = pl.DataFrame({"id": [1, 2, 3], "name": ["A", "B", "C"]}).lazy()
 
     config = {
         "type": "json",
         "destination": str(output_path),
-        "jsonMode": "write"  # Standard JSON only supports write
+        "jsonMode": "write",  # Standard JSON only supports write
     }
 
     await tool.execute(config, {"input": lf})
@@ -427,16 +391,9 @@ async def test_jsonl_output_treated_as_ndjson(tmp_path: Path):
     tool = OutputTool()
     output_path = tmp_path / "output.jsonl"
 
-    lf = pl.DataFrame({
-        "id": [1, 2],
-        "value": [10.0, 20.0]
-    }).lazy()
+    lf = pl.DataFrame({"id": [1, 2], "value": [10.0, 20.0]}).lazy()
 
-    config = {
-        "type": "json",
-        "destination": str(output_path),
-        "jsonMode": "sink"
-    }
+    config = {"type": "json", "destination": str(output_path), "jsonMode": "sink"}
 
     await tool.execute(config, {"input": lf})
 
@@ -458,16 +415,11 @@ async def test_json_input_validate_config():
     tool = InputTool()
 
     # Valid JSON config
-    errors = await tool.validate_config({
-        "type": "json",
-        "source": "/path/to/file.json"
-    })
+    errors = await tool.validate_config({"type": "json", "source": "/path/to/file.json"})
     assert len(errors) == 0
 
     # Invalid - missing source
-    errors = await tool.validate_config({
-        "type": "json"
-    })
+    errors = await tool.validate_config({"type": "json"})
     assert len(errors) > 0
 
 
@@ -477,26 +429,20 @@ async def test_json_output_validate_config():
     tool = OutputTool()
 
     # Valid JSON config
-    errors = await tool.validate_config({
-        "type": "json",
-        "destination": "/path/to/file.ndjson",
-        "jsonMode": "sink"
-    })
+    errors = await tool.validate_config(
+        {"type": "json", "destination": "/path/to/file.ndjson", "jsonMode": "sink"}
+    )
     assert len(errors) == 0
 
     # Invalid - sink mode with standard JSON
-    errors = await tool.validate_config({
-        "type": "json",
-        "destination": "/path/to/file.json",
-        "jsonMode": "sink"
-    })
+    errors = await tool.validate_config(
+        {"type": "json", "destination": "/path/to/file.json", "jsonMode": "sink"}
+    )
     assert len(errors) > 0
     assert any("sink" in e.lower() for e in errors)
 
     # Invalid - missing destination
-    errors = await tool.validate_config({
-        "type": "json"
-    })
+    errors = await tool.validate_config({"type": "json"})
     assert len(errors) > 0
 
 
@@ -509,11 +455,7 @@ def test_json_input_code_generation_standard():
     """Test code generation for standard JSON input"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": "/data/input.json",
-        "jsonMode": "read"
-    }
+    config = {"type": "json", "source": "/data/input.json", "jsonMode": "read"}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
@@ -526,11 +468,7 @@ def test_ndjson_input_code_generation_scan():
     """Test code generation for NDJSON input with scan mode"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": "/data/input.ndjson",
-        "jsonMode": "scan"
-    }
+    config = {"type": "json", "source": "/data/input.ndjson", "jsonMode": "scan"}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
@@ -543,11 +481,7 @@ def test_ndjson_input_code_generation_read():
     """Test code generation for NDJSON input with read mode"""
     tool = InputTool()
 
-    config = {
-        "type": "json",
-        "source": "/data/input.ndjson",
-        "jsonMode": "read"
-    }
+    config = {"type": "json", "source": "/data/input.ndjson", "jsonMode": "read"}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
@@ -560,11 +494,7 @@ def test_json_output_code_generation():
     """Test code generation for JSON output"""
     tool = OutputTool()
 
-    config = {
-        "type": "json",
-        "destination": "/data/output.json",
-        "jsonMode": "write"
-    }
+    config = {"type": "json", "destination": "/data/output.json", "jsonMode": "write"}
 
     lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 
@@ -577,11 +507,7 @@ def test_ndjson_output_code_generation_sink():
     """Test code generation for NDJSON output with sink mode"""
     tool = OutputTool()
 
-    config = {
-        "type": "json",
-        "destination": "/data/output.ndjson",
-        "jsonMode": "sink"
-    }
+    config = {"type": "json", "destination": "/data/output.ndjson", "jsonMode": "sink"}
 
     lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 

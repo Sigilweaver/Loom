@@ -38,34 +38,38 @@ PROVIDER_URLS: dict[str, str] = {
 }
 
 # Headers that should NOT be forwarded between client and upstream
-_HOP_BY_HOP = frozenset({
-    "host",
-    "connection",
-    "keep-alive",
-    "transfer-encoding",
-    "te",
-    "trailer",
-    "upgrade",
-    "proxy-authorization",
-    "proxy-authenticate",
-    "origin",
-    "referer",
-    "sec-fetch-mode",
-    "sec-fetch-site",
-    "sec-fetch-dest",
-})
+_HOP_BY_HOP = frozenset(
+    {
+        "host",
+        "connection",
+        "keep-alive",
+        "transfer-encoding",
+        "te",
+        "trailer",
+        "upgrade",
+        "proxy-authorization",
+        "proxy-authenticate",
+        "origin",
+        "referer",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-dest",
+    }
+)
 
 # Headers allowed to be forwarded TO upstream providers.
 # Uses an allowlist (not blocklist) to prevent leaking auth tokens (C4).
-_FORWARD_ALLOWLIST = frozenset({
-    "content-type",
-    "accept",
-    "x-api-key",
-    "anthropic-version",
-    "anthropic-beta",
-    "openai-organization",
-    "user-agent",
-})
+_FORWARD_ALLOWLIST = frozenset(
+    {
+        "content-type",
+        "accept",
+        "x-api-key",
+        "anthropic-version",
+        "anthropic-beta",
+        "openai-organization",
+        "user-agent",
+    }
+)
 
 
 def _validate_upstream_url(url: str) -> None:
@@ -111,8 +115,10 @@ def _validate_upstream_url(url: str) -> None:
 # Model listing
 # -------------------------------------------------------------------------
 
+
 class ModelListRequest(BaseModel):
     """Request to list models from a provider."""
+
     provider: str
     api_key: str | None = None
     base_url: str | None = None
@@ -120,6 +126,7 @@ class ModelListRequest(BaseModel):
 
 class ModelInfo(BaseModel):
     """Simplified model info."""
+
     id: str
     name: str | None = None
     owned_by: str | None = None
@@ -127,6 +134,7 @@ class ModelInfo(BaseModel):
 
 class ModelListResponse(BaseModel):
     """Response with available models."""
+
     models: list[ModelInfo]
 
 
@@ -142,7 +150,9 @@ async def list_models(req: ModelListRequest) -> ModelListResponse:
         models = await _fetch_models(req.provider, req.api_key, req.base_url)
         return ModelListResponse(models=models)
     except httpx.HTTPStatusError as e:
-        logger.warning("model_list_failed provider=%s status=%d", req.provider, e.response.status_code)
+        logger.warning(
+            "model_list_failed provider=%s status=%d", req.provider, e.response.status_code
+        )
         raise HTTPException(
             status_code=e.response.status_code,
             detail=f"Provider returned {e.response.status_code}: {e.response.text[:200]}",
@@ -169,10 +179,7 @@ async def _fetch_models(
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
-            return [
-                ModelInfo(id=m["id"], owned_by=m.get("owned_by"))
-                for m in data.get("data", [])
-            ]
+            return [ModelInfo(id=m["id"], owned_by=m.get("owned_by")) for m in data.get("data", [])]
 
         elif provider == "anthropic":
             url = "https://api.anthropic.com/v1/models"
@@ -183,10 +190,7 @@ async def _fetch_models(
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
-            return [
-                ModelInfo(id=m["id"], name=m.get("display_name"))
-                for m in data.get("data", [])
-            ]
+            return [ModelInfo(id=m["id"], name=m.get("display_name")) for m in data.get("data", [])]
 
         elif provider == "google":
             url = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -211,10 +215,7 @@ async def _fetch_models(
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
-            return [
-                ModelInfo(id=m["id"], owned_by=m.get("owned_by"))
-                for m in data.get("data", [])
-            ]
+            return [ModelInfo(id=m["id"], owned_by=m.get("owned_by")) for m in data.get("data", [])]
 
         else:
             raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
@@ -223,6 +224,7 @@ async def _fetch_models(
 # -------------------------------------------------------------------------
 # Reverse proxy for LLM API calls
 # -------------------------------------------------------------------------
+
 
 @router.api_route(
     "/proxy/{provider}/{path:path}",
@@ -280,11 +282,7 @@ async def proxy_llm_request(
     body = await request.body()
 
     # Forward query params (minus our internal base_url param)
-    forward_params = {
-        k: v
-        for k, v in request.query_params.items()
-        if k != "base_url"
-    } or None
+    forward_params = {k: v for k, v in request.query_params.items() if k != "base_url"} or None
 
     # Use a long-lived client for the streaming response.
     # We CANNOT use `async with` for the client here because the
@@ -325,10 +323,7 @@ async def proxy_llm_request(
     # Determine if the response is a stream (SSE or chunked)
     content_type = upstream_resp.headers.get("content-type", "")
     transfer_enc = upstream_resp.headers.get("transfer-encoding", "")
-    is_stream = (
-        "text/event-stream" in content_type
-        or "chunked" in transfer_enc
-    )
+    is_stream = "text/event-stream" in content_type or "chunked" in transfer_enc
 
     if is_stream:
         # Stream SSE chunks to the client as they arrive

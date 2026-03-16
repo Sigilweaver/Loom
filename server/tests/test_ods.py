@@ -22,6 +22,7 @@ def sample_ods() -> Path:
 # ODSDataSource Tests
 # ========================================
 
+
 @pytest.mark.asyncio
 async def test_ods_datasource_inspect(sample_ods: Path):
     """Test ODSDataSource.inspect() returns correct schema"""
@@ -69,9 +70,7 @@ async def test_ods_datasource_preview_with_columns(sample_ods: Path):
     """Test ODSDataSource.preview() with column selection"""
     datasource = ODSDataSource()
 
-    preview = await datasource.preview(
-        str(sample_ods), {}, max_rows=100, columns=["name", "city"]
-    )
+    preview = await datasource.preview(str(sample_ods), {}, max_rows=100, columns=["name", "city"])
 
     assert preview.returned_rows == 5
     assert len(preview.data_schema.columns) == 2
@@ -116,6 +115,7 @@ async def test_ods_datasource_validate_config():
 # InputTool with ODS Tests
 # ========================================
 
+
 @pytest.mark.asyncio
 async def test_ods_input_tool_basic(sample_ods: Path):
     """Test InputTool with ODS basic read"""
@@ -146,7 +146,7 @@ async def test_ods_input_with_sheet_id(sample_ods: Path):
     config = {
         "type": "ods",
         "source": str(sample_ods),
-        "sheet_id": 1  # First sheet (1-indexed)
+        "sheet_id": 1,  # First sheet (1-indexed)
     }
 
     outputs = await tool.execute(config, {})
@@ -161,11 +161,7 @@ async def test_ods_input_with_columns(sample_ods: Path):
     """Test InputTool with ODS column selection by name"""
     tool = InputTool()
 
-    config = {
-        "type": "ods",
-        "source": str(sample_ods),
-        "columns": ["name", "city"]
-    }
+    config = {"type": "ods", "source": str(sample_ods), "columns": ["name", "city"]}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -179,11 +175,7 @@ async def test_ods_input_without_header(sample_ods: Path):
     """Test InputTool with ODS when has_header=False"""
     tool = InputTool()
 
-    config = {
-        "type": "ods",
-        "source": str(sample_ods),
-        "has_header": False
-    }
+    config = {"type": "ods", "source": str(sample_ods), "has_header": False}
 
     outputs = await tool.execute(config, {})
     result = outputs["output"].collect()
@@ -198,11 +190,7 @@ async def test_ods_input_with_infer_schema_length(sample_ods: Path):
     """Test InputTool with ODS using infer_schema_length"""
     tool = InputTool()
 
-    config = {
-        "type": "ods",
-        "source": str(sample_ods),
-        "infer_schema_length": 2
-    }
+    config = {"type": "ods", "source": str(sample_ods), "infer_schema_length": 2}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -216,11 +204,7 @@ async def test_ods_input_drop_empty_rows(sample_ods: Path):
     """Test InputTool with ODS drop_empty_rows option"""
     tool = InputTool()
 
-    config = {
-        "type": "ods",
-        "source": str(sample_ods),
-        "drop_empty_rows": True
-    }
+    config = {"type": "ods", "source": str(sample_ods), "drop_empty_rows": True}
 
     outputs = await tool.execute(config, {})
     result = outputs["output"].collect()
@@ -233,20 +217,16 @@ async def test_ods_input_drop_empty_rows(sample_ods: Path):
 # Validation Tests
 # ========================================
 
+
 @pytest.mark.asyncio
 async def test_ods_input_validate_config():
     """Test InputTool.validate_config for ODS"""
     tool = InputTool()
 
     # Valid config
-    errors = await tool.validate_config({
-        "type": "ods",
-        "source": "/path/to/file.ods"
-    })
+    errors = await tool.validate_config({"type": "ods", "source": "/path/to/file.ods"})
     assert errors == []
 
     # Missing source
-    errors = await tool.validate_config({
-        "type": "ods"
-    })
+    errors = await tool.validate_config({"type": "ods"})
     assert any("source" in e.lower() for e in errors)

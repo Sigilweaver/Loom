@@ -189,10 +189,7 @@ class ExecutionPlanner:
         tool_map = {tool.id: tool for tool in self.workflow.tools}
 
         # Build input mappings for each tool
-        tool_inputs = {
-            tool_id: self._graph.get_tool_inputs(tool_id)
-            for tool_id in execution_order
-        }
+        tool_inputs = {tool_id: self._graph.get_tool_inputs(tool_id) for tool_id in execution_order}
 
         return ExecutionPlan(
             workflow_id=self.workflow.meta.workflow_id,

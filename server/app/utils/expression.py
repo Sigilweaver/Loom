@@ -11,72 +11,73 @@ import polars as pl
 
 from app.utils.errors import ToolError
 
-
 # AST node types allowed in Polars expressions.
 # This allowlist prevents sandbox escape via dunder attribute access,
 # imports, exec/eval, and other dangerous constructs while permitting
 # legitimate Polars expression chains.
-_ALLOWED_AST_NODES = frozenset({
-    # Literals and basic structures
-    ast.Expression,
-    ast.Constant,
-    ast.Name,
-    ast.List,
-    ast.Tuple,
-    ast.Dict,
-    ast.Set,
-    # Attribute access (validated separately — no dunders)
-    ast.Attribute,
-    # Calls (e.g. pl.col("x"), .str.contains("y"))
-    ast.Call,
-    # Operators
-    ast.UnaryOp,
-    ast.BinOp,
-    ast.BoolOp,
-    ast.Compare,
-    # Operator tokens
-    ast.Add,
-    ast.Sub,
-    ast.Mult,
-    ast.Div,
-    ast.FloorDiv,
-    ast.Mod,
-    ast.Pow,
-    ast.BitOr,
-    ast.BitAnd,
-    ast.BitXor,
-    ast.Invert,
-    ast.Not,
-    ast.UAdd,
-    ast.USub,
-    ast.And,
-    ast.Or,
-    # Comparisons
-    ast.Eq,
-    ast.NotEq,
-    ast.Lt,
-    ast.LtE,
-    ast.Gt,
-    ast.GtE,
-    ast.Is,
-    ast.IsNot,
-    ast.In,
-    ast.NotIn,
-    # Subscript (e.g. indexing)
-    ast.Subscript,
-    ast.Slice,
-    # Starred (e.g. *args in function calls)
-    ast.Starred,
-    # Keyword arguments
-    ast.keyword,
-    # Ternary / conditional expression
-    ast.IfExp,
-    # f-strings (used in some Polars expressions)
-    ast.JoinedStr,
-    ast.FormattedValue,
-    # Load context
-    ast.Load,
-})
+_ALLOWED_AST_NODES = frozenset(
+    {
+        # Literals and basic structures
+        ast.Expression,
+        ast.Constant,
+        ast.Name,
+        ast.List,
+        ast.Tuple,
+        ast.Dict,
+        ast.Set,
+        # Attribute access (validated separately — no dunders)
+        ast.Attribute,
+        # Calls (e.g. pl.col("x"), .str.contains("y"))
+        ast.Call,
+        # Operators
+        ast.UnaryOp,
+        ast.BinOp,
+        ast.BoolOp,
+        ast.Compare,
+        # Operator tokens
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.FloorDiv,
+        ast.Mod,
+        ast.Pow,
+        ast.BitOr,
+        ast.BitAnd,
+        ast.BitXor,
+        ast.Invert,
+        ast.Not,
+        ast.UAdd,
+        ast.USub,
+        ast.And,
+        ast.Or,
+        # Comparisons
+        ast.Eq,
+        ast.NotEq,
+        ast.Lt,
+        ast.LtE,
+        ast.Gt,
+        ast.GtE,
+        ast.Is,
+        ast.IsNot,
+        ast.In,
+        ast.NotIn,
+        # Subscript (e.g. indexing)
+        ast.Subscript,
+        ast.Slice,
+        # Starred (e.g. *args in function calls)
+        ast.Starred,
+        # Keyword arguments
+        ast.keyword,
+        # Ternary / conditional expression
+        ast.IfExp,
+        # f-strings (used in some Polars expressions)
+        ast.JoinedStr,
+        ast.FormattedValue,
+        # Load context
+        ast.Load,
+    }
+)
 
 
 def _validate_expression_ast(expression: str) -> None:
@@ -97,29 +98,24 @@ def _validate_expression_ast(expression: str) -> None:
         node_type = type(node)
 
         if node_type not in _ALLOWED_AST_NODES:
-            raise ToolError(
-                f"Disallowed construct in expression: {node_type.__name__}"
-            )
+            raise ToolError(f"Disallowed construct in expression: {node_type.__name__}")
 
         # Block dunder attribute access (e.g. __class__, __subclasses__)
         if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
-            raise ToolError(
-                f"Dunder attribute access is not allowed: {node.attr}"
-            )
+            raise ToolError(f"Dunder attribute access is not allowed: {node.attr}")
 
         # Block dunder name access (e.g. __import__, __builtins__)
         if isinstance(node, ast.Name) and node.id.startswith("__"):
-            raise ToolError(
-                f"Dunder name access is not allowed: {node.id}"
-            )
+            raise ToolError(f"Dunder name access is not allowed: {node.id}")
 
         # Only allow 'pl' as a top-level name reference
         if isinstance(node, ast.Name) and node.id not in (
-            "pl", "True", "False", "None",
+            "pl",
+            "True",
+            "False",
+            "None",
         ):
-            raise ToolError(
-                f"Only 'pl' namespace is allowed, got: {node.id}"
-            )
+            raise ToolError(f"Only 'pl' namespace is allowed, got: {node.id}")
 
 
 def normalize_expression(expression: str) -> str:
@@ -213,9 +209,7 @@ def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:
         result = eval(expression, {"__builtins__": {}}, namespace)
 
         if not isinstance(result, pl.Expr):
-            raise ToolError(
-                f"Expression must evaluate to pl.Expr, got {type(result).__name__}"
-            )
+            raise ToolError(f"Expression must evaluate to pl.Expr, got {type(result).__name__}")
 
         return result
 

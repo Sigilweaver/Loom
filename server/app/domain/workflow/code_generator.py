@@ -58,9 +58,7 @@ class PythonCodeGenerator:
                 if len(comment_lines) == 1:
                     comment_header += f" -- {tool.comment}"
                 else:
-                    comment_header += "\n" + "\n".join(
-                        f"# {line}" for line in comment_lines
-                    )
+                    comment_header += "\n" + "\n".join(f"# {line}" for line in comment_lines)
             lines.append(comment_header)
 
             try:
@@ -91,9 +89,7 @@ class PythonCodeGenerator:
 
         # Generate code via tool implementation
         if hasattr(tool_impl, "to_python_code"):
-            code_lines, output_vars = tool_impl.to_python_code(
-                tool.id, tool.config, input_vars
-            )
+            code_lines, output_vars = tool_impl.to_python_code(tool.id, tool.config, input_vars)
 
             # Store output variable names for downstream tools
             self.var_names[tool.id] = output_vars

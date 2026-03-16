@@ -28,6 +28,7 @@ from app.utils.errors import DataSourceError, ToolError
 # Data Source Tests
 # ============================================================================
 
+
 class TestDatatypeConversion:
     """Test Polars dtype to PolarsDataType conversion"""
 
@@ -45,17 +46,17 @@ class TestDatatypeConversion:
     def test_parameterized_types(self):
         """Test conversion of parameterized Polars types"""
         # Datetime with timezone
-        assert _dtype_to_polars_type(pl.Datetime('ns')) == PolarsDataType.DATETIME
-        assert _dtype_to_polars_type(pl.Datetime('us', 'UTC')) == PolarsDataType.DATETIME
+        assert _dtype_to_polars_type(pl.Datetime("ns")) == PolarsDataType.DATETIME
+        assert _dtype_to_polars_type(pl.Datetime("us", "UTC")) == PolarsDataType.DATETIME
 
         # Duration
-        assert _dtype_to_polars_type(pl.Duration('ns')) == PolarsDataType.DURATION
+        assert _dtype_to_polars_type(pl.Duration("ns")) == PolarsDataType.DURATION
 
         # List
         assert _dtype_to_polars_type(pl.List(pl.Int32)) == PolarsDataType.LIST
 
         # Struct
-        assert _dtype_to_polars_type(pl.Struct([pl.Field('x', pl.Int32)])) == PolarsDataType.STRUCT
+        assert _dtype_to_polars_type(pl.Struct([pl.Field("x", pl.Int32)])) == PolarsDataType.STRUCT
 
     def test_unknown_type_defaults_to_string(self):
         """Unknown types should default to STRING"""
@@ -75,9 +76,7 @@ class TestDatabaseDataSource:
         """Test validation with valid config"""
         datasource = DatabaseDataSource()
 
-        errors = await datasource.validate_config({
-            "query": "SELECT * FROM users"
-        })
+        errors = await datasource.validate_config({"query": "SELECT * FROM users"})
 
         assert len(errors) == 0
 
@@ -102,98 +101,88 @@ class TestDatabaseDataSource:
         assert "cannot be empty" in errors[0].lower()
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_inspect_basic(self, mock_read_db):
         """Test basic schema inspection"""
         # Mock DataFrame with schema
         mock_df = Mock()
-        mock_df.columns = ['id', 'name', 'age']
+        mock_df.columns = ["id", "name", "age"]
         mock_df.schema = {
-            'id': pl.Int64,
-            'name': pl.String,  # Use pl.String instead of pl.Utf8
-            'age': pl.Int32
+            "id": pl.Int64,
+            "name": pl.String,  # Use pl.String instead of pl.Utf8
+            "age": pl.Int32,
         }
         mock_read_db.return_value = mock_df
 
         datasource = DatabaseDataSource()
         schema = await datasource.inspect(
-            "postgresql://user:pass@localhost/db",
-            {"query": "SELECT * FROM users"}
+            "postgresql://user:pass@localhost/db", {"query": "SELECT * FROM users"}
         )
 
         assert len(schema.columns) == 3
-        assert schema.columns[0].name == 'id'
+        assert schema.columns[0].name == "id"
         assert schema.columns[0].dtype == PolarsDataType.INT64
-        assert schema.columns[1].name == 'name'
+        assert schema.columns[1].name == "name"
         assert schema.columns[1].dtype == PolarsDataType.STRING
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_inspect_empty_query(self, mock_read_db):
         """Test inspect with empty query returns empty schema"""
         datasource = DatabaseDataSource()
 
-        schema = await datasource.inspect(
-            "postgresql://user:pass@localhost/db",
-            {"query": ""}
-        )
+        schema = await datasource.inspect("postgresql://user:pass@localhost/db", {"query": ""})
 
         assert len(schema.columns) == 0
         assert schema.row_count is None
         mock_read_db.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_inspect_error_handling(self, mock_read_db):
         """Test inspect handles database errors gracefully"""
         mock_read_db.side_effect = [
             Exception("Syntax error near SELECT"),  # First call fails
-            Exception("Connection refused")  # Fallback also fails
+            Exception("Connection refused"),  # Fallback also fails
         ]
 
         datasource = DatabaseDataSource()
 
         with pytest.raises(DataSourceError, match="Failed to inspect"):
             await datasource.inspect(
-                "postgresql://user:pass@localhost/db",
-                {"query": "SELECT * FROM users"}
+                "postgresql://user:pass@localhost/db", {"query": "SELECT * FROM users"}
             )
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_preview_basic(self, mock_read_db):
         """Test basic data preview"""
         # Mock DataFrame with data
         mock_df = Mock()
-        mock_df.columns = ['id', 'name']
-        mock_df.schema = {'id': pl.Int64, 'name': pl.Utf8}
-        mock_df.to_dicts.return_value = [
-            {'id': 1, 'name': 'Alice'},
-            {'id': 2, 'name': 'Bob'}
-        ]
+        mock_df.columns = ["id", "name"]
+        mock_df.schema = {"id": pl.Int64, "name": pl.Utf8}
+        mock_df.to_dicts.return_value = [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
         mock_df.__len__ = lambda self: 2
         mock_read_db.return_value = mock_df
 
         datasource = DatabaseDataSource()
         preview = await datasource.preview(
-            "postgresql://user:pass@localhost/db",
-            {"query": "SELECT * FROM users"},
-            max_rows=100
+            "postgresql://user:pass@localhost/db", {"query": "SELECT * FROM users"}, max_rows=100
         )
 
         assert preview.returned_rows == 2
         assert len(preview.data) == 2
-        assert preview.data[0]['name'] == 'Alice'
+        assert preview.data[0]["name"] == "Alice"
         assert len(preview.data_schema.columns) == 2
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_preview_with_offset(self, mock_read_db):
         """Test preview with offset parameter"""
         mock_df = Mock()
-        mock_df.columns = ['id']
-        mock_df.schema = {'id': pl.Int64}
-        mock_df.to_dicts.return_value = [{'id': 10}]
+        mock_df.columns = ["id"]
+        mock_df.schema = {"id": pl.Int64}
+        mock_df.to_dicts.return_value = [{"id": 10}]
         mock_df.__len__ = lambda self: 1
         mock_read_db.return_value = mock_df
 
@@ -202,24 +191,24 @@ class TestDatabaseDataSource:
             "postgresql://user:pass@localhost/db",
             {"query": "SELECT * FROM users"},
             max_rows=10,
-            offset=5
+            offset=5,
         )
 
         # Verify the query was called with LIMIT/OFFSET
         call_args = mock_read_db.call_args
-        assert 'LIMIT 10' in call_args[1]['query']
-        assert 'OFFSET 5' in call_args[1]['query']
+        assert "LIMIT 10" in call_args[1]["query"]
+        assert "OFFSET 5" in call_args[1]["query"]
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_preview_column_filtering(self, mock_read_db):
         """Test preview with specific column selection"""
         mock_df = Mock()
         # Available columns after query execution
-        mock_df.columns = ['id', 'name']
-        mock_df.schema = {'id': pl.Int64, 'name': pl.String}
+        mock_df.columns = ["id", "name"]
+        mock_df.schema = {"id": pl.Int64, "name": pl.String}
         mock_df.select.return_value = mock_df
-        mock_df.to_dicts.return_value = [{'id': 1, 'name': 'Alice'}]
+        mock_df.to_dicts.return_value = [{"id": 1, "name": "Alice"}]
         mock_df.__len__ = lambda self: 1
         mock_read_db.return_value = mock_df
 
@@ -227,22 +216,19 @@ class TestDatabaseDataSource:
         await datasource.preview(
             "postgresql://user:pass@localhost/db",
             {"query": "SELECT * FROM users"},
-            columns=['id', 'name']  # Request only columns that exist
+            columns=["id", "name"],  # Request only columns that exist
         )
 
         # Should call select with available columns
         mock_df.select.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_preview_empty_query(self, mock_read_db):
         """Test preview with empty query returns empty result"""
         datasource = DatabaseDataSource()
 
-        preview = await datasource.preview(
-            "postgresql://user:pass@localhost/db",
-            {"query": ""}
-        )
+        preview = await datasource.preview("postgresql://user:pass@localhost/db", {"query": ""})
 
         assert preview.returned_rows == 0
         assert len(preview.data) == 0
@@ -362,6 +348,7 @@ class TestDataSourceFactory:
 # Loader Tests
 # ============================================================================
 
+
 class TestDatabaseLoader:
     """Test DatabaseLoader functionality"""
 
@@ -378,7 +365,7 @@ class TestDatabaseLoader:
         assert kwargs["engine"] == "connectorx"
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_basic(self, mock_read_db):
         """Test basic load operation"""
         # Mock DataFrame
@@ -401,9 +388,7 @@ class TestDatabaseLoader:
         loader = DatabaseLoader()
 
         with pytest.raises(ToolError, match="query is required"):
-            await loader.load(
-                {"source": "postgresql://user:pass@localhost/db"}
-            )
+            await loader.load({"source": "postgresql://user:pass@localhost/db"})
 
     @pytest.mark.asyncio
     async def test_load_empty_query(self):
@@ -411,12 +396,10 @@ class TestDatabaseLoader:
         loader = DatabaseLoader()
 
         with pytest.raises(ToolError, match="cannot be empty"):
-            await loader.load(
-                {"source": "postgresql://user:pass@localhost/db", "query": "   "}
-            )
+            await loader.load({"source": "postgresql://user:pass@localhost/db", "query": "   "})
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_connection_error(self, mock_read_db):
         """Test load provides helpful error for connection failures"""
         mock_read_db.side_effect = Exception("connection refused")
@@ -429,7 +412,7 @@ class TestDatabaseLoader:
             )
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_authentication_error(self, mock_read_db):
         """Test load provides helpful error for auth failures"""
         mock_read_db.side_effect = Exception("authentication failed for user")
@@ -442,7 +425,7 @@ class TestDatabaseLoader:
             )
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_database_not_exists(self, mock_read_db):
         """Test load provides helpful error for missing database"""
         mock_read_db.side_effect = Exception("database does not exist")
@@ -455,7 +438,7 @@ class TestDatabaseLoader:
             )
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_syntax_error(self, mock_read_db):
         """Test load provides helpful error for SQL syntax errors"""
         mock_read_db.side_effect = Exception("syntax error at or near SELECT")
@@ -468,7 +451,7 @@ class TestDatabaseLoader:
             )
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_load_eager(self, mock_read_db):
         """Test load_eager returns DataFrame directly"""
         mock_df = Mock(spec=pl.DataFrame)
@@ -488,10 +471,7 @@ class TestDatabaseLoader:
         """Test Python code generation"""
         loader = DatabaseLoader(database_type="postgresql")
 
-        code = loader.to_python_code(
-            "my_data",
-            {"query": "SELECT * FROM users WHERE age > 18"}
-        )
+        code = loader.to_python_code("my_data", {"query": "SELECT * FROM users WHERE age > 18"})
 
         assert isinstance(code, list)
         assert len(code) > 0
@@ -506,13 +486,10 @@ class TestDatabaseLoader:
         """Test that triple quotes in queries are escaped"""
         loader = DatabaseLoader()
 
-        code = loader.to_python_code(
-            "data",
-            {"query": 'SELECT """test""" FROM table'}
-        )
+        code = loader.to_python_code("data", {"query": 'SELECT """test""" FROM table'})
 
         # Should escape the triple quotes
-        code_str = '\n'.join(code)
+        code_str = "\n".join(code)
         assert '\\"\\"\\"' in code_str
 
 
@@ -572,16 +549,17 @@ class TestLoaderFactory:
 # Edge Cases and Error Handling
 # ============================================================================
 
+
 class TestEdgeCases:
     """Test edge cases and error conditions"""
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_inspect_with_complex_query(self, mock_read_db):
         """Test inspect handles complex multi-line queries"""
         mock_df = Mock()
-        mock_df.columns = ['result']
-        mock_df.schema = {'result': pl.Int64}
+        mock_df.columns = ["result"]
+        mock_df.schema = {"result": pl.Int64}
         mock_read_db.return_value = mock_df
 
         datasource = DatabaseDataSource()
@@ -596,23 +574,22 @@ class TestEdgeCases:
         """
 
         schema = await datasource.inspect(
-            "postgresql://user:pass@localhost/db",
-            {"query": complex_query}
+            "postgresql://user:pass@localhost/db", {"query": complex_query}
         )
 
         assert len(schema.columns) == 1
         # Query should be wrapped in subquery for schema inspection
         call_args = mock_read_db.call_args
-        assert "LIMIT 0" in call_args[1]['query']
+        assert "LIMIT 0" in call_args[1]["query"]
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_preview_total_rows_is_none(self, mock_read_db):
         """Test that preview doesn't compute total rows (expensive operation)"""
         mock_df = Mock()
-        mock_df.columns = ['id']
-        mock_df.schema = {'id': pl.Int64}
-        mock_df.to_dicts.return_value = [{'id': 1}]
+        mock_df.columns = ["id"]
+        mock_df.schema = {"id": pl.Int64}
+        mock_df.to_dicts.return_value = [{"id": 1}]
         mock_df.__len__ = lambda self: 1
         mock_read_db.return_value = mock_df
 
@@ -620,7 +597,7 @@ class TestEdgeCases:
         preview = await datasource.preview(
             "postgresql://user:pass@localhost/db",
             {"query": "SELECT * FROM large_table"},
-            max_rows=10
+            max_rows=10,
         )
 
         # Total rows should be None since we don't want to run COUNT(*)
@@ -641,11 +618,12 @@ class TestEdgeCases:
 # Input Tool Integration Tests
 # ============================================================================
 
+
 class TestInputToolDatabaseMode:
     """Test Input tool with database configuration"""
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_input_tool_execute_database(self, mock_read_db):
         """Test Input tool can execute database queries"""
         from app.domain.tools.implementations.input import InputTool
@@ -662,9 +640,9 @@ class TestInputToolDatabaseMode:
                 "category": "database",
                 "type": "postgresql",
                 "source": "postgresql://user:pass@localhost/db",
-                "query": "SELECT * FROM users"
+                "query": "SELECT * FROM users",
             },
-            inputs={}
+            inputs={},
         )
 
         assert "output" in result
@@ -678,12 +656,14 @@ class TestInputToolDatabaseMode:
         tool = InputTool()
 
         # Valid config
-        errors = await tool.validate_config({
-            "category": "database",
-            "type": "postgresql",
-            "source": "postgresql://user:pass@localhost/db",
-            "query": "SELECT 1"
-        })
+        errors = await tool.validate_config(
+            {
+                "category": "database",
+                "type": "postgresql",
+                "source": "postgresql://user:pass@localhost/db",
+                "query": "SELECT 1",
+            }
+        )
         assert len(errors) == 0
 
     @pytest.mark.asyncio
@@ -692,25 +672,23 @@ class TestInputToolDatabaseMode:
         from app.domain.tools.implementations.input import InputTool
 
         tool = InputTool()
-        errors = await tool.validate_config({
-            "category": "database",
-            "type": "postgresql",
-            "query": "SELECT 1"
-        })
+        errors = await tool.validate_config(
+            {"category": "database", "type": "postgresql", "query": "SELECT 1"}
+        )
 
         assert len(errors) > 0
         assert any("source" in err.lower() or "connection" in err.lower() for err in errors)
 
     @pytest.mark.asyncio
-    @patch('app.domain.datasources.database.pl.read_database_uri')
+    @patch("app.domain.datasources.database.pl.read_database_uri")
     async def test_input_tool_get_output_schema_database(self, mock_read_db):
         """Test Input tool can get schema from database"""
         from app.domain.tools.implementations.input import InputTool
 
         # Mock schema inspection
         mock_df = Mock()
-        mock_df.columns = ['id', 'name']
-        mock_df.schema = {'id': pl.Int64, 'name': pl.Utf8}
+        mock_df.columns = ["id", "name"]
+        mock_df.schema = {"id": pl.Int64, "name": pl.Utf8}
         mock_read_db.return_value = mock_df
 
         tool = InputTool()
@@ -719,15 +697,15 @@ class TestInputToolDatabaseMode:
                 "category": "database",
                 "type": "postgresql",
                 "source": "postgresql://user:pass@localhost/db",
-                "query": "SELECT id, name FROM users"
+                "query": "SELECT id, name FROM users",
             },
-            input_schemas={}
+            input_schemas={},
         )
 
         assert "output" in schemas
         schema = schemas["output"]
         assert len(schema.columns) == 2
-        assert schema.columns[0].name == 'id'
+        assert schema.columns[0].name == "id"
 
     @pytest.mark.asyncio
     async def test_input_tool_rejects_inputs_for_database(self):
@@ -743,9 +721,9 @@ class TestInputToolDatabaseMode:
                     "category": "database",
                     "type": "postgresql",
                     "source": "postgresql://user:pass@localhost/db",
-                    "query": "SELECT 1"
+                    "query": "SELECT 1",
                 },
-                inputs={"invalid": Mock()}  # Should not accept inputs
+                inputs={"invalid": Mock()},  # Should not accept inputs
             )
 
     def test_input_tool_to_python_code_database(self):
@@ -759,15 +737,15 @@ class TestInputToolDatabaseMode:
                 "category": "database",
                 "type": "postgresql",
                 "source": "postgresql://user:pass@localhost/db",
-                "query": "SELECT * FROM users WHERE active = true"
+                "query": "SELECT * FROM users WHERE active = true",
             },
-            input_vars={}
+            input_vars={},
         )
 
         assert len(lines) > 0
         assert "output" in output_vars
 
-        code_str = '\n'.join(lines)
+        code_str = "\n".join(lines)
         assert "read_database_uri" in code_str
         assert "connectorx" in code_str
         assert "users" in code_str
@@ -777,11 +755,12 @@ class TestInputToolDatabaseMode:
 # Integration Test - End-to-End Database Workflow
 # ============================================================================
 
+
 class TestDatabaseIntegration:
     """Integration tests for complete database workflows"""
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_database_to_filter_workflow(self, mock_read_db):
         """Test a workflow that loads from database and applies filter"""
         import uuid
@@ -790,11 +769,13 @@ class TestDatabaseIntegration:
         from app.domain.execution.executor import WorkflowExecutor
 
         # Mock database returning sample data
-        sample_data = pl.DataFrame({
-            'id': [1, 2, 3, 4, 5],
-            'name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
-            'age': [25, 30, 35, 40, 45]
-        })
+        sample_data = pl.DataFrame(
+            {
+                "id": [1, 2, 3, 4, 5],
+                "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+                "age": [25, 30, 35, 40, 45],
+            }
+        )
         mock_read_db.return_value = sample_data
 
         # Create workflow: Database -> Filter
@@ -805,43 +786,41 @@ class TestDatabaseIntegration:
                 description="Test database input with filter",
                 author="Test",
                 workflowId=f"test-db-filter-{uuid.uuid4()}",
-                created="2025-08-01"
+                created="2025-08-01",
             ),
             tools=[
                 Tool(
                     id="db_input",
                     type="Input",
-                    x=0, y=0,
+                    x=0,
+                    y=0,
                     config={
                         "category": "database",
                         "type": "postgresql",
                         "source": "postgresql://user:pass@localhost/testdb",
-                        "query": "SELECT * FROM users"
+                        "query": "SELECT * FROM users",
                     },
-                    sockets=[
-                        Socket(id="output", direction="output", type="polars-lazy")
-                    ]
+                    sockets=[Socket(id="output", direction="output", type="polars-lazy")],
                 ),
                 Tool(
                     id="filter1",
                     type="Filter",
-                    x=100, y=0,
-                    config={
-                        "expression": "pl.col('age') > 30"
-                    },
+                    x=100,
+                    y=0,
+                    config={"expression": "pl.col('age') > 30"},
                     sockets=[
                         Socket(id="input", direction="input", type="polars-lazy"),
                         Socket(id="output-true", direction="output", type="polars-lazy"),
-                        Socket(id="output-false", direction="output", type="polars-lazy")
-                    ]
-                )
+                        Socket(id="output-false", direction="output", type="polars-lazy"),
+                    ],
+                ),
             ],
             wires=[
                 Wire(
                     from_=WireEndpoint(tool="db_input", socket="output"),
-                    to=WireEndpoint(tool="filter1", socket="input")
+                    to=WireEndpoint(tool="filter1", socket="input"),
                 )
-            ]
+            ],
         )
 
         executor = WorkflowExecutor()
@@ -854,22 +833,24 @@ class TestDatabaseIntegration:
         # Verify the query was executed (inspect calls read_database_uri)
         mock_read_db.assert_called()
         call_kwargs = mock_read_db.call_args[1]
-        assert "SELECT * FROM users" in call_kwargs['query'] or "LIMIT 0" in call_kwargs['query']
-        assert "postgresql://" in call_kwargs['uri']
+        assert "SELECT * FROM users" in call_kwargs["query"] or "LIMIT 0" in call_kwargs["query"]
+        assert "postgresql://" in call_kwargs["uri"]
 
     @pytest.mark.asyncio
-    @patch('app.domain.tools.loaders.database.pl.read_database_uri')
+    @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_database_schema_inspection_without_execution(self, mock_read_db):
         """Test that schema can be inspected without full query execution"""
         from app.api.models.workflow import Socket, Tool, Workflow, WorkflowMeta
         from app.domain.execution.executor import WorkflowExecutor
 
         # Mock for schema inspection (LIMIT 0)
-        empty_df = pl.DataFrame({
-            'user_id': pl.Series([], dtype=pl.Int64),
-            'username': pl.Series([], dtype=pl.Utf8),
-            'created_at': pl.Series([], dtype=pl.Datetime('ns'))
-        })
+        empty_df = pl.DataFrame(
+            {
+                "user_id": pl.Series([], dtype=pl.Int64),
+                "username": pl.Series([], dtype=pl.Utf8),
+                "created_at": pl.Series([], dtype=pl.Datetime("ns")),
+            }
+        )
         mock_read_db.return_value = empty_df
 
         workflow = Workflow(
@@ -878,25 +859,24 @@ class TestDatabaseIntegration:
                 description="Test schema without data",
                 author="Test",
                 workflowId="test-schema",
-                created="2025-08-01"
+                created="2025-08-01",
             ),
             tools=[
                 Tool(
                     id="db_input",
                     type="Input",
-                    x=0, y=0,
+                    x=0,
+                    y=0,
                     config={
                         "category": "database",
                         "type": "postgresql",
                         "source": "postgresql://user:pass@localhost/testdb",
-                        "query": "SELECT user_id, username, created_at FROM users"
+                        "query": "SELECT user_id, username, created_at FROM users",
                     },
-                    sockets=[
-                        Socket(id="output", direction="output", type="polars-lazy")
-                    ]
+                    sockets=[Socket(id="output", direction="output", type="polars-lazy")],
                 )
             ],
-            wires=[]
+            wires=[],
         )
 
         executor = WorkflowExecutor()
@@ -907,10 +887,10 @@ class TestDatabaseIntegration:
         assert len(schema.columns) == 3
 
         column_names = [col.name for col in schema.columns]
-        assert 'user_id' in column_names
-        assert 'username' in column_names
-        assert 'created_at' in column_names
+        assert "user_id" in column_names
+        assert "username" in column_names
+        assert "created_at" in column_names
 
         # Verify schema inspection used LIMIT 0
         call_kwargs = mock_read_db.call_args[1]
-        assert "LIMIT 0" in call_kwargs['query']
+        assert "LIMIT 0" in call_kwargs["query"]

@@ -1,6 +1,5 @@
 """Tests for data source functionality"""
 
-
 import pytest
 
 from app.domain.datasources.csv import CSVDataSource
@@ -113,9 +112,7 @@ async def test_json_inspect_standard_json():
     import os
 
     datasource = JSONDataSource()
-    fixture_path = os.path.join(
-        os.path.dirname(__file__), "fixtures", "sample.json"
-    )
+    fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample.json")
     result = await datasource.inspect(fixture_path, {})
 
     # Note: row_count is not available without full scan for standard JSON
@@ -136,9 +133,7 @@ async def test_json_inspect_ndjson():
     import os
 
     datasource = JSONDataSource()
-    fixture_path = os.path.join(
-        os.path.dirname(__file__), "fixtures", "sample.ndjson"
-    )
+    fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample.ndjson")
     result = await datasource.inspect(fixture_path, {})
 
     # Note: row_count is not available without full scan for NDJSON with lazy scan
@@ -159,9 +154,7 @@ async def test_json_preview_standard_json():
     import os
 
     datasource = JSONDataSource()
-    fixture_path = os.path.join(
-        os.path.dirname(__file__), "fixtures", "sample.json"
-    )
+    fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample.json")
     result = await datasource.preview(fixture_path, {}, max_rows=3)
 
     assert result.returned_rows == 3
@@ -178,9 +171,7 @@ async def test_json_preview_ndjson():
     import os
 
     datasource = JSONDataSource()
-    fixture_path = os.path.join(
-        os.path.dirname(__file__), "fixtures", "sample.ndjson"
-    )
+    fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample.ndjson")
     result = await datasource.preview(fixture_path, {}, max_rows=3)
 
     assert result.returned_rows == 3

@@ -1,6 +1,5 @@
 """Integration tests demonstrating what frontend needs to continue development"""
 
-
 import polars as pl
 import pytest
 
@@ -14,13 +13,15 @@ def sample_csv(tmp_path):
     csv_path = tmp_path / "sample.csv"
 
     # Create sample data
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "salary": [50000.0, 60000.0, 70000.0, 80000.0, 90000.0],
-        "department": ["Sales", "Engineering", "Sales", "Engineering", "HR"],
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "salary": [50000.0, 60000.0, 70000.0, 80000.0, 90000.0],
+            "department": ["Sales", "Engineering", "Sales", "Engineering", "HR"],
+        }
+    )
 
     df.write_csv(csv_path)
     return str(csv_path)
@@ -50,16 +51,15 @@ async def test_frontend_schema_workflow(sample_csv):
             Tool(
                 id="input1",
                 type="Input",
-                x=0, y=0,
+                x=0,
+                y=0,
                 config={
                     "category": "file",
                     "type": "csv",
                     "source": sample_csv,
                     "csvMode": "scan",
                 },
-                sockets=[
-                    Socket(id="output", direction="output", type="polars-lazy")
-                ],
+                sockets=[Socket(id="output", direction="output", type="polars-lazy")],
             ),
         ],
         wires=[],
@@ -94,13 +94,13 @@ async def test_frontend_schema_workflow(sample_csv):
     print("Frontend can get column list: ", column_names)
     print("Frontend can get column types")
 
-
     # Step 2: Add Filter tool - schema should pass through unchanged
     workflow.tools.append(
         Tool(
             id="filter1",
             type="Filter",
-            x=100, y=0,
+            x=100,
+            y=0,
             config={
                 "expression": "pl.col('age') > 30",
             },
@@ -130,13 +130,13 @@ async def test_frontend_schema_workflow(sample_csv):
     assert set(filter_columns) == {"id", "name", "age", "salary", "department"}
     print("Filter preserves schema, frontend sees same columns")
 
-
     # Step 3: Add Select tool - schema should show only selected columns
     workflow.tools.append(
         Tool(
             id="select1",
             type="Select",
-            x=200, y=0,
+            x=200,
+            y=0,
             config={
                 "columnConfigs": [
                     {"name": "name", "selected": True},
@@ -197,21 +197,21 @@ async def test_frontend_preview_workflow(sample_csv):
             Tool(
                 id="input1",
                 type="Input",
-                x=0, y=0,
+                x=0,
+                y=0,
                 config={
                     "category": "file",
                     "type": "csv",
                     "source": sample_csv,
                     "csvMode": "read",  # Use read mode for preview
                 },
-                sockets=[
-                    Socket(id="output", direction="output", type="polars-lazy")
-                ],
+                sockets=[Socket(id="output", direction="output", type="polars-lazy")],
             ),
             Tool(
                 id="filter1",
                 type="Filter",
-                x=100, y=0,
+                x=100,
+                y=0,
                 config={
                     "expression": "pl.col('age') > 30",
                 },
@@ -276,21 +276,21 @@ async def test_preview_all_tools(sample_csv):
             Tool(
                 id="input1",
                 type="Input",
-                x=0, y=0,
+                x=0,
+                y=0,
                 config={
                     "category": "file",
                     "type": "csv",
                     "source": sample_csv,
                     "csvMode": "scan",
                 },
-                sockets=[
-                    Socket(id="output", direction="output", type="polars-lazy")
-                ],
+                sockets=[Socket(id="output", direction="output", type="polars-lazy")],
             ),
             Tool(
                 id="filter1",
                 type="Filter",
-                x=100, y=0,
+                x=100,
+                y=0,
                 config={
                     "expression": "pl.col('age') > 30",
                 },
@@ -303,7 +303,8 @@ async def test_preview_all_tools(sample_csv):
             Tool(
                 id="select1",
                 type="Select",
-                x=200, y=0,
+                x=200,
+                y=0,
                 config={
                     "columnConfigs": [
                         {"name": "name", "selected": True},
@@ -386,21 +387,21 @@ async def test_socket_specific_schema(sample_csv):
             Tool(
                 id="input1",
                 type="Input",
-                x=0, y=0,
+                x=0,
+                y=0,
                 config={
                     "category": "file",
                     "type": "csv",
                     "source": sample_csv,
                     "csvMode": "scan",
                 },
-                sockets=[
-                    Socket(id="output", direction="output", type="polars-lazy")
-                ],
+                sockets=[Socket(id="output", direction="output", type="polars-lazy")],
             ),
             Tool(
                 id="filter1",
                 type="Filter",
-                x=100, y=0,
+                x=100,
+                y=0,
                 config={
                     "expression": "pl.col('age') > 30",
                 },
@@ -461,21 +462,21 @@ async def test_socket_specific_preview(sample_csv):
             Tool(
                 id="input1",
                 type="Input",
-                x=0, y=0,
+                x=0,
+                y=0,
                 config={
                     "category": "file",
                     "type": "csv",
                     "source": sample_csv,
                     "csvMode": "read",
                 },
-                sockets=[
-                    Socket(id="output", direction="output", type="polars-lazy")
-                ],
+                sockets=[Socket(id="output", direction="output", type="polars-lazy")],
             ),
             Tool(
                 id="filter1",
                 type="Filter",
-                x=100, y=0,
+                x=100,
+                y=0,
                 config={
                     "expression": "pl.col('age') > 30",
                 },
@@ -526,6 +527,7 @@ async def test_socket_specific_preview(sample_csv):
 # ============================================================================
 # API Validation Tests - socket_id is mandatory for single-tool endpoints
 # ============================================================================
+
 
 def test_tool_schema_requires_socket_id(client, sample_csv):
     """

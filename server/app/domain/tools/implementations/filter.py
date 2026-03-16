@@ -49,9 +49,7 @@ class FilterTool(BaseTool):
         expression = config.get("expression", "")
         if expression:
             available_cols = lf.collect_schema().names()
-            resolved_expr = resolve_expression_columns(
-                expression, available_cols, context="Filter"
-            )
+            resolved_expr = resolve_expression_columns(expression, available_cols, context="Filter")
             if resolved_expr != expression:
                 config = {**config, "expression": resolved_expr}
 

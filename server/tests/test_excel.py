@@ -16,13 +16,15 @@ def sample_excel(tmp_path: Path) -> Path:
     excel_path = tmp_path / "test_data.xlsx"
 
     # Create sample data
-    df = pl.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-        "age": [25, 30, 35, 40, 45],
-        "score": [85.5, 92.0, 78.3, 88.7, 95.2],
-        "active": [True, True, False, True, False]
-    })
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
+            "age": [25, 30, 35, 40, 45],
+            "score": [85.5, 92.0, 78.3, 88.7, 95.2],
+            "active": [True, True, False, True, False],
+        }
+    )
 
     # Write to Excel
     df.write_excel(excel_path)
@@ -36,14 +38,8 @@ def multi_sheet_excel(tmp_path: Path) -> Path:
     excel_path = tmp_path / "multi_sheet.xlsx"
 
     # Create sample data for different sheets
-    df1 = pl.DataFrame({
-        "id": [1, 2, 3],
-        "value": ["a", "b", "c"]
-    })
-    df2 = pl.DataFrame({
-        "x": [10, 20, 30],
-        "y": [100, 200, 300]
-    })
+    df1 = pl.DataFrame({"id": [1, 2, 3], "value": ["a", "b", "c"]})
+    df2 = pl.DataFrame({"x": [10, 20, 30], "y": [100, 200, 300]})
 
     # Write to Excel with multiple sheets using xlsxwriter
     import xlsxwriter
@@ -194,10 +190,7 @@ async def test_legacy_xls_input_tool(legacy_xls_excel: Path):
     """Test InputTool with legacy .xls file"""
     tool = InputTool()
 
-    config = {
-        "type": "excel",
-        "source": str(legacy_xls_excel)
-    }
+    config = {"type": "excel", "source": str(legacy_xls_excel)}
 
     outputs = await tool.execute(config, {})
 
@@ -247,10 +240,7 @@ async def test_excel_input_tool(sample_excel: Path):
     """Test InputTool with Excel file"""
     tool = InputTool()
 
-    config = {
-        "type": "excel",
-        "source": str(sample_excel)
-    }
+    config = {"type": "excel", "source": str(sample_excel)}
 
     outputs = await tool.execute(config, {})
 
@@ -271,11 +261,7 @@ async def test_excel_input_tool_with_sheet_id(multi_sheet_excel: Path):
     tool = InputTool()
 
     # Read first sheet
-    config = {
-        "type": "excel",
-        "source": str(multi_sheet_excel),
-        "sheet_id": 1
-    }
+    config = {"type": "excel", "source": str(multi_sheet_excel), "sheet_id": 1}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -291,11 +277,7 @@ async def test_excel_input_tool_with_sheet_name(multi_sheet_excel: Path):
     tool = InputTool()
 
     # Read second sheet by name
-    config = {
-        "type": "excel",
-        "source": str(multi_sheet_excel),
-        "sheet_name": "DataSheet"
-    }
+    config = {"type": "excel", "source": str(multi_sheet_excel), "sheet_name": "DataSheet"}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -312,11 +294,7 @@ async def test_excel_input_tool_no_header(sample_excel: Path):
     """Test InputTool with Excel file without header"""
     tool = InputTool()
 
-    config = {
-        "type": "excel",
-        "source": str(sample_excel),
-        "has_header": False
-    }
+    config = {"type": "excel", "source": str(sample_excel), "has_header": False}
 
     outputs = await tool.execute(config, {})
     df = outputs["output"].collect()
@@ -332,9 +310,7 @@ async def test_excel_input_tool_missing_source():
     """Test InputTool with Excel file missing source"""
     tool = InputTool()
 
-    config = {
-        "type": "excel"
-    }
+    config = {"type": "excel"}
 
     with pytest.raises(Exception) as exc_info:
         await tool.execute(config, {})
@@ -348,17 +324,11 @@ async def test_excel_input_tool_validate_config():
     tool = InputTool()
 
     # Valid Excel config
-    errors = await tool.validate_config({
-        "type": "excel",
-        "source": "/path/to/file.xlsx"
-    })
+    errors = await tool.validate_config({"type": "excel", "source": "/path/to/file.xlsx"})
     assert len(errors) == 0
 
     # Invalid type
-    errors = await tool.validate_config({
-        "type": "unsupported_type",
-        "source": "/path/to/file.xyz"
-    })
+    errors = await tool.validate_config({"type": "unsupported_type", "source": "/path/to/file.xyz"})
     assert len(errors) > 0
 
 
@@ -367,19 +337,14 @@ def test_excel_to_python_code(sample_excel: Path):
     """Test InputTool.to_python_code() for Excel"""
     tool = InputTool()
 
-    config = {
-        "type": "excel",
-        "source": str(sample_excel),
-        "sheet_id": 1,
-        "has_header": True
-    }
+    config = {"type": "excel", "source": str(sample_excel), "sheet_id": 1, "has_header": True}
 
     lines, output_vars = tool.to_python_code("input_1", config, {})
 
     assert len(lines) >= 1
     assert "read_excel" in lines[0]
     assert str(sample_excel) in lines[0] or "test_data.xlsx" in lines[0]
-    assert "engine=\"calamine\"" in lines[0]
+    assert 'engine="calamine"' in lines[0]
     assert "lazy()" in lines[1]  # Should convert to lazy
     assert output_vars["output"].startswith("df_")
 
@@ -388,13 +353,9 @@ def test_excel_to_python_code_with_sheet_name():
     """Test InputTool.to_python_code() with sheet_name"""
     tool = InputTool()
 
-    config = {
-        "type": "excel",
-        "source": "/path/to/file.xlsx",
-        "sheet_name": "MySheet"
-    }
+    config = {"type": "excel", "source": "/path/to/file.xlsx", "sheet_name": "MySheet"}
 
     lines, output_vars = tool.to_python_code("input_2", config, {})
 
     assert "read_excel" in lines[0]
-    assert "sheet_name=\"MySheet\"" in lines[0]
+    assert 'sheet_name="MySheet"' in lines[0]

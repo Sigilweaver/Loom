@@ -1,4 +1,5 @@
 """Tests for the Unpivot tool."""
+
 import polars as pl
 import pytest
 
@@ -16,25 +17,29 @@ def unpivot_tool() -> UnpivotTool:
 @pytest.fixture
 def wide_data() -> pl.LazyFrame:
     """Create sample wide format data for testing."""
-    return pl.LazyFrame({
-        "id": [1, 2, 3],
-        "name": ["Alice", "Bob", "Carol"],
-        "sales_q1": [100, 200, 150],
-        "sales_q2": [110, 180, 160],
-        "sales_q3": [120, 220, 170],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 2, 3],
+            "name": ["Alice", "Bob", "Carol"],
+            "sales_q1": [100, 200, 150],
+            "sales_q2": [110, 180, 160],
+            "sales_q3": [120, 220, 170],
+        }
+    )
 
 
 @pytest.fixture
 def wide_schema() -> DataSchema:
     """Create input schema for wide format data."""
-    return DataSchema(columns=[
-        ColumnSchema(name="id", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
-        ColumnSchema(name="sales_q1", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="sales_q2", dtype=PolarsDataType.INT64, nullable=True),
-        ColumnSchema(name="sales_q3", dtype=PolarsDataType.INT64, nullable=True),
-    ])
+    return DataSchema(
+        columns=[
+            ColumnSchema(name="id", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="name", dtype=PolarsDataType.STRING, nullable=True),
+            ColumnSchema(name="sales_q1", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="sales_q2", dtype=PolarsDataType.INT64, nullable=True),
+            ColumnSchema(name="sales_q3", dtype=PolarsDataType.INT64, nullable=True),
+        ]
+    )
 
 
 class TestUnpivotToolBlocking:
@@ -54,9 +59,7 @@ class TestUnpivotToolBasic:
     """Basic unpivot functionality tests."""
 
     @pytest.mark.asyncio
-    async def test_basic_unpivot(
-        self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame
-    ):
+    async def test_basic_unpivot(self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame):
         """Test basic unpivot operation."""
         config = {
             "on": ["sales_q1", "sales_q2", "sales_q3"],
@@ -81,9 +84,7 @@ class TestUnpivotToolBasic:
         assert quarters == {"sales_q1", "sales_q2", "sales_q3"}
 
     @pytest.mark.asyncio
-    async def test_unpivot_no_index(
-        self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame
-    ):
+    async def test_unpivot_no_index(self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame):
         """Test unpivot without index columns."""
         config = {
             "on": ["sales_q1", "sales_q2", "sales_q3"],
@@ -100,9 +101,7 @@ class TestUnpivotToolBasic:
         assert len(output_df) == 9
 
     @pytest.mark.asyncio
-    async def test_unpivot_single_column(
-        self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame
-    ):
+    async def test_unpivot_single_column(self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame):
         """Test unpivot with single column."""
         config = {
             "on": ["sales_q1"],
@@ -119,9 +118,7 @@ class TestUnpivotToolBasic:
         assert set(output_df.columns) == {"id", "metric", "amount"}
 
     @pytest.mark.asyncio
-    async def test_unpivot_default_names(
-        self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame
-    ):
+    async def test_unpivot_default_names(self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame):
         """Test unpivot with default variable/value names."""
         config = {
             "on": ["sales_q1", "sales_q2"],
@@ -140,9 +137,7 @@ class TestUnpivotToolSchema:
     """Tests for Unpivot tool schema inference."""
 
     @pytest.mark.asyncio
-    async def test_output_schema_basic(
-        self, unpivot_tool: UnpivotTool, wide_schema: DataSchema
-    ):
+    async def test_output_schema_basic(self, unpivot_tool: UnpivotTool, wide_schema: DataSchema):
         """Test output schema calculation."""
         config = {
             "on": ["sales_q1", "sales_q2", "sales_q3"],
@@ -220,9 +215,7 @@ class TestUnpivotToolValidation:
         assert len(errors) == 0
 
     @pytest.mark.asyncio
-    async def test_execute_requires_on(
-        self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame
-    ):
+    async def test_execute_requires_on(self, unpivot_tool: UnpivotTool, wide_data: pl.LazyFrame):
         """Test execute raises error without 'on' columns."""
         config = {"on": [], "index": ["id"]}
         with pytest.raises(Exception) as exc_info:
@@ -263,9 +256,7 @@ class TestUnpivotToolCodeGeneration:
             "variableName": "var",
             "valueName": "val",
         }
-        lines, output_vars = unpivot_tool.to_python_code(
-            "unpivot_002", config, {"input": "df_in"}
-        )
+        lines, output_vars = unpivot_tool.to_python_code("unpivot_002", config, {"input": "df_in"})
 
         code = "\n".join(lines)
         assert "unpivot" in code

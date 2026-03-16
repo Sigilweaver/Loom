@@ -7,7 +7,7 @@ Not affiliated with Alteryx, Inc.
 from typing import Any
 
 import polars as pl
-import sigilyx  # type: ignore[import-untyped]
+import sigilyx
 
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
@@ -85,7 +85,7 @@ class YxdbLoader(FileLoader):
             lines.append(f"{var_name} = {var_name}.head({n_rows})")
 
         if columns:
-            escaped = [f'"{ PythonCodeGenerator.escape_string(c)}"' for c in columns]
+            escaped = [f'"{PythonCodeGenerator.escape_string(c)}"' for c in columns]
             lines.append(f"{var_name} = {var_name}.select([{', '.join(escaped)}])")
 
         return lines

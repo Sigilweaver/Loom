@@ -44,18 +44,18 @@ def list_recent_archives(limit=10):
     print(f"Total archives: {data['total']}")
     print()
 
-    for i, archive in enumerate(data['archives'], 1):
+    for i, archive in enumerate(data["archives"], 1):
         print(f"{i}. {archive['workflow_name']}")
         print(f"   Path: {archive['path']}")
         print(f"   Status: {archive['execution_status']}")
-        if archive['execution_time']:
+        if archive["execution_time"]:
             print(f"   Execution Time: {archive['execution_time']:.2f}ms")
-        if archive['error']:
+        if archive["error"]:
             print(f"   Error: {archive['error']}")
         print(f"   Created: {archive['created']}")
         print()
 
-    return data['archives']
+    return data["archives"]
 
 
 def list_archives_by_date(start_date=None, end_date=None):
@@ -66,9 +66,9 @@ def list_archives_by_date(start_date=None, end_date=None):
 
     params = {}
     if start_date:
-        params['start_date'] = start_date.strftime('%Y-%m-%d')
+        params["start_date"] = start_date.strftime("%Y-%m-%d")
     if end_date:
-        params['end_date'] = end_date.strftime('%Y-%m-%d')
+        params["end_date"] = end_date.strftime("%Y-%m-%d")
 
     response = requests.get(f"{BASE_URL}/archive/list", params=params)
     data = response.json()
@@ -77,7 +77,7 @@ def list_archives_by_date(start_date=None, end_date=None):
     print(f"Found: {data['total']} archives")
     print()
 
-    return data['archives']
+    return data["archives"]
 
 
 def get_archive_details(archive_path):
@@ -90,8 +90,8 @@ def get_archive_details(archive_path):
     details = response.json()
 
     # Workflow info
-    workflow = details.get('workflow', {})
-    meta = workflow.get('meta', {})
+    workflow = details.get("workflow", {})
+    meta = workflow.get("meta", {})
     print(f"Workflow Name: {meta.get('name', 'N/A')}")
     print(f"Description: {meta.get('description', 'N/A')}")
     print(f"Author: {meta.get('author', 'N/A')}")
@@ -100,20 +100,22 @@ def get_archive_details(archive_path):
     print()
 
     # Execution log
-    log = details.get('execution_log', {})
+    log = details.get("execution_log", {})
     print(f"Execution Status: {log.get('status', 'N/A')}")
     print(f"Timestamp: {log.get('timestamp', 'N/A')}")
 
-    if log.get('execution_time_ms'):
+    if log.get("execution_time_ms"):
         print(f"Total Execution Time: {log['execution_time_ms']:.2f}ms")
 
-    if log.get('tool_executions'):
+    if log.get("tool_executions"):
         print("\nTool Execution Timeline:")
-        for tool_exec in log['tool_executions']:
-            print(f"  - {tool_exec['tool_id']} ({tool_exec['tool_type']}): "
-                  f"{tool_exec['execution_time_ms']:.2f}ms - {tool_exec['status']}")
+        for tool_exec in log["tool_executions"]:
+            print(
+                f"  - {tool_exec['tool_id']} ({tool_exec['tool_type']}): "
+                f"{tool_exec['execution_time_ms']:.2f}ms - {tool_exec['status']}"
+            )
 
-    if log.get('error'):
+    if log.get("error"):
         print(f"\nError: {log['error']}")
 
     print()
@@ -130,23 +132,21 @@ def cleanup_old_archives(retention_days=30, dry_run=True):
         # List what would be deleted
         cutoff = datetime.now() - timedelta(days=retention_days)
         response = requests.get(
-            f"{BASE_URL}/archive/list",
-            params={'end_date': cutoff.strftime('%Y-%m-%d')}
+            f"{BASE_URL}/archive/list", params={"end_date": cutoff.strftime("%Y-%m-%d")}
         )
         data = response.json()
         print(f"Would delete {data['total']} archives older than {retention_days} days")
 
-        for archive in data['archives']:
+        for archive in data["archives"]:
             print(f"  - {archive['path']} ({archive['workflow_name']})")
     else:
         # Actually delete
         response = requests.post(
-            f"{BASE_URL}/archive/cleanup",
-            json={"retention_days": retention_days}
+            f"{BASE_URL}/archive/cleanup", json={"retention_days": retention_days}
         )
         result = response.json()
         print(f"Deleted {result['deleted_count']} archives")
-        print(result['message'])
+        print(result["message"])
 
     print()
 
@@ -170,7 +170,7 @@ def main():
 
         # Get details for the most recent archive (if any)
         if archives:
-            get_archive_details(archives[0]['path'])
+            get_archive_details(archives[0]["path"])
 
         # Dry run cleanup (show what would be deleted)
         cleanup_old_archives(retention_days=30, dry_run=True)

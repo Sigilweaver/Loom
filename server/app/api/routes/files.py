@@ -110,10 +110,7 @@ async def get_browse_context(
     # Non-hub modes: use static configuration
     if settings.auth_mode != "hub":
         # In disabled mode or with static paths configured
-        file_paths = [
-            FilePathGrant(path=p, read_only=False)
-            for p in settings.allowed_file_paths
-        ]
+        file_paths = [FilePathGrant(path=p, read_only=False) for p in settings.allowed_file_paths]
         return BrowseContext(user_id=None, file_paths=file_paths)
 
     # Hub mode: authorize token
@@ -234,10 +231,12 @@ async def list_roots(
             allowed, _ = _is_path_allowed(resolved, ctx.file_paths)
             if not allowed:
                 continue
-            roots.append(RootEntry(
-                path=str(resolved),
-                read_only=grant.read_only,
-            ))
+            roots.append(
+                RootEntry(
+                    path=str(resolved),
+                    read_only=grant.read_only,
+                )
+            )
 
     return roots
 
@@ -381,11 +380,25 @@ async def stat_path(
 # --- Fuzzy search ---
 
 # Default data file extensions the search targets
-DATA_EXTENSIONS = frozenset({
-    "csv", "parquet", "xlsx", "xls", "json", "ndjson",
-    "yxdb", "avro", "ipc", "arrow", "ods", "tsv", "db",
-    "sqlite", "sqlite3",
-})
+DATA_EXTENSIONS = frozenset(
+    {
+        "csv",
+        "parquet",
+        "xlsx",
+        "xls",
+        "json",
+        "ndjson",
+        "yxdb",
+        "avro",
+        "ipc",
+        "arrow",
+        "ods",
+        "tsv",
+        "db",
+        "sqlite",
+        "sqlite3",
+    }
+)
 
 # Hard cap to prevent runaway recursion on huge filesystems
 _MAX_SCAN = 10_000
@@ -489,8 +502,7 @@ async def search_files(
         str | None,
         Query(
             description=(
-                "Comma-separated file extensions to include "
-                "(default: common data formats)"
+                "Comma-separated file extensions to include (default: common data formats)"
             ),
         ),
     ] = None,
@@ -523,9 +535,7 @@ async def search_files(
     # Determine target extensions
     if extensions:
         ext_set = frozenset(
-            e.strip().lower().lstrip(".")
-            for e in extensions.split(",")
-            if e.strip()
+            e.strip().lower().lstrip(".") for e in extensions.split(",") if e.strip()
         )
     else:
         ext_set = DATA_EXTENSIONS
@@ -566,14 +576,16 @@ async def search_files(
     for fpath, score, mtime in scored[:limit]:
         try:
             stat = fpath.stat()
-            results.append(SearchResultEntry(
-                name=fpath.name,
-                path=str(fpath),
-                size=stat.st_size,
-                modified=datetime.fromtimestamp(mtime),
-                extension=fpath.suffix[1:] if fpath.suffix else None,
-                score=round(score, 3),
-            ))
+            results.append(
+                SearchResultEntry(
+                    name=fpath.name,
+                    path=str(fpath),
+                    size=stat.st_size,
+                    modified=datetime.fromtimestamp(mtime),
+                    extension=fpath.suffix[1:] if fpath.suffix else None,
+                    score=round(score, 3),
+                )
+            )
         except OSError:
             continue
 

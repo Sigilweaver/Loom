@@ -1,4 +1,5 @@
 """Tests for the Sample tool."""
+
 import polars as pl
 import pytest
 
@@ -8,11 +9,13 @@ from app.domain.tools.implementations.sample import SampleTool
 @pytest.fixture
 def sample_data() -> pl.LazyFrame:
     """Create sample lazy frame for testing."""
-    return pl.LazyFrame({
-        "id": list(range(1, 101)),  # 1-100
-        "name": [f"Item_{i}" for i in range(1, 101)],
-        "value": [i * 10.0 for i in range(1, 101)],
-    })
+    return pl.LazyFrame(
+        {
+            "id": list(range(1, 101)),  # 1-100
+            "name": [f"Item_{i}" for i in range(1, 101)],
+            "value": [i * 10.0 for i in range(1, 101)],
+        }
+    )
 
 
 @pytest.fixture
@@ -169,7 +172,9 @@ class TestSampleToolExecution:
         assert len(df) == 100  # All rows returned
 
     @pytest.mark.asyncio
-    async def test_random_n_larger_than_data(self, sample_tool: SampleTool, sample_data: pl.LazyFrame):
+    async def test_random_n_larger_than_data(
+        self, sample_tool: SampleTool, sample_data: pl.LazyFrame
+    ):
         """Test Random mode when n is larger than data size."""
         config = {"mode": "Random", "n": 1000, "seed": 42}
         result = await sample_tool.execute(config, {"input": sample_data})

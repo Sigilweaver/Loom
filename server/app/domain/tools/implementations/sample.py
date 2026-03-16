@@ -121,8 +121,7 @@ class SampleTool(BaseTool):
         mode = config.get("mode", "FirstN")
         if mode not in SAMPLE_MODES:
             errors.append(
-                f"Invalid sample mode: '{mode}'. "
-                f"Must be one of: {', '.join(sorted(SAMPLE_MODES))}"
+                f"Invalid sample mode: '{mode}'. Must be one of: {', '.join(sorted(SAMPLE_MODES))}"
             )
 
         n = config.get("n", 100)

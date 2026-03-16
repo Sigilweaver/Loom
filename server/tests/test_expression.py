@@ -29,8 +29,7 @@ class TestNormalizeExpression:
         expr = """(pl.col('price') > 100)  # expensive items
 & (pl.col('qty') >= 3)  # in stock"""
         expected = (
-            "((pl.col('price') > 100)  # expensive items\n"
-            "& (pl.col('qty') >= 3)  # in stock\n)"
+            "((pl.col('price') > 100)  # expensive items\n& (pl.col('qty') >= 3)  # in stock\n)"
         )
         assert normalize_expression(expr) == expected
 
@@ -89,9 +88,7 @@ class TestParsePolarsExpression:
 
     def test_list_operations(self):
         """Parse list operations."""
-        expr = parse_polars_expression(
-            "pl.col('items').str.split(' ').list.contains('value')"
-        )
+        expr = parse_polars_expression("pl.col('items').str.split(' ').list.contains('value')")
         assert isinstance(expr, pl.Expr)
 
     def test_arithmetic(self):
@@ -167,9 +164,7 @@ class TestExpressionASTSecurity:
 
     def test_allows_complex_polars_expression(self):
         """Complex chained Polars expressions should pass."""
-        expr = parse_polars_expression(
-            "(pl.col('a') > 10) & (pl.col('b').str.contains('test'))"
-        )
+        expr = parse_polars_expression("(pl.col('a') > 10) & (pl.col('b').str.contains('test'))")
         assert isinstance(expr, pl.Expr)
 
     def test_allows_polars_lit(self):

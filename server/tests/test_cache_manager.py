@@ -67,10 +67,12 @@ def sample_plan():
 @pytest.fixture
 def sample_lazyframe():
     """Create a sample LazyFrame for testing."""
-    return pl.LazyFrame({
-        "id": [1, 2, 3],
-        "name": ["Alice", "Bob", "Charlie"],
-    })
+    return pl.LazyFrame(
+        {
+            "id": [1, 2, 3],
+            "name": ["Alice", "Bob", "Charlie"],
+        }
+    )
 
 
 class TestCacheManagerInit:

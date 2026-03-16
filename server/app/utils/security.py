@@ -46,15 +46,11 @@ def validate_file_path(file_path: str) -> Path:
     try:
         path = Path(file_path).resolve()
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid file path: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {str(e)}")
 
     # Check if file exists
     if not path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"File not found: {file_path}"
-        )
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     # Check if it's a file
     if not path.is_file():
@@ -72,7 +68,7 @@ def validate_file_path(file_path: str) -> Path:
         if not _is_path_in_allowlist(path, grant_paths):
             raise HTTPException(
                 status_code=403,
-                detail=f"File path not allowed. Must be within granted paths.",
+                detail="File path not allowed. Must be within granted paths.",
             )
 
     # Server-level restriction: Additional admin guard (independent of Hub mode)
@@ -107,9 +103,7 @@ def validate_file_path_for_write(file_path: str) -> Path:
     try:
         path = Path(file_path).resolve()
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid file path: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {str(e)}")
 
     # Hub mode: Check against per-request grants with read_only check
     context_grants = allowed_paths_context.get()

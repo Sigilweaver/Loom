@@ -1,4 +1,5 @@
 """Tests for the Sort tool."""
+
 import polars as pl
 import pytest
 
@@ -8,12 +9,14 @@ from app.domain.tools.implementations.sort import SortTool
 @pytest.fixture
 def sample_data() -> pl.LazyFrame:
     """Create sample lazy frame for testing."""
-    return pl.LazyFrame({
-        "name": ["Alice", "Bob", "Charlie", "David", None],
-        "age": [30, 25, 35, 25, 40],
-        "city": ["NYC", "LA", "NYC", "Chicago", "LA"],
-        "salary": [50000.0, 60000.0, 55000.0, 45000.0, 70000.0],
-    })
+    return pl.LazyFrame(
+        {
+            "name": ["Alice", "Bob", "Charlie", "David", None],
+            "age": [30, 25, 35, 25, 40],
+            "city": ["NYC", "LA", "NYC", "Chicago", "LA"],
+            "salary": [50000.0, 60000.0, 55000.0, 45000.0, 70000.0],
+        }
+    )
 
 
 @pytest.fixture
@@ -30,11 +33,7 @@ class TestSortToolExecution:
         self, sort_tool: SortTool, sample_data: pl.LazyFrame
     ):
         """Test sorting by a single column in ascending order."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "asc", "nullsFirst": False}]}
         result = await sort_tool.execute(config, {"input": sample_data})
 
         assert "output" in result
@@ -49,11 +48,7 @@ class TestSortToolExecution:
         self, sort_tool: SortTool, sample_data: pl.LazyFrame
     ):
         """Test sorting by a single column in descending order."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "desc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "desc", "nullsFirst": False}]}
         result = await sort_tool.execute(config, {"input": sample_data})
 
         df = result["output"].collect()
@@ -68,7 +63,7 @@ class TestSortToolExecution:
         config = {
             "sortColumns": [
                 {"column": "age", "direction": "asc", "nullsFirst": False},
-                {"column": "name", "direction": "desc", "nullsFirst": True}
+                {"column": "name", "direction": "desc", "nullsFirst": True},
             ]
         }
         result = await sort_tool.execute(config, {"input": sample_data})
@@ -91,11 +86,7 @@ class TestSortToolExecution:
     @pytest.mark.asyncio
     async def test_sort_nulls_first(self, sort_tool: SortTool, sample_data: pl.LazyFrame):
         """Test sorting with nulls first."""
-        config = {
-            "sortColumns": [
-                {"column": "name", "direction": "asc", "nullsFirst": True}
-            ]
-        }
+        config = {"sortColumns": [{"column": "name", "direction": "asc", "nullsFirst": True}]}
         result = await sort_tool.execute(config, {"input": sample_data})
 
         df = result["output"].collect()
@@ -109,11 +100,7 @@ class TestSortToolExecution:
     @pytest.mark.asyncio
     async def test_sort_nulls_last(self, sort_tool: SortTool, sample_data: pl.LazyFrame):
         """Test sorting with nulls last."""
-        config = {
-            "sortColumns": [
-                {"column": "name", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "name", "direction": "asc", "nullsFirst": False}]}
         result = await sort_tool.execute(config, {"input": sample_data})
 
         df = result["output"].collect()
@@ -139,11 +126,7 @@ class TestSortToolExecution:
     @pytest.mark.asyncio
     async def test_sort_preserves_all_columns(self, sort_tool: SortTool, sample_data: pl.LazyFrame):
         """Test that sorting preserves all columns in the output."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "asc", "nullsFirst": False}]}
         result = await sort_tool.execute(config, {"input": sample_data})
 
         df = result["output"].collect()
@@ -166,11 +149,7 @@ class TestSortToolOutputSchema:
                 ]
             }
         }
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "asc", "nullsFirst": False}]}
 
         result = await sort_tool.get_output_schema(config, input_schema)
 
@@ -194,11 +173,7 @@ class TestSortToolValidation:
     @pytest.mark.asyncio
     async def test_valid_config(self, sort_tool: SortTool):
         """Test validation of valid configuration."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "asc", "nullsFirst": False}]}
         errors = await sort_tool.validate_config(config)
         assert errors == []
 
@@ -212,11 +187,7 @@ class TestSortToolValidation:
     @pytest.mark.asyncio
     async def test_invalid_missing_column_name(self, sort_tool: SortTool):
         """Test validation catches missing column name."""
-        config = {
-            "sortColumns": [
-                {"column": "", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "", "direction": "asc", "nullsFirst": False}]}
         errors = await sort_tool.validate_config(config)
         assert len(errors) == 1
         assert "missing" in errors[0].lower() and "column" in errors[0].lower()
@@ -224,11 +195,7 @@ class TestSortToolValidation:
     @pytest.mark.asyncio
     async def test_invalid_direction(self, sort_tool: SortTool):
         """Test validation catches invalid direction."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "invalid", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "invalid", "nullsFirst": False}]}
         errors = await sort_tool.validate_config(config)
         assert len(errors) == 1
         assert "direction" in errors[0].lower()
@@ -240,11 +207,7 @@ class TestSortToolToPythonCode:
     @pytest.mark.asyncio
     async def test_python_code_single_column(self, sort_tool: SortTool):
         """Test Python code generation for single column sort."""
-        config = {
-            "sortColumns": [
-                {"column": "age", "direction": "asc", "nullsFirst": False}
-            ]
-        }
+        config = {"sortColumns": [{"column": "age", "direction": "asc", "nullsFirst": False}]}
         code_lines, output_vars = sort_tool.to_python_code(
             tool_id="sort_1",
             config=config,
@@ -264,7 +227,7 @@ class TestSortToolToPythonCode:
         config = {
             "sortColumns": [
                 {"column": "age", "direction": "asc", "nullsFirst": False},
-                {"column": "name", "direction": "desc", "nullsFirst": True}
+                {"column": "name", "direction": "desc", "nullsFirst": True},
             ]
         }
         code_lines, output_vars = sort_tool.to_python_code(

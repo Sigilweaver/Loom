@@ -159,9 +159,7 @@ class BlockingToolCache:
                 return None
         return None
 
-    def put(
-        self, tool_id: str, socket_id: str, cache_key: str, lf: pl.LazyFrame
-    ) -> None:
+    def put(self, tool_id: str, socket_id: str, cache_key: str, lf: pl.LazyFrame) -> None:
         """
         Write result to cache for a specific socket.
 
@@ -283,9 +281,7 @@ class BlockingToolCache:
                     logger.warning(f"Failed to delete stale cache file {path}: {e}")
 
         if count:
-            logger.info(
-                f"Invalidated {count} stale cache entries for tool {tool_id}"
-            )
+            logger.info(f"Invalidated {count} stale cache entries for tool {tool_id}")
         return count
 
 

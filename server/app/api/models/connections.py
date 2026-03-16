@@ -10,6 +10,7 @@ from app.domain.connections.models import DatabaseType
 
 class ConnectionInfoResponse(BaseModel):
     """Connection info returned by API (no credentials)."""
+
     id: str
     name: str
     type: DatabaseType
@@ -25,6 +26,7 @@ class ConnectionInfoResponse(BaseModel):
 
 class CreateConnectionRequest(BaseModel):
     """Request body for creating a connection."""
+
     name: str = Field(min_length=1, max_length=100, description="Display name for the connection")
     type: DatabaseType = Field(description="Database type")
     host: str = Field(min_length=1, max_length=255, description="Database host")
@@ -36,6 +38,7 @@ class CreateConnectionRequest(BaseModel):
 
 class UpdateConnectionRequest(BaseModel):
     """Request body for updating a connection (all fields optional)."""
+
     name: str | None = Field(None, min_length=1, max_length=100)
     host: str | None = Field(None, min_length=1, max_length=255)
     port: int | None = Field(None, ge=1, le=65535)
@@ -46,6 +49,7 @@ class UpdateConnectionRequest(BaseModel):
 
 class ConnectionTestResult(BaseModel):
     """Result of testing a connection."""
+
     success: bool
     message: str
     latency_ms: int | None = Field(None, serialization_alias="latencyMs")
@@ -53,6 +57,7 @@ class ConnectionTestResult(BaseModel):
 
 class ConnectionStoreStatus(BaseModel):
     """Status of the connection store."""
+
     enabled: bool = Field(
         description="Whether server connections are enabled (encryption key configured)"
     )

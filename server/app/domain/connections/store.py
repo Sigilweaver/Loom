@@ -28,21 +28,25 @@ logger = logging.getLogger(__name__)
 
 class ConnectionStoreError(Exception):
     """Base exception for connection store errors."""
+
     pass
 
 
 class EncryptionKeyError(ConnectionStoreError):
     """Raised when encryption key is missing or invalid."""
+
     pass
 
 
 class ConnectionNotFoundError(ConnectionStoreError):
     """Raised when a connection ID doesn't exist."""
+
     pass
 
 
 class DuplicateConnectionError(ConnectionStoreError):
     """Raised when trying to create a connection with duplicate name."""
+
     pass
 
 
@@ -291,8 +295,7 @@ class ConnectionStore:
         # Check for duplicate names (excluding current)
         if input.name:
             existing_names = {
-                c.name.lower() for c in self._connections.values()
-                if c.id != connection_id
+                c.name.lower() for c in self._connections.values() if c.id != connection_id
             }
             if input.name.lower() in existing_names:
                 raise DuplicateConnectionError(f"A connection named '{input.name}' already exists")

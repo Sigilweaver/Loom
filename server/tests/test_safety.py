@@ -1,12 +1,12 @@
 """Tests for execution safety checks."""
 
-import pytest
 import polars as pl
+import pytest
 
 from app.domain.execution.safety import (
     SafetyCheckResult,
-    check_pivot_safety,
     check_cross_join_safety,
+    check_pivot_safety,
     check_unpivot_safety,
     raise_if_unsafe,
 )
@@ -63,10 +63,12 @@ class TestCheckPivotSafety:
 
     def test_pivot_safe_with_few_unique_values(self):
         """Pivot should be safe with few unique values."""
-        lf = pl.LazyFrame({
-            "category": ["A", "B", "C", "A", "B", "C"],
-            "value": [1, 2, 3, 4, 5, 6],
-        })
+        lf = pl.LazyFrame(
+            {
+                "category": ["A", "B", "C", "A", "B", "C"],
+                "value": [1, 2, 3, 4, 5, 6],
+            }
+        )
         result = check_pivot_safety(lf, "category")
         assert result.safe is True
         assert result.actual_value == 3
@@ -76,10 +78,12 @@ class TestCheckPivotSafety:
         # Set a low limit for testing
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_pivot_columns", 5)
 
-        lf = pl.LazyFrame({
-            "category": [f"cat_{i}" for i in range(100)],
-            "value": list(range(100)),
-        })
+        lf = pl.LazyFrame(
+            {
+                "category": [f"cat_{i}" for i in range(100)],
+                "value": list(range(100)),
+            }
+        )
         result = check_pivot_safety(lf, "category")
         assert result.safe is False
         assert result.actual_value == 100
@@ -91,10 +95,12 @@ class TestCheckPivotSafety:
         """Safety check should be disabled when limit is 0."""
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_pivot_columns", 0)
 
-        lf = pl.LazyFrame({
-            "category": [f"cat_{i}" for i in range(10000)],
-            "value": list(range(10000)),
-        })
+        lf = pl.LazyFrame(
+            {
+                "category": [f"cat_{i}" for i in range(10000)],
+                "value": list(range(10000)),
+            }
+        )
         result = check_pivot_safety(lf, "category")
         assert result.safe is True
 
@@ -145,11 +151,13 @@ class TestCheckUnpivotSafety:
 
     def test_unpivot_safe_with_few_columns(self):
         """Unpivot should be safe with few columns."""
-        lf = pl.LazyFrame({
-            "id": [1, 2, 3],
-            "q1": [100, 200, 300],
-            "q2": [110, 210, 310],
-        })
+        lf = pl.LazyFrame(
+            {
+                "id": [1, 2, 3],
+                "q1": [100, 200, 300],
+                "q2": [110, 210, 310],
+            }
+        )
         result = check_unpivot_safety(lf, ["q1", "q2"])
         assert result.safe is True
         assert result.actual_value == 6  # 3 rows * 2 columns
@@ -209,11 +217,13 @@ class TestPivotToolSafetyIntegration:
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_pivot_columns", 5)
 
         pivot_tool = PivotTool()
-        lf = pl.LazyFrame({
-            "id": list(range(100)),
-            "category": [f"cat_{i}" for i in range(100)],
-            "value": list(range(100)),
-        })
+        lf = pl.LazyFrame(
+            {
+                "id": list(range(100)),
+                "category": [f"cat_{i}" for i in range(100)],
+                "value": list(range(100)),
+            }
+        )
 
         config = {
             "on": "category",
@@ -232,11 +242,13 @@ class TestPivotToolSafetyIntegration:
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_pivot_columns", 10)
 
         pivot_tool = PivotTool()
-        lf = pl.LazyFrame({
-            "id": [1, 1, 2, 2],
-            "quarter": ["Q1", "Q2", "Q1", "Q2"],
-            "sales": [100, 110, 200, 210],
-        })
+        lf = pl.LazyFrame(
+            {
+                "id": [1, 1, 2, 2],
+                "quarter": ["Q1", "Q2", "Q1", "Q2"],
+                "sales": [100, 110, 200, 210],
+            }
+        )
 
         config = {
             "on": "quarter",
@@ -305,12 +317,14 @@ class TestUnpivotToolSafetyIntegration:
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_unpivot_rows", 20)
 
         unpivot_tool = UnpivotTool()
-        lf = pl.LazyFrame({
-            "id": list(range(10)),
-            "q1": list(range(10)),
-            "q2": list(range(10)),
-            "q3": list(range(10)),
-        })
+        lf = pl.LazyFrame(
+            {
+                "id": list(range(10)),
+                "q1": list(range(10)),
+                "q2": list(range(10)),
+                "q3": list(range(10)),
+            }
+        )
 
         config = {
             "on": ["q1", "q2", "q3"],  # 10 rows * 3 columns = 30 rows
@@ -328,11 +342,13 @@ class TestUnpivotToolSafetyIntegration:
         monkeypatch.setattr("app.domain.execution.safety.settings.safety_max_unpivot_rows", 100)
 
         unpivot_tool = UnpivotTool()
-        lf = pl.LazyFrame({
-            "id": [1, 2, 3],
-            "q1": [100, 200, 300],
-            "q2": [110, 210, 310],
-        })
+        lf = pl.LazyFrame(
+            {
+                "id": [1, 2, 3],
+                "q1": [100, 200, 300],
+                "q2": [110, 210, 310],
+            }
+        )
 
         config = {
             "on": ["q1", "q2"],

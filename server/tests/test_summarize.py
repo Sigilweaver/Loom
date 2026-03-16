@@ -10,13 +10,15 @@ from app.domain.tools.implementations.summarize import SummarizeTool
 @pytest.fixture
 def sample_df() -> pl.LazyFrame:
     """Create sample data for testing"""
-    return pl.LazyFrame({
-        "category": ["A", "A", "B", "B", "B"],
-        "subcategory": ["x", "y", "x", "x", "y"],
-        "amount": [100, 200, 150, 250, 300],
-        "count": [1, 2, 3, 4, 5],
-        "name": ["alice", "bob", "carol", "dave", "eve"],
-    })
+    return pl.LazyFrame(
+        {
+            "category": ["A", "A", "B", "B", "B"],
+            "subcategory": ["x", "y", "x", "x", "y"],
+            "amount": [100, 200, 150, 250, 300],
+            "count": [1, 2, 3, 4, 5],
+            "name": ["alice", "bob", "carol", "dave", "eve"],
+        }
+    )
 
 
 @pytest.fixture
@@ -87,9 +89,7 @@ class TestSummarizeToolExecute:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": "total"}],
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
@@ -103,9 +103,7 @@ class TestSummarizeToolExecute:
         tool = SummarizeTool()
         config = {
             "groupByColumns": ["category", "subcategory"],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": "total"}],
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
@@ -172,7 +170,12 @@ class TestSummarizeToolExecute:
                 {"_id": "action-123", "column": "category"},
             ],
             "aggregations": [
-                {"_id": "action-456", "column": "amount", "operation": "Sum", "outputName": "total_amount"}
+                {
+                    "_id": "action-456",
+                    "column": "amount",
+                    "operation": "Sum",
+                    "outputName": "total_amount",
+                }
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -191,8 +194,18 @@ class TestSummarizeToolExecute:
                 {"_id": "action-1", "column": "category"},
             ],
             "aggregations": [
-                {"_id": "action-2", "column": "category", "operation": "Count", "outputName": "Count_category"},
-                {"_id": "action-3", "column": "amount", "operation": "Sum", "outputName": "Sum_amount"},
+                {
+                    "_id": "action-2",
+                    "column": "category",
+                    "operation": "Count",
+                    "outputName": "Count_category",
+                },
+                {
+                    "_id": "action-3",
+                    "column": "amount",
+                    "operation": "Sum",
+                    "outputName": "Sum_amount",
+                },
             ],
         }
         result = await tool.execute(config, {"input": sample_df})
@@ -237,9 +250,7 @@ class TestSummarizeToolExecute:
         tool = SummarizeTool()
         config = {
             "groupByColumns": ["category"],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": ""}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": ""}],
         }
         result = await tool.execute(config, {"input": sample_df})
         df = result["output"].collect()
@@ -257,9 +268,7 @@ class TestSummarizeToolSchema:
         tool = SummarizeTool()
         config = {
             "groupByColumns": ["category"],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": "total"}],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
@@ -276,9 +285,7 @@ class TestSummarizeToolSchema:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "amount", "operation": "Mean", "outputName": "avg"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Mean", "outputName": "avg"}],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
@@ -291,9 +298,7 @@ class TestSummarizeToolSchema:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "name", "operation": "Count", "outputName": "cnt"}
-            ],
+            "aggregations": [{"column": "name", "operation": "Count", "outputName": "cnt"}],
         }
         result = await tool.get_output_schema(config, {"input": sample_schema})
         output_schema = result["output"]
@@ -310,9 +315,7 @@ class TestSummarizeToolValidation:
         tool = SummarizeTool()
         config = {
             "groupByColumns": ["category"],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": "total"}],
         }
         errors = await tool.validate_config(config)
         assert len(errors) == 0
@@ -346,9 +349,7 @@ class TestSummarizeToolValidation:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "", "operation": "Sum", "outputName": "total"}],
         }
         errors = await tool.validate_config(config)
         assert len(errors) > 0
@@ -360,9 +361,7 @@ class TestSummarizeToolValidation:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "amount", "operation": "InvalidOp", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "InvalidOp", "outputName": "total"}],
         }
         errors = await tool.validate_config(config)
         assert len(errors) > 0
@@ -392,9 +391,7 @@ class TestSummarizeCodeGeneration:
         tool = SummarizeTool()
         config = {
             "groupByColumns": ["category"],
-            "aggregations": [
-                {"column": "amount", "operation": "Sum", "outputName": "total"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Sum", "outputName": "total"}],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
 
@@ -410,9 +407,7 @@ class TestSummarizeCodeGeneration:
         tool = SummarizeTool()
         config = {
             "groupByColumns": [],
-            "aggregations": [
-                {"column": "amount", "operation": "Mean", "outputName": "avg_amount"}
-            ],
+            "aggregations": [{"column": "amount", "operation": "Mean", "outputName": "avg_amount"}],
         }
         lines, output_vars = tool.to_python_code("summarize1", config, {"input": "df_input"})
 

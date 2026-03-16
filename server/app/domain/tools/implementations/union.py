@@ -11,7 +11,6 @@ from app.domain.tools.sockets import UnionSockets
 
 @register_tool("Union")
 class UnionTool(BaseTool):
-
     def _build_operation(self, config: dict[str, Any]) -> UnionOperation:
         """Build the union operation from config."""
         return UnionOperation(mode=config.get("mode", "ByName"))

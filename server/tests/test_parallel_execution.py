@@ -66,9 +66,7 @@ class SlowMockTool(BaseTool):
         df = pl.DataFrame({"value": [1, 2, 3]})
         return {"output": df.lazy()}
 
-    async def get_output_schema(
-        self, config: dict, input_schemas: dict
-    ) -> dict[str, DataSchema]:
+    async def get_output_schema(self, config: dict, input_schemas: dict) -> dict[str, DataSchema]:
         """Return a simple schema for the mock tool."""
         return {
             "output": DataSchema(
@@ -103,9 +101,7 @@ class TestParallelExecution:
 
     @pytest.mark.asyncio
     @patch("app.domain.execution.executor.settings")
-    async def test_parallel_branches_execute_concurrently(
-        self, mock_settings, register_mock_tool
-    ):
+    async def test_parallel_branches_execute_concurrently(self, mock_settings, register_mock_tool):
         """Test that parallel branches run concurrently."""
         mock_settings.execution_mode = "parallel"
         mock_settings.max_parallel_tools = 4
@@ -149,9 +145,7 @@ class TestParallelExecution:
 
     @pytest.mark.asyncio
     @patch("app.domain.execution.executor.settings")
-    async def test_sequential_mode_executes_in_order(
-        self, mock_settings, register_mock_tool
-    ):
+    async def test_sequential_mode_executes_in_order(self, mock_settings, register_mock_tool):
         """Test that sequential mode runs tools one by one."""
         mock_settings.execution_mode = "sequential"
         mock_settings.cache_enabled = False
@@ -193,9 +187,7 @@ class TestParallelExecution:
 
     @pytest.mark.asyncio
     @patch("app.domain.execution.executor.settings")
-    async def test_diamond_pattern_respects_dependencies(
-        self, mock_settings, register_mock_tool
-    ):
+    async def test_diamond_pattern_respects_dependencies(self, mock_settings, register_mock_tool):
         """Test diamond pattern: A -> B -> D, A -> C -> D."""
         mock_settings.execution_mode = "parallel"
         mock_settings.max_parallel_tools = 4
@@ -242,9 +234,7 @@ class TestParallelExecution:
 
     @pytest.mark.asyncio
     @patch("app.domain.execution.executor.settings")
-    async def test_max_parallel_tools_limits_concurrency(
-        self, mock_settings, register_mock_tool
-    ):
+    async def test_max_parallel_tools_limits_concurrency(self, mock_settings, register_mock_tool):
         """Test that max_parallel_tools limits concurrent executions."""
         mock_settings.execution_mode = "parallel"
         mock_settings.max_parallel_tools = 1  # Force sequential-like behavior
@@ -274,9 +264,7 @@ class TestParallelExecution:
 
     @pytest.mark.asyncio
     @patch("app.domain.execution.executor.settings")
-    async def test_parallel_execution_preserves_results(
-        self, mock_settings, register_mock_tool
-    ):
+    async def test_parallel_execution_preserves_results(self, mock_settings, register_mock_tool):
         """Test that results are correctly stored in parallel mode."""
         mock_settings.execution_mode = "parallel"
         mock_settings.max_parallel_tools = 4
@@ -401,10 +389,7 @@ class TestParallelExecutionEdgeCases:
         mock_settings.archive_enabled = False
 
         # 5 independent tools
-        tools = [
-            make_tool(f"T{i}", "MockTool", {"_tool_id": f"T{i}"})
-            for i in range(5)
-        ]
+        tools = [make_tool(f"T{i}", "MockTool", {"_tool_id": f"T{i}"}) for i in range(5)]
 
         workflow = Workflow(
             meta=make_workflow_meta(),

@@ -57,8 +57,7 @@ def _set_file_paths_context(hub_result: AuthorizationResult | None) -> Generator
     # Convert Hub FilePathGrant to security FilePathGrant (same structure)
     # If Hub provided no grants, enforce a deny-all context by setting an empty list.
     grants = [
-        FilePathGrant(path=fp.path, read_only=fp.read_only)
-        for fp in (hub_result.file_paths or [])
+        FilePathGrant(path=fp.path, read_only=fp.read_only) for fp in (hub_result.file_paths or [])
     ]
     token = allowed_paths_context.set(grants)
     try:
@@ -194,9 +193,7 @@ class ExecuteWorkflowRequest(BaseModel):
     target_tool_id: str | None = Field(
         None, description="Optional: Execute up to this tool (null = execute all)"
     )
-    preview_limit: int | None = Field(
-        None, description="Optional: Limit rows returned in preview"
-    )
+    preview_limit: int | None = Field(None, description="Optional: Limit rows returned in preview")
     force_refresh: bool = Field(
         False, description="Optional: Clear cache before execution (for manual refresh)"
     )
@@ -208,9 +205,7 @@ class ExecuteToolRequest(BaseModel):
     tool_id: str = Field(description="Tool ID to execute")
     workflow: dict[str, Any] = Field(description="Full workflow JSON (raw dict for hash integrity)")
     socket_id: str = Field(description="Output socket ID to return data for")
-    preview_limit: int | None = Field(
-        None, description="Optional: Limit rows returned in preview"
-    )
+    preview_limit: int | None = Field(None, description="Optional: Limit rows returned in preview")
     force_refresh: bool = Field(
         False, description="Optional: Clear cache before execution (for manual refresh)"
     )

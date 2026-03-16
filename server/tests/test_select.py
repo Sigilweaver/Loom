@@ -16,12 +16,14 @@ def select_tool():
 @pytest.fixture
 def sample_lazyframe():
     """Create a sample LazyFrame for testing"""
-    return pl.LazyFrame({
-        "name": ["Alice", "Bob", "Charlie"],
-        "age": [30, 25, 35],
-        "city": ["New York", "Los Angeles", "Chicago"],
-        "salary": [50000.0, 60000.0, 55000.0],
-    })
+    return pl.LazyFrame(
+        {
+            "name": ["Alice", "Bob", "Charlie"],
+            "age": [30, 25, 35],
+            "city": ["New York", "Los Angeles", "Chicago"],
+            "salary": [50000.0, 60000.0, 55000.0],
+        }
+    )
 
 
 @pytest.fixture
@@ -54,9 +56,7 @@ class TestSelectToolExecute:
     @pytest.mark.asyncio
     async def test_pass_through_empty_column_configs(self, select_tool, sample_lazyframe):
         """Empty columnConfigs should pass through all columns unchanged"""
-        result = await select_tool.execute(
-            {"columnConfigs": []}, {"input": sample_lazyframe}
-        )
+        result = await select_tool.execute({"columnConfigs": []}, {"input": sample_lazyframe})
 
         assert "output" in result
         df = result["output"].collect()
