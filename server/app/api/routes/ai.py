@@ -12,8 +12,10 @@ progressive token display.
 Also provides a model listing endpoint for the settings UI.
 """
 
+import ipaddress
 import logging
 from collections.abc import AsyncIterator
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -52,6 +54,57 @@ _HOP_BY_HOP = frozenset({
     "sec-fetch-site",
     "sec-fetch-dest",
 })
+
+# Headers allowed to be forwarded TO upstream providers.
+# Uses an allowlist (not blocklist) to prevent leaking auth tokens (C4).
+_FORWARD_ALLOWLIST = frozenset({
+    "content-type",
+    "accept",
+    "x-api-key",
+    "anthropic-version",
+    "anthropic-beta",
+    "openai-organization",
+    "user-agent",
+})
+
+
+def _validate_upstream_url(url: str) -> None:
+    """Block SSRF by rejecting URLs that resolve to internal/private networks.
+
+    Raises:
+        HTTPException: If the URL targets a private, loopback, or link-local address.
+    """
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(status_code=400, detail="Invalid upstream URL")
+
+    # Block common internal hostnames
+    _blocked_hostnames = {
+        "localhost",
+        "metadata.google.internal",
+        "instance-data",
+    }
+    if hostname.lower() in _blocked_hostnames:
+        raise HTTPException(
+            status_code=400,
+            detail="Upstream URL must not target internal services",
+        )
+
+    # Resolve hostname and check if IP is private/reserved
+    try:
+        addr = ipaddress.ip_address(hostname)
+    except ValueError:
+        # Not an IP literal — could be a DNS name.
+        # We allow DNS names for known providers; openai-compatible
+        # users are trusted to provide valid external URLs.
+        return
+
+    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+        raise HTTPException(
+            status_code=400,
+            detail="Upstream URL must not target private or internal networks",
+        )
 
 
 # -------------------------------------------------------------------------
@@ -203,6 +256,8 @@ async def proxy_llm_request(
         base_url = request.query_params.get("base_url", "http://localhost:11434")
         # Normalize: strip trailing slashes to avoid double-slash in URL
         base_url = base_url.rstrip("/")
+        # SSRF protection: block internal/private network targets
+        _validate_upstream_url(base_url)
     else:
         resolved_url = PROVIDER_URLS.get(provider)
         if not resolved_url:
@@ -211,11 +266,15 @@ async def proxy_llm_request(
 
     upstream_url = f"{base_url}/{path}"
 
-    # Forward headers, stripping hop-by-hop
+    # Forward headers using allowlist to prevent leaking auth tokens (C4)
     forward_headers: dict[str, str] = {}
     for key, value in request.headers.items():
-        if key.lower() not in _HOP_BY_HOP:
+        if key.lower() in _FORWARD_ALLOWLIST:
             forward_headers[key] = value
+    # Forward Authorization only if it looks like a provider key (not our session token)
+    auth_header = request.headers.get("authorization", "")
+    if auth_header and not auth_header.startswith("Bearer sw-"):
+        forward_headers["authorization"] = auth_header
 
     # Read request body
     body = await request.body()

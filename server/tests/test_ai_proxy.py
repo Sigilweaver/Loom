@@ -219,15 +219,63 @@ class TestProviderURLResolution:
 
         client.post(
             "/api/ai/proxy/openai-compatible/v1/chat/completions"
-            "?base_url=http://localhost:11434/",
+            "?base_url=http://my-llm-server.example.com:11434/",
             json={},
         )
 
         call_kwargs = mock_instance.build_request.call_args
         url = str(call_kwargs)
         # Trailing slash stripped — should NOT produce //v1
-        assert "localhost:11434//v1" not in url
-        assert "localhost:11434/v1" in url
+        assert "example.com:11434//v1" not in url
+        assert "example.com:11434/v1" in url
+
+
+class TestSSRFProtection:
+    """AI proxy must block requests to internal/private networks."""
+
+    def test_blocks_localhost(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://localhost:11434",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "internal" in resp.json()["detail"].lower()
+
+    def test_blocks_127_0_0_1(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://127.0.0.1:11434",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "private" in resp.json()["detail"].lower()
+
+    def test_blocks_private_ip(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://192.168.1.100:8080",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_blocks_link_local(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            "?base_url=http://169.254.169.254/latest/meta-data",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_allows_known_providers(self, client):
+        """Known providers (openai, anthropic, etc.) are not blocked."""
+        # This will fail with 502 (can't connect) not 400 (blocked)
+        resp = client.post(
+            "/api/ai/proxy/openai/v1/chat/completions",
+            json={},
+        )
+        # Should NOT be 400 — known providers bypass SSRF check
+        assert resp.status_code != 400
 
 
 # ---------------------------------------------------------------------------
