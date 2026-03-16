@@ -83,10 +83,28 @@ async def _session_cleanup_loop() -> None:
             logger.error(f"Session cleanup error: {e}")
 
 
+_INSECURE_DEFAULT = "CHANGE_ME_IN_PRODUCTION"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
     import asyncio
+
+    # Reject insecure default secrets — these MUST be changed before deployment
+    _insecure_settings = []
+    if settings.session_secret == _INSECURE_DEFAULT:
+        _insecure_settings.append("SESSION_SECRET")
+    if settings.secret_key == _INSECURE_DEFAULT:
+        _insecure_settings.append("SECRET_KEY")
+    if _insecure_settings:
+        msg = (
+            f"FATAL: {', '.join(_insecure_settings)} still set to default value. "
+            "Generate secure values before running Hub:\n"
+            "  python3 -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+        logger.critical(msg)
+        raise SystemExit(msg)
 
     logger.info("Sigilweaver Hub starting up...")
 
