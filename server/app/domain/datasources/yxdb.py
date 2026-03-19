@@ -1,9 +1,7 @@
-"""YXDB (Alteryx Database) data source implementation
+"""YXDB data source implementation
 
 Uses SigilYX for reading YXDB files - a high-performance Rust-based
-reader/writer for the Alteryx .yxdb format.
-
-Not affiliated with Alteryx, Inc.
+reader/writer for the .yxdb format.
 """
 
 from typing import Any
@@ -42,7 +40,7 @@ _YXDB_TYPE_MAP: dict[str, PolarsDataType] = {
 class YxdbDataSource(DataSource):
     """YXDB file data source using SigilYX
 
-    Reads Alteryx .yxdb files with full support for all 17 YXDB field types.
+    Reads .yxdb files with full support for all 17 YXDB field types.
     Uses a high-performance Rust core for parsing.
     """
 

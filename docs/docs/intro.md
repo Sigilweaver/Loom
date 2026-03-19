@@ -38,7 +38,7 @@ Use **Studio + Server** for single-user local development. Add **Hub** when you 
 | Learn how to build workflows         | [User Guide](/user)                              |
 | Understand the architecture          | [Architecture](/developer/architecture/overview) |
 | Contribute to the project            | [Contributing](/developer/contributing/workflow) |
-| Coming from Alteryx or KNIME?        | [Crash Courses](/user/crash-courses)             |
+
 
 ## Open Source and Licensing
 

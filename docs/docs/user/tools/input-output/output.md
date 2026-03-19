@@ -187,7 +187,7 @@ Use NDJSON format (`.jsonl` or `.ndjson`) for streaming sink support. Standard `
 
 ### YXDB
 
-Alteryx database files (.yxdb). Written using [SigilYX](https://github.com/Sigilweaver/sigilyx).
+YXDB database files (.yxdb). Written using [SigilYX](https://github.com/Sigilweaver/SigilYX).
 
 **Writing Mode:**
 
@@ -199,9 +199,7 @@ YXDB only supports eager writing (data is collected before writing).
 |--------|---------|-------------|
 | Destination | (required) | Path for the output file (.yxdb) |
 
-:::tip Alteryx Compatibility
-Use YXDB output when sharing data with Alteryx users or migrating pipelines. SigilYX writes standard YXDB files that Alteryx Designer can read natively.
-:::
+
 
 ## Configuration
 
@@ -271,7 +269,7 @@ Use YXDB output when sharing data with Alteryx users or migrating pipelines. Sig
 - **Excel, Avro, standard JSON, and YXDB** do not support streaming - data is collected before writing
 - **IPC/Arrow** is the fastest format - use it when speed is critical
 - **Excel files** are best for business reporting and sharing with non-technical users
-- **YXDB files** are compatible with Alteryx Designer for easy data sharing
+- **YXDB files** are supported via [SigilYX](https://github.com/Sigilweaver/SigilYX)
 - **NDJSON** (`.jsonl`, `.ndjson`) supports streaming sink unlike standard `.json` files
 - **Overwriting**: Existing files at the destination path will be overwritten
 - **Execution**: Output tools only write files when the workflow is executed (not during preview)

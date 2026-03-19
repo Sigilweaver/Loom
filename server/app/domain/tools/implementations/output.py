@@ -311,7 +311,7 @@ class OutputTool(BaseTool):
         return kwargs
 
     async def _save_yxdb(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
-        """Save to YXDB (Alteryx Database) format using SigilYX.
+        """Save to YXDB format using SigilYX.
 
         YXDB is always an eager write — the format requires knowing
         record count upfront and uses row-based LZF-compressed blocks.

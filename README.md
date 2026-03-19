@@ -49,7 +49,7 @@ An AI assistant in Studio can build entire workflows from natural language, writ
 
 ### Bring Your Existing Work With You
 
-Sigilweaver reads and writes `.yxdb` files natively — the proprietary format used by Alteryx. If you're migrating away from Alteryx, your existing data files are not a dead end. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a Rust library that is **1.2–3x faster than the open-source C++ readers that Alteryx themselves have published**.
+Sigilweaver reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a high-performance Rust library for the YXDB format.
 
 ## Our Philosophy
 
@@ -87,7 +87,6 @@ For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Audience                       | Link                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------ |
 | **Getting Started**            | [sigilweaver.app/docs/user](https://sigilweaver.app/docs/user)           |
-| **Coming from another tool?**  | [Crash Courses](https://sigilweaver.app/docs/user/crash-courses)         |
 | **Developers**                 | [sigilweaver.app/docs/developer](https://sigilweaver.app/docs/developer) |
 | **Architecture Decisions**     | [ADRs](https://sigilweaver.app/docs/developer/architecture/decisions)    |
 

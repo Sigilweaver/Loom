@@ -90,7 +90,7 @@ These components are tightly integrated. Hub imports Server's workflow execution
 - **Dask**: Good for scaling Pandas, but still inherits Pandas' API quirks.
 - **DuckDB**: Considered for SQL predicate pushdown. Polars may add this capability - when they do, it'll be the undisputed king of data engineering/science tooling.
 
-**Future upside**: Polars is pushing into geospatial. Those with supply chain experience know that geospatial is one of the areas data science desperately needs better tooling. If you look at Alteryx's history, geospatial capabilities are what allowed them to take off. Polars following that path is a good sign.
+**Future upside**: Polars is pushing into geospatial. Those with supply chain experience know that geospatial is one of the areas data science desperately needs better tooling. Polars following that path is a good sign.
 
 **Tradeoff**: Smaller community, fewer tutorials, some operations need relearning. Most data scientists will need to learn Polars idioms. Worth it.
 

@@ -56,7 +56,7 @@ class TestUniqueToolBlocking:
 
 
 class TestUniqueToolFirstMode:
-    """Tests for Unique tool First mode (Alteryx-style)."""
+    """Tests for Unique tool First mode."""
 
     @pytest.mark.asyncio
     async def test_first_mode_single_column(

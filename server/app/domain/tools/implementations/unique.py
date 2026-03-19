@@ -26,7 +26,7 @@ class UniqueTool(BaseTool):
     - output-duplicate (D): Rows considered "duplicates" based on mode
 
     Modes:
-    - First (Alteryx-style, default): Unique = first occurrence of each value,
+    - First (default): Unique = first occurrence of each value,
                                        Duplicate = subsequent occurrences
     - Strict: Unique = ONLY values appearing exactly once,
               Duplicate = ALL rows where value appears more than once

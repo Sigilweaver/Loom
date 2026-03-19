@@ -83,33 +83,7 @@ const sidebars: SidebarsConfig = {
             },
           ],
         },
-        {
-          type: 'category',
-          label: 'Crash Courses',
-          link: {
-            type: 'doc',
-            id: 'user/crash-courses/index',
-          },
-          items: [
-            'user/crash-courses/tableau-prep',
-            'user/crash-courses/alteryx',
-            'user/crash-courses/power-query',
-            'user/crash-courses/knime',
-            'user/crash-courses/orange',
-            'user/crash-courses/excel',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Comparisons',
-          link: {
-            type: 'doc',
-            id: 'user/comparisons/index',
-          },
-          items: [
-            'user/comparisons/alteryx',
-          ],
-        },
+
       ],
     },
     {

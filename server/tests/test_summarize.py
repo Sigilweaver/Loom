@@ -187,7 +187,7 @@ class TestSummarizeToolExecute:
 
     @pytest.mark.asyncio
     async def test_group_by_and_aggregate_same_column(self, sample_df: pl.LazyFrame):
-        """Test grouping by a column AND aggregating on the same column (Alteryx-style)"""
+        """Test grouping by a column AND aggregating on the same column"""
         tool = SummarizeTool()
         config = {
             "groupByColumns": [

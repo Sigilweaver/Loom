@@ -308,7 +308,7 @@ If your JSON data is large, use NDJSON format (`.jsonl` or `.ndjson`) for lazy s
 
 ### YXDB
 
-Alteryx database files (.yxdb). Read using [SigilYX](https://github.com/Sigilweaver/sigilyx), a high-performance Rust-based reader.
+YXDB database files (.yxdb). Read using [SigilYX](https://github.com/Sigilweaver/SigilYX), a high-performance Rust-based reader.
 
 **Reading Mode:**
 
