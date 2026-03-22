@@ -27,7 +27,7 @@ export function createHeader(options: HeaderOptions = {}): string {
             <div class="sigil-logo" aria-hidden="true">
               <img src="${config.logo.src}" alt="${config.logo.alt}" width="32" height="32">
             </div>
-            <span class="text-xl font-bold site-title">Sigilweaver</span>
+            <span class="text-xl font-bold site-title">Sigilweaver Loom</span>
           </a>
           <div class="hidden md:flex items-center space-x-8">
             ${config.links.map(link => `

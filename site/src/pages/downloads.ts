@@ -76,7 +76,7 @@ async function fetchDownloadsPage(): Promise<void> {
 
     // Render Full Downloads (Primary)
     if (data.variants.full && data.variants.full.length > 0) {
-      renderSection(grid, 'Full Application (Recommended)', 'Includes everything you need to run Sigilweaver locally.', data.variants.full);
+      renderSection(grid, 'Full Application (Recommended)', 'Includes everything you need to run Sigilweaver Loom locally.', data.variants.full);
     }
 
     // Render Tauri Downloads (Lightweight Native)
@@ -86,7 +86,7 @@ async function fetchDownloadsPage(): Promise<void> {
 
     // Render Client Downloads
     if (data.variants.client && data.variants.client.length > 0) {
-      renderSection(grid, 'Client Only', 'Connect to an existing Sigilweaver backend.', data.variants.client);
+      renderSection(grid, 'Client Only', 'Connect to an existing Sigilweaver Loom backend.', data.variants.client);
     }
 
     // Render Other Section (Server + Web)
@@ -107,7 +107,7 @@ async function fetchDownloadsPage(): Promise<void> {
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           <span>Retry</span>
         </button>
-        <p class="text-mystic-400 text-sm">Or check our <a href="https://github.com/Sigilweaver/Sigilweaver/releases" class="text-gold-400 hover:underline">GitHub Releases</a> page directly.</p>
+        <p class="text-mystic-400 text-sm">Or check our <a href="https://github.com/Sigilweaver/Loom/releases" class="text-gold-400 hover:underline">GitHub Releases</a> page directly.</p>
       </div>
     `;
     document.getElementById('retry-downloads-btn')?.addEventListener('click', () => fetchDownloadsPage());

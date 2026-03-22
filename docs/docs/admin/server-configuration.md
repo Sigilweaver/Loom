@@ -1,6 +1,6 @@
 # Server Configuration
 
-Complete reference for Sigilweaver Server environment variables. All settings are case-insensitive and can be set via `.env` file or environment variables.
+Complete reference for Sigilweaver Loom Server environment variables. All settings are case-insensitive and can be set via `.env` file or environment variables.
 
 ## Core Settings
 
@@ -146,7 +146,7 @@ Server caches outputs of blocking operations (sort, summarize, join) to avoid re
 
 ```bash
 CACHE_ENABLED=true
-CACHE_PATH=/var/lib/sigilweaver/cache
+CACHE_PATH=/var/lib/sigilweaver-loom/cache
 CACHE_RETENTION_DAYS=7
 CACHE_MAX_SIZE_GB=50.0
 ```
@@ -232,7 +232,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 ```bash
 CONNECTION_ENCRYPTION_KEY=your-fernet-key-here
-CONNECTION_STORE_PATH=/var/lib/sigilweaver/connections.json
+CONNECTION_STORE_PATH=/var/lib/sigilweaver-loom/connections.json
 ```
 
 :::warning
@@ -265,7 +265,7 @@ MAX_PREVIEW_ROWS=10000
 
 # Cache
 CACHE_ENABLED=true
-CACHE_PATH=/var/lib/sigilweaver/cache
+CACHE_PATH=/var/lib/sigilweaver-loom/cache
 CACHE_MAX_SIZE_GB=100.0
 
 # Safety

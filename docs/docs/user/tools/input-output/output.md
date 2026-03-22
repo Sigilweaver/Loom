@@ -156,7 +156,7 @@ Use Avro when:
 - Schema evolution is important for your data workflow
 - Interoperability with Java/JVM ecosystems is required
 
-For maximum performance within Sigilweaver, prefer IPC/Arrow or Parquet.
+For maximum performance within Sigilweaver Loom, prefer IPC/Arrow or Parquet.
 :::
 
 ### JSON / NDJSON

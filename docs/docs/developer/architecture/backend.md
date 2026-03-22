@@ -125,7 +125,7 @@ All tools inherit from `BaseTool`:
 from app.api.models.workflow import DEFAULT_ENGINE
 
 class BaseTool(ABC):
-    engine: str = DEFAULT_ENGINE  # "sigilweaver/polars" by default
+    engine: str = DEFAULT_ENGINE  # "core/polars" by default
 
     @abstractmethod
     async def execute(
@@ -184,7 +184,7 @@ class ToolRegistry:
     def register(cls, tool_type: str, tool_class: Type[BaseTool]):
         cls._tools[tool_type] = tool_class
         # Also registers under engine-qualified key:
-        # e.g., "sigilweaver/polars::Filter"
+        # e.g., "core/polars::Filter"
     
     @classmethod
     def get(cls, tool_type: str, engine: str | None = None) -> BaseTool:
@@ -440,7 +440,7 @@ Full workflow execution. Output tools write files, execution metrics returned.
 
 ## Polars Lazy Evaluation
 
-This is why Sigilweaver can handle large datasets efficiently.
+This is why Sigilweaver Loom can handle large datasets efficiently.
 
 **Bad** (eager evaluation):
 ```python

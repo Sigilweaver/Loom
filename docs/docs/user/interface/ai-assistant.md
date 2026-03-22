@@ -1,11 +1,11 @@
 # AI Assistant
 
-Sigilweaver includes an optional AI assistant that helps you build and understand data workflows using natural language.
+Sigilweaver Loom includes an optional AI assistant that helps you build and understand data workflows using natural language.
 
 :::warning[AI Is Not a Substitute for Understanding Your Data]
 The assistant will eventually produce results that are **subtly wrong** — a filter on the wrong column, a join that silently drops rows, an aggregation that looks reasonable but answers a slightly different question than the one you asked. These mistakes pass validation because they are structurally valid; they are just semantically incorrect.
 
-Sigilweaver includes multiple layers of automated validation (schema checks, column verification, config enrichment), but no guardrail catches every mistake. **AI is not a replacement for critical thinking.** Always review the generated tools, wires, and configurations before running a workflow against real data, and verify the output against your expectations.
+Sigilweaver Loom includes multiple layers of automated validation (schema checks, column verification, config enrichment), but no guardrail catches every mistake. **AI is not a replacement for critical thinking.** Always review the generated tools, wires, and configurations before running a workflow against real data, and verify the output against your expectations.
 :::
 
 ## Enabling the AI Assistant

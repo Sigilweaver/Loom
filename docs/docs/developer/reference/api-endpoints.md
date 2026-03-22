@@ -19,7 +19,7 @@ Health check endpoint.
 {
   "status": "healthy",
   "version": "0.0.0-dev",
-  "message": "Sigilweaver Backend is running",
+  "message": "Sigilweaver Loom Backend is running",
   "python_version": "3.11.5",
   "platform": "Linux 6.5.0",
   "polars_version": "1.20.0",
@@ -230,7 +230,7 @@ Generate Python code for a workflow.
 }
 ```
 
-The generated code is standalone Python using Polars. Users can copy it and run it without Sigilweaver.
+The generated code is standalone Python using Polars. Users can copy it and run it without Sigilweaver Loom.
 
 ---
 

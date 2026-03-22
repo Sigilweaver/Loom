@@ -55,7 +55,7 @@ A column cannot be both unpivoted and kept.
 
 ## Safety Checks
 
-Sigilweaver checks the potential output size before executing to prevent accidental row explosion. The limit is configurable via `SAFETY_MAX_UNPIVOT_ROWS` (default: 100,000,000).
+Sigilweaver Loom checks the potential output size before executing to prevent accidental row explosion. The limit is configurable via `SAFETY_MAX_UNPIVOT_ROWS` (default: 100,000,000).
 
 ## Examples
 

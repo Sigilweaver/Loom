@@ -17,8 +17,8 @@ const mockDownloadsData: DownloadsData = {
         os: 'windows',
         arch: 'x64',
         kind: 'full',
-        fileName: 'sigilweaver-0.1.0.exe',
-        url: 'https://example.com/sigilweaver-0.1.0.exe',
+        fileName: 'sigilweaver-loom-0.1.0.exe',
+        url: 'https://example.com/sigilweaver-loom-0.1.0.exe',
         size: 104857600, // 100 MB
         sha256: 'abc123def456',
       },
@@ -26,8 +26,8 @@ const mockDownloadsData: DownloadsData = {
         os: 'mac',
         arch: 'x64',
         kind: 'full',
-        fileName: 'sigilweaver-0.1.0.dmg',
-        url: 'https://example.com/sigilweaver-0.1.0.dmg',
+        fileName: 'sigilweaver-loom-0.1.0.dmg',
+        url: 'https://example.com/sigilweaver-loom-0.1.0.dmg',
         size: 83886080, // 80 MB
         sha256: 'def456abc123',
       },
@@ -35,8 +35,8 @@ const mockDownloadsData: DownloadsData = {
         os: 'linux',
         arch: 'x64',
         kind: 'full',
-        fileName: 'sigilweaver-0.1.0.AppImage',
-        url: 'https://example.com/sigilweaver-0.1.0.AppImage',
+        fileName: 'sigilweaver-loom-0.1.0.AppImage',
+        url: 'https://example.com/sigilweaver-loom-0.1.0.AppImage',
         size: 94371840, // 90 MB
         sha256: 'ghi789jkl012',
       },
@@ -82,34 +82,34 @@ describe('findAssetForOS', () => {
 
 describe('getOsMeta', () => {
   it('should return Windows metadata with security note', () => {
-    const meta = getOsMeta('windows', 'sigilweaver.exe');
+    const meta = getOsMeta('windows', 'sigilweaver-loom.exe');
     expect(meta.name).toBe('Windows');
     expect(meta.icon).toContain('microsoft-windows');
     expect(meta.note).toContain('Unsigned build');
   });
 
   it('should return Linux AppImage metadata', () => {
-    const meta = getOsMeta('linux', 'sigilweaver.AppImage');
+    const meta = getOsMeta('linux', 'sigilweaver-loom.AppImage');
     expect(meta.name).toBe('Linux (AppImage)');
     expect(meta.icon).toContain('linux');
     expect(meta.note).toContain('chmod +x');
   });
 
   it('should return Linux Snap metadata', () => {
-    const meta = getOsMeta('linux', 'sigilweaver.snap');
+    const meta = getOsMeta('linux', 'sigilweaver-loom.snap');
     expect(meta.name).toBe('Linux (Snap)');
     expect(meta.note).toContain('snapd');
   });
 
   it('should return macOS metadata with security note', () => {
-    const meta = getOsMeta('mac', 'sigilweaver.dmg');
+    const meta = getOsMeta('mac', 'sigilweaver-loom.dmg');
     expect(meta.name).toBe('macOS');
     expect(meta.icon).toContain('apple');
     expect(meta.note).toContain('Right-click');
   });
 
   it('should handle darwin OS identifier', () => {
-    const meta = getOsMeta('darwin', 'sigilweaver.dmg');
+    const meta = getOsMeta('darwin', 'sigilweaver-loom.dmg');
     expect(meta.name).toBe('macOS');
   });
 

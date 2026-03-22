@@ -1,4 +1,4 @@
-Sigilweaver Documentation License
+Sigilweaver Loom Documentation License
 
 Copyright (C) 2026 Sigilweaver Holdings LLC
 

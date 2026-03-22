@@ -1,7 +1,7 @@
 import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 /**
- * Sigilweaver Documentation Sidebar
+ * Sigilweaver Loom Documentation Sidebar
  */
 const sidebars: SidebarsConfig = {
   docsSidebar: [

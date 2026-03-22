@@ -4,7 +4,7 @@ sidebar_position: 8
 
 # Using Hub
 
-Hub is Sigilweaver's orchestration platform for teams. When connected to Hub, you get access to shared database connections, centralized workflow storage, and scheduled execution.
+Hub is Sigilweaver Loom's orchestration platform for teams. When connected to Hub, you get access to shared database connections, centralized workflow storage, and scheduled execution.
 
 ## Connecting to Hub
 

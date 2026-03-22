@@ -8,7 +8,7 @@ Patterns and conventions for Hub development: backend and frontend.
 
 ## Architecture Overview
 
-Hub is the orchestration platform for Sigilweaver deployments. It manages:
+Hub is the orchestration platform for Sigilweaver Loom deployments. It manages:
 - **Server registration and health monitoring**
 - **User authentication and RBAC**
 - **Workflow storage and execution scheduling**

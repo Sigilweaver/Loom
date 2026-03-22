@@ -4,7 +4,7 @@ sidebar_position: 10
 
 # Roadmap
 
-Strategic direction and planned features for the Sigilweaver platform.
+Strategic direction and planned features for the Sigilweaver Loom platform.
 
 **Target v1.0 Release: June 2026**
 
@@ -12,7 +12,7 @@ Strategic direction and planned features for the Sigilweaver platform.
 
 ## Current Status
 
-Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and polish leading to a v1.0 public release.
+Sigilweaver Loom is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and polish leading to a v1.0 public release.
 
 ### What Works Today
 
@@ -65,7 +65,7 @@ Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries
 
 | Feature             | Description                                      |
 | ------------------- | ------------------------------------------------ |
-| Kubernetes Operator | Native CRDs for deploying Sigilweaver at scale   |
+| Kubernetes Operator | Native CRDs for deploying Sigilweaver Loom at scale   |
 | Helm Charts         | Standardized deployment templates for Kubernetes |
 | ARM64 Builds        | Native support for Apple Silicon and ARM servers |
 
@@ -90,13 +90,13 @@ Sigilweaver is in **Private Beta**. The codebase is not yet public, but binaries
 ## Long-Term Vision
 
 ### Local-First, Cloud-Capable
-Sigilweaver is designed to run wherever your data lives. We will continue to prioritize on-premise and air-gapped deployment scenarios alongside cloud offerings.
+Sigilweaver Loom is designed to run wherever your data lives. We will continue to prioritize on-premise and air-gapped deployment scenarios alongside cloud offerings.
 
 ### Code as Truth
 Every visual workflow compiles to readable, executable Python. This transparency ensures auditability and eliminates vendor lock-in.
 
 ### Open Ecosystem and Licensing
-The entire Sigilweaver suite is **free for all users** under the AGPL-3.0 license. There are no paid tiers, premium features, or usage limits. The core platform will always remain open source.
+The entire Sigilweaver Loom suite is **free for all users** under the AGPL-3.0 license. There are no paid tiers, premium features, or usage limits. The core platform will always remain open source.
 
 ---
 

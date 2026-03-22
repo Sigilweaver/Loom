@@ -4,11 +4,11 @@ sidebar_position: 1
 
 # User Guide
 
-Welcome to the Sigilweaver User Guide. This documentation covers everything you need to build data transformation workflows.
+Welcome to the Sigilweaver Loom User Guide. This documentation covers everything you need to build data transformation workflows.
 
 ## Getting Started
 
-Sigilweaver is a visual data pipeline tool that lets you build complex data transformations through an intuitive drag-and-drop interface. Under the hood, it uses [Polars](https://pola.rs) for fast, efficient data processing with lazy evaluation.
+Sigilweaver Loom is a visual data pipeline tool that lets you build complex data transformations through an intuitive drag-and-drop interface. Under the hood, it uses [Polars](https://pola.rs) for fast, efficient data processing with lazy evaluation.
 
 
 
@@ -37,7 +37,7 @@ The expression language used in the Custom/Advanced mode of Filter and Formula t
 
 ### [Data Types](./data-types)
 
-Understand the data types Sigilweaver supports and when to use each.
+Understand the data types Sigilweaver Loom supports and when to use each.
 
 ### [Tools](./tools/)
 
@@ -54,7 +54,7 @@ Reference documentation for every tool:
 
 ### Lazy Evaluation
 
-Sigilweaver uses Polars' lazy evaluation model. This means:
+Sigilweaver Loom uses Polars' lazy evaluation model. This means:
 
 - Operations are **not executed immediately** when you build the workflow
 - The entire pipeline is **optimized** before execution
@@ -85,11 +85,11 @@ See the [Expressions](./expressions/basics) section for a complete guide.
 
 - [Polars User Guide](https://docs.pola.rs/user-guide/) - Full Polars documentation
 - [Polars Expression Reference](https://docs.pola.rs/user-guide/expressions/) - Complete expression API
-- [GitHub Repository](https://github.com/Sigilweaver/Sigilweaver) - Source code and issue tracker
+- [GitHub Repository](https://github.com/Sigilweaver/Loom) - Source code and issue tracker
 
 ## For Administrators
 
-If you're managing a Sigilweaver Hub deployment for your team, see the [Administrator Guide](/admin/) for:
+If you're managing a Sigilweaver Loom Hub deployment for your team, see the [Administrator Guide](/admin/) for:
 
 - [Roles and Permissions](/admin/roles) - Understanding access control
 - [User Management](/admin/users) - Creating and managing user accounts

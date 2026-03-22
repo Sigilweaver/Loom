@@ -159,7 +159,7 @@ Persisted settings (survives restart):
 interface SettingsState {
   author: string;
   theme: {
-    id: string;   // Theme ID (e.g. 'sigilweaver', 'dracula', 'nord')
+    id: string;   // Theme ID (e.g. 'sigilweaver-signature', 'dracula', 'nord')
   };
   ui: {
     edgeStyle: 'bezier' | 'straight' | 'step' | 'smoothstep';
@@ -428,13 +428,13 @@ Workflows are saved as `.swwf` files (JSON):
     "name": "My Workflow",
     "author": "User",
     "created": "2024-01-15T...",
-    "defaultEngine": "sigilweaver/polars"
+    "defaultEngine": "core/polars"
   },
   "tools": [
     {
       "id": "abc",
       "type": "Filter",
-      "engine": "sigilweaver/polars",
+      "engine": "core/polars",
       "x": 100, "y": 200,
       "config": { ... },
       "sockets": [ ... ]
@@ -442,13 +442,13 @@ Workflows are saved as `.swwf` files (JSON):
   ],
   "wires": [...],
   "engines": {
-    "sigilweaver/polars": {}
+    "core/polars": {}
   }
 }
 ```
 
 Key engine-related fields:
-- `meta.defaultEngine`: The default engine for all tools in the workflow (optional, defaults to `"sigilweaver/polars"`).
+- `meta.defaultEngine`: The default engine for all tools in the workflow (optional, defaults to `"core/polars"`).
 - `tool.engine`: Per-tool engine override. Omitted during serialization when it matches the workflow default.
 - `engines`: Optional block for engine-specific configuration.
 

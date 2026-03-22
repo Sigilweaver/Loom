@@ -1,10 +1,10 @@
 # AI Development Philosophy
 
-This document describes how AI features are designed, validated, and constrained in Sigilweaver. The goal is to make AI genuinely useful for building data workflows while keeping the user firmly in control.
+This document describes how AI features are designed, validated, and constrained in Sigilweaver Loom. The goal is to make AI genuinely useful for building data workflows while keeping the user firmly in control.
 
 ## AI Is Not a Core Feature
 
-Sigilweaver is a visual data pipeline platform. The AI assistant is a convenience layer on top of that platform — it is not the product itself. Every workflow the assistant builds can be built by hand, and the application is fully functional without AI enabled.
+Sigilweaver Loom is a visual data pipeline platform. The AI assistant is a convenience layer on top of that platform — it is not the product itself. Every workflow the assistant builds can be built by hand, and the application is fully functional without AI enabled.
 
 This distinction matters for development decisions. AI should be applied where it provides clear, measurable value — eliminating boilerplate that machines handle effortlessly but humans shouldn't waste time on, translating natural language to expressions, explaining unfamiliar workflows. It should **not** be applied to problems that are better solved by good UI design, clear documentation, or deterministic logic. If a feature works reliably without AI, adding AI to it is not an improvement.
 

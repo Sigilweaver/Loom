@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Data Types
 
-Sigilweaver uses Polars data types. Understanding these types helps you work with data effectively and avoid type-related errors.
+Sigilweaver Loom uses Polars data types. Understanding these types helps you work with data effectively and avoid type-related errors.
 
 ## Numeric Types
 
@@ -70,7 +70,7 @@ Both types are interchangeable. Use them for any text data.
 
 ## Type Inference
 
-When loading data, Sigilweaver infers types automatically:
+When loading data, Sigilweaver Loom infers types automatically:
 
 - **CSV files**: Types are inferred by sampling rows
 - **Parquet files**: Types are stored in the file metadata

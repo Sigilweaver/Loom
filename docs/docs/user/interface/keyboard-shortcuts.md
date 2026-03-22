@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Keyboard Shortcuts
 
-Keyboard shortcuts help you work faster in Sigilweaver.
+Keyboard shortcuts help you work faster in Sigilweaver Loom.
 
 ## File Operations
 

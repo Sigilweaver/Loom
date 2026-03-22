@@ -1,8 +1,8 @@
 {
-  "name": "sigilweaver-website",
+  "name": "sigilweaver-loom-website",
   "version": "1.0.0",
   "type": "module",
-  "description": "Sigilweaver website - Weave Data Magic Into Reality",
+  "description": "Sigilweaver Loom website - Weave Data Magic Into Reality",
   "scripts": {
     "dev": "vite",
     "sitemap": "node scripts/generate-sitemaps.mjs",
@@ -32,7 +32,7 @@
     "pipeline",
     "open-source"
   ],
-  "author": "Sigilweaver Team",
+  "author": "Sigilweaver Loom Team",
   "license": "MIT",
   "dependencies": {
     "lucide": "^0.556.0",

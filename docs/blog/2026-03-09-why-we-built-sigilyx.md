@@ -49,7 +49,7 @@ If readers already exist in C++, Python, Go, Java, and .NET - why build one in R
 
 Short answer: migration.
 
-I'm building Sigilweaver, a visual data pipeline platform. Its audience includes analysts who currently use - or plan to leave - Alteryx. For those users, migration doesn't start with features or UI comparisons. It starts with data. They have years of `.yxdb` files sitting in shared drives, archive folders, and data pipelines. If Sigilweaver can't read them natively, it's asking analysts to re-export their entire data history before they can even try the product. That's not a migration path - it's a homework assignment.
+I'm building Sigilweaver Loom, a visual data pipeline platform. Its audience includes analysts who currently use - or plan to leave - Alteryx. For those users, migration doesn't start with features or UI comparisons. It starts with data. They have years of `.yxdb` files sitting in shared drives, archive folders, and data pipelines. If Sigilweaver can't read them natively, it's asking analysts to re-export their entire data history before they can even try the product. That's not a migration path - it's a homework assignment.
 
 The E1 format covers a huge proportion of those files. Alteryx Designer used the original engine exclusively until 2019, and many organizations still run workflows with AMP disabled. For migration, E1 is the right place to start.
 
@@ -151,4 +151,4 @@ If you have E2 files you need to read today, I understand the urgency. But build
 
 ---
 
-**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20why-we-built-sigilyx)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20why-we-built-sigilyx)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

@@ -4,11 +4,11 @@ sidebar_position: 7
 
 # Performance & Caching
 
-Sigilweaver uses intelligent caching to keep your workflow responsive, especially when working with large datasets.
+Sigilweaver Loom uses intelligent caching to keep your workflow responsive, especially when working with large datasets.
 
 ## How Caching Works
 
-When you're building a workflow, Sigilweaver remembers the results of expensive operations. If you edit a tool, only the changed parts of your workflow need to re-run.
+When you're building a workflow, Sigilweaver Loom remembers the results of expensive operations. If you edit a tool, only the changed parts of your workflow need to re-run.
 
 ### What Gets Cached
 

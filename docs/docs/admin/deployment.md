@@ -1,11 +1,11 @@
 ---
 sidebar_position: 1
-description: Deploy Sigilweaver Server and Hub using Docker
+description: Deploy Sigilweaver Loom Server and Hub using Docker
 ---
 
 # Deployment Guide
 
-This guide covers how to deploy the Sigilweaver server and hub components using Docker. This is suitable for both self-hosted environments and cloud deployments.
+This guide covers how to deploy the Sigilweaver Loom server and hub components using Docker. This is suitable for both self-hosted environments and cloud deployments.
 
 ## Prerequisites
 
@@ -15,15 +15,15 @@ This guide covers how to deploy the Sigilweaver server and hub components using 
 
 ## Quick Start (Production)
 
-To get Sigilweaver up and running quickly, follow these steps:
+To get Sigilweaver Loom up and running quickly, follow these steps:
 
 ### 1. Clone the Repository or Download Docker Files
 
 You'll need the `docker-compose.yml` and related configuration files.
 
 ```bash
-git clone https://github.com/Sigilweaver/Sigilweaver.git
-cd sigilweaver/docker
+git clone https://github.com/Sigilweaver/Loom.git
+cd Loom/docker
 ```
 
 ### 2. Configure Environment Variables
@@ -38,7 +38,7 @@ Edit `.env` to set your domain and other configuration options.
 
 ### 3. Generate Secrets
 
-Sigilweaver requires several secret keys for secure operation. Run the following commands to generate them:
+Sigilweaver Loom requires several secret keys for secure operation. Run the following commands to generate them:
 
 ```bash
 mkdir -p .secrets

@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Testing Philosophy
 
-Sigilweaver's testing philosophy: **test the bones, not the skin.**
+Sigilweaver Loom's testing philosophy: **test the bones, not the skin.**
 
 ## What This Means
 
@@ -45,7 +45,7 @@ Low-impact areas get less attention:
 
 ### 4. Early-Stage Pragmatism
 
-Sigilweaver is pre-v1.0. The UI will change significantly before release. Writing comprehensive UI tests now means rewriting them later.
+Sigilweaver Loom is pre-v1.0. The UI will change significantly before release. Writing comprehensive UI tests now means rewriting them later.
 
 Domain logic is more stable. The tool interface won't change much. Invest in tests that will remain valuable.
 

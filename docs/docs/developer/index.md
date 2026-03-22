@@ -15,7 +15,7 @@ This guide assumes you're comfortable with Python and/or TypeScript. You don't n
 
 ## Honest State of the Project
 
-Sigilweaver is pre-v1.0. The architecture is solid, the core works, but there's plenty of rough edges:
+Sigilweaver Loom is pre-v1.0. The architecture is solid, the core works, but there's plenty of rough edges:
 
 - **What's stable**: Workflow execution, tool registry, state management, serialization
 - **What's evolving**: UI polish, tool configuration panels, error handling UX
@@ -48,8 +48,8 @@ A few honest reasons:
 
 ## Communication
 
-- **Bug reports**: [GitHub Issues](https://github.com/Sigilweaver/Sigilweaver/issues)
-- **Feature discussions**: [GitHub Discussions](https://github.com/Sigilweaver/Sigilweaver/discussions)
+- **Bug reports**: [GitHub Issues](https://github.com/Sigilweaver/Loom/issues)
+- **Feature discussions**: [GitHub Discussions](https://github.com/Sigilweaver/Loom/discussions)
 - **Questions**: Open an issue or discussion. I prefer public channels so answers help others
 
 ## Guiding Principles

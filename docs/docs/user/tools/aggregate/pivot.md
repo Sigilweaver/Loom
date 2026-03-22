@@ -61,7 +61,7 @@ Pivot is always a blocking operation - it must read all data to determine the co
 
 ## Safety Checks
 
-Sigilweaver checks the number of unique values in the pivot column before executing:
+Sigilweaver Loom checks the number of unique values in the pivot column before executing:
 
 | Unique Values | Behavior |
 |--------------|----------|

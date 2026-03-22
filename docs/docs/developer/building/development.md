@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Development Workflow
 
-Daily patterns for working on Sigilweaver.
+Daily patterns for working on Sigilweaver Loom.
 
 ## Starting Development
 
