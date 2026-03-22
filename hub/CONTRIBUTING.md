@@ -1,4 +1,4 @@
-# Contributing to Sigilweaver Hub
+# Contributing to Sigilweaver Loom Hub
 
 For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/hub](https://sigilweaver.app/docs/developer/contributing/hub)**.
 

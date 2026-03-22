@@ -1,7 +1,7 @@
 [project]
-name = "sigilweaver-hub"
+name = "sigilweaver-loom-hub"
 version = "0.0.0-dev"
-description = "Sigilweaver Hub - Workflow management and server coordination"
+description = "Sigilweaver Loom Hub - Workflow management and server coordination"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",

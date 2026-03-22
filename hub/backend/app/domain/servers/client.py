@@ -1,4 +1,4 @@
-"""HTTP client for communicating with Sigilweaver Server instances"""
+"""HTTP client for communicating with Sigilweaver Loom Server instances"""
 
 import json
 import logging
@@ -29,7 +29,7 @@ class ServerError:
 
 
 class ServerClient:
-    """HTTP client for a single Sigilweaver Server instance"""
+    """HTTP client for a single Sigilweaver Loom Server instance"""
 
     def __init__(self, endpoint_url: str, auth_token: str | None = None):
         """Initialize client for a server.

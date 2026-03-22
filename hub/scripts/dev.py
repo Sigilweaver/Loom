@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sigilweaver Hub Development Script
+Sigilweaver Loom Hub Development Script
 
 Starts both the backend and frontend development servers.
 
@@ -41,7 +41,7 @@ def get_repo_root() -> Path:
 def print_banner() -> None:
     """Print the startup banner."""
     print(f"{BLUE}========================================{NC}")
-    print(f"{BLUE}  Sigilweaver Hub Development Launcher{NC}")
+    print(f"{BLUE}  Sigilweaver Loom Hub Development Launcher{NC}")
     print(f"{BLUE}========================================{NC}")
     print()
 
@@ -144,7 +144,7 @@ def signal_handler(signum: int, frame: object) -> None:
 def main() -> int:
     global backend_process, frontend_process
 
-    parser = argparse.ArgumentParser(description="Sigilweaver Hub Development Launcher")
+    parser = argparse.ArgumentParser(description="Sigilweaver Loom Hub Development Launcher")
     parser.add_argument("--backend", action="store_true", help="Start backend only")
     parser.add_argument("--frontend", action="store_true", help="Start frontend only")
     args = parser.parse_args()

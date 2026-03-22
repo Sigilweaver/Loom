@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sigilweaver Hub - Container Entrypoint
+# Sigilweaver Loom Hub - Container Entrypoint
 # =============================================================================
 # Handles:
 #   - Graceful shutdown with signal trapping
@@ -120,7 +120,7 @@ validate_required_env() {
     fi
 }
 
-echo "=== Sigilweaver Hub Startup ==="
+echo "=== Sigilweaver Loom Hub Startup ==="
 echo "Version: $(python -c 'from app import __version__; print(__version__)' 2>/dev/null || echo 'unknown')"
 echo "Validating configuration..."
 

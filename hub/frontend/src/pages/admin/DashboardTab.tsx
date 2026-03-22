@@ -498,7 +498,7 @@ export function DashboardTab() {
       <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">
-            Sigilweaver Hub v{stats.hubVersion}
+            Sigilweaver Loom Hub v{stats.hubVersion}
           </span>
           <span className="text-gray-500">
             {stats.groupCount} groups - {stats.connectionCount} connections - {stats.userCount} users

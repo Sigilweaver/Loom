@@ -1,9 +1,9 @@
-# Terms of Use Template for Sigilweaver Hub Operators
+# Terms of Use Template for Sigilweaver Loom Hub Operators
 
 > [!CAUTION]
 > **If you deploy Hub for others, you MUST have your own terms of use and privacy policy.**
 >
-> Sigilweaver Hub handles workflows that access production databases, process sensitive data,
+> Sigilweaver Loom Hub handles workflows that access production databases, process sensitive data,
 > and execute on schedules. Administrators configure grants for databases, file paths, credentials,
 > and cloud storage. The audit logs record everything. Without clear terms, you have no defined
 > relationship with your users — and no protection when things go wrong.
@@ -47,21 +47,21 @@
 
 ---
 
-# [Your Organization] Sigilweaver Hub Terms of Use
+# [Your Organization] Sigilweaver Loom Hub Terms of Use
 
 **Last updated:** [DATE]
 
 ## 1. Introduction and Acceptance
 
-These Terms of Use ("Terms") govern your access to and use of the Sigilweaver Hub instance operated by [Your Organization] ("we", "us", "our") at [your-hub-url] (the "Service").
+These Terms of Use ("Terms") govern your access to and use of the Sigilweaver Loom Hub instance operated by [Your Organization] ("we", "us", "our") at [your-hub-url] (the "Service").
 
 By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, do not use the Service.
 
-**These Terms are solely between you and [Your Organization].** Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver open-source project, and its contributors are not parties to these Terms, do not operate this Hub instance, and have no responsibility for its operation, your data, or any disputes arising from your use. Your relationship is with [Your Organization] alone.
+**These Terms are solely between you and [Your Organization].** Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver Loom open-source project, and its contributors are not parties to these Terms, do not operate this Hub instance, and have no responsibility for its operation, your data, or any disputes arising from your use. Your relationship is with [Your Organization] alone.
 
 ## 2. Description of Service
 
-Sigilweaver Hub is self-hosted workflow orchestration software deployed by [Your Organization]. The Service allows authorized users to:
+Sigilweaver Loom Hub is self-hosted workflow orchestration software deployed by [Your Organization]. The Service allows authorized users to:
 - Upload, manage, and execute data transformation workflows
 - Schedule automated workflow executions
 - Access administrator-configured database connections, file paths, and cloud storage
@@ -98,7 +98,7 @@ If you generate API keys for programmatic access, you are responsible for keepin
 - Share your account credentials with others
 - Attempt to tamper with audit logs or circumvent logging
 - Overload the Service with excessive requests or executions
-- Reverse engineer, decompile, or attempt to extract source code (note: Sigilweaver itself is open source under AGPL-3.0)
+- Reverse engineer, decompile, or attempt to extract source code (note: Sigilweaver Loom is open source under AGPL-3.0)
 - Use the Service to violate any applicable law or regulation
 
 ### 4.3 Compliance
@@ -206,16 +206,16 @@ We do not guarantee that:
 - The Service will meet your requirements
 
 ### 10.3 Underlying Software
-Sigilweaver Hub is open-source software provided under the AGPL-3.0 license. We are hosting an instance of this software but did not create it. 
+Sigilweaver Loom Hub is open-source software provided under the AGPL-3.0 license. We are hosting an instance of this software but did not create it. 
 
-**Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver project, and its contributors:**
+**Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver Loom project, and its contributors:**
 - Did not create this Hub instance
 - Do not operate this Hub instance
 - Have no access to your data
 - Are not responsible for how we operate this service
 - Provide the software "as is" without warranties of any kind
 
-See the [Sigilweaver license](https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE.md) for the software's terms.
+See the [Sigilweaver Loom license](https://github.com/Sigilweaver/Loom/blob/main/LICENSE.md) for the software's terms.
 
 ## 11. Limitation of Liability
 
@@ -289,5 +289,5 @@ For questions about these Terms:
 
 ---
 
-*This template is provided by the Sigilweaver project under CC0 (public domain). 
+*This template is provided by the Sigilweaver Loom project under CC0 (public domain). 
 Modify freely for your organization's needs.*

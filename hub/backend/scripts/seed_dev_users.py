@@ -187,7 +187,7 @@ def main() -> None:
     args = parser.parse_args()
     
     print("=" * 40)
-    print("  Sigilweaver Dev User Seeder")
+    print("  Sigilweaver Loom Dev User Seeder")
     print("=" * 40)
     print(f"Hub URL: {args.hub_url}")
     

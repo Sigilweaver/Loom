@@ -1,4 +1,4 @@
-"""FastAPI application entry point for Sigilweaver Hub"""
+"""FastAPI application entry point for Sigilweaver Loom Hub"""
 
 import json
 import logging
@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         else:
             logger.warning(msg + " (ignored in development mode)")
 
-    logger.info("Sigilweaver Hub starting up...")
+    logger.info("Sigilweaver Loom Hub starting up...")
 
     # Warn about open server registration
     if not settings.server_registration_secret:
@@ -138,7 +138,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    logger.info("Sigilweaver Hub shutting down...")
+    logger.info("Sigilweaver Loom Hub shutting down...")
 
     # Stop session cleanup
     session_cleanup_task.cancel()
@@ -161,8 +161,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 application = FastAPI(
-    title="Sigilweaver Hub",
-    description="Workflow management and server coordination for Sigilweaver",
+    title="Sigilweaver Loom Hub",
+    description="Workflow management and server coordination for Sigilweaver Loom",
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -202,7 +202,7 @@ if not _static_mounted:
     async def root() -> dict[str, str]:
         """Root endpoint - basic service information"""
         return {
-            "service": "Sigilweaver Hub",
+            "service": "Sigilweaver Loom Hub",
             "version": __version__,
             "docs": "/docs",
         }

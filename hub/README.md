@@ -1,17 +1,17 @@
-# Sigilweaver Hub
+# Sigilweaver Loom Hub
 
-The orchestration platform - turning Sigilweaver into a complete data pipeline ecosystem.
+The orchestration platform - turning Sigilweaver Loom into a complete data pipeline ecosystem.
 
 ## What is Hub?
 
-Hub is what transforms Sigilweaver from a workflow designer into a full platform. It's the central nervous system that:
+Hub is what transforms Sigilweaver Loom from a workflow designer into a full platform. It's the central nervous system that:
 
 - **Stores workflows** in a central location accessible to your team
 - **Manages servers** across different environments (dev, staging, production)
 - **Schedules automated runs** with cron-like scheduling
 - **Provides access control** with production-grade security
 
-**You don't need Hub to use Sigilweaver.** Studio can connect directly to a Server for single-user workflows. Hub adds value when you need centralization, automation, or collaboration.
+**You don't need Hub to use Sigilweaver Loom.** Studio can connect directly to a Server for single-user workflows. Hub adds value when you need centralization, automation, or collaboration.
 
 ## Philosophy: Production Grade for Everyone
 

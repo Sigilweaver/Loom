@@ -57,8 +57,8 @@ _TEST_PASSWORD_HASH = _fast_hasher.hash("password123")
 # =============================================================================
 
 # Connection URL to the main database (used for creating test database)
-ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
-TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub_test"
+ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub"
+TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub_test"
 
 # Admin engine for database creation (connects to main db)
 admin_engine = create_async_engine(
@@ -118,12 +118,12 @@ async def _ensure_test_db():
     async with admin_engine.connect() as conn:
         # Check if database exists
         result = await conn.execute(
-            text("SELECT 1 FROM pg_database WHERE datname = 'sigilweaver_hub_test'")
+            text("SELECT 1 FROM pg_database WHERE datname = 'sigilweaver_loom_hub_test'")
         )
         exists = result.scalar() is not None
         
         if not exists:
-            await conn.execute(text("CREATE DATABASE sigilweaver_hub_test"))
+            await conn.execute(text("CREATE DATABASE sigilweaver_loom_hub_test"))
     
     await admin_engine.dispose()
     yield
