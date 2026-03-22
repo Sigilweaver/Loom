@@ -58,7 +58,7 @@ def main():
         "commit": commit,
         "downloads": {
             "full": {
-                "name": "Sigilweaver",
+                "name": "Sigilweaver Loom",
                 "description": "Complete application with embedded server",
                 "windows": list(
                     filter(
@@ -67,12 +67,12 @@ def main():
                             add_file(
                                 "installer",
                                 "Windows Installer",
-                                "Sigilweaver-Setup.exe",
+                                "Sigilweaver-Loom-Setup.exe",
                             ),
                             add_file(
                                 "portable",
                                 "Windows Portable",
-                                "Sigilweaver-Portable.exe",
+                                "Sigilweaver-Loom-Portable.exe",
                             ),
                         ],
                     )
@@ -82,9 +82,9 @@ def main():
                         None,
                         [
                             add_file(
-                                "appimage", "AppImage", "Sigilweaver-x64.AppImage"
+                                "appimage", "AppImage", "Sigilweaver-Loom-x64.AppImage"
                             ),
-                            add_file("snap", "Snap Package", "Sigilweaver-x64.snap"),
+                            add_file("snap", "Snap Package", "Sigilweaver-Loom-x64.snap"),
                         ],
                     )
                 ),
@@ -92,13 +92,13 @@ def main():
                     filter(
                         None,
                         [
-                            add_file("dmg", "macOS Disk Image", "Sigilweaver.dmg"),
+                            add_file("dmg", "macOS Disk Image", "Sigilweaver-Loom.dmg"),
                         ],
                     )
                 ),
             },
             "client": {
-                "name": "Sigilweaver Client",
+                "name": "Sigilweaver Loom Client",
                 "description": "Studio only (requires separate server)",
                 "windows": list(
                     filter(
@@ -107,12 +107,12 @@ def main():
                             add_file(
                                 "installer",
                                 "Windows Installer",
-                                "Sigilweaver-Client-Setup.exe",
+                                "Sigilweaver-Loom-Client-Setup.exe",
                             ),
                             add_file(
                                 "portable",
                                 "Windows Portable",
-                                "Sigilweaver-Client-Portable.exe",
+                                "Sigilweaver-Loom-Client-Portable.exe",
                             ),
                         ],
                     )
@@ -124,10 +124,10 @@ def main():
                             add_file(
                                 "appimage",
                                 "AppImage",
-                                "Sigilweaver-Client-x64.AppImage",
+                                "Sigilweaver-Loom-Client-x64.AppImage",
                             ),
                             add_file(
-                                "snap", "Snap Package", "Sigilweaver-Client-x64.snap"
+                                "snap", "Snap Package", "Sigilweaver-Loom-Client-x64.snap"
                             ),
                         ],
                     )
@@ -137,20 +137,20 @@ def main():
                         None,
                         [
                             add_file(
-                                "dmg", "macOS Disk Image", "Sigilweaver-Client.dmg"
+                                "dmg", "macOS Disk Image", "Sigilweaver-Loom-Client.dmg"
                             ),
                         ],
                     )
                 ),
             },
             "web": {
-                "name": "Sigilweaver Web",
+                "name": "Sigilweaver Loom Web",
                 "description": "Self-hosted web application",
                 "archive": list(
                     filter(
                         None,
                         [
-                            add_file("zip", "Web Archive", "Sigilweaver-Web.zip"),
+                            add_file("zip", "Web Archive", "Sigilweaver-Loom-Web.zip"),
                         ],
                     )
                 ),

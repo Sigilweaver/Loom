@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sigilweaver Docker Build Script
+# Sigilweaver Loom Docker Build Script
 # =============================================================================
 # Builds production Docker images for ghcr.io.
 # Uses --network=host to work around Docker-in-Docker DNS issues.
@@ -30,36 +30,36 @@ SCAN="${SCAN:-0}"
 export DOCKER_BUILDKIT=1
 
 build_hub() {
-    echo "Building $REGISTRY/sigilweaver-hub:$VERSION..."
+    echo "Building $REGISTRY/sigilweaver-loom-hub:$VERSION..."
     docker build \
         --network=host \
         --build-arg VERSION="$VERSION" \
         --build-arg BUILD_DATE="$BUILD_DATE" \
         --build-arg VCS_REF="$VCS_REF" \
         -f hub/Dockerfile \
-        -t "$REGISTRY/sigilweaver-hub:$VERSION" \
+        -t "$REGISTRY/sigilweaver-loom-hub:$VERSION" \
         .
-    echo "Hub image built: $REGISTRY/sigilweaver-hub:$VERSION"
+    echo "Hub image built: $REGISTRY/sigilweaver-loom-hub:$VERSION"
 
     if [ "$SCAN" = "1" ]; then
-        scan_image "$REGISTRY/sigilweaver-hub:$VERSION"
+        scan_image "$REGISTRY/sigilweaver-loom-hub:$VERSION"
     fi
 }
 
 build_server() {
-    echo "Building $REGISTRY/sigilweaver-server:$VERSION..."
+    echo "Building $REGISTRY/sigilweaver-loom-server:$VERSION..."
     docker build \
         --network=host \
         --build-arg VERSION="$VERSION" \
         --build-arg BUILD_DATE="$BUILD_DATE" \
         --build-arg VCS_REF="$VCS_REF" \
         -f server/Dockerfile \
-        -t "$REGISTRY/sigilweaver-server:$VERSION" \
+        -t "$REGISTRY/sigilweaver-loom-server:$VERSION" \
         .
-    echo "Server image built: $REGISTRY/sigilweaver-server:$VERSION"
+    echo "Server image built: $REGISTRY/sigilweaver-loom-server:$VERSION"
 
     if [ "$SCAN" = "1" ]; then
-        scan_image "$REGISTRY/sigilweaver-server:$VERSION"
+        scan_image "$REGISTRY/sigilweaver-loom-server:$VERSION"
     fi
 }
 
@@ -98,7 +98,7 @@ print_summary() {
     echo "Build Date: $BUILD_DATE"
     echo "VCS Ref:    $VCS_REF"
     echo ""
-    docker images | grep sigilweaver | head -10
+    docker images | grep sigilweaver-loom | head -10
 }
 
 case "${1:-all}" in
@@ -120,8 +120,8 @@ case "${1:-all}" in
     scan)
         # Scan existing images without rebuilding
         SCAN=1
-        scan_image "$REGISTRY/sigilweaver-hub:$VERSION"
-        scan_image "$REGISTRY/sigilweaver-server:$VERSION"
+        scan_image "$REGISTRY/sigilweaver-loom-hub:$VERSION"
+        scan_image "$REGISTRY/sigilweaver-loom-server:$VERSION"
         ;;
     *)
         echo "Usage: $0 [hub|server|all|scan]"

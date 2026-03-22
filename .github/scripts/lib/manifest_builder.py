@@ -42,9 +42,9 @@ def strip_version_from_filename(filename: str) -> str:
     Strip version string from filename.
 
     Examples:
-        Sigilweaver-Setup-v0.3.0-alpha.exe -> Sigilweaver-Setup.exe
-        Sigilweaver-v0.3.0-alpha-x64.AppImage -> Sigilweaver-x64.AppImage
-        Sigilweaver-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Client-x64.snap
+        Sigilweaver-Loom-Setup-v0.3.0-alpha.exe -> Sigilweaver-Loom-Setup.exe
+        Sigilweaver-Loom-v0.3.0-alpha-x64.AppImage -> Sigilweaver-Loom-x64.AppImage
+        Sigilweaver-Loom-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Loom-Client-x64.snap
     """
     path = Path(filename)
     name = path.stem

@@ -76,7 +76,7 @@ gh workflow run build-server.yml
 4. Runs npm run build:{platform}:full
 5. Uses electron-builder-full.json config
 
-**Product Name**: Sigilweaver (no suffix)
+**Product Name**: Sigilweaver Loom (no suffix)
 
 **Can be tested standalone**:
 ```bash
@@ -107,7 +107,7 @@ gh workflow run build-studio-full.yml
 2. Runs npm run build:{platform}:client
 3. Uses electron-builder-client.json config
 
-**Product Name**: Sigilweaver-Client (with suffix)
+**Product Name**: Sigilweaver-Loom-Client (with suffix)
 
 **Can be tested standalone**:
 ```bash
@@ -163,17 +163,17 @@ validate-tag-on-main
 **Validation**: Only runs if tag commit is on `main` branch
 
 **Artifact Naming**:
-- `Sigilweaver-{VERSION}-x64.AppImage`
-- `Sigilweaver-{VERSION}-x64.snap`
-- `Sigilweaver-Setup-{VERSION}.exe`
-- `Sigilweaver-Portable-{VERSION}.exe`
-- `Sigilweaver-{VERSION}.dmg`
-- `Sigilweaver-Client-{VERSION}-x64.AppImage`
-- `Sigilweaver-Client-{VERSION}-x64.snap`
-- `Sigilweaver-Client-Setup-{VERSION}.exe`
-- `Sigilweaver-Client-Portable-{VERSION}.exe`
-- `Sigilweaver-Client-{VERSION}.dmg`
-- `Sigilweaver-Web-{VERSION}.zip`
+- `Sigilweaver-Loom-{VERSION}-x64.AppImage`
+- `Sigilweaver-Loom-{VERSION}-x64.snap`
+- `Sigilweaver-Loom-Setup-{VERSION}.exe`
+- `Sigilweaver-Loom-Portable-{VERSION}.exe`
+- `Sigilweaver-Loom-{VERSION}.dmg`
+- `Sigilweaver-Loom-Client-{VERSION}-x64.AppImage`
+- `Sigilweaver-Loom-Client-{VERSION}-x64.snap`
+- `Sigilweaver-Loom-Client-Setup-{VERSION}.exe`
+- `Sigilweaver-Loom-Client-Portable-{VERSION}.exe`
+- `Sigilweaver-Loom-Client-{VERSION}.dmg`
+- `Sigilweaver-Loom-Web-{VERSION}.zip`
 - `SHA256SUMS.txt`
 
 **Publishing**:

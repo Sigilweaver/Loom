@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sigilweaver Docker Test Suite
+# Sigilweaver Loom Docker Test Suite
 # =============================================================================
 # Comprehensive tests for Docker images and compose configuration.
 #
@@ -42,7 +42,7 @@ SECURITY_MODE=0
 
 # Cleanup trap for interrupted execution
 cleanup_on_exit() {
-    docker rm -f sigilweaver-test-server 2>/dev/null || true
+    docker rm -f sigilweaver-loom-test-server 2>/dev/null || true
 }
 trap cleanup_on_exit EXIT INT TERM
 
@@ -386,7 +386,7 @@ test_image_builds() {
         --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
         --build-arg VCS_REF=test \
         -f server/Dockerfile \
-        -t sigilweaver-server:test \
+        -t sigilweaver-loom-server:test \
         . 2>&1 | tail -5; then
         log_success "Server image built successfully"
     else
@@ -402,7 +402,7 @@ test_image_builds() {
         --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
         --build-arg VCS_REF=test \
         -f hub/Dockerfile \
-        -t sigilweaver-hub:test \
+        -t sigilweaver-loom-hub:test \
         . 2>&1 | tail -5; then
         log_success "Hub image built successfully"
     else
@@ -411,7 +411,7 @@ test_image_builds() {
     fi
     
     # Verify image labels
-    for image in sigilweaver-server:test sigilweaver-hub:test; do
+    for image in sigilweaver-loom-server:test sigilweaver-loom-hub:test; do
         local version
         version=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.version"}}' "$image" 2>/dev/null)
         if [ "$version" == "test" ]; then
@@ -435,7 +435,7 @@ test_container_runtime() {
     fi
     
     # Check if test images exist
-    if ! docker image inspect sigilweaver-server:test &>/dev/null; then
+    if ! docker image inspect sigilweaver-loom-server:test &>/dev/null; then
         log_skip "Server test image not found (run with --build first)"
         return
     fi
@@ -444,9 +444,9 @@ test_container_runtime() {
     log_info "Testing server container startup..."
     local container_id
     container_id=$(docker run -d --rm \
-        --name sigilweaver-test-server \
+        --name sigilweaver-loom-test-server \
         -e AUTH_MODE=disabled \
-        sigilweaver-server:test 2>/dev/null) || true
+        sigilweaver-loom-server:test 2>/dev/null) || true
     
     if [ -n "$container_id" ]; then
         sleep 3
@@ -471,11 +471,11 @@ test_container_runtime() {
             fi
         else
             log_fail "Server container stopped unexpectedly"
-            docker logs sigilweaver-test-server 2>&1 | tail -10
+            docker logs sigilweaver-loom-test-server 2>&1 | tail -10
         fi
         
         # Cleanup
-        docker rm -f sigilweaver-test-server 2>/dev/null || true
+        docker rm -f sigilweaver-loom-test-server 2>/dev/null || true
     else
         log_fail "Failed to start server container"
     fi
@@ -485,7 +485,7 @@ test_container_runtime() {
     if docker run --rm --read-only \
         --tmpfs /tmp:mode=1777,size=10M \
         -e AUTH_MODE=disabled \
-        sigilweaver-server:test \
+        sigilweaver-loom-server:test \
         /bin/bash -c "touch /test-file 2>/dev/null && echo 'writable' || echo 'readonly'" 2>/dev/null | grep -q "readonly"; then
         log_success "Container works with read-only filesystem"
     else
@@ -506,7 +506,7 @@ test_security_scan() {
     fi
     
     # Check for test images
-    if ! docker image inspect sigilweaver-server:test &>/dev/null; then
+    if ! docker image inspect sigilweaver-loom-server:test &>/dev/null; then
         log_skip "No test images to scan (run with --build first)"
         return
     fi
@@ -527,7 +527,7 @@ test_security_scan() {
     
     log_info "Using $scanner for vulnerability scanning..."
     
-    for image in sigilweaver-server:test sigilweaver-hub:test; do
+    for image in sigilweaver-loom-server:test sigilweaver-loom-hub:test; do
         if ! docker image inspect "$image" &>/dev/null; then
             log_skip "$image not found"
             continue
@@ -660,7 +660,7 @@ parse_args() {
 main() {
     parse_args "$@"
     
-    echo -e "${BOLD}Sigilweaver Docker Test Suite${NC}"
+    echo -e "${BOLD}Sigilweaver Loom Docker Test Suite${NC}"
     echo "=============================="
     
     # Quick validation tests (always run)

@@ -19,10 +19,10 @@ def detect_asset_type(filename: str) -> Dict[str, str]:
         Dictionary with 'os', 'id', 'kind' keys
         
     Examples:
-        >>> detect_asset_type('Sigilweaver-Setup-v0.2.5.exe')
+        >>> detect_asset_type('Sigilweaver-Loom-Setup-v0.2.5.exe')
         {'os': 'windows', 'id': 'windowsSetup', 'kind': 'installer'}
         
-        >>> detect_asset_type('Sigilweaver-v0.2.5-x64.AppImage')
+        >>> detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.AppImage')
         {'os': 'linux', 'id': 'linuxAppImage', 'kind': 'image'}
     """
     name_lower = filename.lower()

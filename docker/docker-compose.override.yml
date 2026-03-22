@@ -1,5 +1,5 @@
 # =============================================================================
-# Sigilweaver Development Docker Compose Overrides
+# Sigilweaver Loom Development Docker Compose Overrides
 # =============================================================================
 #
 # This file is automatically loaded by `docker compose up` when present.
@@ -63,16 +63,16 @@ services:
 
     # Add to external network to allow port publishing (internal network blocks host access)
     networks:
-      - sigilweaver-internal
-      - sigilweaver-external
+      - sigilweaver-loom-internal
+      - sigilweaver-loom-external
 
     # Use env var instead of secret for development
     # Must explicitly unset POSTGRES_PASSWORD_FILE from base compose to avoid conflict
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
+      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver_loom}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-password}
       POSTGRES_PASSWORD_FILE: ""
-      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
+      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_loom_hub}
     secrets: []
 
 # =============================================================================

@@ -1,6 +1,6 @@
 # GitHub Actions Release Scripts
 
-Python-based release upload automation for Sigilweaver.
+Python-based release upload automation for Sigilweaver Loom.
 
 ## Overview
 
@@ -52,7 +52,7 @@ This directory contains modular Python scripts for uploading release assets to C
 # Dry-run mode (prints actions without uploading)
 export R2_ACCESS_KEY_ID="your-access-key-id"
 export R2_SECRET_ACCESS_KEY="your-secret-access-key"
-export R2_BUCKET_NAME="sigilweaver-downloads"
+export R2_BUCKET_NAME="sigilweaver-loom-downloads"
 export R2_ENDPOINT_URL="https://<account_id>.r2.cloudflarestorage.com"
 export GITHUB_SHA="abc123"
 
@@ -75,7 +75,7 @@ python3 -m pytest tests/ -v
 |----------|-------------|---------|
 | `R2_ACCESS_KEY_ID` | R2 access key ID | `1e6732c65ccfe9...` |
 | `R2_SECRET_ACCESS_KEY` | R2 secret access key | `37d33e37ca8ea2...` |
-| `R2_BUCKET_NAME` | R2 bucket name | `sigilweaver-downloads` |
+| `R2_BUCKET_NAME` | R2 bucket name | `sigilweaver-loom-downloads` |
 | `R2_ENDPOINT_URL` | R2 S3-compatible endpoint | `https://<account_id>.r2.cloudflarestorage.com` |
 | `R2_CDN_URL` | Public CDN URL for downloads (optional) | `https://download.sigilweaver.app` |
 | `GITHUB_SHA` | Git commit SHA (optional) | `abc123def456...` |
@@ -87,15 +87,15 @@ python3 -m pytest tests/ -v
 After upload, the bucket structure is:
 
 ```
-sigilweaver-downloads/
+sigilweaver-loom-downloads/
 ├── latest/                                    # Latest stable release (generic names)
-│   ├── Sigilweaver-Setup.exe                  # No version in filename
-│   ├── Sigilweaver-Portable.exe
-│   ├── Sigilweaver-x64.AppImage
-│   ├── Sigilweaver-x64.snap
-│   ├── Sigilweaver-Client-Setup.exe
-│   ├── Sigilweaver-Client-x64.AppImage
-│   ├── Sigilweaver-Web.zip
+│   ├── Sigilweaver-Loom-Setup.exe                  # No version in filename
+│   ├── Sigilweaver-Loom-Portable.exe
+│   ├── Sigilweaver-Loom-x64.AppImage
+│   ├── Sigilweaver-Loom-x64.snap
+│   ├── Sigilweaver-Loom-Client-Setup.exe
+│   ├── Sigilweaver-Loom-Client-x64.AppImage
+│   ├── Sigilweaver-Loom-Web.zip
 │   ├── SHA256SUMS.txt
 │   ├── downloads.json                         # Downloads page manifest
 │   └── stable/
@@ -103,7 +103,7 @@ sigilweaver-downloads/
 ├── releases/
 │   ├── index.json                             # All releases index
 │   ├── v0.2.5-alpha/                          # Versioned files (immutable)
-│   │   ├── Sigilweaver-Setup-v0.2.5-alpha.exe
+│   │   ├── Sigilweaver-Loom-Setup-v0.2.5-alpha.exe
 │   │   ├── manifest.json
 │   │   └── downloads.json
 │   └── v0.2.6/
@@ -129,8 +129,8 @@ sigilweaver-downloads/
       "os": "windows",
       "arch": "x64",
       "kind": "installer",
-      "fileName": "Sigilweaver-Setup-v0.2.5-alpha.exe",
-      "url": "https://download.sigilweaver.app/latest/Sigilweaver-Setup-v0.2.5-alpha.exe",
+      "fileName": "Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
+      "url": "https://download.sigilweaver.app/latest/Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
       "size": 207000000,
       "sha256": "abc123..."
     }

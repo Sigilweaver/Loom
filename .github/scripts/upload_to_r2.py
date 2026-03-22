@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Upload Sigilweaver release to Cloudflare R2.
+Upload Sigilweaver Loom release to Cloudflare R2.
 
 This script handles:
 - Uploading release assets to R2
@@ -15,7 +15,7 @@ Usage:
 Environment variables required:
     R2_ACCESS_KEY_ID: R2 access key ID
     R2_SECRET_ACCESS_KEY: R2 secret access key
-    R2_BUCKET_NAME: R2 bucket name (e.g., sigilweaver-downloads)
+    R2_BUCKET_NAME: R2 bucket name (e.g., sigilweaver-loom-downloads)
     R2_ENDPOINT_URL: R2 S3 endpoint (e.g., https://<account_id>.r2.cloudflarestorage.com)
     R2_CDN_URL: Public CDN URL for downloads (optional, e.g., https://download.sigilweaver.app)
     GITHUB_SHA: Git commit SHA (optional, defaults to 'unknown')
@@ -35,7 +35,7 @@ from lib.r2_uploader import R2Uploader
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Upload Sigilweaver release to Cloudflare R2",
+        description="Upload Sigilweaver Loom release to Cloudflare R2",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -73,7 +73,7 @@ def main():
                 print(f"  - {var}")
             return 1
 
-    print(f"Uploading Sigilweaver {args.version}")
+    print(f"Uploading Sigilweaver Loom {args.version}")
     print(f"Assets directory: {args.assets_dir}")
     if args.dry_run:
         print("DRY-RUN MODE - No uploads will be performed")

@@ -105,29 +105,29 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
           
           # Linux Full
-          find artifacts/linux-full-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-${VERSION}-x64.AppImage \; || true
-          find artifacts/linux-full-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-${VERSION}-x64.snap \; || true
+          find artifacts/linux-full-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}-x64.AppImage \; || true
+          find artifacts/linux-full-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}-x64.snap \; || true
           
           # Linux Client
-          find artifacts/linux-client-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}-x64.AppImage \; || true
-          find artifacts/linux-client-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}-x64.snap \; || true
+          find artifacts/linux-client-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}-x64.AppImage \; || true
+          find artifacts/linux-client-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}-x64.snap \; || true
           
           # Windows Full
-          find artifacts/windows-full-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Setup-${VERSION}.exe \; || true
-          find artifacts/windows-full-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Portable-${VERSION}.exe \; || true
+          find artifacts/windows-full-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Setup-${VERSION}.exe \; || true
+          find artifacts/windows-full-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Portable-${VERSION}.exe \; || true
           
           # Windows Client
-          find artifacts/windows-client-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Client-Setup-${VERSION}.exe \; || true
-          find artifacts/windows-client-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Client-Portable-${VERSION}.exe \; || true
+          find artifacts/windows-client-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Client-Setup-${VERSION}.exe \; || true
+          find artifacts/windows-client-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Client-Portable-${VERSION}.exe \; || true
           
           # macOS Full
-          find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-${VERSION}.dmg \; || true
+          find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}.dmg \; || true
           
           # macOS Client
-          find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Client-${VERSION}.dmg \; || true
+          find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}.dmg \; || true
           
           # Web
-          cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Web-${VERSION}.zip || true
+          cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Loom-Web-${VERSION}.zip || true
           
           echo "Prepared release assets:"
           ls -lh release-assets/ || true
@@ -149,17 +149,17 @@ jobs:
           
           # Check expected files exist
           expected=(
-            "Sigilweaver-${VERSION}-x64.AppImage"
-            "Sigilweaver-${VERSION}-x64.snap"
-            "Sigilweaver-Setup-${VERSION}.exe"
-            "Sigilweaver-Portable-${VERSION}.exe"
-            "Sigilweaver-${VERSION}.dmg"
-            "Sigilweaver-Client-${VERSION}-x64.AppImage"
-            "Sigilweaver-Client-${VERSION}-x64.snap"
-            "Sigilweaver-Client-Setup-${VERSION}.exe"
-            "Sigilweaver-Client-Portable-${VERSION}.exe"
-            "Sigilweaver-Client-${VERSION}.dmg"
-            "Sigilweaver-Web-${VERSION}.zip"
+            "Sigilweaver-Loom-${VERSION}-x64.AppImage"
+            "Sigilweaver-Loom-${VERSION}-x64.snap"
+            "Sigilweaver-Loom-Setup-${VERSION}.exe"
+            "Sigilweaver-Loom-Portable-${VERSION}.exe"
+            "Sigilweaver-Loom-${VERSION}.dmg"
+            "Sigilweaver-Loom-Client-${VERSION}-x64.AppImage"
+            "Sigilweaver-Loom-Client-${VERSION}-x64.snap"
+            "Sigilweaver-Loom-Client-Setup-${VERSION}.exe"
+            "Sigilweaver-Loom-Client-Portable-${VERSION}.exe"
+            "Sigilweaver-Loom-Client-${VERSION}.dmg"
+            "Sigilweaver-Loom-Web-${VERSION}.zip"
             "SHA256SUMS.txt"
           )
           

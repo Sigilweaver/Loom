@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in Sigilweaver
+description: Report a bug in Sigilweaver Loom
 labels: ["bug"]
 body:
   - type: dropdown

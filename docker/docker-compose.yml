@@ -1,5 +1,5 @@
 # =============================================================================
-# Sigilweaver Production Docker Compose
+# Sigilweaver Loom Production Docker Compose
 # =============================================================================
 #
 # Usage:
@@ -16,7 +16,7 @@
 #
 # =============================================================================
 
-name: sigilweaver
+name: sigilweaver-loom
 
 # =============================================================================
 # Secrets (recommended for production)
@@ -51,19 +51,19 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver}
+      POSTGRES_USER: ${POSTGRES_USER:-sigilweaver_loom}
       # In production: reads password from Docker secret file
       # In development: override file sets POSTGRES_PASSWORD env var instead
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_hub}
+      POSTGRES_DB: ${POSTGRES_DB:-sigilweaver_loom_hub}
     secrets:
       - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - sigilweaver-internal
+      - sigilweaver-loom-internal
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sigilweaver}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sigilweaver_loom}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,7 +75,7 @@ services:
     # Hub - Orchestration, user management, and frontend
     # ===========================================================================
   hub:
-    image: ghcr.io/sigilweaver/sigilweaver-hub:${VERSION:-latest}
+    image: ghcr.io/sigilweaver/sigilweaver-loom-hub:${VERSION:-latest}
     build:
       context: ..
       dockerfile: hub/Dockerfile
@@ -102,7 +102,7 @@ services:
       ENVIRONMENT: production
 
       # Database — password read from secret file at runtime by entrypoint
-      DATABASE_URL_TEMPLATE: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver}:__PASSWORD__@postgres:5432/${POSTGRES_DB:-sigilweaver_hub}
+      DATABASE_URL_TEMPLATE: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver_loom}:__PASSWORD__@postgres:5432/${POSTGRES_DB:-sigilweaver_loom_hub}
       DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
 
       # Security secrets (read from Docker secrets)
@@ -134,8 +134,8 @@ services:
     volumes:
       - hub_workflows:/app/data/workflows
     networks:
-      - sigilweaver-internal
-      - sigilweaver-external
+      - sigilweaver-loom-internal
+      - sigilweaver-loom-external
     ports:
       - "${HUB_PORT:-25802}:25802"
     healthcheck:
@@ -149,7 +149,7 @@ services:
   # Server - Workflow execution (stateless, horizontally scalable)
   # ===========================================================================
   server:
-    image: ghcr.io/sigilweaver/sigilweaver-server:${VERSION:-latest}
+    image: ghcr.io/sigilweaver/sigilweaver-loom-server:${VERSION:-latest}
     build:
       context: ..
       dockerfile: server/Dockerfile
@@ -199,8 +199,8 @@ services:
       # Mount data files (read-only for security)
       - server_data:/app/data/files:ro
     networks:
-      - sigilweaver-internal
-      - sigilweaver-external
+      - sigilweaver-loom-internal
+      - sigilweaver-loom-external
     # Port exposed for direct Studio -> Server connections (bypassing Hub)
     # Remove this section if all traffic should route through Hub
     ports:
@@ -224,12 +224,12 @@ services:
 # =============================================================================
 networks:
   # Internal network for Hub <-> Server <-> PostgreSQL communication
-  sigilweaver-internal:
+  sigilweaver-loom-internal:
     driver: bridge
     internal: true
 
   # External network for Hub to receive requests
-  sigilweaver-external:
+  sigilweaver-loom-external:
     driver: bridge
 
 # =============================================================================
@@ -237,8 +237,8 @@ networks:
 # =============================================================================
 volumes:
   postgres_data:
-    name: sigilweaver_postgres_data
+    name: sigilweaver_loom_postgres_data
   hub_workflows:
-    name: sigilweaver_hub_workflows
+    name: sigilweaver_loom_hub_workflows
   server_data:
-    name: sigilweaver_server_data
+    name: sigilweaver_loom_server_data
