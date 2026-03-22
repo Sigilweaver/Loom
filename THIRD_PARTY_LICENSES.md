@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-This file documents the licenses for third-party assets bundled with Sigilweaver.
+This file documents the licenses for third-party assets bundled with Sigilweaver Loom.
 
 ---
 

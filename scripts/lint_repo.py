@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Repository linter for Sigilweaver.
+Repository linter for Sigilweaver Loom.
 
 Checks git-tracked files for:
 - Empty files
@@ -208,7 +208,7 @@ def run_lint(
 def print_report(findings: list[FileFinding], repo_path: Path) -> None:
     """Print the linting report."""
     print("=" * 60)
-    print("  Sigilweaver Repository Linter")
+    print("  Sigilweaver Loom Repository Linter")
     print("=" * 60)
     print(f"Scanning: {repo_path}")
     print()

@@ -1,39 +1,39 @@
-# Sigilweaver
+# Sigilweaver Loom
 
 **The visual data pipeline platform you always wished existed.**
 
 Free and open source. No compromises.
 
-[Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/downloads) | [Documentation](https://sigilweaver.app/docs)
+[Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/loom/downloads) | [Documentation](https://sigilweaver.app/docs)
 
 ---
 
-## What is Sigilweaver?
+## What is Sigilweaver Loom?
 
-Sigilweaver is more than a workflow designer - it's a complete data pipeline platform.
+Sigilweaver Loom is more than a workflow designer - it's a complete data pipeline platform.
 
 **Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation.
 **Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with robust security.
 
-Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver meets you where you are.
+Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver Loom meets you where you are.
 
 Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation — without limiting what experienced users can do.
 
 No artificial limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
-## Why Sigilweaver?
+## Why Sigilweaver Loom?
 
 ### Zero Trust, Zero Compromise
 
-Your data never leaves your infrastructure. Sigilweaver is designed for **self-hosting from day one**. Run it on your laptop, your homelab, or your production Kubernetes cluster. The architecture is the same - only the scale changes.
+Your data never leaves your infrastructure. Sigilweaver Loom is designed for **self-hosting from day one**. Run it on your laptop, your homelab, or your production Kubernetes cluster. The architecture is the same - only the scale changes.
 
 ### Lazy Evaluation
 
-Powered by [Polars](https://pola.rs), Sigilweaver builds optimized query plans rather than executing transformations immediately. This means you can design pipelines on a 10 billion row dataset without loading it all into memory.
+Powered by [Polars](https://pola.rs), Sigilweaver Loom builds optimized query plans rather than executing transformations immediately. This means you can design pipelines on a 10 billion row dataset without loading it all into memory.
 
 ### No Row Limits
 
-Unlike SaaS tools that impose artificial limits, Sigilweaver processes what your hardware can handle. If it fits on your machine, it runs on your machine.
+Unlike SaaS tools that impose artificial limits, Sigilweaver Loom processes what your hardware can handle. If it fits on your machine, it runs on your machine.
 
 ### Visual Clarity, Full Power
 
@@ -49,17 +49,17 @@ An AI assistant in Studio can build entire workflows from natural language, writ
 
 ### Bring Your Existing Work With You
 
-Sigilweaver reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a high-performance Rust library for the YXDB format.
+Sigilweaver Loom reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a high-performance Rust library for the YXDB format.
 
 ## Our Philosophy
 
 **"Production Grade" does not mean "Complicated."**
 
-We build Sigilweaver with the security, reliability, and scalability that serious work demands. But we believe those same qualities belong to everyone:
+We build Sigilweaver Loom with the security, reliability, and scalability that serious work demands. But we believe those same qualities belong to everyone:
 
 - **Self-Hosting First**: We actively encourage individuals to run their own Hub. Your personal data pipeline infrastructure should be as robust as anyone else's.
 - **No Artificial Limits**: The same codebase powers a hobbyist's Raspberry Pi and a company's server farm.
-- **Community Ownership**: The AGPL license ensures Sigilweaver remains open forever. No rug-pulls. No sudden paywalls.
+- **Community Ownership**: The AGPL license ensures Sigilweaver Loom remains open forever. No rug-pulls. No sudden paywalls.
 
 Production grade means "it works when you need it." That's a promise we make to every user, whether you're processing CSV exports or financial transactions.
 
@@ -78,7 +78,7 @@ See individual component READMEs for more details: [server/](server/README.md), 
 
 ## Installation
 
-Download the latest release for your platform from the **[Downloads Page](https://sigilweaver.app/downloads)**.
+Download the latest release for your platform from the **[Downloads Page](https://sigilweaver.app/loom/downloads)**.
 
 For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -92,7 +92,7 @@ For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Sigilweaver is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
+Sigilweaver Loom is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
 
 - **Free forever**: Use, modify, and distribute without restriction.
 - **Copyleft**: If you run a modified version as a network service, you must release your changes under AGPL.
@@ -100,12 +100,12 @@ Sigilweaver is licensed under the **GNU Affero General Public License v3.0 (AGPL
 
 ### The CLA
 
-Sigilweaver requires contributors to sign a Contributor License Agreement (CLA). This gives Sigilweaver Holdings LLC unified copyright ownership, which is necessary to defend the license and enforce copyleft.
+Sigilweaver Loom requires contributors to sign a Contributor License Agreement (CLA). This gives Sigilweaver Holdings LLC unified copyright ownership, which is necessary to defend the license and enforce copyleft.
 
 **What this means for you:**
 - The project stays AGPLv3 forever - no one can close the source
 - If the holding company ever violates its open source commitments, IP automatically reverts to contributors
-- You can always use, fork, and modify Sigilweaver under the AGPL
+- You can always use, fork, and modify Sigilweaver Loom under the AGPL
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the CLA, and [LICENSE](LICENSE.md) for the full AGPL text.
 

@@ -1,6 +1,6 @@
 # Development Scripts
 
-Utility scripts for building, testing, and running Sigilweaver.
+Utility scripts for building, testing, and running Sigilweaver Loom.
 
 ## Quick Reference
 
@@ -236,7 +236,7 @@ Manage R2 bucket: list contents and download files via CDN.
 ./scripts/r2.py download --dry-run   # Show what would be downloaded
 ```
 
-**Downloads to**: `.untracked/r2/sigilweaver-downloads/`
+**Downloads to**: `.untracked/r2/sigilweaver-loom-downloads/`
 
 **Features**:
 - Uses CDN URL for downloads

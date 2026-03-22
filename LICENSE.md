@@ -1,7 +1,7 @@
-SIGILWEAVER LICENSING INFORMATION
+SIGILWEAVER LOOM LICENSING INFORMATION
 ================================================================================
 
-The Sigilweaver project is a monorepo containing multiple components, each governed 
+The Sigilweaver Loom project is a monorepo containing multiple components, each governed 
 by specific licensing terms. 
 
 1. SOFTWARE (CODE)
@@ -31,7 +31,7 @@ For the core software, the full text of the AGPLv3 is provided below.
    [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details.
 
 ================================================================================
-SIGILWEAVER SOFTWARE LICENSE (AGPLv3)
+SIGILWEAVER LOOM SOFTWARE LICENSE (AGPLv3)
 ================================================================================
 
 Copyright (C) 2026 Sigilweaver Holdings LLC

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sigilweaver Development Script
+Sigilweaver Loom Development Script
 
 Starts development servers for Studio, Server, Hub, Docs, and/or Site.
 Dependencies are automatically installed when missing.
@@ -133,7 +133,7 @@ def get_repo_root() -> Path:
 def print_banner() -> None:
     """Print the startup banner."""
     print(f"{BLUE}========================================{NC}")
-    print(f"{BLUE}  Sigilweaver Development Launcher{NC}")
+    print(f"{BLUE}  Sigilweaver Loom Development Launcher{NC}")
     print(f"{BLUE}========================================{NC}")
     print()
 
@@ -1106,7 +1106,7 @@ def print_status(
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Sigilweaver Development Launcher",
+        description="Sigilweaver Loom Development Launcher",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

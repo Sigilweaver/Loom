@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Full verification suite for Sigilweaver.
+Full verification suite for Sigilweaver Loom.
 
 Runs all checks to ensure CI will pass:
 1. Server: Lint (ruff) + Type check (mypy) + Tests (pytest) + Coverage
@@ -1090,7 +1090,7 @@ def print_summary(results: list[SuiteResult], strict: bool = False, coverage: bo
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Run full verification suite for Sigilweaver (lint, typecheck, tests)",
+        description="Run full verification suite for Sigilweaver Loom (lint, typecheck, tests)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1244,7 +1244,7 @@ Examples:
     
     # Dry run: show what would be tested and exit
     if args.dry_run:
-        print_header("Sigilweaver Verification Suite (dry run)", force=True)
+        print_header("Sigilweaver Loom Verification Suite (dry run)", force=True)
         if smart_mode and changed_components:
             print(f"Smart mode: {changed_components.summary()}")
             print()
@@ -1290,7 +1290,7 @@ Examples:
     
     results: list[SuiteResult] = []
     
-    print_header("Sigilweaver Verification Suite", force=True)
+    print_header("Sigilweaver Loom Verification Suite", force=True)
     
     # Get CPU count for display
     cpu_count = os.cpu_count() or 1

@@ -1,4 +1,4 @@
-# Contributing to Sigilweaver
+# Contributing to Sigilweaver Loom
 
 Welcome! This document covers the essentials to get you started.
 
@@ -6,11 +6,11 @@ For comprehensive developer documentation, visit **[sigilweaver.app/docs/develop
 
 ## Before You Contribute: The CLA
 
-Sigilweaver requires all contributors to sign an **IP Assignment CLA** before we can merge your pull request.
+Sigilweaver Loom requires all contributors to sign an **IP Assignment CLA** before we can merge your pull request.
 
 ### Why an IP Assignment?
 
-Sigilweaver is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity with unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
+Sigilweaver Loom is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity with unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
 
 However, I know that assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
@@ -27,7 +27,7 @@ This CLA contains a specialized legal structure designed to safeguard the commun
 **The "Teeth" (Reversion Clause):**
 If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
-This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
+This ensures that Sigilweaver Loom acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
 
 You can read the full legal text of the agreement at **[CLA.md](./CLA.md)**.
 
@@ -39,8 +39,8 @@ The CLA will be presented automatically when you open your first pull request.
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sigilweaver/Sigilweaver.git
-cd sigilweaver
+git clone https://github.com/Sigilweaver/Loom.git
+cd Loom
 
 # Start everything (Server + Studio + Hub)
 ./scripts/dev.py
@@ -86,12 +86,12 @@ For detailed workflow documentation, see [Contributing Workflow](https://sigilwe
 ## Getting Help
 
 - **Documentation**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
-- **Issues**: [GitHub Issues](https://github.com/Sigilweaver/Sigilweaver/issues)
+- **Issues**: [GitHub Issues](https://github.com/Sigilweaver/Loom/issues)
 - **Code of Conduct**: [sigilweaver.app/docs/code-of-conduct](https://sigilweaver.app/docs/code-of-conduct)
 
 ## License
 
-Sigilweaver is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for documentation and the website.
+Sigilweaver Loom is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for documentation and the website.
 
 By contributing, you agree that your contributions will be licensed under these licenses, and you agree to the terms of the CLA.
 
@@ -99,4 +99,4 @@ See [LICENSE](LICENSE.md) for details.
 
 ---
 
-Thank you for contributing to Sigilweaver.
+Thank you for contributing to Sigilweaver Loom.
