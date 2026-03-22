@@ -1,7 +1,7 @@
 /**
  * Hub API Client
  *
- * Connects to the Sigilweaver Hub for centralized workflow management,
+ * Connects to the Sigilweaver Loom Hub for centralized workflow management,
  * server token acquisition, and connection access.
  *
  * Hub is the orchestration layer that:

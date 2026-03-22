@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Sigilweaver Backend
+PyInstaller spec file for Sigilweaver Loom Backend
 Builds a standalone executable with all dependencies bundled
 """
 

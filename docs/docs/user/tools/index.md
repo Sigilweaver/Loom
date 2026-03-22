@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Tools Overview
 
-Sigilweaver provides a set of tools for building data transformation workflows. Each tool performs a specific operation on data.
+Sigilweaver Loom provides a set of tools for building data transformation workflows. Each tool performs a specific operation on data.
 
 ## Tool Categories
 

@@ -1,7 +1,7 @@
 ---
 slug: ai-where-it-belongs
 title: "AI Where It Belongs (and Nowhere Else)"
-description: "How Sigilweaver uses AI for mechanical tasks like boilerplate and exploration, while keeping judgment and domain expertise where they belong — with the user."
+description: "How Sigilweaver Loom uses AI for mechanical tasks like boilerplate and exploration, while keeping judgment and domain expertise where they belong — with the user."
 authors: [sigilweaver]
 tags: [ai, philosophy, architecture]
 ---
@@ -10,12 +10,12 @@ tags: [ai, philosophy, architecture]
 
 Every application is getting an AI feature. Most of them shouldn't.
 
-I'm building Sigilweaver with an AI assistant, so I've spent a lot of time thinking about where AI makes a product better and where it makes it worse. The conclusion is simpler than most people want to hear: AI is good at mechanical work. Boilerplate, exploration, translating between representations. It's genuinely useful for tasks that don't require judgment, experience, or institutional knowledge. But it lacks the years of domain expertise, the internal context about *why* your data looks the way it does, the perspective to know when a technically correct answer is practically wrong. AI can help you look at your data faster. It cannot help you *understand* your data.
+I'm building Sigilweaver Loom with an AI assistant, so I've spent a lot of time thinking about where AI makes a product better and where it makes it worse. The conclusion is simpler than most people want to hear: AI is good at mechanical work. Boilerplate, exploration, translating between representations. It's genuinely useful for tasks that don't require judgment, experience, or institutional knowledge. But it lacks the years of domain expertise, the internal context about *why* your data looks the way it does, the perspective to know when a technically correct answer is practically wrong. AI can help you look at your data faster. It cannot help you *understand* your data.
 
 There's also a prerequisite nobody talks about: your software has to be fast enough for AI to be useful. If every operation the AI tries takes minutes to validate, the AI hasn't saved anyone any time. It's just moved the waiting from the user's hands to the agent's loop.
 
 :::info TL;DR
-- **AI is not a core feature** - Sigilweaver is fully functional without it. AI is a convenience layer, not the product.
+- **AI is not a core feature** - Sigilweaver Loom is fully functional without it. AI is a convenience layer, not the product.
 - **Fast architecture is the prerequisite** - Iterative AI agents only work when each operation takes milliseconds, not minutes. Legacy tools can't support this.
 - **The AI cannot output data** - It builds and previews, never executes. Everything it does is reversible. Blast radius: zero.
 - **Guardrails catch the easy mistakes** - Structural validation is real but limited. Subtle semantic errors like picking the wrong join type or misreading an ambiguous filter sail right through.
@@ -27,11 +27,11 @@ There's also a prerequisite nobody talks about: your software has to be fast eno
 
 ## The Boilerplate Test
 
-The question I use to decide whether something in Sigilweaver should involve AI:
+The question I use to decide whether something in Sigilweaver Loom should involve AI:
 
 **Is this task something a machine does effortlessly but a human shouldn't waste time on?**
 
-Most individual operations in Sigilweaver are straightforward. Filters, formulas, joins, aggregations: you can configure them through the GUI without writing code. But building a *workflow* is where the tedium lives. Connecting fifteen tools in the right order, configuring each one, wiring them together, verifying the intermediate results. Each step is easy; the aggregate is time-consuming. It's not intellectually demanding, it's just repetitive assembly work. Tell the agent "read these two CSVs, join them on customer ID, filter where revenue is above 10k, and aggregate by region" and it scaffolds the whole thing in seconds.
+Most individual operations in Sigilweaver Loom are straightforward. Filters, formulas, joins, aggregations: you can configure them through the GUI without writing code. But building a *workflow* is where the tedium lives. Connecting fifteen tools in the right order, configuring each one, wiring them together, verifying the intermediate results. Each step is easy; the aggregate is time-consuming. It's not intellectually demanding, it's just repetitive assembly work. Tell the agent "read these two CSVs, join them on customer ID, filter where revenue is above 10k, and aggregate by region" and it scaffolds the whole thing in seconds.
 
 But deciding *which* rows to filter? Which columns to aggregate, and what question you're actually trying to answer? That's the user's job. It requires understanding the data, the business context, and the downstream consequences. No model should be making that decision silently.
 
@@ -43,9 +43,9 @@ An AI agent building a workflow is iterative. It adds a tool, checks the schema,
 
 This only works if each of those operations is fast.
 
-In Sigilweaver, most operations complete in milliseconds to low seconds. Previewing a tool's output doesn't re-execute the entire workflow from scratch. It evaluates the minimum subgraph needed, pulls the rest from cache, and returns a sample. Schema lookups are instant because column metadata is derived from the query plan, not from running the query. The agent can add a filter, preview five rows to verify it worked, adjust the expression, preview again, and move on, all in the time it takes to read this sentence.
+In Sigilweaver Loom, most operations complete in milliseconds to low seconds. Previewing a tool's output doesn't re-execute the entire workflow from scratch. It evaluates the minimum subgraph needed, pulls the rest from cache, and returns a sample. Schema lookups are instant because column metadata is derived from the query plan, not from running the query. The agent can add a filter, preview five rows to verify it worked, adjust the expression, preview again, and move on, all in the time it takes to read this sentence.
 
-This wasn't an afterthought. Sigilweaver was designed from the start to minimize breaks in flow for human users:
+This wasn't an afterthought. Sigilweaver Loom was designed from the start to minimize breaks in flow for human users:
 
 - **Lazy evaluation** - Only compute what's actually needed. A preview of the last tool in a twenty-step pipeline doesn't execute steps whose outputs aren't required.
 - **Aggressive caching** - Heavy operations like file reads and joins cache their results. Change a tool downstream? The upstream cache is still warm.
@@ -60,7 +60,7 @@ Imagine an AI agent trying to work in that environment. It adds a filter. It wan
 
 This isn't a hypothetical. It's why AI features in legacy analytics tools tend to be one-shot generators rather than iterative agents. The architecture can't support an iterative loop because iteration is too expensive. So they punt: generate the whole workflow in one pass, hope it's right, let the user debug it if it's not.
 
-Legacy tools aren't bad. They solve real problems for real users. But bolting AI onto an architecture that was designed before AI agents existed produces a fundamentally different experience than building AI into an architecture designed for fast, incremental feedback. The speed that makes Sigilweaver pleasant for humans is the same speed that makes it practical for agents.
+Legacy tools aren't bad. They solve real problems for real users. But bolting AI onto an architecture that was designed before AI agents existed produces a fundamentally different experience than building AI into an architecture designed for fast, incremental feedback. The speed that makes Sigilweaver Loom pleasant for humans is the same speed that makes it practical for agents.
 
 ## The Safety Boundary: Previews, Not Outputs
 
@@ -80,7 +80,7 @@ There's a related design decision worth mentioning: **the AI produces GUI config
 
 The failure mode is predictable: the AI produces something that *looks* right but *is* wrong, and the user doesn't catch it because they trusted the tool.
 
-I watched this happen firsthand while testing Sigilweaver's agent on a Titanic dataset analysis. The user asked: "filter to women and children who did not survive."
+I watched this happen firsthand while testing Sigilweaver Loom's agent on a Titanic dataset analysis. The user asked: "filter to women and children who did not survive."
 
 The agent did exactly what was asked. It filtered where sex equals female AND age is under some threshold AND survived equals zero. Every condition applied simultaneously. Structurally perfect. Schema validation passed. Compiler was happy. The output was a clean table with reasonable-looking values.
 
@@ -118,7 +118,7 @@ The tech industry has a pattern: a new capability appears, and within eighteen m
 
 An AI feature that solves a real problem is valuable. An AI feature that exists because your competitor shipped one is a maintenance burden that erodes trust every time it gives a wrong answer.
 
-For Sigilweaver, that means AI stays in the assistant panel and the expression editor. It doesn't creep into the tool palette, the execution engine, the file browser, or the settings page. If I can't point to a specific mechanical task the AI is eliminating, it doesn't get built.
+For Sigilweaver Loom, that means AI stays in the assistant panel and the expression editor. It doesn't creep into the tool palette, the execution engine, the file browser, or the settings page. If I can't point to a specific mechanical task the AI is eliminating, it doesn't get built.
 
 ## The Test I'd Apply to Any Product
 

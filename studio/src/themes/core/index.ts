@@ -1,7 +1,7 @@
 /**
  * Core Themes Barrel Export
  * 
- * Built-in themes that ship with Sigilweaver.
+ * Built-in themes that ship with Sigilweaver Loom.
  */
 
 export { sigilweaverTheme } from './sigilweaver';

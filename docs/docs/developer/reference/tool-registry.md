@@ -8,7 +8,7 @@ Tool types, interfaces, and how they connect.
 
 ## Overview
 
-Tools are the core building blocks of Sigilweaver. Each tool:
+Tools are the core building blocks of Sigilweaver Loom. Each tool:
 - Has a **type** (e.g., "Filter", "Join")
 - Has **sockets** (input/output connection points)
 - Has a **config** (settings specific to that tool)
@@ -99,7 +99,7 @@ import polars as pl
 from app.api.models.workflow import DEFAULT_ENGINE
 
 class BaseTool(ABC):
-    engine: str = DEFAULT_ENGINE  # "sigilweaver/polars"
+    engine: str = DEFAULT_ENGINE  # "core/polars"
 
     @abstractmethod
     async def execute(
@@ -168,7 +168,7 @@ from app.domain.tools.registry import ToolRegistry
 tool = ToolRegistry.get("Filter")
 
 # Engine-qualified lookup
-tool = ToolRegistry.get("Filter", engine="sigilweaver/polars")
+tool = ToolRegistry.get("Filter", engine="core/polars")
 
 result = await tool.execute(config, inputs)
 ```
@@ -177,18 +177,18 @@ result = await tool.execute(config, inputs)
 
 ## Engine System
 
-Tools declare which execution engine they belong to via the `engine` class attribute. The default engine is `"sigilweaver/polars"`.
+Tools declare which execution engine they belong to via the `engine` class attribute. The default engine is `"core/polars"`.
 
 ### Engine Resolution
 
 When the executor runs a tool, it resolves the engine using this precedence chain:
 
 ```
-tool.engine  >  meta.defaultEngine  >  DEFAULT_ENGINE ("sigilweaver/polars")
+tool.engine  >  meta.defaultEngine  >  DEFAULT_ENGINE ("core/polars")
 ```
 
 - `tool.engine`: Per-tool override in the workflow JSON (optional)
-- `meta.defaultEngine`: Workflow-level default (optional, defaults to `"sigilweaver/polars"`)
+- `meta.defaultEngine`: Workflow-level default (optional, defaults to `"core/polars"`)
 - `DEFAULT_ENGINE`: Hardcoded fallback constant
 
 ### Engine IDs
@@ -197,8 +197,8 @@ Engine identifiers use a namespaced format:
 
 | Engine | ID |
 |--------|----|
-| Polars (built-in) | `sigilweaver/polars` |
-| Future engines | `sigilweaver/pandas`, `contrib/dbt`, etc. |
+| Polars (built-in) | `core/polars` |
+| Future engines | `core/pandas`, `contrib/dbt`, etc. |
 
 ### Workflow Schema Fields
 
@@ -209,26 +209,26 @@ The `.swwf` workflow format includes these engine-related fields:
   "version": "1.0",
   "meta": {
     "name": "My Workflow",
-    "defaultEngine": "sigilweaver/polars"
+    "defaultEngine": "core/polars"
   },
   "tools": [
     {
       "id": "abc",
       "type": "Filter",
-      "engine": "sigilweaver/polars",
+      "engine": "core/polars",
       "config": { ... },
       "sockets": [ ... ]
     }
   ],
   "wires": [ ... ],
   "engines": {
-    "sigilweaver/polars": {},
+    "core/polars": {},
     "contrib/dbt": { "project": "analytics", "profile": "dev" }
   }
 }
 ```
 
-- `meta.defaultEngine`: Optional. Defaults to `"sigilweaver/polars"` if omitted.
+- `meta.defaultEngine`: Optional. Defaults to `"core/polars"` if omitted.
 - `tool.engine`: Optional. Omitted when it matches the workflow default (to reduce noise).
 - `engines`: Optional block for engine-specific configuration (connection details, project paths, etc.).
 

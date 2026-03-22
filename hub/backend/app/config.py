@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = (
-        "postgresql+asyncpg://sigilweaver:sigilweaver@localhost:25801/sigilweaver_hub"
+        "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub"
     )
 
     # Authentication - Session
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # Generate with: openssl genrsa -out private.pem 2048
     # If empty, an ephemeral key is generated (tokens invalid after restart)
     jwt_private_key: str = ""
-    jwt_issuer: str = "sigilweaver-hub"
+    jwt_issuer: str = "sigilweaver-loom-hub"
     # Server token lifetime in seconds (default 5 minutes)
     server_token_ttl_seconds: int = 300
 

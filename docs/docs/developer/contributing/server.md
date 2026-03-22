@@ -39,7 +39,7 @@ from app.api.models.common import DataSchema
 class MyTool(BaseTool):
     """One-line description."""
     
-    # engine defaults to "sigilweaver/polars" from BaseTool.
+    # engine defaults to "core/polars" from BaseTool.
     # Override for non-Polars engines: engine = "contrib/dbt"
 
     async def execute(

@@ -11,13 +11,13 @@ def sample_assets_dir(tmp_path):
 
     # Create sample files
     files = [
-        "Sigilweaver-Setup-v0.2.5-alpha.exe",
-        "Sigilweaver-Portable-v0.2.5-alpha.exe",
-        "Sigilweaver-v0.2.5-alpha-x64.AppImage",
-        "Sigilweaver-v0.2.5-alpha-x64.snap",
-        "Sigilweaver-Client-Setup-v0.2.5-alpha.exe",
-        "Sigilweaver-Client-v0.2.5-alpha-x64.AppImage",
-        "Sigilweaver-Web-v0.2.5-alpha.zip",
+        "Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
+        "Sigilweaver-Loom-Portable-v0.2.5-alpha.exe",
+        "Sigilweaver-Loom-v0.2.5-alpha-x64.AppImage",
+        "Sigilweaver-Loom-v0.2.5-alpha-x64.snap",
+        "Sigilweaver-Loom-Client-Setup-v0.2.5-alpha.exe",
+        "Sigilweaver-Loom-Client-v0.2.5-alpha-x64.AppImage",
+        "Sigilweaver-Loom-Web-v0.2.5-alpha.zip",
         "SHA256SUMS.txt",
     ]
 

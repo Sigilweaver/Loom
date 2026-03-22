@@ -1,6 +1,6 @@
-# Sigilweaver Docker Deployment
+# Sigilweaver Loom Docker Deployment
 
-Production Docker deployment for Sigilweaver Hub and Server.
+Production Docker deployment for Sigilweaver Loom Hub and Server.
 
 ## Quick Start
 
@@ -98,7 +98,7 @@ docker/
 
 ## Services
 
-### Hub (`sigilweaver-hub`)
+### Hub (`sigilweaver-loom-hub`)
 
 - **Port**: 25802 (configurable via HUB_PORT)
 - **Features**:
@@ -108,7 +108,7 @@ docker/
   - Server coordination
   - Connection management
 
-### Server (`sigilweaver-server`)
+### Server (`sigilweaver-loom-server`)
 
 - **Port**: 25811 (internal only by default)
 - **Features**:
@@ -202,9 +202,9 @@ docker compose logs -f server
 
 | Volume                      | Purpose                           |
 | --------------------------- | --------------------------------- |
-| `sigilweaver_postgres_data` | PostgreSQL data persistence       |
-| `sigilweaver_hub_workflows` | Workflow storage                  |
-| `sigilweaver_server_data`   | Data files for server (read-only) |
+| `sigilweaver_loom_postgres_data` | PostgreSQL data persistence       |
+| `sigilweaver_loom_hub_workflows` | Workflow storage                  |
+| `sigilweaver_loom_server_data`   | Data files for server (read-only) |
 
 ## Health Checks
 

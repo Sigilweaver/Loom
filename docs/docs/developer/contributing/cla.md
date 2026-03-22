@@ -8,7 +8,7 @@ Before your first pull request can be merged, you must sign our **IP Assignment 
 
 ## Why IP Assignment?
 
-Sigilweaver is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, a single entity needs unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
+Sigilweaver Loom is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, a single entity needs unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
 
 However, assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
@@ -27,12 +27,12 @@ This CLA contains a specialized legal structure designed to safeguard the commun
 
 If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
-This ensures that Sigilweaver acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
+This ensures that Sigilweaver Loom acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
 
 ## What This Means in Practice
 
 * **The project stays open source forever** - No one can close the source  
-* **You can always fork, use, and modify Sigilweaver under the AGPL**  
+* **You can always fork, use, and modify Sigilweaver Loom under the AGPL**  
 * **If the project changes hands**, it goes to a nonprofit, not a corporation  
 * **If anything goes wrong**, ownership reverts to contributors  
 
@@ -40,12 +40,12 @@ This ensures that Sigilweaver acts like a community-owned project (similar to Li
 
 **That's completely valid.** 
 
-If IP assignment doesn't align with your values, you're under no obligation to contribute code. Sigilweaver is AGPL-licensed, which means you can:
+If IP assignment doesn't align with your values, you're under no obligation to contribute code. Sigilweaver Loom is AGPL-licensed, which means you can:
 
 - **Fork the project** and maintain your own version
-- **Use Sigilweaver** for any purpose without restriction
+- **Use Sigilweaver Loom** for any purpose without restriction
 - **Report bugs and suggest features** without signing anything
-- **Write about Sigilweaver**, create tutorials, or help others in the community
+- **Write about Sigilweaver Loom**, create tutorials, or help others in the community
 
 Contributing code is just one way to participate in open source.
 
@@ -53,8 +53,8 @@ Contributing code is just one way to participate in open source.
 
 The CLA will be presented automatically when you open your first pull request. The CLA bot will guide you through the signing process.
 
-If you have questions about the CLA before contributing, please [open a discussion](https://github.com/Sigilweaver/Sigilweaver/discussions).
+If you have questions about the CLA before contributing, please [open a discussion](https://github.com/Sigilweaver/Loom/discussions).
 
 ---
 
-You can read the full legal text of the agreement at **[CLA.md](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md)**.
+You can read the full legal text of the agreement at **[CLA.md](https://github.com/Sigilweaver/Loom/blob/main/CLA.md)**.

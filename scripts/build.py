@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cross-platform build script for Sigilweaver.
+Cross-platform build script for Sigilweaver Loom.
 
 Builds the complete application:
 1. Server executable (PyInstaller)
@@ -364,7 +364,7 @@ def print_summary(results: list[BuildResult]) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Build Sigilweaver application")
+    parser = argparse.ArgumentParser(description="Build Sigilweaver Loom application")
     parser.add_argument(
         "--platform",
         choices=["linux", "win", "mac"],
@@ -400,7 +400,7 @@ def main() -> int:
     repo_root = get_repo_root()
     results: list[BuildResult] = []
 
-    print_header("Sigilweaver Build")
+    print_header("Sigilweaver Loom Build")
     print(f"Repository: {repo_root}")
     print(f"Platform: {platform}")
 

@@ -32,7 +32,7 @@ export function buildExpressionPrompt(
     ? `\nAvailable Polars functions:\n${polarsFunctions.slice(0, 50).join(', ')}${polarsFunctions.length > 50 ? '...' : ''}\n`
     : '';
 
-  return `You are an expression assistant for Sigilweaver Studio, a visual data pipeline tool.
+  return `You are an expression assistant for Sigilweaver Loom Studio, a visual data pipeline tool.
 
 You write Polars Python expressions for ${toolType} tools.
 
@@ -78,7 +78,7 @@ export function buildBasicFilterPrompt(
     .map((c) => `  - ${c.name} (${c.dtype}${c.nullable ? ', nullable' : ''})`)
     .join('\n');
 
-  return `You are a filter condition builder for Sigilweaver Studio, a visual data pipeline tool.
+  return `You are a filter condition builder for Sigilweaver Loom Studio, a visual data pipeline tool.
 
 Given a natural-language request, produce a JSON array of structured filter conditions.
 Do NOT write Polars expressions — output JSON only.
@@ -142,7 +142,7 @@ export function buildBasicFormulaPrompt(
     .map((c) => `  - ${c.name} (${c.dtype}${c.nullable ? ', nullable' : ''})`)
     .join('\n');
 
-  return `You are a formula operation builder for Sigilweaver Studio, a visual data pipeline tool.
+  return `You are a formula operation builder for Sigilweaver Loom Studio, a visual data pipeline tool.
 
 Given a natural-language request, produce a JSON array of structured formula operations.
 Do NOT write Polars expressions — output JSON only.

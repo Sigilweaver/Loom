@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Sigilweaver are documented in this file.
+All notable changes to Sigilweaver Loom are documented in this file.
 
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.

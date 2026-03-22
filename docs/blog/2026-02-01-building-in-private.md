@@ -1,20 +1,20 @@
 ---
 slug: building-in-private
 title: "Building in Private: Why I'm Not Shipping Until It's Right"
-description: "Why Sigilweaver is being built in private instead of in public, and why getting infrastructure software right on the first try matters."
+description: "Why Sigilweaver Loom is being built in private instead of in public, and why getting infrastructure software right on the first try matters."
 authors: [sigilweaver]
 tags: [philosophy, development, strategy]
 ---
 
 :::caution Update — March 2026
-This post references commercial licensing and business model considerations that were never implemented and are no longer being pursued. Sigilweaver is purely AGPL-3.0 with no commercial licensing. See the project README for the current direction.
+This post references commercial licensing and business model considerations that were never implemented and are no longer being pursued. Sigilweaver Loom is purely AGPL-3.0 with no commercial licensing. See the project README for the current direction.
 :::
 
 # Building in Private: Why I'm Not Shipping Until It's Right
 
 "Build in public" has become gospel in the developer community. Share your journey. Get feedback early. Iterate with users. Ship fast, fix later.
 
-I'm doing the opposite. Sigilweaver has been in private development for months, and it won't go public until mid-2026 at the earliest. The GitHub repo is private. I have zero users. And I think this is exactly right for what I'm building.
+I'm doing the opposite. Sigilweaver Loom has been in private development for months, and it won't go public until mid-2026 at the earliest. The GitHub repo is private. I have zero users. And I think this is exactly right for what I'm building.
 
 This isn't contrarianism for its own sake. It's a deliberate strategy for building infrastructure software that needs to be correct on the first try.
 
@@ -30,7 +30,7 @@ This isn't contrarianism for its own sake. It's a deliberate strategy for buildi
 
 ## The Paradigm Lock-In Problem
 
-Here's a concrete example from Sigilweaver's architecture: my current workflow schema is Polars-specific.
+Here's a concrete example from Sigilweaver Loom's architecture: my current workflow schema is Polars-specific.
 
 Right now, that's fine. Polars is excellent for the use cases I'm targeting - fast, lazy evaluation, reasonable memory footprint. But what happens when I have an engineering team and want to support Spark for distributed workloads? Or Pandas for compatibility with existing codebases? Or DuckDB for in-database operations?
 
@@ -104,7 +104,7 @@ You're playing poker with your cards face-up against opponents who have bigger s
 
 This matters more in infrastructure than consumer software. The data tooling space is crowded with well-funded companies watching for emerging patterns. A novel approach visible on GitHub becomes a "feature" in their product six months later, shipped with enterprise support you can't match.
 
-**Private development means competitors learn about Sigilweaver when I'm ready, not when they're ready.**
+**Private development means competitors learn about Sigilweaver Loom when I'm ready, not when they're ready.**
 
 ## The Launch Becomes an Event
 
@@ -115,7 +115,7 @@ By then, the narrative is already set:
 - First impressions are based on v0.3, not v1.0
 - The product is "that thing I tried once that wasn't ready"
 
-Private development gives you control over first impressions. The first time anyone sees Sigilweaver, it will be:
+Private development gives you control over first impressions. The first time anyone sees Sigilweaver Loom, it will be:
 - Feature-complete for the core use case
 - Documented properly
 - Tested thoroughly
@@ -182,7 +182,7 @@ But the number of people who:
 - Have budget authority or influence over tooling decisions
 - Are actively looking for a solution in this space
 
-...is actually pretty small. Maybe a few thousand globally? The people operating at the level where Sigilweaver adds value are a niche within a niche.
+...is actually pretty small. Maybe a few thousand globally? The people operating at the level where Sigilweaver Loom adds value are a niche within a niche.
 
 This means:
 - Word of mouth travels fast (good and bad)
@@ -223,7 +223,7 @@ I'm not saying building in public is always wrong. It works when:
 - **Switching costs are low** - Users can leave easily, so continuous validation matters
 - **Speed to market beats correctness** - Someone else ships tomorrow if you don't
 
-But none of these describe Sigilweaver. I'm building infrastructure. The moat is correctness and reliability, not network effects. Switching costs are high. Speed to market matters less than not screwing up the launch.
+But none of these describe Sigilweaver Loom. I'm building infrastructure. The moat is correctness and reliability, not network effects. Switching costs are high. Speed to market matters less than not screwing up the launch.
 
 **Build in public works when iteration is cheap. Build in private works when getting it right matters more than getting it fast.**
 
@@ -262,7 +262,7 @@ That void is uncomfortable. It requires genuine internal motivation, not externa
 
 ## The Launch Plan
 
-When Sigilweaver goes public (targeting June 2026), the goal is:
+When Sigilweaver Loom goes public (targeting June 2026), the goal is:
 
 - **Working software** - Not a demo, not a prototype, not "coming soon"
 - **Complete documentation** - Not "docs coming soon" or auto-generated API references
@@ -280,4 +280,4 @@ We'll see in June if the bet pays off.
 
 ---
 
-**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20building-in-private)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20building-in-private)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

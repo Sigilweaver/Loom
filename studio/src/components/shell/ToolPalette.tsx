@@ -38,7 +38,7 @@ const getCategoryColor = (category: string) => {
 };
 
 // Custom event for touch drag - dispatched when tool is dropped on canvas
-export const TOOL_TOUCH_DROP_EVENT = 'sigilweaver:tool-touch-drop';
+export const TOOL_TOUCH_DROP_EVENT = 'loom:tool-touch-drop';
 
 export interface ToolTouchDropDetail {
   toolType: string;

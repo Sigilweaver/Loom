@@ -1,20 +1,20 @@
-# Sigilweaver Hub - Development Stack
+# Sigilweaver Loom Hub - Development Stack
 
 services:
   # PostgreSQL database
   postgres:
     image: postgres:16-alpine
-    container_name: sigilweaver-hub-postgres
+    container_name: sigilweaver-loom-hub-postgres
     environment:
-      POSTGRES_USER: sigilweaver
-      POSTGRES_PASSWORD: sigilweaver
-      POSTGRES_DB: sigilweaver_hub
+      POSTGRES_USER: sigilweaver_loom
+      POSTGRES_PASSWORD: sigilweaver_loom
+      POSTGRES_DB: sigilweaver_loom_hub
     ports:
       - "25801:5432"
     volumes:
-      - /workspaces/sigilweaver/.working/postgres-data:/var/lib/postgresql/data
+      - /workspaces/Loom/.working/postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U sigilweaver -d sigilweaver_hub" ]
+      test: [ "CMD-SHELL", "pg_isready -U sigilweaver_loom -d sigilweaver_loom_hub" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,9 +24,9 @@ services:
   #   build:
   #     context: ./backend
   #     dockerfile: Dockerfile
-  #   container_name: sigilweaver-hub-backend
+  #   container_name: sigilweaver-loom-hub-backend
   #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://sigilweaver:sigilweaver@postgres:5432/sigilweaver_hub
+  #     DATABASE_URL: postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@postgres:5432/sigilweaver_loom_hub
   #     SECRET_KEY: development-secret-key-change-in-production
   #   ports:
   #     - "25802:25802"

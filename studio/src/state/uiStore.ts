@@ -98,7 +98,7 @@ interface UIState {
 
 // Load persisted snap state (default: true)
 const loadSnapToGrid = (): boolean => {
-  const saved = localStorage.getItem("sigilweaver-snap-to-grid");
+  const saved = localStorage.getItem("snap-to-grid");
   return saved !== null ? saved === "true" : true; // Default: ON
 };
 
@@ -107,7 +107,7 @@ const DEFAULT_FAVORITES = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formu
 
 // Load persisted favorites (defaults to curated list)
 const loadFavoriteTools = (): string[] => {
-  const saved = localStorage.getItem("sigilweaver-favorite-tools");
+  const saved = localStorage.getItem("favorite-tools");
   if (saved !== null) {
     try {
       return JSON.parse(saved);
@@ -120,7 +120,7 @@ const loadFavoriteTools = (): string[] => {
 
 // Load persisted collapsed categories (default: none collapsed)
 const loadCollapsedCategories = (): string[] => {
-  const saved = localStorage.getItem("sigilweaver-collapsed-categories");
+  const saved = localStorage.getItem("collapsed-categories");
   if (saved !== null) {
     try {
       return JSON.parse(saved);
@@ -136,7 +136,7 @@ export const useUIStore = create<UIState>()((set, get) => ({
   toggleSnapToGrid: () =>
     set((s) => {
       const newValue = !s.snapToGrid;
-      localStorage.setItem("sigilweaver-snap-to-grid", String(newValue));
+      localStorage.setItem("snap-to-grid", String(newValue));
       return { snapToGrid: newValue };
     }),
 
@@ -177,7 +177,7 @@ export const useUIStore = create<UIState>()((set, get) => ({
       const newFavorites = isFav
         ? s.favoriteTools.filter((t) => t !== toolType)
         : [...s.favoriteTools, toolType];
-      localStorage.setItem("sigilweaver-favorite-tools", JSON.stringify(newFavorites));
+      localStorage.setItem("favorite-tools", JSON.stringify(newFavorites));
       return { favoriteTools: newFavorites };
     }),
   isFavorite: (toolType: string) => get().favoriteTools.includes(toolType),
@@ -189,7 +189,7 @@ export const useUIStore = create<UIState>()((set, get) => ({
       const newCollapsed = isCollapsed
         ? s.collapsedCategories.filter((c) => c !== categoryId)
         : [...s.collapsedCategories, categoryId];
-      localStorage.setItem("sigilweaver-collapsed-categories", JSON.stringify(newCollapsed));
+      localStorage.setItem("collapsed-categories", JSON.stringify(newCollapsed));
       return { collapsedCategories: newCollapsed };
     }),
   isCategoryCollapsed: (categoryId: string) => get().collapsedCategories.includes(categoryId),

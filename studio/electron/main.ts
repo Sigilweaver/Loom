@@ -17,7 +17,7 @@ const isDev =
 const DEFAULT_SETTINGS = {
   author: 'User',
   backend: { url: 'http://localhost:25811', autoStart: true },
-  theme: { id: 'sigilweaver' },
+  theme: { id: 'sigilweaver-signature' },
   ui: { snapToGrid: true, minimapVisible: true, minimapPosition: 'bottom-right' as const },
 };
 
@@ -30,7 +30,7 @@ const getSystemUsername = (): string => {
   }
 };
 
-const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'sigilweaver-settings' });
+const store = new Store({ defaults: { settings: DEFAULT_SETTINGS }, name: 'application-settings' });
 
 // =============================================================================
 // CONNECTION STORE - Secure credential storage using safeStorage
@@ -57,7 +57,7 @@ interface ConnectionCredentials {
 // Separate store for connections (encrypted credentials)
 const connectionStore = new Store<{ connections: Record<string, StoredConnection> }>({
   defaults: { connections: {} },
-  name: 'sigilweaver-connections',
+  name: 'connections',
 });
 
 /**
@@ -326,7 +326,7 @@ function stopBackend(): void {
 }
 
 function createWindow(): void {
-  const windowTitle = `Sigilweaver - Version ${version}`;
+  const windowTitle = `Sigilweaver Loom - Version ${version}`;
 
   // Icon path - different for dev vs production
   const iconPath = isDev
@@ -399,7 +399,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  console.log(`[Main] Sigilweaver v${version} starting (platform: ${process.platform}, arch: ${process.arch})`);
+  console.log(`[Main] Sigilweaver Loom v${version} starting (platform: ${process.platform}, arch: ${process.arch})`);
   console.log(`[Main] App path: ${app.getAppPath()}`);
   console.log(`[Main] Resources path: ${process.resourcesPath}`);
   console.log(`[Main] User data: ${app.getPath('userData')}`);
@@ -443,7 +443,7 @@ ipcMain.handle('get-settings', async () => {
 
   // If author is still a default value, use OS username instead
   // This gives us the hierarchy: persisted custom value > OS username > 'User'
-  if (settings.author === 'User' || settings.author === 'Sigilweaver User') {
+  if (settings.author === 'User' || settings.author === 'Sigilweaver Loom User') {
     return { ...settings, author: getSystemUsername() };
   }
 

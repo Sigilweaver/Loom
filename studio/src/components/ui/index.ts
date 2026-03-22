@@ -1,5 +1,5 @@
 /**
- * Radix UI primitive wrappers with Sigilweaver theme styling.
+ * Radix UI primitive wrappers with Sigilweaver Loom theme styling.
  * These components provide accessible, consistent UI primitives.
  *
  * Usage:

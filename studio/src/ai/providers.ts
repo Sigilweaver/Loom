@@ -4,7 +4,7 @@
  * Wraps the Vercel AI SDK to provide a unified interface for multiple LLM providers.
  * Optional dependency — only imported when AI is enabled in settings.
  *
- * All calls are routed through the Sigilweaver Server's reverse proxy
+ * All calls are routed through the Sigilweaver Loom Server's reverse proxy
  * (/api/ai/proxy/) to avoid CORS restrictions. This applies to both
  * Electron and web mode since both run in a browser renderer context.
  */
@@ -15,7 +15,7 @@ import { useSettingsStore } from '@state/settingsStore';
 
 /**
  * Build the proxy base URL for a given provider.
- * Routes through the Sigilweaver Server at /api/ai/proxy/{provider}
+ * Routes through the Sigilweaver Loom Server at /api/ai/proxy/{provider}
  * so that browser-mode calls avoid CORS blocks.
  */
 function getProxyBaseURL(provider: string, userBaseUrl?: string): string {

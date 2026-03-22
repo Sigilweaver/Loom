@@ -6,7 +6,7 @@ body:
     id: component
     attributes:
       label: Component
-      description: Which part of Sigilweaver does this relate to?
+      description: Which part of Sigilweaver Loom does this relate to?
       options:
         - Studio (desktop app)
         - Server (execution engine)

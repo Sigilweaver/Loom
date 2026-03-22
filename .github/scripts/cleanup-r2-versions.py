@@ -8,7 +8,7 @@ This script deletes old versions to reduce storage costs.
 Usage:
     export R2_ACCESS_KEY_ID="..."
     export R2_SECRET_ACCESS_KEY="..."
-    export R2_BUCKET_NAME="sigilweaver-downloads"
+    export R2_BUCKET_NAME="sigilweaver-loom-downloads"
     export R2_ENDPOINT_URL="https://<account_id>.r2.cloudflarestorage.com"
 
     # Dry-run to see what would be deleted

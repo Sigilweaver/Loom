@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Sigilweaver Hub - Production Dockerfile
+# Sigilweaver Loom Hub - Production Dockerfile
 # =============================================================================
 # Multi-stage build for minimal image size:
 #   Stage 1: Build frontend (Node.js)
 #   Stage 2: Build backend dependencies (Python/uv)
 #   Stage 3: Production runtime
 #
-# Build with: docker build --build-arg VERSION=1.0.0 -t sigilweaver-hub .
+# Build with: docker build --build-arg VERSION=1.0.0 -t sigilweaver-loom-hub .
 # =============================================================================
 
 # Build arguments for versioning and traceability
@@ -63,8 +63,8 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Labels for GitHub Container Registry (OCI standard)
-LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Sigilweaver" \
-    org.opencontainers.image.description="Sigilweaver Hub - Multi-user workflow orchestration" \
+LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Loom" \
+    org.opencontainers.image.description="Sigilweaver Loom Hub - Multi-user workflow orchestration" \
     org.opencontainers.image.licenses="AGPL-3.0-only" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.created="${BUILD_DATE}" \

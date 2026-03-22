@@ -87,12 +87,12 @@ export function Layout() {
           <div className="flex items-center min-w-0 gap-2">
             <img
               src="/sigilweaver-logo.svg"
-              alt="Sigilweaver"
+              alt="Sigilweaver Loom"
               className="flex-shrink-0 w-8 h-8"
             />
             {!sidebarCollapsed && (
               <span className="text-lg font-semibold text-gray-900 truncate">
-                Sigilweaver Hub
+                Sigilweaver Loom Hub
               </span>
             )}
           </div>

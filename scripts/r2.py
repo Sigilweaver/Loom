@@ -235,7 +235,7 @@ def download_bucket(prefix="", dry_run=False):
         print("ERROR: R2_CDN_URL not set in .env")
         return 1
 
-    bucket = os.environ.get("R2_BUCKET_NAME", "sigilweaver-downloads")
+    bucket = os.environ.get("R2_BUCKET_NAME", "sigilweaver-loom-downloads")
 
     # Download directory
     project_root = Path(__file__).parent.parent

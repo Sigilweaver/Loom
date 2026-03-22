@@ -6,7 +6,7 @@ sidebar_position: 2
 
 Current limitations, platform quirks, and workarounds.
 
-This is a living document. Things get fixed, new issues appear. Check [GitHub Issues](https://github.com/Sigilweaver/Sigilweaver/issues) for the most current list.
+This is a living document. Things get fixed, new issues appear. Check [GitHub Issues](https://github.com/Sigilweaver/Loom/issues) for the most current list.
 
 ---
 

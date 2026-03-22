@@ -1,9 +1,9 @@
-# Privacy Policy Template for Sigilweaver Hub Operators
+# Privacy Policy Template for Sigilweaver Loom Hub Operators
 
 > [!CAUTION]
 > **If you deploy Hub for others, you MUST have your own privacy policy and terms of use.**
 >
-> Sigilweaver Hub is production-grade software designed with compliance in mind. It collects
+> Sigilweaver Loom Hub is production-grade software designed with compliance in mind. It collects
 > detailed, immutable audit logs of all user activity — who did what, when, from where. It
 > stores workflow definitions, execution history, administrator-configured credentials, and
 > session data including IP addresses. This data may be highly sensitive depending on the
@@ -52,17 +52,17 @@
 
 ---
 
-# [Your Organization] Sigilweaver Hub Privacy Policy
+# [Your Organization] Sigilweaver Loom Hub Privacy Policy
 
 **Last updated:** [DATE]
 
 ## 1. Introduction
 
-This Privacy Policy describes how [Your Organization] ("we", "us", "our") collects, uses, and protects information when you use our Sigilweaver Hub deployment at [your-hub-url].
+This Privacy Policy describes how [Your Organization] ("we", "us", "our") collects, uses, and protects information when you use our Sigilweaver Loom Hub deployment at [your-hub-url].
 
-**This policy is solely between you and [Your Organization].** Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver open-source project, and its contributors are not parties to this policy, do not operate this Hub deployment, have no access to your data, and bear no responsibility for how [Your Organization] handles your information.
+**This policy is solely between you and [Your Organization].** Sigilweaver Holdings LLC, Sigilweaver LLC, the Sigilweaver Loom open-source project, and its contributors are not parties to this policy, do not operate this Hub deployment, have no access to your data, and bear no responsibility for how [Your Organization] handles your information.
 
-Sigilweaver Hub is self-hosted workflow orchestration software. Administrators configure access to databases, file systems, and cloud storage. When you use our Hub deployment, we collect and process data as described below.
+Sigilweaver Loom Hub is self-hosted workflow orchestration software. Administrators configure access to databases, file systems, and cloud storage. When you use our Hub deployment, we collect and process data as described below.
 
 ## 2. Information We Collect
 
@@ -289,5 +289,5 @@ admin.audit.exported
 
 ---
 
-*This template is provided by the Sigilweaver project under CC0 (public domain). 
+*This template is provided by the Sigilweaver Loom project under CC0 (public domain). 
 Modify freely for your organization's needs.*

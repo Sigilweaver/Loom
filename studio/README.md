@@ -1,4 +1,4 @@
-# Sigilweaver Studio
+# Sigilweaver Loom Studio
 
 The visual workflow designer - a desktop application for building data pipelines.
 
@@ -33,7 +33,7 @@ Workflows are saved as `.swwf` files (JSON format). Share them with colleagues, 
 
 ### From Release
 
-Download from [sigilweaver.app/downloads](https://sigilweaver.app/downloads) and run the installer for your platform.
+Download from [sigilweaver.app/loom/downloads](https://sigilweaver.app/loom/downloads) and run the installer for your platform.
 
 ### From Source
 
@@ -83,7 +83,7 @@ Workflows are saved as `.swwf` files:
   "meta": {
     "name": "My Workflow",
     "author": "User",
-    "defaultEngine": "sigilweaver/polars"
+    "defaultEngine": "core/polars"
   },
   "tools": [...],
   "wires": [...],
@@ -91,7 +91,7 @@ Workflows are saved as `.swwf` files:
 }
 ```
 
-- `meta.defaultEngine`: The execution engine for all tools (defaults to `"sigilweaver/polars"`).
+- `meta.defaultEngine`: The execution engine for all tools (defaults to `"core/polars"`).
 - Tools can override with a per-tool `engine` field.
 - `engines`: Optional block for engine-specific configuration.
 

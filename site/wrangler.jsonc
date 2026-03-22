@@ -1,5 +1,5 @@
 {
-    "name": "sigilweaver-app",
+    "name": "sigilweaver-loom-website",
     "compatibility_date": "2024-11-26",
     "assets": {
         "directory": "./dist"

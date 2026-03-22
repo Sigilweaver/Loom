@@ -52,13 +52,14 @@ class TestManifestBuilder:
         builder = ManifestBuilder(sample_assets_dir, version, base_url)
         manifest = builder.build_stable_manifest("abc123")
 
-        asset = manifest["assets"][0]
+        # Find the web zip asset (iteration order is not guaranteed)
+        asset = next(a for a in manifest["assets"] if a["fileName"].endswith(".zip"))
         assert asset["url"].startswith(base_url)
         assert f"/releases/{version}/" in asset["url"]
         # URL should use the original versioned filename
-        assert "Sigilweaver-Web-v0.2.5-alpha.zip" in asset["url"]
+        assert "Sigilweaver-Loom-Web-v0.2.5-alpha.zip" in asset["url"]
         # fileName should also keep the original versioned name
-        assert asset["fileName"] == "Sigilweaver-Web-v0.2.5-alpha.zip"
+        assert asset["fileName"] == "Sigilweaver-Loom-Web-v0.2.5-alpha.zip"
 
     def test_downloads_manifest_structure(self, sample_assets_dir, version, base_url):
         builder = ManifestBuilder(sample_assets_dir, version, base_url)

@@ -1,4 +1,4 @@
-# Contributing to Sigilweaver Server
+# Contributing to Sigilweaver Loom Server
 
 For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/server](https://sigilweaver.app/docs/developer/contributing/server)**.
 

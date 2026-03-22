@@ -1,18 +1,18 @@
 ---
 slug: sustainable-open-source
 title: "Building Sustainable Open Source: Legal Structure, Licensing, and the Long Game"
-description: "How Sigilweaver approaches legal structure, licensing, and business model to build a sustainable open source project that lasts."
+description: "How Sigilweaver Loom approaches legal structure, licensing, and business model to build a sustainable open source project that lasts."
 authors: [sigilweaver]
 tags: [open-source, business-model, legal, sustainability]
 ---
 
 :::caution Update — March 2026
-This post was written in January 2026 when Sigilweaver's sustainability model *considered* dual licensing (AGPL + commercial). **That model was never implemented and is no longer being pursued.** No commercial licenses were ever sold. Sigilweaver is purely AGPL-3.0 with no commercial licensing, no paid tiers, and no plans to monetize. The legal structure (PropCo/OpCo, CLA with reversion clause) remains intact for IP protection and copyleft enforcement. This post is preserved as a historical record of the original thinking.
+This post was written in January 2026 when Sigilweaver Loom's sustainability model *considered* dual licensing (AGPL + commercial). **That model was never implemented and is no longer being pursued.** No commercial licenses were ever sold. Sigilweaver Loom is purely AGPL-3.0 with no commercial licensing, no paid tiers, and no plans to monetize. The legal structure (PropCo/OpCo, CLA with reversion clause) remains intact for IP protection and copyleft enforcement. This post is preserved as a historical record of the original thinking.
 :::
 
 # Building Sustainable Open Source: Legal Structure, Licensing, and the Long Game
 
-Most open source projects fail not because the code is bad, but because the maintainers burn out or run out of money. We encounter this problem frequently in the ecosystem. We represent Sigilweaver as a long-term project, and that requires deliberate choices about legal structure, licensing, and business model from day one - not as an afterthought when GitHub stars hit 10k.
+Most open source projects fail not because the code is bad, but because the maintainers burn out or run out of money. We encounter this problem frequently in the ecosystem. We represent Sigilweaver Loom as a long-term project, and that requires deliberate choices about legal structure, licensing, and business model from day one - not as an afterthought when GitHub stars hit 10k.
 
 This post outlines the model we are using. It's not the only way, but it's one that balances sustainability with open source values. We are sharing this in detail so other maintainers can use it as a template.
 
@@ -48,7 +48,7 @@ These aren't edge cases. This is the default outcome when critical infrastructur
 
 ## The Legal Structure: PropCo/OpCo Split
 
-Sigilweaver is split into two legal entities:
+Sigilweaver Loom is split into two legal entities:
 
 | Entity                                | Role                         | What It Owns/Does                                                                                                      |
 | ------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -59,11 +59,11 @@ Sigilweaver is split into two legal entities:
 
 **Liability Isolation.** If OpCo gets sued (customer contract dispute, employment issue), the IP in PropCo is protected. The code survives even if the operations don't.
 
-**IP Protection.** Contributors assign copyright to PropCo via a [Contributor License Agreement (CLA)](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md). This lets PropCo dual-license the code (AGPL to the public, Commercial to enterprises). Without a CLA, you can't do dual licensing - every contributor would need to consent to every commercial deal.
+**IP Protection.** Contributors assign copyright to PropCo via a [Contributor License Agreement (CLA)](https://github.com/Sigilweaver/Loom/blob/main/CLA.md). This lets PropCo dual-license the code (AGPL to the public, Commercial to enterprises). Without a CLA, you can't do dual licensing - every contributor would need to consent to every commercial deal.
 
-**Future Flexibility.** If Sigilweaver ever generates enough revenue to justify it, PropCo can be rolled into a nonprofit foundation (think Linux Foundation, Apache Foundation). Nonprofits have high overhead and regulatory burden, so we are not doing that prematurely. But the structure makes it possible later.
+**Future Flexibility.** If Sigilweaver Loom ever generates enough revenue to justify it, PropCo can be rolled into a nonprofit foundation (think Linux Foundation, Apache Foundation). Nonprofits have high overhead and regulatory burden, so we are not doing that prematurely. But the structure makes it possible later.
 
-**Exit Optionality.** If someone wants to acquire Sigilweaver, they buy OpCo (the business) but license the IP from PropCo. Or they buy PropCo (the IP) but leave OpCo to continue operating. This flexibility increases the project's value.
+**Exit Optionality.** If someone wants to acquire Sigilweaver Loom, they buy OpCo (the business) but license the IP from PropCo. Or they buy PropCo (the IP) but leave OpCo to continue operating. This flexibility increases the project's value.
 
 ### Why Is The Footer Like That?
 
@@ -80,7 +80,7 @@ This isn't random. It's deliberate separation of concerns at the legal level.
 
 ## The Licensing Model: Dual Licensing (AGPL + Commercial)
 
-Sigilweaver is available under two licenses:
+Sigilweaver Loom is available under two licenses:
 
 | License        | Cost | Usage                                     | Constraints                                                                                     |
 | -------------- | ---- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -119,7 +119,7 @@ Because **nonprofits are expensive to run correctly.**
 - Restrictions on commercial activity
 - Regulatory scrutiny (IRS has audited nonprofits aggressively after past abuse)
 
-If Sigilweaver generates $0 revenue, a nonprofit structure is pure overhead. But if it generates enough to support full-time maintainers, donating the IP to a foundation makes sense.
+If Sigilweaver Loom generates $0 revenue, a nonprofit structure is pure overhead. But if it generates enough to support full-time maintainers, donating the IP to a foundation makes sense.
 
 **The PropCo/OpCo split makes this transition possible.** PropCo (the IP holder) can become a nonprofit foundation. OpCo (the commercial operator) can continue selling licenses and services under the foundation's governance.
 
@@ -132,7 +132,7 @@ We are not there yet. But the structure doesn't prevent it.
 
 ## The Contributor License Agreement: The "Poison Pill" Defense
 
-All contributors must sign the [CLA](https://github.com/Sigilweaver/Sigilweaver/blob/main/CLA.md) before their pull request is merged. This took **weeks** to get right, and to my knowledge, this structure is unique to Sigilweaver.
+All contributors must sign the [CLA](https://github.com/Sigilweaver/Loom/blob/main/CLA.md) before their pull request is merged. This took **weeks** to get right, and to my knowledge, this structure is unique to Sigilweaver Loom.
 
 ### The Two Failed Models
 
@@ -167,9 +167,9 @@ The problem: **rugpull risk.** History is full of examples:
 
 The pattern is consistent: companies acquire or control projects with standard CLAs, then change course when it's profitable. Contributors are left with nothing - no leverage, no recourse, just a fork and broken trust.
 
-### Sigilweaver's Model: Option 3
+### Sigilweaver Loom's Model: Option 3
 
-Sigilweaver's CLA tries to get the benefits of centralized ownership (can dual-license, can fight infringers, can adapt) without the rugpull risk.
+Sigilweaver Loom's CLA tries to get the benefits of centralized ownership (can dual-license, can fight infringers, can adapt) without the rugpull risk.
 
 Yes, you assign copyright to Sigilweaver Holdings LLC (PropCo) - dual licensing is impossible without unified copyright. But **PropCo makes binding legal covenants back to you**:
 
@@ -185,26 +185,26 @@ Here's the critical part. If PropCo:
 
 Then **the copyright assignment automatically terminates.** Ownership of all contributions immediately reverts to the individual contributors.
 
-This is the "poison pill." If someone tries to buy Sigilweaver to close-source it, the IP evaporates. If PropCo fails its mission, the code becomes community-owned by default.
+This is the "poison pill." If someone tries to buy Sigilweaver Loom to close-source it, the IP evaporates. If PropCo fails its mission, the code becomes community-owned by default.
 
 ### The "Safety Pin" Clause
 
 The CLA also includes a severability provision with a twist. If Section 3 (the Covenants) or Section 4 (the Reversion Clause) is held invalid by a court, then **Section 2 (the Assignment) is also void**. You can't enforce the assignment without the protections.
 
-This isn't a standard CLA clause. Most agreements have severability that lets companies keep the parts they want even if other parts fail. Sigilweaver's CLA is intentionally all-or-nothing: either the protections hold, or the assignment doesn't happen.
+This isn't a standard CLA clause. Most agreements have severability that lets companies keep the parts they want even if other parts fail. Sigilweaver Loom's CLA is intentionally all-or-nothing: either the protections hold, or the assignment doesn't happen.
 
 ### Why This Matters
 
 I spent weeks working through this structure because **trust shouldn't require faith.** The open source community has been burned too many times by projects that started with good intentions and ended with proprietary capture.
 
-Sigilweaver's CLA makes the commitments legally enforceable. You're not trusting me to do the right thing - you're trusting contract law to bind PropCo to its promises.
+Sigilweaver Loom's CLA makes the commitments legally enforceable. You're not trusting me to do the right thing - you're trusting contract law to bind PropCo to its promises.
 
 ### What If You Still Don't Want to Sign?
 
 That's valid. IP assignment is a personal decision, regardless of the protections.
 
 If you don't want to sign the CLA, you can still:
-- **Use Sigilweaver** under AGPL for any purpose
+- **Use Sigilweaver Loom** under AGPL for any purpose
 - **Fork the project** and maintain your own version
 - **Report bugs and suggest features** without signing anything
 - **Help others** in discussions, write tutorials, create content
@@ -213,7 +213,7 @@ Contributing code is just one way to participate. The project doesn't have an in
 
 ## The Goal: $0 Burn Rate Sustainability
 
-I'm building Sigilweaver to have **zero recurring costs** until it has revenue to support them.
+I'm building Sigilweaver Loom to have **zero recurring costs** until it has revenue to support them.
 
 - **No cloud hosting:** Self-hosted Studio and Server, no AWS bills
 - **No SaaS subscriptions:** Open source tooling (GitHub, Docusaurus, VS Code)
@@ -227,7 +227,7 @@ This is only possible because of:
 
 ## The Reality: Building in Private
 
-Here's something I don't see discussed often enough: **at the time of writing this (January 2026), Sigilweaver is not public.** The GitHub repo is private. I have zero users to my knowledge. I don't plan to make it public until June 2026 at the earliest.
+Here's something I don't see discussed often enough: **at the time of writing this (January 2026), Sigilweaver Loom is not public.** The GitHub repo is private. I have zero users to my knowledge. I don't plan to make it public until June 2026 at the earliest.
 
 I understand the "build in public" philosophy - the feedback loops, the accountability, the community momentum. But there's also something to be said for **building in private if you know you can actually force yourself to launch when the time comes.**
 
@@ -246,7 +246,7 @@ What I do know: I've watched maintainers build genuinely valuable infrastructure
 
 So I'm building the structure first. Legal entities before launch. Licensing model before users. Business plan before traction.
 
-If Sigilweaver fails, it won't be because I didn't think about sustainability. It'll be because the market didn't care, or I executed poorly, or a competitor moved faster. Those are risks I can accept.
+If Sigilweaver Loom fails, it won't be because I didn't think about sustainability. It'll be because the market didn't care, or I executed poorly, or a competitor moved faster. Those are risks I can accept.
 
 What I can't accept is building something valuable and watching it collapse because I was afraid to charge for it.
 
@@ -310,7 +310,7 @@ LLC costs vary dramatically by state. California: $800/year. Ohio: $100 one-time
 
 It's awkward to add a CLA to an existing project. Contributors who already contributed under MIT don't have to sign. You end up with a fragmented copyright situation.
 
-Start with a CLA. Make it part of the contribution process from the first PR. Consider using a CLA with contributor protections (like Sigilweaver's reversion clause) to build trust.
+Start with a CLA. Make it part of the contribution process from the first PR. Consider using a CLA with contributor protections (like Sigilweaver Loom's reversion clause) to build trust.
 
 ### 4. Plan for sustainability, not purity
 
@@ -322,7 +322,7 @@ Dual licensing isn't betraying open source - it's how open source infrastructure
 
 I'm documenting this publicly because **transparency is a competitive advantage.** Enterprises trust vendors who are clear about their business model. Developers contribute to projects with a credible future.
 
-Sigilweaver's legal structure isn't a secret weapon - it's a blueprint. If sharing this helps other maintainers build sustainable projects, the open source ecosystem gets stronger.
+Sigilweaver Loom's legal structure isn't a secret weapon - it's a blueprint. If sharing this helps other maintainers build sustainable projects, the open source ecosystem gets stronger.
 
 And a stronger ecosystem is good for everyone.
 
@@ -330,7 +330,7 @@ And a stronger ecosystem is good for everyone.
 
 Here's something I don't see discussed often enough in conversations about open source sustainability: **I've genuinely enjoyed building this.**
 
-I'm a deeply creative and curious person. Architecting a data pipeline engine, designing a visual workflow system, wrestling with the nuances of dual licensing - this scratches an intellectual itch that my day job doesn't. The hundreds of hours I've spent on Sigilweaver weren't martyrdom. They were *play*.
+I'm a deeply creative and curious person. Architecting a data pipeline engine, designing a visual workflow system, wrestling with the nuances of dual licensing - this scratches an intellectual itch that my day job doesn't. The hundreds of hours I've spent on Sigilweaver Loom weren't martyrdom. They were *play*.
 
 Building in private gives me space to chase down architectural rabbit holes, refactor things twice because I didn't like the first solution, and solve problems that probably only exist in my head. That has intrinsic value, regardless of what happens next.
 
@@ -340,7 +340,7 @@ But if the world doesn't need this? Then the world doesn't need this. I can acce
 
 What I couldn't accept is spending years building something valuable, watching it gain adoption, and then watching it collapse because I was afraid to build a business around it. Or worse - burning out because I treated it like a side project with enterprise expectations.
 
-So I'm building the structure first. If Sigilweaver succeeds, it'll succeed sustainably. If it fails, it'll fail with clean IP ownership, clear licensing, and a legal structure that someone else could pick up and run with.
+So I'm building the structure first. If Sigilweaver Loom succeeds, it'll succeed sustainably. If it fails, it'll fail with clean IP ownership, clear licensing, and a legal structure that someone else could pick up and run with.
 
 That's the bet. We'll see how it plays out.
 
@@ -348,5 +348,5 @@ That's the bet. We'll see how it plays out.
 
 *This post will be updated as I learn more. If you see mistakes, have questions, or want to share your own experience with open source sustainability, I'd genuinely like to hear from you.*
 
-**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20sustainable-open-source)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20sustainable-open-source)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
 

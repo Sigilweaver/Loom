@@ -14,7 +14,7 @@ Only the latest release receives security updates.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please report them privately via [GitHub Security Advisories](https://github.com/Sigilweaver/Sigilweaver/security/advisories/new).
+Instead, please report them privately via [GitHub Security Advisories](https://github.com/Sigilweaver/Loom/security/advisories/new).
 
 Include:
 - A description of the vulnerability and its potential impact
@@ -35,7 +35,7 @@ The following are in scope:
 
 The following are out of scope:
 
-- Vulnerabilities in third-party dependencies with no demonstrated exploit path in Sigilweaver
+- Vulnerabilities in third-party dependencies with no demonstrated exploit path in Sigilweaver Loom
 - Denial of service via large workflow files (this is a desktop application that processes user-provided data by design)
 - Self-XSS or attacks requiring physical access to the machine running Studio
 

@@ -95,7 +95,7 @@ if not file.exists():
 # Dry-run (prints actions without uploading)
 export B2_APPLICATION_KEY_ID="..."
 export B2_APPLICATION_KEY="..."  
-export B2_BUCKET_NAME="sigilweaver-downloads"
+export B2_BUCKET_NAME="sigilweaver-loom-downloads"
 export B2_ENDPOINT_URL="s3.us-east-005.backblazeb2.com"
 
 python3 .github/scripts/upload_to_b2.py v0.2.5-test release-assets/ --dry-run

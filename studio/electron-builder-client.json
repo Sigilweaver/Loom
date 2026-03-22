@@ -1,6 +1,6 @@
 {
-  "appId": "com.sigilweaver.workflow-designer-client",
-  "productName": "Sigilweaver-Client",
+  "appId": "com.sigilweaver.loom-client",
+  "productName": "Sigilweaver-Loom-Client",
   "publish": null,
   "directories": {
     "output": "dist"
@@ -60,7 +60,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "Sigilweaver Client"
+    "shortcutName": "Sigilweaver Loom Client"
   },
   "snap": {
     "confinement": "strict"

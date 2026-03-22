@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate synthetic YXDB test data for Sigilweaver integration testing.
+"""Generate synthetic YXDB test data for Sigilweaver Loom integration testing.
 
 Requires sigilyx to be installed (available on PyPI). Run from the repo root:
 

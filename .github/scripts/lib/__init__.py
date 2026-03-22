@@ -1,5 +1,5 @@
 """
-Sigilweaver Release Upload Library
+Sigilweaver Loom Release Upload Library
 
 Modular components for uploading releases to Cloudflare R2.
 """

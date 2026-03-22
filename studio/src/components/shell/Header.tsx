@@ -509,7 +509,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
                 size="md"
               />
               <h1 className="text-xl font-bold text-theme-header-title-text">
-                Sigilweaver Studio
+                Sigilweaver Loom Studio
               </h1>
             </div>
             <div className="text-sm opacity-75 text-theme-header-metadata-text">

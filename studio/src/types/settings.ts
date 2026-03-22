@@ -112,7 +112,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     sessionToken: null,
   },
   theme: {
-    id: 'sigilweaver',
+    id: 'sigilweaver-signature',
   },
   ui: {
     snapToGrid: true,

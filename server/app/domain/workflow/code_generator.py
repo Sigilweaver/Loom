@@ -27,7 +27,7 @@ class PythonCodeGenerator:
         # Header
         lines.append("#!/usr/bin/env python3")
         lines.append('"""')
-        lines.append("Auto-generated Sigilweaver workflow")
+        lines.append("Auto-generated Sigilweaver Loom workflow")
         lines.append(f"Generated: {datetime.now(UTC).isoformat()}")
         lines.append('"""')
         lines.append("")

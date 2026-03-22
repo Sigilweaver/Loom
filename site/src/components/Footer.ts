@@ -39,7 +39,7 @@ export const defaultFooterConfig: FooterConfig = {
       title: 'Support',
       links: [
         { label: 'Support Email', href: 'mailto:' },
-        { label: 'GitHub Issues', href: 'https://github.com/Sigilweaver/Sigilweaver/issues', isExternal: true },
+        { label: 'GitHub Issues', href: 'https://github.com/Sigilweaver/Loom/issues', isExternal: true },
       ],
     },
     {
@@ -53,7 +53,7 @@ export const defaultFooterConfig: FooterConfig = {
   ],
   copyright: {
     tagline: `Open source software with <i data-lucide="heart" class="inline-block w-4 h-4 text-purple-400 fill-current align-middle"></i> for the data community.`,
-    text: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC.<br/>AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
+    text: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver Loom™ is a trademark of Sigilweaver Holdings LLC.<br/>AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
   },
 };
 
@@ -78,9 +78,9 @@ export function createFooter(options: FooterOptions = {}): string {
         <div class="mb-8 text-center sm:text-left">
           <a href="/" class="inline-flex items-center space-x-2 group mb-3">
             <div class="sigil-logo" aria-hidden="true">
-              <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Logo" width="32" height="32">
+              <img src="/icons/sigilweaver-logo.svg" alt="Sigilweaver Loom Logo" width="32" height="32">
             </div>
-            <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver</span>
+            <span class="text-xl font-bold text-mystic-200 group-hover:text-gold-400 transition-colors">Sigilweaver Loom</span>
           </a>
           ${showDescription ? `
             <p class="text-mystic-400 max-w-lg mx-auto sm:mx-0">

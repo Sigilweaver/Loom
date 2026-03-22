@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Architecture Overview
 
-Sigilweaver is a desktop application with a clear separation between frontend (UI) and backend (data processing). Understanding this split is key to navigating the codebase.
+Sigilweaver Loom is a desktop application with a clear separation between frontend (UI) and backend (data processing). Understanding this split is key to navigating the codebase.
 
 ## The Big Picture
 
@@ -144,7 +144,7 @@ The tool system uses a decorator-based registry:
 ```python
 @register_tool("Filter")
 class FilterTool(BaseTool):
-    engine = "sigilweaver/polars"  # Default engine
+    engine = "core/polars"  # Default engine
 
     async def execute(self, config, inputs):
         # Transformation logic

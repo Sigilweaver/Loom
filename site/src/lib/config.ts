@@ -29,7 +29,7 @@ export interface NavConfig {
 export const navConfig: NavConfig = {
   logo: {
     src: '/icons/sigilweaver-logo.svg',
-    alt: 'Sigilweaver Logo',
+    alt: 'Sigilweaver Loom Logo',
     href: '/',
   },
   links: [

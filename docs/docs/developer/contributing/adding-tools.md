@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Adding Tools
 
-Adding a new tool is the most common contribution to Sigilweaver. This guide walks through the complete process: Server (where the transformation happens) and Studio (where the UI lives).
+Adding a new tool is the most common contribution to Sigilweaver Loom. This guide walks through the complete process: Server (where the transformation happens) and Studio (where the UI lives).
 
 ## Overview
 
@@ -36,7 +36,7 @@ from app.api.models.common import DataSchema
 class MyTool(BaseTool):
     """Brief description of what this tool does."""
     
-    # engine defaults to "sigilweaver/polars" from BaseTool.
+    # engine defaults to "core/polars" from BaseTool.
     # Override for non-Polars tools: engine = "contrib/dbt"
 
     async def execute(
@@ -250,7 +250,7 @@ describe('MyToolConfiguration', () => {
     onChange: vi.fn(),
     tools: [],
     wires: [],
-    workflowMeta: { name: 'Test', defaultEngine: 'sigilweaver/polars' },
+    workflowMeta: { name: 'Test', defaultEngine: 'core/polars' },
   };
 
   it('renders current value', () => {

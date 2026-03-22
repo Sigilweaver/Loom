@@ -114,7 +114,7 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sigilweaver Hub</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Sigilweaver Loom Hub</h1>
           <p className="mt-2 text-gray-600">
             {mode === "setup"
               ? "Create your admin account to get started"
@@ -256,7 +256,7 @@ export function LoginPage() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-sm text-gray-500">
-          Sigilweaver Hub - Workflow Orchestration Platform
+          Sigilweaver Loom Hub - Workflow Orchestration Platform
         </p>
       </div>
     </div>

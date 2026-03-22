@@ -41,7 +41,7 @@ Some tools (like **Union**) accept multiple inputs on a single socket. These soc
 
 ## Wire Validation
 
-Sigilweaver validates connections as you work:
+Sigilweaver Loom validates connections as you work:
 
 - Invalid connections are prevented (e.g., input-to-input)
 - Cycle detection prevents infinite loops

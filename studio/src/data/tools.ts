@@ -16,7 +16,7 @@ import {
 import { SigilweaverIcon } from '../components/icons/SigilweaverIcon';
 import { CommonSockets, FilterSockets, JoinSockets, UnionSockets, UniqueSockets } from '../domain/workflow/constants/socketIds';
 
-const DOCS_BASE_URL = 'https://sigilweaver.app/docs/user';
+const DOCS_BASE_URL = 'https://sigilweaver.app/loom/docs/user';
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // Connect Tools

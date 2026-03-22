@@ -1,37 +1,37 @@
 """Custom exception classes"""
 
 
-class SigilweaverError(Exception):
-    """Base exception for Sigilweaver backend"""
+class LoomError(Exception):
+    """Base exception for Sigilweaver Loom backend"""
 
     pass
 
 
-class DataSourceError(SigilweaverError):
+class DataSourceError(LoomError):
     """Error related to data source operations"""
 
     pass
 
 
-class ValidationError(SigilweaverError):
+class ValidationError(LoomError):
     """Error during workflow validation"""
 
     pass
 
 
-class ExecutionError(SigilweaverError):
+class ExecutionError(LoomError):
     """Error during workflow execution"""
 
     pass
 
 
-class ToolError(SigilweaverError):
+class ToolError(LoomError):
     """Error related to tool operations"""
 
     pass
 
 
-class ConfigurationError(SigilweaverError):
+class ConfigurationError(LoomError):
     """Error in configuration"""
 
     pass

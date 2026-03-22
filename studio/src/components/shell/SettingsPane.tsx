@@ -459,16 +459,16 @@ const SettingsPane: React.FC = () => {
               <div className="overflow-hidden border rounded-lg border-theme-border-primary">
                 {/* Sigilweaver family (Signature/Dark/Light) */}
                 {(() => {
-                  const isActiveFamily = theme.id === 'sigilweaver' || theme.id === 'dark' || theme.id === 'light';
+                  const isActiveFamily = theme.id === 'sigilweaver-signature' || theme.id === 'dark' || theme.id === 'light';
                   const variants = [
-                    { id: 'sigilweaver', label: 'Signature' },
+                    { id: 'sigilweaver-signature', label: 'Signature' },
                     { id: 'dark', label: 'Dark' },
                     { id: 'light', label: 'Light' },
                   ] as const;
                   return (
                     <div className="flex items-center px-3 py-2 border-b border-theme-border-secondary">
                       <button
-                        onClick={() => updateTheme('sigilweaver')}
+                        onClick={() => updateTheme('sigilweaver-signature')}
                         className={`text-xs flex-1 text-left transition-colors ${isActiveFamily
                             ? 'text-theme-interactive-accent font-medium'
                             : 'text-theme-text-primary hover:text-theme-interactive-accent'

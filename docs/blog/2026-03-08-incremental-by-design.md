@@ -1,7 +1,7 @@
 ---
 slug: incremental-by-design
 title: "Incremental by Design: Why Your Pipeline Shouldn't Start Over"
-description: "How Sigilweaver's caching architecture avoids re-running entire pipelines when you change a single step, and why incremental execution matters."
+description: "How Sigilweaver Loom's caching architecture avoids re-running entire pipelines when you change a single step, and why incremental execution matters."
 authors: [sigilweaver]
 tags: [architecture, performance, philosophy]
 ---
@@ -18,8 +18,8 @@ It could do what you'd do in a kitchen.
 
 :::info TL;DR
 - **Legacy tools recalculate everything** - Change one parameter at the end of a pipeline and every upstream step re-executes from scratch, even if nothing about those steps changed.
-- **Sigilweaver reuses what it already knows** - Intermediate results are cached. Changing a downstream tool only recomputes what's actually affected.
-- **Lazy evaluation means less waste** - Only the data needed for your current view is computed. Preview five rows and Sigilweaver computes five rows, not five million.
+- **Sigilweaver Loom reuses what it already knows** - Intermediate results are cached. Changing a downstream tool only recomputes what's actually affected.
+- **Lazy evaluation means less waste** - Only the data needed for your current view is computed. Preview five rows and Sigilweaver Loom computes five rows, not five million.
 - **External compute separates the thinking from the heavy lifting** - The designer runs on a laptop; the execution engine runs wherever you want. Your analysts don't need workstations.
 - **Multi-server routing keeps compute next to the data** - Register servers in AWS, on-premises, or anywhere else. Run workflows where the data lives. No egress fees, no transferring datasets over the internet.
 - **Speed changes behavior** - When iteration is cheap, people iterate more. When it's expensive, people batch their changes and hope for the best.
@@ -33,7 +33,7 @@ Imagine you're making dinner. You've spent an hour on a meal: prepped the vegeta
 
 In the legacy approach, you throw away every dish, go back to the grocery store, buy all the ingredients again, and remake the entire meal from scratch. An hour later, you taste it again. Now it needs pepper. Back to the store.
 
-In the Sigilweaver approach, you pick up the salt shaker.
+In the Sigilweaver Loom approach, you pick up the salt shaker.
 
 I know the analogy breaks down with digital things - there's no spoilage, no grocery run, and computation doesn't leave dishes in the sink. But the core claim is real: **you don't have to redo work that hasn't changed.** If the vegetables are already prepped and nothing about how you prep them has changed, prep is done. Move on. Focus on the part that actually needs attention.
 
@@ -66,15 +66,15 @@ Some of these tools have added partial caching over the years. But it's typicall
 
 ## What Incremental Means in Practice
 
-Sigilweaver's execution engine was designed from the start around four principles that compound on each other:
+Sigilweaver Loom's execution engine was designed from the start around four principles that compound on each other:
 
 **Lazy evaluation.** Nothing computes until something asks for it. Adding a tool to the canvas doesn't trigger execution. Wiring two tools together doesn't trigger execution. Even pressing "Preview" on the last tool in a fifty-step pipeline doesn't execute all fifty steps - it evaluates the minimum subgraph needed to produce the preview and ignores everything else.
 
-If you're previewing five rows of output, Sigilweaver collects only the rows it needs from the final output. Because every intermediate result is a Polars LazyFrame - a logical plan, not materialized data - the engine defers computation until the moment of collection. Combined with aggressive caching of upstream results, a five-row preview at the end of a long pipeline is fast because the upstream work is already cached and the final collection is minimal.
+If you're previewing five rows of output, Sigilweaver Loom collects only the rows it needs from the final output. Because every intermediate result is a Polars LazyFrame - a logical plan, not materialized data - the engine defers computation until the moment of collection. Combined with aggressive caching of upstream results, a five-row preview at the end of a long pipeline is fast because the upstream work is already cached and the final collection is minimal.
 
 **Aggressive caching.** When a tool does execute, its result is cached. If nothing about that tool's inputs or configuration has changed, the cached result is returned instantly on the next request. This is automatic and transparent - there's no "enable caching" checkbox. It's how the engine works.
 
-Cache invalidation is dependency-aware. Change a tool's configuration and Sigilweaver invalidates that tool and everything downstream of it. Everything upstream stays warm. Change a filter at step eighteen? Steps one through seventeen are cached. Only steps eighteen through twenty re-execute.
+Cache invalidation is dependency-aware. Change a tool's configuration and Sigilweaver Loom invalidates that tool and everything downstream of it. Everything upstream stays warm. Change a filter at step eighteen? Steps one through seventeen are cached. Only steps eighteen through twenty re-execute.
 
 **Incremental invalidation.** The engine tracks what changed and what didn't. Modifying one tool in the middle of a pipeline doesn't invalidate everything after it - it invalidates that tool's cache and then checks whether the downstream tools' inputs actually changed. If a filter change doesn't alter the output schema, tools that only depend on the schema (not the data) don't need to re-execute.
 
@@ -92,7 +92,7 @@ The result: changing a filter at the end of a pipeline takes seconds, not minute
 
 There's a related architectural decision that compounds this advantage: **the execution engine doesn't run on your laptop.**
 
-Sigilweaver Studio (the visual designer) is the canvas - it's where you drag tools, wire connections, configure parameters, and preview results. The Server (the execution engine) is where computation actually happens. These are separate processes, and they don't need to be on the same machine.
+Sigilweaver Loom Studio (the visual designer) is the canvas - it's where you drag tools, wire connections, configure parameters, and preview results. The Server (the execution engine) is where computation actually happens. These are separate processes, and they don't need to be on the same machine.
 
 This means:
 
@@ -110,17 +110,17 @@ In legacy tools, the execution engine and the designer are typically the same pr
 
 The separation between Studio and Server opens a door that matters more than raw performance: **data locality.**
 
-Sigilweaver Hub takes the single-server model and extends it. You can register multiple Server instances - one in your office, one in AWS, one in Azure - and the Hub monitors their health, load-balances across them, and routes workflow execution to whichever server you choose.
+Sigilweaver Loom Hub takes the single-server model and extends it. You can register multiple Server instances - one in your office, one in AWS, one in Azure - and the Hub monitors their health, load-balances across them, and routes workflow execution to whichever server you choose.
 
 Why does this matter? Because data has gravity, and moving it is expensive.
 
-If your datasets live in S3, you can run a Sigilweaver Server on an EC2 instance in the same region. The Server reads directly from S3 over the local network. Your analyst, working from home on their laptop, opens Studio, builds a pipeline, and hits Preview. The execution request goes to the Hub, the Hub routes it to the AWS server, and the server reads the data locally. The only thing that travels over the internet is the execution request and the preview result - a handful of rows. Not the dataset.
+If your datasets live in S3, you can run a Sigilweaver Loom Server on an EC2 instance in the same region. The Server reads directly from S3 over the local network. Your analyst, working from home on their laptop, opens Studio, builds a pipeline, and hits Preview. The execution request goes to the Hub, the Hub routes it to the AWS server, and the server reads the data locally. The only thing that travels over the internet is the execution request and the preview result - a handful of rows. Not the dataset.
 
 **No egress fees.** No downloading a 50GB dataset to a laptop just to filter it. No waiting for a transfer that takes longer than the actual computation.
 
 The legacy approach - where the tool and the engine are the same process on the analyst's machine - means either the analyst downloads the data to their laptop (slow, expensive, potentially a compliance issue) or they VPN into a corporate network and run the tool on a remote desktop (laggy, frustrating). Neither option is good.
 
-With Sigilweaver, the analyst runs Studio locally. It's lightweight - a browser tab or a small desktop app. The heavy lifting happens on a server that's already next to the data. The analyst gets a responsive local UI with the compute power of a server that's co-located with the storage. Their home internet connection only needs to carry configuration payloads and result previews, not raw data.
+With Sigilweaver Loom, the analyst runs Studio locally. It's lightweight - a browser tab or a small desktop app. The heavy lifting happens on a server that's already next to the data. The analyst gets a responsive local UI with the compute power of a server that's co-located with the storage. Their home internet connection only needs to carry configuration payloads and result previews, not raw data.
 
 Multiple servers also mean you can segment by data sensitivity. Production data stays on the on-premises server behind the firewall. Development datasets live on a cloud server for convenience. The Hub routes to the right one. Your analysts don't need to think about infrastructure - they just run their workflows.
 
@@ -134,7 +134,7 @@ When running a pipeline - or more precisely, recomputing the part that changed -
 
 This isn't a marginal improvement. It's a qualitative change in how analysis gets done. The analyst who waits ten minutes per iteration does three experiments per hour. The analyst who waits two seconds does a hundred. They don't just work faster - they work differently. They find things the first analyst wouldn't, because the first analyst couldn't afford to look.
 
-I built Sigilweaver to be fast for humans. The incremental architecture, the lazy evaluation, the caching - all of it was motivated by the simple belief that a data tool shouldn't make you wait unless there's genuinely new work to do. If the answer is already computed, give it back immediately. If only part of the work changed, only redo that part.
+I built Sigilweaver Loom to be fast for humans. The incremental architecture, the lazy evaluation, the caching - all of it was motivated by the simple belief that a data tool shouldn't make you wait unless there's genuinely new work to do. If the answer is already computed, give it back immediately. If only part of the work changed, only redo that part.
 
 As it turns out, this same architecture is what makes AI assistance practical - a topic I covered in the [previous post](/blog/ai-where-it-belongs). An iterative AI agent needs the same fast feedback loop that a human does. But the motivation was always human ergonomics first. The AI benefits are a bonus.
 
@@ -148,4 +148,4 @@ Pick up the salt shaker. Leave the rest of the meal alone.
 
 ---
 
-**Discuss on [GitHub](https://github.com/Sigilweaver/Sigilweaver/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20incremental-by-design)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20incremental-by-design)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

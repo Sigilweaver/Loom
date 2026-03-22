@@ -4,9 +4,9 @@ sidebar_position: 6
 
 # Architectural Decisions
 
-This page outlines why I made different decisions throughout Sigilweaver's development. Some of these are documented because I did it the "wrong" way first and discovered a better approach. Others are just refined versions of my most significant Architecture Decision Records (ADRs). I'm not claiming these are objectively correct choices - just deliberate tradeoffs made with specific goals in mind.
+This page outlines why I made different decisions throughout Sigilweaver Loom's development. Some of these are documented because I did it the "wrong" way first and discovered a better approach. Others are just refined versions of my most significant Architecture Decision Records (ADRs). I'm not claiming these are objectively correct choices - just deliberate tradeoffs made with specific goals in mind.
 
-None of this was ever set in stone, and it still isn't. Things change, needs change, stacks change. About four months into development, I discovered FlowFile - a similar visual data pipeline tool built with Polars. Honestly, I probably wouldn't have started Sigilweaver if I'd known it existed beforehand. But I'm glad I didn't. Starting fresh meant I had to carefully consider every decision: what stack to use, how I wanted things to work, what the software should support long-term. That deliberate process shaped the architecture in ways that copying wouldn't have.
+None of this was ever set in stone, and it still isn't. Things change, needs change, stacks change. About four months into development, I discovered FlowFile - a similar visual data pipeline tool built with Polars. Honestly, I probably wouldn't have started Sigilweaver Loom if I'd known it existed beforehand. But I'm glad I didn't. Starting fresh meant I had to carefully consider every decision: what stack to use, how I wanted things to work, what the software should support long-term. That deliberate process shaped the architecture in ways that copying wouldn't have.
 
 Every decision here could be revisited as the project grows.
 
@@ -152,7 +152,7 @@ These components are tightly integrated. Hub imports Server's workflow execution
 
 **Context**: Xyflow is purpose-built for node-based editors. It's React-native (nodes are just components), has good defaults for panning/zooming/selection, and is actively maintained. For my stack, there wasn't really a close second choice.
 
-**Tradeoff**: Commercial license for some features. Open source version is sufficient for Sigilweaver.
+**Tradeoff**: Commercial license for some features. Open source version is sufficient for Sigilweaver Loom.
 
 ---
 
@@ -164,7 +164,7 @@ These components are tightly integrated. Hub imports Server's workflow execution
 
 The switch paid off immediately: files are human-readable (debug by opening in a text editor), diffable (Git shows what changed), and require zero serialization libraries.
 
-The `.swwf` extension is arbitrary branding. It's just JSON with a custom extension so the OS associates it with Sigilweaver.
+The `.swwf` extension is arbitrary branding. It's just JSON with a custom extension so the OS associates it with Sigilweaver Loom.
 
 **Tradeoff**: Larger file sizes than binary, no built-in compression. For workflows (kilobytes), this is irrelevant.
 

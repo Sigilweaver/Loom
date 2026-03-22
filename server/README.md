@@ -1,6 +1,6 @@
-# Sigilweaver Server
+# Sigilweaver Loom Server
 
-The execution engine that powers Sigilweaver workflows.
+The execution engine that powers Sigilweaver Loom workflows.
 
 ## What is Server?
 
@@ -18,7 +18,7 @@ Server doesn't process data row-by-row. Instead, it builds an optimized query pl
 
 ### Tool-Based Architecture
 
-Every operation in Sigilweaver (filter, join, aggregate, etc.) is a "tool". Server has a registry of tools that it uses to execute workflows. This makes it easy to add new capabilities.
+Every operation in Sigilweaver Loom (filter, join, aggregate, etc.) is a "tool". Server has a registry of tools that it uses to execute workflows. This makes it easy to add new capabilities.
 
 ### Stateless Execution
 

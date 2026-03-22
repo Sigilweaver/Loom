@@ -1,6 +1,6 @@
 {
-  "productName": "Sigilweaver",
-  "appId": "com.sigilweaver.workflow-designer",
+  "productName": "Sigilweaver Loom",
+  "appId": "com.sigilweaver.loom",
   "publish": null,
   "directories": {
     "output": "dist"
@@ -61,7 +61,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "Sigilweaver"
+    "shortcutName": "Sigilweaver Loom"
   },
   "mac": {
     "category": "public.app-category.developer-tools",

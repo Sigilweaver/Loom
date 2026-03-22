@@ -6,7 +6,7 @@
  *
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.read_ods.html
- * https://sigilweaver.app/docs/user/tools/input-output/input/#ods
+ * https://sigilweaver.app/loom/docs/user/tools/input-output/input/#ods
  *
  * OpenDocument Spreadsheet (.ods) is the spreadsheet format used by
  * LibreOffice Calc and OpenOffice Calc. Similar to Excel, it only
@@ -55,7 +55,7 @@ export const ODS_INFO = {
   name: "OpenDocument Spreadsheet",
   description: "Spreadsheet format used by LibreOffice and OpenOffice",
   extensions: [".ods"],
-  documentationUrl: "https://sigilweaver.app/docs/user/tools/input-output/input/#ods",
+  documentationUrl: "https://sigilweaver.app/loom/docs/user/tools/input-output/input/#ods",
   features: [
     "Open standard format",
     "Cross-platform compatibility",

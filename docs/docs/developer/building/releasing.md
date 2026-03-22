@@ -110,7 +110,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            build-*/Sigilweaver*
+            build-*/Sigilweaver Loom*
           generate_release_notes: true
 ```
 
@@ -127,16 +127,16 @@ https://download.sigilweaver.app/
 ```
 download.sigilweaver.app/
 ├── latest/                     # Always points to newest
-│   ├── Sigilweaver.AppImage    # Generic names
-│   ├── Sigilweaver-Setup.exe
-│   ├── Sigilweaver.dmg
+│   ├── Sigilweaver-Loom.AppImage    # Generic names
+│   ├── Sigilweaver-Loom-Setup.exe
+│   ├── Sigilweaver-Loom.dmg
 │   └── SHA256SUMS.txt
 │
 └── releases/
     ├── index.json              # List of all releases
     ├── v0.3.0/                 # Versioned archives
-    │   ├── Sigilweaver-v0.3.0.AppImage
-    │   ├── Sigilweaver-Setup-v0.3.0.exe
+    │   ├── Sigilweaver-Loom-v0.3.0.AppImage
+    │   ├── Sigilweaver-Loom-Setup-v0.3.0.exe
     │   └── manifest.json
     └── v0.2.0/
         └── ...
@@ -147,7 +147,7 @@ download.sigilweaver.app/
 For download pages, use `/latest/` URLs:
 
 ```html
-<a href="https://download.sigilweaver.app/latest/Sigilweaver.AppImage">
+<a href="https://download.sigilweaver.app/latest/Sigilweaver-Loom.AppImage">
   Download for Linux
 </a>
 ```
@@ -164,7 +164,7 @@ electron-updater checks the manifest for updates:
   "version": "0.3.0",
   "files": [
     {
-      "url": "Sigilweaver-0.3.0.AppImage",
+      "url": "Sigilweaver-Loom-0.3.0.AppImage",
       "sha512": "...",
       "size": 200000000
     }
@@ -184,9 +184,9 @@ electron-updater checks the manifest for updates:
 Every release includes `SHA256SUMS.txt`:
 
 ```
-abc123...  Sigilweaver.AppImage
-def456...  Sigilweaver-Setup.exe
-789abc...  Sigilweaver.dmg
+abc123...  Sigilweaver-Loom.AppImage
+def456...  Sigilweaver-Loom-Setup.exe
+789abc...  Sigilweaver-Loom.dmg
 ```
 
 Users can verify downloads:
@@ -204,7 +204,7 @@ Signing reduces SmartScreen warnings:
 
 ```bash
 # Using SignTool (requires certificate)
-signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com Sigilweaver-Setup.exe
+signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com Sigilweaver-Loom-Setup.exe
 ```
 
 ### macOS (Notarization)
@@ -213,13 +213,13 @@ Apple requires notarization for apps outside the App Store:
 
 ```bash
 # Sign
-codesign --deep --force --options runtime --sign "Developer ID" Sigilweaver.app
+codesign --deep --force --options runtime --sign "Developer ID" Sigilweaver-Loom.app
 
 # Notarize
-xcrun notarytool submit Sigilweaver.dmg --apple-id "..." --team-id "..." --password "..."
+xcrun notarytool submit Sigilweaver-Loom.dmg --apple-id "..." --team-id "..." --password "..."
 
 # Staple
-xcrun stapler staple Sigilweaver.dmg
+xcrun stapler staple Sigilweaver-Loom.dmg
 ```
 
 ### Linux
@@ -228,7 +228,7 @@ No signing required, but AppImage signing is possible:
 
 ```bash
 # Optional: sign AppImage
-appimagetool --sign Sigilweaver.AppImage
+appimagetool --sign Sigilweaver-Loom.AppImage
 ```
 
 ## Pre-Release Testing

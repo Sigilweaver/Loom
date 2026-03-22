@@ -4,11 +4,11 @@ sidebar_position: 2
 
 # Packaging
 
-Building distributable releases of Sigilweaver.
+Building distributable releases of Sigilweaver Loom.
 
 ## Overview
 
-Sigilweaver is distributed as a standalone desktop application. The build process:
+Sigilweaver Loom is distributed as a standalone desktop application. The build process:
 
 1. **Server**: PyInstaller bundles Python code + interpreter into a single executable
 2. **Studio**: Vite builds the React app, Electron packages everything
@@ -76,22 +76,22 @@ This:
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver-<version>.AppImage` | Single-file, runs anywhere |
-| `sigilweaver_<version>_amd64.snap` | Snap package |
+| `Sigilweaver Loom-<version>.AppImage` | Single-file, runs anywhere |
+| `sigilweaver-loom_<version>_amd64.snap` | Snap package |
 
 ### Windows
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver Setup <version>.exe` | NSIS installer |
-| `Sigilweaver <version>.exe` | Portable (no install) |
+| `Sigilweaver Loom Setup <version>.exe` | NSIS installer |
+| `Sigilweaver Loom <version>.exe` | Portable (no install) |
 
 ### macOS
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver-<version>.dmg` | Standard Mac installer |
-| `Sigilweaver-<version>-mac.zip` | Zipped app bundle |
+| `Sigilweaver Loom-<version>.dmg` | Standard Mac installer |
+| `Sigilweaver Loom-<version>-mac.zip` | Zipped app bundle |
 
 ## Build Configurations
 
@@ -119,8 +119,8 @@ Configuration lives in `package.json` and `electron-builder*.json`:
 ```json
 {
   "build": {
-    "appId": "app.sigilweaver",
-    "productName": "Sigilweaver",
+    "appId": "app.sigilweaver.loom",
+    "productName": "Sigilweaver Loom",
     "directories": {
       "output": "dist"
     },
@@ -167,7 +167,7 @@ Hidden imports are manually specified because PyInstaller can't detect dynamic i
 
 ### Production Mode
 
-1. User launches Sigilweaver
+1. User launches Sigilweaver Loom
 2. Electron main process starts
 3. Spawns Server executable from `resources/server/`
 4. Waits for Server health check (`/api/health/`)
@@ -203,10 +203,10 @@ After building, test on a clean system:
 
 ```bash
 # Linux
-./studio/dist/Sigilweaver-*.AppImage
+./studio/dist/Sigilweaver-Loom-*.AppImage
 
 # Or unpack and run
-./studio/dist/linux-unpacked/sigilweaver
+./studio/dist/linux-unpacked/sigilweaver-loom
 ```
 
 Verify:

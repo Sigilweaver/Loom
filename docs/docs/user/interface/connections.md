@@ -4,7 +4,7 @@ sidebar_position: 7
 
 # Managing Connections
 
-Sigilweaver supports connecting to external databases for querying data directly in your workflows. Database credentials are handled securely through the Connection Manager.
+Sigilweaver Loom supports connecting to external databases for querying data directly in your workflows. Database credentials are handled securely through the Connection Manager.
 
 ## Accessing the Connection Manager
 
@@ -22,7 +22,7 @@ Client connections store credentials locally on your machine using Electron's se
 
 ### Hub Connections
 
-Hub connections are managed by your organization's administrators through [Sigilweaver Hub](/admin/). The credentials are stored on the Hub server using Fernet encryption. These connections are:
+Hub connections are managed by your organization's administrators through [Sigilweaver Loom Hub](/admin/). The credentials are stored on the Hub server using Fernet encryption. These connections are:
 
 - **Managed centrally** - Administrators create and maintain connections
 - **Shared through groups** - Available to users who are members of assigned groups
@@ -84,7 +84,7 @@ Hub connections cannot be deleted by users - contact your administrator.
 
 ## Security Model
 
-Sigilweaver is designed to protect your database credentials:
+Sigilweaver Loom is designed to protect your database credentials:
 
 ### What's Protected
 

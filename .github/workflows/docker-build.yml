@@ -1,5 +1,5 @@
 # =============================================================================
-# Sigilweaver Docker Image Build and Push
+# Sigilweaver Loom Docker Image Build and Push
 # =============================================================================
 # Builds amd64 Docker images for Hub and Server and pushes them to
 # GitHub Container Registry (ghcr.io).
@@ -64,7 +64,7 @@ jobs:
           # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
           MAJOR_MINOR="${VERSION%.*}"
-          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-hub"
+          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-loom-hub"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
           echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
@@ -85,7 +85,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
-            org.opencontainers.image.title=Sigilweaver Hub
+            org.opencontainers.image.title=Sigilweaver Loom Hub
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
 
@@ -123,7 +123,7 @@ jobs:
           fi
           VERSION="${VERSION#v}"
           MAJOR_MINOR="${VERSION%.*}"
-          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-server"
+          IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-loom-server"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
           echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
@@ -144,6 +144,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
-            org.opencontainers.image.title=Sigilweaver Server
+            org.opencontainers.image.title=Sigilweaver Loom Server
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}

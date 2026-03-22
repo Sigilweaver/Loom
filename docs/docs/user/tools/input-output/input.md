@@ -164,7 +164,7 @@ Avro is ideal when:
 - Working with row-based data patterns
 - Interoperability with Java/JVM ecosystems is important
 
-For pure performance within Sigilweaver, consider IPC/Arrow or Parquet instead.
+For pure performance within Sigilweaver Loom, consider IPC/Arrow or Parquet instead.
 :::
 
 ### ODS
@@ -258,7 +258,7 @@ Query data from SQLite database files.
 | Query | (required) | SQL query to execute |
 
 :::note SQLite Connections
-SQLite connections point to a `.db` or `.sqlite` file on disk rather than a remote server. The file must be accessible from where Sigilweaver Server is running.
+SQLite connections point to a `.db` or `.sqlite` file on disk rather than a remote server. The file must be accessible from where Sigilweaver Loom Server is running.
 :::
 
 ### MSSQL
@@ -276,7 +276,7 @@ Connection setup and security are the same as PostgreSQL. See [Managing Connecti
 
 ### JSON
 
-JSON data files. Sigilweaver supports two JSON formats, auto-detected by file extension:
+JSON data files. Sigilweaver Loom supports two JSON formats, auto-detected by file extension:
 
 | Format | Extensions | Reading Mode | Description |
 |--------|-----------|-------------|-------------|
@@ -322,7 +322,7 @@ YXDB files are read eagerly (the entire file is loaded into memory). The row-bas
 | N Rows | (all) | Limit number of rows to read |
 
 :::note YXDB Support
-Sigilweaver supports all 17 YXDB field types including Bool, Int16/32/64, Float, Double, FixedDecimal, String/WString/VString/VWString, Date, Time, DateTime, Blob, and SpatialObj. Blob and SpatialObj fields are read as strings.
+Sigilweaver Loom supports all 17 YXDB field types including Bool, Int16/32/64, Float, Double, FixedDecimal, String/WString/VString/VWString, Date, Time, DateTime, Blob, and SpatialObj. Blob and SpatialObj fields are read as strings.
 :::
 
 ## Configuration
@@ -401,8 +401,8 @@ Sigilweaver supports all 17 YXDB field types including Bool, Int16/32/64, Float,
 - **NDJSON** (`.jsonl`, `.ndjson`) supports lazy scanning unlike standard `.json` files
 - **YXDB** is read using SigilYX's Rust core for high performance
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
-- **ODS** is read-only in Sigilweaver (Polars limitation) - use Excel Output or convert to other formats for saving
+- **ODS** is read-only in Sigilweaver Loom (Polars limitation) - use Excel Output or convert to other formats for saving
 - **All database types** (PostgreSQL, MySQL, SQLite, MSSQL) use the connectorx engine for high-performance reads
 - **Database credentials** are never stored in workflow files - only connection IDs are saved
 - **Schema inference** may not always be accurate - use Select to cast types if needed
-- **File paths** must be accessible from where Sigilweaver is running
+- **File paths** must be accessible from where Sigilweaver Loom is running

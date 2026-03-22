@@ -32,4 +32,4 @@ async def test_root_endpoint():
     
     assert response.status_code == 200
     data = response.json()
-    assert data["service"] == "Sigilweaver Hub"
+    assert data["service"] == "Sigilweaver Loom Hub"

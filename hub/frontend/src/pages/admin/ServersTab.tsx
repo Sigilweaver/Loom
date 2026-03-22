@@ -350,7 +350,7 @@ export function ServersTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-sm text-gray-500">
-            Manage Sigilweaver Server instances that Hub can dispatch workflows to.
+            Manage Sigilweaver Loom Server instances that Hub can dispatch workflows to.
           </p>
         </div>
         <button
@@ -377,7 +377,7 @@ export function ServersTab() {
             No servers registered
           </h3>
           <p className="text-gray-500 mb-4">
-            Register a Sigilweaver Server instance to start executing workflows
+            Register a Sigilweaver Loom Server instance to start executing workflows
           </p>
           <button
             onClick={() => setDialogOpen(true)}

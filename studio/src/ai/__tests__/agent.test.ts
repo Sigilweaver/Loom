@@ -331,7 +331,7 @@ describe("classifyError", () => {
     const result = classifyError("Could not connect to anthropic");
     expect(result.category).toBe("network");
     expect(result.retryable).toBe(true);
-    expect(result.displayMessage).toContain("Sigilweaver Server");
+    expect(result.displayMessage).toContain("Sigilweaver Loom Server");
   });
 
   it("should classify ECONNREFUSED as network", () => {

@@ -67,7 +67,7 @@ export async function runAudit(
       .map((tc) => `  ${tc.toolName}(${JSON.stringify(tc.args).slice(0, 200)})`)
       .join('\n');
 
-    const systemPrompt = `You are an auditor reviewing an AI agent's work in a visual data pipeline builder (Sigilweaver Studio).
+    const systemPrompt = `You are an auditor reviewing an AI agent's work in a visual data pipeline builder (Sigilweaver Loom Studio).
 
 Your job is to compare what the USER asked for against what the AGENT actually did.
 

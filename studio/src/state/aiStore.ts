@@ -258,9 +258,9 @@ interface AIState extends AISettings {
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
-const AI_SETTINGS_KEY = 'sigilweaver-ai-settings';
-const AI_CHAT_HISTORY_KEY = 'sigilweaver-ai-chat-history';
-const AI_STOPPED_AT_LIMIT_KEY = 'sigilweaver-ai-stopped-at-limit';
+const AI_SETTINGS_KEY = 'ai-settings';
+const AI_CHAT_HISTORY_KEY = 'ai-chat-history';
+const AI_STOPPED_AT_LIMIT_KEY = 'ai-stopped-at-limit';
 
 function loadPersistedSettings(): AISettings {
   try {

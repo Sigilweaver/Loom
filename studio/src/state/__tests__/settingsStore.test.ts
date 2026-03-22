@@ -58,7 +58,7 @@ describe("SettingsStore", () => {
       expect(DEFAULT_SETTINGS.author).toBe("User");
       expect(DEFAULT_SETTINGS.backend.url).toBe("http://localhost:25811");
       expect(DEFAULT_SETTINGS.backend.autoStart).toBe(true);
-      expect(DEFAULT_SETTINGS.theme.id).toBe("sigilweaver");
+      expect(DEFAULT_SETTINGS.theme.id).toBe("sigilweaver-signature");
       expect(DEFAULT_SETTINGS.ui.snapToGrid).toBe(true);
       expect(DEFAULT_SETTINGS.ui.minimapVisible).toBe(true);
       expect(DEFAULT_SETTINGS.ui.minimapPosition).toBe("bottom-right");
@@ -82,7 +82,7 @@ describe("SettingsStore", () => {
         theme: { id: "dark" },
       };
       localStorageMock.setItem(
-        "sigilweaver-settings",
+        "application-settings",
         JSON.stringify(storedSettings)
       );
 
@@ -95,7 +95,7 @@ describe("SettingsStore", () => {
     });
 
     it("handles corrupted localStorage gracefully", async () => {
-      localStorageMock.setItem("sigilweaver-settings", "not valid json{{{");
+      localStorageMock.setItem("application-settings", "not valid json{{{");
 
       // Should not throw
       await useSettingsStore.getState().loadSettings();
@@ -109,7 +109,7 @@ describe("SettingsStore", () => {
     it("merges partial settings with defaults", async () => {
       // Only store some settings
       localStorageMock.setItem(
-        "sigilweaver-settings",
+        "application-settings",
         JSON.stringify({ author: "Partial User" })
       );
 
@@ -132,7 +132,7 @@ describe("SettingsStore", () => {
 
       // Check localStorage was called
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "sigilweaver-settings",
+        "application-settings",
         expect.stringContaining("Jane Smith")
       );
     });
@@ -222,7 +222,7 @@ describe("SettingsStore", () => {
       await useSettingsStore.getState().updateTheme("light");
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "sigilweaver-settings",
+        "application-settings",
         expect.stringContaining('"id":"light"')
       );
     });
@@ -308,7 +308,7 @@ describe("SettingsStore", () => {
       await useSettingsStore.getState().resetToDefaults();
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "sigilweaver-settings",
+        "application-settings",
         JSON.stringify(DEFAULT_SETTINGS)
       );
     });

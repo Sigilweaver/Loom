@@ -38,8 +38,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sigilweaver/Sigilweaver.git
-cd sigilweaver
+git clone https://github.com/Sigilweaver/Loom.git
+cd Loom
 
 # Backend setup (uses uv, not pip)
 cd server
@@ -143,12 +143,12 @@ Hub will be available at:
 
 ```bash
 curl http://localhost:25811/api/health/
-# Should return: {"status":"healthy","version":"0.0.0-dev","message":"Sigilweaver Backend is running"}
+# Should return: {"status":"healthy","version":"0.0.0-dev","message":"Sigilweaver Loom Backend is running"}
 ```
 
 ### Frontend
 
-Electron should have started, but you can also open http://localhost:25810 in your browser. You should see the Sigilweaver canvas.
+Electron should have started, but you can also open http://localhost:25810 in your browser. You should see the Sigilweaver Loom canvas.
 
 ### Run Tests
 
@@ -179,7 +179,7 @@ If tests pass, you're ready to contribute.
 ## Project Structure Overview
 
 ```
-sigilweaver/
+loom/
 ├── server/            # Python (FastAPI + Polars)
 │   ├── app/          # Application code
 │   │   ├── api/      # REST endpoints

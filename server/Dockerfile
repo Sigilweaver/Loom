@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Sigilweaver Server - Production Dockerfile
+# Sigilweaver Loom Server - Production Dockerfile
 # =============================================================================
 # Multi-stage build for minimal image size:
 #   Stage 1: Build Python dependencies
 #   Stage 2: Production runtime
 #
-# Build with: docker build --build-arg VERSION=1.0.0 -t sigilweaver-server .
+# Build with: docker build --build-arg VERSION=1.0.0 -t sigilweaver-loom-server .
 # =============================================================================
 
 # Build arguments for versioning and traceability
@@ -52,8 +52,8 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Labels for GitHub Container Registry (OCI standard)
-LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Sigilweaver" \
-    org.opencontainers.image.description="Sigilweaver Server - Workflow execution engine" \
+LABEL org.opencontainers.image.source="https://github.com/Sigilweaver/Loom" \
+    org.opencontainers.image.description="Sigilweaver Loom Server - Workflow execution engine" \
     org.opencontainers.image.licenses="AGPL-3.0-only" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.created="${BUILD_DATE}" \

@@ -1,6 +1,6 @@
 # Component Relationships
 
-This document outlines how Sigilweaver's three main components—**Studio**, **Server**, and **Hub**—interact across different deployment scenarios.
+This document outlines how Sigilweaver Loom's three main components—**Studio**, **Server**, and **Hub**—interact across different deployment scenarios.
 
 ## Component Overview
 
@@ -37,7 +37,7 @@ flowchart TB
 ```
 
 :::info Desktop Shell Options
-Sigilweaver Studio supports two desktop shells:
+Sigilweaver Loom Studio supports two desktop shells:
 - **Electron** (Full build): Bundles the Server executable and manages its lifecycle
 - **Tauri** (Client build): Lightweight shell that connects to an external Server
 
@@ -261,7 +261,7 @@ flowchart LR
 
 ## Port Scheme
 
-All Sigilweaver ports follow the `258xx` pattern (founding date: 2025-08-01):
+All Sigilweaver Loom ports follow the `258xx` pattern (founding date: 2025-08-01):
 
 | Port  | Component    | Notes           |
 | ----- | ------------ | --------------- |

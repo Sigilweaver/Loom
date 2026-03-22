@@ -342,7 +342,7 @@ export function classifyError(message: string): ClassifiedError {
       || lower.includes('fetch failed') || lower.includes('econnreset')) {
     return {
       category: 'network',
-      displayMessage: `Connection error: ${message}. Is the Sigilweaver Server running?`,
+      displayMessage: `Connection error: ${message}. Is the Sigilweaver Loom Server running?`,
       retryable: true,
     };
   }

@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (loading) => set({ isLoading: loading }),
     }),
     {
-      name: "sigilweaver-hub-auth",
+      name: "sigilweaver-loom-hub-auth",
       storage: createJSONStorage(() => localStorage),
       // Only persist token and user, not loading state
       partialize: (state) => ({

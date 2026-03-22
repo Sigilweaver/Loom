@@ -1,6 +1,6 @@
 {
-  "name": "Sigilweaver - Workflow Designer",
-  "short_name": "Sigilweaver",
+  "name": "Sigilweaver Loom - Workflow Designer",
+  "short_name": "Sigilweaver Loom",
   "description": "Advanced Workflow Designer and Automation Tool",
   "start_url": "/",
   "display": "standalone",

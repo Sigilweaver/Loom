@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Sigilweaver Docs',
+  title: 'Sigilweaver Loom Docs',
   tagline: 'Visual Data Pipelines Powered by Python',
   favicon: 'img/favicon.ico',
 
@@ -35,7 +35,7 @@ const config: Config = {
 
   // GitHub pages deployment config.
   organizationName: 'sigilweaver',
-  projectName: 'Sigilweaver',
+  projectName: 'Loom',
 
   onBrokenLinks: 'throw',
 
@@ -54,7 +54,7 @@ const config: Config = {
           routeBasePath: '/', // Serve docs at root
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/Sigilweaver/Sigilweaver/tree/main/docs/',
+            'https://github.com/Sigilweaver/Loom/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -63,8 +63,8 @@ const config: Config = {
             xslt: true,
           },
           editUrl:
-            'https://github.com/Sigilweaver/Sigilweaver/tree/main/docs/',
-          blogTitle: 'Sigilweaver Blog',
+            'https://github.com/Sigilweaver/Loom/tree/main/docs/',
+          blogTitle: 'Sigilweaver Loom Blog',
           blogDescription: 'Insights on open source development, data engineering, and workflow automation',
           blogSidebarTitle: 'Recent posts',
           blogSidebarCount: 10,
@@ -86,8 +86,8 @@ const config: Config = {
     image: 'img/sigilweaver-social-card.jpg',
     // SEO Metadata
     metadata: [
-      {name: 'keywords', content: 'Sigilweaver, ETL, visual data pipeline, data engineering, Python, Polars, workflow automation, low-code data tool'},
-      {name: 'description', content: 'Sigilweaver is the visual data pipeline tool you always wished existed. Craft powerful data pipelines with the intuitive flow of visual design.'},
+      {name: 'keywords', content: 'Sigilweaver Loom, ETL, visual data pipeline, data engineering, Python, Polars, workflow automation, low-code data tool'},
+      {name: 'description', content: 'Sigilweaver Loom is the visual data pipeline tool you always wished existed. Craft powerful data pipelines with the intuitive flow of visual design.'},
     ],
     // Color mode configuration
     colorMode: {
@@ -96,9 +96,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Sigilweaver',
+      title: 'Sigilweaver Loom',
       logo: {
-        alt: 'Sigilweaver Logo',
+        alt: 'Sigilweaver Loom Logo',
         src: 'img/logo.svg',
         href: 'https://sigilweaver.app',
         target: '_self',
@@ -121,12 +121,12 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://sigilweaver.app/downloads',
+          href: 'https://sigilweaver.app/loom/downloads',
           label: 'Download',
           position: 'right',
         },
         {
-          href: 'https://github.com/Sigilweaver/Sigilweaver',
+          href: 'https://github.com/Sigilweaver/Loom',
           label: 'GitHub',
           position: 'right',
         },
@@ -140,11 +140,11 @@ const config: Config = {
           items: [
             {
               label: 'GitHub Discussions',
-              href: 'https://github.com/Sigilweaver/Sigilweaver/discussions',
+              href: 'https://github.com/Sigilweaver/Loom/discussions',
             },
             {
               label: 'GitHub Issues',
-              href: 'https://github.com/Sigilweaver/Sigilweaver/issues',
+              href: 'https://github.com/Sigilweaver/Loom/issues',
             },
           ],
         },
@@ -157,11 +157,11 @@ const config: Config = {
             },
             {
               label: 'Downloads',
-              href: 'https://sigilweaver.app/downloads',
+              href: 'https://sigilweaver.app/loom/downloads',
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/Sigilweaver/Sigilweaver',
+              href: 'https://github.com/Sigilweaver/Loom',
             },
           ],
         },
@@ -179,7 +179,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver™ is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
+      copyright: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver Loom™ is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
     },
     prism: {
       theme: prismThemes.github,

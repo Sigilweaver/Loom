@@ -1,10 +1,10 @@
-# Sigilweaver Documentation
+# Sigilweaver Loom Documentation
 
 [![CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 
-The official documentation site for Sigilweaver, built with [Docusaurus](https://docusaurus.io/).
+The official documentation site for Sigilweaver Loom, built with [Docusaurus](https://docusaurus.io/).
 
-**Live site**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
+**Live site**: [sigilweaver.app/loom/docs](https://sigilweaver.app/loom/docs)
 
 ## License
 
@@ -146,7 +146,7 @@ See the [Getting Started](./intro.md) guide.
 
 ## Deployment
 
-Documentation is automatically deployed to [sigilweaver.app/docs](https://sigilweaver.app/docs) when changes are pushed to the main branch.
+Documentation is automatically deployed to [sigilweaver.app/loom/docs](https://sigilweaver.app/loom/docs) when changes are pushed to the main branch.
 
 ### Manual Deployment
 
