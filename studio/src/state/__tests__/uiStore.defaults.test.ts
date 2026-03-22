@@ -13,7 +13,7 @@ describe("UIStore - Default States", () => {
 
   it("should default snapToGrid to true when no localStorage value exists", () => {
     // Verify no localStorage exists
-    expect(localStorage.getItem("sigilweaver-snap-to-grid")).toBe(null);
+    expect(localStorage.getItem("snap-to-grid")).toBe(null);
 
     // Create a fresh store instance by reading initial state
     const store = useUIStore.getState();
@@ -29,23 +29,23 @@ describe("UIStore - Default States", () => {
     store.toggleSnapToGrid();
 
     // Verify localStorage was updated
-    const saved = localStorage.getItem("sigilweaver-snap-to-grid");
+    const saved = localStorage.getItem("snap-to-grid");
     expect(saved).toBe("false");
 
     // Toggle back
     store.toggleSnapToGrid();
-    const savedAgain = localStorage.getItem("sigilweaver-snap-to-grid");
+    const savedAgain = localStorage.getItem("snap-to-grid");
     expect(savedAgain).toBe("true");
   });
 
   it("should restore snapToGrid from localStorage on load", () => {
     // Set a value in localStorage
-    localStorage.setItem("sigilweaver-snap-to-grid", "false");
+    localStorage.setItem("snap-to-grid", "false");
 
     // The store should read this value
     // Note: In a real app, this happens during store initialization
     // For testing, we verify the localStorage is being set correctly
-    const saved = localStorage.getItem("sigilweaver-snap-to-grid");
+    const saved = localStorage.getItem("snap-to-grid");
     expect(saved).toBe("false");
   });
 });

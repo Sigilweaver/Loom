@@ -632,7 +632,7 @@ describe("WorkflowSerializer", () => {
     it("should serialize engines block when provided", () => {
       const meta = createTestMeta();
       const engines = {
-        "sigilweaver/polars": {},
+        "core/polars": {},
         "contrib/dbt": { project: "my_project", profile: "dev" },
       };
 

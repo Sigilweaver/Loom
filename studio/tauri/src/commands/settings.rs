@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-const SETTINGS_STORE: &str = "sigilweaver-settings.json";
+const SETTINGS_STORE: &str = "application-settings.json";
 
 /// UI settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ pub struct ThemeSettings {
 impl Default for ThemeSettings {
     fn default() -> Self {
         Self {
-            id: "sigilweaver".to_string(),
+            id: "sigilweaver-signature".to_string(),
         }
     }
 }

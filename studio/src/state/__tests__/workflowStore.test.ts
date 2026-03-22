@@ -23,7 +23,7 @@ describe("WorkflowStore", () => {
       workflowMeta: {
         name: "New Workflow",
         description: "A new workflow",
-        author: "Sigilweaver",
+        author: "User",
         workflowId: "test-uuid-123",
         created: new Date("2025-09-01T00:00:00.000Z").toISOString(),
       },
@@ -42,7 +42,7 @@ describe("WorkflowStore", () => {
       expect(state.workflowMeta).toEqual({
         name: "New Workflow",
         description: "A new workflow",
-        author: "Sigilweaver",
+        author: "User",
         workflowId: "test-uuid-123",
         created: "2025-09-01T00:00:00.000Z",
       });
@@ -409,7 +409,7 @@ describe("WorkflowStore", () => {
       const state = useWorkflowStore.getState();
       expect(state.workflowMeta.name).toBe(newName);
       expect(state.workflowMeta.description).toBe("A new workflow"); // Unchanged
-      expect(state.workflowMeta.author).toBe("Sigilweaver"); // Unchanged
+      expect(state.workflowMeta.author).toBe("User"); // Unchanged
     });
 
     test("updates description only", () => {
@@ -422,7 +422,7 @@ describe("WorkflowStore", () => {
       const state = useWorkflowStore.getState();
       expect(state.workflowMeta.description).toBe(newDescription);
       expect(state.workflowMeta.name).toBe("New Workflow"); // Unchanged
-      expect(state.workflowMeta.author).toBe("Sigilweaver"); // Unchanged
+      expect(state.workflowMeta.author).toBe("User"); // Unchanged
     });
 
     test("updates author only", () => {

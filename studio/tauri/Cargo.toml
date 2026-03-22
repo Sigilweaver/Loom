@@ -1,14 +1,14 @@
 [package]
-name = "sigilweaver-studio"
+name = "sigilweaver-loom-studio"
 version = "0.0.0"
-description = "Sigilweaver Studio - Visual Workflow Designer"
-authors = ["Sigilweaver Team"]
+description = "Sigilweaver Loom Studio - Visual Workflow Designer"
+authors = ["Sigilweaver Loom Team"]
 license = "AGPL-3.0"
-repository = "https://github.com/Sigilweaver/Sigilweaver"
+repository = "https://github.com/Sigilweaver/Loom"
 edition = "2021"
 
 [lib]
-name = "sigilweaver_studio_lib"
+name = "sigilweaver_loom_studio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

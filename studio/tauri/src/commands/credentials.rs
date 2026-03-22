@@ -13,7 +13,7 @@ use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 use chrono::Utc;
 
-const CONNECTIONS_STORE: &str = "sigilweaver-connections.json";
+const CONNECTIONS_STORE: &str = "connections.json";
 
 /// Session token for backend authentication (ephemeral, regenerated each launch)
 static SESSION_TOKEN: Mutex<Option<String>> = Mutex::new(None);

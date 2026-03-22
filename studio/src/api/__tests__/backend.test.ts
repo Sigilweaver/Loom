@@ -41,7 +41,7 @@ describe('Backend API Client', () => {
       const mockResponse = {
         status: 'healthy',
         version: '0.0.0-dev',
-        message: 'Sigilweaver Backend is running',
+        message: 'Sigilweaver Loom Backend is running',
       };
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

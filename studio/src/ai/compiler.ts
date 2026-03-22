@@ -2,7 +2,7 @@
  * Simplified Spec Compiler
  *
  * Compiles a simplified workflow specification (produced by the AI agent)
- * into the full Sigilweaver workflow format. This is more token-efficient
+ * into the full Sigilweaver Loom workflow format. This is more token-efficient
  * than having the agent produce full Tool objects with IDs and sockets.
  *
  * The compiler handles:

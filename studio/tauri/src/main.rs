@@ -1,3 +1,3 @@
 fn main() {
-    sigilweaver_studio_lib::run()
+    sigilweaver_loom_studio_lib::run()
 }

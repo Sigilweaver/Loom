@@ -60,7 +60,7 @@ const webFileOps: FileOperations = {
 // Settings Operations Implementation (Browser)
 // =============================================================================
 
-const SETTINGS_KEY = 'sigilweaver-settings';
+const SETTINGS_KEY = 'application-settings';
 
 const webSettingsOps: SettingsOperations = {
   async getSettings(): Promise<AppSettings> {
@@ -85,7 +85,7 @@ const webSettingsOps: SettingsOperations = {
 // Auth Operations Implementation (Browser)
 // =============================================================================
 
-const TOKEN_KEY = 'sigilweaver-api-token';
+const TOKEN_KEY = 'api-token';
 let cachedSessionToken: string | null = null;
 
 const webAuthOps: AuthOperations = {

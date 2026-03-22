@@ -10,7 +10,7 @@
  * https://sigilweaver.app/docs/user/tools/input-output/output/#excel
  *
  * Note: Excel files only support eager writing. The file is written using xlsxwriter.
- * See Sigilweaver documentation for visual reference of all Excel table styles.
+ * See Sigilweaver Loom documentation for visual reference of all Excel table styles.
  */
 
 /**
@@ -81,7 +81,7 @@ export const EXCEL_OUTPUT_MODE_INFO = {
   badge: "Eager",
 };
 
-export const EXCEL_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#excel";
+export const EXCEL_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/loom/docs/user/tools/input-output/output/#excel";
 
 /**
  * Curated list of popular Excel table styles

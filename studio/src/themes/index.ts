@@ -5,7 +5,7 @@
  * 
  * Folder Structure:
  *   themes/
- *     core/           - Built-in themes (sigilweaver, dark, light, high-contrast)
+ *     core/           - Built-in themes (sigilweaver-signature, dark, light, high-contrast)
  *     extended/       - Additional themes (nord, dracula, github, etc.)
  *     palettes/       - Color palettes for all themes
  *     tokens/         - Token builders and shared constants
@@ -68,7 +68,7 @@ import {
  * All available themes in display order
  * 
  * Organization:
- * 1. Core themes (Sigilweaver, Dark, Light, High Contrast)
+ * 1. Core themes (Sigilweaver Signature, Dark, Light, High Contrast)
  * 2. Extended themes ordered by popularity
  */
 export const availableThemes: Theme[] = [
@@ -105,7 +105,7 @@ export const availableThemes: Theme[] = [
 ];
 
 /**
- * Get a theme by ID, falling back to Sigilweaver theme
+ * Get a theme by ID, falling back to Sigilweaver Signature theme
  */
 export const getThemeById = (id: string): Theme =>
   availableThemes.find(t => t.id === id) || sigilweaverTheme;

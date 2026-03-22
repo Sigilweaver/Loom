@@ -336,7 +336,7 @@ const AISettingsPanel: React.FC = () => {
           {/* Privacy note */}
           <div className="pt-2 border-t border-theme-border-primary">
             <p className="text-xs text-theme-text-tertiary leading-relaxed">
-              AI calls are proxied through the Sigilweaver Server to your chosen provider. No data is stored or logged. For full privacy, use a local model via Ollama or LM Studio.
+              AI calls are proxied through the Sigilweaver Loom Server to your chosen provider. No data is stored or logged. For full privacy, use a local model via Ollama or LM Studio.
             </p>
           </div>
         </>

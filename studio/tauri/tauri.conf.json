@@ -1,8 +1,8 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
-    "productName": "Sigilweaver",
+    "productName": "Sigilweaver Loom",
     "version": "0.0.0",
-    "identifier": "com.sigilweaver.studio",
+    "identifier": "com.sigilweaver.loom-studio",
     "build": {
         "beforeDevCommand": "",
         "devUrl": "http://localhost:25810",
@@ -13,7 +13,7 @@
         "withGlobalTauri": false,
         "windows": [
             {
-                "title": "Sigilweaver Studio",
+                "title": "Sigilweaver Loom Studio",
                 "width": 1200,
                 "height": 800,
                 "minWidth": 800,
@@ -45,7 +45,7 @@
         "externalBin": [],
         "category": "DeveloperTool",
         "shortDescription": "Visual workflow designer for data pipelines",
-        "longDescription": "Sigilweaver Studio is a visual workflow designer for building data pipelines using Polars.",
+        "longDescription": "Sigilweaver Loom Studio is a visual workflow designer for building data pipelines using Polars.",
         "linux": {
             "appimage": {
                 "bundleMediaFramework": false

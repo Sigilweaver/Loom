@@ -13,7 +13,7 @@ import { listToolTypes, getToolConfigSchema } from '@data/toolConfigSchemas';
  * List all available tool types with descriptions.
  */
 export const listToolTypesTool = tool({
-  description: 'List all available tool types in Sigilweaver with their descriptions. Use this to discover what tools you can add to the canvas.',
+  description: 'List all available tool types in Sigilweaver Loom with their descriptions. Use this to discover what tools you can add to the canvas.',
   inputSchema: z.object({}),
   execute: async () => {
     return { toolTypes: listToolTypes() };

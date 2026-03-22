@@ -8,7 +8,7 @@
  * References:
  * https://docs.pola.rs/api/python/stable/reference/api/polars.DataFrame.write_csv.html
  * https://docs.pola.rs/api/python/stable/reference/api/polars.LazyFrame.sink_csv.html
- * https://sigilweaver.app/docs/user/tools/input-output/output/#csv
+ * https://sigilweaver.app/loom/docs/user/tools/input-output/output/#csv
  */
 
 /**
@@ -162,7 +162,7 @@ export const CSV_OUTPUT_MODE_INFO: Record<
   },
 };
 
-export const CSV_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/docs/user/tools/input-output/output/#csv";
+export const CSV_OUTPUT_DOCUMENTATION_URL = "https://sigilweaver.app/loom/docs/user/tools/input-output/output/#csv";
 
 /**
  * Common separator options

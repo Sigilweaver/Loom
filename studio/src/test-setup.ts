@@ -31,7 +31,7 @@ export const mockPlatformCredentials = {
   test: vi.fn().mockResolvedValue({ success: true, message: 'OK' }),
 };
 
-const SETTINGS_KEY = 'sigilweaver-settings';
+const SETTINGS_KEY = 'application-settings';
 
 export const mockPlatformSettings = {
   // Default implementation uses localStorage like the web platform

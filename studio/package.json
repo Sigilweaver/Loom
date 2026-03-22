@@ -1,12 +1,12 @@
 {
-  "name": "sigilweaver-studio",
+  "name": "sigilweaver-loom-studio",
   "private": true,
   "version": "0.0.0-dev",
-  "description": "Sigilweaver - Advanced Workflow Designer and Automation Tool",
+  "description": "Sigilweaver Loom - Advanced Workflow Designer and Automation Tool",
   "author": "Sigilweaver Team",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Sigilweaver/Sigilweaver.git"
+    "url": "https://github.com/Sigilweaver/Loom.git"
   },
   "type": "module",
   "main": "dist-electron/main.js",
@@ -133,8 +133,8 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.sigilweaver.workflow-designer",
-    "productName": "Sigilweaver",
+    "appId": "com.sigilweaver.loom",
+    "productName": "Sigilweaver Loom",
     "directories": {
       "output": "dist"
     },
@@ -204,7 +204,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Sigilweaver"
+      "shortcutName": "Sigilweaver Loom"
     }
   }
 }

@@ -1,4 +1,4 @@
-# Contributing to Sigilweaver Studio
+# Contributing to Sigilweaver Loom Studio
 
 For comprehensive development documentation, see **[sigilweaver.app/docs/developer/contributing/studio](https://sigilweaver.app/docs/developer/contributing/studio)**.
 

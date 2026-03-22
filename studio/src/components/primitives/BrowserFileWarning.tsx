@@ -27,7 +27,7 @@ export const BrowserFileWarning: React.FC<BrowserFileWarningProps> = ({
           </div>
           <div className="space-y-1">
             <p>
-              Due to browser security restrictions, Sigilweaver can only access the file name, not the full file path.
+              Due to browser security restrictions, Sigilweaver Loom can only access the file name, not the full file path.
             </p>
             <p className="font-medium">
               Any workflow run with only a file name will fail.

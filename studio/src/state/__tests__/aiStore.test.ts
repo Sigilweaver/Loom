@@ -78,7 +78,7 @@ describe("aiStore", () => {
     it("should persist settings to localStorage", async () => {
       await useAIStore.getState().updateEnabled(true);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "sigilweaver-ai-settings",
+        "ai-settings",
         expect.any(String),
       );
     });
@@ -140,7 +140,7 @@ describe("aiStore", () => {
         timestamp: Date.now(),
       });
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "sigilweaver-ai-chat-history",
+        "ai-chat-history",
         expect.any(String),
       );
     });
@@ -243,7 +243,7 @@ describe("aiStore", () => {
   describe("loadAISettings", () => {
     it("should load persisted settings from localStorage", async () => {
       const saved = { ...DEFAULT_AI_SETTINGS, enabled: true, provider: "anthropic" as AIProvider };
-      localStorageMock.setItem("sigilweaver-ai-settings", JSON.stringify(saved));
+      localStorageMock.setItem("ai-settings", JSON.stringify(saved));
 
       await useAIStore.getState().loadAISettings();
       expect(useAIStore.getState().enabled).toBe(true);
@@ -254,7 +254,7 @@ describe("aiStore", () => {
       const msgs = [
         { id: "1", role: "user", content: "Hi", timestamp: 1 },
       ];
-      localStorageMock.setItem("sigilweaver-ai-chat-history", JSON.stringify(msgs));
+      localStorageMock.setItem("ai-chat-history", JSON.stringify(msgs));
 
       await useAIStore.getState().loadAISettings();
       expect(useAIStore.getState().messages).toHaveLength(1);

@@ -1,5 +1,5 @@
 /**
- * Logger utility for Sigilweaver
+ * Logger utility for Sigilweaver Loom
  * 
  * Provides configurable logging with levels that can be controlled via environment variables.
  * In production builds, debug and info logs are disabled by default.

@@ -15,7 +15,7 @@ const AboutContent: React.FC = () => {
       {/* Version */}
       <div>
         <h3 className="text-base font-bold text-theme-text-primary">
-          Sigilweaver
+          Sigilweaver Loom
         </h3>
         <p className="text-sm text-theme-text-tertiary mt-1">Version {version}</p>
       </div>
@@ -37,33 +37,33 @@ const AboutContent: React.FC = () => {
         <div className="text-sm space-y-1">
           <div>
             <a
-              href="https://sigilweaver.app"
+              href="https://sigilweaver.app/loom"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://sigilweaver.app"
+              title="https://sigilweaver.app/loom"
             >
               Website
             </a>
           </div>
           <div>
             <a
-              href="https://sigilweaver.app/docs"
+              href="https://sigilweaver.app/loom/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://sigilweaver.app/docs"
+              title="https://sigilweaver.app/loom/docs"
             >
               Documentation
             </a>
           </div>
           <div>
             <a
-              href="https://github.com/Sigilweaver/Sigilweaver"
+              href="https://github.com/Sigilweaver/Loom"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://github.com/Sigilweaver/Sigilweaver"
+              title="https://github.com/Sigilweaver/Loom"
             >
               GitHub Repository
             </a>
@@ -77,33 +77,33 @@ const AboutContent: React.FC = () => {
         <div className="text-sm space-y-1">
           <div>
             <a
-              href="https://sigilweaver.app/privacy"
+              href="https://sigilweaver.app/loom/privacy"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://sigilweaver.app/privacy"
+              title="https://sigilweaver.app/loom/privacy"
             >
               Privacy Policy
             </a>
           </div>
           <div>
             <a
-              href="https://sigilweaver.app/terms"
+              href="https://sigilweaver.app/loom/terms"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://sigilweaver.app/terms"
+              title="https://sigilweaver.app/loom/terms"
             >
               Terms of Use
             </a>
           </div>
           <div>
             <a
-              href="https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE"
+              href="https://github.com/Sigilweaver/Loom/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="text-theme-interactive-accent font-medium hover:underline"
-              title="https://github.com/Sigilweaver/Sigilweaver/blob/main/LICENSE"
+              title="https://github.com/Sigilweaver/Loom/blob/main/LICENSE"
             >
               License (AGPL v3)
             </a>
@@ -145,7 +145,7 @@ const AboutContent: React.FC = () => {
       {/* Attribution */}
       <div className="pt-4 border-t border-theme-border-primary">
         <p className="text-sm text-theme-text-tertiary">
-          Sigilweaver is open source software. See package.json and requirements.txt
+          Sigilweaver Loom is open source software. See package.json and requirements.txt
           for full dependency lists.
         </p>
         <p className="text-xs text-theme-text-tertiary mt-2">

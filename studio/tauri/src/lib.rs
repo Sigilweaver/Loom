@@ -1,6 +1,6 @@
-//! Sigilweaver Studio - Tauri Application
+//! Sigilweaver Loom Studio - Tauri Application
 //!
-//! This is the Rust backend for the Tauri build of Sigilweaver Studio.
+//! This is the Rust backend for the Tauri build of Sigilweaver Loom Studio.
 //! It implements the same platform capabilities as the Electron version:
 //! - File operations (read, write, dialogs)
 //! - Settings persistence

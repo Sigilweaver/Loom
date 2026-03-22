@@ -70,7 +70,7 @@ const electronSettingsOps: SettingsOperations = {
   async getSettings(): Promise<AppSettings> {
     if (!window.electronAPI?.getSettings) {
       // Fallback to localStorage
-      const stored = localStorage.getItem('sigilweaver-settings');
+      const stored = localStorage.getItem('application-settings');
       if (stored) {
         try {
           return mergeWithDefaults(JSON.parse(stored));
@@ -86,7 +86,7 @@ const electronSettingsOps: SettingsOperations = {
   async setSettings(settings: AppSettings): Promise<void> {
     if (!window.electronAPI?.setSettings) {
       // Fallback to localStorage
-      localStorage.setItem('sigilweaver-settings', JSON.stringify(settings));
+      localStorage.setItem('application-settings', JSON.stringify(settings));
       return;
     }
     await window.electronAPI.setSettings(settings);
@@ -115,16 +115,16 @@ const electronAuthOps: AuthOperations = {
     }
 
     // Fallback to localStorage
-    cachedSessionToken = localStorage.getItem('sigilweaver-api-token');
+    cachedSessionToken = localStorage.getItem('api-token');
     return cachedSessionToken;
   },
 
   setSessionToken(token: string | null): void {
     cachedSessionToken = token;
     if (token) {
-      localStorage.setItem('sigilweaver-api-token', token);
+      localStorage.setItem('api-token', token);
     } else {
-      localStorage.removeItem('sigilweaver-api-token');
+      localStorage.removeItem('api-token');
     }
   },
 };

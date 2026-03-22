@@ -59,7 +59,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
     await sendAgentMessage();
   }, []);
 
-  const docsBaseUrl = 'https://sigilweaver.app/docs/user/interface/ai-assistant';
+  const docsBaseUrl = 'https://sigilweaver.app/loom/docs/user/interface/ai-assistant';
 
   // Not configured state
   if (!enabled) {

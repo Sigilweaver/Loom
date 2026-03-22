@@ -18,7 +18,7 @@ import { buildFormulaCatalogForPrompt } from './formulaCatalog';
 // Static prompt sections (cacheable, identical across turns)
 // ---------------------------------------------------------------------------
 
-const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
+const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loom Studio, a visual data pipeline builder. You help users create data workflows by adding and configuring tools on a canvas.
 
 ## How to Build Workflows
 

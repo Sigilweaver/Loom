@@ -118,7 +118,7 @@ export async function resolveWorkflowConnections(
   // For client-owned connections, we need secure storage
   if (clientTools.length > 0 && !hasSecureStorage()) {
     logger.error('Secure storage not available - client connections require the desktop app');
-    throw new Error('Client database connections require the desktop app. Please run Sigilweaver as a desktop application to use client-managed database features.');
+    throw new Error('Client database connections require the desktop app. Please run Sigilweaver Loom as a desktop application to use client-managed database features.');
   }
 
   // Resolve client-owned connections

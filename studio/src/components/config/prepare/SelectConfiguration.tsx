@@ -643,7 +643,7 @@ export function SelectConfiguration({
                 <div className="flex-1 flex items-center gap-1">
                   Type
                   <a
-                    href="https://sigilweaver.app/docs/user/data-types"
+                    href="https://sigilweaver.app/loom/docs/user/data-types"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-theme-text-tertiary hover:text-theme-interactive-accent"

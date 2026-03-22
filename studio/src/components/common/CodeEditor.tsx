@@ -45,7 +45,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       case 'light':
       case 'high-contrast':
         return 'vs'; // Light theme
-      case 'sigilweaver':
+      case 'sigilweaver-signature':
       case 'dark':
       default:
         return 'vs-dark'; // Dark theme

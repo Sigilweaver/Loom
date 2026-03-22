@@ -13,7 +13,7 @@ export type FieldValue =
   | Record<string, unknown>;
 
 /** Default engine identifier for tools that don't specify one */
-export const DEFAULT_ENGINE = "sigilweaver/polars";
+export const DEFAULT_ENGINE = "core/polars";
 
 export interface WorkflowMeta {
   name: string;

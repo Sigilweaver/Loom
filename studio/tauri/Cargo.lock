@@ -3276,7 +3276,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sigilweaver-studio"
+name = "sigilweaver-loom-studio"
 version = "0.0.0"
 dependencies = [
  "chrono",
