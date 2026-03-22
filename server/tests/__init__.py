@@ -1,1 +1,1 @@
-"""Test suite for Sigilweaver Backend"""
+"""Test suite for Sigilweaver Loom Backend"""

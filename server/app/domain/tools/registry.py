@@ -13,7 +13,7 @@ class ToolRegistry:
 
     Maps tool type strings (e.g., "Input", "Filter") to their implementation classes.
     Supports engine-qualified lookups: "Filter" resolves using the engine from the
-    workflow, while an explicit "sigilweaver/polars::Filter" lookup is also supported.
+    workflow, while an explicit "core/polars::Filter" lookup is also supported.
     """
 
     _tools: dict[str, Type[BaseTool]] = {}
@@ -24,7 +24,7 @@ class ToolRegistry:
         Register a tool implementation.
 
         The tool is stored under its simple name (e.g., "Filter") and also under
-        its engine-qualified name (e.g., "sigilweaver/polars::Filter").
+        its engine-qualified name (e.g., "core/polars::Filter").
 
         Args:
             tool_type: Tool type string (e.g., "Input", "Filter")
@@ -79,7 +79,7 @@ class ToolRegistry:
 
         Args:
             engine: If provided, only list tools for that engine.
-                    Returns unqualified names (e.g., "Filter" not "sigilweaver/polars::Filter").
+                    Returns unqualified names (e.g., "Filter" not "core/polars::Filter").
         """
         if engine:
             prefix = f"{engine}::"

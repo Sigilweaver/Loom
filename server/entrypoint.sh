@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sigilweaver Server - Container Entrypoint
+# Sigilweaver Loom Server - Container Entrypoint
 # =============================================================================
 # Handles:
 #   - Graceful shutdown with signal trapping
@@ -59,7 +59,7 @@ load_secret_from_file "HUB_REGISTRATION_SECRET"
 # Startup Configuration
 # =============================================================================
 
-echo "=== Sigilweaver Server Startup ==="
+echo "=== Sigilweaver Loom Server Startup ==="
 echo "Version: $(python -c 'from app import __version__; print(__version__)' 2>/dev/null || echo 'unknown')"
 
 # Determine operating mode
