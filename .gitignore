@@ -123,7 +123,7 @@ coverage/
 *.lcov
 .nyc_output/
 docker/.env
-SigilYX/
+OpenYXDB/
 obsidian/
 sigilweaver.com/
 sigilweaver-holdings.com/

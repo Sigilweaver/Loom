@@ -308,7 +308,7 @@ If your JSON data is large, use NDJSON format (`.jsonl` or `.ndjson`) for lazy s
 
 ### YXDB
 
-YXDB database files (.yxdb). Read using [SigilYX](https://github.com/Sigilweaver/SigilYX), a high-performance Rust-based reader.
+YXDB database files (.yxdb). Read using [OpenYXDB](https://github.com/Sigilweaver/OpenYXDB), a high-performance Rust-based reader.
 
 **Reading Mode:**
 
@@ -399,7 +399,7 @@ Sigilweaver Loom supports all 17 YXDB field types including Bool, Int16/32/64, F
 - **Excel, Avro, ODS, standard JSON, and YXDB files** are always loaded entirely into memory - consider converting large files to CSV, Parquet, or IPC for better performance
 - **IPC/Arrow** is the fastest format and ideal for intermediate data or sharing between Arrow-compatible applications
 - **NDJSON** (`.jsonl`, `.ndjson`) supports lazy scanning unlike standard `.json` files
-- **YXDB** is read using SigilYX's Rust core for high performance
+- **YXDB** is read using OpenYXDB's Rust core for high performance
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
 - **ODS** is read-only in Sigilweaver Loom (Polars limitation) - use Excel Output or convert to other formats for saving
 - **All database types** (PostgreSQL, MySQL, SQLite, MSSQL) use the connectorx engine for high-performance reads

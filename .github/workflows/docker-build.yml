@@ -4,9 +4,7 @@
 # Builds amd64 Docker images for Hub and Server and pushes them to
 # GitHub Container Registry (ghcr.io).
 #
-# NOTE: ARM64 support removed — sigilyx lacks manylinux wheels, so ARM64
-# builds require compiling Rust from source under QEMU (extremely slow).
-# Re-enable multi-arch once manylinux wheels are published for sigilyx.
+# NOTE: openyxdb is installed from PyPI (has manylinux wheels for amd64).
 #
 # Triggers:
 #   - On release publish: Builds and pushes with version tags

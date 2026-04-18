@@ -1,7 +1,7 @@
 /**
  * YXDB (Alteryx Database) Input Configuration
  *
- * Uses SigilYX for reading Alteryx .yxdb files.
+ * Uses OpenYXDB for reading Alteryx .yxdb files.
  * YXDB is a row-based binary format with LZF compression.
  *
  * Unlike columnar formats (Parquet, IPC), YXDB does not support

@@ -33,7 +33,7 @@ COPY --link --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
 # Copy dependency files
 COPY server/pyproject.toml server/uv.lock ./
 
-# Install all dependencies (including sigilyx from PyPI) into a virtual environment.
+# Install all dependencies into a virtual environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv export --frozen --no-dev --no-emit-project \
     -o requirements.txt && \

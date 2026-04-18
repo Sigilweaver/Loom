@@ -109,5 +109,4 @@ server/backend.egg-info
 # Studio (not in docker builds)
 studio/
 
-# SigilYX is a separate repo — not in this build context
-# (cloned at build time in the Dockerfile)
+# OpenYXDB is installed from PyPI — no local source needed

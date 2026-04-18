@@ -49,7 +49,7 @@ An AI assistant in Studio can build entire workflows from natural language, writ
 
 ### Bring Your Existing Work With You
 
-Sigilweaver Loom reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [SigilYX](SigilYX/README.md), a high-performance Rust library for the YXDB format.
+Sigilweaver Loom reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [OpenYXDB](OpenYXDB/README.md), a high-performance Rust library for the YXDB format.
 
 ## Our Philosophy
 
@@ -70,7 +70,7 @@ Production grade means "it works when you need it." That's a promise we make to 
 | **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Electron/Tauri) |
 | **Server**  | Execution engine that runs workflows (FastAPI + Polars)                                   |
 | **Hub**     | Orchestration platform for teams and automation (Full stack)                              |
-| **SigilYX** | Native `.yxdb` read/write engine (Rust)                        |
+| **OpenYXDB** | Native `.yxdb` read/write engine (Rust)                        |
 
 Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
 

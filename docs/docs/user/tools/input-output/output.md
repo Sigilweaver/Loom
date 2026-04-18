@@ -187,7 +187,7 @@ Use NDJSON format (`.jsonl` or `.ndjson`) for streaming sink support. Standard `
 
 ### YXDB
 
-YXDB database files (.yxdb). Written using [SigilYX](https://github.com/Sigilweaver/SigilYX).
+YXDB database files (.yxdb). Written using [OpenYXDB](https://github.com/Sigilweaver/OpenYXDB).
 
 **Writing Mode:**
 
@@ -269,7 +269,7 @@ YXDB only supports eager writing (data is collected before writing).
 - **Excel, Avro, standard JSON, and YXDB** do not support streaming - data is collected before writing
 - **IPC/Arrow** is the fastest format - use it when speed is critical
 - **Excel files** are best for business reporting and sharing with non-technical users
-- **YXDB files** are supported via [SigilYX](https://github.com/Sigilweaver/SigilYX)
+- **YXDB files** are supported via [OpenYXDB](https://github.com/Sigilweaver/OpenYXDB)
 - **NDJSON** (`.jsonl`, `.ndjson`) supports streaming sink unlike standard `.json` files
 - **Overwriting**: Existing files at the destination path will be overwritten
 - **Execution**: Output tools only write files when the workflow is executed (not during preview)

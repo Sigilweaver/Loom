@@ -1,7 +1,7 @@
 /**
  * YXDB (Alteryx Database) Output Configuration
  *
- * Uses SigilYX for writing Alteryx .yxdb files.
+ * Uses OpenYXDB for writing Alteryx .yxdb files.
  * YXDB is always written eagerly — the format requires knowing
  * the record count upfront and uses row-based LZF-compressed blocks.
  *

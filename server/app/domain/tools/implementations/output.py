@@ -311,12 +311,12 @@ class OutputTool(BaseTool):
         return kwargs
 
     async def _save_yxdb(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
-        """Save to YXDB format using SigilYX.
+        """Save to YXDB format using OpenYXDB.
 
         YXDB is always an eager write — the format requires knowing
         record count upfront and uses row-based LZF-compressed blocks.
         """
-        import sigilyx
+        import openyxdb
 
         destination = config.get("destination")
         if not destination:
@@ -331,7 +331,7 @@ class OutputTool(BaseTool):
 
         try:
             # sink_yxdb collects the LazyFrame and writes to YXDB in one call
-            sigilyx.sink_yxdb(str(dest_path), lf)
+            openyxdb.sink_yxdb(str(dest_path), lf)
         except Exception as e:
             raise ToolError(f"Failed to write YXDB: {e!s}") from e
 
@@ -743,8 +743,8 @@ class OutputTool(BaseTool):
 
         elif output_type == "yxdb":
             escaped_path = PythonCodeGenerator.escape_path(destination)
-            lines.append("import sigilyx")
-            lines.append(f'sigilyx.sink_yxdb("{escaped_path}", {input_var})')
+            lines.append("import openyxdb")
+            lines.append(f'openyxdb.sink_yxdb("{escaped_path}", {input_var})')
 
         else:
             lines.append(

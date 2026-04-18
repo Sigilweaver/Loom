@@ -50,8 +50,8 @@ export const YxdbOutputConfiguration: React.FC<
         <div className="space-y-3">
           <div>
             <p className="text-xs text-theme-text-tertiary">
-              Write data to Alteryx YXDB format using SigilYX. The output file
-              can be opened in Alteryx Designer or read by any SigilYX-compatible
+              Write data to Alteryx YXDB format using OpenYXDB. The output file
+              can be opened in Alteryx Designer or read by any OpenYXDB-compatible
               tool.
             </p>
           </div>

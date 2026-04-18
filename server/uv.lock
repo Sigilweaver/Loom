@@ -60,13 +60,13 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastexcel" },
     { name = "httpx" },
+    { name = "openyxdb" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
-    { name = "sigilyx" },
     { name = "structlog" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "xlsxwriter" },
@@ -94,6 +94,7 @@ requires-dist = [
     { name = "fastexcel", specifier = ">=0.10.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
+    { name = "openyxdb" },
     { name = "polars", specifier = ">=1.0.0" },
     { name = "pyarrow", specifier = ">=22.0.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
@@ -106,7 +107,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
-    { name = "sigilyx" },
     { name = "structlog", specifier = ">=23.2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
     { name = "xlsxwriter", specifier = ">=3.1.0" },
@@ -647,6 +647,26 @@ wheels = [
 ]
 
 [[package]]
+name = "openyxdb"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/76/8008b8273c98d42dc4333b01c7c181fb5b43f671cfc14f6cb411063be08d/openyxdb-1.1.0.tar.gz", hash = "sha256:75a552f677577fee7fcceea969f4a8ff4e478b216797fd8de651ff638d3ff78b", size = 2389618, upload-time = "2026-04-18T01:25:33.765Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f8/50/058da3a56f6472e20bf3ab040948266516eb3eae9af148d060843eaaf1af/openyxdb-1.1.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:12bf6ea865a33996ec89028cc57a251648ed3961aa2b731a57a56f6d93d0b009", size = 166038, upload-time = "2026-04-18T01:25:16.793Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/39/c14d202fe524917da47c26b5e2be6727eb4d5298999ed853840122aa5cdf/openyxdb-1.1.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4f59c58bb0f7936df61c10c0d32a4a94a903318d6ee56986c8eb8adc7a0e1bdd", size = 233093, upload-time = "2026-04-18T01:25:18.213Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/a1/0bbf71fa1c8fb6241eaeea1b7ddc430965264dd471560e7cc910beed38d7/openyxdb-1.1.0-cp311-cp311-win_amd64.whl", hash = "sha256:63e066a81852d5075fac2c3275fbe59eef6fdfba03b244519b7d0ca158e55fdb", size = 161642, upload-time = "2026-04-18T01:25:19.638Z" },
+    { url = "https://files.pythonhosted.org/packages/32/1d/10269fc01cd3608381987be5a2be70db31f922a462d9f59b73aa34e0ce24/openyxdb-1.1.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:add8dd8ca6bf3ab373529bcb8ccd82c57670ca2ae117c603772ffce27870006f", size = 164901, upload-time = "2026-04-18T01:25:21.161Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/1e/37b9f3f7867eb9a1fd62acf3246db98d4df631ba2c816ef1bbc4ad211550/openyxdb-1.1.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c0ccef619954cb41c0950af53aef9cd34b7bfd62cdca48ebdc8a928969f40e21", size = 231932, upload-time = "2026-04-18T01:25:22.413Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/fe/6c4abc20692b7ce1820e0ef323b1c4cddb3329f316c77d9092490c86c2c2/openyxdb-1.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:96a2ecc4edc3db10dca9238123f4806433c86916d927175fb9898505200c0438", size = 160983, upload-time = "2026-04-18T01:25:23.893Z" },
+    { url = "https://files.pythonhosted.org/packages/31/8b/c96da697edc49222e1b64342b287912ccfe281d4f89cc1de4166a7a40b24/openyxdb-1.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:eb263b5bfb623e73f7ea5cb9a32e05bf0c4acc6c16c14ac2637223add54793fc", size = 164893, upload-time = "2026-04-18T01:25:25.219Z" },
+    { url = "https://files.pythonhosted.org/packages/78/44/3cf45aef60b51e28789b729a919358a0aa08864711678dbae1816001d547/openyxdb-1.1.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e29426fa37849d2ee5ac79a59383587bf2bfdfe1f1eaee54894916ff470dbec7", size = 231925, upload-time = "2026-04-18T01:25:26.552Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/95/dc7dfd5eafd0817f4ce323391d8afb042508de895cedd9bf13c8e1d3b41a/openyxdb-1.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:78ffd78f3aef5c7af060c5663e85a5a0f45ce899c08bc7aac94108b94c07ed18", size = 160894, upload-time = "2026-04-18T01:25:27.878Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/65/856dc0e49e332f93dd767aa1bcb5fc0475e35b67f5a9c239061191840d79/openyxdb-1.1.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:16e92d0362074c30ca862c28a9fba9c986d23cedcb148a9aff653b96aac9d1a9", size = 165028, upload-time = "2026-04-18T01:25:29.178Z" },
+    { url = "https://files.pythonhosted.org/packages/30/0e/0913f4d00328ea9576cd2287efde324b7fca83e4600f719a7ce1454fb908/openyxdb-1.1.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8f7ef18d00dadfd67697eea5aebd362ba1917b186cb065c21053039f234b3c74", size = 231922, upload-time = "2026-04-18T01:25:30.739Z" },
+    { url = "https://files.pythonhosted.org/packages/12/31/188a4e2482a632823a67f9ba43c8f21e57c6c8a7bda76c8b62ece44aa62a/openyxdb-1.1.0-cp314-cp314-win_amd64.whl", hash = "sha256:b03102d3ad2ff8be6369043810dd0940efa975a34d64a8094c80e8df351ccf2a", size = 166992, upload-time = "2026-04-18T01:25:32.091Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1114,20 +1134,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
-]
-
-[[package]]
-name = "sigilyx"
-version = "0.1.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "polars" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b4/3a/0a7b2d1d97c72c13dd06bfc138ae3c15a34ac03c0272460f99c070b9f792/sigilyx-0.1.3.tar.gz", hash = "sha256:823675d925a1dd7684f06b3da4314b222ba9fb40b28937dec81e6cb5b7bc1dda", size = 133556, upload-time = "2026-03-08T01:54:12.672Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/99/7eaa26b0088d6c8c96dbc94b8db72d9bf06a85cb547530b3ab4a71df607f/sigilyx-0.1.3-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c439b47aeeea34efbcbde1fb480583c7c3a8582e3082d05091902f19e0d5e3df", size = 6466869, upload-time = "2026-03-08T01:54:07.427Z" },
-    { url = "https://files.pythonhosted.org/packages/9a/cb/58c13f9f532e45ace6ac550146c748a17a9ba2db9e1ccfde52b74434c4ff/sigilyx-0.1.3-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:8f7e5a102b4da15e17dae1666aefeb48ca78bb433d19ca680685440682a6e709", size = 5838882, upload-time = "2026-03-08T01:54:09.299Z" },
-    { url = "https://files.pythonhosted.org/packages/84/22/9b8ffb3b632fa2905e52d13da67b1eae49d37f920415804d5648fbd00c81/sigilyx-0.1.3-cp39-abi3-win_amd64.whl", hash = "sha256:e35ef42010b4f84ec5bf41e0f30de0187e8e3b4e91d93ec0f690c68d680b6706", size = 7184021, upload-time = "2026-03-08T01:54:10.846Z" },
 ]
 
 [[package]]

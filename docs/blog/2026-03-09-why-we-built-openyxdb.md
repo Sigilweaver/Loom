@@ -1,28 +1,28 @@
 ---
-slug: why-we-built-sigilyx
-title: "Building SigilYX: A Rust Library for Alteryx's .yxdb Format"
-description: "SigilYX is a Rust library with Python bindings that reads and writes Alteryx E1 .yxdb files without requiring an Alteryx installation — 100-200x faster than existing Python alternatives. E2 (AMP) support is in the works."
+slug: why-we-built-openyxdb
+title: "Building OpenYXDB: A Rust Library for Alteryx's .yxdb Format"
+description: "OpenYXDB is a Rust library with Python bindings that reads and writes Alteryx E1 .yxdb files without requiring an Alteryx installation — 100-200x faster than existing Python alternatives. E2 (AMP) support is in the works."
 authors: [sigilweaver]
 tags: [open-source, architecture, philosophy]
 ---
 
-# Building SigilYX: A Rust Library for Alteryx's .yxdb Format
+# Building OpenYXDB: A Rust Library for Alteryx's .yxdb Format
 
 If you've worked in data analytics for any length of time, someone has probably sent you a `.yxdb` file. Maybe it arrived in a Teams message with the helpful context "here's the data." Maybe it was sitting in a shared drive labeled `final_output_v3_FINAL.yxdb`. Either way, you double-clicked it, nothing happened, and you went back to whoever sent it and asked for a CSV.
 
 `.yxdb` is the native binary format for Alteryx Designer, a visual analytics platform used by tens of thousands of analysts. The files are everywhere in enterprise data teams - workflow outputs, archived datasets, handoffs between departments. And if you're not running Alteryx yourself, they're effectively sealed shut.
 
-I built SigilYX to open them. It's a Rust library with Python bindings that reads and writes `.yxdb` files on any platform - no Alteryx installation, no license, no Windows dependency. `pip install sigilyx`, point it at a file, and you have a Polars DataFrame. In benchmarks it reads files 1.2-2× faster than existing open-source C++ readers and 111-204× faster than the only Python alternative.
+I built OpenYXDB to open them. It's a Rust library with Python bindings that reads and writes `.yxdb` files on any platform - no Alteryx installation, no license, no Windows dependency. `pip install openyxdb`, point it at a file, and you have a Polars DataFrame. In benchmarks it reads files 1.2-2× faster than existing open-source C++ readers and 111-204× faster than the only Python alternative.
 
 This is the story of how it got built - and it starts, unexpectedly, with someone else's generosity.
 
 :::info TL;DR
-- **SigilYX is a Rust-based `.yxdb` reader and writer** with Python bindings, supporting all 17 YXDB field types on Windows, macOS, and Linux. Today's release covers the **E1 format** — the original engine layout used by Alteryx Designer prior to AMP.
+- **OpenYXDB is a Rust-based `.yxdb` reader and writer** with Python bindings, supporting all 17 YXDB field types on Windows, macOS, and Linux. Today's release covers the **E1 format** — the original engine layout used by Alteryx Designer prior to AMP.
 - **Existing open-source readers are Windows-only** and require custom glue code - they target a different use case than what most Python analysts need.
 - **SIMD-accelerated UTF-16→UTF-8 transcoding** handles the format's biggest bottleneck, with parallel decompression and column construction for wide schemas.
 - **1.2-2× faster than C++ readers, 111-204× faster than pure Python** - benchmarks are fully reproducible with published methodology.
 - **A 32.5 GB file (90M rows) processes in 52.6 seconds using 1.1 GB of RAM** - to our knowledge, no other open-source YXDB library supports streaming reads at this scale.
-- **E2 (AMP) support is next** — Alteryx made AMP the default engine in Designer 2022.1, which means newer workflows produce a different binary layout. E2 development requires a different methodology since no open-source implementations or public reference files exist. We've [documented the process](https://github.com/Sigilweaver/SigilYX/blob/main/SPECIFICATION-E2.md) before writing a single line of E2 code.
+- **E2 (AMP) support is next** — Alteryx made AMP the default engine in Designer 2022.1, which means newer workflows produce a different binary layout. E2 development requires a different methodology since no open-source implementations or public reference files exist. We've [documented the process](https://github.com/Sigilweaver/OpenYXDB/blob/main/SPECIFICATION-E2.md) before writing a single line of E2 code.
 :::
 
 <!--truncate-->
@@ -37,9 +37,9 @@ Seven years later, on March 9, 2022 - exactly four years ago today - Alteryx the
 
 I don't think GitHub stars are a meaningful measure of software quality. But 5 stars in four years, for a format used by tens of thousands of analysts, tells you something about the gap between "technically available" and "practically usable." Both C++ implementations were released under GPL - likely motivated at least in part by the R plugin's GPL licensing requirements. They target Windows, produce raw record-level output, and leave you to write your own glue code to whatever framework you actually use. If you're a Python analyst who just wants a DataFrame, the format is open in theory and closed in practice.
 
-And then there's Tom Larsen. Working independently, Larsen built `.yxdb` readers in Python, Go, Java, .NET, and even wrote an ODBC driver - all released under the MIT license. If you wanted to read a `.yxdb` file in any mainstream language before SigilYX existed, Larsen probably had you covered. This is a truly impressive feat, and I am thankful for his work.
+And then there's Tom Larsen. Working independently, Larsen built `.yxdb` readers in Python, Go, Java, .NET, and even wrote an ODBC driver - all released under the MIT license. If you wanted to read a `.yxdb` file in any mainstream language before OpenYXDB existed, Larsen probably had you covered. This is a truly impressive feat, and I am thankful for his work.
 
-SigilYX's format knowledge comes from studying these implementations. The SPECIFICATION.md in the repository cites all seven reference projects with their authors and licenses. The Rust code is an original implementation - no lines were copied - but the understanding of the binary layout, the field type encodings, the compression framing: that all came from reading openly published source code. I'm building on a foundation that Harding, Larsen, and others laid over the past decade.
+OpenYXDB's format knowledge comes from studying these implementations. The SPECIFICATION.md in the repository cites all seven reference projects with their authors and licenses. The Rust code is an original implementation - no lines were copied - but the understanding of the binary layout, the field type encodings, the compression framing: that all came from reading openly published source code. I'm building on a foundation that Harding, Larsen, and others laid over the past decade.
 
 It's worth noting: every one of these implementations targets the same format variant. Alteryx's documentation refers to two YXDB engines — **E1** (the original engine) and **E2** (the AMP engine). All existing open-source readers, including Larsen's, handle E1 files only. If you've seen GitHub issues on Larsen's repos from users reporting that their `.yxdb` files fail to parse, it's almost certainly because they were produced by AMP — and E2 uses a different binary layout that no existing reader understands. More on that later.
 
@@ -63,7 +63,7 @@ The format deserved a modern reader. The existing ones are solid but single-thre
 
 Everything that follows describes the **E1** format — the original engine layout. This is the variant that all existing open-source readers target, and the one for which multiple independent reference implementations exist.
 
-There's no official `.yxdb` specification document - no PDF, no RFC, no formal grammar. What exists is source code. So the process of building SigilYX was less "implement a spec" and more "read four different implementations in four different languages and figure out what they agree on."
+There's no official `.yxdb` specification document - no PDF, no RFC, no formal grammar. What exists is source code. So the process of building OpenYXDB was less "implement a spec" and more "read four different implementations in four different languages and figure out what they agree on."
 
 The broad strokes are straightforward. An E1 `.yxdb` file starts with a 512-byte header, followed by XML metadata encoded in UTF-16LE (a detail that will become relevant and annoying shortly), followed by a sequence of LZF-compressed record blocks. The header tells you how many records exist and where the metadata ends. The XML tells you the schema - field names, types, sizes. The compressed blocks contain the actual data.
 
@@ -85,7 +85,7 @@ So reading a `.yxdb` file means transcoding potentially millions of string value
 
 But here's the thing: most real-world data is ASCII. Column names, categorical values, addresses, product codes, dates stored as strings - the vast majority of characters in the vast majority of datasets fall in the 0x00-0x7F range. And for ASCII, UTF-16LE to UTF-8 transcoding is trivial: every character is two bytes where the high byte is zero. You're just stripping the zeros.
 
-SigilYX exploits this with an SSE2-accelerated fast path. For chunks of text where every character is ASCII-range, SIMD instructions process 8 characters at a time - check high bytes are zero, shuffle out the low bytes, write them directly. When a non-ASCII character appears, it falls back to a scalar path that handles the full Unicode range correctly. In practice, the fast path handles 95%+ of real data, and what was the biggest bottleneck becomes a non-issue.
+OpenYXDB exploits this with an SSE2-accelerated fast path. For chunks of text where every character is ASCII-range, SIMD instructions process 8 characters at a time - check high bytes are zero, shuffle out the low bytes, write them directly. When a non-ASCII character appears, it falls back to a scalar path that handles the full Unicode range correctly. In practice, the fast path handles 95%+ of real data, and what was the biggest bottleneck becomes a non-issue.
 
 ## Making It Parallel
 
@@ -93,15 +93,15 @@ Every existing open-source `.yxdb` reader is single-threaded. Open the file, dec
 
 But "fast enough" leaves a lot of performance on the table when you have 8 or 16 cores sitting idle.
 
-SigilYX parallelizes at two levels. First, decompression: LZF blocks are independent (each is prefixed with its own size header and can be decompressed without any prior block), so after scanning the block boundaries, all blocks decompress concurrently using Rayon. Second, column construction: once the data is decompressed, each column's Arrow array is built on its own thread - one task per column, each independently filling a value buffer and validity bitmap.
+OpenYXDB parallelizes at two levels. First, decompression: LZF blocks are independent (each is prefixed with its own size header and can be decompressed without any prior block), so after scanning the block boundaries, all blocks decompress concurrently using Rayon. Second, column construction: once the data is decompressed, each column's Arrow array is built on its own thread - one task per column, each independently filling a value buffer and validity bitmap.
 
-The result is that SigilYX's advantage scales with the amount of work available. On a narrow 2-column numeric file, it ties the C++ readers - there's simply nothing to parallelize. On a wide 50-column file with mixed types, it runs 2× faster. On string-heavy data where the UTF-16 transcoding dominates, it's 1.6× faster. The more complex the schema, the more the parallelism pays off.
+The result is that OpenYXDB's advantage scales with the amount of work available. On a narrow 2-column numeric file, it ties the C++ readers - there's simply nothing to parallelize. On a wide 50-column file with mixed types, it runs 2× faster. On string-heavy data where the UTF-16 transcoding dominates, it's 1.6× faster. The more complex the schema, the more the parallelism pays off.
 
 ## The Numbers
 
 100,000 rows, 100 runs, median time:
 
-| Schema | SigilYX (Rust) | Best C++ | Go | .NET | vs best |
+| Schema | OpenYXDB (Rust) | Best C++ | Go | .NET | vs best |
 |--------|---------------:|---------:|---:|-----:|------------:|
 | Narrow (2 cols) | 2.2 ms | 2.2 ms | 4.5 ms | 8.7 ms | 1.0× |
 | Numeric (5 cols) | 4.2 ms | 4.3 ms | 7.2 ms | 11.6 ms | 1.0× |
@@ -109,9 +109,9 @@ The result is that SigilYX's advantage scales with the amount of work available.
 | String-heavy (5 cols) | 52.0 ms | 85.3 ms | 344.6 ms | 204.6 ms | 1.6× |
 | Wide (50 cols) | 71.0 ms | 139.6 ms | 439.0 ms | 336.6 ms | 2.0× |
 
-On the Python side, SigilYX's Rust-backed bindings run 111-204× faster than yxdb-py (Tom Larsen's pure-Python implementation). That's not a typo, but it's also not a fair fight. The pure-Python library processes a string-heavy 100K-row file in 10.6 seconds; SigilYX does it in 52 milliseconds. The difference is that SigilYX does all of its work in compiled Rust and hands the result to Python as a finished DataFrame through the Arrow C Data Interface - no row-by-row Python loop, no intermediate copies.
+On the Python side, OpenYXDB's Rust-backed bindings run 111-204× faster than yxdb-py (Tom Larsen's pure-Python implementation). That's not a typo, but it's also not a fair fight. The pure-Python library processes a string-heavy 100K-row file in 10.6 seconds; OpenYXDB does it in 52 milliseconds. The difference is that OpenYXDB does all of its work in compiled Rust and hands the result to Python as a finished DataFrame through the Arrow C Data Interface - no row-by-row Python loop, no intermediate copies.
 
-And for the edge case that becomes the whole case in enterprise settings: a 32.5 GB file - 90 million rows - processed in 52.6 seconds using 1.1 GB of peak RAM. Any library that tries to load the entire file will run out of memory on most machines. SigilYX's `scan_yxdb()` streams through it in constant memory. To our knowledge, no other open-source YXDB library supports this.
+And for the edge case that becomes the whole case in enterprise settings: a 32.5 GB file - 90 million rows - processed in 52.6 seconds using 1.1 GB of peak RAM. Any library that tries to load the entire file will run out of memory on most machines. OpenYXDB's `scan_yxdb()` streams through it in constant memory. To our knowledge, no other open-source YXDB library supports this.
 
 The full benchmark suite, methodology (510 lines of it), and reproduction instructions are in the repository. If someone wants to challenge the numbers, everything they need is there.
 
@@ -121,9 +121,9 @@ A few things I'd do again:
 
 **Start with the test corpus, not the spec.** The Alteryx Community's weekly challenges gave me hundreds of `.yxdb` files with wildly different schemas - narrow numeric tables, wide mixed-type datasets, files with spatial data, files with every edge case in the null-handling logic. Understanding the format by reading code is necessary, but having a diverse corpus of real files is what catches the behaviors that no implementation's source code makes obvious.
 
-**Credit your sources.** Every open-source YXDB reader I referenced is cited in the specification document, with author and license. The format knowledge chain is: Harding's original C++ (GPL-3.0, 2015) → Alteryx's official OpenYXDB (GPL-3.0, 2022) → Larsen's multi-language readers (MIT) → SigilYX (derived specification, original Rust implementation). No black boxes. If someone wants to trace how I know what byte 64 in the header means, the trail is documented.
+**Credit your sources.** Every open-source YXDB reader I referenced is cited in the specification document, with author and license. The format knowledge chain is: Harding's original C++ (GPL-3.0, 2015) → Alteryx's official OpenYXDB (GPL-3.0, 2022) → Larsen's multi-language readers (MIT) → OpenYXDB (derived specification, original Rust implementation). No black boxes. If someone wants to trace how I know what byte 64 in the header means, the trail is documented.
 
-**Benchmark honestly, and publish the methodology.** If you claim your library is faster, show your work. Run all competitors on the same data, same machine, same conditions. Publish the results, the scripts, and the methodology. Don't cherry-pick the flattering comparisons - SigilYX ties on narrow numeric data, and I report that alongside the 2× wins on wide schemas. Credibility comes from the results you're not bragging about.
+**Benchmark honestly, and publish the methodology.** If you claim your library is faster, show your work. Run all competitors on the same data, same machine, same conditions. Publish the results, the scripts, and the methodology. Don't cherry-pick the flattering comparisons - OpenYXDB ties on narrow numeric data, and I report that alongside the 2× wins on wide schemas. Credibility comes from the results you're not bragging about.
 
 ## What About E2?
 
@@ -131,24 +131,24 @@ If you're running a recent version of Alteryx Designer, AMP (Alteryx Multi-threa
 
 This isn't an obscure distinction — it's something every existing YXDB reader has run into. Larsen's readers, which cover five languages and have been the go-to open-source option for years, don't support E2. Users have filed issues on his repositories reporting parse failures on newer `.yxdb` files, and the answer is the same each time: the file was produced by AMP, and the binary layout is different. The E1/E2 split is a real compatibility boundary in the ecosystem.
 
-SigilYX does not read E2 files yet. That's deliberate.
+OpenYXDB does not read E2 files yet. That's deliberate.
 
 E1 development had an unusually clean foundation: Alteryx themselves published an MIT-licensed C++ reader (OpenYXDB), multiple independent implementations existed in other languages, and hundreds of E1 files were freely available on the public internet. I could study the format by reading open-source code, validate my implementation against reference readers, and benchmark against real implementations. The provenance was clean at every step.
 
 E2 has none of that. No open-source E2 implementations exist — not from Alteryx, not from Larsen, not from anyone. No E2 files have been found on the public internet. No reference readers to validate against. We don't even know whether E2 shares the same header structure as E1, whether it uses the same compression, or whether the record layout is row-oriented or columnar. Building E2 support means deriving the format entirely from binary analysis of independently sourced files — and doing that responsibly requires a level of process that E1 never needed.
 
-So before writing a single line of E2 code, I wrote the process. The [E2 specification document](https://github.com/Sigilweaver/SigilYX/blob/main/SPECIFICATION-E2.md) — committed to version control before any E2 development began — defines strict sourcing rules for obtaining files: no files from Alteryx-controlled properties, no files solicited from anyone bound by the Alteryx EULA, no files created for the purpose of assisting this project. Acceptable sources are limited to files already existing on the public internet for an independent purpose, discovered at arm's length. Every file used must have its provenance documented — source URL, archive URL (archived *before* analysis begins), SHA-256 hash, independence attestation — and sourced files are never committed to the repository.
+So before writing a single line of E2 code, I wrote the process. The [E2 specification document](https://github.com/Sigilweaver/OpenYXDB/blob/main/SPECIFICATION-E2.md) — committed to version control before any E2 development began — defines strict sourcing rules for obtaining files: no files from Alteryx-controlled properties, no files solicited from anyone bound by the Alteryx EULA, no files created for the purpose of assisting this project. Acceptable sources are limited to files already existing on the public internet for an independent purpose, discovered at arm's length. Every file used must have its provenance documented — source URL, archive URL (archived *before* analysis begins), SHA-256 hash, independence attestation — and sourced files are never committed to the repository.
 
 This is slower than just asking someone to send me a file. But the goal is an auditable record that can withstand scrutiny. File format analysis of lawfully obtained files is protected under DMCA §1201(f) interoperability provisions, but legal protection and responsible practice aren't the same thing. The sourcing rules exist to remove ambiguity about *how* the files were obtained, not just *whether* analysis is legal.
 
-E2 will ship as beta when it's ready, with clear warnings about coverage limitations. There will be no performance benchmarks — there's nothing to benchmark against. The test corpus will be entirely self-generated by SigilYX's own writer. And the methodology documentation will be public from day one, just like the E1 spec.
+E2 will ship as beta when it's ready, with clear warnings about coverage limitations. There will be no performance benchmarks — there's nothing to benchmark against. The test corpus will be entirely self-generated by OpenYXDB's own writer. And the methodology documentation will be public from day one, just like the E1 spec.
 
 If you have E2 files you need to read today, I understand the urgency. But building format support on a shaky foundation helps no one long-term. E2 will be done right, or it won't be done yet.
 
 ---
 
-*SigilYX is open source under AGPL-3.0 and available on [crates.io](https://crates.io/crates/sigilyx), [PyPI](https://pypi.org/project/sigilyx/), and [GitHub](https://github.com/Sigilweaver/SigilYX). It reads and writes files in the `.yxdb` format created by Alteryx. It is not affiliated with, endorsed by, or associated with Alteryx, Inc.*
+*OpenYXDB is open source under AGPL-3.0 and available on [crates.io](https://crates.io/crates/openyxdb), [PyPI](https://pypi.org/project/openyxdb/), and [GitHub](https://github.com/Sigilweaver/OpenYXDB). It reads and writes files in the `.yxdb` format created by Alteryx. It is not affiliated with, endorsed by, or associated with Alteryx, Inc.*
 
 ---
 
-**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20why-we-built-sigilyx)** · **Visit [sigilweaver.app](https://sigilweaver.app)**
+**Discuss on [GitHub](https://github.com/Sigilweaver/Loom/discussions)** · **Email [contact@sigilweaver.app](mailto:contact@sigilweaver.app?subject=RE:%20why-we-built-openyxdb)** · **Visit [sigilweaver.app](https://sigilweaver.app)**

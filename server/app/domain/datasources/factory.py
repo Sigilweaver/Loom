@@ -55,7 +55,7 @@ class DataSourceFactory:
         ".jsonl": "json",  # Newline-delimited JSON
         ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
         ".parquet": "parquet",
-        ".yxdb": "yxdb",  # YXDB format (via SigilYX)
+        ".yxdb": "yxdb",  # YXDB format (via OpenYXDB)
         ".arrow": "ipc",  # Apache Arrow IPC format
         ".ipc": "ipc",  # IPC format
         ".feather": "ipc",  # Feather v2 (same as Arrow IPC)

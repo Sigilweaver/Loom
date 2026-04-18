@@ -1,10 +1,10 @@
-"""Tests for YXDB input/output functionality via SigilYX"""
+"""Tests for YXDB input/output functionality via OpenYXDB"""
 
 from pathlib import Path
 
 import polars as pl
 import pytest
-import sigilyx
+import openyxdb
 
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.datasources.yxdb import YxdbDataSource
@@ -42,7 +42,7 @@ def sample_yxdb(tmp_path: Path) -> Path:
         }
     )
 
-    sigilyx.write_yxdb(str(yxdb_path), df)
+    openyxdb.write_yxdb(str(yxdb_path), df)
     return yxdb_path
 
 
@@ -130,7 +130,7 @@ class TestYxdbDataSource:
             assert set(row.keys()) == {"name", "score"}
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(reason="OpenYXDB reader panics on compressed titanic.yxdb records")
     async def test_preview_titanic(self, titanic_yxdb: Path):
         """Test preview() on the titanic dataset"""
         ds = YxdbDataSource()
@@ -251,7 +251,7 @@ class TestYxdbInputTool:
         assert len(df) == 5
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(reason="OpenYXDB reader panics on compressed titanic.yxdb records")
     async def test_read_titanic(self, titanic_yxdb: Path):
         """Test InputTool reads the full titanic YXDB"""
         tool = InputTool()
@@ -264,7 +264,7 @@ class TestYxdbInputTool:
         assert len(df.columns) == 12
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(reason="OpenYXDB reader panics on compressed titanic.yxdb records")
     async def test_read_titanic_subset(self, titanic_yxdb: Path):
         """Test InputTool with n_rows and columns on titanic"""
         tool = InputTool()
@@ -326,7 +326,7 @@ class TestYxdbOutputTool:
 
         # Verify output
         assert output_path.exists()
-        result = sigilyx.read_yxdb(str(output_path))
+        result = openyxdb.read_yxdb(str(output_path))
         assert len(result) == 5
         assert result["name"][0] == "Alice"
 
@@ -345,11 +345,11 @@ class TestYxdbOutputTool:
         )
 
         assert output_path.exists()
-        result = sigilyx.read_yxdb(str(output_path))
+        result = openyxdb.read_yxdb(str(output_path))
         assert len(result) == 5
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(reason="OpenYXDB reader panics on compressed titanic.yxdb records")
     async def test_write_titanic_roundtrip(self, tmp_path: Path, titanic_yxdb: Path):
         """Test full roundtrip: YXDB → InputTool → OutputTool → YXDB → verify"""
         input_tool = InputTool()
@@ -366,8 +366,8 @@ class TestYxdbOutputTool:
         )
 
         # Read back and compare
-        original = sigilyx.read_yxdb(str(titanic_yxdb))
-        copy = sigilyx.read_yxdb(str(output_path))
+        original = openyxdb.read_yxdb(str(titanic_yxdb))
+        copy = openyxdb.read_yxdb(str(output_path))
 
         assert original.shape == copy.shape
         assert original.columns == copy.columns
@@ -431,12 +431,12 @@ class TestYxdbCrossFormat:
         )
 
         # Verify
-        result = sigilyx.read_yxdb(str(yxdb_path))
+        result = openyxdb.read_yxdb(str(yxdb_path))
         assert result.shape == (891, 12)
         assert "PassengerId" in result.columns
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(reason="OpenYXDB reader panics on compressed titanic.yxdb records")
     async def test_yxdb_to_parquet(self, tmp_path: Path, titanic_yxdb: Path):
         """Test reading YXDB and writing as Parquet"""
         input_tool = InputTool()
@@ -478,7 +478,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import sigilyx" in code
+        assert "import openyxdb" in code
         assert "scan_yxdb" in code
         assert "/data/input.yxdb" in code
         assert "output" in output_vars
@@ -491,7 +491,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import sigilyx" in code
+        assert "import openyxdb" in code
         assert "scan_yxdb" in code
         assert ".head(100)" in code
 
@@ -507,7 +507,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import sigilyx" in code
+        assert "import openyxdb" in code
         assert ".select(" in code
         assert '"name"' in code
         assert '"age"' in code
@@ -520,6 +520,6 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 
         code = "\n".join(lines)
-        assert "import sigilyx" in code
+        assert "import openyxdb" in code
         assert "sink_yxdb" in code
         assert "/data/output.yxdb" in code
