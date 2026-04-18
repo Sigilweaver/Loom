@@ -56,19 +56,7 @@ const config: Config = {
           editUrl:
             'https://github.com/Sigilweaver/Loom/tree/main/docs/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          editUrl:
-            'https://github.com/Sigilweaver/Loom/tree/main/docs/',
-          blogTitle: 'Sigilweaver Loom Blog',
-          blogDescription: 'Insights on open source development, data engineering, and workflow automation',
-          blogSidebarTitle: 'Recent posts',
-          blogSidebarCount: 10,
-        },
+        blog: false,
         sitemap: {
           changefreq: 'weekly',
           priority: 0.5,
@@ -110,11 +98,7 @@ const config: Config = {
           position: 'left',
           label: 'Documentation',
         },
-        {
-          to: '/blog',
-          label: 'Blog',
-          position: 'left',
-        },
+
         {
           href: 'https://sigilweaver.app',
           label: 'Website',
