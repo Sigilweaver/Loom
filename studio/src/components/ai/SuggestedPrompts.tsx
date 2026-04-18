@@ -68,8 +68,8 @@ const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({ onSelect }) => {
       {/* Capabilities list */}
       {!hasTools && (
         <div className="space-y-1.5">
-          {CAPABILITIES.map((cap, i) => (
-            <div key={i} className="flex items-start gap-2 px-2 py-1 text-xs text-theme-text-secondary">
+          {CAPABILITIES.map((cap) => (
+            <div key={cap.label} className="flex items-start gap-2 px-2 py-1 text-xs text-theme-text-secondary">
               <span className="text-theme-interactive-accent mt-0.5">-</span>
               <div>
                 <span className="font-medium text-theme-text-primary">{cap.label}</span>
@@ -85,9 +85,9 @@ const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({ onSelect }) => {
         <p className="text-[10px] font-medium text-theme-text-tertiary uppercase tracking-wider px-2">
           Try asking
         </p>
-        {prompts.map((prompt, i) => (
+        {prompts.map((prompt) => (
           <button
-            key={i}
+            key={prompt}
             onClick={() => onSelect(prompt)}
             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left rounded
               border border-theme-border-primary bg-theme-surface-page

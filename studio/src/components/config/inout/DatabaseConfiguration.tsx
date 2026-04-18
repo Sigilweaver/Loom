@@ -268,8 +268,8 @@ export const DatabaseConfiguration: React.FC<DatabaseConfigurationProps> = ({
           <div className="p-3 border rounded-lg border-theme-border-primary bg-theme-surface-panel">
             <h4 className="mb-2 text-xs font-medium text-theme-text-primary">Tips</h4>
             <ul className="space-y-1 text-xs text-theme-text-tertiary">
-              {getTips().map((tip, index) => (
-                <li key={index} className="flex items-start gap-1.5">
+              {getTips().map((tip) => (
+                <li key={tip.text} className="flex items-start gap-1.5">
                   <span className="text-theme-text-secondary">-</span>
                   <span>
                     {tip.code ? (

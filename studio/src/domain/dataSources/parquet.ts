@@ -11,6 +11,8 @@
  * https://sigilweaver.app/docs/user/tools/input-output/input/#parquet
  */
 
+import { setConfigField } from "./configTransfer";
+
 /**
  * Parquet Reading Mode
  */
@@ -270,8 +272,7 @@ export function switchParquetMode(
 
     // Only preserve if new mode supports this parameter
     if (isSupportedByMode(key, newMode)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (newConfig as any)[typedKey] = currentValue;
+      setConfigField(newConfig, typedKey, currentValue);
     }
   }
 
