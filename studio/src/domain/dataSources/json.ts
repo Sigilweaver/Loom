@@ -17,6 +17,8 @@
  * https://sigilweaver.app/loom/docs/user/tools/input-output/input/#json
  */
 
+import { setConfigField } from "./configTransfer";
+
 /**
  * JSON Reading Mode
  *
@@ -353,8 +355,7 @@ export function switchJsonMode(
 
     // Only preserve if new mode supports this parameter
     if (isSupportedByMode(key, newMode)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (newConfig as any)[typedKey] = currentValue;
+      setConfigField(newConfig, typedKey, currentValue);
     }
   }
 

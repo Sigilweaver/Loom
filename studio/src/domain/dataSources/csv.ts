@@ -12,6 +12,7 @@
  */
 
 import { PolarsDataType } from "../../data/polarsTypes";
+import { setConfigField } from "./configTransfer";
 
 // Re-export for consumers of this module
 export type { PolarsDataType };
@@ -453,8 +454,7 @@ export function switchCsvMode(
 
     // Only preserve if new mode supports this parameter
     if (isSupportedByMode(key, newMode)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (newConfig as any)[typedKey] = currentValue;
+      setConfigField(newConfig, typedKey, currentValue);
     }
   }
 

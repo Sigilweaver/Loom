@@ -15,6 +15,8 @@
  * maximum read/write performance.
  */
 
+import { copyConfigField, setConfigField } from "./configTransfer";
+
 /**
  * IPC Reading Mode
  */
@@ -130,10 +132,7 @@ export function switchIpcMode(
 
   const preserved: Partial<PolarsIpcConfig> = {};
   for (const key of preserveKeys) {
-    if (key in currentConfig && currentConfig[key] !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (preserved as any)[key] = currentConfig[key];
-    }
+    copyConfigField(preserved, currentConfig, key);
   }
 
   return {
@@ -193,10 +192,10 @@ export function getNonDefaultIpcConfig(
   const nonDefault: Partial<PolarsIpcConfig> = {};
 
   for (const [key, value] of Object.entries(config)) {
-    const defaultValue = defaults[key as keyof PolarsIpcConfig];
+    const typedKey = key as keyof PolarsIpcConfig;
+    const defaultValue = defaults[typedKey];
     if (value !== defaultValue) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (nonDefault as any)[key] = value;
+      setConfigField(nonDefault, typedKey, value as PolarsIpcConfig[typeof typedKey]);
     }
   }
 

@@ -11,6 +11,8 @@
  * https://sigilweaver.app/loom/docs/user/tools/input-output/output/#csv
  */
 
+import { copyConfigField } from "./configTransfer";
+
 /**
  * CSV Output Mode
  */
@@ -128,10 +130,7 @@ export function switchCsvOutputMode(
   // Preserve common parameters from current config
   const preservedConfig: Partial<PolarsCsvOutputConfig> = {};
   for (const param of commonParams) {
-    if (param in currentConfig && currentConfig[param] !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (preservedConfig as any)[param] = currentConfig[param];
-    }
+    copyConfigField(preservedConfig, currentConfig, param);
   }
 
   return {

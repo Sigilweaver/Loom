@@ -14,6 +14,8 @@
  * It supports only limited compression options: uncompressed, lz4, and zstd.
  */
 
+import { copyConfigField } from "./configTransfer";
+
 /**
  * IPC Output Mode
  */
@@ -100,10 +102,7 @@ export function switchIpcOutputMode(
   // Preserve common parameters from current config
   const preservedConfig: Partial<PolarsIpcOutputConfig> = {};
   for (const param of commonParams) {
-    if (param in currentConfig && currentConfig[param] !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (preservedConfig as any)[param] = currentConfig[param];
-    }
+    copyConfigField(preservedConfig, currentConfig, param);
   }
 
   return {
