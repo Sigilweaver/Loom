@@ -187,8 +187,8 @@ export const OdsConfiguration: React.FC<OdsConfigurationProps> = ({
           <div className="p-3 space-y-2 text-xs rounded-lg bg-theme-surface-secondary">
             <div className="font-medium text-theme-text-primary">Features:</div>
             <ul className="pl-4 space-y-1 list-disc text-theme-text-secondary">
-              {ODS_INFO.features.map((feature, i) => (
-                <li key={i}>{feature}</li>
+              {ODS_INFO.features.map((feature) => (
+                <li key={feature}>{feature}</li>
               ))}
             </ul>
 
@@ -196,8 +196,8 @@ export const OdsConfiguration: React.FC<OdsConfigurationProps> = ({
               Limitations:
             </div>
             <ul className="pl-4 space-y-1 list-disc text-theme-text-secondary">
-              {ODS_INFO.limitations.map((limitation, i) => (
-                <li key={i}>{limitation}</li>
+              {ODS_INFO.limitations.map((limitation) => (
+                <li key={limitation}>{limitation}</li>
               ))}
             </ul>
 

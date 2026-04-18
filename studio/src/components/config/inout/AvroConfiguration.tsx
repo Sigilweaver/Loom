@@ -113,8 +113,8 @@ export const AvroConfiguration: React.FC<AvroConfigurationProps> = ({
           <div className="p-3 space-y-2 text-xs rounded-lg bg-theme-surface-secondary">
             <div className="font-medium text-theme-text-primary">Features:</div>
             <ul className="pl-4 space-y-1 list-disc text-theme-text-secondary">
-              {AVRO_INFO.features.map((feature, i) => (
-                <li key={i}>{feature}</li>
+              {AVRO_INFO.features.map((feature) => (
+                <li key={feature}>{feature}</li>
               ))}
             </ul>
 
@@ -122,8 +122,8 @@ export const AvroConfiguration: React.FC<AvroConfigurationProps> = ({
               Limitations:
             </div>
             <ul className="pl-4 space-y-1 list-disc text-theme-text-secondary">
-              {AVRO_INFO.limitations.map((limitation, i) => (
-                <li key={i}>{limitation}</li>
+              {AVRO_INFO.limitations.map((limitation) => (
+                <li key={limitation}>{limitation}</li>
               ))}
             </ul>
 
