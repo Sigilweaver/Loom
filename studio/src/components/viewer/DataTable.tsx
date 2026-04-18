@@ -150,26 +150,35 @@ const DataTable = () => {
     return str;
   }, []);
   
-  // Copy selection (or all data if no selection) to clipboard as TSV
+  // Copy selection (or all data if no selection) to clipboard as TSV.
+  // IMPORTANT: cell selection coordinates are *visual* row indices (the index
+  // in the rendered, possibly sorted row list). We therefore have to read
+  // through the table's sorted row model rather than `previewState.data`,
+  // which is always in original (unsorted) order. The table instance is
+  // created later in this component, so we access it via a ref.
+  const sortedRowsRef = useRef<{ original: Record<string, unknown> }[]>([]);
   const copyData = useCallback((includeHeaders: boolean) => {
     if (!previewState?.data || columnNames.length === 0) return;
-    
-    // If no selection, copy everything
-    const norm = selection 
+
+    const sortedRows = sortedRowsRef.current;
+    const totalRows = sortedRows.length;
+
+    // If no selection, copy everything (visible row order)
+    const norm = selection
       ? normalizeSelection(selection)
-      : { startRow: 0, startCol: 0, endRow: previewState.data.length - 1, endCol: columnNames.length - 1 };
-    
+      : { startRow: 0, startCol: 0, endRow: totalRows - 1, endCol: columnNames.length - 1 };
+
     const lines: string[] = [];
-    
+
     // Add header row if requested
     if (includeHeaders) {
       const headerCells = columnNames.slice(norm.startCol, norm.endCol + 1);
       lines.push(headerCells.join('\t'));
     }
-    
+
     // Add data rows
     for (let r = norm.startRow; r <= norm.endRow; r++) {
-      const row = previewState.data[r];
+      const row = sortedRows[r]?.original;
       if (!row) continue;
       const cells: string[] = [];
       for (let c = norm.startCol; c <= norm.endCol; c++) {
@@ -180,7 +189,7 @@ const DataTable = () => {
       }
       lines.push(cells.join('\t'));
     }
-    
+
     const tsv = lines.join('\n');
     navigator.clipboard.writeText(tsv).then(() => {
       const rowCount = norm.endRow - norm.startRow + 1;
@@ -585,6 +594,12 @@ const DataTable = () => {
     columnResizeMode: "onChange",
     enableColumnResizing: true,
   });
+
+  // Keep the sorted-rows ref in sync so copyData (defined earlier) can read
+  // through the current sort order rather than the unsorted previewState.data.
+  sortedRowsRef.current = table.getRowModel().rows as unknown as {
+    original: Record<string, unknown>;
+  }[];
 
   if (!previewState) {
     return (
