@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Sigilweaver Loom website - Weave Data Magic Into Reality",
+  "engines": {
+    "node": ">=18.0"
+  },
   "scripts": {
     "dev": "vite",
     "sitemap": "node scripts/generate-sitemaps.mjs",
