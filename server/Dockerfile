@@ -27,8 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast dependency resolution
-COPY --link --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
+# Install uv for fast dependency resolution.
+# Pinned by digest so an upstream retag on the :0.5 tag cannot silently
+# change the uv binary embedded in our image.
+COPY --link --from=ghcr.io/astral-sh/uv:0.5@sha256:7bff3c3776ec467fc1437960f2c469d8beb30f536a6465a3350c647ccd260ec2 /uv /usr/local/bin/uv
 
 # Copy dependency files
 COPY server/pyproject.toml server/uv.lock ./
