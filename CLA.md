@@ -26,7 +26,7 @@ This Contributor License Agreement ("Agreement") is entered into between the ent
 
 ### 2. Copyright Assignment
 
-**2.1 Assignment.** Subject strictly to the Conditions and Covenants set forth in Section 3 and Section 4 of this Agreement, You hereby assign to the Company all right, title, and interest in and to the Contribution, including all copyrights and other proprietary rights. This assignment includes the right for the Company to license the Contribution under Open Source licenses and proprietary commercial licenses.
+**2.1 Assignment.** Subject strictly to the Conditions and Covenants set forth in Section 3 and Section 4 of this Agreement, You hereby assign to the Company all right, title, and interest in and to the Contribution, including all copyrights and other proprietary rights. This assignment exists solely so that the Company can hold unified copyright ownership on behalf of the project — enabling it to defend the license, enforce copyleft, and redistribute the Contribution under OSI-Approved Licenses. The Company shall not license the Contribution under any non-OSI-Approved license, and any attempt to do so shall trigger the reversion provided for in Section 4.
 
 **2.2 Grant Back.** Upon the assignment of rights in Section 2.1, the Company hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license to reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute Your Contribution and such derivative works.
 
