@@ -26,6 +26,13 @@ on:
 env:
   REGISTRY: ghcr.io
 
+# Prevent overlapping image builds. Two runs for the same release tag (or
+# the same workflow_dispatch version input) would race to push identical
+# tags to ghcr.io and duplicate cache work.
+concurrency:
+  group: docker-build-${{ github.event.release.tag_name || github.event.inputs.version || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ===========================================================================
   # Build Hub Image
