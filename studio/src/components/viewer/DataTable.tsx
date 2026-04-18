@@ -82,7 +82,9 @@ const DataTable = () => {
     ? `${previewState.toolId}-${previewState.socketId}-${previewState.socketDirection}`
     : null;
   
-  // Clear selection when socket changes
+  // Clear selection AND sort order when socket changes. Without resetting
+  // `sorting`, switching from socket A (sorted by column X) to socket B would
+  // briefly render B in A's sort order, even when B does not have column X.
   useEffect(() => {
     if (currentSocketKey !== prevSocketKeyRef.current) {
       setSelection(null);
@@ -94,9 +96,40 @@ const DataTable = () => {
       setIsSelectingColumns(false);
       setIsSelectingRows(false);
       setContextMenu(null);
+      setSorting([]);
       prevSocketKeyRef.current = currentSocketKey;
     }
   }, [currentSocketKey]);
+
+  // Clamp the active selection when the underlying data shrinks (same socket
+  // returning a smaller result, e.g. after upstream filter changes). Without
+  // this, isCellSelected() can return true for rows/columns that no longer
+  // exist, leaving phantom highlights and out-of-bounds accesses in copyData.
+  const dataRowCount = previewState?.data?.length ?? 0;
+  const dataColCount = previewState?.schema?.length ?? 0;
+  useEffect(() => {
+    if (!selection) return;
+    if (dataRowCount === 0 || dataColCount === 0) {
+      setSelection(null);
+      setAnchorCell(null);
+      setActiveCell(null);
+      return;
+    }
+    const maxRow = dataRowCount - 1;
+    const maxCol = dataColCount - 1;
+    const needsClamp =
+      selection.startRow > maxRow ||
+      selection.endRow > maxRow ||
+      selection.startCol > maxCol ||
+      selection.endCol > maxCol;
+    if (!needsClamp) return;
+    setSelection({
+      startRow: Math.min(selection.startRow, maxRow),
+      startCol: Math.min(selection.startCol, maxCol),
+      endRow: Math.min(selection.endRow, maxRow),
+      endCol: Math.min(selection.endCol, maxCol),
+    });
+  }, [dataRowCount, dataColCount, selection]);
   
   // Get column names (excluding row number column)
   const columnNames = useMemo(() => {
