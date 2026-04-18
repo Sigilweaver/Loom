@@ -592,9 +592,9 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                                             <span className={clsx(
                                                 'text-xs px-1.5 py-0.5 rounded flex-shrink-0',
                                                 result.score >= 0.9
-                                                    ? 'bg-green-500/15 text-green-400'
+                                                    ? 'bg-theme-status-success-bg text-theme-status-success-text'
                                                     : result.score >= 0.7
-                                                        ? 'bg-yellow-500/15 text-yellow-400'
+                                                        ? 'bg-theme-status-warning-bg text-theme-status-warning-text'
                                                         : 'bg-theme-bg-hover text-theme-text-tertiary'
                                             )}>
                                                 {Math.round(result.score * 100)}%

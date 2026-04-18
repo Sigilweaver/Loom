@@ -382,7 +382,7 @@ function ValueInput({ value, dtype, onChange }: ValueInputProps) {
       placeholder={placeholder}
       className={`flex-1 min-w-0 h-7 px-2 text-xs rounded border ${
         !value.trim()
-          ? "border-amber-500/50"
+          ? "border-theme-status-warning-border"
           : "border-theme-border-primary"
       } bg-theme-surface-panel text-theme-text-primary placeholder:text-theme-text-tertiary`}
     />

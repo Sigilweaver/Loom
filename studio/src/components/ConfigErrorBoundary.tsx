@@ -39,9 +39,9 @@ export class ConfigErrorBoundary extends Component<Props, State> {
         if (this.state.hasError) {
             return (
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                    <div className="w-12 h-12 mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <div className="w-12 h-12 mb-4 rounded-full bg-theme-status-warning-bg flex items-center justify-center">
                         <svg
-                            className="w-6 h-6 text-amber-500"
+                            className="w-6 h-6 text-theme-status-warning-text"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
