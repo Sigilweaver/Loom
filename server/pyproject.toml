@@ -1,5 +1,5 @@
 [project]
-name = "backend"
+name = "sigilweaver-loom-server"
 version = "0.0.0-dev"
 description = "Backend service for Sigilweaver Loom workflow execution"
 requires-python = ">=3.11"
