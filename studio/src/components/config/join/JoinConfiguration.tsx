@@ -165,6 +165,43 @@ export function JoinConfiguration({
     }
   }, [hasLeftInput, hasRightInput, hasValidKeys, currentJoinType]);
 
+  // Clear stale right-key selections that became incompatible after the
+  // corresponding left-key dtype changed. Without this the dropdown shows
+  // empty (because `value` is forced to "") while config still holds the old
+  // incompatible name, which then causes a Polars dtype error at run time.
+  useEffect(() => {
+    if (rightColumns.length === 0 || rightKeys.length === 0) return;
+
+    let changed = false;
+    const cleared = rightKeys.map((rightKey, i) => {
+      if (!rightKey) return rightKey;
+      const leftCol = leftColumns.find((c) => c.name === leftKeys[i]);
+      const leftDtype = leftCol?.dtype;
+      if (!leftDtype) return rightKey;
+      const compatible = filterCompatibleColumns(rightColumns, leftDtype);
+      if (compatible.some((c) => c.name === rightKey)) return rightKey;
+      changed = true;
+      return "";
+    });
+
+    if (!changed) return;
+
+    // Drop trailing empties so we don't grow phantom rows
+    while (cleared.length > 0 && cleared[cleared.length - 1] === "") {
+      cleared.pop();
+    }
+
+    onChange({
+      ...config,
+      rightKeys: cleared,
+      _emit: {
+        ...(config._emit as Record<string, boolean> | undefined),
+        rightKeys: true,
+      },
+    } as ToolConfig);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leftKeys.join("\u0000"), rightKeys.join("\u0000"), leftColumns, rightColumns]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
