@@ -22,6 +22,8 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -255,7 +257,7 @@ async def proxy_llm_request(
     """
     # Resolve base URL
     if provider == "openai-compatible":
-        base_url = request.query_params.get("base_url", "http://localhost:11434")
+        base_url = request.query_params.get("base_url", settings.ollama_default_url)
         # Normalize: strip trailing slashes to avoid double-slash in URL
         base_url = base_url.rstrip("/")
         # SSRF protection: block internal/private network targets

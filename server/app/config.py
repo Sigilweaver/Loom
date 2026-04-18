@@ -91,5 +91,11 @@ class Settings(BaseSettings):
     connection_encryption_key: str = ""
     connection_store_path: str = "../.working/server/connections.json"
 
+    # AI Proxy
+    # Default base URL for openai-compatible providers (e.g. Ollama) when the
+    # client does not supply ``base_url``. Must be an externally reachable
+    # address; SSRF validation still applies.
+    ollama_default_url: str = "http://localhost:11434"
+
 
 settings = Settings()
