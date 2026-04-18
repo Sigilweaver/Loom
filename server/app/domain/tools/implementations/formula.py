@@ -94,7 +94,14 @@ def _infer_dtype_from_expression(expr_str: str, input_schema: DataSchema) -> Pol
             if base_name.startswith(key):
                 return val
         return PolarsDataType.STRING
-    except Exception:
+    except (pl.exceptions.PolarsError, ToolError, KeyError, AttributeError, ValueError) as exc:
+        # Best-effort inference only; log so real bugs are not silently hidden.
+        log.debug(
+            "formula_dtype_inference_failed",
+            expression=expr_str,
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
         return PolarsDataType.STRING
 
 
