@@ -11,6 +11,9 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "homepage": "./",
+  "engines": {
+    "node": ">=18.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:electron": "NO_ELECTRON=0 vite",
