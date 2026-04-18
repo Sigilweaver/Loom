@@ -9,6 +9,13 @@ on:
 permissions:
   contents: write
 
+# Prevent overlapping release builds for the same tag. Two pushes of the
+# same tag (e.g. a force-push) would otherwise race to produce release
+# assets and could publish inconsistent artifacts.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate-tag-on-main:
     name: Validate tag points to main
