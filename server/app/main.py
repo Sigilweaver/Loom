@@ -144,15 +144,23 @@ app = application  # type: ignore[assignment]
 
 if __name__ == "__main__":
     """Entry point for PyInstaller executable"""
+    import atexit
+    import os
     import sys
 
     import uvicorn
 
-    # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None)
+    # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None).
+    # Use os.devnull so this is cross-platform and register an atexit hook to close the
+    # handles on shutdown rather than leaking them for the process lifetime.
     if sys.stdout is None:
-        sys.stdout = open("NUL", "w")
+        _devnull_stdout = open(os.devnull, "w")
+        atexit.register(_devnull_stdout.close)
+        sys.stdout = _devnull_stdout
     if sys.stderr is None:
-        sys.stderr = open("NUL", "w")
+        _devnull_stderr = open(os.devnull, "w")
+        atexit.register(_devnull_stderr.close)
+        sys.stderr = _devnull_stderr
 
     # Run uvicorn server
     uvicorn.run(

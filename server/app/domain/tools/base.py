@@ -99,10 +99,12 @@ class BaseTool(ABC):
         """
         from app.domain.workflow.code_generator import PythonCodeGenerator
 
+        from .sockets import CommonSockets
+
         var_name = f"df_{PythonCodeGenerator.sanitize_var_name(tool_id)}"
         return (
             [f"# TODO: {self.__class__.__name__} code generation not implemented"],
-            {"output": var_name},
+            {CommonSockets.OUTPUT: var_name},
         )
 
     def _get_input_var(self, var: str | list[str] | None, default: str = "df_input") -> str:
