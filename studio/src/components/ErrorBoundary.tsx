@@ -47,9 +47,9 @@ export class ErrorBoundary extends Component<Props, State> {
                 <div className="flex flex-col items-center justify-center min-h-screen bg-theme-surface-page p-8">
                     <div className="max-w-2xl w-full bg-theme-surface-elevated rounded-lg border border-theme-border-primary shadow-lg p-6">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-theme-status-error-bg flex items-center justify-center">
                                 <svg
-                                    className="w-6 h-6 text-red-500"
+                                    className="w-6 h-6 text-theme-status-error-text"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -77,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 <h2 className="text-sm font-medium text-theme-text-primary mb-2">
                                     Error Message
                                 </h2>
-                                <pre className="text-xs bg-theme-surface p-3 rounded border border-theme-border-secondary text-red-400 overflow-x-auto whitespace-pre-wrap">
+                                <pre className="text-xs bg-theme-surface p-3 rounded border border-theme-border-secondary text-theme-status-error-text overflow-x-auto whitespace-pre-wrap">
                                     {this.state.error.message}
                                 </pre>
                             </div>

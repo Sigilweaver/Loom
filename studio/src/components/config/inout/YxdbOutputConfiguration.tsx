@@ -118,7 +118,7 @@ export const YxdbOutputConfiguration: React.FC<
           </section>
 
           {/* Recommendation box */}
-          <section className="p-3 border rounded-lg border-amber-500/30 bg-amber-500/5">
+          <section className="p-3 border rounded-lg border-theme-status-warning-border bg-theme-status-warning-bg">
             <h4 className="mb-1 text-sm font-medium text-theme-text-primary">
               💡 Recommendation
             </h4>

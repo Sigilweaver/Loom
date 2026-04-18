@@ -224,7 +224,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
           className="absolute bottom-1 right-1"
           title="Blocking operation — materializes the dataframe and breaks lazy evaluation"
         >
-          <AlertTriangle className="w-3 h-3 opacity-45" style={{ color: 'var(--color-warning, #d97706)' }} />
+          <AlertTriangle className="w-3 h-3 opacity-45" style={{ color: 'var(--color-warning)' }} />
         </div>
       )}
 

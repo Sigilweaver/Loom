@@ -218,7 +218,7 @@ export default function ToolPalette() {
                             {tool.blocking && showBlockingIndicators && (
                               <AlertTriangle
                                 className="absolute w-2.5 h-2.5 bottom-0.5 right-0.5 opacity-50"
-                                style={{ color: 'var(--color-warning, #d97706)' }}
+                                style={{ color: 'var(--color-warning)' }}
                                 aria-label="Blocking operation"
                               />
                             )}
