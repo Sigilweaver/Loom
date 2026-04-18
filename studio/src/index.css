@@ -18,7 +18,7 @@ code {
 
 /* Accessible focus outlines harmonized with the active theme */
 :root {
-  --focus-outline-color: var(--color-border-focus, #a78bfa);
+  --focus-outline-color: var(--color-border-focus);
 }
 
 /* Only on keyboard focus */
@@ -43,8 +43,8 @@ code {
 }
 
 .sig-lasso-active .react-flow__selection {
-  border: 2px solid var(--color-edge-selected-stroke, var(--color-border-focus, #a78bfa)) !important;
-  background: color-mix(in oklab, var(--color-edge-selected-stroke, #a78bfa) 12%, transparent);
+  border: 2px solid var(--color-edge-selected-stroke, var(--color-border-focus)) !important;
+  background: color-mix(in oklab, var(--color-edge-selected-stroke) 12%, transparent);
 }
 
 /* Post-selection group rectangle: 12px padding and rounded corners, no fill */
@@ -63,14 +63,14 @@ code {
   left: -12px;
   right: -12px;
   bottom: -12px;
-  border: 2px solid var(--color-edge-selected-stroke, #a78bfa);
+  border: 2px solid var(--color-edge-selected-stroke);
   border-radius: 8px;
   pointer-events: none;
 }
 
 /* Selected nodes: add brand halo with a 4px pad (offset outline) and border override */
 .react-flow__nodes .react-flow__node.selected .sig-node {
-  outline: 2px solid var(--color-edge-selected-stroke, #a78bfa) !important;
+  outline: 2px solid var(--color-edge-selected-stroke) !important;
   outline-offset: 4px;
   box-shadow: none !important;
   /* keep inner border (category) color as-is */
@@ -78,7 +78,7 @@ code {
 
 /* Selected handles pop a bit */
 .react-flow__nodes .react-flow__node.selected .react-flow__handle {
-  box-shadow: 0 0 0 2px var(--color-edge-selected-stroke, #a78bfa);
+  box-shadow: 0 0 0 2px var(--color-edge-selected-stroke);
 }
 
 /* Edge coloring states using theme CSS variables */
@@ -150,19 +150,19 @@ code {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--color-border-primary, #52525b) 60%, transparent);
+  background: color-mix(in oklab, var(--color-border-primary) 60%, transparent);
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklab, var(--color-border-focus, #a78bfa) 70%, transparent);
+  background: color-mix(in oklab, var(--color-border-focus) 70%, transparent);
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: var(--color-border-focus, #a78bfa);
+  background: var(--color-border-focus);
   background-clip: padding-box;
 }
 
@@ -173,7 +173,7 @@ code {
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--color-border-primary, #52525b) 60%, transparent) transparent;
+  scrollbar-color: color-mix(in oklab, var(--color-border-primary) 60%, transparent) transparent;
 }
 
 /* Legacy custom-scrollbar class for backwards compatibility */

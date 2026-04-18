@@ -46,7 +46,7 @@ const AutoConnectPreviewEdge: React.FC = () => {
       <path
         d={path}
         fill="none"
-        stroke="var(--color-edge-default-stroke, #94a3b8)"
+        stroke="var(--color-edge-default-stroke)"
         strokeWidth={2}
         strokeDasharray="6 4"
         opacity={0.6}
@@ -56,7 +56,7 @@ const AutoConnectPreviewEdge: React.FC = () => {
         cx={sx}
         cy={sy}
         r={4}
-        fill="var(--color-edge-default-stroke, #94a3b8)"
+        fill="var(--color-edge-default-stroke)"
         opacity={0.6}
       />
     </svg>
