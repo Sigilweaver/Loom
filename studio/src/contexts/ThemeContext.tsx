@@ -732,6 +732,39 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-form-error-text", colors.forms.errorText);
   root.style.setProperty("--color-form-success-text", colors.forms.successText);
 
+  // Form field state palettes (input / select / checkbox / radio).
+  // The theme files always populate these but ThemeContext was previously
+  // dropping them, so any rule that referenced
+  // --color-form-{field}-{state}-{prop} fell through to the browser default.
+  const formFieldKinds = ["input", "select", "checkbox", "radio"] as const;
+  const formFieldStates = ["default", "hover", "active", "disabled"] as const;
+  for (const kind of formFieldKinds) {
+    const field = colors.forms[kind];
+    if (!field) continue;
+    for (const state of formFieldStates) {
+      const stateStyle = field[state];
+      if (!stateStyle) continue;
+      root.style.setProperty(
+        `--color-form-${kind}-${state}-bg`,
+        stateStyle.background
+      );
+      root.style.setProperty(
+        `--color-form-${kind}-${state}-border`,
+        stateStyle.border
+      );
+      root.style.setProperty(
+        `--color-form-${kind}-${state}-text`,
+        stateStyle.text
+      );
+    }
+    if (field.focus?.shadow) {
+      root.style.setProperty(
+        `--color-form-${kind}-focus-shadow`,
+        field.focus.shadow
+      );
+    }
+  }
+
   // Global semantic warning color (for blocking indicators, etc.)
   root.style.setProperty("--color-warning", colors.palette.semantic.warning[500]);
 
