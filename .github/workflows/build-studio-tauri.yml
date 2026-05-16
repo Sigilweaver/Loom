@@ -15,15 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: warp-ubuntu-latest-x64-2x
+          - os: ubuntu-latest
             platform: linux
             target: x86_64-unknown-linux-gnu
             artifact-name: linux-tauri-artifacts
-          - os: warp-windows-latest-x64-2x
+          - os: windows-latest
             platform: win
             target: x86_64-pc-windows-msvc
             artifact-name: windows-tauri-artifacts
-          - os: warp-macos-latest-arm64-6x
+          - os: macos-latest
             platform: mac-arm
             target: aarch64-apple-darwin
             artifact-name: macos-arm-tauri-artifacts

@@ -32,7 +32,7 @@ jobs:
   # ===========================================================================
   build-hub:
     name: Build Hub Image
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -92,7 +92,7 @@ jobs:
   # ===========================================================================
   build-server:
     name: Build Server Image
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write

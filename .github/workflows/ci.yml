@@ -27,7 +27,7 @@ concurrency:
 jobs:
   test:
     name: Test & Lint
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,7 +98,7 @@ jobs:
 
   build-studio:
     name: Build Studio Web
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     needs: test
     steps:
       - name: Checkout
