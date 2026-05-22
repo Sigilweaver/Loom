@@ -483,7 +483,7 @@ const DataTable = () => {
       copyData(includeHeaders);
       return;
     }
-  }, [contextMenu, previewState?.data, columnNames.length, copyData]);
+  }, [contextMenu, previewState?.data, columnNames.length, copyData, activeCell?.row, activeCell?.col, anchorCell]);
   
   // Close context menu when clicking outside
   useEffect(() => {

@@ -7,6 +7,8 @@ import { useCallback, useRef } from "react";
 
 import type { Socket, ToolConfig } from "@domain/workflow/entities/workflow";
 
+const logger = createLogger('Clipboard');
+
 /** Tool data passed during paste operations */
 export interface PastedToolData {
   id: string;
@@ -60,7 +62,6 @@ export function useCanvasClipboard({
   setNodes,
   onToolSelect,
 }: ClipboardDeps) {
-  const logger = createLogger('Clipboard');
   const latestToolsRef = useRef<Tool[]>(tools);
   const lastMouseFlowPosRef = useRef<{ x: number; y: number } | null>(null);
 

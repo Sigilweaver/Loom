@@ -71,7 +71,6 @@ const cache = new Map<string, CacheEntry>();
  */
 function normalizeTool(tool: WorkflowJSON['tools'][0]): NormalizedTool {
   // Strip _emit from config as it's not relevant for execution
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { _emit, ...configWithoutEmit } = tool.config as Record<string, unknown>;
   
   return {

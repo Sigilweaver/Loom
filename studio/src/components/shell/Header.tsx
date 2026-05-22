@@ -120,6 +120,10 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     });
 
     return cleanup;
+    // Event subscription should only be set up once on mount; handlers are
+    // closed over via React state and resolve at call time. Adding the
+    // handlers as deps would re-subscribe on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOpenWorkflowFromPath = async (filePath: string) => {

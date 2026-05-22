@@ -71,7 +71,6 @@ export class WorkflowSerializer {
 
     if (!emit) {
       // No emission map means include all fields (except _emit)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _emit, ...rest } = config;
       return rest as ToolConfig;
     }

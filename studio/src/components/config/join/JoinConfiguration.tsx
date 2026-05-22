@@ -163,6 +163,10 @@ export function JoinConfiguration({
         },
       });
     }
+    // `config` and `onChange` are intentionally omitted: including `config`
+    // would loop because we call onChange with a new config object; `onChange`
+    // identity is parent-controlled and re-running on its change is undesired.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLeftInput, hasRightInput, hasValidKeys, currentJoinType]);
 
   return (
