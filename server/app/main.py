@@ -218,15 +218,19 @@ app = application  # type: ignore[assignment]
 
 if __name__ == "__main__":
     """Entry point for PyInstaller executable"""
+    import os
     import sys
 
     import uvicorn
 
-    # Fix for Windows: Ensure stdout/stderr exist (PyInstaller console=False sets them to None)
+    # PyInstaller with console=False leaves sys.stdout/stderr as None.
+    # Route them to the platform-appropriate null device (WP-14):
+    # os.devnull is "/dev/null" on POSIX and "nul" on Windows, so the
+    # same code path works for headless builds on Linux/macOS/Windows.
     if sys.stdout is None:
-        sys.stdout = open("NUL", "w")
+        sys.stdout = open(os.devnull, "w")
     if sys.stderr is None:
-        sys.stderr = open("NUL", "w")
+        sys.stderr = open(os.devnull, "w")
 
     # Run uvicorn server
     uvicorn.run(
