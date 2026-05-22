@@ -15,7 +15,7 @@ from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
 from app.domain.profiling.profiler import ColumnProfiler, ProfileMetrics
 from app.domain.tools.registry import ToolRegistry
-from app.utils.errors import ExecutionError
+from app.utils.errors import ExecutionError, ToolError, ToolRuntimeError
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 logger = logging.getLogger(__name__)
@@ -101,9 +101,24 @@ class WorkflowExecutor:
             return result
 
         except Exception as e:
+            # Stable error id for log/response correlation. Re-raise after
+            # logging so the caller can map this to an HTTPException carrying
+            # the same id.
+            if isinstance(e, ExecutionError):
+                error_id = e.error_id
+            else:
+                import uuid as _uuid
+
+                error_id = _uuid.uuid4().hex
             execution_log["status"] = "failed"
             execution_log["error"] = str(e)
             execution_log["error_type"] = type(e).__name__
+            execution_log["error_id"] = error_id
+            logger.error(
+                "workflow execution failed",
+                exc_info=True,
+                extra={"error_id": error_id, "error_type": type(e).__name__},
+            )
             self._save_execution_log(execution_log, start_time)
             raise
 
@@ -484,8 +499,23 @@ class WorkflowExecutor:
             engine = tool.get_engine(self._default_engine)
             tool_impl = ToolRegistry.get(tool.type, engine=engine)
             outputs = await tool_impl.execute(tool.config, inputs)
-        except Exception as e:
-            raise ExecutionError(f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}") from e
+        except ToolError:
+            # Tool already raised a typed error - let it propagate with its
+            # original class so callers can map it (e.g. ToolConfigError -> 400).
+            raise
+        except (pl.exceptions.PolarsError, OSError, ValueError, TypeError, KeyError) as e:
+            logger.error(
+                "tool runtime failure",
+                exc_info=True,
+                extra={
+                    "tool_id": tool.id,
+                    "tool_type": tool.type,
+                    "error_class": type(e).__name__,
+                },
+            )
+            raise ToolRuntimeError(
+                f"Failed to execute tool {tool.id} ({tool.type}): {str(e)}"
+            ) from e
 
         # Store in cache if appropriate
         if cache_mgr.should_cache_tool(tool):
@@ -604,8 +634,8 @@ class WorkflowExecutor:
             archive_rel = str(self.archive_dir.relative_to(archive.archive_root))
             execution_log["archive_path"] = archive_rel
             logger.info(f"Workflow archived to: {self.archive_dir}")
-        except Exception as e:
-            logger.error(f"Failed to create workflow archive: {e}")
+        except (OSError, ImportError) as e:
+            logger.error("Failed to create workflow archive: %s", e, exc_info=True)
             self.archive_dir = None
 
     def _handle_validation_failure(
@@ -632,5 +662,5 @@ class WorkflowExecutor:
 
             archive = WorkflowArchive(settings.archive_path)
             archive.save_execution_log(self.archive_dir, log_data)
-        except Exception as e:
-            logger.error(f"Failed to save execution log: {e}")
+        except (OSError, ImportError) as e:
+            logger.error("Failed to save execution log: %s", e, exc_info=True)
