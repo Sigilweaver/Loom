@@ -1,5 +1,12 @@
 """Pytest configuration and fixtures"""
 
+import os
+
+# Default test runs to AUTH_MODE=disabled. Production default is "ephemeral"
+# (see WP-02); tests that exercise auth use create_test_app() with explicit
+# settings, so disabling auth here keeps existing fixtures unauthenticated.
+os.environ.setdefault("AUTH_MODE", "disabled")
+
 from pathlib import Path
 
 import pytest

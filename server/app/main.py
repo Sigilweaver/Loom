@@ -2,6 +2,8 @@
 
 import json
 import logging
+import os
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -55,6 +57,63 @@ def configure_logging() -> None:
 # Configure logging at module load
 configure_logging()
 logger = logging.getLogger(__name__)
+
+
+def validate_auth_config() -> None:
+    """Validate auth configuration at startup.
+
+    - ``disabled``: log a prominent WARNING; server accepts all requests.
+    - ``ephemeral``: if no session_token configured, auto-generate one and
+      log it once so local launchers (Electron, dev) can pick it up via env.
+    - ``static``: require a non-empty session_token; refuse to boot otherwise.
+    - ``hub``: require hub_url; refuse to boot otherwise.
+
+    Must run before AuthMiddleware is instantiated, because the middleware
+    snapshots the token in its __init__.
+    """
+    mode = settings.auth_mode
+
+    if mode == "disabled":
+        logger.warning(
+            "AUTH DISABLED: server accepts unauthenticated requests. "
+            "Set AUTH_MODE=ephemeral|static|hub to require authentication."
+        )
+        return
+
+    if mode == "ephemeral":
+        if not settings.session_token:
+            token = secrets.token_urlsafe(32)
+            settings.session_token = token
+            # Expose to subprocesses (e.g. workers) and to operators reading env.
+            os.environ["SESSION_TOKEN"] = token
+            logger.warning(
+                "AUTH_MODE=ephemeral: generated session token (set SESSION_TOKEN "
+                "explicitly to suppress this message): %s",
+                token,
+            )
+        return
+
+    if mode == "static":
+        if not settings.session_token:
+            logger.error(
+                "AUTH_MODE=static requires SESSION_TOKEN to be set. Refusing to start."
+            )
+            raise SystemExit(2)
+        return
+
+    if mode == "hub":
+        if not settings.hub_url:
+            logger.error(
+                "AUTH_MODE=hub requires HUB_URL to be set. Refusing to start."
+            )
+            raise SystemExit(2)
+        return
+
+    logger.error("Unknown AUTH_MODE=%r. Refusing to start.", mode)
+    raise SystemExit(2)
+
+
+validate_auth_config()
 
 
 @asynccontextmanager

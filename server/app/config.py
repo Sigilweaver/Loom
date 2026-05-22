@@ -30,11 +30,12 @@ class Settings(BaseSettings):
 
     # Security - Authentication
     # Auth mode options:
-    #  - "disabled": no auth
-    #  - "ephemeral": Electron-generated token
-    #  - "static": env token
+    #  - "disabled": no auth (explicit opt-in; logs a startup warning)
+    #  - "ephemeral": auto-generated session token, also accepted from Electron
+    #  - "static": env-provided token (required)
     #  - "hub": Hub-validated
-    auth_mode: str = "disabled"
+    # Default is "ephemeral" so an unconfigured server is not silently open.
+    auth_mode: str = "ephemeral"
     # Session token for ephemeral/static modes (set by Electron or .env)
     session_token: str = ""
     # Protect /docs and /redoc endpoints (default: protected)
