@@ -23,7 +23,7 @@ jobs:
           - os: macos-latest
             platform: mac
             artifact-name: macos-full-artifacts
-    
+
     runs-on: ${{ matrix.os }}
     environment: ${{ matrix.platform == 'win' && 'windows-signing' || '' }}
     defaults:
@@ -35,22 +35,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
           cache-dependency-path: studio/package-lock.json
-      
+
       - name: Install studio dependencies
         run: npm ci
-      
+
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: .
         run: python3 .github/scripts/set-version.py
-      
+
       - name: Install snapcraft (Linux only)
         if: matrix.platform == 'linux'
         run: |
@@ -60,17 +60,17 @@ jobs:
             sudo apt-get update -y
             sudo apt-get install -y snapcraft || true
           fi
-      
+
       - name: Download server artifact
         uses: actions/download-artifact@v4
         with:
           name: server-${{ matrix.platform }}
           path: studio/resources/server
-      
+
       - name: Make server executable (Unix)
         if: matrix.platform != 'win'
         run: chmod +x resources/server/server
-      
+
       - name: Build full version
         run: npm run build:${{ matrix.platform }}:full
 
@@ -89,7 +89,7 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -15,29 +15,29 @@ jobs:
     defaults:
       run:
         working-directory: studio
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
           cache-dependency-path: studio/package-lock.json
-      
+
       - name: Install studio dependencies
         run: npm ci
-      
+
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: .
         run: python3 .github/scripts/set-version.py
-      
+
       - name: Build web version
         run: npm run build:web:zip
-      
+
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
