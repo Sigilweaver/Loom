@@ -83,9 +83,11 @@ class Settings(BaseSettings):
     cache_clear_on_close: bool = True
 
     # Parallel Execution
-    # Execute independent tools concurrently for improved performance
-    # Modes: "sequential" (default, safe), "parallel" (concurrent independent tools)
-    execution_mode: str = "sequential"
+    # Execute independent tools concurrently for improved performance.
+    # Modes: "sequential" (safe), "parallel" (concurrent independent tools).
+    # WP-18: default is "parallel" so independent branches run concurrently.
+    # Tuning: lower max_parallel_tools on memory-constrained hosts.
+    execution_mode: str = "parallel"
     # Maximum concurrent tool executions (0 = unlimited)
     max_parallel_tools: int = 4
 
