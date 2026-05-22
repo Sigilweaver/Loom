@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel
 
 from app.api.models.common import DataSchema
 from app.api.models.workflow import DEFAULT_ENGINE
@@ -73,6 +74,13 @@ class BaseTool(ABC):
 
         Override this if your tool has specific validation requirements.
         """
+        model = self.config_model()
+        if model is None:
+            return []
+        try:
+            model.model_validate(config)
+        except Exception as e:  # pydantic ValidationError or otherwise
+            return [str(e)]
         return []
 
     def to_python_code(
@@ -173,3 +181,20 @@ class BaseTool(ABC):
             A subset of `config` containing only output-affecting fields.
         """
         return config
+
+    @classmethod
+    def config_model(cls) -> type[BaseModel] | None:
+        """
+        Return the Pydantic model used to validate this tool's config.
+
+        Default returns None which preserves the legacy untyped behavior
+        (callers must accept any dict). Tools should override and return
+        a BaseModel subclass to opt in to:
+        - Field-level validation via `validate_config()`.
+        - JSON Schema publication at GET /api/workflow/tool/{type}/schema.
+        - Static typing improvements in `execute()`.
+
+        Returns:
+            A Pydantic BaseModel subclass, or None for legacy untyped tools.
+        """
+        return None

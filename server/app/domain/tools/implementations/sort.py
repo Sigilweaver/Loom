@@ -1,8 +1,9 @@
 """Sort tool implementation - Sort data by one or more columns"""
 
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
+from pydantic import BaseModel, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -14,6 +15,22 @@ from app.utils.errors import ToolError
 
 # Valid sort directions
 SORT_DIRECTIONS = {"asc", "desc"}
+
+
+class SortColumnConfig(BaseModel):
+    """Single sort-column definition. WP-19 typed-config exemplar."""
+
+    column: str = Field(..., min_length=1, description="Column to sort by.")
+    direction: Literal["asc", "desc"] = Field(
+        default="asc", description="Sort direction."
+    )
+    nullsFirst: bool = Field(default=False, description="Place nulls first.")
+
+
+class SortToolConfig(BaseModel):
+    """Top-level Sort tool config. WP-19 typed-config exemplar."""
+
+    sortColumns: list[SortColumnConfig] = Field(default_factory=list)
 
 
 @register_tool("Sort")
@@ -32,6 +49,15 @@ class SortTool(BaseTool):
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Sort is blocking - must see all rows to determine order."""
         return True
+
+    @classmethod
+    def config_model(cls) -> type[SortToolConfig]:
+        """WP-19: expose typed Pydantic config model."""
+        return SortToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Only sortColumns affect output; ignore unrelated fields."""
+        return {"sortColumns": config.get("sortColumns", [])}
 
     def _build_operation(self, config: dict[str, Any]) -> SortOperation:
         """Build the sort operation from config."""

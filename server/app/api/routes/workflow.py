@@ -404,6 +404,37 @@ async def execute_tool(
         raise _raise_unexpected(e)
 
 
+@router.get("/tool/{tool_type}/schema")
+async def get_tool_config_schema(tool_type: str) -> dict[str, Any]:
+    """
+    Return the JSON Schema for a tool's *config* (WP-19).
+
+    Returns a JSON Schema document derived from the tool's
+    `config_model()`. Tools that have not yet been migrated to typed
+    configs return an empty schema with `"x-typed": False` so callers
+    can detect the legacy case. Unknown tool types -> 404.
+    """
+    from app.domain.tools.registry import ToolRegistry
+
+    try:
+        tool_impl = ToolRegistry.get(tool_type)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Unknown tool type: {tool_type}")
+
+    model = tool_impl.config_model()
+    if model is None:
+        return {
+            "title": tool_type,
+            "type": "object",
+            "properties": {},
+            "x-typed": False,
+        }
+
+    schema = dict(model.model_json_schema())
+    schema["x-typed"] = True
+    return schema
+
+
 @router.post("/tool/schema")
 async def get_tool_schema(
     request: ToolSchemaRequest,
