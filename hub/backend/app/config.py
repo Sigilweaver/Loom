@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     # Server token lifetime in seconds (default 5 minutes)
     server_token_ttl_seconds: int = 300
 
+    # Backend for server-token storage.
+    #   "memory":   In-process dict. Tokens lost on restart, cannot be shared
+    #               across Hub replicas. Default to preserve dev workflow.
+    #   "postgres": Tokens persisted to server_tokens table with atomic
+    #               claim semantics. Required when running multiple Hub
+    #               instances behind a load balancer.
+    token_store_backend: str = "memory"
+
     # Connection Storage
     # Fernet encryption key for credentials
     # Generate with: from cryptography.fernet import Fernet

@@ -354,6 +354,26 @@ class Session(Base):
     user: Mapped["User"] = relationship("User", back_populates="sessions")
 
 
+class ServerToken(Base):
+    """One-time-use opaque token authorizing a server to act for a user.
+
+    Persisted to support multi-replica Hub deployments where in-memory tokens
+    cannot be shared. Atomic claim is performed via
+    ``UPDATE ... SET used_at = NOW() WHERE token = :t AND used_at IS NULL
+    AND expires_at > NOW() RETURNING ...`` so concurrent consumers race to
+    claim and only one succeeds.
+    """
+
+    __tablename__ = "server_tokens"
+
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    server_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Group(Base):
     """Organizational group for access control.
 
