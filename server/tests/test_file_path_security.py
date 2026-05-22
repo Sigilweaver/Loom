@@ -235,3 +235,73 @@ class TestPathTraversalPrevention:
             assert result == file_path.resolve()
         finally:
             allowed_paths_context.reset(token)
+
+
+class TestFileAccessMode:
+    """Tests for WP-04 file_access_mode dispatch."""
+
+    def test_resolve_auto_open_when_unrestricted(self, monkeypatch):
+        from app.utils import security as sec
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "auto", raising=False)
+        monkeypatch.setattr(sec.settings, "auth_mode", "ephemeral", raising=False)
+        monkeypatch.setattr(sec.settings, "restrict_file_access", False, raising=False)
+        monkeypatch.setattr(sec.settings, "allowed_file_paths", [], raising=False)
+        assert sec.resolve_file_access_mode() == "open"
+
+    def test_resolve_auto_allowlist(self, tmp_path: Path, monkeypatch):
+        from app.utils import security as sec
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "auto", raising=False)
+        monkeypatch.setattr(sec.settings, "auth_mode", "ephemeral", raising=False)
+        monkeypatch.setattr(sec.settings, "restrict_file_access", True, raising=False)
+        monkeypatch.setattr(
+            sec.settings, "allowed_file_paths", [str(tmp_path)], raising=False
+        )
+        assert sec.resolve_file_access_mode() == "allowlist"
+
+    def test_resolve_auto_hub(self, monkeypatch):
+        from app.utils import security as sec
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "auto", raising=False)
+        monkeypatch.setattr(sec.settings, "auth_mode", "hub", raising=False)
+        assert sec.resolve_file_access_mode() == "hub"
+
+    def test_allowlist_mode_enforces_paths(self, tmp_path: Path, monkeypatch):
+        """In allowlist mode, paths outside ALLOWED_FILE_PATHS are denied
+        even when no Hub context is set."""
+        from app.utils import security as sec
+
+        inside = tmp_path / "ok" / "a.csv"
+        outside = tmp_path / "other" / "b.csv"
+        inside.parent.mkdir(parents=True)
+        outside.parent.mkdir(parents=True)
+        inside.write_text("a\n1\n")
+        outside.write_text("b\n2\n")
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "allowlist", raising=False)
+        monkeypatch.setattr(
+            sec.settings, "allowed_file_paths", [str(tmp_path / "ok")], raising=False
+        )
+
+        assert sec.validate_file_path(str(inside)) == inside.resolve()
+        with pytest.raises(HTTPException) as exc_info:
+            sec.validate_file_path(str(outside))
+        assert exc_info.value.status_code == 403
+
+    def test_hub_mode_without_context_denies(self, sample_csv_file: Path, monkeypatch):
+        """In hub mode, file access requires a per-request grant; missing
+        context is treated as deny rather than silent-allow (WP-04 bypass fix)."""
+        from app.utils import security as sec
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "hub", raising=False)
+        with pytest.raises(HTTPException) as exc_info:
+            sec.validate_file_path(str(sample_csv_file))
+        assert exc_info.value.status_code == 403
+
+    def test_open_mode_allows(self, sample_csv_file: Path, monkeypatch):
+        from app.utils import security as sec
+
+        monkeypatch.setattr(sec.settings, "file_access_mode", "open", raising=False)
+        assert sec.validate_file_path(str(sample_csv_file)) == sample_csv_file.resolve()
+

@@ -115,6 +115,10 @@ def validate_auth_config() -> None:
 
 validate_auth_config()
 
+from app.utils.security import validate_file_access_config  # noqa: E402
+
+validate_file_access_config()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:

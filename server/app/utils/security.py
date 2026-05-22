@@ -1,12 +1,18 @@
 """Security utilities for file path validation"""
 
 import contextvars
+import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from fastapi import HTTPException
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+FileAccessMode = Literal["open", "allowlist", "hub"]
 
 
 @dataclass
@@ -25,6 +31,73 @@ allowed_paths_context: contextvars.ContextVar[list[FilePathGrant] | None] = cont
 )
 
 
+def resolve_file_access_mode() -> FileAccessMode:
+    """Resolve the active file-access mode from settings.
+
+    Explicit modes win; ``auto`` derives from ``auth_mode`` and the legacy
+    ``restrict_file_access``/``allowed_file_paths`` pair.
+    """
+    explicit = getattr(settings, "file_access_mode", "auto") or "auto"
+    if explicit in ("open", "allowlist", "hub"):
+        return explicit  # type: ignore[return-value]
+
+    # auto
+    if getattr(settings, "auth_mode", "") == "hub":
+        return "hub"
+    if settings.restrict_file_access and settings.allowed_file_paths:
+        return "allowlist"
+    return "open"
+
+
+def validate_file_access_config() -> None:
+    """Validate file-access configuration at startup.
+
+    Refuses to boot when configuration is contradictory; logs a prominent
+    warning for ``open`` mode. See WP-04.
+    """
+    explicit = getattr(settings, "file_access_mode", "auto") or "auto"
+
+    if explicit not in ("open", "allowlist", "hub", "auto"):
+        logger.error(
+            "Unknown FILE_ACCESS_MODE=%r. Must be one of open|allowlist|hub|auto.",
+            explicit,
+        )
+        raise SystemExit(2)
+
+    if explicit == "allowlist" and not settings.allowed_file_paths:
+        logger.error(
+            "FILE_ACCESS_MODE=allowlist requires ALLOWED_FILE_PATHS to be non-empty. "
+            "Refusing to start."
+        )
+        raise SystemExit(2)
+
+    if explicit == "hub" and getattr(settings, "auth_mode", "") != "hub":
+        logger.error(
+            "FILE_ACCESS_MODE=hub requires AUTH_MODE=hub. Refusing to start."
+        )
+        raise SystemExit(2)
+
+    if explicit == "auto" and settings.restrict_file_access and not settings.allowed_file_paths:
+        # Previously a silent-bypass. Make it explicit so users notice.
+        if getattr(settings, "auth_mode", "") != "hub":
+            logger.error(
+                "RESTRICT_FILE_ACCESS=true but ALLOWED_FILE_PATHS is empty. "
+                "Either populate ALLOWED_FILE_PATHS or set FILE_ACCESS_MODE=open "
+                "explicitly to acknowledge unrestricted access. Refusing to start."
+            )
+            raise SystemExit(2)
+
+    mode = resolve_file_access_mode()
+    if mode == "open":
+        logger.warning(
+            "FILE_ACCESS_MODE=open: the server may read/write any path the "
+            "process can access. Set FILE_ACCESS_MODE=allowlist or hub for "
+            "production deployments."
+        )
+    else:
+        logger.info("File access mode: %s", mode)
+
+
 def validate_file_path(file_path: str) -> Path:
     """
     Validate file path for security (read operations).
@@ -32,7 +105,7 @@ def validate_file_path(file_path: str) -> Path:
     Checks:
     - File exists
     - Is a file (not directory)
-    - Is within allowed paths (if restrictions enabled)
+    - Mode-dispatched access check (open|allowlist|hub)
 
     Args:
         file_path: Path to validate
@@ -56,7 +129,10 @@ def validate_file_path(file_path: str) -> Path:
     if not path.is_file():
         raise HTTPException(status_code=400, detail=f"Not a file: {file_path}")
 
-    # Hub mode: Check against per-request grants (always enforced when context is set)
+    mode = resolve_file_access_mode()
+
+    # Hub mode (or any caller that explicitly set context grants) must enforce
+    # the per-request grant list. Empty grants => deny.
     context_grants = allowed_paths_context.get()
     if context_grants is not None:
         if not context_grants:
@@ -70,14 +146,21 @@ def validate_file_path(file_path: str) -> Path:
                 status_code=403,
                 detail="File path not allowed. Must be within granted paths.",
             )
+        # Hub grants satisfied; still apply server-level allowlist if configured.
 
-    # Server-level restriction: Additional admin guard (independent of Hub mode)
-    if settings.restrict_file_access and settings.allowed_file_paths:
+    if mode == "allowlist":
         if not _is_path_in_allowlist(path, settings.allowed_file_paths):
             raise HTTPException(
                 status_code=403,
                 detail=f"File path not allowed. Must be within: {settings.allowed_file_paths}",
             )
+    elif mode == "hub" and context_grants is None:
+        # Hub mode without per-request grants is a misconfiguration. Deny
+        # rather than silently allowing.
+        raise HTTPException(
+            status_code=403,
+            detail="File access requires a Hub-issued grant.",
+        )
 
     return path
 
@@ -105,7 +188,9 @@ def validate_file_path_for_write(file_path: str) -> Path:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid file path: {str(e)}")
 
-    # Hub mode: Check against per-request grants with read_only check
+    mode = resolve_file_access_mode()
+
+    # Per-request Hub grants always enforced when present.
     context_grants = allowed_paths_context.get()
     if context_grants is not None:
         if not context_grants:
@@ -137,13 +222,17 @@ def validate_file_path_for_write(file_path: str) -> Path:
                 detail="Cannot write to read-only path.",
             )
 
-    # Server-level restriction: Additional admin guard (independent of Hub mode)
-    if settings.restrict_file_access and settings.allowed_file_paths:
+    if mode == "allowlist":
         if not _is_path_in_allowlist(path, settings.allowed_file_paths):
             raise HTTPException(
                 status_code=403,
                 detail=f"File path not allowed. Must be within: {settings.allowed_file_paths}",
             )
+    elif mode == "hub" and context_grants is None:
+        raise HTTPException(
+            status_code=403,
+            detail="File access requires a Hub-issued grant.",
+        )
 
     return path
 

@@ -25,8 +25,18 @@ class Settings(BaseSettings):
     max_preview_rows: int = 10000
 
     # Security - File Access
+    # Explicit modes:
+    #  - "open":      no path restriction (logs a startup warning)
+    #  - "allowlist": deny anything outside allowed_file_paths (which must be non-empty)
+    #  - "hub":       Hub-issued per-request grants (auth_mode must be "hub")
+    #  - "auto":      derived from auth_mode/restrict_file_access (default; back-compat)
+    file_access_mode: str = "auto"
     allowed_file_paths: list[str] = []
-    restrict_file_access: bool = True
+    # Legacy boolean. With file_access_mode="auto" it selects allowlist vs open;
+    # ignored for explicit modes. Kept for backward compatibility.
+    # Default is False so an unconfigured server fails open (with a warning)
+    # rather than refusing to boot; explicit configs are required for prod.
+    restrict_file_access: bool = False
 
     # Security - Authentication
     # Auth mode options:
