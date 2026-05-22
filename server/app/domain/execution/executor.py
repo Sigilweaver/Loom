@@ -15,7 +15,7 @@ from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
 from app.domain.profiling.profiler import ColumnProfiler, ProfileMetrics
 from app.domain.tools.registry import ToolRegistry
-from app.utils.errors import ExecutionError, ToolError, ToolRuntimeError
+from app.utils.errors import ExecutionError, ExecutionTimeoutError, ToolError, ToolRuntimeError
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 logger = logging.getLogger(__name__)
@@ -83,8 +83,27 @@ class WorkflowExecutor:
             execution_log["execution_order"] = list(plan.execution_order)
             execution_log["tool_count"] = len(plan)
 
-            # Execute tools
-            tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
+            # Execute tools under a hard wall-clock budget. Timeout is honored
+            # at await boundaries; long-running synchronous Polars collects
+            # inside asyncio.to_thread cannot be cancelled mid-flight and may
+            # therefore overrun the budget by up to one collect duration.
+            timeout_s = settings.max_execution_time_seconds
+            # Defensively skip enforcement when the setting is not a positive
+            # number (e.g. tests patching settings with a MagicMock, or an
+            # explicit 0/None disabling the budget).
+            if isinstance(timeout_s, (int, float)) and not isinstance(timeout_s, bool) and timeout_s > 0:
+                try:
+                    async with asyncio.timeout(timeout_s):
+                        tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
+                except TimeoutError as exc:
+                    execution_log["status"] = "timed_out"
+                    execution_log["timeout_seconds"] = timeout_s
+                    self._save_execution_log(execution_log, start_time)
+                    raise ExecutionTimeoutError(
+                        f"Workflow execution exceeded {timeout_s}s budget"
+                    ) from exc
+            else:
+                tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
             execution_log["tool_executions"] = tool_logs
             execution_log["cache_hits"] = cache_hits
 

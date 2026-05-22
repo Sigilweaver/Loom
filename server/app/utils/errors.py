@@ -58,6 +58,12 @@ class SafetyLimitExceeded(ExecutionError):
     pass
 
 
+class ExecutionTimeoutError(SafetyLimitExceeded):
+    """Workflow / tool execution exceeded its time budget."""
+
+    pass
+
+
 class ConfigurationError(LoomError):
     """Error in configuration"""
 

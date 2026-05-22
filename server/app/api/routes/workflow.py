@@ -14,7 +14,7 @@ from app.domain.connections.resolver import ConnectionResolver, get_connection_r
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.hub import AuthorizationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
-from app.utils.errors import ExecutionError, ToolConfigError, ToolError, ValidationError
+from app.utils.errors import ExecutionError, ExecutionTimeoutError, ToolConfigError, ToolError, ValidationError
 from app.utils.security import FilePathGrant, allowed_paths_context
 
 logger = logging.getLogger(__name__)
@@ -45,11 +45,16 @@ def _raise_unexpected(exc: BaseException) -> HTTPException:
 
 
 def _raise_execution_error(exc: ExecutionError) -> HTTPException:
-    """Map an ExecutionError to a 500 surfacing its correlation id."""
+    """Map an ExecutionError to a 500 surfacing its correlation id.
+
+    ExecutionTimeoutError maps to 504 instead.
+    """
+    status = 504 if isinstance(exc, ExecutionTimeoutError) else 500
+    label = "Execution timeout" if isinstance(exc, ExecutionTimeoutError) else "Execution error"
     return HTTPException(
-        status_code=500,
+        status_code=status,
         detail={
-            "error": "Execution error",
+            "error": label,
             "error_id": exc.error_id,
             "message": str(exc),
         },
