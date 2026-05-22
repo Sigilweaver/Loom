@@ -119,22 +119,34 @@ def validate_required_secrets() -> None:
 validate_required_secrets()
 
 
-# Session cleanup interval (1 hour)
-SESSION_CLEANUP_INTERVAL = 3600
+# Session cleanup interval (default 1 hour, configurable via settings)
+SESSION_CLEANUP_INTERVAL = settings.session_cleanup_interval_seconds
 
 
 async def _session_cleanup_loop() -> None:
-    """Background task to periodically clean up expired sessions."""
+    """Background task to periodically clean up expired sessions.
+
+    Runs forever until cancelled; each pass deletes at most
+    ``settings.session_cleanup_batch_size`` rows to keep the delete
+    transaction short. If a pass removes a full batch, an immediate
+    follow-up pass drains the remaining backlog before sleeping again.
+    """
     import asyncio
 
+    batch_size = settings.session_cleanup_batch_size
     while True:
         try:
             await asyncio.sleep(SESSION_CLEANUP_INTERVAL)
-            async with async_session_maker() as db:
-                manager = SessionManager(db)
-                deleted = await manager.cleanup_expired_sessions()
+            while True:
+                async with async_session_maker() as db:
+                    manager = SessionManager(db)
+                    deleted = await manager.cleanup_expired_sessions(
+                        batch_size=batch_size
+                    )
                 if deleted > 0:
                     logger.info(f"Cleaned up {deleted} expired sessions")
+                if deleted < batch_size:
+                    break
         except asyncio.CancelledError:
             break
         except Exception as e:

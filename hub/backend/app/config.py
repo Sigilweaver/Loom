@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     server_poll_interval_seconds: int = 30
     server_timeout_seconds: int = 10
 
+    # Periodic background cleanup (WP-11)
+    # Interval between session-cleanup passes, in seconds.
+    session_cleanup_interval_seconds: int = 3600
+    # Max number of expired session rows removed per pass. Keeps the
+    # delete transaction short on large/long-lived deployments.
+    session_cleanup_batch_size: int = 1000
+
     # Workflow storage
     workflow_storage_path: str = "./workflows"
 

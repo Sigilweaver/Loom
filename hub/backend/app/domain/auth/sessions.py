@@ -223,20 +223,38 @@ class SessionManager:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def cleanup_expired_sessions(self) -> int:
+    async def cleanup_expired_sessions(self, batch_size: int | None = None) -> int:
         """Remove expired sessions from the database.
 
         This should be called periodically (e.g., via scheduled task)
         to clean up stale session records.
+
+        Args:
+            batch_size: Optional cap on the number of rows deleted in a
+                single pass. ``None`` deletes all expired sessions in one
+                statement (original behaviour). When set, a subquery
+                limits the delete so long-lived deployments don't issue
+                an unbounded DELETE.
 
         Returns:
             Number of sessions deleted.
         """
         now = _utcnow()
 
-        result = await self.db.execute(
-            delete(Session).where(Session.expires_at <= now)
-        )
+        if batch_size is None:
+            result = await self.db.execute(
+                delete(Session).where(Session.expires_at <= now)
+            )
+        else:
+            subq = (
+                select(Session.id)
+                .where(Session.expires_at <= now)
+                .limit(batch_size)
+                .subquery()
+            )
+            result = await self.db.execute(
+                delete(Session).where(Session.id.in_(select(subq)))
+            )
         await self.db.commit()
 
         count: int = result.rowcount  # type: ignore[attr-defined]
