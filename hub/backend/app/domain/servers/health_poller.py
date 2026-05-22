@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -17,13 +17,29 @@ logger = logging.getLogger(__name__)
 
 
 class HealthPoller:
-    """Background task that periodically polls all servers for health status"""
+    """Background task that periodically polls all servers for health status.
+
+    Failure handling (WP-12):
+    - ``_failure_counts`` tracks consecutive failures per server id.
+    - ``_next_retry_at`` is the earliest wall-clock time at which a failing
+      server should be re-polled. Backoff doubles per consecutive failure
+      starting at 1s, capped at ``settings.server_backoff_max_seconds``.
+    - A server is only flipped to ``offline`` once consecutive failures
+      reach ``settings.server_offline_threshold`` (default 3); below that
+      threshold the existing status (typically ``online`` or ``unknown``)
+      is preserved so a single transient blip does not disable scheduling.
+    - Any successful health response resets both maps for that server and
+      sets status to ``online`` immediately.
+    """
 
     def __init__(self) -> None:
         self._task: asyncio.Task[None] | None = None
         self._running = False
         # Track consecutive failures per server for exponential backoff
         self._failure_counts: dict[str, int] = {}
+        # Earliest wall-clock time at which a failing server is eligible
+        # for another poll attempt.
+        self._next_retry_at: dict[str, datetime] = {}
 
     async def start(self) -> None:
         """Start the health polling background task"""
@@ -76,23 +92,25 @@ class HealthPoller:
             await session.commit()
 
     async def _poll_server(self, session: AsyncSession, server: Server) -> None:
-        """Poll a single server and update its status"""
+        """Poll a single server and update its status."""
         server_id = str(server.id)
+        now = datetime.now(UTC)
 
-        # Check for exponential backoff
-        failure_count = self._failure_counts.get(server_id, 0)
-        if failure_count > 0:
-            # Skip this poll if in backoff period
-            # Backoff: 2^failures * base_interval, max 5 minutes
-            backoff_multiplier = min(2**failure_count, 10)  # Max 10x interval
-            if failure_count > 0 and (failure_count % backoff_multiplier) != 0:
-                logger.debug(
-                    "Skipping poll for %s (backoff: failure %d)", server.name, failure_count
-                )
-                return
+        # Honour the per-server backoff schedule: if a retry isn't due
+        # yet, skip this iteration entirely without touching status.
+        next_retry = self._next_retry_at.get(server_id)
+        if next_retry is not None and now < next_retry:
+            logger.debug(
+                "Skipping poll for %s (backoff until %s)",
+                server.name,
+                next_retry.isoformat(),
+            )
+            return
 
         client = ServerClient(server.endpoint_url, server.auth_token)
         result = await client.health()
+        # Refresh "now" after the network round-trip so backoff math uses
+        # the time the response actually came back.
         now = datetime.now(UTC)
 
         old_status = server.status
@@ -102,17 +120,53 @@ class HealthPoller:
             server.status = "online"
             server.version = result.version
             server.last_healthy = now
-            self._failure_counts[server_id] = 0  # Reset failure count
+            # Reset failure tracking immediately on success.
+            self._failure_counts.pop(server_id, None)
+            self._next_retry_at.pop(server_id, None)
 
             if old_status != "online":
-                logger.info("Server %s is now online (version: %s)", server.name, result.version)
+                logger.info(
+                    "Server %s is now online (version: %s)",
+                    server.name,
+                    result.version,
+                )
+            return
 
-        elif isinstance(result, ServerError):
-            server.status = "offline"
-            self._failure_counts[server_id] = failure_count + 1
+        if isinstance(result, ServerError):
+            failure_count = self._failure_counts.get(server_id, 0) + 1
+            self._failure_counts[server_id] = failure_count
 
-            if old_status != "offline":
-                logger.warning("Server %s is now offline: %s", server.name, result.message)
+            # Schedule the next retry with exponential backoff:
+            # 1s -> 2s -> 4s -> 8s -> ... capped at server_backoff_max_seconds.
+            backoff_seconds = min(
+                2 ** (failure_count - 1),
+                settings.server_backoff_max_seconds,
+            )
+            self._next_retry_at[server_id] = now + timedelta(
+                seconds=backoff_seconds
+            )
+
+            threshold = settings.server_offline_threshold
+            if failure_count >= threshold:
+                server.status = "offline"
+                if old_status != "offline":
+                    logger.warning(
+                        "Server %s is now offline after %d consecutive "
+                        "failures: %s",
+                        server.name,
+                        failure_count,
+                        result.message,
+                    )
+            else:
+                logger.info(
+                    "Server %s health check failed (%d/%d) - status "
+                    "unchanged, retry in %ds: %s",
+                    server.name,
+                    failure_count,
+                    threshold,
+                    backoff_seconds,
+                    result.message,
+                )
 
     async def poll_single_server(self, server_id: str) -> dict[str, Any]:
         """Poll a single server immediately (for manual refresh).

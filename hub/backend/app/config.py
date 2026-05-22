@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     server_poll_interval_seconds: int = 30
     server_timeout_seconds: int = 10
 
+    # Health-poller failure handling (WP-12)
+    # Number of consecutive failed health checks before a server is marked
+    # offline. Transient blips below this threshold leave status untouched.
+    server_offline_threshold: int = 3
+    # Exponential-backoff cap (seconds) between retry attempts for a
+    # failing server. Backoff doubles per failure starting at 1s.
+    server_backoff_max_seconds: int = 60
+
     # Periodic background cleanup (WP-11)
     # Interval between session-cleanup passes, in seconds.
     session_cleanup_interval_seconds: int = 3600
