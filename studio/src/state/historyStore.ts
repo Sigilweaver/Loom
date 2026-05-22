@@ -45,6 +45,14 @@ interface HistoryState {
 
   // Actions
   pushState: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
+  /**
+   * Variant of pushState that coalesces consecutive drag operations within
+   * a 250ms window. If the top-of-stack snapshot was pushed via
+   * pushDragState within DRAG_COALESCE_MS, it is *replaced* in place
+   * rather than appended. This keeps undo granularity meaningful while
+   * preventing drag-heavy workflows from blowing through maxHistoryDepth.
+   */
+  pushDragState: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
   undo: () => WorkflowSnapshot | null;
   redo: () => WorkflowSnapshot | null;
   canUndo: () => boolean;
@@ -52,6 +60,10 @@ interface HistoryState {
   clear: () => void;
   setMaxDepth: (depth: number) => void;
 }
+
+// WP-16: drag coalescing window. Consecutive pushDragState calls inside
+// this window replace the latest history entry instead of appending.
+const DRAG_COALESCE_MS = 250;
 
 /**
  * Deep clone using JSON serialization
@@ -119,6 +131,49 @@ export const useHistoryStore = create<HistoryState>()(
             past: newPast,
             future: [], // Clear future on new action
           };
+        }),
+
+      /**
+       * Push a drag-source snapshot. Coalesces with the immediately
+       * preceding pushDragState entry when within DRAG_COALESCE_MS so a
+       * drag gesture produces a single undo step. Falls through to a
+       * normal pushState semantics on the first call of a gesture.
+       */
+      pushDragState: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) =>
+        set((state) => {
+          const now = Date.now();
+          const snapshot: WorkflowSnapshot = {
+            tools: deepClone(tools),
+            wires: deepClone(wires),
+            meta: deepClone(meta),
+            timestamp: now,
+          };
+
+          const last = state.past[state.past.length - 1];
+          if (
+            last &&
+            (last as WorkflowSnapshot & { __drag?: boolean }).__drag === true &&
+            now - last.timestamp <= DRAG_COALESCE_MS
+          ) {
+            // Coalesce: keep the original snapshot (oldest pre-gesture
+            // state), just refresh the timestamp so further drags within
+            // the window keep extending the coalesce window.
+            const refreshed: WorkflowSnapshot = {
+              ...last,
+              timestamp: now,
+            };
+            (refreshed as WorkflowSnapshot & { __drag?: boolean }).__drag = true;
+            const newPast = state.past.slice(0, -1);
+            newPast.push(refreshed);
+            return { past: newPast, future: [] };
+          }
+
+          (snapshot as WorkflowSnapshot & { __drag?: boolean }).__drag = true;
+          let newPast = [...state.past, snapshot];
+          if (newPast.length > state.maxHistoryDepth) {
+            newPast = newPast.slice(newPast.length - state.maxHistoryDepth);
+          }
+          return { past: newPast, future: [] };
         }),
 
       /**

@@ -177,6 +177,7 @@ export function useCanvasHandlers() {
 
   // History store
   const pushState = useHistoryStore((s) => s.pushState);
+  const pushDragState = useHistoryStore((s) => s.pushDragState);
 
   // Tab store
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -393,8 +394,10 @@ export function useCanvasHandlers() {
 
   const handleCommitTransaction = useCallback(() => {
     logger.debug("Commit transaction (drag end)");
-    pushState(tools, wires, workflowMeta);
-  }, [pushState, tools, wires, workflowMeta]);
+    // WP-16: coalesce successive drag commits within 250ms into a single
+    // undo step so a flurry of small drags doesn't fill maxHistoryDepth.
+    pushDragState(tools, wires, workflowMeta);
+  }, [pushDragState, tools, wires, workflowMeta]);
 
   const handleToolSelect = useCallback(
     (tool: Tool | null) => {
