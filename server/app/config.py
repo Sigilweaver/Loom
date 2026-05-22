@@ -102,5 +102,11 @@ class Settings(BaseSettings):
     connection_encryption_key: str = ""
     connection_store_path: str = "../.working/server/connections.json"
 
+    # Rate limiting (WP-06). When enabled, a per-key limit is applied to all
+    # /api/workflow/* endpoints. Disabled by default so existing test suites
+    # are unaffected.
+    rate_limit_enabled: bool = False
+    rate_limit_workflow: str = "600/minute"
+
 
 settings = Settings()

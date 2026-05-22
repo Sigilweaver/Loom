@@ -19,6 +19,7 @@ dependencies = [
     "pyarrow>=22.0.0",
     "httpx>=0.28.1",
     "openyxdb",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

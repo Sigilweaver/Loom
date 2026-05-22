@@ -13,7 +13,10 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+
+from app.config import settings as _rl_settings
+from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -144,8 +147,10 @@ class AuthorizeResponse(BaseModel):
 
 
 @router.post("/authorize", response_model=AuthorizeResponse)
+@_rl.limit(_rl_settings.rate_limit_internal_authorize)
 async def authorize(
     request: AuthorizeRequest,
+    http_request: Request,
     server: ServerIdentity = Depends(get_server_identity),
     db: AsyncSession = Depends(get_db),
 ) -> AuthorizeResponse:

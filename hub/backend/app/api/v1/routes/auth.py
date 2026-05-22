@@ -3,6 +3,9 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from app.config import settings as _rl_settings
+from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,6 +105,7 @@ async def _get_user_by_username(db: AsyncSession, username: str) -> User | None:
 
 
 @router.post("/register", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
+@_rl.limit(_rl_settings.rate_limit_register)
 async def register(
     request: RegisterRequest,
     http_request: Request,
@@ -170,6 +174,7 @@ async def register(
 
 
 @router.post("/login", response_model=LoginResponse)
+@_rl.limit(_rl_settings.rate_limit_login)
 async def login(
     request: LoginRequest,
     http_request: Request,

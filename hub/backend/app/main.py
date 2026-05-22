@@ -211,6 +211,17 @@ application.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting (WP-06)
+from slowapi import _rate_limit_exceeded_handler  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+
+from app.middleware.rate_limit import limiter  # noqa: E402
+
+application.state.limiter = limiter
+application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+application.add_middleware(SlowAPIMiddleware)
+
 # Include API v1 routes
 application.include_router(v1_router, prefix="/api/v1")
 

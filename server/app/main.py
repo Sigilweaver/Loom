@@ -187,6 +187,17 @@ application.add_middleware(
 # Add audit logging middleware
 application.add_middleware(AuditMiddleware)
 
+# Rate limiting (WP-06) - workflow routes only
+from slowapi import _rate_limit_exceeded_handler  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+
+from app.middleware.rate_limit import limiter as _rl  # noqa: E402
+
+application.state.limiter = _rl
+application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+application.add_middleware(SlowAPIMiddleware)
+
 # Include API routes
 application.include_router(api_router, prefix="/api")
 

@@ -23,6 +23,7 @@ dependencies = [
     "cryptography>=46.0.3",
     "polars[connectorx]>=1.0.0",
     "pyarrow>=22.0.0",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

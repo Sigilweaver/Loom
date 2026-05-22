@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.config import settings
+from app.middleware.rate_limit import limiter as _rl
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -25,6 +26,7 @@ class HealthResponse(BaseModel):
 
 
 @router.get("/", response_model=HealthResponse)
+@_rl.exempt
 async def health_check() -> HealthResponse:
     """
     Health check endpoint

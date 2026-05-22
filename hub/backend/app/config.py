@@ -79,5 +79,15 @@ class Settings(BaseSettings):
     # NEVER enable this in production: tokens/sessions will not survive restart.
     allow_insecure_defaults: bool = False
 
+    # Rate limiting (WP-06). When enabled, per-route limits return 429 with
+    # a Retry-After header. Disabled by default so existing test suites and
+    # tight-loop dev tooling are unaffected.
+    rate_limit_enabled: bool = False
+    rate_limit_login: str = "10/15 minutes"
+    rate_limit_register: str = "5/hour"
+    rate_limit_server_registration: str = "20/hour"
+    rate_limit_capability_token: str = "60/minute"
+    rate_limit_internal_authorize: str = "600/minute"
+
 
 settings = Settings()
