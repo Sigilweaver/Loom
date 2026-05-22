@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -271,6 +271,9 @@ class Connection(Base):
         "ConnectionFilesystem", back_populates="connection", uselist=False, cascade="all, delete-orphan"
     )
 
+    # WP-13: hot-path index for connection-list filters/sorts.
+    __table_args__ = (Index("idx_connections_status", "status"),)
+
 
 class ConnectionDatabase(Base):
     """Database-specific connection configuration.
@@ -436,6 +439,15 @@ class UserGroup(Base):
     user: Mapped["User"] = relationship("User", back_populates="groups")
     group: Mapped["Group"] = relationship("Group", back_populates="members")
 
+    # WP-13: explicit indexes for reverse-direction lookups. The composite
+    # primary key (user_id, group_id) already covers user_id-leading
+    # scans; per-column indexes serve "find all users in group" and
+    # "find all groups for user" workloads independently.
+    __table_args__ = (
+        Index("idx_user_groups_user", "user_id"),
+        Index("idx_user_groups_group", "group_id"),
+    )
+
 
 # NOTE: ConnectionGroup model removed in API v1
 # Connection access is now managed exclusively through grant groups:
@@ -526,6 +538,9 @@ class AuditEvent(Base):
     # Integrity
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
+    # WP-13: timeline queries fetch newest-first.
+    __table_args__ = (Index("idx_audit_events_timestamp", "timestamp"),)
 
 
 class ExecutionRecord(Base):
@@ -648,6 +663,15 @@ class UserGroupGrantGroup(Base):
     user_group: Mapped["Group"] = relationship("Group", back_populates="grant_groups")
     grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="user_groups")
 
+    # WP-13: indexes on the permission-join hot path. The composite PK
+    # (user_group_id, grant_group_id) already covers the leading-column
+    # lookup; the reverse-direction index supports "given a grant group,
+    # find all user groups referencing it".
+    __table_args__ = (
+        Index("idx_uggg_lookup", "user_group_id", "grant_group_id"),
+        Index("idx_uggg_grant_group", "grant_group_id"),
+    )
+
 
 class GrantGroupConnection(Base):
     """Join table: Grant Group -> Connection assignment.
@@ -676,3 +700,9 @@ class GrantGroupConnection(Base):
     # Relationships
     grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="connections")
     connection: Mapped["Connection"] = relationship("Connection")
+
+    # WP-13: indexes for forward and reverse permission-join lookups.
+    __table_args__ = (
+        Index("idx_gg_conn_lookup", "grant_group_id", "connection_id"),
+        Index("idx_gg_conn_reverse", "connection_id"),
+    )
