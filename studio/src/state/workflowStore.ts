@@ -443,3 +443,15 @@ export const useWorkflowMeta = () =>
   useWorkflowStore((state) => state.workflowMeta);
 export const useSelectedTool = () =>
   useWorkflowStore((state) => state.selectedTool);
+
+// WP-15: per-tool atomic selectors. Components that only need a single
+// tool by id should subscribe via these helpers instead of grabbing the
+// entire `tools` array, so unrelated tool mutations do not trigger a
+// re-render on the consumer.
+export const useToolById = (toolId: string | null | undefined) =>
+  useWorkflowStore((state) =>
+    toolId == null ? null : (state.tools.find((t) => t.id === toolId) ?? null)
+  );
+
+export const useToolIds = () =>
+  useWorkflowStore((state) => state.tools.map((t) => t.id).join("|"));
