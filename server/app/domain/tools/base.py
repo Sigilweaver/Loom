@@ -154,3 +154,22 @@ class BaseTool(ABC):
             True if output should be cached, False otherwise
         """
         return self.is_blocking(config)
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Return the salient subset of `config` that affects this tool's output.
+
+        Used by the lineage-hash computation so that purely cosmetic config
+        changes (tool rename, UI flags) do not invalidate downstream caches.
+
+        Default implementation returns the full config dict, preserving the
+        pre-WP-17 behavior. Tools should override to drop fields like
+        `name`, `comment`, UI hints, etc.
+
+        Args:
+            config: Tool-specific configuration
+
+        Returns:
+            A subset of `config` containing only output-affecting fields.
+        """
+        return config
