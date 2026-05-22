@@ -20,6 +20,18 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import AsyncGenerator
 
+# Set required-secret env vars before importing app.main (WP-03 enforces a
+# hard fail at startup when any required secret is unset). Using deterministic
+# test values keeps fixtures reproducible.
+import os as _os
+
+from cryptography.fernet import Fernet as _Fernet
+
+_os.environ.setdefault("SESSION_SECRET", "test-session-secret-do-not-use-in-prod")
+_os.environ.setdefault("SECRET_KEY", "test-secret-key-do-not-use-in-prod")
+_os.environ.setdefault("SERVER_REGISTRATION_SECRET", "test-registration-secret")
+_os.environ.setdefault("CONNECTION_ENCRYPTION_KEY", _Fernet.generate_key().decode())
+
 import pytest
 from argon2 import PasswordHasher
 from httpx import ASGITransport, AsyncClient

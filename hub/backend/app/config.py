@@ -28,11 +28,14 @@ class Settings(BaseSettings):
     )
 
     # Authentication - Session
-    session_secret: str = "CHANGE_ME_IN_PRODUCTION"
+    # MUST be set via env (32+ random bytes). No default - Hub refuses to boot if empty.
+    # Generate: python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
+    session_secret: str = ""
     session_lifetime_hours: int = 24
 
     # Authentication - Legacy JWT (to be removed in Phase 2)
-    secret_key: str = "CHANGE_ME_IN_PRODUCTION"
+    # MUST be set via env. No default - Hub refuses to boot if empty.
+    secret_key: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
 
@@ -59,9 +62,14 @@ class Settings(BaseSettings):
     connection_encryption_key: str = ""
 
     # Server Registration
-    # Shared secret that servers must provide to register with Hub
-    # If empty, server registration is open (insecure - dev only)
+    # Shared secret that servers must provide to register with Hub.
+    # MUST be set via env. No default - Hub refuses to boot if empty.
     server_registration_secret: str = ""
+
+    # Dev-only override: auto-generate ephemeral values for the secrets above
+    # at startup instead of refusing to boot. Logs the generated values once.
+    # NEVER enable this in production: tokens/sessions will not survive restart.
+    allow_insecure_defaults: bool = False
 
 
 settings = Settings()
