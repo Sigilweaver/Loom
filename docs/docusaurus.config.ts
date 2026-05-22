@@ -71,7 +71,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/sigilweaver-social-card.jpg',
+    image: 'img/docusaurus-social-card.jpg',
     // SEO Metadata
     metadata: [
       { name: 'keywords', content: 'Sigilweaver Loom, ETL, visual data pipeline, data engineering, Python, Polars, workflow automation, low-code data tool' },

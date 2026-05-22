@@ -40,7 +40,7 @@ The AI assistant is not a black box. Several layers of validation run automatica
 
 6. **Fully visible actions** — Every tool call is displayed in the chat. You can see exactly what was added, changed, or removed and undo any action.
 
-For more detail on the engineering approach, see the [AI Development Philosophy](/docs/developer/ai-philosophy) in the Developer Guide.
+For more detail on the engineering approach, see the [AI Development Philosophy](/loom/docs/developer/ai-philosophy) in the Developer Guide.
 
 ## Using the AI Tab
 
