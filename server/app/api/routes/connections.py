@@ -121,7 +121,7 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
             username=request.username,
             password=request.password,
         )
-        conn = store.create_connection(input_data)
+        conn = await store.acreate_connection(input_data)
 
         return ConnectionInfoResponse(
             id=conn.id,
@@ -170,7 +170,7 @@ async def update_connection(
             username=request.username,
             password=request.password,
         )
-        conn = store.update_connection(connection_id, input_data)
+        conn = await store.aupdate_connection(connection_id, input_data)
 
         return ConnectionInfoResponse(
             id=conn.id,
@@ -203,7 +203,7 @@ async def delete_connection(connection_id: str) -> None:
     store = get_connection_store()
 
     try:
-        store.delete_connection(connection_id)
+        await store.adelete_connection(connection_id)
     except ConnectionNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ConnectionStoreError as e:
