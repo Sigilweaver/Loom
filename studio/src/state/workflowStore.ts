@@ -455,3 +455,24 @@ export const useToolById = (toolId: string | null | undefined) =>
 
 export const useToolIds = () =>
   useWorkflowStore((state) => state.tools.map((t) => t.id).join("|"));
+
+// WP-15: count-only selectors. Subscribing to a number means the
+// consumer only re-renders when the count actually changes, not on
+// every position/config edit.
+export const useToolCount = () =>
+  useWorkflowStore((state) => state.tools.length);
+export const useWireCount = () =>
+  useWorkflowStore((state) => state.wires.length);
+
+// WP-15: derived "shape" selector returning a compact, primitive digest
+// of tool types in their canvas order. Re-renders only when the set of
+// types or their order changes - position/config mutations are ignored.
+export const useToolTypesDigest = () =>
+  useWorkflowStore((state) => state.tools.map((t) => t.type).join("|"));
+
+// WP-15: returns true iff a tool with the given id currently exists.
+// Avoids subscribing to the full tools array just to existence-check.
+export const useToolExists = (toolId: string | null | undefined) =>
+  useWorkflowStore((state) =>
+    toolId == null ? false : state.tools.some((t) => t.id === toolId)
+  );

@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import { useUIStore } from "@state/uiStore";
-import { useWorkflowStore } from "@state/workflowStore";
+import { useToolExists } from "@state/workflowStore";
 import { useSocketProfile } from "@hooks/useSocketProfile";
 import type { ColumnProfile, TopValueEntry } from "@api/backend";
 
@@ -306,7 +306,9 @@ const ProfileViewer = () => {
   const profileState = useUIStore((s) => s.profileState);
   const previewState = useUIStore((s) => s.previewState);
   const activeBottomTab = useUIStore((s) => s.activeBottomTab);
-  const tools = useWorkflowStore((s) => s.tools);
+  // WP-15: subscribe only to the existence of the previewed tool,
+  // not to the full tools array.
+  const toolExists = useToolExists(previewState?.toolId);
   const { profileSocket } = useSocketProfile();
   
   // Track which socket we've fetched profile for to avoid re-fetching
@@ -321,7 +323,6 @@ const ProfileViewer = () => {
     if (!previewState?.toolId || !previewState?.socketId || !previewState?.socketDirection) return;
     
     // Validate the tool still exists in the current workflow (prevents stale state issues)
-    const toolExists = tools.some((t) => t.id === previewState.toolId);
     if (!toolExists) return;
     
     // Build a key to track what we've already profiled
@@ -344,7 +345,7 @@ const ProfileViewer = () => {
     // Fetch profile data
     lastProfiledSocketRef.current = socketKey;
     profileSocket(previewState.toolId, previewState.socketId, previewState.socketDirection);
-  }, [activeBottomTab, previewState?.toolId, previewState?.socketId, previewState?.socketDirection, profileState?.toolId, profileState?.socketId, profileState?.socketDirection, profileState?.loading, profileSocket, tools]);
+  }, [activeBottomTab, previewState?.toolId, previewState?.socketId, previewState?.socketDirection, profileState?.toolId, profileState?.socketId, profileState?.socketDirection, profileState?.loading, profileSocket, toolExists]);
 
   if (!profileState) {
     return (

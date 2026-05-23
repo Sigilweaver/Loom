@@ -7,7 +7,11 @@ import { JSONOutputMode } from "@domain/dataSources/jsonOutput";
 import { ParquetMode } from "@domain/dataSources/parquet";
 import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
-import { useWorkflowStore } from "@state/workflowStore";
+import {
+  useToolCount,
+  useWireCount,
+  useWorkflowStore,
+} from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
@@ -53,6 +57,14 @@ const logger = createLogger('LeftPane');
 export default function LeftPane() {
   // Access stores directly
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
+  // WP-15: count-only selectors for the summary chips so position/config
+  // edits on individual tools do not re-render the entire left pane.
+  const toolCount = useToolCount();
+  const wireCount = useWireCount();
+  // The full tools/wires arrays are still needed when a workflow-aware
+  // config panel is mounted (Filter, Formula, Join, etc) and when the
+  // history snapshot helper fires below. We subscribe to them so the
+  // mounted config panel updates when upstream tools change.
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
@@ -69,6 +81,13 @@ export default function LeftPane() {
   const activeTabId = useTabStore((s) => s.activeTabId);
   const markTabDirty = useTabStore((s) => s.markTabDirty);
 
+  // WP-15: snapshot helper reads fresh state from the store at call
+  // time so handlers stay stable across renders.
+  const snapshotForHistory = () => {
+    const s = useWorkflowStore.getState();
+    pushState(s.tools, s.wires, s.workflowMeta);
+  };
+
   // Handler functions
   const handleWorkflowMetaChange = (meta: {
     name: string;
@@ -76,8 +95,7 @@ export default function LeftPane() {
     author: string;
   }) => {
     logger.info("Workflow metadata updated:", meta.name);
-    // Save current state before change
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
 
     // Update meta in store
     updateWorkflowMeta(meta);
@@ -90,8 +108,7 @@ export default function LeftPane() {
 
   const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
     logger.debug("Tool configuration updated:", toolId);
-    // Save current state before change
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
 
     // Update configuration in store
     updateToolConfiguration(toolId, config);
@@ -103,15 +120,12 @@ export default function LeftPane() {
   };
 
   const handleToolCommentChange = (toolId: string, comment: string | undefined) => {
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
     updateToolComment(toolId, comment);
     if (activeTabId) {
       markTabDirty(activeTabId);
     }
   };
-
-  const toolCount = tools.length;
-  const wireCount = wires.length;
 
   // Show tool palette / workflow configuration if no tool is selected
   if (!selectedTool) {

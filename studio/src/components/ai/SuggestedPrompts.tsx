@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { useWorkflowStore } from '@state/workflowStore';
+import { useToolTypesDigest, useWireCount } from '@state/workflowStore';
 import { MessageSquare } from 'lucide-react';
 
 interface SuggestedPromptsProps {
@@ -53,15 +53,18 @@ function getContextualPrompts(toolTypes: string[], hasWires: boolean): string[] 
 }
 
 const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({ onSelect }) => {
-  const tools = useWorkflowStore((s) => s.tools);
-  const wires = useWorkflowStore((s) => s.wires);
+  // WP-15: subscribe to compact digests instead of full arrays so this
+  // panel only re-renders when the set of tool types or the wire count
+  // actually changes, not on every position/config edit.
+  const toolTypesDigest = useToolTypesDigest();
+  const wireCount = useWireCount();
 
-  const hasTools = tools.length > 0;
+  const hasTools = toolTypesDigest.length > 0;
   const prompts = useMemo(() => {
     if (!hasTools) return STARTER_PROMPTS;
-    const toolTypes = tools.map((t) => t.type);
-    return getContextualPrompts(toolTypes, wires.length > 0);
-  }, [tools, wires, hasTools]);
+    const toolTypes = toolTypesDigest.split("|").filter(Boolean);
+    return getContextualPrompts(toolTypes, wireCount > 0);
+  }, [toolTypesDigest, wireCount, hasTools]);
 
   return (
     <div className="w-full space-y-4">
