@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
@@ -39,6 +40,27 @@ STRING_AGGREGATIONS = {"First", "Last", "Concat", "Count", "CountDistinct", "Min
 
 # Aggregations that work on any column type
 UNIVERSAL_AGGREGATIONS = {"Count", "CountDistinct", "First", "Last", "Min", "Max"}
+
+
+class SummarizeAggregationConfig(BaseModel):
+    """Single aggregation. WP-19 typed config."""
+
+    model_config = ConfigDict(extra="allow")
+
+    column: str | None = None
+    operation: str | None = None
+    outputName: str | None = None
+
+
+class SummarizeToolConfig(BaseModel):
+    """WP-19 typed config for Summarize."""
+
+    model_config = ConfigDict(extra="allow")
+
+    # groupByColumns supports legacy string entries and object entries.
+    groupByColumns: list[Any] = Field(default_factory=list)
+    aggregations: list[SummarizeAggregationConfig] = Field(default_factory=list)
+    includeNulls: bool = False
 
 
 def is_numeric_dtype(dtype: str) -> bool:
@@ -90,6 +112,17 @@ class SummarizeTool(BaseTool):
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Summarize is blocking - must see all rows per group."""
         return True
+
+    @classmethod
+    def config_model(cls) -> type["SummarizeToolConfig"]:
+        return SummarizeToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "groupByColumns": config.get("groupByColumns", []),
+            "aggregations": config.get("aggregations", []),
+            "includeNulls": config.get("includeNulls", False),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> SummarizeOperation:
         """Build the summarize operation from config."""

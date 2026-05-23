@@ -1,8 +1,9 @@
 """Unique tool implementation - Split data into unique and duplicate rows."""
 
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -14,6 +15,15 @@ from app.utils.errors import ToolError
 
 # Valid unique modes
 UNIQUE_MODES = {"First", "Strict"}
+
+
+class UniqueToolConfig(BaseModel):
+    """WP-19 typed config for Unique."""
+
+    model_config = ConfigDict(extra="allow")
+
+    columns: list[str] = Field(default_factory=list)
+    mode: Literal["First", "Strict"] = "First"
 
 
 @register_tool("Unique")
@@ -49,6 +59,16 @@ class UniqueTool(BaseTool):
     def should_cache(self, config: dict[str, Any]) -> bool:
         """Cache results since operation is blocking."""
         return True
+
+    @classmethod
+    def config_model(cls) -> type[UniqueToolConfig]:
+        return UniqueToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "columns": config.get("columns", []),
+            "mode": config.get("mode", "First"),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> UniqueOperation:
         """Build the unique operation from config."""

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -11,6 +12,20 @@ from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
 from app.utils.security import validate_file_path_for_write
+
+
+class OutputToolConfig(BaseModel):
+    """WP-19 typed config for Output.
+
+    Output configs are polymorphic across writer formats (CSV, Parquet,
+    Excel, IPC, JSON, etc.) so extra fields are allowed and only the
+    dispatch fields are typed here.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    type: str | None = Field(default=None, description="Writer type, e.g. 'csv'.")
+    destination: str | None = Field(default=None, description="Destination path.")
 
 
 @register_tool("Output")
@@ -21,6 +36,10 @@ class OutputTool(BaseTool):
     Handles different output modes (sink vs write) for CSV with shared options.
     No output sockets - terminal node in workflow.
     """
+
+    @classmethod
+    def config_model(cls) -> type[OutputToolConfig]:
+        return OutputToolConfig
 
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]

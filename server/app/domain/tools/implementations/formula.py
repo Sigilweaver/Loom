@@ -12,6 +12,7 @@ from typing import Any
 
 import polars as pl
 import structlog
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
@@ -23,6 +24,28 @@ from app.utils.errors import ToolError
 from app.utils.expression import parse_polars_expression
 
 log = structlog.get_logger()
+
+
+class FormulaOperationConfig(BaseModel):
+    """Single column operation. WP-19 typed config."""
+
+    column_name: str = Field(..., min_length=1)
+    expression: str = Field(default="")
+
+
+class FormulaToolConfig(BaseModel):
+    """WP-19 typed config for Formula.
+
+    Two shapes are accepted for backward compatibility:
+    - ``operations`` (preferred): list of FormulaOperationConfig.
+    - Legacy top-level ``column_name`` / ``expression`` (single op).
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    operations: list[FormulaOperationConfig] | None = None
+    column_name: str | None = None
+    expression: str | None = None
 
 
 def _infer_dtype_from_expression(expr_str: str, input_schema: DataSchema) -> PolarsDataType:
@@ -145,6 +168,17 @@ class FormulaTool(BaseTool):
     - column_name: Name of the column to create or replace
     - expression: Polars expression string
     """
+
+    @classmethod
+    def config_model(cls) -> type[FormulaToolConfig]:
+        return FormulaToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "operations": config.get("operations"),
+            "column_name": config.get("column_name"),
+            "expression": config.get("expression"),
+        }
 
     def _build_operations(self, config: dict[str, Any]) -> list[FormulaOperation]:
         """Build formula operations from config (handles legacy + new format)."""

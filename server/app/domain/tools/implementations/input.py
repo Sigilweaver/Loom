@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.datasources.factory import DataSourceFactory
@@ -11,6 +12,24 @@ from app.domain.tools.loaders.factory import LoaderFactory
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.errors import ToolError
+
+
+class InputToolConfig(BaseModel):
+    """WP-19 typed config for Input.
+
+    Input configs are polymorphic across data-source loaders (CSV,
+    Parquet, Excel, databases, etc.) so extra fields are allowed and
+    only the dispatch fields are typed here.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    type: str | None = Field(default=None, description="Loader type, e.g. 'csv', 'parquet'.")
+    source: str | None = Field(default=None, description="File path or connection URI.")
+    category: str = Field(default="file", description="'file' or 'database'.")
+    query: str | None = None
+    owner: str | None = None
+    connectionName: str | None = None
 
 
 @register_tool("Input")
@@ -23,6 +42,10 @@ class InputTool(BaseTool):
 
     For database sources, the source is a connection URI with embedded credentials.
     """
+
+    @classmethod
+    def config_model(cls) -> type[InputToolConfig]:
+        return InputToolConfig
 
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Database inputs are blocking (eager read); file inputs are lazy."""

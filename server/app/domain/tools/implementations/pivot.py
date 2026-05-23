@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.execution.safety import check_pivot_safety, raise_if_unsafe
@@ -30,6 +31,17 @@ NUMERIC_ONLY_AGGREGATIONS = {"sum", "mean", "median"}
 
 # Aggregations that work on any type
 UNIVERSAL_AGGREGATIONS = {"first", "last", "min", "max", "len"}
+
+
+class PivotToolConfig(BaseModel):
+    """WP-19 typed config for Pivot."""
+
+    model_config = ConfigDict(extra="allow")
+
+    on: str = Field(default="")
+    index: list[str] = Field(default_factory=list)
+    values: str = Field(default="")
+    aggregateFunction: str = Field(default="first")
 
 
 @register_tool("Pivot")
@@ -64,6 +76,18 @@ class PivotTool(BaseTool):
     def should_cache(self, config: dict[str, Any]) -> bool:
         """Cache results since operation is blocking."""
         return True
+
+    @classmethod
+    def config_model(cls) -> type[PivotToolConfig]:
+        return PivotToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "on": config.get("on", ""),
+            "index": config.get("index", []),
+            "values": config.get("values", ""),
+            "aggregateFunction": config.get("aggregateFunction", "first"),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> PivotOperation:
         """Build the pivot operation from config."""
