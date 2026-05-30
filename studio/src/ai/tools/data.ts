@@ -1,7 +1,7 @@
 /**
  * Data Inspection Tools
  *
- * Vercel AI SDK tool definitions for inspecting data — previews,
+ * Vercel AI SDK tool definitions for inspecting data - previews,
  * schemas, column metadata, file browsing.
  */
 
@@ -52,7 +52,7 @@ async function getBrowseAuth(): Promise<{ token: string; serverUrl: string }> {
       initHubClient({ url: hub.url, sessionToken: hub.sessionToken });
     }
     if (!hasHubClient()) {
-      throw new Error('Hub client not available — check Hub connection in Settings');
+      throw new Error('Hub client not available - check Hub connection in Settings');
     }
     const hubClient = getHubClient();
     const tokenResponse = await hubClient.requestToken();
@@ -84,7 +84,7 @@ export const listAvailableFiles = tool({
           count: rootList.length,
           hint: rootList.length > 0
             ? 'Pass a root as "directory" to list files'
-            : 'No data directories found — check server data path configuration',
+            : 'No data directories found - check server data path configuration',
         };
       }
       const files = await listFiles(serverUrl, token, directory);
@@ -206,7 +206,7 @@ export const searchFilesTool = tool({
 });
 
 /**
- * Profile a tool's output data — get statistics (min, max, mean, nulls, top values, etc.)
+ * Profile a tool's output data - get statistics (min, max, mean, nulls, top values, etc.)
  * Returns compact text profile instead of JSON to minimize token usage.
  */
 export const profileToolData = tool({

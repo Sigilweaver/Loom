@@ -9,7 +9,7 @@ import { Theme, ColorPalette } from '../types/theme';
 import { buildFieldStates, buildButtonStates } from './tokens/builders';
 
 // ---------------------------------------------------------------------------
-// WCAG helpers — keep text/bg contrast ≥ 4.5:1 (AA normal)
+// WCAG helpers - keep text/bg contrast ≥ 4.5:1 (AA normal)
 // ---------------------------------------------------------------------------
 
 function srgbChannel(c: number): number {
@@ -74,7 +74,7 @@ export function createTheme(config: ThemeConfig): Theme {
   // We use #ffffff/#000000 rather than palette foundation colors because tinted
   // palettes (e.g. Catppuccin Latte, Gruvbox Light) have narrower contrast ranges.
   const autoText = (bg: string) => wcagAutoText(bg, '#ffffff', '#000000');
-  // Accent for text-on-gray (checkbox marks, radio dots) — needs ≥ 4.5:1
+  // Accent for text-on-gray (checkbox marks, radio dots) - needs ≥ 4.5:1
   // Use deeper indices so the accent contrasts against gray backgrounds
   const accentText = p.brand.primary[isDark ? 700 : 800];
   const accentTextHover = p.brand.primary[isDark ? 800 : 900];
@@ -91,7 +91,7 @@ export function createTheme(config: ThemeConfig): Theme {
   // ── Header button presets (intent-based hierarchy) ────────────
   // Light themes always have dark headers, so header buttons need white
   // text.  Walk from gray[500] upward to find the lightest gray where
-  // autoText picks white — each palette hits this threshold at a
+  // autoText picks white - each palette hits this threshold at a
   // different index (Core Light at 500, Solarized Light not until 800).
   type GrayIdx = 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
   const hdrIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark

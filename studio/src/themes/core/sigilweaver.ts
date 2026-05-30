@@ -3,7 +3,7 @@ import { sigilweaverPalette } from '../palettes';
 import { HEADER_BACKGROUND, BRAND_EDGE, BRAND_EDGE_ANIMATED } from '../tokens/constants';
 
 /**
- * Sigilweaver Signature — the signature dark theme.
+ * Sigilweaver Signature - the signature dark theme.
  *
  * Now uses `createTheme()` for WCAG‑compliant contrast while keeping the
  * mystical purple-tinted palette.  Brand constants (header background,

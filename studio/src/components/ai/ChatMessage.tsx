@@ -93,7 +93,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => 
 };
 
 // ---------------------------------------------------------------------------
-// Segmented Content — interleaved tool calls and text in execution order
+// Segmented Content - interleaved tool calls and text in execution order
 // ---------------------------------------------------------------------------
 
 const SegmentedContent: React.FC<{ segments: MessageSegment[]; debug: boolean }> = ({ segments, debug }) => {
@@ -116,7 +116,7 @@ const SegmentedContent: React.FC<{ segments: MessageSegment[]; debug: boolean }>
 };
 
 // ---------------------------------------------------------------------------
-// Legacy Content — flat tool calls then text (backward compat for old messages)
+// Legacy Content - flat tool calls then text (backward compat for old messages)
 // ---------------------------------------------------------------------------
 
 const LegacyContent: React.FC<{ message: ChatMessageType; debug: boolean }> = ({ message, debug }) => (
@@ -137,7 +137,7 @@ const LegacyContent: React.FC<{ message: ChatMessageType; debug: boolean }> = ({
 );
 
 // ---------------------------------------------------------------------------
-// Markdown Block — renders assistant text as markdown
+// Markdown Block - renders assistant text as markdown
 // ---------------------------------------------------------------------------
 
 export const MarkdownBlock: React.FC<{ content: string }> = ({ content }) => {
@@ -247,7 +247,7 @@ function summarizeResult(tc: ToolCallInfo): string {
 }
 
 // ---------------------------------------------------------------------------
-// Audit Message — compact collapsible row for post-turn audit results
+// Audit Message - compact collapsible row for post-turn audit results
 // ---------------------------------------------------------------------------
 
 const AuditMessage: React.FC<{ isWarning: boolean; text: string }> = ({ isWarning, text }) => {

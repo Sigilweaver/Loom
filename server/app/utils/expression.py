@@ -25,7 +25,7 @@ _ALLOWED_AST_NODES = frozenset(
         ast.Tuple,
         ast.Dict,
         ast.Set,
-        # Attribute access (validated separately — no dunders)
+        # Attribute access (validated separately - no dunders)
         ast.Attribute,
         # Calls (e.g. pl.col("x"), .str.contains("y"))
         ast.Call,
@@ -196,7 +196,7 @@ def parse_polars_expression(expression: str, normalize: bool = True) -> pl.Expr:
     if normalize:
         expression = normalize_expression(expression)
 
-    # Validate AST before eval — blocks sandbox escape via dunder access,
+    # Validate AST before eval - blocks sandbox escape via dunder access,
     # imports, and any construct outside the allowlist
     _validate_expression_ast(expression)
 

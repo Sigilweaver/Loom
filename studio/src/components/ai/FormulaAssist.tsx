@@ -14,7 +14,7 @@ import { Sparkles, Send, Loader2, X } from 'lucide-react';
 interface FormulaAssistProps {
   /** Current columns available */
   columns: Array<{ name: string; dtype: string; nullable?: boolean }>;
-  /** Stringified operation catalog summary — built by the parent component */
+  /** Stringified operation catalog summary - built by the parent component */
   operationCatalog: string;
   /** Callback with generated operations */
   onOperationsGenerated: (operations: BasicFormulaOperation[]) => void;
@@ -74,7 +74,7 @@ const FormulaAssist: React.FC<FormulaAssistProps> = ({
           border border-theme-border-primary bg-theme-surface-page
           hover:bg-theme-surface-hover hover:border-theme-interactive-accent
           transition-colors text-theme-text-secondary"
-        title="AI formula helper — describe what to calculate"
+        title="AI formula helper - describe what to calculate"
       >
         <Sparkles className="w-3 h-3" />
         AI Assist

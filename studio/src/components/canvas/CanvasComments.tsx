@@ -1,5 +1,5 @@
 /**
- * CanvasComments — renders tool labels + comments as a viewport-space overlay.
+ * CanvasComments - renders tool labels + comments as a viewport-space overlay.
  *
  * Instead of embedding comment text inside the React Flow node (which constrains
  * it to the node's 60×60 bounding box), we render labels + comments in a separate
@@ -124,7 +124,7 @@ function CanvasComments() {
   const viewport = useViewport();
   const commentsSettings = useSettingsStore((s) => s.comments);
 
-  // Build label data from nodes — memo to avoid recalc on unrelated re-renders
+  // Build label data from nodes - memo to avoid recalc on unrelated re-renders
   const labels = useMemo(() => {
     return nodes.map((node) => {
       const { tool, definition } = node.data as unknown as NodeData;

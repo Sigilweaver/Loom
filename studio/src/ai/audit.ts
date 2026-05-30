@@ -33,7 +33,7 @@ export async function runAudit(
 
   const cfg = store.getAuditModelConfig();
   if (!cfg.model) {
-    logger.warn('Audit enabled but no model configured — skipping');
+    logger.warn('Audit enabled but no model configured - skipping');
     return;
   }
 
@@ -80,14 +80,14 @@ If something seems wrong or incomplete:
 WARNING: <one sentence explaining what's wrong or missing>
 
 Rules:
-- Be concise — one sentence only after PASS: or WARNING:
+- Be concise - one sentence only after PASS: or WARNING:
 - Focus on whether the agent addressed the user's actual request
 - Check that the right tool types were used (e.g. Aggregate for aggregation, not Calculate)
 - Check that the workflow is structurally sound (tools are connected, data flows correctly)
-- Check that ALL tools have descriptive comments — ${toolsWithoutComments > 0 ? `WARNING: ${toolsWithoutComments} tool(s) are missing comments, which is a quality issue` : 'all tools have comments (good)'}. Every tool must have a comment explaining what it does.
+- Check that ALL tools have descriptive comments - ${toolsWithoutComments > 0 ? `WARNING: ${toolsWithoutComments} tool(s) are missing comments, which is a quality issue` : 'all tools have comments (good)'}. Every tool must have a comment explaining what it does.
 - If the agent created tools for multiple analyses, check they branch correctly from the Read
 - Do NOT warn about stylistic choices, naming preferences, or minor variations
-- Do NOT re-examine data correctness — only whether the pipeline design matches the request`;
+- Do NOT re-examine data correctness - only whether the pipeline design matches the request`;
 
     const userPrompt = `## User Request
 ${userMessage}
@@ -141,6 +141,6 @@ ${wireSummary}`;
     logger.info('Audit complete:', auditText.slice(0, 80));
   } catch (err) {
     logger.error('Audit failed:', err);
-    // Non-fatal — don't surface audit failures to the user
+    // Non-fatal - don't surface audit failures to the user
   }
 }

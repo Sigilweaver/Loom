@@ -186,10 +186,10 @@ describe("getOperationsGroupedForDtype", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Math operations — toExpression
+// Math operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Math operations — toExpression", () => {
+describe("Math operations - toExpression", () => {
   const col = "amount";
 
   it("add with value", () => {
@@ -315,10 +315,10 @@ describe("Math operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Math operations — toColumnName
+// Math operations - toColumnName
 // ---------------------------------------------------------------------------
 
-describe("Math operations — toColumnName", () => {
+describe("Math operations - toColumnName", () => {
   it("multiply with value", () => {
     const op = OPERATIONS_BY_ID["multiply"]!;
     expect(op.toColumnName("price", { mode: "value", operand: "2" })).toBe("price_x_2");
@@ -347,10 +347,10 @@ describe("Math operations — toColumnName", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Text operations — toExpression
+// Text operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Text operations — toExpression", () => {
+describe("Text operations - toExpression", () => {
   const col = "name";
 
   it("uppercase", () => {
@@ -507,10 +507,10 @@ describe("Text operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Datetime operations — toExpression
+// Datetime operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Datetime operations — toExpression", () => {
+describe("Datetime operations - toExpression", () => {
   const col = "created_at";
 
   it("dt_year", () => {
@@ -583,10 +583,10 @@ describe("Datetime operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Type casting operations — toExpression
+// Type casting operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Type casting operations — toExpression", () => {
+describe("Type casting operations - toExpression", () => {
   it("cast to Float64", () => {
     expect(
       OPERATIONS_BY_ID["cast"]!.toExpression("x", { target_type: "Float64" })
@@ -619,10 +619,10 @@ describe("Type casting operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Null handling operations — toExpression
+// Null handling operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Null handling operations — toExpression", () => {
+describe("Null handling operations - toExpression", () => {
   it("fill_null_value with numeric", () => {
     expect(
       OPERATIONS_BY_ID["fill_null_value"]!.toExpression("x", { value: "0" })
@@ -683,10 +683,10 @@ describe("Null handling operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Conditional operations — toExpression
+// Conditional operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Conditional operations — toExpression", () => {
+describe("Conditional operations - toExpression", () => {
   it("if_then_else with numeric comparison", () => {
     const op = OPERATIONS_BY_ID["if_then_else"]!;
     const result = op.toExpression("", {
@@ -742,10 +742,10 @@ describe("Conditional operations — toExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Other operations — toExpression
+// Other operations - toExpression
 // ---------------------------------------------------------------------------
 
-describe("Other operations — toExpression", () => {
+describe("Other operations - toExpression", () => {
   it("row_number (no source column)", () => {
     const op = OPERATIONS_BY_ID["row_number"]!;
     expect(op.needsSourceColumn).toBe(false);

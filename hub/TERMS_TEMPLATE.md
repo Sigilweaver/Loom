@@ -6,7 +6,7 @@
 > Sigilweaver Loom Hub handles workflows that access production databases, process sensitive data,
 > and execute on schedules. Administrators configure grants for databases, file paths, credentials,
 > and cloud storage. The audit logs record everything. Without clear terms, you have no defined
-> relationship with your users — and no protection when things go wrong.
+> relationship with your users - and no protection when things go wrong.
 >
 > This template is a starting point, not a finished document. If you're running Hub just for
 > yourself, you don't need this.
@@ -130,7 +130,7 @@ By uploading content to the Service, you grant [Your Organization] a perpetual, 
 When you execute a workflow:
 - **Data flows through Hub** from source to destination but is not permanently stored
 - **Metadata is logged** including row counts, timing, and any errors
-- **Audit records are permanent** — we log that the execution happened, but not the data itself
+- **Audit records are permanent** - we log that the execution happened, but not the data itself
 
 ### 5.4 Database Credentials
 If you store database connection credentials:
@@ -150,7 +150,7 @@ The Service maintains detailed audit logs of all activity including:
 - Connection usage
 
 ### 6.2 Immutability
-**Audit logs cannot be deleted or modified.** This is a feature, not a bug — it provides tamper-evident records for security and compliance. By using the Service, you consent to this logging.
+**Audit logs cannot be deleted or modified.** This is a feature, not a bug - it provides tamper-evident records for security and compliance. By using the Service, you consent to this logging.
 
 ### 6.3 Access to Logs
 - Administrators and auditors can view logs
@@ -281,7 +281,7 @@ For questions about these Terms:
 | Topic | Summary |
 |-------|---------|
 | **What you can do** | Upload workflows, execute them, store connections, collaborate |
-| **What we log** | Everything — logins, actions, executions, errors (audit logs are permanent) |
+| **What we log** | Everything - logins, actions, executions, errors (audit logs are permanent) |
 | **Your data** | You own it; we store it to provide the service |
 | **Credentials** | Encrypted at rest; you're responsible for authorization |
 | **Liability** | Limited; service provided "as is" |

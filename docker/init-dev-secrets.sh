@@ -21,7 +21,7 @@ mkdir -p "$SECRETS_DIR"
 chmod 700 "$SECRETS_DIR"
 
 # Generate development secrets using /dev/urandom for proper entropy
-# (These are still for local dev only — but predictable secrets are a bad habit)
+# (These are still for local dev only - but predictable secrets are a bad habit)
 head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/session_secret"
 head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/secret_key"
 head -c 32 /dev/urandom | base64 | tr -d '\n' > "$SECRETS_DIR/server_registration_secret"

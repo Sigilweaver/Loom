@@ -154,7 +154,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
           result: (step.toolResults ?? []).find((tr) => tr.toolCallId === tc.toolCallId)?.output,
         }));
         // Push the completed step's segments (text then tool calls)
-        // Reset streaming text since it was for this step — next step starts fresh
+        // Reset streaming text since it was for this step - next step starts fresh
         useAIStore.getState().addStreamingStepSegments(step.text || '', stepToolCalls);
         useAIStore.getState().setStreamingText('');
       },
@@ -279,7 +279,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       if (activeTab === finishedTabId) {
         const next = useAIStore.getState().dequeuePrompt(finishedTabId);
         if (next) {
-          // Fire-and-forget — don't await to avoid recursive stack growth
+          // Fire-and-forget - don't await to avoid recursive stack growth
           void sendAgentMessage(next);
         }
       }
@@ -310,7 +310,7 @@ export function classifyError(message: string): ClassifiedError {
       || lower.includes('permission denied')) {
     return {
       category: 'auth',
-      displayMessage: 'Authentication failed — check your API key in Settings → AI.',
+      displayMessage: 'Authentication failed - check your API key in Settings → AI.',
       retryable: false,
     };
   }
@@ -320,7 +320,7 @@ export function classifyError(message: string): ClassifiedError {
       || lower.includes('quota exceeded')) {
     return {
       category: 'rate-limit',
-      displayMessage: 'Rate limited by provider — wait a moment and try again.',
+      displayMessage: 'Rate limited by provider - wait a moment and try again.',
       retryable: true,
     };
   }
@@ -330,7 +330,7 @@ export function classifyError(message: string): ClassifiedError {
       || lower.includes('temporarily unavailable')) {
     return {
       category: 'overloaded',
-      displayMessage: 'Provider temporarily overloaded — try again in a few seconds.',
+      displayMessage: 'Provider temporarily overloaded - try again in a few seconds.',
       retryable: true,
     };
   }
@@ -357,7 +357,7 @@ export function classifyError(message: string): ClassifiedError {
 
 /**
  * Generate a Polars expression using AI.
- * Lighter-weight than the full agent — no tool use, just prompt-in/expression-out.
+ * Lighter-weight than the full agent - no tool use, just prompt-in/expression-out.
  */
 export async function generateExpression(
   userRequest: string,
@@ -406,7 +406,7 @@ export interface BasicFilterResult {
 
 /**
  * Generate structured filter conditions from natural language (basic mode).
- * Returns JSON conditions — not raw Polars expressions.
+ * Returns JSON conditions - not raw Polars expressions.
  */
 export async function generateBasicFilter(
   userRequest: string,
@@ -481,7 +481,7 @@ export interface BasicFormulaOperation {
 
 /**
  * Generate structured formula operations from natural language (basic mode).
- * Returns JSON operation configs — not raw Polars expressions.
+ * Returns JSON operation configs - not raw Polars expressions.
  */
 export async function generateBasicFormula(
   userRequest: string,
@@ -610,7 +610,7 @@ export function buildMessageHistory(
 
 /**
  * Produce a compact summary of a tool result for message history.
- * Avoids sending raw output — extracts the key facts instead.
+ * Avoids sending raw output - extracts the key facts instead.
  *
  * Most tools now return `{ data: "compact text" }`. For those, we
  * extract the first line (or truncate) as the summary. Legacy JSON
@@ -624,7 +624,7 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
   // Error result
   if (r.error) return `error: ${truncateStr(String(r.error), 150)}`;
 
-  // Compact text format — used by preview, add_tool, build_workflow, profile
+  // Compact text format - used by preview, add_tool, build_workflow, profile
   if (typeof r.data === 'string') {
     // For message history, take just the first line as a summary
     const firstLine = (r.data as string).split('\n')[0] ?? '';

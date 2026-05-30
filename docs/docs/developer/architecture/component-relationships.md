@@ -1,6 +1,6 @@
 # Component Relationships
 
-This document outlines how Sigilweaver Loom's three main components—**Studio**, **Server**, and **Hub**—interact across different deployment scenarios.
+This document outlines how Sigilweaver Loom's three main components-**Studio**, **Server**, and **Hub**-interact across different deployment scenarios.
 
 ## Component Overview
 

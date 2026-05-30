@@ -9,7 +9,7 @@
  * - Support for LR and TB layout directions
  * - Grid snapping and selected-only layout mode
  *
- * The crossing minimization considers socket positions on tools — e.g., if
+ * The crossing minimization considers socket positions on tools - e.g., if
  * two inputs connect to a Join's left and right sockets, the one connected
  * to the left (top) socket is placed above the one connected to the right
  * (bottom) socket.  This follows the Sugiyama framework without external
@@ -42,8 +42,8 @@ export interface LayoutOptions {
 
   /**
    * Crossing reduction heuristic (default `'barycenter'`).
-   * - `'barycenter'`: averages neighbor positions — good general-purpose
-   * - `'median'`: uses median of neighbor positions — more robust to outliers
+   * - `'barycenter'`: averages neighbor positions - good general-purpose
+   * - `'median'`: uses median of neighbor positions - more robust to outliers
    */
   crossingReduction?: 'barycenter' | 'median';
 
@@ -68,7 +68,7 @@ export interface LayoutOptions {
    * - `'downstream'`: align each tool with its primary (first-socket)
    *    successor, keeping the main lineage straight
    * - `'balanced'`: upstream alignment as the base, then root nodes
-   *    are aligned with their primary successor — keeps interior
+   *    are aligned with their primary successor - keeps interior
    *    lineages straight while source nodes track their output
    */
   alignment?: 'upstream' | 'downstream' | 'balanced';
@@ -192,7 +192,7 @@ function medianValue(values: number[]): number {
  * `toolBelow`'s neighbors (or vice-versa for the next column).
  *
  * Because only a single adjacent pair is being evaluated, the relative
- * positions of all other tools in the column remain unchanged — so the
+ * positions of all other tools in the column remain unchanged - so the
  * crossing count from this pair comparison alone is sufficient to decide
  * whether the swap is beneficial.
  */
@@ -282,7 +282,7 @@ function crossingsForPair(
 }
 
 // -------------------------------------------------------------------
-// Phase 1 — Build adjacency
+// Phase 1 - Build adjacency
 // -------------------------------------------------------------------
 
 function buildAdjacency(
@@ -329,7 +329,7 @@ function buildAdjacency(
 }
 
 // -------------------------------------------------------------------
-// Phase 2 — Column assignment (Kahn's topological sort, longest path)
+// Phase 2 - Column assignment (Kahn's topological sort, longest path)
 // -------------------------------------------------------------------
 
 function assignColumns(
@@ -406,13 +406,13 @@ function assignColumns(
 }
 
 // -------------------------------------------------------------------
-// Phase 3 — Crossing minimization
+// Phase 3 - Crossing minimization
 // -------------------------------------------------------------------
 
 /**
  * Small additive tiebreaker per column of distance between source and
  * target.  Ensures that tools connecting to the same row in different
- * columns are ordered by proximity — closer connections first — which
+ * columns are ordered by proximity - closer connections first - which
  * prevents long-edge crossings that the adjacent-column heuristic
  * cannot detect.
  *
@@ -521,7 +521,7 @@ function doAdjacentExchange(
       );
 
       if (crossAfter >= crossBefore) {
-        // Revert — swap didn't improve
+        // Revert - swap didn't improve
         colTools[i] = a;
         colTools[i + 1] = b;
         rowOf.set(a, i);
@@ -573,7 +573,7 @@ function minimizeCrossings(
   let prevSnapshot = '';
 
   for (let pass = 0; pass < maxSweepPasses; pass++) {
-    // Forward sweep — order each column based on predecessors
+    // Forward sweep - order each column based on predecessors
     for (let ci = 1; ci < sortedCols.length; ci++) {
       const col = sortedCols[ci]!;
       const colTools = columns.get(col)!;
@@ -617,7 +617,7 @@ function minimizeCrossings(
       }
     }
 
-    // Backward sweep — order each column based on successors
+    // Backward sweep - order each column based on successors
     for (let ci = sortedCols.length - 2; ci >= 0; ci--) {
       const col = sortedCols[ci]!;
       const colTools = columns.get(col)!;
@@ -659,7 +659,7 @@ function minimizeCrossings(
       }
     }
 
-    // Check for convergence — stop early if ordering didn't change
+    // Check for convergence - stop early if ordering didn't change
     const snapshot = snapshotOrder();
     if (snapshot === prevSnapshot) break;
     prevSnapshot = snapshot;
@@ -669,7 +669,7 @@ function minimizeCrossings(
 }
 
 // -------------------------------------------------------------------
-// Phase 4 — Coordinate assignment
+// Phase 4 - Coordinate assignment
 // -------------------------------------------------------------------
 
 /**
@@ -720,12 +720,12 @@ function assignUpstreamY(
       }
 
       // Align with the predecessor connected to the primary (first)
-      // input socket — keeps the main lineage straight.
+      // input socket - keeps the main lineage straight.
       predPositions.sort((a, b) => a.frac - b.frac);
       return predPositions[0]!.y;
     });
 
-    // Resolve collisions — maintain crossing-minimization order
+    // Resolve collisions - maintain crossing-minimization order
     for (let i = 1; i < idealYs.length; i++) {
       if (idealYs[i]! < idealYs[i - 1]! + opts.verticalSpacing) {
         idealYs[i] = idealYs[i - 1]! + opts.verticalSpacing;
@@ -787,12 +787,12 @@ function assignDownstreamY(
       }
 
       // Align with the successor connected to the primary (first)
-      // output socket — keeps the main lineage straight.
+      // output socket - keeps the main lineage straight.
       succPositions.sort((a, b) => a.frac - b.frac);
       return succPositions[0]!.y;
     });
 
-    // Resolve collisions — maintain crossing-minimization order
+    // Resolve collisions - maintain crossing-minimization order
     for (let i = 1; i < idealYs.length; i++) {
       if (idealYs[i]! < idealYs[i - 1]! + opts.verticalSpacing) {
         idealYs[i] = idealYs[i - 1]! + opts.verticalSpacing;
@@ -825,7 +825,7 @@ function assignBalancedY(
   toolMap: Map<string, Tool>,
   opts: ResolvedOptions,
 ): Map<string, number> {
-  // Start from upstream alignment — keeps lineages straight
+  // Start from upstream alignment - keeps lineages straight
   const finalY = assignUpstreamY(columns, sortedCols, incoming, rowOf, toolMap, opts);
 
   // Adjust root nodes: align them with their primary successor
@@ -837,10 +837,10 @@ function assignBalancedY(
 
     for (const id of colTools) {
       const inEdges = incoming.get(id);
-      if (inEdges && inEdges.length > 0) continue; // has predecessors — skip
+      if (inEdges && inEdges.length > 0) continue; // has predecessors - skip
 
       const outEdges = outgoing.get(id);
-      if (!outEdges || outEdges.length === 0) continue; // isolated — skip
+      if (!outEdges || outEdges.length === 0) continue; // isolated - skip
 
       // Find primary successor Y
       const tool = toolMap.get(id);
@@ -909,7 +909,7 @@ function assignCoordinates(
     );
   }
 
-  // Compaction — close large vertical gaps within each column
+  // Compaction - close large vertical gaps within each column
   if (opts.compaction) {
     for (const col of sortedCols) {
       const colTools = columns.get(col)!;
@@ -965,7 +965,7 @@ function applyGridSnap(
     if (!byX.has(pos.x)) byX.set(pos.x, []);
     byX.get(pos.x)!.push(pos);
   }
-  // Minimum post-snap spacing — the nearest grid multiple ≥ verticalSpacing
+  // Minimum post-snap spacing - the nearest grid multiple ≥ verticalSpacing
   const minGap = Math.max(gridSnap, Math.ceil(verticalSpacing / gridSnap) * gridSnap);
   for (const group of byX.values()) {
     group.sort((a, b) => a.y - b.y);
@@ -1023,7 +1023,7 @@ export function autoLayout(
     };
   }
 
-  // Selected-only mode — layout a subgraph anchored at its bounding box
+  // Selected-only mode - layout a subgraph anchored at its bounding box
   let layoutTools = tools;
   let layoutWires = wires;
   if (options.selectedToolIds && options.selectedToolIds.length > 0) {
@@ -1048,13 +1048,13 @@ export function autoLayout(
   const toolIds = new Set(layoutTools.map((t) => t.id));
   const toolMap = new Map(layoutTools.map((t) => [t.id, t]));
 
-  // Phase 1 — adjacency
+  // Phase 1 - adjacency
   const { outgoing, incoming, inDegree, connectedTools } = buildAdjacency(
     toolIds,
     layoutWires,
   );
 
-  // Phase 2 — column assignment
+  // Phase 2 - column assignment
   const { columns, depth, sortedCols } = assignColumns(
     layoutTools,
     toolIds,
@@ -1063,7 +1063,7 @@ export function autoLayout(
     connectedTools,
   );
 
-  // Phase 3 — crossing minimization
+  // Phase 3 - crossing minimization
   const rowOf = minimizeCrossings(
     columns,
     sortedCols,
@@ -1074,7 +1074,7 @@ export function autoLayout(
     opts,
   );
 
-  // Phase 4 — coordinate assignment
+  // Phase 4 - coordinate assignment
   const positions = assignCoordinates(
     columns,
     sortedCols,

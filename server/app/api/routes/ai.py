@@ -99,7 +99,7 @@ def _validate_upstream_url(url: str) -> None:
     try:
         addr = ipaddress.ip_address(hostname)
     except ValueError:
-        # Not an IP literal — could be a DNS name.
+        # Not an IP literal - could be a DNS name.
         # We allow DNS names for known providers; openai-compatible
         # users are trusted to provide valid external URLs.
         return
@@ -286,7 +286,7 @@ async def proxy_llm_request(
 
     # Use a long-lived client for the streaming response.
     # We CANNOT use `async with` for the client here because the
-    # StreamingResponse sends chunks lazily — the client must stay open
+    # StreamingResponse sends chunks lazily - the client must stay open
     # past the lifetime of this coroutine.
     client = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0),
@@ -342,7 +342,7 @@ async def proxy_llm_request(
             media_type=content_type,
         )
     else:
-        # Non-streaming response — read fully and return
+        # Non-streaming response - read fully and return
         content = await upstream_resp.aread()
         await upstream_resp.aclose()
         await client.aclose()

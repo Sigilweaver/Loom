@@ -332,7 +332,7 @@ class OutputTool(BaseTool):
     async def _save_yxdb(self, lf: pl.LazyFrame, config: dict[str, Any]) -> None:
         """Save to YXDB format using OpenYXDB.
 
-        YXDB is always an eager write — the format requires knowing
+        YXDB is always an eager write - the format requires knowing
         record count upfront and uses row-based LZF-compressed blocks.
         """
         import sigilyx

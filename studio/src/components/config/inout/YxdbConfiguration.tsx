@@ -55,7 +55,7 @@ export const YxdbConfiguration: React.FC<YxdbConfigurationProps> = ({
         <div className="space-y-3">
           <div>
             <p className="text-xs text-theme-text-tertiary">
-              Read Alteryx YXDB files using OpenYXDB — a high-performance Rust
+              Read Alteryx YXDB files using OpenYXDB - a high-performance Rust
               reader. All 17 YXDB field types are supported.
             </p>
           </div>

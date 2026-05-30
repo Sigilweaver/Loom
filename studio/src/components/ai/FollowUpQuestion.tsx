@@ -177,7 +177,7 @@ const FollowUpQuestion: React.FC<FollowUpQuestionProps> = ({
         </div>
       )}
 
-      {/* Custom input — always shown */}
+      {/* Custom input - always shown */}
       <div className="px-4 pb-3 pt-1">
         {options.length > 0 && (
           <div className="text-[11px] text-theme-text-tertiary mb-1.5">

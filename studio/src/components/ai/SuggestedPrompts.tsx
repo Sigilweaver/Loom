@@ -76,7 +76,7 @@ const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({ onSelect }) => {
               <span className="text-theme-interactive-accent mt-0.5">-</span>
               <div>
                 <span className="font-medium text-theme-text-primary">{cap.label}</span>
-                <span className="text-theme-text-tertiary"> — {cap.description}</span>
+                <span className="text-theme-text-tertiary"> - {cap.description}</span>
               </div>
             </div>
           ))}

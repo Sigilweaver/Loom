@@ -5,7 +5,7 @@
  * YXDB is a row-based binary format with LZF compression.
  *
  * Unlike columnar formats (Parquet, IPC), YXDB does not support
- * lazy scanning — all reads are eager. This means there is no
+ * lazy scanning - all reads are eager. This means there is no
  * mode selection (scan vs read).
  *
  * Not affiliated with Alteryx, Inc.
@@ -15,7 +15,7 @@
  */
 
 /**
- * YXDB configuration — minimal since the format has no tuning knobs.
+ * YXDB configuration - minimal since the format has no tuning knobs.
  */
 export interface PolarsYxdbInputConfig {
   // === File Path ===

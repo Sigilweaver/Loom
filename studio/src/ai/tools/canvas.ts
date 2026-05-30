@@ -23,7 +23,7 @@ import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow'
 const logger = createLogger('AI:CanvasTools');
 
 // ---------------------------------------------------------------------------
-// Canvas write guard — prevents agent from modifying the wrong tab's canvas
+// Canvas write guard - prevents agent from modifying the wrong tab's canvas
 // ---------------------------------------------------------------------------
 
 /**
@@ -273,7 +273,7 @@ function enrichSummarizeConfig(
     std: 'Std', var: 'Var', count: 'Count', countdistinct: 'CountDistinct',
     count_distinct: 'CountDistinct', first: 'First', last: 'Last',
     concat: 'Concat',
-    // Already correct PascalCase — pass through
+    // Already correct PascalCase - pass through
     Sum: 'Sum', Mean: 'Mean', Median: 'Median', Min: 'Min', Max: 'Max',
     Std: 'Std', Var: 'Var', Count: 'Count', CountDistinct: 'CountDistinct',
     First: 'First', Last: 'Last', Concat: 'Concat',
@@ -367,7 +367,7 @@ function resolveBasicFormulaOperation(op: Record<string, unknown>): Record<strin
 
   const opDef = OPERATIONS_BY_ID[operationId];
   if (!opDef) {
-    // Unknown operation — fall back to raw expression if provided
+    // Unknown operation - fall back to raw expression if provided
     logger.warn(`Unknown formula operation: "${operationId}", falling back to raw mode`);
     return {
       column_name: columnName || 'new_column',
@@ -402,7 +402,7 @@ function resolveBasicFormulaOperation(op: Record<string, unknown>): Record<strin
 }
 
 /**
- * Enrich Formula config — normalize the various shapes the agent might produce
+ * Enrich Formula config - normalize the various shapes the agent might produce
  * into the canonical `operations` array format.
  *
  * The agent may send:
@@ -435,7 +435,7 @@ function enrichFormulaConfig(config: Record<string, unknown>): Record<string, un
       if (op.operationId && typeof op.operationId === 'string') {
         return resolveBasicFormulaOperation(op);
       }
-      // Raw expression format — normalize field names
+      // Raw expression format - normalize field names
       return {
         column_name: op.column_name ?? op.columnName ?? op.column ?? op.name ?? 'new_column',
         expression: op.expression ?? '',
@@ -465,7 +465,7 @@ function enrichFormulaConfig(config: Record<string, unknown>): Record<string, un
 }
 
 /**
- * Enrich Join config — validate that leftKeys and rightKeys are properly set.
+ * Enrich Join config - validate that leftKeys and rightKeys are properly set.
  * If they're present but empty, remove them so the UI shows unconfigured state
  * instead of silently producing a cross join.
  */
@@ -517,7 +517,7 @@ export const addTool = tool({
     type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique"). Note: Aggregate is type "Summarize", Concatenate is type "Union", Read is type "Input", Write is type "Output", Schema is type "Select", Calculate is type "Formula".'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
     comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this tool does in the pipeline. Every tool must have a comment (e.g. "Load raw sales data", "Keep only active customers", "Calculate profit margin per product"). Comments help users understand the workflow.'),
-    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID — not to another Aggregate.'),
+    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID - not to another Aggregate.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
@@ -539,7 +539,7 @@ export const addTool = tool({
     const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
     const resolvedComment = comment || generateComment(def.type, finalConfig) || undefined;
 
-    // Temporary position — auto-layout will fix it
+    // Temporary position - auto-layout will fix it
     const newTool: Tool = {
       id: generateUniqueId(existingIds),
       type: def.type,
@@ -561,10 +561,10 @@ export const addTool = tool({
         return { data: formatAddToolResult(newTool.id, newTool.type, false, undefined, `Could not connect: source tool "${after}" not found. Available: ${available}`) };
       }
 
-      // Resolve output socket on source — default to first output
+      // Resolve output socket on source - default to first output
       const outputSocket = fromSocket
         ?? sourceTool.sockets.find((s) => s.direction === 'output')?.id;
-      // Resolve input socket on new tool — default to first input
+      // Resolve input socket on new tool - default to first input
       const inputSocket = toSocket
         ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
 
@@ -615,7 +615,7 @@ export const addTool = tool({
  * Update an existing tool's configuration.
  */
 export const updateTool = tool({
-  description: 'Update a tool\'s configuration and/or comment. For Join: always set leftKeys and rightKeys — empty keys produce a cross join.',
+  description: 'Update a tool\'s configuration and/or comment. For Join: always set leftKeys and rightKeys - empty keys produce a cross join.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to update.'),
     config: z.record(z.string(), z.unknown()).optional().describe('New configuration values to merge with existing config.'),
@@ -822,7 +822,7 @@ export const disconnectTools = tool({
 });
 
 // ---------------------------------------------------------------------------
-// Batch canvas operations — transactional multi-step mutations
+// Batch canvas operations - transactional multi-step mutations
 // ---------------------------------------------------------------------------
 
 /**

@@ -2,7 +2,7 @@
  * Filter Assist Component
  *
  * AI helper for basic-mode Filter configuration.
- * Generates structured conditions from natural language — no raw expressions.
+ * Generates structured conditions from natural language - no raw expressions.
  * Feeds directly into the FilterExpressionBuilder via onConditionsGenerated.
  */
 
@@ -14,7 +14,7 @@ import { Sparkles, Send, Loader2, X } from 'lucide-react';
 interface FilterAssistProps {
   /** Current columns available */
   columns: Array<{ name: string; dtype: string; nullable?: boolean }>;
-  /** Callback with generated conditions — consumer builds a FilterGroup from these */
+  /** Callback with generated conditions - consumer builds a FilterGroup from these */
   onConditionsGenerated: (result: BasicFilterResult) => void;
 }
 
@@ -67,7 +67,7 @@ const FilterAssist: React.FC<FilterAssistProps> = ({
           border border-theme-border-primary bg-theme-surface-page
           hover:bg-theme-surface-hover hover:border-theme-interactive-accent
           transition-colors text-theme-text-secondary"
-        title="AI filter helper — describe what to filter"
+        title="AI filter helper - describe what to filter"
       >
         <Sparkles className="w-3 h-3" />
         AI Assist

@@ -817,7 +817,7 @@ const SettingsPane: React.FC = () => {
                 ))}
               </div>
               <p className="mt-1 text-xs text-theme-text-tertiary">
-                {layout.alignment === 'upstream' && 'Align tools with their inputs — keeps linear chains straight'}
+                {layout.alignment === 'upstream' && 'Align tools with their inputs - keeps linear chains straight'}
                 {layout.alignment === 'balanced' && 'Center tools between inputs and outputs'}
                 {layout.alignment === 'downstream' && 'Align tools with their outputs'}
               </p>

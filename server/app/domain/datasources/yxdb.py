@@ -15,7 +15,7 @@ from app.utils.security import validate_file_path
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 # Mapping from YXDB field types (as reported by sigilyx.read_schema) to PolarsDataType.
-# This allows inspect() to derive the schema from metadata alone — no data read needed.
+# This allows inspect() to derive the schema from metadata alone - no data read needed.
 _YXDB_TYPE_MAP: dict[str, PolarsDataType] = {
     "Bool": PolarsDataType.BOOLEAN,
     "Byte": PolarsDataType.INT16,
@@ -89,7 +89,7 @@ class YxdbDataSource(DataSource):
         file_path = validate_file_path(source)
 
         try:
-            # YXDB is row-based with LZF compression — partial reads require
+            # YXDB is row-based with LZF compression - partial reads require
             # sequential decompression, so the full file is read and sliced.
             df = sigilyx.read_yxdb(str(file_path))
 

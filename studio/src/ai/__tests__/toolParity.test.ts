@@ -7,7 +7,7 @@
  *
  * Strategy: Read the source files at test time and extract object keys via
  * regex. This avoids importing the modules (which pull in heavy AI SDK deps)
- * while still catching real drift automatically — no hardcoded canonical list
+ * while still catching real drift automatically - no hardcoded canonical list
  * that a developer could forget to update.
  */
 
@@ -81,7 +81,7 @@ describe('tool-registry parity', () => {
   });
 
   it('summarizeToolResult should handle every registered tool', async () => {
-    // Dynamic import — only loads the summarize function
+    // Dynamic import - only loads the summarize function
     const { summarizeToolResult } = await import('../agent');
     for (const tool of agentToolKeys) {
       const result = summarizeToolResult(tool, { success: true });

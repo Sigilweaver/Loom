@@ -21,7 +21,7 @@ Sigilweaver Loom is more than a workflow designer - it's a complete data pipelin
 
 Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver Loom meets you where you are.
 
-Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation — without limiting what experienced users can do.
+Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation - without limiting what experienced users can do.
 
 No artificial limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
@@ -45,7 +45,7 @@ See your entire pipeline at a glance - branches, joins, transformations laid out
 
 ### No-Code Where You Want It
 
-Formula and Filter tools include visual builders: 50+ built-in operations covering math, text, dates, type conversion, null handling, and conditional logic — all configured through dropdowns with no expression syntax required. Add multiple conditions with AND/OR logic and nested groups in the Filter builder. Need something beyond the built-ins? Switch to Custom mode and write Polars directly. Both modes coexist in the same tool.
+Formula and Filter tools include visual builders: 50+ built-in operations covering math, text, dates, type conversion, null handling, and conditional logic - all configured through dropdowns with no expression syntax required. Add multiple conditions with AND/OR logic and nested groups in the Filter builder. Need something beyond the built-ins? Switch to Custom mode and write Polars directly. Both modes coexist in the same tool.
 
 ### Optional AI, On Your Terms
 

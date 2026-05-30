@@ -334,7 +334,7 @@ export function groupToLegacy(group: FilterGroup): {
       combinator: group.combinator,
     };
   }
-  // For nested groups, we can't flatten — store conditions as empty and rely on conditionGroup
+  // For nested groups, we can't flatten - store conditions as empty and rely on conditionGroup
   return { conditions: [], combinator: group.combinator };
 }
 
@@ -794,7 +794,7 @@ function ConditionGroup({
         )}
       </div>
 
-      {/* Add buttons — only when there are already children (empty state has its own CTA) */}
+      {/* Add buttons - only when there are already children (empty state has its own CTA) */}
       {group.children.length > 0 && (
         <div className="flex items-center gap-3 px-2.5 pb-2 pt-1">
           <button

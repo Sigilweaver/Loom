@@ -55,7 +55,7 @@ def resolve_column_name(
         )
         return corrected
 
-    # Multiple matches (unlikely) or no match — return original and let Polars error
+    # Multiple matches (unlikely) or no match - return original and let Polars error
     return requested
 
 
@@ -78,7 +78,7 @@ def resolve_column_names(
     return [resolve_column_name(r, available, context=context) for r in requested]
 
 
-# Matches pl.col("name") or pl.col('name') — captures the quote char and column name
+# Matches pl.col("name") or pl.col('name') - captures the quote char and column name
 _PL_COL_PATTERN = re.compile(r"""pl\.col\((['"])(.*?)\1\)""")
 
 
@@ -126,6 +126,6 @@ def resolve_expression_columns(
             )
             return f"pl.col({quote}{corrected}{quote})"
 
-        return match.group(0)  # no match or ambiguous — leave as-is
+        return match.group(0)  # no match or ambiguous - leave as-is
 
     return _PL_COL_PATTERN.sub(_replace, expression)

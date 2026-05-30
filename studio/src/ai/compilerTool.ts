@@ -70,7 +70,7 @@ export const buildWorkflowTool = tool({
     }
 
     // Proactively fetch a data profile for the first Read tool so the agent
-    // immediately understands the dataset — column types, ranges, nulls,
+    // immediately understands the dataset - column types, ranges, nulls,
     // unique counts, and top values for string columns.
     let inputProfile: string | undefined;
     const firstInput = result.tools.find((t) => t.type === 'Input');
@@ -101,7 +101,7 @@ export const buildWorkflowTool = tool({
           }));
           inputProfile = formatCompactProfile(profileResult.row_count, profileResult.column_count, profileCols);
         } catch {
-          // Profile failed — fall back to schema only
+          // Profile failed - fall back to schema only
           const schemaResult = await getToolSchema(firstInput.id, workflow, socket);
           const cols = schemaResult.data_schema?.columns;
           if (cols) {
@@ -109,7 +109,7 @@ export const buildWorkflowTool = tool({
           }
         }
       } catch (err) {
-        // Non-fatal — agent can still call get_column_metadata or profile_tool_data manually
+        // Non-fatal - agent can still call get_column_metadata or profile_tool_data manually
         logger.warn('Failed to fetch input profile for build_workflow', err);
       }
     }

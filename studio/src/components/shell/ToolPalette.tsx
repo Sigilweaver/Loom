@@ -230,7 +230,7 @@ export default function ToolPalette() {
                               backgroundColor: "var(--color-surface-elevated)",
                               borderColor: toolColor,
                             }}
-                            title={tool.blocking && showBlockingIndicators ? `${tool.name} (blocking operation — breaks lazy evaluation)` : tool.name}
+                            title={tool.blocking && showBlockingIndicators ? `${tool.name} (blocking operation - breaks lazy evaluation)` : tool.name}
                           >
                             {tool.name}
                           </div>

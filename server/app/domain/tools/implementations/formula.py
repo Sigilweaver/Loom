@@ -153,7 +153,7 @@ class FormulaTool(BaseTool):
     """
     Add or replace calculated columns using Polars expressions.
 
-    Supports multiple operations in a single node — each operation is
+    Supports multiple operations in a single node - each operation is
     applied sequentially so later operations can reference columns
     created by earlier ones.
 

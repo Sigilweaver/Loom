@@ -52,7 +52,7 @@ class YxdbLoader(FileLoader):
             raise ToolError(f"Failed to read YXDB file: {e!s}") from e
 
     def build_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
-        """YXDB has no additional kwargs — OpenYXDB handles everything."""
+        """YXDB has no additional kwargs - OpenYXDB handles everything."""
         return {}
 
     def to_python_code(
@@ -78,7 +78,7 @@ class YxdbLoader(FileLoader):
         n_rows = config.get("n_rows")
         columns = config.get("columns")
 
-        # scan_yxdb returns a LazyFrame directly — no .lazy() needed
+        # scan_yxdb returns a LazyFrame directly - no .lazy() needed
         lines.append(f'{var_name} = sigilyx.scan_yxdb("{escaped_path}")')
 
         if n_rows is not None:

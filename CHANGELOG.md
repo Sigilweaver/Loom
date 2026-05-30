@@ -9,25 +9,25 @@ v0.11.0, entries are maintained alongside each release.
 
 ### Security
 
-- **Expression sandbox hardening (C1)** — Added AST validation before `eval()` in the expression engine to block sandbox escapes (e.g., `__import__`, attribute access to builtins)
-- **Reject default secrets at startup (S1/HUB-1)** — Hub validates `SESSION_SECRET` and `SECRET_KEY` are not `CHANGE_ME_IN_PRODUCTION`; fatal in production (`ENVIRONMENT=production`), warning in development
-- **Constant-time secret comparison (C6)** — Server registration endpoint uses `secrets.compare_digest` instead of `==` to prevent timing attacks
-- **SSRF protection in AI proxy (C3/C4)** — Block requests to private/reserved IP ranges and use a header allowlist instead of forwarding all headers
-- **DDL/DML rejection in database datasource (C2)** — Queries containing `DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `CREATE`, `TRUNCATE`, or `GRANT` are rejected before execution
-- **Database URL password via Docker secrets (INF-1)** — `docker-compose.yml` uses `DATABASE_URL_TEMPLATE` with `__PASSWORD__` placeholder + `DATABASE_PASSWORD_FILE` to keep passwords out of `docker inspect`
-- **Cryptographic entropy for dev secrets (INF-2)** — `init-dev-secrets.sh` uses `/dev/urandom` via `openssl rand` instead of timestamp-based values
-- **Empty registration secret warning (S5/HUB-4)** — Hub logs a warning at startup when `SERVER_REGISTRATION_SECRET` is empty
+- **Expression sandbox hardening (C1)** - Added AST validation before `eval()` in the expression engine to block sandbox escapes (e.g., `__import__`, attribute access to builtins)
+- **Reject default secrets at startup (S1/HUB-1)** - Hub validates `SESSION_SECRET` and `SECRET_KEY` are not `CHANGE_ME_IN_PRODUCTION`; fatal in production (`ENVIRONMENT=production`), warning in development
+- **Constant-time secret comparison (C6)** - Server registration endpoint uses `secrets.compare_digest` instead of `==` to prevent timing attacks
+- **SSRF protection in AI proxy (C3/C4)** - Block requests to private/reserved IP ranges and use a header allowlist instead of forwarding all headers
+- **DDL/DML rejection in database datasource (C2)** - Queries containing `DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `CREATE`, `TRUNCATE`, or `GRANT` are rejected before execution
+- **Database URL password via Docker secrets (INF-1)** - `docker-compose.yml` uses `DATABASE_URL_TEMPLATE` with `__PASSWORD__` placeholder + `DATABASE_PASSWORD_FILE` to keep passwords out of `docker inspect`
+- **Cryptographic entropy for dev secrets (INF-2)** - `init-dev-secrets.sh` uses `/dev/urandom` via `openssl rand` instead of timestamp-based values
+- **Empty registration secret warning (S5/HUB-4)** - Hub logs a warning at startup when `SERVER_REGISTRATION_SECRET` is empty
 
 ### Fixed
 
-- **Parallel executor race condition (SRV-3)** — Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
-- **Ruff lint violations (SRV-5/SRV-6)** — Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
-- **Dev startup crash with default secrets** — Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
+- **Parallel executor race condition (SRV-3)** - Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
+- **Ruff lint violations (SRV-5/SRV-6)** - Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
+- **Dev startup crash with default secrets** - Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
 
 ### Changed
 
-- **Pin PostgreSQL image (INF-4)** — Docker Compose now uses `postgres:16.8-alpine3.21` instead of `postgres:16-alpine` to prevent surprise upgrades
-- **New `ENVIRONMENT` config setting** — Defaults to `development`; set to `production` in `docker-compose.yml` to enforce strict secret validation
+- **Pin PostgreSQL image (INF-4)** - Docker Compose now uses `postgres:16.8-alpine3.21` instead of `postgres:16-alpine` to prevent surprise upgrades
+- **New `ENVIRONMENT` config setting** - Defaults to `development`; set to `production` in `docker-compose.yml` to enforce strict secret validation
 
 ### Documentation
 
@@ -40,11 +40,11 @@ v0.11.0, entries are maintained alongside each release.
 ## [v0.11.3] - 2026-03-08
 
 ### Fixed
-- Primary download button on website not triggering download — smooth-scroll handler attached at page load called `preventDefault()` even after the hero button's `href` was updated from `#downloads-grid` to the actual download URL
-- Bundled backend not launching in desktop builds — `require("fs")` call in ESM-bundled Electron main process silently failed, preventing server binary detection
-- Server crash on first request in packaged builds (AppImage, NSIS) due to read-only filesystem — data paths (archive, audit, cache, connections) now use writable `userData` directory via environment variables
+- Primary download button on website not triggering download - smooth-scroll handler attached at page load called `preventDefault()` even after the hero button's `href` was updated from `#downloads-grid` to the actual download URL
+- Bundled backend not launching in desktop builds - `require("fs")` call in ESM-bundled Electron main process silently failed, preventing server binary detection
+- Server crash on first request in packaged builds (AppImage, NSIS) due to read-only filesystem - data paths (archive, audit, cache, connections) now use writable `userData` directory via environment variables
 - Missing `cwd` in server `spawn()` call caused working directory mismatch in production
-- Backend process early exit not rejecting startup promise — added settled flag pattern so crashes are reported immediately instead of waiting for health check timeout
+- Backend process early exit not rejecting startup promise - added settled flag pattern so crashes are reported immediately instead of waiting for health check timeout
 
 ### Changed
 - Comprehensive startup logging in Electron main process (version, platform, arch, paths, backend lifecycle events)

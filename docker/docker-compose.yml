@@ -98,10 +98,10 @@ services:
       - server_registration_secret
       - postgres_password
     environment:
-      # Runtime mode — enforces secret validation at startup
+      # Runtime mode - enforces secret validation at startup
       ENVIRONMENT: production
 
-      # Database — password read from secret file at runtime by entrypoint
+      # Database - password read from secret file at runtime by entrypoint
       DATABASE_URL_TEMPLATE: postgresql+asyncpg://${POSTGRES_USER:-sigilweaver_loom}:__PASSWORD__@postgres:5432/${POSTGRES_DB:-sigilweaver_loom_hub}
       DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
 

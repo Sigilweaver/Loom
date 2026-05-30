@@ -57,7 +57,7 @@ function buildFormulaEmit(config: ToolConfig): EmissionMap {
     delete emit.operations;
   }
 
-  // Legacy fields — always emit if present for backward compat
+  // Legacy fields - always emit if present for backward compat
   const expression = (config.expression as string) ?? "";
   const columnName = (config.column_name as string) ?? "";
   if (expression) emit.expression = true;
@@ -319,7 +319,7 @@ export function FormulaConfiguration({
   // Build a concise operation catalog string for the AI prompt
   const operationCatalog = useMemo(() => {
     return ALL_OPERATIONS.map(
-      (op) => `${op.id}: ${op.label} (${op.category})${op.params?.length ? ` — params: ${op.params.map((p) => p.key).join(', ')}` : ''}`
+      (op) => `${op.id}: ${op.label} (${op.category})${op.params?.length ? ` - params: ${op.params.map((p) => p.key).join(', ')}` : ''}`
     ).join('\n');
   }, []);
 
