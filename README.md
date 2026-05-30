@@ -49,11 +49,7 @@ Formula and Filter tools include visual builders: 50+ built-in operations coveri
 
 ### Optional AI, On Your Terms
 
-An AI assistant in Studio can build entire workflows from natural language, write Polars expressions, explain existing pipelines, and inspect data at any step. It's opt-in — the application is fully functional without it. When enabled, AI calls are proxied through your own Server, no data is stored or logged, and local models via Ollama or LM Studio are fully supported.
-
-### Bring Your Existing Work With You
-
-Sigilweaver Loom reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [OpenYXDB](OpenYXDB/README.md), a high-performance Rust library for the YXDB format.
+An AI assistant in Studio can build entire workflows from natural language, write Polars expressions, explain existing pipelines, and inspect data at any step. It's opt-in - the application is fully functional without it. When enabled, AI calls are proxied through your own Server, no data is stored or logged, and local models via Ollama or LM Studio are fully supported.
 
 ## Our Philosophy
 
@@ -74,7 +70,6 @@ Production grade means "it works when you need it." That's a promise we make to 
 | **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Electron/Tauri) |
 | **Server**  | Execution engine that runs workflows (FastAPI + Polars)                                   |
 | **Hub**     | Orchestration platform for teams and automation (Full stack)                              |
-| **OpenYXDB** | Native `.yxdb` read/write engine (Rust)                        |
 
 Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
 

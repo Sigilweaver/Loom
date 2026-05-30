@@ -61,7 +61,7 @@ function renderCoreSitemap(entries) {
 }
 
 function renderSitemapIndex(lastmod) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${domain}/sitemap-core.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/docs/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/openyxdb/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${domain}/sitemap-core.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/docs/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
 }
 
 function main() {
