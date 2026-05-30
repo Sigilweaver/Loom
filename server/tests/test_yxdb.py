@@ -4,7 +4,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-import openyxdb
+import sigilyx
 
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.datasources.yxdb import YxdbDataSource
@@ -42,7 +42,7 @@ def sample_yxdb(tmp_path: Path) -> Path:
         }
     )
 
-    openyxdb.write_yxdb(str(yxdb_path), df)
+    sigilyx.write_yxdb(str(yxdb_path), df)
     return yxdb_path
 
 
@@ -326,7 +326,7 @@ class TestYxdbOutputTool:
 
         # Verify output
         assert output_path.exists()
-        result = openyxdb.read_yxdb(str(output_path))
+        result = sigilyx.read_yxdb(str(output_path))
         assert len(result) == 5
         assert result["name"][0] == "Alice"
 
@@ -345,7 +345,7 @@ class TestYxdbOutputTool:
         )
 
         assert output_path.exists()
-        result = openyxdb.read_yxdb(str(output_path))
+        result = sigilyx.read_yxdb(str(output_path))
         assert len(result) == 5
 
     @pytest.mark.asyncio
@@ -366,8 +366,8 @@ class TestYxdbOutputTool:
         )
 
         # Read back and compare
-        original = openyxdb.read_yxdb(str(titanic_yxdb))
-        copy = openyxdb.read_yxdb(str(output_path))
+        original = sigilyx.read_yxdb(str(titanic_yxdb))
+        copy = sigilyx.read_yxdb(str(output_path))
 
         assert original.shape == copy.shape
         assert original.columns == copy.columns
@@ -431,7 +431,7 @@ class TestYxdbCrossFormat:
         )
 
         # Verify
-        result = openyxdb.read_yxdb(str(yxdb_path))
+        result = sigilyx.read_yxdb(str(yxdb_path))
         assert result.shape == (891, 12)
         assert "PassengerId" in result.columns
 
@@ -478,7 +478,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import openyxdb" in code
+        assert "import sigilyx" in code
         assert "scan_yxdb" in code
         assert "/data/input.yxdb" in code
         assert "output" in output_vars
@@ -491,7 +491,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import openyxdb" in code
+        assert "import sigilyx" in code
         assert "scan_yxdb" in code
         assert ".head(100)" in code
 
@@ -507,7 +507,7 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("input_1", config, {})
 
         code = "\n".join(lines)
-        assert "import openyxdb" in code
+        assert "import sigilyx" in code
         assert ".select(" in code
         assert '"name"' in code
         assert '"age"' in code
@@ -520,6 +520,6 @@ class TestYxdbCodeGeneration:
         lines, output_vars = tool.to_python_code("output_1", config, {"input": "df"})
 
         code = "\n".join(lines)
-        assert "import openyxdb" in code
+        assert "import sigilyx" in code
         assert "sink_yxdb" in code
         assert "/data/output.yxdb" in code

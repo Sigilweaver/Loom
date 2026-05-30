@@ -335,7 +335,7 @@ class OutputTool(BaseTool):
         YXDB is always an eager write — the format requires knowing
         record count upfront and uses row-based LZF-compressed blocks.
         """
-        import openyxdb
+        import sigilyx
 
         destination = config.get("destination")
         if not destination:
@@ -350,7 +350,7 @@ class OutputTool(BaseTool):
 
         try:
             # sink_yxdb collects the LazyFrame and writes to YXDB in one call
-            openyxdb.sink_yxdb(str(dest_path), lf)
+            sigilyx.sink_yxdb(str(dest_path), lf)
         except Exception as e:
             raise ToolError(f"Failed to write YXDB: {e!s}") from e
 
@@ -762,8 +762,8 @@ class OutputTool(BaseTool):
 
         elif output_type == "yxdb":
             escaped_path = PythonCodeGenerator.escape_path(destination)
-            lines.append("import openyxdb")
-            lines.append(f'openyxdb.sink_yxdb("{escaped_path}", {input_var})')
+            lines.append("import sigilyx")
+            lines.append(f'sigilyx.sink_yxdb("{escaped_path}", {input_var})')
 
         else:
             lines.append(
