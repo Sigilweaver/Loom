@@ -1,5 +1,9 @@
 # Sigilweaver Loom
 
+[![CI](https://github.com/Sigilweaver/Loom/actions/workflows/ci.yml/badge.svg)](https://github.com/Sigilweaver/Loom/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE.md)
+[![Docs](https://img.shields.io/badge/docs-sigilweaver.app-blue.svg)](https://sigilweaver.app/loom/docs/)
+
 **The visual data pipeline platform you always wished existed.**
 
 Free and open source. No compromises.
