@@ -9,10 +9,6 @@ slug: /
 
 Sigilweaver Loom is both a **desktop application** for building visual data workflows and a **self-hostable platform** for collaboration and organization. Design pipelines by dragging tools onto an infinite canvas, wire them together, and watch your data flow.
 
-:::warning Private Beta
-Sigilweaver Loom is currently in **Private Beta**. The codebase is not yet public, but binaries and documentation are published to test the distribution pipeline and gather feedback. Expect rough edges, breaking changes, and evolving APIs. See the [Roadmap](./roadmap) for progress and what's coming.
-:::
-
 ## The Platform
 
 | Component  | What It Does                                    |
@@ -45,4 +41,4 @@ Use **Studio + Server** for single-user local development. Add **Hub** when you 
 Sigilweaver Loom is **AGPL-3.0 licensed**. The entire suite is **completely free for all users**. No hidden costs, no premium tiers, no feature gates.
 
 - **Website**: [sigilweaver.app](https://sigilweaver.app)
-- **GitHub**: Coming with v1.0 public release
+- **GitHub**: [github.com/Sigilweaver/Loom](https://github.com/Sigilweaver/Loom)

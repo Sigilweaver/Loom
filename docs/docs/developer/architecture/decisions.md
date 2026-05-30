@@ -64,7 +64,7 @@ These components are tightly integrated. Hub imports Server's workflow execution
 **Context**: Go, Rust, and C++ would technically be faster. I know moderate Rust and some Go/Zig. But:
 - **Python has excellent data tooling.** Polars, Pandas, FastAPI, Pydantic. The ecosystem is unmatched.
 - **PyInstaller works.** Bundling Python into a standalone executable is solved.
-- **Iteration speed matters.** Pre-v1.0, I'm changing the server constantly. The gap from idea to working code is shortest in Python. That velocity compounds.
+- **Iteration speed matters.** The server still evolves quickly. The gap from idea to working code is shortest in Python. That velocity compounds.
 
 **Tradeoff**: Slower execution than compiled languages. But Polars does the heavy lifting in Rust anyway, so Python is mostly orchestration.
 

@@ -45,7 +45,7 @@ Low-impact areas get less attention:
 
 ### 4. Early-Stage Pragmatism
 
-Sigilweaver Loom is pre-v1.0. The UI will change significantly before release. Writing comprehensive UI tests now means rewriting them later.
+UI surfaces evolve faster than the underlying domain. Writing comprehensive UI tests for screens that are still iterating means rewriting them.
 
 Domain logic is more stable. The tool interface won't change much. Invest in tests that will remain valuable.
 

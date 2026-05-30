@@ -27,7 +27,7 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 - **Issue**: Windows flags unsigned executables as potentially harmful
 - **Root cause**: No code signing certificate yet
 - **Workaround**: Click "More info" → "Run anyway"
-- **Future**: Will get code signing before v1.0
+- **Future**: Code signing is on the roadmap
 
 **Path length limits**
 
@@ -42,7 +42,7 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 - **Issue**: macOS blocks apps from "unidentified developers"
 - **Root cause**: No Apple Developer certificate yet
 - **Workaround**: Right-click → Open → Open anyway
-- **Future**: Will get notarization before v1.0
+- **Future**: Notarization is on the roadmap
 
 **Apple Silicon (M1/M2/M3)**
 

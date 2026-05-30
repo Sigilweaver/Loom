@@ -4,9 +4,8 @@
 
 | Version      | Supported |
 | ------------ | --------- |
-| v0.11.x      | Yes       |
-| v0.10.x-alpha | No       |
-| < v0.10      | No        |
+| v1.0.x       | Yes       |
+| < v1.0       | No        |
 
 Only the latest release receives security updates.
 

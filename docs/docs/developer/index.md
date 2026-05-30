@@ -13,16 +13,6 @@ If you're reading this, you're probably:
 
 This guide assumes you're comfortable with Python and/or TypeScript. You don't need to be an expert in React, FastAPI, or Polars - but you should know your way around a terminal and a debugger.
 
-## Honest State of the Project
-
-Sigilweaver Loom is pre-v1.0. The architecture is solid, the core works, but there's plenty of rough edges:
-
-- **What's stable**: Workflow execution, tool registry, state management, serialization
-- **What's evolving**: UI polish, tool configuration panels, error handling UX
-- **What's missing**: Some tool implementations, comprehensive user docs, macOS testing
-
-I'm building this because I genuinely want to use it. That means I prioritize correctness over features, and simplicity over cleverness. Contributions that align with that philosophy are welcome.
-
 ## Why Contribute?
 
 A few honest reasons:

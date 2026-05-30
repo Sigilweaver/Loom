@@ -124,7 +124,7 @@ Filter and Formula, and a large documentation overhaul.
 - Multi-engine system with precedence-based resolution (`tool.engine` > `meta.defaultEngine` > `DEFAULT_ENGINE`)
 - Visual filter expression builder with Hub-aware metadata
 - Multi-operation Formula tool with visual GUI builder
-- YXDB (Alteryx) format support and devcontainer Docker host detection
+- YXDB format support and devcontainer Docker host detection
 - Dotenv reading and updated registration secret handling
 - Tauri build target added to release pipeline
 - Devcontainer with zero-friction developer experience

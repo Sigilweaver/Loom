@@ -6,13 +6,11 @@ sidebar_position: 10
 
 Strategic direction and planned features for the Sigilweaver Loom platform.
 
-**Target v1.0 Release: June 2026**
-
 ---
 
 ## Current Status
 
-Sigilweaver Loom is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and polish leading to a v1.0 public release.
+Sigilweaver Loom v1.0 has shipped. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and continued polish.
 
 ### What Works Today
 
