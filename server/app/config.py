@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     log_level: str = "info"
     log_format: str = "text"  # "text" or "json"
 
+    # Identity advertised to the Hub (auth_mode="hub").
+    # server_name: display name in the Hub UI. Empty -> "server-{port}".
+    server_name: str = ""
+    # public_endpoint_url: the URL the Hub should use to reach this server for
+    # health polling and execution dispatch. Empty -> "http://{host}:{port}".
+    # Set this when the Hub cannot reach the server at its bind address, e.g.
+    # behind NAT or across a Tailscale tailnet (use the MagicDNS name:
+    # "http://my-server.tailnet-name.ts.net:25811").
+    public_endpoint_url: str = ""
+
     # CORS
     cors_origins: list[str] = ["http://localhost:25810"]  # Studio dev server
     cors_mode: str = "development"  # "development" (permissive) | "production" (strict)

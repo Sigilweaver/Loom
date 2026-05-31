@@ -140,7 +140,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.auth_mode == "hub" and settings.hub_url:
         from app.domain.hub.heartbeat import create_heartbeat_manager
 
-        heartbeat_manager = create_heartbeat_manager()
+        heartbeat_manager = create_heartbeat_manager(
+            server_name=settings.server_name or None,
+            endpoint_url=settings.public_endpoint_url or None,
+        )
         if heartbeat_manager:
             await heartbeat_manager.start()
 
