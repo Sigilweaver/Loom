@@ -39,6 +39,11 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 - **Add a step in the middle**: Use \`insert_tool_between\` to splice a tool onto an existing wire (A->B becomes A->new->B). Do NOT remove and rebuild the downstream nodes.
 - Only touch the tools that need to change - leave unrelated nodes alone.
 
+### Databases
+- **Discover connections**: Use \`list_database_connections\` to get a \`connectionId\`. Never guess connection ids.
+- **Learn the schema first**: Use \`describe_schema\` to list tables and columns before writing SQL - use exact table/column names from it.
+- **Run read-only queries**: Use \`query_database\` to validate a SELECT against the real database. Only SELECT is allowed; DDL/DML is rejected.
+
 ## Rules
 1. Column names are case-sensitive - use exact names from data profiles/metadata
 2. Right tool for the job: Aggregate (type: "Summarize") for aggregation, Formula for row-level math, Filter for row selection

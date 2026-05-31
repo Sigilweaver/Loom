@@ -18,6 +18,7 @@ from app.domain.datasources.database import (
     PostgreSQLDataSource,
     SQLiteDataSource,
     _dtype_to_polars_type,
+    _schema_introspection_query,
 )
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.tools.loaders.database import DatabaseLoader
@@ -233,6 +234,101 @@ class TestDatabaseDataSource:
         assert preview.returned_rows == 0
         assert len(preview.data) == 0
         mock_read_db.assert_not_called()
+
+
+class TestSchemaIntrospectionQuery:
+    """Test the dialect-specific catalog query builder"""
+
+    def test_postgresql_query(self):
+        query = _schema_introspection_query("postgresql")
+        assert "information_schema.columns" in query
+        assert "table_schema = 'public'" in query
+        assert "table_name" in query and "column_name" in query
+
+    def test_mysql_query(self):
+        query = _schema_introspection_query("mysql")
+        assert "information_schema.COLUMNS" in query
+        assert "TABLE_SCHEMA = DATABASE()" in query
+        # Aliases normalize to lowercase for downstream reading
+        assert "AS table_name" in query
+        assert "AS column_name" in query
+
+    def test_mssql_query(self):
+        query = _schema_introspection_query("mssql")
+        assert "INFORMATION_SCHEMA.COLUMNS" in query
+        assert "AS table_name" in query
+
+    def test_sqlite_query(self):
+        query = _schema_introspection_query("sqlite")
+        assert "sqlite_master" in query
+        assert "pragma_table_info" in query
+        assert "AS table_name" in query
+
+    def test_case_insensitive_type(self):
+        assert _schema_introspection_query("PostgreSQL") == _schema_introspection_query(
+            "postgresql"
+        )
+
+    def test_unsupported_type_raises(self):
+        with pytest.raises(DataSourceError, match="not supported"):
+            _schema_introspection_query("oracle")
+
+
+class TestListSchema:
+    """Test database schema introspection grouping"""
+
+    @pytest.mark.asyncio
+    @patch("app.domain.datasources.database.pl.read_database_uri")
+    async def test_list_schema_groups_columns(self, mock_read_db):
+        """Rows are grouped by table into name/columns structures"""
+        mock_read_db.return_value = pl.DataFrame(
+            {
+                "table_name": ["users", "users", "orders"],
+                "column_name": ["id", "name", "total"],
+                "data_type": ["integer", "text", "numeric"],
+                "ordinal_position": [1, 2, 1],
+            }
+        )
+
+        datasource = PostgreSQLDataSource()
+        tables = await datasource.list_schema("postgresql://user:pass@localhost/db")
+
+        assert len(tables) == 2
+        users = next(t for t in tables if t["name"] == "users")
+        assert [c["name"] for c in users["columns"]] == ["id", "name"]
+        assert users["columns"][0]["type"] == "integer"
+        orders = next(t for t in tables if t["name"] == "orders")
+        assert orders["columns"][0]["name"] == "total"
+
+    @pytest.mark.asyncio
+    @patch("app.domain.datasources.database.pl.read_database_uri")
+    async def test_list_schema_uppercase_columns(self, mock_read_db):
+        """Uppercase dialect column names are normalized before reading"""
+        mock_read_db.return_value = pl.DataFrame(
+            {
+                "TABLE_NAME": ["products"],
+                "COLUMN_NAME": ["sku"],
+                "DATA_TYPE": ["varchar(64)"],
+                "ORDINAL_POSITION": [1],
+            }
+        )
+
+        datasource = MySQLDataSource()
+        tables = await datasource.list_schema("mysql://user:pass@localhost/db")
+
+        assert tables == [
+            {"name": "products", "columns": [{"name": "sku", "type": "varchar(64)"}]}
+        ]
+
+    @pytest.mark.asyncio
+    @patch("app.domain.datasources.database.pl.read_database_uri")
+    async def test_list_schema_error(self, mock_read_db):
+        """Database failures surface as DataSourceError"""
+        mock_read_db.side_effect = Exception("Connection refused")
+
+        datasource = PostgreSQLDataSource()
+        with pytest.raises(DataSourceError, match="Failed to introspect"):
+            await datasource.list_schema("postgresql://user:pass@localhost/db")
 
 
 class TestPostgreSQLDataSource:

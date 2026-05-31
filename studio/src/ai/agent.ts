@@ -17,7 +17,7 @@ import { z } from 'zod';
 
 // Agent tools
 import { addTool, updateTool, updateTools, patchToolConfig, insertToolBetween, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
-import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
+import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData, listDatabaseConnections, describeSchema, queryDatabase } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
 
@@ -37,6 +37,9 @@ const AGENT_TOOLS = {
   preview_tool_output: previewToolOutput,
   get_column_metadata: getColumnMetadata,
   profile_tool_data: profileToolData,
+  list_database_connections: listDatabaseConnections,
+  describe_schema: describeSchema,
+  query_database: queryDatabase,
   build_workflow: buildWorkflowTool,
   ask_user: askUser,
 };

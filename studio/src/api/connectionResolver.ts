@@ -57,6 +57,34 @@ function buildConnectionUri(connection: ResolvedConnection): string {
 }
 
 /**
+ * Resolves a single client-managed connection to its URI and database type.
+ *
+ * Intended for ad-hoc lookups (e.g. AI schema introspection) where only a
+ * connection id is known. Requires secure storage (desktop app) since the
+ * credentials live in the local keychain.
+ *
+ * @param connectionId - The id of a client-owned connection
+ * @returns The connection URI and database type
+ * @throws If secure storage is unavailable or the connection cannot be resolved
+ */
+export async function resolveConnectionUri(
+  connectionId: string
+): Promise<{ uri: string; type: ResolvedConnection['type'] }> {
+  if (!hasSecureStorage()) {
+    throw new Error(
+      'Database connections require the desktop app with secure storage.'
+    );
+  }
+
+  const resolved = await platform.credentials.resolve(connectionId);
+  if (!resolved) {
+    throw new Error(`Connection not found: "${connectionId}"`);
+  }
+
+  return { uri: buildConnectionUri(resolved), type: resolved.type };
+}
+
+/**
  * Resolves all database connection references in a workflow.
  * 
  * For client-owned connections (owner='client'), resolves the connectionId to a full

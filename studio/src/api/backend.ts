@@ -917,3 +917,109 @@ export async function searchFiles(
     browseToken
   );
 }
+
+/**
+ * A column reported by database schema introspection
+ */
+export interface DatabaseColumnInfo {
+  /** Column name */
+  name: string;
+  /** Database-reported column type */
+  type: string;
+}
+
+/**
+ * A table reported by database schema introspection
+ */
+export interface DatabaseTableInfo {
+  /** Table name */
+  name: string;
+  /** Columns in the table */
+  columns: DatabaseColumnInfo[];
+}
+
+/**
+ * Response from the /api/datasource/schema endpoint
+ */
+export interface DatabaseSchemaResponse {
+  /** Tables discovered in the database */
+  tables: DatabaseTableInfo[];
+}
+
+/**
+ * Response from the /api/datasource/preview endpoint
+ */
+export interface DatabasePreviewResponse {
+  /** Schema of the returned rows */
+  data_schema?: DataSchema;
+  /** Preview rows */
+  data: Record<string, unknown>[];
+  /** Total rows available, if known */
+  total_rows: number | null;
+  /** Number of rows returned */
+  returned_rows: number;
+}
+
+/**
+ * Introspect a database connection and list its tables and columns.
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse/session token for authentication
+ * @param source - Database connection URI
+ * @param sourceType - Database type (postgresql, mysql, sqlite, mssql)
+ * @returns Tables and their columns
+ */
+export async function describeDatabaseSchema(
+  serverUrl: string,
+  browseToken: string,
+  source: string,
+  sourceType: string,
+): Promise<DatabaseSchemaResponse> {
+  return serverRequest<DatabaseSchemaResponse>(
+    serverUrl,
+    '/api/datasource/schema',
+    browseToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({ source, sourceType }),
+    }
+  );
+}
+
+/**
+ * Run a read-only SQL query against a database connection and preview rows.
+ *
+ * Reuses the generic /api/datasource/preview endpoint, which validates that
+ * the query is read-only and wraps it with a LIMIT.
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse/session token for authentication
+ * @param source - Database connection URI
+ * @param sourceType - Database type (postgresql, mysql, sqlite, mssql)
+ * @param query - The SELECT query to execute
+ * @param maxRows - Maximum rows to return
+ * @returns Preview rows with schema
+ */
+export async function previewDatabaseQuery(
+  serverUrl: string,
+  browseToken: string,
+  source: string,
+  sourceType: string,
+  query: string,
+  maxRows: number,
+): Promise<DatabasePreviewResponse> {
+  return serverRequest<DatabasePreviewResponse>(
+    serverUrl,
+    '/api/datasource/preview',
+    browseToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        source,
+        sourceType,
+        config: { query },
+        options: { max_rows: maxRows, offset: 0, columns: null },
+      }),
+    }
+  );
+}

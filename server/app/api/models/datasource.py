@@ -56,3 +56,37 @@ class PreviewRequest(BaseModel):
     options: PreviewOptions | None = Field(
         None, description="Preview options (pagination, column selection)"
     )
+
+
+class DatabaseSchemaRequest(BaseModel):
+    """Request to introspect a database connection's tables and columns."""
+
+    source_type: str = Field(
+        alias="sourceType",
+        description="Database source type (postgresql, mysql, sqlite, mssql).",
+    )
+    source: str = Field(description="Database connection URI")
+
+
+class DatabaseColumnInfo(BaseModel):
+    """A single column in a database table."""
+
+    name: str = Field(description="Column name")
+    type: str = Field(description="Database-reported column type")
+
+
+class DatabaseTableInfo(BaseModel):
+    """A database table with its columns."""
+
+    name: str = Field(description="Table name")
+    columns: list[DatabaseColumnInfo] = Field(
+        default_factory=list, description="Columns in the table"
+    )
+
+
+class DatabaseSchemaResponse(BaseModel):
+    """Response listing tables and columns for a database connection."""
+
+    tables: list[DatabaseTableInfo] = Field(
+        default_factory=list, description="Tables discovered in the database"
+    )
