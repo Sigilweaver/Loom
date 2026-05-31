@@ -292,7 +292,7 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap gap-1.5 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent bg-white min-h-[42px]">
+      <div className="flex flex-wrap gap-1.5 p-2 border border-line-strong rounded-lg focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent bg-surface-raised min-h-[42px]">
         {value.map((tag) => (
           <span
             key={tag}
@@ -322,8 +322,8 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
 
       {/* Suggestions dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          <div className="px-3 py-1.5 text-xs text-gray-500 border-b border-gray-100">
+        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-line rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <div className="px-3 py-1.5 text-xs text-ink-subtle border-b border-line">
             Suggested tags
           </div>
           {filteredSuggestions.map((suggestion) => (
@@ -334,9 +334,9 @@ function TagInput({ value, onChange, suggestions, placeholder }: TagInputProps) 
                 addTag(suggestion);
                 setShowSuggestions(false);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-surface-sunken"
             >
-              <Tag className="h-3 w-3 text-gray-400" />
+              <Tag className="h-3 w-3 text-ink-faint" />
               {suggestion}
             </button>
           ))}
@@ -375,20 +375,20 @@ function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProp
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
-        <Folder className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Folder className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint" />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setShowDropdown(true)}
           placeholder="/"
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         />
       </div>
 
       {showDropdown && sortedFolders.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          <div className="px-3 py-1.5 text-xs text-gray-500 border-b border-gray-100">
+        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-line rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <div className="px-3 py-1.5 text-xs text-ink-subtle border-b border-line">
             Existing folders
           </div>
           {sortedFolders.map((folder) => (
@@ -399,10 +399,10 @@ function FolderSelector({ value, onChange, existingFolders }: FolderSelectorProp
                 onChange(folder);
                 setShowDropdown(false);
               }}
-              className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-50 ${value === folder ? "bg-brand-50 text-brand-700" : ""
+              className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-surface-sunken ${value === folder ? "bg-brand-50 text-brand-700" : ""
                 }`}
             >
-              <Folder className="h-3 w-3 text-gray-400" />
+              <Folder className="h-3 w-3 text-ink-faint" />
               {folder}
             </button>
           ))}
@@ -491,14 +491,14 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h2 className="text-lg font-semibold text-ink">
             Upload Workflow
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-ink-faint hover:text-ink-subtle"
           >
             <X className="h-5 w-5" />
           </button>
@@ -507,13 +507,13 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* File input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Workflow File
             </label>
             <div
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file
                   ? "border-brand-500 bg-brand-50"
-                  : "border-gray-300 hover:border-gray-400"
+                  : "border-line-strong hover:border-line-strong"
                 }`}
               onClick={() => fileInputRef.current?.click()}
             >
@@ -530,7 +530,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
                   <span className="font-medium">{file.name}</span>
                 </div>
               ) : (
-                <div className="text-gray-500">
+                <div className="text-ink-subtle">
                   <Upload className="h-8 w-8 mx-auto mb-2" />
                   <p>Click to select a .swwf file</p>
                 </div>
@@ -540,7 +540,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
 
           {/* Folder path with suggestions */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Folder
             </label>
             <FolderSelector
@@ -548,14 +548,14 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
               onChange={setFolderPath}
               existingFolders={existingFolders}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Select existing or type new path (e.g., /projects/sales)
             </p>
           </div>
 
           {/* Tags with suggestions */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Tags
             </label>
             <TagInput
@@ -564,7 +564,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
               suggestions={existingTags}
               placeholder="Add tags..."
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Press Enter or comma to add a tag
             </p>
           </div>
@@ -580,7 +580,7 @@ function UploadDialog({ open, onClose, onUpload, existingFolders, existingTags, 
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-ink-muted bg-surface-hover rounded-lg hover:bg-line transition-colors"
             >
               Cancel
             </button>
@@ -654,14 +654,14 @@ function EditDialog({ workflow, open, onClose, onSave, existingFolders, existing
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h2 className="text-lg font-semibold text-ink">
             Edit Workflow
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-ink-faint hover:text-ink-subtle"
           >
             <X className="h-5 w-5" />
           </button>
@@ -669,19 +669,19 @@ function EditDialog({ workflow, open, onClose, onSave, existingFolders, existing
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Workflow info (read-only) */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-surface-sunken rounded-lg">
             <FileText className="h-8 w-8 text-brand-600" />
             <div>
-              <div className="font-medium text-gray-900">{workflow.name}</div>
+              <div className="font-medium text-ink">{workflow.name}</div>
               {workflow.author && (
-                <div className="text-sm text-gray-500">by {workflow.author}</div>
+                <div className="text-sm text-ink-subtle">by {workflow.author}</div>
               )}
             </div>
           </div>
 
           {/* Folder path */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Folder
             </label>
             <FolderSelector
@@ -693,7 +693,7 @@ function EditDialog({ workflow, open, onClose, onSave, existingFolders, existing
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Tags
             </label>
             <TagInput
@@ -715,7 +715,7 @@ function EditDialog({ workflow, open, onClose, onSave, existingFolders, existing
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-ink-muted bg-surface-hover rounded-lg hover:bg-line transition-colors"
             >
               Cancel
             </button>
@@ -750,20 +750,20 @@ function renderDescription(text: string): React.ReactNode {
   return paragraphs.map((para, i) => {
     // Handle headers
     if (para.startsWith("### ")) {
-      return <h4 key={i} className="text-sm font-semibold text-gray-900 mt-3 mb-1">{para.slice(4)}</h4>;
+      return <h4 key={i} className="text-sm font-semibold text-ink mt-3 mb-1">{para.slice(4)}</h4>;
     }
     if (para.startsWith("## ")) {
-      return <h3 key={i} className="text-base font-semibold text-gray-900 mt-4 mb-2">{para.slice(3)}</h3>;
+      return <h3 key={i} className="text-base font-semibold text-ink mt-4 mb-2">{para.slice(3)}</h3>;
     }
     if (para.startsWith("# ")) {
-      return <h2 key={i} className="text-lg font-bold text-gray-900 mt-4 mb-2">{para.slice(2)}</h2>;
+      return <h2 key={i} className="text-lg font-bold text-ink mt-4 mb-2">{para.slice(2)}</h2>;
     }
 
     // Handle bullet lists
     if (para.match(/^[-*] /m)) {
       const items = para.split(/\n/).filter(Boolean);
       return (
-        <ul key={i} className="list-disc list-inside text-sm text-gray-600 space-y-1 my-2">
+        <ul key={i} className="list-disc list-inside text-sm text-ink-muted space-y-1 my-2">
           {items.map((item, j) => (
             <li key={j}>{item.replace(/^[-*] /, "")}</li>
           ))}
@@ -775,7 +775,7 @@ function renderDescription(text: string): React.ReactNode {
     if (para.match(/^\d+\. /m)) {
       const items = para.split(/\n/).filter(Boolean);
       return (
-        <ol key={i} className="list-decimal list-inside text-sm text-gray-600 space-y-1 my-2">
+        <ol key={i} className="list-decimal list-inside text-sm text-ink-muted space-y-1 my-2">
           {items.map((item, j) => (
             <li key={j}>{item.replace(/^\d+\. /, "")}</li>
           ))}
@@ -798,11 +798,11 @@ function renderDescription(text: string): React.ReactNode {
     const codeParts = para.split(/`(.+?)`/g);
     if (codeParts.length > 1) {
       content = codeParts.map((part, j) =>
-        j % 2 === 1 ? <code key={j} className="px-1 py-0.5 bg-gray-100 rounded text-sm font-mono">{part}</code> : part
+        j % 2 === 1 ? <code key={j} className="px-1 py-0.5 bg-surface-hover rounded text-sm font-mono">{part}</code> : part
       );
     }
 
-    return <p key={i} className="text-sm text-gray-600 my-2">{content}</p>;
+    return <p key={i} className="text-sm text-ink-muted my-2">{content}</p>;
   });
 }
 
@@ -846,23 +846,23 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center">
               <FileText className="h-5 w-5 text-brand-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{workflow.name}</h2>
+              <h2 className="text-lg font-semibold text-ink">{workflow.name}</h2>
               {workflow.author && (
-                <p className="text-sm text-gray-500">by {workflow.author}</p>
+                <p className="text-sm text-ink-subtle">by {workflow.author}</p>
               )}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-ink-faint hover:text-ink-subtle"
           >
             <X className="h-5 w-5" />
           </button>
@@ -873,11 +873,11 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
           {/* Description */}
           {workflow.description && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Info className="h-4 w-4" />
                 Description
               </h3>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-surface-sunken rounded-lg p-4">
                 {renderDescription(workflow.description)}
               </div>
             </div>
@@ -885,43 +885,43 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
 
           {/* Metadata grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+            <div className="bg-surface-sunken rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-ink-subtle mb-1">
                 <Folder className="h-3 w-3" />
                 Folder
               </div>
-              <div className="text-sm font-medium text-gray-900">{workflow.folder_path}</div>
+              <div className="text-sm font-medium text-ink">{workflow.folder_path}</div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+            <div className="bg-surface-sunken rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-ink-subtle mb-1">
                 <User className="h-3 w-3" />
                 Uploaded By
               </div>
-              <div className="text-sm font-medium text-gray-900">{workflow.uploaded_by}</div>
+              <div className="text-sm font-medium text-ink">{workflow.uploaded_by}</div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+            <div className="bg-surface-sunken rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-ink-subtle mb-1">
                 <Calendar className="h-3 w-3" />
                 Created
               </div>
-              <div className="text-sm font-medium text-gray-900">{formatDate(workflow.created_at)}</div>
+              <div className="text-sm font-medium text-ink">{formatDate(workflow.created_at)}</div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+            <div className="bg-surface-sunken rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs text-ink-subtle mb-1">
                 <Clock className="h-3 w-3" />
                 Last Updated
               </div>
-              <div className="text-sm font-medium text-gray-900">{formatDate(workflow.updated_at)}</div>
+              <div className="text-sm font-medium text-ink">{formatDate(workflow.updated_at)}</div>
             </div>
           </div>
 
           {/* Tags */}
           {workflow.tags.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Tags
               </h3>
@@ -950,22 +950,22 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
             </div>
           ) : content && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Hash className="h-4 w-4" />
                 Workflow Details
               </h3>
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-surface-sunken rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-brand-600">{content.tools.length}</div>
-                  <div className="text-xs text-gray-500">Tools</div>
+                  <div className="text-xs text-ink-subtle">Tools</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-surface-sunken rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-brand-600">{content.wires.length}</div>
-                  <div className="text-xs text-gray-500">Connections</div>
+                  <div className="text-xs text-ink-subtle">Connections</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-surface-sunken rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-brand-600">v{content.version}</div>
-                  <div className="text-xs text-gray-500">Format</div>
+                  <div className="text-xs text-ink-subtle">Format</div>
                 </div>
               </div>
             </div>
@@ -973,22 +973,22 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
 
           {/* Technical details (collapsible) */}
           <details className="group">
-            <summary className="text-sm font-medium text-gray-500 cursor-pointer hover:text-gray-700 flex items-center gap-2">
+            <summary className="text-sm font-medium text-ink-subtle cursor-pointer hover:text-ink-muted flex items-center gap-2">
               <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
               Technical Details
             </summary>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Workflow ID</span>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{workflow.workflow_id}</code>
+              <div className="flex justify-between py-2 border-b border-line">
+                <span className="text-ink-subtle">Workflow ID</span>
+                <code className="text-xs bg-surface-hover px-2 py-1 rounded font-mono">{workflow.workflow_id}</code>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Storage ID</span>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{workflow.id}</code>
+              <div className="flex justify-between py-2 border-b border-line">
+                <span className="text-ink-subtle">Storage ID</span>
+                <code className="text-xs bg-surface-hover px-2 py-1 rounded font-mono">{workflow.id}</code>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Checksum (SHA-256)</span>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono truncate max-w-[200px]" title={workflow.checksum}>
+              <div className="flex justify-between py-2 border-b border-line">
+                <span className="text-ink-subtle">Checksum (SHA-256)</span>
+                <code className="text-xs bg-surface-hover px-2 py-1 rounded font-mono truncate max-w-[200px]" title={workflow.checksum}>
                   {workflow.checksum.slice(0, 16)}...
                 </code>
               </div>
@@ -997,10 +997,10 @@ function DetailDialog({ workflow, open, onClose, onEdit, onDownload }: DetailDia
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-line flex-shrink-0">
           <button
             onClick={onEdit}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-ink-muted bg-surface-hover rounded-lg hover:bg-line transition-colors"
           >
             <Pencil className="h-4 w-4" />
             Edit
@@ -1051,17 +1051,17 @@ function FolderTreeItem({ node, selectedPath, onSelect, depth = 0 }: FolderTreeI
         onClick={handleSelect}
         className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg transition-colors ${isSelected
             ? "bg-brand-100 text-brand-700"
-            : "text-gray-700 hover:bg-gray-100"
+            : "text-ink-muted hover:bg-surface-hover"
           }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {hasChildren ? (
           <span
             onClick={handleToggleExpand}
-            className="p-0.5 -m-0.5 hover:bg-gray-200 rounded"
+            className="p-0.5 -m-0.5 hover:bg-line rounded"
           >
             <ChevronRight
-              className={`h-3 w-3 text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+              className={`h-3 w-3 text-ink-faint transition-transform ${expanded ? "rotate-90" : ""}`}
             />
           </span>
         ) : (
@@ -1073,7 +1073,7 @@ function FolderTreeItem({ node, selectedPath, onSelect, depth = 0 }: FolderTreeI
           <Icon className="h-4 w-4 flex-shrink-0" />
         )}
         <span className="truncate flex-1 text-left">{node.name}</span>
-        <span className="text-xs text-gray-400">{node.count}</span>
+        <span className="text-xs text-ink-faint">{node.count}</span>
       </button>
       {hasChildren && expanded && (
         <div>
@@ -1169,7 +1169,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
 
   return (
     <div
-      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="bg-surface-raised rounded-lg border border-line p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => onView(workflow)}
     >
       <div className="flex items-start justify-between">
@@ -1178,11 +1178,11 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
             <FileText className="h-5 w-5 text-brand-600" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-medium text-gray-900 truncate">
+            <h3 className="font-medium text-ink truncate">
               {workflow.name}
             </h3>
             {workflow.description && (
-              <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">
+              <p className="text-sm text-ink-subtle line-clamp-2 mt-0.5">
                 {workflow.description}
               </p>
             )}
@@ -1196,7 +1196,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
               setMenuOpen(!menuOpen);
             }}
             disabled={deleting}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="p-1 text-ink-faint hover:text-ink-muted rounded"
           >
             {deleting ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -1206,7 +1206,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+            <div className="absolute right-0 mt-1 w-40 bg-surface-raised rounded-lg shadow-lg border border-line py-1 z-10">
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -1244,7 +1244,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
                   setMenuOpen(false);
                   onView(workflow);
                 }}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-ink-muted hover:bg-surface-sunken"
               >
                 <Eye className="h-4 w-4" />
                 View Details
@@ -1254,7 +1254,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
                   e.stopPropagation();
                   handleEdit();
                 }}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-ink-muted hover:bg-surface-sunken"
               >
                 <Pencil className="h-4 w-4" />
                 Edit
@@ -1264,7 +1264,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
                   e.stopPropagation();
                   handleDownload();
                 }}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-ink-muted hover:bg-surface-sunken"
               >
                 <Download className="h-4 w-4" />
                 Download
@@ -1285,7 +1285,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
       </div>
 
       {/* Metadata */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-subtle">
         {workflow.author && <span>by {workflow.author}</span>}
         <span className="flex items-center gap-1">
           <Folder className="h-3 w-3" />
@@ -1300,7 +1300,7 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
           {workflow.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-hover text-ink-muted"
             >
               {tag}
             </span>
@@ -1447,8 +1447,8 @@ export function WorkflowsPage() {
   return (
     <div className="flex h-full">
       {/* Folder sidebar */}
-      <div className="w-64 flex-shrink-0 border-r border-gray-200 bg-gray-50 p-4 overflow-y-auto">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+      <div className="w-64 flex-shrink-0 border-r border-line bg-surface-sunken p-4 overflow-y-auto">
+        <h2 className="text-xs font-semibold text-ink-subtle uppercase tracking-wider mb-3">
           Folders
         </h2>
         <FolderTreeItem
@@ -1462,9 +1462,9 @@ export function WorkflowsPage() {
       <div className="flex-1 p-8 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Workflows</h1>
+            <h1 className="text-2xl font-semibold text-ink">Workflows</h1>
             {selectedFolder && (
-              <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+              <div className="flex items-center gap-1 text-sm text-ink-subtle mt-1">
                 <Home className="h-3 w-3" />
                 <ChevronRight className="h-3 w-3" />
                 {selectedFolder.split("/").filter(Boolean).map((part, i, arr) => (
@@ -1488,13 +1488,13 @@ export function WorkflowsPage() {
         {/* Search */}
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search workflows..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -1522,16 +1522,16 @@ export function WorkflowsPage() {
 
         {/* Empty state */}
         {!loading && filteredWorkflows.length === 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Plus className="h-8 w-8 text-gray-400" />
+          <div className="bg-surface-raised rounded-lg border border-line p-12 text-center">
+            <div className="mx-auto w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4">
+              <Plus className="h-8 w-8 text-ink-faint" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-ink mb-2">
               {searchQuery || selectedFolder
                 ? "No workflows found"
                 : "No workflows yet"}
             </h3>
-            <p className="text-gray-500 mb-4">
+            <p className="text-ink-subtle mb-4">
               {searchQuery || selectedFolder
                 ? "Try adjusting your search or folder selection"
                 : "Upload a .swwf workflow file to get started"}

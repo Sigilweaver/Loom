@@ -4,6 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
+import { useThemeStore, applyTheme } from "./state/themeStore";
+
+// Apply the persisted theme before the first paint to avoid a flash of the
+// default appearance. The persist middleware rehydrates synchronously from
+// localStorage, so getState().theme already reflects the stored choice.
+applyTheme(useThemeStore.getState().theme);
 
 const queryClient = new QueryClient({
   defaultOptions: {

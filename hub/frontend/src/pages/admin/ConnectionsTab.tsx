@@ -92,7 +92,7 @@ function DatabaseTypeBadge({ type }: { type: DatabaseType }) {
     postgresql: { color: "bg-blue-100 text-blue-700", label: "PostgreSQL" },
     mysql: { color: "bg-orange-100 text-orange-700", label: "MySQL" },
     mssql: { color: "bg-purple-100 text-purple-700", label: "SQL Server" },
-    sqlite: { color: "bg-gray-100 text-gray-700", label: "SQLite" },
+    sqlite: { color: "bg-surface-hover text-ink-muted", label: "SQLite" },
   };
 
   const { color, label } = config[type] || config.postgresql;
@@ -124,7 +124,7 @@ function HealthStatusBadge({ status, lastChecked, lastError }: { status: Connect
     healthy: { color: "text-green-600", label: "Healthy", icon: CheckCircle },
     unhealthy: { color: "text-red-600", label: "Unhealthy", icon: XCircle },
     error: { color: "text-red-600", label: "Error", icon: XCircle },
-    unknown: { color: "text-gray-400", label: "Unknown", icon: RefreshCw },
+    unknown: { color: "text-ink-faint", label: "Unknown", icon: RefreshCw },
   };
 
   const statusConfig = config[status] ?? config.unknown;
@@ -137,7 +137,7 @@ function HealthStatusBadge({ status, lastChecked, lastError }: { status: Connect
         {label}
       </span>
       {lastChecked && (
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-ink-faint">
           Checked {formatRelativeTime(lastChecked)}
         </span>
       )}
@@ -370,15 +370,15 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-surface-raised rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-6 border-b border-line">
+          <h2 className="text-lg font-semibold text-ink">
             {isEditing ? "Edit Connection" : "Add Connection"}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="p-1 text-ink-faint hover:text-ink-muted rounded"
           >
             <X className="h-5 w-5" />
           </button>
@@ -388,14 +388,14 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {/* Connection Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Connection Type
             </label>
             <select
               value={connectionType}
               onChange={(e) => handleConnectionTypeChange(e.target.value as ConnectionType)}
               disabled={isEditing}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-surface-hover"
             >
               {CONNECTION_TYPES.map((ct) => (
                 <option key={ct.value} value={ct.value}>
@@ -407,7 +407,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Name
             </label>
             <input
@@ -415,21 +415,21 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={connectionType === "database" ? "Production Database" : "Shared Data Folder"}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description <span className="text-gray-400 font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-ink-muted mb-1">
+              Description <span className="text-ink-faint font-normal">(optional)</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this connection"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
 
@@ -438,14 +438,14 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
             <>
               {/* Database Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   Database Type
                 </label>
                 <select
                   value={dbType}
                   onChange={(e) => handleDbTypeChange(e.target.value as DatabaseType)}
                   disabled={isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-surface-hover"
                 >
                   {DATABASE_TYPES.map((dt) => (
                     <option key={dt.value} value={dt.value}>
@@ -459,7 +459,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
               {dbType !== "sqlite" && (
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       Host
                     </label>
                     <input
@@ -467,18 +467,18 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
                       value={host}
                       onChange={(e) => setHost(e.target.value)}
                       placeholder="localhost"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                      className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       Port
                     </label>
                     <input
                       type="number"
                       value={port}
                       onChange={(e) => setPort(parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                      className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     />
                   </div>
                 </div>
@@ -486,7 +486,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
 
               {/* Database */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   {dbType === "sqlite" ? "Database File Path" : "Database Name"}
                 </label>
                 <input
@@ -494,7 +494,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
                   value={database}
                   onChange={(e) => setDatabase(e.target.value)}
                   placeholder={dbType === "sqlite" ? "/path/to/database.db" : "mydb"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />
               </div>
 
@@ -502,10 +502,10 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
               {dbType !== "sqlite" && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       Username
                       {isEditing && (
-                        <span className="text-gray-400 font-normal"> (leave blank to keep current)</span>
+                        <span className="text-ink-faint font-normal"> (leave blank to keep current)</span>
                       )}
                     </label>
                     <input
@@ -513,15 +513,15 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder={isEditing ? "Leave blank to keep current" : "postgres"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                      className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       Password
                       {isEditing && (
-                        <span className="text-gray-400 font-normal"> (leave blank to keep current)</span>
+                        <span className="text-ink-faint font-normal"> (leave blank to keep current)</span>
                       )}
                     </label>
                     <div className="relative">
@@ -530,12 +530,12 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={isEditing ? "Leave blank to keep current" : ""}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                        className="w-full px-3 py-2 pr-10 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ink-faint hover:text-ink-muted"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -551,13 +551,13 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
             <>
               {/* Path Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   Path Type
                 </label>
                 <select
                   value={pathType}
                   onChange={(e) => setPathType(e.target.value as PathType)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 >
                   {PATH_TYPES.map((pt) => (
                     <option key={pt.value} value={pt.value}>
@@ -569,7 +569,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
 
               {/* Path */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   Path
                 </label>
                 <input
@@ -577,9 +577,9 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
                   value={path}
                   onChange={(e) => setPath(e.target.value)}
                   placeholder={pathType === "unc" ? "\\\\server\\share\\folder" : "/path/to/data"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-ink-subtle">
                   {pathType === "unc"
                     ? "Network path in UNC format (e.g., \\\\server\\share)"
                     : "Local filesystem path accessible by servers"}
@@ -595,9 +595,9 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
               id="read-only"
               checked={readOnly}
               onChange={(e) => setReadOnly(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-line-strong text-brand-600 focus:ring-brand-500"
             />
-            <label htmlFor="read-only" className="text-sm text-gray-700">
+            <label htmlFor="read-only" className="text-sm text-ink-muted">
               Read-only connection
             </label>
           </div>
@@ -629,12 +629,12 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-between p-6 border-t border-line bg-surface-sunken rounded-b-xl">
           {connectionType === "database" ? (
             <button
               onClick={handleTest}
               disabled={testing || !canTestConnection}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -650,7 +650,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken"
             >
               Cancel
             </button>
@@ -784,19 +784,19 @@ export function ConnectionsTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Connections</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-semibold text-ink">Connections</h2>
+          <p className="text-sm text-ink-subtle">
             Manage database and filesystem connections. Database credentials are encrypted at rest.
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Type Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint" />
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as ConnectionType | "all")}
-              className="pl-9 pr-8 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
+              className="pl-9 pr-8 py-2 text-sm font-medium text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
             >
               <option value="all">All Types</option>
               <option value="database">Databases</option>
@@ -806,7 +806,7 @@ export function ConnectionsTab() {
           <button
             onClick={handleCheckAll}
             disabled={checkingAll || connections.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken disabled:opacity-50"
             title="Check health of all connections"
           >
             <CheckCircle className={`h-4 w-4 ${checkingAll ? "animate-pulse" : ""}`} />
@@ -815,7 +815,7 @@ export function ConnectionsTab() {
           <button
             onClick={fetchConnections}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -839,13 +839,13 @@ export function ConnectionsTab() {
 
       {/* Empty State */}
       {connections.length === 0 && !loading && (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+        <div className="text-center py-12 bg-surface-sunken rounded-xl border-2 border-dashed border-line">
           <div className="flex justify-center gap-2 mb-4">
-            <Database className="h-10 w-10 text-gray-400" />
-            <FolderOpen className="h-10 w-10 text-gray-400" />
+            <Database className="h-10 w-10 text-ink-faint" />
+            <FolderOpen className="h-10 w-10 text-ink-faint" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No connections yet</h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <h3 className="text-lg font-medium text-ink mb-1">No connections yet</h3>
+          <p className="text-sm text-ink-subtle mb-4">
             Add a database or filesystem connection to get started.
           </p>
           <button
@@ -860,31 +860,31 @@ export function ConnectionsTab() {
 
       {/* Connections Table */}
       {connections.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-surface-raised rounded-xl border border-line overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <tr className="bg-surface-sunken border-b border-line">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Connection
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Details
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Updated
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-line">
               {connections.map((connection) => {
                 const Icon = connection.type === "database" ? Database : FolderOpen;
                 const iconBgColor = connection.type === "database" ? "bg-brand-50" : "bg-amber-50";
@@ -908,22 +908,22 @@ export function ConnectionsTab() {
                 }
 
                 return (
-                  <tr key={connection.id} className="hover:bg-gray-50">
+                  <tr key={connection.id} className="hover:bg-surface-sunken">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${iconBgColor}`}>
                           <Icon className={`h-5 w-5 ${iconColor}`} />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">{connection.name}</div>
+                          <div className="font-medium text-ink">{connection.name}</div>
                           {connection.description && (
-                            <div className="text-sm text-gray-500 truncate max-w-[200px]" title={connection.description}>
+                            <div className="text-sm text-ink-subtle truncate max-w-[200px]" title={connection.description}>
                               {connection.description}
                             </div>
                           )}
                         </div>
                         {connection.read_only && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-hover text-ink-subtle">
                             Read-only
                           </span>
                         )}
@@ -941,12 +941,12 @@ export function ConnectionsTab() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <div className="text-gray-900">{detailsText}</div>
-                      <div className="text-gray-500 truncate max-w-[200px]" title={subText}>
+                      <div className="text-ink">{detailsText}</div>
+                      <div className="text-ink-subtle truncate max-w-[200px]" title={subText}>
                         {subText}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-ink-subtle">
                       {formatRelativeTime(connection.updated_at)}
                     </td>
                     <td className="px-6 py-4">
@@ -954,7 +954,7 @@ export function ConnectionsTab() {
                         const testResult = testResults[connection.id];
                         if (testingId === connection.id) {
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
+                            <span className="inline-flex items-center gap-1.5 text-sm text-ink-subtle">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Testing...
                             </span>
@@ -991,7 +991,7 @@ export function ConnectionsTab() {
                           <button
                             onClick={() => handleTestConnection(connection)}
                             disabled={testingId === connection.id}
-                            className="p-1.5 text-gray-400 hover:text-brand-600 rounded disabled:opacity-50"
+                            className="p-1.5 text-ink-faint hover:text-brand-600 rounded disabled:opacity-50"
                             title="Test connection"
                           >
                             <RefreshCw className="h-4 w-4" />
@@ -999,7 +999,7 @@ export function ConnectionsTab() {
                         )}
                         <button
                           onClick={() => handleEditConnection(connection)}
-                          className="p-1.5 text-gray-400 hover:text-brand-600 rounded"
+                          className="p-1.5 text-ink-faint hover:text-brand-600 rounded"
                           title="Edit connection"
                         >
                           <Edit className="h-4 w-4" />
@@ -1007,7 +1007,7 @@ export function ConnectionsTab() {
                         <button
                           onClick={() => handleDeleteConnection(connection)}
                           disabled={deletingId === connection.id}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-50"
+                          className="p-1.5 text-ink-faint hover:text-red-600 rounded disabled:opacity-50"
                           title="Delete connection"
                         >
                           {deletingId === connection.id ? (

@@ -103,19 +103,19 @@ export function LoginPage() {
 
   if (mode === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-surface-sunken">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface-sunken px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sigilweaver Loom Hub</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-ink">Sigilweaver Loom Hub</h1>
+          <p className="mt-2 text-ink-muted">
             {mode === "setup"
               ? "Create your admin account to get started"
               : "Sign in to continue"}
@@ -123,7 +123,7 @@ export function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
+        <div className="bg-surface-raised rounded-lg border border-line shadow-sm p-8">
           {/* Title */}
           <div className="flex items-center gap-3 mb-6">
             {mode === "setup" ? (
@@ -131,7 +131,7 @@ export function LoginPage() {
                 <div className="p-2 rounded-lg bg-brand-100">
                   <UserPlus className="h-5 w-5 text-brand-600" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-ink">
                   Initial Setup
                 </h2>
               </>
@@ -140,7 +140,7 @@ export function LoginPage() {
                 <div className="p-2 rounded-lg bg-brand-100">
                   <LogIn className="h-5 w-5 text-brand-600" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">Sign In</h2>
+                <h2 className="text-xl font-semibold text-ink">Sign In</h2>
               </>
             )}
           </div>
@@ -159,7 +159,7 @@ export function LoginPage() {
             <div className="mb-4">
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-ink-muted mb-1"
               >
                 Username
               </label>
@@ -172,7 +172,7 @@ export function LoginPage() {
                 minLength={3}
                 autoComplete="username"
                 autoFocus
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter username"
               />
             </div>
@@ -181,7 +181,7 @@ export function LoginPage() {
             <div className="mb-4">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-ink-muted mb-1"
               >
                 Password
               </label>
@@ -193,7 +193,7 @@ export function LoginPage() {
                 required
                 minLength={mode === "setup" ? 8 : 1}
                 autoComplete={mode === "setup" ? "new-password" : "current-password"}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder={mode === "setup" ? "Min 8 characters" : "Enter password"}
               />
             </div>
@@ -203,7 +203,7 @@ export function LoginPage() {
               <div className="mb-6">
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-ink-muted mb-1"
                 >
                   Confirm Password
                 </label>
@@ -215,7 +215,7 @@ export function LoginPage() {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   placeholder="Confirm password"
                 />
               </div>
@@ -248,14 +248,14 @@ export function LoginPage() {
 
           {/* Setup notice */}
           {mode === "setup" && (
-            <p className="mt-4 text-xs text-gray-500 text-center">
+            <p className="mt-4 text-xs text-ink-subtle text-center">
               This account will have full owner privileges.
             </p>
           )}
         </div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-ink-subtle">
           Sigilweaver Loom Hub - Workflow Orchestration Platform
         </p>
       </div>

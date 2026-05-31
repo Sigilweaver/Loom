@@ -119,14 +119,14 @@ export function DateTimePicker({
         <button
           type="button"
           className={`
-            w-full px-3 py-2 text-left border border-gray-300 rounded-lg
+            w-full px-3 py-2 text-left border border-line-strong rounded-lg
             focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-            bg-white flex items-center gap-2
-            ${!displayValue ? "text-gray-400" : "text-gray-900"}
+            bg-surface-raised flex items-center gap-2
+            ${!displayValue ? "text-ink-faint" : "text-ink"}
             ${className}
           `}
         >
-          <Calendar className="flex-shrink-0 w-4 h-4 text-gray-400" />
+          <Calendar className="flex-shrink-0 w-4 h-4 text-ink-faint" />
           <span className="flex-1 truncate">
             {displayValue || placeholder}
           </span>
@@ -134,9 +134,9 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={handleClear}
-              className="p-0.5 hover:bg-gray-100 rounded"
+              className="p-0.5 hover:bg-surface-hover rounded"
             >
-              <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+              <X className="w-4 h-4 text-ink-faint hover:text-ink-muted" />
             </button>
           )}
         </button>
@@ -144,7 +144,7 @@ export function DateTimePicker({
 
       <Popover.Portal>
         <Popover.Content
-          className="z-50 p-4 bg-white border border-gray-200 rounded-lg shadow-lg"
+          className="z-50 p-4 bg-surface-raised border border-line rounded-lg shadow-lg"
           sideOffset={4}
           align="start"
         >
@@ -156,10 +156,10 @@ export function DateTimePicker({
           />
 
           {/* Time picker */}
-          <div className="pt-3 mt-3 border-t border-gray-200">
+          <div className="pt-3 mt-3 border-t border-line">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Time:</span>
+              <Clock className="w-4 h-4 text-ink-faint" />
+              <span className="text-sm text-ink-muted">Time:</span>
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -170,9 +170,9 @@ export function DateTimePicker({
                     const val = Math.max(0, Math.min(23, parseInt(e.target.value) || 0));
                     handleTimeChange(val, minutes);
                   }}
-                  className="w-12 px-2 py-1 text-center border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-12 px-2 py-1 text-center border border-line-strong rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
-                <span className="text-gray-600">:</span>
+                <span className="text-ink-muted">:</span>
                 <input
                   type="number"
                   min={0}
@@ -182,7 +182,7 @@ export function DateTimePicker({
                     const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
                     handleTimeChange(hours, val);
                   }}
-                  className="w-12 px-2 py-1 text-center border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-12 px-2 py-1 text-center border border-line-strong rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>

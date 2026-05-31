@@ -57,7 +57,7 @@ interface UserOption {
 }
 
 function ExecutionStatusBadge({ status }: { status: string }) {
-  const defaultConfig = { icon: Clock, className: "text-gray-500", bg: "bg-gray-100" };
+  const defaultConfig = { icon: Clock, className: "text-ink-subtle", bg: "bg-surface-hover" };
   const config: Record<string, { icon: typeof Clock; className: string; bg: string }> = {
     queued: defaultConfig,
     running: { icon: Loader2, className: "text-blue-500", bg: "bg-blue-100" },
@@ -161,13 +161,13 @@ export function ActivityTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* View selector */}
-          <div className="flex p-1 bg-white border border-gray-200 rounded-lg">
+          <div className="flex p-1 bg-surface-raised border border-line rounded-lg">
             <button
               onClick={() => setView("workflows")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 view === "workflows"
                   ? "bg-brand-100 text-brand-700"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               <FileCode2 className="w-4 h-4" />
@@ -178,7 +178,7 @@ export function ActivityTab() {
               className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 view === "schedules"
                   ? "bg-brand-100 text-brand-700"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -189,7 +189,7 @@ export function ActivityTab() {
               className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 view === "executions"
                   ? "bg-brand-100 text-brand-700"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               <Play className="w-4 h-4" />
@@ -199,11 +199,11 @@ export function ActivityTab() {
 
           {/* User filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-ink-faint" />
             <select
               value={selectedUser}
               onChange={(e) => setSelectedUser(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             >
               <option value="">All users</option>
               {users.map((u) => (
@@ -218,7 +218,7 @@ export function ActivityTab() {
         <button
           onClick={() => fetchData(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
@@ -252,22 +252,22 @@ export function ActivityTab() {
 
           {/* Pagination for schedules and executions */}
           {(view === "schedules" || view === "executions") && totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
+            <div className="flex items-center justify-between pt-4 border-t border-line">
+              <p className="text-sm text-ink-subtle">
                 Page {page + 1} of {totalPages}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -283,54 +283,54 @@ export function ActivityTab() {
 function WorkflowsTable({ workflows }: { workflows: WorkflowMetadata[] }) {
   if (workflows.length === 0) {
     return (
-      <div className="p-8 text-center bg-white border border-gray-200 rounded-lg">
-        <FileCode2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-        <p className="text-gray-500">No workflows found</p>
+      <div className="p-8 text-center bg-surface-raised border border-line rounded-lg">
+        <FileCode2 className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
+        <p className="text-ink-subtle">No workflows found</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden bg-white border border-gray-200 rounded-lg">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="overflow-hidden bg-surface-raised border border-line rounded-lg">
+      <table className="min-w-full divide-y divide-line">
+        <thead className="bg-surface-sunken">
           <tr>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Workflow
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Owner
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Folder
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Updated
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-surface-raised divide-y divide-line">
           {workflows.map((w) => (
-            <tr key={w.id} className="hover:bg-gray-50">
+            <tr key={w.id} className="hover:bg-surface-sunken">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                   <FileCode2 className="flex-shrink-0 w-5 h-5 text-brand-500" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{w.name}</p>
+                    <p className="text-sm font-medium text-ink">{w.name}</p>
                     {w.description && (
-                      <p className="max-w-xs text-xs text-gray-500 truncate">{w.description}</p>
+                      <p className="max-w-xs text-xs text-ink-subtle truncate">{w.description}</p>
                     )}
                   </div>
                 </div>
               </td>
               <td className="px-6 py-4">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{w.uploaded_by}</span>
+                  <User className="w-4 h-4 text-ink-faint" />
+                  <span className="text-sm text-ink-muted">{w.uploaded_by}</span>
                 </div>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">{w.folder_path}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">{formatRelativeTime(w.updated_at)}</td>
+              <td className="px-6 py-4 text-sm text-ink-subtle">{w.folder_path}</td>
+              <td className="px-6 py-4 text-sm text-ink-subtle">{formatRelativeTime(w.updated_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -342,66 +342,66 @@ function WorkflowsTable({ workflows }: { workflows: WorkflowMetadata[] }) {
 function SchedulesTable({ schedules }: { schedules: ScheduleResponse[] }) {
   if (schedules.length === 0) {
     return (
-      <div className="p-8 text-center bg-white border border-gray-200 rounded-lg">
-        <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-        <p className="text-gray-500">No schedules found</p>
+      <div className="p-8 text-center bg-surface-raised border border-line rounded-lg">
+        <Calendar className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
+        <p className="text-ink-subtle">No schedules found</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden bg-white border border-gray-200 rounded-lg">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="overflow-hidden bg-surface-raised border border-line rounded-lg">
+      <table className="min-w-full divide-y divide-line">
+        <thead className="bg-surface-sunken">
           <tr>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Workflow
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Owner
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Schedule
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Status
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Next Run
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-surface-raised divide-y divide-line">
           {schedules.map((s) => (
-            <tr key={s.id} className="hover:bg-gray-50">
+            <tr key={s.id} className="hover:bg-surface-sunken">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                   <Calendar className="flex-shrink-0 w-5 h-5 text-purple-500" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{s.workflow_name || "Unknown"}</p>
+                    <p className="text-sm font-medium text-ink">{s.workflow_name || "Unknown"}</p>
                     {s.description && (
-                      <p className="max-w-xs text-xs text-gray-500 truncate">{s.description}</p>
+                      <p className="max-w-xs text-xs text-ink-subtle truncate">{s.description}</p>
                     )}
                   </div>
                 </div>
               </td>
               <td className="px-6 py-4">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{s.created_by || "-"}</span>
+                  <User className="w-4 h-4 text-ink-faint" />
+                  <span className="text-sm text-ink-muted">{s.created_by || "-"}</span>
                 </div>
               </td>
               <td className="px-6 py-4">
-                <code className="px-2 py-1 text-xs bg-gray-100 rounded">{s.cron_expression}</code>
+                <code className="px-2 py-1 text-xs bg-surface-hover rounded">{s.cron_expression}</code>
               </td>
               <td className="px-6 py-4">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                  s.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                  s.enabled ? "bg-green-100 text-green-700" : "bg-surface-hover text-ink-muted"
                 }`}>
                   {s.enabled ? "Active" : "Disabled"}
                 </span>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-6 py-4 text-sm text-ink-subtle">
                 {s.next_trigger_at ? formatRelativeTime(s.next_trigger_at) : "-"}
               </td>
             </tr>
@@ -415,61 +415,61 @@ function SchedulesTable({ schedules }: { schedules: ScheduleResponse[] }) {
 function ExecutionsTable({ executions }: { executions: ExecutionResponse[] }) {
   if (executions.length === 0) {
     return (
-      <div className="p-8 text-center bg-white border border-gray-200 rounded-lg">
-        <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-        <p className="text-gray-500">No executions found</p>
+      <div className="p-8 text-center bg-surface-raised border border-line rounded-lg">
+        <Play className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
+        <p className="text-ink-subtle">No executions found</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden bg-white border border-gray-200 rounded-lg">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="overflow-hidden bg-surface-raised border border-line rounded-lg">
+      <table className="min-w-full divide-y divide-line">
+        <thead className="bg-surface-sunken">
           <tr>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Workflow
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Triggered By
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Server
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Status
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Started
             </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
               Duration
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-surface-raised divide-y divide-line">
           {executions.map((e) => (
-            <tr key={e.id} className="hover:bg-gray-50">
+            <tr key={e.id} className="hover:bg-surface-sunken">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                   <Play className="flex-shrink-0 w-5 h-5 text-blue-500" />
-                  <p className="text-sm font-medium text-gray-900">{e.workflow_name}</p>
+                  <p className="text-sm font-medium text-ink">{e.workflow_name}</p>
                 </div>
               </td>
               <td className="px-6 py-4">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{e.triggered_by || "-"}</span>
+                  <User className="w-4 h-4 text-ink-faint" />
+                  <span className="text-sm text-ink-muted">{e.triggered_by || "-"}</span>
                 </div>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">{e.server_name}</td>
+              <td className="px-6 py-4 text-sm text-ink-subtle">{e.server_name}</td>
               <td className="px-6 py-4">
                 <ExecutionStatusBadge status={e.status} />
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-6 py-4 text-sm text-ink-subtle">
                 {formatRelativeTime(e.queued_at)}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-6 py-4 text-sm text-ink-subtle">
                 {e.duration_seconds !== null ? `${e.duration_seconds.toFixed(1)}s` : "-"}
               </td>
             </tr>

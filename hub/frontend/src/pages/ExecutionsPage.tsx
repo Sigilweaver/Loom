@@ -63,7 +63,7 @@ function StatusBadge({ status }: { status: string }) {
   > = {
     queued: {
       icon: Clock,
-      className: "bg-gray-100 text-gray-700",
+      className: "bg-surface-hover text-ink-muted",
       label: "Queued",
     },
     running: {
@@ -107,10 +107,10 @@ function TriggerTypeBadge({ type }: { type: string }) {
   const config: Record<string, { className: string; label: string }> = {
     manual: { className: "bg-purple-100 text-purple-700", label: "Manual" },
     scheduled: { className: "bg-blue-100 text-blue-700", label: "Scheduled" },
-    api: { className: "bg-gray-100 text-gray-700", label: "API" },
+    api: { className: "bg-surface-hover text-ink-muted", label: "API" },
   };
 
-  const c = config[type] ?? { className: "bg-gray-100 text-gray-600", label: type };
+  const c = config[type] ?? { className: "bg-surface-hover text-ink-muted", label: type };
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${c.className}`}
@@ -251,20 +251,20 @@ export function ExecutionsPage() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Executions</h1>
+        <h1 className="text-2xl font-semibold text-ink">Executions</h1>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              className="rounded border-line-strong text-brand-600 focus:ring-brand-500"
             />
             Live updates
           </label>
           <button
             onClick={fetchExecutions}
-            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -287,7 +287,7 @@ export function ExecutionsPage() {
             setSelectedWorkflow(e.target.value);
             setPage(0);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+          className="px-4 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         >
           <option value="">All workflows</option>
           {workflows.map((w) => (
@@ -303,7 +303,7 @@ export function ExecutionsPage() {
             setSelectedServer(e.target.value);
             setPage(0);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+          className="px-4 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         >
           <option value="">All servers</option>
           {servers.map((s) => (
@@ -319,7 +319,7 @@ export function ExecutionsPage() {
             setSelectedStatus(e.target.value);
             setPage(0);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+          className="px-4 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         >
           <option value="">All statuses</option>
           <option value="queued">Queued</option>
@@ -331,14 +331,14 @@ export function ExecutionsPage() {
       </div>
 
       {executions.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Play className="h-8 w-8 text-gray-400" />
+        <div className="bg-surface-raised rounded-lg border border-line p-12 text-center">
+          <div className="mx-auto w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4">
+            <Play className="h-8 w-8 text-ink-faint" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-ink mb-2">
             No executions found
           </h3>
-          <p className="text-gray-500">
+          <p className="text-ink-subtle">
             {selectedWorkflow || selectedServer || selectedStatus
               ? "Try adjusting your filters"
               : "Executions will appear here when you run workflows"}
@@ -347,43 +347,43 @@ export function ExecutionsPage() {
       ) : (
         <>
           {/* Table */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="bg-surface-raised rounded-lg border border-line overflow-hidden">
+            <table className="min-w-full divide-y divide-line">
+              <thead className="bg-surface-sunken">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Workflow
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Server
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Trigger
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Started
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Duration
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-ink-subtle uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-surface-raised divide-y divide-line">
                 {executions.map((execution) => (
-                  <tr key={execution.id} className="hover:bg-gray-50">
+                  <tr key={execution.id} className="hover:bg-surface-sunken">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-ink">
                         {execution.workflow_name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-ink-muted">
                         {execution.server_name}
                       </div>
                     </td>
@@ -394,21 +394,21 @@ export function ExecutionsPage() {
                       <div className="flex items-center gap-2">
                         <TriggerTypeBadge type={execution.trigger_type} />
                         {execution.triggered_by && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-ink-subtle">
                             by {execution.triggered_by}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-ink-muted">
                         {execution.started_at
                           ? formatRelativeTime(execution.started_at)
                           : formatRelativeTime(execution.queued_at)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-ink-muted">
                         {formatDuration(execution.duration_seconds)}
                       </div>
                     </td>
@@ -440,24 +440,24 @@ export function ExecutionsPage() {
           {/* Error Modal */}
           {viewingError && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+              <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
                 <div className="flex items-center justify-between p-4 border-b">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-red-100 rounded-lg">
                       <XCircle className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">
+                      <h2 className="text-lg font-semibold text-ink">
                         Execution Failed
                       </h2>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-ink-subtle">
                         {viewingError.workflow_name}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setViewingError(null)}
-                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                    className="p-2 text-ink-faint hover:text-ink-muted rounded-lg hover:bg-surface-hover"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -468,18 +468,18 @@ export function ExecutionsPage() {
                     {/* Metadata */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">Server:</span>{" "}
+                        <span className="text-ink-subtle">Server:</span>{" "}
                         <span className="font-medium">{viewingError.server_name}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Trigger:</span>{" "}
+                        <span className="text-ink-subtle">Trigger:</span>{" "}
                         <span className="font-medium">
                           {viewingError.trigger_type}
                           {viewingError.triggered_by && ` by ${viewingError.triggered_by}`}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Started:</span>{" "}
+                        <span className="text-ink-subtle">Started:</span>{" "}
                         <span className="font-medium">
                           {viewingError.started_at
                             ? new Date(viewingError.started_at).toLocaleString()
@@ -487,7 +487,7 @@ export function ExecutionsPage() {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Duration:</span>{" "}
+                        <span className="text-ink-subtle">Duration:</span>{" "}
                         <span className="font-medium">
                           {formatDuration(viewingError.duration_seconds)}
                         </span>
@@ -497,8 +497,8 @@ export function ExecutionsPage() {
                     {/* Error Message */}
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Error Details</span>
+                        <FileText className="h-4 w-4 text-ink-faint" />
+                        <span className="text-sm font-medium text-ink-muted">Error Details</span>
                       </div>
                       <pre className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 whitespace-pre-wrap overflow-auto max-h-[300px] font-mono">
                         {viewingError.error_message}
@@ -514,7 +514,7 @@ export function ExecutionsPage() {
                         navigator.clipboard.writeText(viewingError.error_message);
                       }
                     }}
-                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="px-4 py-2 text-ink-muted hover:bg-surface-hover rounded-lg transition-colors"
                   >
                     Copy Error
                   </button>
@@ -532,7 +532,7 @@ export function ExecutionsPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-ink-subtle">
                 Showing {page * PAGE_SIZE + 1} -{" "}
                 {Math.min((page + 1) * PAGE_SIZE, total)} of {total}
               </div>
@@ -540,17 +540,17 @@ export function ExecutionsPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-ink-muted">
                   Page {page + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>

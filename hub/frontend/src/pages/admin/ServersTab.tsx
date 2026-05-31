@@ -44,7 +44,7 @@ function StatusBadge({ status }: { status: string }) {
     },
     unknown: {
       icon: <AlertCircle className="h-4 w-4" />,
-      className: "bg-gray-100 text-gray-700",
+      className: "bg-surface-hover text-ink-muted",
       label: "Unknown",
     },
   };
@@ -161,12 +161,12 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Add Server</h2>
+      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h2 className="text-lg font-semibold text-ink">Add Server</h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-ink-faint hover:text-ink-subtle"
           >
             <X className="h-5 w-5" />
           </button>
@@ -176,7 +176,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-ink-muted mb-1"
             >
               Name
             </label>
@@ -186,7 +186,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Production Server 1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
           </div>
@@ -194,7 +194,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
           <div>
             <label
               htmlFor="endpoint"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-ink-muted mb-1"
             >
               Endpoint URL
             </label>
@@ -204,7 +204,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
               value={endpointUrl}
               onChange={(e) => setEndpointUrl(e.target.value)}
               placeholder="http://localhost:25811"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
           </div>
@@ -212,10 +212,10 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
           <div>
             <label
               htmlFor="token"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-ink-muted mb-1"
             >
               Auth Token{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-ink-faint font-normal">(optional)</span>
             </label>
             <input
               id="token"
@@ -223,7 +223,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
               value={authToken}
               onChange={(e) => setAuthToken(e.target.value)}
               placeholder="Server auth token"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             />
           </div>
 
@@ -249,7 +249,7 @@ function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
               type="button"
               onClick={handleTest}
               disabled={!endpointUrl || testing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-line-strong text-ink-muted rounded-lg hover:bg-surface-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -349,7 +349,7 @@ export function ServersTab() {
       {/* Header with action button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-subtle">
             Manage Sigilweaver Loom Server instances that Hub can dispatch workflows to.
           </p>
         </div>
@@ -369,14 +369,14 @@ export function ServersTab() {
       )}
 
       {servers.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Server className="h-8 w-8 text-gray-400" />
+        <div className="bg-surface-raised rounded-lg border border-line p-12 text-center">
+          <div className="mx-auto w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4">
+            <Server className="h-8 w-8 text-ink-faint" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-ink mb-2">
             No servers registered
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-ink-subtle mb-4">
             Register a Sigilweaver Loom Server instance to start executing workflows
           </p>
           <button
@@ -388,36 +388,36 @@ export function ServersTab() {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-surface-raised rounded-lg border border-line overflow-hidden">
+          <table className="min-w-full divide-y divide-line">
+            <thead className="bg-surface-sunken">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Server
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Version
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Last Polled
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-ink-subtle uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface-raised divide-y divide-line">
               {servers.map((server) => (
-                <tr key={server.id} className="hover:bg-gray-50">
+                <tr key={server.id} className="hover:bg-surface-sunken">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-ink">
                         {server.name}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-ink-subtle">
                         {server.endpoint_url}
                       </div>
                     </div>
@@ -425,10 +425,10 @@ export function ServersTab() {
                   <td className="px-6 py-4">
                     <StatusBadge status={server.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-ink-subtle">
                     {server.version || "-"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-ink-subtle">
                     {formatRelativeTime(server.last_poll)}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -436,7 +436,7 @@ export function ServersTab() {
                       <button
                         onClick={() => handleRefresh(server.id)}
                         disabled={refreshingId === server.id}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-2 text-ink-faint hover:text-ink-muted hover:bg-surface-hover rounded-lg transition-colors disabled:opacity-50"
                         title="Refresh status"
                       >
                         <RefreshCw
@@ -446,7 +446,7 @@ export function ServersTab() {
                       <button
                         onClick={() => handleDelete(server.id, server.name)}
                         disabled={deletingId === server.id}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-2 text-ink-faint hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Remove server"
                       >
                         {deletingId === server.id ? (

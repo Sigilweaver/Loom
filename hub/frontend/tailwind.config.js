@@ -1,9 +1,30 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
+        // Semantic theme tokens backed by CSS custom properties (see index.css).
+        // These drive every neutral surface, text, and border in the Hub, so
+        // swapping the theme class on <html> reskins the whole app. The three
+        // themes (Sigilweaver Signature / Dark / Light) redefine the variables.
+        surface: {
+          sunken: "var(--c-bg)",
+          DEFAULT: "var(--c-raised)",
+          raised: "var(--c-raised)",
+          hover: "var(--c-hover)",
+        },
+        ink: {
+          DEFAULT: "var(--c-ink)",
+          muted: "var(--c-ink-muted)",
+          subtle: "var(--c-ink-subtle)",
+          faint: "var(--c-ink-faint)",
+        },
+        line: {
+          DEFAULT: "var(--c-line)",
+          strong: "var(--c-line-strong)",
+        },
         // Sigilweaver brand colors - violet identity matching the Studio's
         // "Sigilweaver Signature" theme (accent #8b5cf6 / a78bfa family).
         // All Hub UI references these brand-* tokens, so the palette below is

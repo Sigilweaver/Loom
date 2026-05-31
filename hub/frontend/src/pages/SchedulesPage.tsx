@@ -141,14 +141,14 @@ function ScheduleModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-ink">
             {schedule ? "Edit Schedule" : "Create Schedule"}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="p-2 text-ink-faint hover:text-ink-muted rounded-lg hover:bg-surface-hover"
           >
             <X className="h-5 w-5" />
           </button>
@@ -164,7 +164,7 @@ function ScheduleModal({
 
           {/* Workflow */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Workflow *
             </label>
             <select
@@ -174,7 +174,7 @@ function ScheduleModal({
               }
               required
               disabled={!!schedule}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-surface-hover"
             >
               <option value="">Select a workflow</option>
               {workflows.map((w) => (
@@ -197,7 +197,7 @@ function ScheduleModal({
 
           {/* Timezone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Timezone
             </label>
             <select
@@ -205,7 +205,7 @@ function ScheduleModal({
               onChange={(e) =>
                 setFormData({ ...formData, timezone: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             >
               <option value="UTC">UTC</option>
               <option value="America/New_York">America/New_York (EST/EDT)</option>
@@ -222,7 +222,7 @@ function ScheduleModal({
 
           {/* Start At (delayed start) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Start At (Optional)
             </label>
             <DateTimePicker
@@ -230,14 +230,14 @@ function ScheduleModal({
               onChange={(value) => setFormData({ ...formData, start_at: value })}
               placeholder="Select start date and time"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-subtle">
               Schedule won't trigger before this time. Leave empty to start immediately.
             </p>
           </div>
 
           {/* Target Server */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Target Server
             </label>
             <select
@@ -245,7 +245,7 @@ function ScheduleModal({
               onChange={(e) =>
                 setFormData({ ...formData, target_server_id: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             >
               <option value="">Auto-select (round-robin)</option>
               {servers.map((s) => (
@@ -258,7 +258,7 @@ function ScheduleModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Description
             </label>
             <textarea
@@ -268,7 +268,7 @@ function ScheduleModal({
               }
               rows={2}
               placeholder="Optional description for this schedule"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
             />
           </div>
 
@@ -281,9 +281,9 @@ function ScheduleModal({
               onChange={(e) =>
                 setFormData({ ...formData, enabled: e.target.checked })
               }
-              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              className="rounded border-line-strong text-brand-600 focus:ring-brand-500"
             />
-            <label htmlFor="enabled" className="text-sm text-gray-700">
+            <label htmlFor="enabled" className="text-sm text-ink-muted">
               Enable schedule immediately
             </label>
           </div>
@@ -293,7 +293,7 @@ function ScheduleModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-ink-muted hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -450,11 +450,11 @@ export function SchedulesPage() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Schedules</h1>
+        <h1 className="text-2xl font-semibold text-ink">Schedules</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchSchedules}
-            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -483,14 +483,14 @@ export function SchedulesPage() {
       )}
 
       {schedules.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Clock className="h-8 w-8 text-gray-400" />
+        <div className="bg-surface-raised rounded-lg border border-line p-12 text-center">
+          <div className="mx-auto w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4">
+            <Clock className="h-8 w-8 text-ink-faint" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-ink mb-2">
             No schedules yet
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-ink-subtle mb-4">
             Create a schedule to run workflows automatically
           </p>
           <button
@@ -508,21 +508,21 @@ export function SchedulesPage() {
             {schedules.map((schedule) => (
               <div
                 key={schedule.id}
-                className={`bg-white rounded-lg border p-4 ${schedule.enabled
-                    ? "border-gray-200"
-                    : "border-gray-200 opacity-60"
+                className={`bg-surface-raised rounded-lg border p-4 ${schedule.enabled
+                    ? "border-line"
+                    : "border-line opacity-60"
                   }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">
+                      <h3 className="text-lg font-medium text-ink">
                         {schedule.workflow_name || "Unknown Workflow"}
                       </h3>
                       <span
                         className={`px-2 py-0.5 rounded text-xs font-medium ${schedule.enabled
                             ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            : "bg-surface-hover text-ink-muted"
                           }`}
                       >
                         {schedule.enabled ? "Active" : "Paused"}
@@ -530,18 +530,18 @@ export function SchedulesPage() {
                     </div>
 
                     {schedule.description && (
-                      <p className="text-sm text-gray-600 mb-3">
+                      <p className="text-sm text-ink-muted mb-3">
                         {schedule.description}
                       </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-ink-muted">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4" />
-                        <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                        <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">
                           {schedule.cron_expression}
                         </code>
-                        <span className="text-gray-400">({schedule.timezone})</span>
+                        <span className="text-ink-faint">({schedule.timezone})</span>
                       </div>
 
                       {schedule.target_server_name && (
@@ -559,7 +559,7 @@ export function SchedulesPage() {
                       )}
 
                       {schedule.last_triggered_at && (
-                        <div className="text-gray-400">
+                        <div className="text-ink-faint">
                           Last run: {formatRelativeTime(schedule.last_triggered_at)}
                         </div>
                       )}
@@ -570,7 +570,7 @@ export function SchedulesPage() {
                     <button
                       onClick={() => handleTrigger(schedule)}
                       title="Run now"
-                      className="p-2 text-gray-400 hover:text-brand-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 text-ink-faint hover:text-brand-600 hover:bg-surface-hover rounded-lg transition-colors"
                     >
                       <Play className="h-4 w-4" />
                     </button>
@@ -578,7 +578,7 @@ export function SchedulesPage() {
                     <button
                       onClick={() => handleToggle(schedule)}
                       title={schedule.enabled ? "Pause" : "Enable"}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 text-ink-faint hover:text-ink-muted hover:bg-surface-hover rounded-lg transition-colors"
                     >
                       {schedule.enabled ? (
                         <Pause className="h-4 w-4" />
@@ -590,7 +590,7 @@ export function SchedulesPage() {
                     <button
                       onClick={() => handleEdit(schedule)}
                       title="Edit"
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 text-ink-faint hover:text-ink-muted hover:bg-surface-hover rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
@@ -605,7 +605,7 @@ export function SchedulesPage() {
                         </button>
                         <button
                           onClick={() => setDeletingId(null)}
-                          className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"
+                          className="p-2 text-ink-faint hover:bg-surface-hover rounded-lg"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -614,7 +614,7 @@ export function SchedulesPage() {
                       <button
                         onClick={() => setDeletingId(schedule.id)}
                         title="Delete"
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 text-ink-faint hover:text-red-600 hover:bg-surface-hover rounded-lg transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -628,7 +628,7 @@ export function SchedulesPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-ink-subtle">
                 Showing {page * PAGE_SIZE + 1} -{" "}
                 {Math.min((page + 1) * PAGE_SIZE, total)} of {total}
               </div>
@@ -636,17 +636,17 @@ export function SchedulesPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-ink-muted">
                   Page {page + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>

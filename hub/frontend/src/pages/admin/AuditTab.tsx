@@ -74,11 +74,11 @@ function AuditRow({ event }: { event: AuditEventResponse }) {
 
   return (
     <>
-      <tr className="hover:bg-gray-50">
+      <tr className="hover:bg-surface-sunken">
         <td className="px-4 py-3 align-top">
           <button
             onClick={() => setExpanded((e) => !e)}
-            className="text-gray-400 hover:text-gray-700"
+            className="text-ink-faint hover:text-ink-muted"
             aria-label={expanded ? "Collapse details" : "Expand details"}
           >
             {expanded ? (
@@ -88,35 +88,35 @@ function AuditRow({ event }: { event: AuditEventResponse }) {
             )}
           </button>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap align-top">
+        <td className="px-4 py-3 text-sm text-ink-muted whitespace-nowrap align-top">
           {formatTimestamp(event.timestamp)}
         </td>
         <td className="px-4 py-3 align-top">
-          <code className="px-2 py-0.5 text-xs bg-gray-100 rounded text-gray-800">
+          <code className="px-2 py-0.5 text-xs bg-surface-hover rounded text-ink">
             {event.event_type}
           </code>
         </td>
         <td className="px-4 py-3 align-top">
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-400" />
+            <User className="w-4 h-4 text-ink-faint" />
             <div>
-              <p className="text-sm text-gray-900">{event.actor_identity}</p>
-              <p className="text-xs text-gray-500">{event.actor_type}</p>
+              <p className="text-sm text-ink">{event.actor_identity}</p>
+              <p className="text-xs text-ink-subtle">{event.actor_type}</p>
             </div>
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap align-top">
+        <td className="px-4 py-3 text-sm text-ink-subtle whitespace-nowrap align-top">
           {event.client_ip || "-"}
         </td>
         <td className="px-4 py-3 align-top">
-          <div className="flex items-center gap-1.5 text-gray-500">
+          <div className="flex items-center gap-1.5 text-ink-subtle">
             <Hash className="w-3.5 h-3.5" />
             <code className="text-xs">{shortHash(event.event_hash)}</code>
           </div>
         </td>
       </tr>
       {expanded && (
-        <tr className="bg-gray-50">
+        <tr className="bg-surface-sunken">
           <td />
           <td colSpan={5} className="px-4 py-3">
             <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -132,10 +132,10 @@ function AuditRow({ event }: { event: AuditEventResponse }) {
             </dl>
             {hasDetails && (
               <div className="mt-3">
-                <p className="mb-1 text-xs font-medium tracking-wider text-gray-500 uppercase">
+                <p className="mb-1 text-xs font-medium tracking-wider text-ink-subtle uppercase">
                   Details
                 </p>
-                <pre className="p-3 overflow-x-auto text-xs bg-white border border-gray-200 rounded">
+                <pre className="p-3 overflow-x-auto text-xs bg-surface-raised border border-line rounded">
                   {JSON.stringify(event.details, null, 2)}
                 </pre>
               </div>
@@ -158,8 +158,8 @@ function DetailField({
 }) {
   return (
     <div>
-      <dt className="text-xs font-medium tracking-wider text-gray-500 uppercase">{label}</dt>
-      <dd className={`text-sm text-gray-800 break-all ${mono ? "font-mono" : ""}`}>
+      <dt className="text-xs font-medium tracking-wider text-ink-subtle uppercase">{label}</dt>
+      <dd className={`text-sm text-ink break-all ${mono ? "font-mono" : ""}`}>
         {value || "-"}
       </dd>
     </div>
@@ -262,8 +262,8 @@ export function AuditTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Audit Log</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-semibold text-ink">Audit Log</h2>
+          <p className="text-sm text-ink-subtle">
             Tamper-evident record of security-relevant events.
           </p>
         </div>
@@ -271,7 +271,7 @@ export function AuditTab() {
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -303,10 +303,10 @@ export function AuditTab() {
       {/* Filters */}
       <form
         onSubmit={applyFilters}
-        className="flex flex-wrap items-end gap-3 p-4 bg-white border border-gray-200 rounded-lg"
+        className="flex flex-wrap items-end gap-3 p-4 bg-surface-raised border border-line rounded-lg"
       >
         <div className="flex flex-col gap-1">
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+          <label className="flex items-center gap-1.5 text-xs font-medium text-ink-subtle">
             <Filter className="w-3.5 h-3.5" />
             Event type
           </label>
@@ -315,25 +315,25 @@ export function AuditTab() {
             value={eventType}
             onChange={(e) => setEventType(e.target.value)}
             placeholder="e.g. execution.requested"
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">From</label>
+          <label className="text-xs font-medium text-ink-subtle">From</label>
           <input
             type="datetime-local"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">To</label>
+          <label className="text-xs font-medium text-ink-subtle">To</label>
           <input
             type="datetime-local"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
         <button
@@ -345,7 +345,7 @@ export function AuditTab() {
         <button
           type="button"
           onClick={clearFilters}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900"
+          className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink"
         >
           Clear
         </button>
@@ -365,34 +365,34 @@ export function AuditTab() {
           <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
         </div>
       ) : events.length === 0 ? (
-        <div className="p-8 text-center bg-white border border-gray-200 rounded-lg">
-          <ShieldCheck className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">No audit events found</p>
+        <div className="p-8 text-center bg-surface-raised border border-line rounded-lg">
+          <ShieldCheck className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
+          <p className="text-ink-subtle">No audit events found</p>
         </div>
       ) : (
-        <div className="overflow-hidden bg-white border border-gray-200 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-hidden bg-surface-raised border border-line rounded-lg">
+          <table className="min-w-full divide-y divide-line">
+            <thead className="bg-surface-sunken">
               <tr>
                 <th className="w-8 px-4 py-3" />
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
                   Timestamp
                 </th>
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
                   Event
                 </th>
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
                   Actor
                 </th>
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
                   Client IP
                 </th>
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
                   Hash
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface-raised divide-y divide-line">
               {events.map((event) => (
                 <AuditRow key={event.id} event={event} />
               ))}
@@ -403,22 +403,22 @@ export function AuditTab() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
+        <div className="flex items-center justify-between pt-4 border-t border-line">
+          <p className="text-sm text-ink-subtle">
             Page {page + 1} of {totalPages} ({total} events)
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

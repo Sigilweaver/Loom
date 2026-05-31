@@ -133,9 +133,9 @@ export function GrantGroupsTab() {
             <div className="w-80 flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <Package className="h-5 w-5 text-gray-500" />
-                        <h2 className="text-lg font-medium text-gray-900">Grant Groups</h2>
-                        <span className="text-sm text-gray-500">({grantGroups.length})</span>
+                        <Package className="h-5 w-5 text-ink-subtle" />
+                        <h2 className="text-lg font-medium text-ink">Grant Groups</h2>
+                        <span className="text-sm text-ink-subtle">({grantGroups.length})</span>
                     </div>
                     <button
                         onClick={handleCreateGrantGroup}
@@ -147,10 +147,10 @@ export function GrantGroupsTab() {
                 </div>
 
                 {grantGroups.length === 0 ? (
-                    <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-                        <Package className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500 mb-3">No grant groups yet</p>
-                        <p className="text-xs text-gray-400 mb-3">
+                    <div className="bg-surface-sunken rounded-lg border-2 border-dashed border-line p-6 text-center">
+                        <Package className="h-10 w-10 text-ink-faint mx-auto mb-2" />
+                        <p className="text-sm text-ink-subtle mb-3">No grant groups yet</p>
+                        <p className="text-xs text-ink-faint mb-3">
                             Grant groups bundle connections into reusable permission sets.
                         </p>
                         <button
@@ -165,20 +165,20 @@ export function GrantGroupsTab() {
                         {grantGroups.map((grantGroup) => (
                             <div
                                 key={grantGroup.id}
-                                className={`bg-white rounded-lg border p-3 cursor-pointer transition-colors ${selectedGrantGroup?.id === grantGroup.id
+                                className={`bg-surface-raised rounded-lg border p-3 cursor-pointer transition-colors ${selectedGrantGroup?.id === grantGroup.id
                                     ? "border-brand-600 ring-1 ring-brand-600"
-                                    : "border-gray-200 hover:border-gray-300"
+                                    : "border-line hover:border-line-strong"
                                     }`}
                                 onClick={() => setSelectedGrantGroup(grantGroup)}
                             >
                                 <div className="flex items-center justify-between">
-                                    <h3 className="font-medium text-gray-900">{grantGroup.name}</h3>
-                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                    <h3 className="font-medium text-ink">{grantGroup.name}</h3>
+                                    <ChevronRight className="h-4 w-4 text-ink-faint" />
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                                <p className="text-sm text-ink-subtle mt-1 line-clamp-1">
                                     {grantGroup.description || "No description"}
                                 </p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                <div className="flex items-center gap-4 mt-2 text-xs text-ink-subtle">
                                     <span className="flex items-center gap-1">
                                         <Database className="h-3.5 w-3.5" />
                                         {grantGroup.connection_count} connections
@@ -207,10 +207,10 @@ export function GrantGroupsTab() {
                         }}
                     />
                 ) : (
-                    <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-12 text-center">
-                        <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-700 mb-1">Select a grant group</h3>
-                        <p className="text-sm text-gray-500">
+                    <div className="bg-surface-sunken rounded-lg border-2 border-dashed border-line p-12 text-center">
+                        <Package className="h-12 w-12 text-ink-faint mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-ink-muted mb-1">Select a grant group</h3>
+                        <p className="text-sm text-ink-subtle">
                             Choose a grant group from the list to view and manage its connections.
                         </p>
                     </div>
@@ -292,44 +292,44 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
     };
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-surface-raised rounded-lg border border-line">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-line">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">{grantGroup.name}</h2>
-                        <p className="text-sm text-gray-500 mt-1">{grantGroup.description || "No description"}</p>
+                        <h2 className="text-xl font-semibold text-ink">{grantGroup.name}</h2>
+                        <p className="text-sm text-ink-subtle mt-1">{grantGroup.description || "No description"}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onEdit}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken"
                         >
                             <Edit className="h-4 w-4" />
                             Edit
                         </button>
                         <button
                             onClick={onDelete}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-surface-raised border border-line-strong rounded-lg hover:bg-red-50"
                         >
                             <Trash2 className="h-4 w-4" />
                             Delete
                         </button>
                     </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-ink-faint mt-2">
                     Created by {grantGroup.created_by} on {new Date(grantGroup.created_at).toLocaleDateString()}
                 </p>
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 px-6">
+            <div className="border-b border-line px-6">
                 <div className="flex gap-6">
                     <button
                         onClick={() => setActiveTab("connections")}
                         className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "connections"
                             ? "border-brand-600 text-brand-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            : "border-transparent text-ink-subtle hover:text-ink-muted"
                             }`}
                     >
                         <span className="flex items-center gap-2">
@@ -341,7 +341,7 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                         onClick={() => setActiveTab("user-groups")}
                         className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "user-groups"
                             ? "border-brand-600 text-brand-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            : "border-transparent text-ink-subtle hover:text-ink-muted"
                             }`}
                     >
                         <span className="flex items-center gap-2">
@@ -361,7 +361,7 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                 ) : activeTab === "connections" ? (
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-ink-subtle">
                                 Connections in this grant group are accessible to all assigned user groups.
                             </p>
                             <button
@@ -374,8 +374,8 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                         </div>
 
                         {detail?.connections.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <Database className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                            <div className="text-center py-8 text-ink-subtle">
+                                <Database className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
                                 <p>No connections assigned yet</p>
                             </div>
                         ) : (
@@ -383,15 +383,15 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                                 {detail?.connections.map((conn) => (
                                     <div
                                         key={conn.connection_id}
-                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                        className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-brand-100">
                                                 <Database className="h-4 w-4 text-brand-600" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{conn.name}</p>
-                                                <p className="text-xs text-gray-500">{conn.type}</p>
+                                                <p className="text-sm font-medium text-ink">{conn.name}</p>
+                                                <p className="text-xs text-ink-subtle">{conn.type}</p>
                                             </div>
                                         </div>
                                         <button
@@ -409,17 +409,17 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                 ) : (
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-ink-subtle">
                                 User groups with access to this grant group's connections.
                             </p>
-                            <p className="text-xs text-gray-400 italic">
+                            <p className="text-xs text-ink-faint italic">
                                 Manage from User Groups tab
                             </p>
                         </div>
 
                         {detail?.user_groups.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                            <div className="text-center py-8 text-ink-subtle">
+                                <Users className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
                                 <p>No user groups assigned yet</p>
                                 <p className="text-xs mt-1">Assign this grant group from the User Groups tab</p>
                             </div>
@@ -428,18 +428,18 @@ function GrantGroupDetails({ grantGroup, onEdit, onDelete, onUpdate }: GrantGrou
                                 {detail?.user_groups.map((ug) => (
                                     <div
                                         key={ug.user_group_id}
-                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                        className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-blue-100">
                                                 <Users className="h-4 w-4 text-blue-600" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{ug.user_group_name}</p>
+                                                <p className="text-sm font-medium text-ink">{ug.user_group_name}</p>
                                                 {ug.description && (
-                                                    <p className="text-xs text-gray-600 mt-0.5">{ug.description}</p>
+                                                    <p className="text-xs text-ink-muted mt-0.5">{ug.description}</p>
                                                 )}
-                                                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                                <div className="flex items-center gap-3 text-xs text-ink-subtle mt-1">
                                                     <span>{ug.member_count} member{ug.member_count !== 1 ? "s" : ""}</span>
                                                     <span>•</span>
                                                     <span>Assigned {new Date(ug.assigned_at).toLocaleDateString()} by {ug.assigned_by}</span>
@@ -507,12 +507,12 @@ function GrantGroupDialog({ grantGroup, onClose, onSave }: GrantGroupDialogProps
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">
+            <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+                    <h3 className="text-lg font-semibold text-ink">
                         {isEditing ? "Edit Grant Group" : "Create Grant Group"}
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -527,7 +527,7 @@ function GrantGroupDialog({ grantGroup, onClose, onSave }: GrantGroupDialogProps
                         )}
 
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-1">
                                 Name
                             </label>
                             <input
@@ -535,32 +535,32 @@ function GrantGroupDialog({ grantGroup, onClose, onSave }: GrantGroupDialogProps
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                                 placeholder="e.g., Production Read Access"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="description" className="block text-sm font-medium text-ink-muted mb-1">
                                 Description
                             </label>
                             <textarea
                                 id="description"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                                 placeholder="Describe the purpose of this grant group..."
                                 rows={3}
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-line bg-surface-sunken">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
+                            className="px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-hover"
                         >
                             Cancel
                         </button>
@@ -647,10 +647,10 @@ function AddConnectionToGrantGroupDialog({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Add Connection to {grantGroup.name}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+                    <h3 className="text-lg font-semibold text-ink">Add Connection to {grantGroup.name}</h3>
+                    <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -668,8 +668,8 @@ function AddConnectionToGrantGroupDialog({
                             <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
                         </div>
                     ) : connections.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                            <Database className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                        <div className="text-center py-8 text-ink-subtle">
+                            <Database className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
                             <p>All connections are already assigned</p>
                         </div>
                     ) : (
@@ -678,14 +678,14 @@ function AddConnectionToGrantGroupDialog({
                                 const isAdding = adding === conn.id;
 
                                 return (
-                                    <div key={conn.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div key={conn.id} className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-brand-100">
                                                 <Database className="h-4 w-4 text-brand-600" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{conn.name}</p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-sm font-medium text-ink">{conn.name}</p>
+                                                <p className="text-xs text-ink-subtle">
                                                     {conn.type === "database" && conn.database_config
                                                         ? `${conn.database_config.db_type} - ${conn.database_config.host}:${conn.database_config.port}`
                                                         : conn.filesystem_config
@@ -709,10 +709,10 @@ function AddConnectionToGrantGroupDialog({
                     )}
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="px-6 py-4 border-t border-line bg-surface-sunken">
                     <button
                         onClick={onClose}
-                        className="w-full px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
+                        className="w-full px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-hover"
                     >
                         Done
                     </button>

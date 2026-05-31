@@ -22,9 +22,19 @@ import {
   Package,
   Users,
   Settings,
+  Sparkles,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
+import { useThemeStore, type Theme } from "@state/themeStore";
 import { logout, updateProfile } from "@api/client";
+
+const themeOptions: { value: Theme; label: string; icon: typeof Sparkles }[] = [
+  { value: "sigilweaver", label: "Sigilweaver", icon: Sparkles },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+];
 
 const userNavItems = [
   { to: "/home", label: "Home", icon: Home },
@@ -55,6 +65,7 @@ const roleLabels: Record<string, string> = {
 export function Layout() {
   const navigate = useNavigate();
   const { user, clearAuth, setAuth, token } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -78,14 +89,14 @@ export function Layout() {
   const roleLabel = user?.role ? roleLabels[user.role] || user.role : "";
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-surface-sunken">
       {/* Sidebar */}
       <aside
-        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${sidebarCollapsed ? "w-16" : "w-64"
+        className={`bg-surface-raised border-r border-line flex flex-col transition-all duration-200 ${sidebarCollapsed ? "w-16" : "w-64"
           }`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-line">
           <div className="flex items-center min-w-0 gap-2">
             <img
               src="/sigilweaver-logo.svg"
@@ -93,14 +104,14 @@ export function Layout() {
               className="flex-shrink-0 w-8 h-8"
             />
             {!sidebarCollapsed && (
-              <span className="text-lg font-semibold text-gray-900 truncate">
+              <span className="text-lg font-semibold text-ink truncate">
                 Sigilweaver Loom Hub
               </span>
             )}
           </div>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+            className="p-1.5 rounded-lg text-ink-faint hover:text-ink-muted hover:bg-surface-hover transition-colors flex-shrink-0"
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {sidebarCollapsed ? (
@@ -122,7 +133,7 @@ export function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                   ? "bg-brand-50 text-brand-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  : "text-ink-muted hover:bg-surface-hover hover:text-ink"
                 } ${sidebarCollapsed ? "justify-center" : ""}`
               }
               title={sidebarCollapsed ? item.label : undefined}
@@ -142,7 +153,7 @@ export function Layout() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                       ? "bg-brand-50 text-brand-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      : "text-ink-muted hover:bg-surface-hover hover:text-ink"
                     } ${sidebarCollapsed ? "justify-center" : ""}`
                   }
                   title={sidebarCollapsed ? item.label : undefined}
@@ -156,10 +167,10 @@ export function Layout() {
         </nav>
 
         {/* User section */}
-        <div className="relative p-2 border-t border-gray-200">
+        <div className="relative p-2 border-t border-line">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`w-full flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors ${sidebarCollapsed ? "justify-center" : ""
+            className={`w-full flex items-center gap-3 hover:bg-surface-sunken rounded-lg p-2 transition-colors ${sidebarCollapsed ? "justify-center" : ""
               }`}
             title={sidebarCollapsed ? user?.username : undefined}
           >
@@ -171,13 +182,13 @@ export function Layout() {
             {!sidebarCollapsed && (
               <>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-ink truncate">
                     {user?.username || "Unknown"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{roleLabel}</p>
+                  <p className="text-xs text-ink-subtle truncate">{roleLabel}</p>
                 </div>
                 <ChevronDown
-                  className={`h-4 w-4 text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""
+                  className={`h-4 w-4 text-ink-faint transition-transform ${showUserMenu ? "rotate-180" : ""
                     }`}
                 />
               </>
@@ -194,24 +205,51 @@ export function Layout() {
               />
               {/* Menu */}
               <div
-                className={`absolute bottom-full mb-2 bg-white rounded-lg border border-gray-200 shadow-lg z-20 overflow-hidden ${sidebarCollapsed ? "left-2 w-48" : "left-2 right-2"
+                className={`absolute bottom-full mb-2 bg-surface-raised rounded-lg border border-line shadow-lg z-20 overflow-hidden ${sidebarCollapsed ? "left-2 w-48" : "left-2 right-2"
                   }`}
               >
+                {/* Theme switcher */}
+                <div className="px-4 pt-3 pb-2">
+                  <p className="px-1 mb-1.5 text-xs font-medium text-ink-subtle">
+                    Theme
+                  </p>
+                  <div className="flex gap-1 p-1 rounded-lg bg-surface-sunken">
+                    {themeOptions.map((option) => {
+                      const isActive = theme === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => setTheme(option.value)}
+                          title={`${option.label} theme`}
+                          aria-pressed={isActive}
+                          className={`flex flex-1 flex-col items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive
+                            ? "bg-brand-600 text-white"
+                            : "text-ink-muted hover:bg-surface-hover"
+                            }`}
+                        >
+                          <option.icon className="w-4 h-4" />
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="h-px bg-line" />
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     setShowEditProfile(true);
                   }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-ink-muted hover:bg-surface-sunken"
                 >
                   <UserCog className="w-4 h-4" />
                   Edit Profile
                 </button>
-                <div className="h-px bg-gray-200" />
+                <div className="h-px bg-line" />
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-ink-muted hover:bg-surface-sunken disabled:opacity-50"
                 >
                   <LogOut className="w-4 h-4" />
                   {isLoggingOut ? "Signing out..." : "Sign out"}
@@ -304,11 +342,11 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-xl">
+      <div className="relative w-full max-w-md mx-4 bg-surface-raised rounded-lg shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Edit Profile</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">Edit Profile</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -330,7 +368,7 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
 
           {/* Current Password */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-sm font-medium text-ink-muted">
               Current Password <span className="text-red-500">*</span>
             </label>
             <input
@@ -339,37 +377,37 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Enter current password"
             />
           </div>
 
-          <div className="h-px my-4 bg-gray-200" />
+          <div className="h-px my-4 bg-line" />
 
           {/* New Username */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">Username</label>
+            <label className="block mb-1 text-sm font-medium text-ink-muted">Username</label>
             <input
               type="text"
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
               required
               minLength={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
 
           {/* New Password */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-sm font-medium text-ink-muted">
               New Password
-              <span className="ml-1 font-normal text-gray-400">(leave blank to keep current)</span>
+              <span className="ml-1 font-normal text-ink-faint">(leave blank to keep current)</span>
             </label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="New password (min 8 characters)"
             />
           </div>
@@ -377,14 +415,14 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
           {/* Confirm Password */}
           {newPassword && (
             <div>
-              <label className="block mb-1 text-sm font-medium text-gray-700">
+              <label className="block mb-1 text-sm font-medium text-ink-muted">
                 Confirm New Password
               </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Confirm new password"
               />
             </div>
@@ -395,7 +433,7 @@ function EditProfileDialog({ username, onClose, onUpdated }: EditProfileDialogPr
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 font-medium text-ink-muted border border-line-strong rounded-lg hover:bg-surface-sunken"
             >
               Cancel
             </button>
