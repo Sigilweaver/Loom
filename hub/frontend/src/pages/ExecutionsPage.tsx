@@ -24,6 +24,7 @@ import {
   listWorkflows,
   listServers,
   cancelExecution,
+  streamExecutions,
   type ExecutionResponse,
   type WorkflowMetadata,
   type ServerResponse,
@@ -185,18 +186,48 @@ export function ExecutionsPage() {
     load();
   }, [fetchExecutions, fetchFilters]);
 
-  // Auto-refresh when there are running executions
+  // Live updates via Server-Sent Events (replaces polling). Updates matching
+  // rows in place for instant feedback and reconciles the list on changes so
+  // filters, ordering, and new executions stay correct.
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const hasRunning = executions.some(
-      (e) => e.status === "running" || e.status === "queued"
-    );
-    if (!hasRunning) return;
+    let reconcileTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReconcile = () => {
+      if (reconcileTimer) return;
+      reconcileTimer = setTimeout(() => {
+        reconcileTimer = null;
+        fetchExecutions();
+      }, 400);
+    };
 
-    const interval = setInterval(fetchExecutions, 3000);
-    return () => clearInterval(interval);
-  }, [executions, autoRefresh, fetchExecutions]);
+    const unsubscribe = streamExecutions({
+      onUpdate: (execution) => {
+        setExecutions((prev) => {
+          const idx = prev.findIndex((e) => e.id === execution.id);
+          if (idx === -1) {
+            // Not currently shown; reconcile to apply filters/pagination.
+            scheduleReconcile();
+            return prev;
+          }
+          const next = [...prev];
+          next[idx] = execution;
+          return next;
+        });
+        // Status transitions can affect filtered views and ordering.
+        scheduleReconcile();
+      },
+      onError: () => {
+        // Fall back to a refresh so the list does not go stale on disconnect.
+        scheduleReconcile();
+      },
+    });
+
+    return () => {
+      unsubscribe();
+      if (reconcileTimer) clearTimeout(reconcileTimer);
+    };
+  }, [autoRefresh, fetchExecutions]);
 
   const handleCancel = async (execution: ExecutionResponse) => {
     try {
@@ -229,7 +260,7 @@ export function ExecutionsPage() {
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
-            Auto-refresh
+            Live updates
           </label>
           <button
             onClick={fetchExecutions}

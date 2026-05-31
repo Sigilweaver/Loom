@@ -7,7 +7,11 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import asyncio
+import json
+from collections.abc import AsyncGenerator
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -35,12 +39,31 @@ from app.domain.executions import (
     TriggerType,
     WorkflowNotFoundError,
 )
+from app.domain.executions.broker import GLOBAL_TOPIC, execution_broker
 from app.domain.executions.schemas import (
     ExecutionRecordResponse,
     ExecutionRecordSummary,
 )
 
 router = APIRouter(prefix="/executions", tags=["executions"])
+
+# Execution statuses after which no further events will be emitted.
+_TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
+
+# Idle interval before emitting an SSE comment to keep the connection (and any
+# intermediary proxies) from timing the stream out.
+_SSE_HEARTBEAT_SECONDS = 15.0
+
+
+def _sse_event(data: str, event: str | None = None) -> str:
+    """Format a Server-Sent Events frame."""
+    lines: list[str] = []
+    if event is not None:
+        lines.append(f"event: {event}")
+    for line in data.split("\n"):
+        lines.append(f"data: {line}")
+    return "\n".join(lines) + "\n\n"
+
 
 
 def _to_iso_utc(dt: datetime) -> str:
@@ -183,6 +206,109 @@ async def list_executions(
     return ExecutionListResponse(
         executions=[_info_to_response(e) for e in executions],
         total=total,
+    )
+
+
+# =============================================================================
+# Live Execution Streaming (Server-Sent Events)
+# =============================================================================
+
+
+@router.get("/stream")
+async def stream_executions(
+    request: Request,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Stream live execution status updates as Server-Sent Events.
+
+    Powers the dashboard's live view without polling on a single-node Hub.
+    Regular users only receive events for their own executions; auditor+ see
+    all. Each ``update`` event carries the same shape as the REST execution
+    response. The stream stays open indefinitely, emitting heartbeat comments
+    while idle, and ends when the client disconnects.
+    """
+    is_auditor = get_role_level(user.role) <= get_role_level(Role.AUDITOR)
+    username = user.username
+
+    async def event_stream() -> AsyncGenerator[str, None]:
+        with execution_broker.subscribe(GLOBAL_TOPIC) as queue:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=_SSE_HEARTBEAT_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+                    continue
+                if not is_auditor and event.get("triggered_by") != username:
+                    continue
+                yield _sse_event(json.dumps(event), event="update")
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/{execution_id}/stream")
+async def stream_execution(
+    execution_id: UUID,
+    request: Request,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Stream a single execution's status updates as Server-Sent Events.
+
+    Accessible to auditor+ or the user who triggered the execution. Emits the
+    current state immediately on connect, then live deltas, and closes once the
+    execution reaches a terminal status.
+    """
+    await _require_execution_access(execution_id, user, db)
+    service = _get_service(db)
+
+    async def event_stream() -> AsyncGenerator[str, None]:
+        # Subscribe before reading the snapshot so no transition is missed in
+        # the window between the snapshot and the first delivered event.
+        with execution_broker.subscribe(str(execution_id)) as queue:
+            try:
+                snapshot = await service.get_execution(execution_id)
+            except ExecutionNotFoundError:
+                return
+            snapshot_data = _info_to_response(snapshot).model_dump(mode="json")
+            yield _sse_event(json.dumps(snapshot_data), event="update")
+            if snapshot_data["status"] in _TERMINAL_STATUSES:
+                return
+
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=_SSE_HEARTBEAT_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+                    continue
+                yield _sse_event(json.dumps(event), event="update")
+                if event.get("status") in _TERMINAL_STATUSES:
+                    break
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
