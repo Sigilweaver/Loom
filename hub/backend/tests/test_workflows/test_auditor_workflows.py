@@ -59,7 +59,6 @@ class TestAuditorCanReadAllWorkflows:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Pre-existing bug: WorkflowMeta not serialized to dict")
     async def test_auditor_can_get_any_workflow_content(
         self, auditor_headers, user_headers
     ):

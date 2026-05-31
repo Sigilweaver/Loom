@@ -106,7 +106,6 @@ class TestUserWorkflowCRUD:
         assert response.json()["id"] == workflow_id
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Pre-existing bug: WorkflowMeta not serialized to dict")
     async def test_user_can_get_own_workflow_content(self, user_headers):
         """User can get content of their own workflow."""
         async with new_client() as client:
