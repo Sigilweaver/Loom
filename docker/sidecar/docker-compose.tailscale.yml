@@ -1,0 +1,112 @@
+# =============================================================================
+# Sigilweaver Loom - Remote Server over Tailscale (sidecar example)
+# =============================================================================
+#
+# Runs a Loom Server on a host that the Hub cannot reach directly (home lab,
+# on-prem box, separate cloud/VPC) by joining both ends to the same Tailscale
+# tailnet. A Tailscale sidecar provides the network namespace; the Server
+# shares it via `network_mode: service:tailscale`, so the Server is reachable
+# on the tailnet at its MagicDNS name.
+#
+# Traffic flow once connected:
+#   Server  --(outbound, over tailnet)-->  Hub   : registration + heartbeat
+#   Hub     --(over tailnet)------------->  Server: health polling + dispatch
+#
+# The Server advertises PUBLIC_ENDPOINT_URL (its MagicDNS name) so the Hub
+# stores a reachable address instead of the container's localhost bind.
+#
+# -----------------------------------------------------------------------------
+# Prerequisites
+# -----------------------------------------------------------------------------
+#   1. A Tailscale account and a reusable auth key (https://login.tailscale.com
+#      -> Settings -> Keys). An ephemeral key is recommended for stateless hosts.
+#   2. The Hub already joined to the same tailnet (run the Hub stack on a
+#      tailnet host, or expose it via Tailscale Funnel / a subnet router).
+#   3. Hub credentials for this server (provision exactly as the main stack):
+#        - HUB_REGISTRATION_SECRET: matches the Hub's SERVER_REGISTRATION_SECRET
+#        - HUB_SERVER_TOKEN: this server's auth token registered in the Hub
+#
+# -----------------------------------------------------------------------------
+# Usage
+# -----------------------------------------------------------------------------
+#   cp .env.example .env      # then fill in the values below
+#   docker compose -f docker-compose.tailscale.yml up -d
+#   # Confirm the node appears in your Tailscale admin console, then check the
+#   # Hub's Servers page for the registered server.
+# =============================================================================
+
+name: sigilweaver-loom-remote-server
+
+services:
+  # ---------------------------------------------------------------------------
+  # Tailscale sidecar - owns the network namespace shared with the Server.
+  # ---------------------------------------------------------------------------
+  tailscale:
+    image: tailscale/tailscale:v1.84.3
+    hostname: ${TS_HOSTNAME:-loom-server} # becomes <hostname>.<tailnet>.ts.net
+    restart: unless-stopped
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:?set TS_AUTHKEY to a Tailscale auth key}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_EXTRA_ARGS: --accept-dns=true
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: [ "CMD", "tailscale", "status", "--peers=false" ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Loom Server - shares the Tailscale network namespace.
+  # ---------------------------------------------------------------------------
+  server:
+    image: ghcr.io/sigilweaver/sigilweaver-loom-server:${VERSION:-latest}
+    init: true
+    restart: unless-stopped
+    depends_on:
+      tailscale:
+        condition: service_healthy
+    # Share the sidecar's network stack so the Server lives on the tailnet.
+    network_mode: service:tailscale
+    environment:
+      AUTH_MODE: hub
+
+      # How this server reaches the Hub (the Hub's MagicDNS name on the tailnet).
+      HUB_URL: ${HUB_URL:?e.g. http://loom-hub.tailnet-name.ts.net:25802}
+
+      # Credentials (see Prerequisites above).
+      HUB_REGISTRATION_SECRET: ${HUB_REGISTRATION_SECRET:?shared registration secret}
+      HUB_SERVER_TOKEN: ${HUB_SERVER_TOKEN:?this server's Hub auth token}
+
+      # Identity advertised to the Hub.
+      SERVER_NAME: ${SERVER_NAME:-remote-server-1}
+      # The address the Hub uses to reach this server back. Must be the
+      # MagicDNS name, NOT localhost, because the Hub is on a different host.
+      PUBLIC_ENDPOINT_URL: http://${TS_HOSTNAME:-loom-server}.${TS_TAILNET:?your-tailnet-name}.ts.net:25811
+
+      CORS_MODE: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+
+      # Storage paths (writable inside the container).
+      CACHE_PATH: /app/data/cache
+      AUDIT_ENABLED: "false"
+      ARCHIVE_ENABLED: "false"
+      CACHE_ENABLED: "false"
+    tmpfs:
+      - /tmp:mode=1777,size=100M
+      - /app/data/cache:mode=1777,size=500M
+    volumes:
+      # Data this server is allowed to read, mounted read-only.
+      - ${SERVER_DATA_DIR:-./data}:/app/data/files:ro
+
+volumes:
+  tailscale_state:
+    name: sigilweaver_loom_remote_tailscale_state
