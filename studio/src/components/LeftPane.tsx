@@ -35,6 +35,7 @@ import { ExcelOutputConfiguration } from "./config/inout/ExcelOutputConfiguratio
 import { IpcOutputConfiguration } from "./config/inout/IpcOutputConfiguration";
 import { JsonOutputConfiguration } from "./config/inout/JsonOutputConfiguration";
 import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfiguration";
+import { QvdConfiguration } from "./config/inout/QvdConfiguration";
 import { YxdbConfiguration } from "./config/inout/YxdbConfiguration";
 import { YxdbOutputConfiguration } from "./config/inout/YxdbOutputConfiguration";
 // Shell components
@@ -142,8 +143,8 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("tools")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "tools"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -152,8 +153,8 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("workflow")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "workflow"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <Settings className="w-4 h-4" />
@@ -162,24 +163,24 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("settings")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "settings"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <Sliders className="w-4 h-4" />
               <span>Settings</span>
             </button>
             {aiEnabled && (
-            <button
-              onClick={() => setLeftPaneTab("ai")}
-              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "ai"
+              <button
+                onClick={() => setLeftPaneTab("ai")}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "ai"
                   ? "bg-theme-surface-elevated text-theme-interactive-accent"
                   : "text-theme-text-secondary hover:text-theme-text-primary"
-                }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>AI</span>
-            </button>
+                  }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI</span>
+              </button>
             )}
           </div>
         </div>
@@ -404,6 +405,21 @@ export default function LeftPane() {
                       newConfig.filePath = existingFilePath;
                     }
                     handleToolConfigChange(selectedTool.id, newConfig);
+                  } else if (dataSource.id === "qvd") {
+                    // QVD has no mode selection (always eager read via OpenQVD)
+                    const newConfig: ToolConfig = {
+                      category: "file" as const,
+                      type: "qvd" as const,
+                    };
+                    // Preserve existing file path if any
+                    const existingFilePath = selectedTool.config?.filePath;
+                    if (
+                      existingFilePath !== undefined &&
+                      existingFilePath !== null
+                    ) {
+                      newConfig.filePath = existingFilePath;
+                    }
+                    handleToolConfigChange(selectedTool.id, newConfig);
                   } else if (dataSource.id === "postgresql") {
                     // PostgreSQL database connection
                     const newConfig: ToolConfig = {
@@ -531,6 +547,15 @@ export default function LeftPane() {
               selectedTool.config.type === "yxdb" ? (
               /* YXDB Configuration Panel */
               <YxdbConfiguration
+                config={selectedTool.config}
+                onChange={(config) =>
+                  handleToolConfigChange(selectedTool.id, config)
+                }
+              />
+            ) : selectedTool.config.category === "file" &&
+              selectedTool.config.type === "qvd" ? (
+              /* QVD Configuration Panel */
+              <QvdConfiguration
                 config={selectedTool.config}
                 onChange={(config) =>
                   handleToolConfigChange(selectedTool.id, config)

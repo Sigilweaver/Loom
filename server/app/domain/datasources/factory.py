@@ -17,6 +17,7 @@ from app.domain.datasources.ipc import IPCDataSource
 from app.domain.datasources.json import JSONDataSource
 from app.domain.datasources.ods import ODSDataSource
 from app.domain.datasources.parquet import ParquetDataSource
+from app.domain.datasources.qvd import QvdDataSource
 from app.domain.datasources.yxdb import YxdbDataSource
 from app.utils.errors import DataSourceError
 
@@ -33,6 +34,7 @@ class DataSourceFactory:
         "json": JSONDataSource,
         "ods": ODSDataSource,
         "parquet": ParquetDataSource,
+        "qvd": QvdDataSource,
         "yxdb": YxdbDataSource,
         "postgresql": PostgreSQLDataSource,
         "mysql": MySQLDataSource,
@@ -55,6 +57,7 @@ class DataSourceFactory:
         ".jsonl": "json",  # Newline-delimited JSON
         ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
         ".parquet": "parquet",
+        ".qvd": "qvd",  # QVD (QlikView Data) format (via OpenQVD)
         ".yxdb": "yxdb",  # YXDB format (via SigilYX)
         ".arrow": "ipc",  # Apache Arrow IPC format
         ".ipc": "ipc",  # IPC format

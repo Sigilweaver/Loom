@@ -56,7 +56,7 @@ const INPUT_SCHEMA: ToolConfigSchema = {
     type: {
       description: 'File format type (when category is "file")',
       type: 'enum',
-      enum: ['csv', 'parquet', 'xlsx', 'json', 'yxdb'] as const,
+      enum: ['csv', 'parquet', 'xlsx', 'json', 'yxdb', 'qvd'] as const,
     },
     source: {
       description: 'File path or connection identifier',

@@ -56,7 +56,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 
 const TOOL_CONFIG_REFERENCE = `## Tool Config Reference
 
-**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` - types: csv, parquet, yxdb, xlsx, json
+**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` - types: csv, parquet, yxdb, qvd, xlsx, json
 **Filter**: \`{ "conditions": [{ "column": "col", "operator": "gt", "value": "18" }], "combinator": "and" }\` - Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null. Nested: add \`groups\` array.
 **Aggregate** (type: "Summarize"): \`{ "groupByColumns": ["cat"], "aggregations": [{ "column": "amt", "operation": "Sum", "outputName": "total" }] }\` - Ops: Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct
 **Formula**: Prefer structured ops: \`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "qty" }, "columnName": "unit_price" }] }\` - Raw Polars fallback: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`

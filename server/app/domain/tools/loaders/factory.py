@@ -4,6 +4,7 @@ from app.domain.tools.loaders.base import FileLoader
 from app.domain.tools.loaders.database import DatabaseLoader
 from app.domain.tools.loaders.generic import GenericLoader
 from app.domain.tools.loaders.json import JsonLoader
+from app.domain.tools.loaders.qvd import QvdLoader
 from app.domain.tools.loaders.specs import LOADER_SPECS
 from app.domain.tools.loaders.yxdb import YxdbLoader
 from app.utils.errors import ToolError
@@ -21,6 +22,7 @@ class LoaderFactory:
     # Special case loaders that need custom behavior
     _special_loaders: dict[str, type[FileLoader]] = {
         "json": JsonLoader,
+        "qvd": QvdLoader,
         "yxdb": YxdbLoader,
     }
 

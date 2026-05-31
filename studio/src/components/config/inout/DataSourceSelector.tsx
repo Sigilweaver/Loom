@@ -69,6 +69,14 @@ const DATA_SOURCES: DataSource[] = [
     enabled: true,
   },
   {
+    id: "qvd",
+    name: "QVD",
+    category: "file",
+    description: "Qlik QVD (QlikView Data) file (.qvd)",
+    enabled: true,
+    supportedOperations: ["input"], // Read-only via OpenQVD
+  },
+  {
     id: "ods",
     name: "ODS",
     category: "file",
@@ -147,6 +155,7 @@ const getIconUrl = (dataSourceId: string, _currentTheme: string): string => {
     ipc: "apachearrow",
     avro: "apacheavro", // Use dedicated Avro icon
     yxdb: "yxdb",
+    qvd: "files", // No dedicated Qlik icon; use generic file icon
     ods: "libreoffice",
     sqlite: "sqlite",
     postgresql: "postgresql",
@@ -252,8 +261,8 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
               src={getIconUrl(dataSource.id, currentTheme.id)}
               alt={`${dataSource.name} icon`}
               className={`w-6 h-6 ${currentTheme.id === "light"
-                  ? ""
-                  : "invert brightness-0 invert"
+                ? ""
+                : "invert brightness-0 invert"
                 }`}
               style={{
                 filter: currentTheme.id === "light"
@@ -312,8 +321,8 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
           <button
             onClick={() => setSelectedCategory("all")}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors border ${selectedCategory === "all"
-                ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
-                : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
+              ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
+              : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
               }`}
           >
             All Sources
@@ -322,8 +331,8 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
           <button
             onClick={() => setSelectedCategory("file")}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${selectedCategory === "file"
-                ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
-                : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
+              ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
+              : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
               }`}
           >
             <FileText className="w-3 h-3" />
@@ -333,8 +342,8 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
           <button
             onClick={() => setSelectedCategory("database")}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 border ${selectedCategory === "database"
-                ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
-                : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
+              ? "bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary shadow-sm"
+              : "bg-theme-surface-panel text-theme-text-tertiary hover:text-theme-text-secondary border-theme-border-primary"
               }`}
           >
             <Database className="w-3 h-3" />
