@@ -10,6 +10,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import __version__
 from app.api.v1.router import v1_router
@@ -149,8 +150,10 @@ async def _session_cleanup_loop() -> None:
                     break
         except asyncio.CancelledError:
             break
-        except Exception as e:
-            logger.error(f"Session cleanup error: {e}")
+        except SQLAlchemyError:
+            # Keep the cleanup loop alive across transient database failures;
+            # the next pass retries after the normal interval.
+            logger.exception("Session cleanup database error")
 
 
 _INSECURE_DEFAULT = "CHANGE_ME_IN_PRODUCTION"

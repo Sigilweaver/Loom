@@ -82,7 +82,7 @@ class ServerClient:
             logger.debug("Timeout connecting to %s", self.endpoint_url)
             return ServerError(message="Connection timeout")
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             logger.warning("Unexpected error polling %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
@@ -115,7 +115,7 @@ class ServerClient:
                     try:
                         error_detail = response.json()
                         detail_str = error_detail.get("detail", str(error_detail))
-                    except Exception:
+                    except ValueError:
                         detail_str = response.text[:500] if response.text else "No details"
 
                     return ServerError(
@@ -129,7 +129,7 @@ class ServerClient:
         except httpx.TimeoutException:
             return ServerError(message="Execution timeout")
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             logger.error("Execution error on %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
@@ -155,5 +155,5 @@ class ServerClient:
                         status_code=response.status_code,
                     )
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             return ServerError(message=str(e))

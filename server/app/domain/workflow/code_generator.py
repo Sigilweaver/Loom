@@ -87,17 +87,17 @@ class PythonCodeGenerator:
         # Gather input variable names
         input_vars = self._get_input_vars(tool.id)
 
-        # Generate code via tool implementation
-        if hasattr(tool_impl, "to_python_code"):
-            code_lines, output_vars = tool_impl.to_python_code(tool.id, tool.config, input_vars)
+        # Generate code via tool implementation. Every Tool defines
+        # to_python_code (the base class provides a default), so no fallback
+        # branch is required here.
+        code_lines, output_vars = tool_impl.to_python_code(
+            tool.id, tool.config, input_vars
+        )
 
-            # Store output variable names for downstream tools
-            self.var_names[tool.id] = output_vars
+        # Store output variable names for downstream tools
+        self.var_names[tool.id] = output_vars
 
-            return code_lines
-        else:
-            # Fallback for tools without code generation
-            return [f"# TODO: {tool.type} does not implement code generation yet"]
+        return code_lines
 
     def _get_input_vars(self, tool_id: str) -> dict[str, str | list[str]]:
         """Get input variable names for a tool.
