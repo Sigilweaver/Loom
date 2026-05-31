@@ -1,6 +1,6 @@
-"""YXDB file loader using OpenYXDB
+"""YXDB file loader using SigilYX
 
-Loads Alteryx .yxdb files via the OpenYXDB Rust library.
+Loads Alteryx .yxdb files via the SigilYX Rust library.
 Not affiliated with Alteryx, Inc.
 """
 
@@ -16,7 +16,7 @@ from app.utils.security import validate_file_path
 
 class YxdbLoader(FileLoader):
     """
-    Loader for Alteryx YXDB files using OpenYXDB.
+    Loader for Alteryx YXDB files using SigilYX.
 
     YXDB is a row-based binary format with LZF compression.
     scan_yxdb() returns a LazyFrame directly, allowing deferred
@@ -52,7 +52,7 @@ class YxdbLoader(FileLoader):
             raise ToolError(f"Failed to read YXDB file: {e!s}") from e
 
     def build_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
-        """YXDB has no additional kwargs - OpenYXDB handles everything."""
+        """YXDB has no additional kwargs - SigilYX handles everything."""
         return {}
 
     def to_python_code(

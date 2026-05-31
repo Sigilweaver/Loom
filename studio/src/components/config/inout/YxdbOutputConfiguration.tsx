@@ -50,9 +50,7 @@ export const YxdbOutputConfiguration: React.FC<
         <div className="space-y-3">
           <div>
             <p className="text-xs text-theme-text-tertiary">
-              Write data to Alteryx YXDB format using OpenYXDB. The output file
-              can be opened in Alteryx Designer or read by any OpenYXDB-compatible
-              tool.
+              Write data to Alteryx YXDB format.
             </p>
           </div>
           <a
@@ -94,41 +92,6 @@ export const YxdbOutputConfiguration: React.FC<
                 required
               />
             </div>
-          </section>
-
-          {/* Info box about YXDB format */}
-          <section className="p-3 border rounded-lg bg-theme-surface-elevated border-theme-border-primary">
-            <h4 className="mb-2 text-sm font-medium text-theme-text-primary">
-              About YXDB Output
-            </h4>
-            <ul className="space-y-1 text-xs text-theme-text-secondary">
-              <li>
-                - Writes all Polars types with automatic YXDB type mapping
-              </li>
-              <li>
-                - Uses LZF compression for compact file size
-              </li>
-              <li>
-                - Compatible with Alteryx Designer and other YXDB readers
-              </li>
-              <li>
-                - Data is collected into memory before writing (eager mode)
-              </li>
-            </ul>
-          </section>
-
-          {/* Recommendation box */}
-          <section className="p-3 border rounded-lg border-amber-500/30 bg-amber-500/5">
-            <h4 className="mb-1 text-sm font-medium text-theme-text-primary">
-              💡 Recommendation
-            </h4>
-            <p className="text-xs text-theme-text-secondary">
-              For new projects, consider using{" "}
-              <strong>Parquet</strong> or <strong>Arrow IPC</strong> instead.
-              These open formats offer better compression, columnar storage, and
-              broader ecosystem support. Use YXDB when you need compatibility
-              with Alteryx workflows.
-            </p>
           </section>
         </div>
       </div>

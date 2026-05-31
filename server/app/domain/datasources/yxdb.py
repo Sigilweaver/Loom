@@ -1,6 +1,6 @@
 """YXDB data source implementation
 
-Uses OpenYXDB for reading YXDB files - a high-performance Rust-based
+Uses SigilYX for reading YXDB files - a high-performance Rust-based
 reader/writer for the .yxdb format.
 """
 
@@ -38,7 +38,7 @@ _YXDB_TYPE_MAP: dict[str, PolarsDataType] = {
 
 
 class YxdbDataSource(DataSource):
-    """YXDB file data source using OpenYXDB
+    """YXDB file data source using SigilYX
 
     Reads .yxdb files with full support for all 17 YXDB field types.
     Uses a high-performance Rust core for parsing.

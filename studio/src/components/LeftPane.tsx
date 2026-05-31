@@ -390,7 +390,7 @@ export default function LeftPane() {
                     }
                     handleToolConfigChange(selectedTool.id, newConfig);
                   } else if (dataSource.id === "yxdb") {
-                    // YXDB has no mode selection (always eager read via OpenYXDB)
+                    // YXDB has no mode selection (always eager read via SigilYX)
                     const newConfig: ToolConfig = {
                       category: "file" as const,
                       type: "yxdb" as const,

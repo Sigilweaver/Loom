@@ -55,8 +55,7 @@ export const YxdbConfiguration: React.FC<YxdbConfigurationProps> = ({
         <div className="space-y-3">
           <div>
             <p className="text-xs text-theme-text-tertiary">
-              Read Alteryx YXDB files using OpenYXDB - a high-performance Rust
-              reader. All 17 YXDB field types are supported.
+              Read Alteryx YXDB files.
             </p>
           </div>
           <a
@@ -106,28 +105,6 @@ export const YxdbConfiguration: React.FC<YxdbConfigurationProps> = ({
             unit="rows"
           />
         </div>
-
-        {/* Info box about YXDB format */}
-        <section className="p-3 border rounded-lg bg-theme-surface-elevated border-theme-border-primary">
-          <h4 className="mb-2 text-sm font-medium text-theme-text-primary">
-            About YXDB Format
-          </h4>
-          <ul className="space-y-1 text-xs text-theme-text-secondary">
-            <li>
-              - Alteryx proprietary binary format with LZF compression
-            </li>
-            <li>
-              - Supports all 17 YXDB field types (strings, numbers, dates,
-              blobs, spatial)
-            </li>
-            <li>
-              - Read without Alteryx Designer installed, on any OS
-            </li>
-            <li>
-              - Consider converting to Parquet or Arrow for long-term storage
-            </li>
-          </ul>
-        </section>
       </div>
     </div>
   );

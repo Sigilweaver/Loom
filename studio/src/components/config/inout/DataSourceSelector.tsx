@@ -65,7 +65,7 @@ const DATA_SOURCES: DataSource[] = [
     id: "yxdb",
     name: "YXDB",
     category: "file",
-    description: "Alteryx YXDB database file (.yxdb) via OpenYXDB",
+    description: "Alteryx YXDB database file (.yxdb)",
     enabled: true,
   },
   {
