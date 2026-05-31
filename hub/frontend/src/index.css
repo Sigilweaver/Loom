@@ -9,8 +9,8 @@ body {
 
 /* DateTimePicker / react-day-picker customizations */
 .rdp-custom {
-  --rdp-accent-color: #6366f1; /* brand-500 */
-  --rdp-accent-background-color: #eef2ff; /* brand-50 */
+  --rdp-accent-color: #7c3aed; /* brand-600 */
+  --rdp-accent-background-color: #ede9fe; /* brand-100 */
 }
 
 .rdp-custom .rdp-day_button:hover {
