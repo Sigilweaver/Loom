@@ -16,7 +16,7 @@ import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 
 // Agent tools
-import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
+import { addTool, updateTool, updateTools, patchToolConfig, insertToolBetween, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
 import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
@@ -26,6 +26,8 @@ const AGENT_TOOLS = {
   add_tool: addTool,
   update_tool: updateTool,
   update_tools: updateTools,
+  patch_tool_config: patchToolConfig,
+  insert_tool_between: insertToolBetween,
   remove_tool: removeTool,
   connect_tools: connectTools,
   disconnect_tools: disconnectTools,

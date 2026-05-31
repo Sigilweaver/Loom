@@ -34,6 +34,11 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 - **Branching**: Fan-out from Read - do NOT chain Aggregates in series (columns get dropped)
 - **Batch builds**: Use \`batch_canvas_ops\` to add+connect multiple tools in one call. Assign \`refId\` strings to reference new tools within the same batch (e.g. add tool with refId "t1", then connect from "t1" to another). Layout runs once at the end.
 
+### Editing Existing Workflows
+- **Change one field**: Use \`patch_tool_config\` with a path (e.g. \`conditions.0.value\`) to amend a single nested field. Do NOT resend the whole config via \`update_tool\` - patching saves tokens and leaves sibling fields untouched.
+- **Add a step in the middle**: Use \`insert_tool_between\` to splice a tool onto an existing wire (A->B becomes A->new->B). Do NOT remove and rebuild the downstream nodes.
+- Only touch the tools that need to change - leave unrelated nodes alone.
+
 ## Rules
 1. Column names are case-sensitive - use exact names from data profiles/metadata
 2. Right tool for the job: Aggregate (type: "Summarize") for aggregation, Formula for row-level math, Filter for row selection
