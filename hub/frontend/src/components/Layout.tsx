@@ -15,6 +15,7 @@ import {
   AlertCircle,
   LayoutDashboard,
   Activity,
+  ShieldCheck,
   Server,
   Database,
   UsersRound,
@@ -35,6 +36,7 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/activity", label: "Activity", icon: Activity },
+  { to: "/admin/audit", label: "Audit Log", icon: ShieldCheck },
   { to: "/admin/servers", label: "Servers", icon: Server },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/groups", label: "User Groups", icon: UsersRound },

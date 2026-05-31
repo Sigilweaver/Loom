@@ -461,6 +461,82 @@ export async function cancelExecution(id: string): Promise<ExecutionResponse> {
   return handleResponse(response);
 }
 
+// Audit
+export interface AuditEventResponse {
+  id: string;
+  timestamp: string;
+  event_type: string;
+  execution_id: string | null;
+  workflow_id: string | null;
+  schedule_id: string | null;
+  actor_type: string;
+  actor_id: string | null;
+  actor_identity: string;
+  auth_method: string | null;
+  client_ip: string | null;
+  user_agent: string | null;
+  server_id: string | null;
+  details: Record<string, unknown>;
+  event_hash: string;
+  previous_hash: string | null;
+}
+
+export interface AuditEventListResponse {
+  events: AuditEventResponse[];
+  total: number;
+}
+
+export interface AuditChainVerifyResponse {
+  valid: boolean;
+  events_checked: number;
+  first_event_id: string | null;
+  last_event_id: string | null;
+  error: string | null;
+}
+
+/**
+ * List audit events with filtering (auditor role or higher).
+ */
+export async function listAuditEvents(params?: {
+  execution_id?: string;
+  workflow_id?: string;
+  actor_id?: string;
+  event_type?: string;
+  from_date?: string;
+  to_date?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<AuditEventListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.execution_id) searchParams.set("execution_id", params.execution_id);
+  if (params?.workflow_id) searchParams.set("workflow_id", params.workflow_id);
+  if (params?.actor_id) searchParams.set("actor_id", params.actor_id);
+  if (params?.event_type) searchParams.set("event_type", params.event_type);
+  if (params?.from_date) searchParams.set("from_date", params.from_date);
+  if (params?.to_date) searchParams.set("to_date", params.to_date);
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+  const query = searchParams.toString();
+  const response = await fetch(`${API_BASE}/audit/events${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * Verify the integrity of the audit hash chain (auditor role or higher).
+ */
+export async function verifyAuditChain(limit?: number): Promise<AuditChainVerifyResponse> {
+  const searchParams = new URLSearchParams();
+  if (limit) searchParams.set("limit", String(limit));
+  const query = searchParams.toString();
+  const response = await fetch(`${API_BASE}/audit/verify${query ? `?${query}` : ""}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
 // Schedules
 export interface ScheduleResponse {
   id: string;
