@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
 from app.db.models import ExecutionRecord
+from app.domain.artifacts import (
+    ArtifactCorruptedError,
+    ArtifactNotFoundError,
+    ArtifactService,
+    get_artifact_store,
+)
 from app.domain.auth.roles import get_role_level, Role
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
@@ -74,6 +81,26 @@ class ExecutionListResponse(BaseModel):
     """List of executions."""
 
     executions: list[ExecutionResponse]
+    total: int
+
+
+class ArtifactResponse(BaseModel):
+    """Metadata for a stored execution output artifact."""
+
+    id: UUID
+    execution_id: UUID
+    name: str
+    media_type: str
+    sha256: str
+    size_bytes: int
+    row_count: int | None
+    created_at: str
+
+
+class ArtifactListResponse(BaseModel):
+    """List of artifacts for an execution."""
+
+    artifacts: list[ArtifactResponse]
     total: int
 
 
@@ -418,3 +445,116 @@ async def get_execution_logs(
         )
 
     return {"logs": record.details.get("logs", [])}
+
+
+# =============================================================================
+# Execution Artifact Endpoints (output storage + retrieval)
+# =============================================================================
+
+
+def _artifact_to_response(artifact: Any) -> ArtifactResponse:
+    """Convert an ExecutionArtifact model to its API response."""
+    return ArtifactResponse(
+        id=artifact.id,
+        execution_id=artifact.execution_id,
+        name=artifact.name,
+        media_type=artifact.media_type,
+        sha256=artifact.sha256,
+        size_bytes=artifact.size_bytes,
+        row_count=artifact.row_count,
+        created_at=_to_iso_utc(artifact.created_at),
+    )
+
+
+async def _require_execution_access(
+    execution_id: UUID, user: SessionInfo, db: AsyncSession
+) -> None:
+    """Allow auditor+ or the execution's owner; otherwise raise.
+
+    Raises 404 if the execution does not exist (so non-owners cannot probe
+    for valid execution IDs) and 403 if it exists but is owned by someone else.
+    """
+    service = _get_service(db)
+    try:
+        execution = await service.get_execution(execution_id)
+    except ExecutionNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+        )
+
+    if get_role_level(user.role) <= get_role_level(Role.AUDITOR):
+        return
+    if execution.triggered_by == user.username:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Cannot access artifacts for executions triggered by other users",
+    )
+
+
+@router.get("/{execution_id}/artifacts", response_model=ArtifactListResponse)
+async def list_execution_artifacts(
+    execution_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ArtifactListResponse:
+    """List stored output artifacts for an execution.
+
+    Accessible to auditor+ or the user who triggered the execution.
+    """
+    await _require_execution_access(execution_id, user, db)
+
+    artifacts = await ArtifactService(db).list_artifacts(execution_id)
+    return ArtifactListResponse(
+        artifacts=[_artifact_to_response(a) for a in artifacts],
+        total=len(artifacts),
+    )
+
+
+@router.get("/{execution_id}/artifacts/{artifact_id}")
+async def download_execution_artifact(
+    execution_id: UUID,
+    artifact_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Stream a single output artifact, verifying its checksum.
+
+    Accessible to auditor+ or the user who triggered the execution. The blob
+    is checksum-verified before streaming; a corrupted blob yields 500.
+    """
+    await _require_execution_access(execution_id, user, db)
+
+    service = ArtifactService(db)
+    artifact = await service.get_artifact(execution_id, artifact_id)
+    if artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artifact not found",
+        )
+
+    store = get_artifact_store()
+    try:
+        stream = store.open_stream(artifact.sha256, verify=True)
+    except ArtifactNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artifact data is missing from storage",
+        )
+    except ArtifactCorruptedError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Artifact data failed checksum verification",
+        )
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{artifact.name}"',
+        "Content-Length": str(artifact.size_bytes),
+        "X-Checksum-SHA256": artifact.sha256,
+    }
+    return StreamingResponse(
+        stream,
+        media_type=artifact.media_type,
+        headers=headers,
+    )

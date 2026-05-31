@@ -400,6 +400,22 @@ class ExecutionService:
 
                 await db.commit()
 
+                # Persist outputs as content-addressed artifacts. Storage
+                # failures must not fail an otherwise-successful execution.
+                if isinstance(exec_result, dict):
+                    try:
+                        from app.domain.artifacts import ArtifactService
+
+                        await ArtifactService(db).store_execution_outputs(
+                            execution_id, exec_result
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to store artifacts for execution %s: %s",
+                            execution_id,
+                            e,
+                        )
+
                 logger.info(
                     "Execution %s %s",
                     execution_id,

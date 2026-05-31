@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     # Workflow storage
     workflow_storage_path: str = "./workflows"
 
+    # Execution artifact storage (content-addressed output blobs)
+    artifact_storage_path: str = "./artifacts"
+
     # Server Token (Capability) Settings
     # RSA private key in PEM format for signing server tokens
     # Generate with: openssl genrsa -out private.pem 2048

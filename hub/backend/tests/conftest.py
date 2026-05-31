@@ -156,6 +156,7 @@ async def _create_tables(_ensure_test_db):
 # Get all table names for TRUNCATE (order matters due to FK constraints)
 # These must match the actual table names from Base.metadata
 _TABLE_NAMES = [
+    "execution_artifacts",
     "execution_records",
     "executions",
     "schedules",

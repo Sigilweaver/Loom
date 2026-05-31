@@ -592,6 +592,47 @@ class ExecutionRecord(Base):
     execution: Mapped["Execution"] = relationship("Execution")
 
 
+class ExecutionArtifact(Base):
+    """Pointer to a content-addressed execution output blob.
+
+    The blob bytes live in the artifact store (keyed by ``sha256``); this row
+    records the pointer, the integrity checksum, and lightweight metadata so
+    outputs can be listed and streamed back, and verified on retrieval.
+    """
+
+    __tablename__ = "execution_artifacts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("executions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Human-facing file name, e.g. "output-<socket>.csv".
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="application/octet-stream"
+    )
+
+    # Content address + integrity checksum (hex SHA-256, 64 chars).
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    # Optional output-shape metadata.
+    row_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    # Relationships
+    execution: Mapped["Execution"] = relationship("Execution")
+
+
 # =============================================================================
 # Grant Groups - Permission Bundles
 # =============================================================================
