@@ -1,4 +1,4 @@
-"""WP-10: concurrency tests for the async ConnectionStore wrappers."""
+"""Concurrency tests for the async ConnectionStore wrappers."""
 
 import asyncio
 import json

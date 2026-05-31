@@ -190,7 +190,7 @@ application.add_middleware(
 # Add audit logging middleware
 application.add_middleware(AuditMiddleware)
 
-# Rate limiting (WP-06) - workflow routes only
+# Rate limiting - workflow routes only
 from slowapi import _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     import uvicorn
 
     # PyInstaller with console=False leaves sys.stdout/stderr as None.
-    # Route them to the platform-appropriate null device (WP-14):
+    # Route them to the platform-appropriate null device:
     # os.devnull is "/dev/null" on POSIX and "nul" on Windows, so the
     # same code path works for headless builds on Linux/macOS/Windows.
     if sys.stdout is None:

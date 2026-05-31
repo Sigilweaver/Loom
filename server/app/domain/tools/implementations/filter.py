@@ -16,7 +16,7 @@ from app.utils.expression import parse_polars_expression
 
 
 class FilterToolConfig(BaseModel):
-    """WP-19 typed config for Filter."""
+    """Typed config for Filter."""
 
     expression: str = Field(default="", description="Polars expression evaluated per row.")
 

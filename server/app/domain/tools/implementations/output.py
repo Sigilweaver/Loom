@@ -15,7 +15,7 @@ from app.utils.security import validate_file_path_for_write
 
 
 class OutputToolConfig(BaseModel):
-    """WP-19 typed config for Output.
+    """Typed config for Output.
 
     Output configs are polymorphic across writer formats (CSV, Parquet,
     Excel, IPC, JSON, etc.) so extra fields are allowed and only the

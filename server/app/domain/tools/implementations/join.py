@@ -15,7 +15,7 @@ from app.utils.columns import resolve_column_names
 
 
 class JoinToolConfig(BaseModel):
-    """WP-19 typed config for Join."""
+    """Typed config for Join."""
 
     model_config = ConfigDict(extra="allow")
 

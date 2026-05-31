@@ -18,7 +18,7 @@ UNIQUE_MODES = {"First", "Strict"}
 
 
 class UniqueToolConfig(BaseModel):
-    """WP-19 typed config for Unique."""
+    """Typed config for Unique."""
 
     model_config = ConfigDict(extra="allow")
 

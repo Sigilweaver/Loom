@@ -238,7 +238,7 @@ class TestPathTraversalPrevention:
 
 
 class TestFileAccessMode:
-    """Tests for WP-04 file_access_mode dispatch."""
+    """Tests for file_access_mode dispatch."""
 
     def test_resolve_auto_open_when_unrestricted(self, monkeypatch):
         from app.utils import security as sec
@@ -291,7 +291,7 @@ class TestFileAccessMode:
 
     def test_hub_mode_without_context_denies(self, sample_csv_file: Path, monkeypatch):
         """In hub mode, file access requires a per-request grant; missing
-        context is treated as deny rather than silent-allow (WP-04 bypass fix)."""
+        context is treated as deny rather than silent-allow."""
         from app.utils import security as sec
 
         monkeypatch.setattr(sec.settings, "file_access_mode", "hub", raising=False)

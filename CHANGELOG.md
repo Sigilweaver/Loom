@@ -20,8 +20,8 @@ v0.11.0, entries are maintained alongside each release.
 
 ### Fixed
 
-- **Parallel executor race condition (SRV-3)** - Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
-- **Ruff lint violations (SRV-5/SRV-6)** - Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
+- **Parallel executor race condition** - Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
+- **Ruff lint violations** - Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
 - **Dev startup crash with default secrets** - Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
 
 ### Changed

@@ -1,4 +1,4 @@
-"""Tests for the pluggable token store (WP-05).
+"""Tests for the pluggable token store.
 
 The in-memory backend is exercised end-to-end. The Postgres backend is
 exercised via a stub session factory that records the SQL executed, which

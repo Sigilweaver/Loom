@@ -1,4 +1,4 @@
-"""Rate-limiting helpers for the server (WP-06).
+"""Rate-limiting helpers for the server.
 
 Workflow endpoints are subject to a default per-key budget when
 ``RATE_LIMIT_ENABLED=1``. ``/health`` is decorated with ``limiter.exempt``

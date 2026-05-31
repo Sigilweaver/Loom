@@ -43,7 +43,7 @@ UNIVERSAL_AGGREGATIONS = {"Count", "CountDistinct", "First", "Last", "Min", "Max
 
 
 class SummarizeAggregationConfig(BaseModel):
-    """Single aggregation. WP-19 typed config."""
+    """Single aggregation. Typed config."""
 
     model_config = ConfigDict(extra="allow")
 
@@ -53,7 +53,7 @@ class SummarizeAggregationConfig(BaseModel):
 
 
 class SummarizeToolConfig(BaseModel):
-    """WP-19 typed config for Summarize."""
+    """Typed config for Summarize."""
 
     model_config = ConfigDict(extra="allow")
 

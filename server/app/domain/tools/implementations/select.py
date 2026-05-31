@@ -38,7 +38,7 @@ DTYPE_STRING_TO_POLARS: dict[str, type[pl.DataType]] = {
 
 
 class SelectColumnConfig(BaseModel):
-    """Single column configuration. WP-19 typed config."""
+    """Single column configuration. Typed config."""
 
     model_config = ConfigDict(extra="allow")
 
@@ -50,7 +50,7 @@ class SelectColumnConfig(BaseModel):
 
 
 class SelectToolConfig(BaseModel):
-    """WP-19 typed config for Select."""
+    """Typed config for Select."""
 
     model_config = ConfigDict(extra="allow")
 

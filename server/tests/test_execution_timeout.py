@@ -1,4 +1,4 @@
-"""Tests for WP-09 execution timeout enforcement."""
+"""Tests for execution timeout enforcement."""
 
 import asyncio
 

@@ -18,7 +18,7 @@ SORT_DIRECTIONS = {"asc", "desc"}
 
 
 class SortColumnConfig(BaseModel):
-    """Single sort-column definition. WP-19 typed-config exemplar."""
+    """Single sort-column definition. Typed-config exemplar."""
 
     column: str = Field(..., min_length=1, description="Column to sort by.")
     direction: Literal["asc", "desc"] = Field(
@@ -28,7 +28,7 @@ class SortColumnConfig(BaseModel):
 
 
 class SortToolConfig(BaseModel):
-    """Top-level Sort tool config. WP-19 typed-config exemplar."""
+    """Top-level Sort tool config. Typed-config exemplar."""
 
     sortColumns: list[SortColumnConfig] = Field(default_factory=list)
 
@@ -52,7 +52,7 @@ class SortTool(BaseTool):
 
     @classmethod
     def config_model(cls) -> type[SortToolConfig]:
-        """WP-19: expose typed Pydantic config model."""
+        """Expose typed Pydantic config model."""
         return SortToolConfig
 
     def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:

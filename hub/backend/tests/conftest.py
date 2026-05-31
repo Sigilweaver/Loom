@@ -20,7 +20,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import AsyncGenerator
 
-# Set required-secret env vars before importing app.main (WP-03 enforces a
+# Set required-secret env vars before importing app.main (app.main enforces a
 # hard fail at startup when any required secret is unset). Using deterministic
 # test values keeps fixtures reproducible.
 import os as _os

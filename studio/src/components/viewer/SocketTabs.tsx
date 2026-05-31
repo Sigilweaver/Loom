@@ -23,7 +23,7 @@ const SocketTabs = () => {
   const previewState = useUIStore((s) => s.previewState);
   const wires = useWorkflowStore((s) => s.wires);
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
-  // WP-15: subscribe to just the preview-targeted tool by id so unrelated
+  // Subscribe to just the preview-targeted tool by id so unrelated
   // tool mutations do not re-render this panel.
   const previewTool = useToolById(previewState?.toolId);
   const { previewSocket } = useSocketPreview();

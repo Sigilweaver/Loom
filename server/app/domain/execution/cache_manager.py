@@ -100,7 +100,7 @@ class CacheManager:
         upstream_ids = plan.get_dependencies(tool.id)
         upstream_keys = [self._lineage_hashes.get(tid, "") for tid in upstream_ids]
 
-        # WP-17: hash only the cache-relevant subset of config so cosmetic
+        # Hash only the cache-relevant subset of config so cosmetic
         # edits (rename, UI flags) do not bust downstream caches. Falls
         # back to the full config when the tool type is not registered or
         # when cache_keys() raises.

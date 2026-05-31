@@ -1,4 +1,4 @@
-"""Tests for the rate-limiting wiring (WP-06).
+"""Tests for the rate-limiting wiring.
 
 These tests construct a self-contained FastAPI app that uses the same
 slowapi machinery the real Hub configures, so behavior under load can be

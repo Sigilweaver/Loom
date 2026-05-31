@@ -407,7 +407,7 @@ async def execute_tool(
 @router.get("/tool/{tool_type}/schema")
 async def get_tool_config_schema(tool_type: str) -> dict[str, Any]:
     """
-    Return the JSON Schema for a tool's *config* (WP-19).
+    Return the JSON Schema for a tool's *config*.
 
     Returns a JSON Schema document derived from the tool's
     `config_model()`. Tools that have not yet been migrated to typed

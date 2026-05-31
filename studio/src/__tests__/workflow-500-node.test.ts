@@ -1,5 +1,5 @@
 /**
- * WP-15 perf fixture: exercises selector subscriptions against a
+ * Perf fixture: exercises selector subscriptions against a
  * 500-tool workflow. The test verifies that lightweight selectors
  * (counts, digests, per-id lookups) only re-fire when their selected
  * scalar changes, while a full-array selector fires on every tool
@@ -47,14 +47,14 @@ export function make500NodeWorkflow(): { tools: Tool[]; wires: Wire[]; meta: Wor
   const meta: WorkflowMeta = {
     workflowId: "perf-fixture",
     name: "500-node perf fixture",
-    description: "WP-15 baseline",
+    description: "perf baseline",
     author: "Loom",
     created: new Date(0).toISOString(),
   };
   return { tools, wires, meta };
 }
 
-describe("WP-15 selector behaviour with 500 nodes", () => {
+describe("selector behaviour with 500 nodes", () => {
   beforeEach(() => {
     const { tools, wires, meta } = make500NodeWorkflow();
     useWorkflowStore.getState().loadWorkflow(tools, wires, meta);

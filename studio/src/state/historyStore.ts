@@ -61,7 +61,7 @@ interface HistoryState {
   setMaxDepth: (depth: number) => void;
 }
 
-// WP-16: drag coalescing window. Consecutive pushDragState calls inside
+// Drag coalescing window. Consecutive pushDragState calls inside
 // this window replace the latest history entry instead of appending.
 const DRAG_COALESCE_MS = 250;
 

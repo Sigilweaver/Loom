@@ -1,4 +1,4 @@
-"""Tests for the server's rate-limiting wiring (WP-06)."""
+"""Tests for the server's rate-limiting wiring."""
 
 import pytest
 from fastapi import FastAPI, Request

@@ -53,7 +53,7 @@ function getContextualPrompts(toolTypes: string[], hasWires: boolean): string[] 
 }
 
 const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({ onSelect }) => {
-  // WP-15: subscribe to compact digests instead of full arrays so this
+  // Subscribe to compact digests instead of full arrays so this
   // panel only re-renders when the set of tool types or the wire count
   // actually changes, not on every position/config edit.
   const toolTypesDigest = useToolTypesDigest();

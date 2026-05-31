@@ -95,7 +95,7 @@ class Settings(BaseSettings):
     # Parallel Execution
     # Execute independent tools concurrently for improved performance.
     # Modes: "sequential" (safe), "parallel" (concurrent independent tools).
-    # WP-18: default is "parallel" so independent branches run concurrently.
+    # Default is "parallel" so independent branches run concurrently.
     # Tuning: lower max_parallel_tools on memory-constrained hosts.
     execution_mode: str = "parallel"
     # Maximum concurrent tool executions (0 = unlimited)
@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     connection_encryption_key: str = ""
     connection_store_path: str = "../.working/server/connections.json"
 
-    # Rate limiting (WP-06). When enabled, a per-key limit is applied to all
+    # Rate limiting. When enabled, a per-key limit is applied to all
     # /api/workflow/* endpoints. Disabled by default so existing test suites
     # are unaffected.
     rate_limit_enabled: bool = False

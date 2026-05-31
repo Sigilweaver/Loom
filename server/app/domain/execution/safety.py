@@ -3,7 +3,7 @@
 This module provides pre-execution validation to prevent tools from creating
 outputs that could crash the application (e.g., pivot creating millions of columns).
 
-WP-21: the three original per-tool functions delegate to a single generic
+The three original per-tool functions delegate to a single generic
 ``check_cardinality`` helper. Public names/signatures are preserved.
 """
 
@@ -34,7 +34,7 @@ def check_cardinality(
     limit: int,
     message: str | None = None,
 ) -> SafetyCheckResult:
-    """Generic cardinality safety check (WP-21).
+    """Generic cardinality safety check.
 
     Args:
         label: Short label for logs, e.g. "Pivot", "Cross join", "Unpivot".

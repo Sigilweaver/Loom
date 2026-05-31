@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 
 # Required secrets that must be set (or auto-generated when
-# ALLOW_INSECURE_DEFAULTS=1) before Hub can start. See WP-03.
+# ALLOW_INSECURE_DEFAULTS=1) before Hub can start.
 _REQUIRED_SECRETS = (
     "session_secret",
     "secret_key",
@@ -226,7 +226,7 @@ application.add_middleware(
     allow_headers=["*"],
 )
 
-# Rate limiting (WP-06)
+# Rate limiting
 from slowapi import _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402

@@ -306,7 +306,7 @@ const ProfileViewer = () => {
   const profileState = useUIStore((s) => s.profileState);
   const previewState = useUIStore((s) => s.previewState);
   const activeBottomTab = useUIStore((s) => s.activeBottomTab);
-  // WP-15: subscribe only to the existence of the previewed tool,
+  // Subscribe only to the existence of the previewed tool,
   // not to the full tools array.
   const toolExists = useToolExists(previewState?.toolId);
   const { profileSocket } = useSocketProfile();

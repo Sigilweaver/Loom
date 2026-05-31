@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class HealthPoller:
     """Background task that periodically polls all servers for health status.
 
-    Failure handling (WP-12):
+    Failure handling:
     - ``_failure_counts`` tracks consecutive failures per server id.
     - ``_next_retry_at`` is the earliest wall-clock time at which a failing
       server should be re-polled. Backoff doubles per consecutive failure

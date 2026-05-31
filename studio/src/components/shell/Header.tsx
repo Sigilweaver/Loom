@@ -36,7 +36,7 @@ export interface HeaderRef {
 
 const Header = forwardRef<HeaderRef, object>((_, ref) => {
   // Access stores directly
-  // WP-15: Header only reads tools/wires inside event handlers (save,
+  // Header only reads tools/wires inside event handlers (save,
   // export, run, preview). Subscribing to those arrays here would
   // re-render the entire header on every node drag or config edit. We
   // read them from the store on demand instead via getState().

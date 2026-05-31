@@ -34,7 +34,7 @@ UNIVERSAL_AGGREGATIONS = {"first", "last", "min", "max", "len"}
 
 
 class PivotToolConfig(BaseModel):
-    """WP-19 typed config for Pivot."""
+    """Typed config for Pivot."""
 
     model_config = ConfigDict(extra="allow")
 

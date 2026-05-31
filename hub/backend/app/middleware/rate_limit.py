@@ -1,4 +1,4 @@
-"""Rate-limiting helpers (WP-06).
+"""Rate-limiting helpers.
 
 Wraps slowapi's ``Limiter`` with a couple of conveniences:
 

@@ -331,7 +331,7 @@ class Connection(Base):
         "ConnectionFilesystem", back_populates="connection", uselist=False, cascade="all, delete-orphan"
     )
 
-    # WP-13: hot-path index for connection-list filters/sorts.
+    # Hot-path index for connection-list filters/sorts.
     __table_args__ = (Index("idx_connections_status", "status"),)
 
 
@@ -499,7 +499,7 @@ class UserGroup(Base):
     user: Mapped["User"] = relationship("User", back_populates="groups")
     group: Mapped["Group"] = relationship("Group", back_populates="members")
 
-    # WP-13: explicit indexes for reverse-direction lookups. The composite
+    # Explicit indexes for reverse-direction lookups. The composite
     # primary key (user_id, group_id) already covers user_id-leading
     # scans; per-column indexes serve "find all users in group" and
     # "find all groups for user" workloads independently.
@@ -599,7 +599,7 @@ class AuditEvent(Base):
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
-    # WP-13: timeline queries fetch newest-first.
+    # Timeline queries fetch newest-first.
     __table_args__ = (Index("idx_audit_events_timestamp", "timestamp"),)
 
 
@@ -764,7 +764,7 @@ class UserGroupGrantGroup(Base):
     user_group: Mapped["Group"] = relationship("Group", back_populates="grant_groups")
     grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="user_groups")
 
-    # WP-13: indexes on the permission-join hot path. The composite PK
+    # Indexes on the permission-join hot path. The composite PK
     # (user_group_id, grant_group_id) already covers the leading-column
     # lookup; the reverse-direction index supports "given a grant group,
     # find all user groups referencing it".
@@ -802,7 +802,7 @@ class GrantGroupConnection(Base):
     grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="connections")
     connection: Mapped["Connection"] = relationship("Connection")
 
-    # WP-13: indexes for forward and reverse permission-join lookups.
+    # Indexes for forward and reverse permission-join lookups.
     __table_args__ = (
         Index("idx_gg_conn_lookup", "grant_group_id", "connection_id"),
         Index("idx_gg_conn_reverse", "connection_id"),

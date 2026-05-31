@@ -444,7 +444,7 @@ export const useWorkflowMeta = () =>
 export const useSelectedTool = () =>
   useWorkflowStore((state) => state.selectedTool);
 
-// WP-15: per-tool atomic selectors. Components that only need a single
+// Per-tool atomic selectors. Components that only need a single
 // tool by id should subscribe via these helpers instead of grabbing the
 // entire `tools` array, so unrelated tool mutations do not trigger a
 // re-render on the consumer.
@@ -456,7 +456,7 @@ export const useToolById = (toolId: string | null | undefined) =>
 export const useToolIds = () =>
   useWorkflowStore((state) => state.tools.map((t) => t.id).join("|"));
 
-// WP-15: count-only selectors. Subscribing to a number means the
+// Count-only selectors. Subscribing to a number means the
 // consumer only re-renders when the count actually changes, not on
 // every position/config edit.
 export const useToolCount = () =>
@@ -464,13 +464,13 @@ export const useToolCount = () =>
 export const useWireCount = () =>
   useWorkflowStore((state) => state.wires.length);
 
-// WP-15: derived "shape" selector returning a compact, primitive digest
+// Derived "shape" selector returning a compact, primitive digest
 // of tool types in their canvas order. Re-renders only when the set of
 // types or their order changes - position/config mutations are ignored.
 export const useToolTypesDigest = () =>
   useWorkflowStore((state) => state.tools.map((t) => t.type).join("|"));
 
-// WP-15: returns true iff a tool with the given id currently exists.
+// Returns true iff a tool with the given id currently exists.
 // Avoids subscribing to the full tools array just to existence-check.
 export const useToolExists = (toolId: string | null | undefined) =>
   useWorkflowStore((state) =>

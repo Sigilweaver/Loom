@@ -16,7 +16,7 @@ from app.utils.errors import ToolError
 
 
 class UnpivotToolConfig(BaseModel):
-    """WP-19 typed config for Unpivot."""
+    """Typed config for Unpivot."""
 
     model_config = ConfigDict(extra="allow")
 

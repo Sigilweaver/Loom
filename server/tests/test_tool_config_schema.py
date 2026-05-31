@@ -1,4 +1,4 @@
-"""WP-19 integration tests: every registered tool exposes a typed config schema."""
+"""Integration tests: every registered tool exposes a typed config schema."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,7 +21,7 @@ def _registered_tool_types() -> list[str]:
 
 
 def test_every_tool_returns_typed_schema(client: TestClient) -> None:
-    """WP-19 acceptance: every tool exposes x-typed=True after migration."""
+    """Acceptance: every tool exposes x-typed=True after migration."""
     tool_types = _registered_tool_types()
     assert tool_types, "ToolRegistry is empty - implementations did not register"
 

@@ -278,7 +278,7 @@ class TestSessionManager:
 
 
 class TestSessionCleanupLoop:
-    """Tests for the periodic session-cleanup background task (WP-11)."""
+    """Tests for the periodic session-cleanup background task."""
 
     @pytest.mark.asyncio
     async def test_loop_invokes_cleanup_each_interval(self):

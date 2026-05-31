@@ -84,7 +84,7 @@ class TestHealthPollerBackoff:
 
 
 class TestHealthPollerOfflineThreshold:
-    """WP-12: poll must not flip status to offline below the configured
+    """Poll must not flip status to offline below the configured
     consecutive-failure threshold."""
 
     def _make_server(self, status: str = "online"):

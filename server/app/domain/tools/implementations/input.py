@@ -15,7 +15,7 @@ from app.utils.errors import ToolError
 
 
 class InputToolConfig(BaseModel):
-    """WP-19 typed config for Input.
+    """Typed config for Input.
 
     Input configs are polymorphic across data-source loaders (CSV,
     Parquet, Excel, databases, etc.) so extra fields are allowed and

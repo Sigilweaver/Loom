@@ -164,7 +164,7 @@ async def list_connections(
             total=len(connections),
         )
 
-    # Get accessible connection ids in a single JOIN query (WP-13):
+    # Get accessible connection ids in a single JOIN query:
     #   user_groups -> user_group_grant_groups -> grant_group_connections
     # This replaces three sequential round-trips with one indexed scan.
     accessible_stmt = (

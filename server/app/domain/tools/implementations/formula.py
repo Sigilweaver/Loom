@@ -27,14 +27,14 @@ log = structlog.get_logger()
 
 
 class FormulaOperationConfig(BaseModel):
-    """Single column operation. WP-19 typed config."""
+    """Single column operation. Typed config."""
 
     column_name: str = Field(..., min_length=1)
     expression: str = Field(default="")
 
 
 class FormulaToolConfig(BaseModel):
-    """WP-19 typed config for Formula.
+    """Typed config for Formula.
 
     Two shapes are accepted for backward compatibility:
     - ``operations`` (preferred): list of FormulaOperationConfig.

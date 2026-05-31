@@ -394,7 +394,7 @@ export function useCanvasHandlers() {
 
   const handleCommitTransaction = useCallback(() => {
     logger.debug("Commit transaction (drag end)");
-    // WP-16: coalesce successive drag commits within 250ms into a single
+    // Coalesce successive drag commits within 250ms into a single
     // undo step so a flurry of small drags doesn't fill maxHistoryDepth.
     pushDragState(tools, wires, workflowMeta);
   }, [pushDragState, tools, wires, workflowMeta]);

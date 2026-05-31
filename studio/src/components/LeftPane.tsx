@@ -58,7 +58,7 @@ const logger = createLogger('LeftPane');
 export default function LeftPane() {
   // Access stores directly
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
-  // WP-15: count-only selectors for the summary chips so position/config
+  // Count-only selectors for the summary chips so position/config
   // edits on individual tools do not re-render the entire left pane.
   const toolCount = useToolCount();
   const wireCount = useWireCount();
@@ -82,7 +82,7 @@ export default function LeftPane() {
   const activeTabId = useTabStore((s) => s.activeTabId);
   const markTabDirty = useTabStore((s) => s.markTabDirty);
 
-  // WP-15: snapshot helper reads fresh state from the store at call
+  // Snapshot helper reads fresh state from the store at call
   // time so handlers stay stable across renders.
   const snapshotForHistory = () => {
     const s = useWorkflowStore.getState();

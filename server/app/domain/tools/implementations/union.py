@@ -11,7 +11,7 @@ from app.domain.tools.sockets import UnionSockets
 
 
 class UnionToolConfig(BaseModel):
-    """WP-19 typed config for Union."""
+    """Typed config for Union."""
 
     model_config = ConfigDict(extra="allow")
 

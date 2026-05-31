@@ -17,7 +17,7 @@ SAMPLE_MODES = {"FirstN", "LastN", "EveryN", "Random", "RandomPercent", "FirstPe
 
 
 class SampleToolConfig(BaseModel):
-    """WP-19 typed config for Sample."""
+    """Typed config for Sample."""
 
     model_config = ConfigDict(extra="allow")
 

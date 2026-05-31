@@ -1,4 +1,4 @@
-"""Tests for WP-08 narrowed exception hierarchy and error-id correlation."""
+"""Tests for the narrowed exception hierarchy and error-id correlation."""
 
 import re
 

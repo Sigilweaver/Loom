@@ -1,4 +1,4 @@
-"""Add hot-path indexes for permission resolution (WP-13).
+"""Add hot-path indexes for permission resolution.
 
 Adds btree indexes on columns used by connection-list / audit / permission
 joins to eliminate sequential scans at scale. Safe to apply on existing

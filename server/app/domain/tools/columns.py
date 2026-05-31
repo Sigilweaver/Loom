@@ -1,4 +1,4 @@
-"""Shared column-resolution helpers for tool implementations (WP-20).
+"""Shared column-resolution helpers for tool implementations.
 
 This module is the canonical location for column-name resolution used by
 filter, sort, join, summarize, pivot, unpivot, etc.

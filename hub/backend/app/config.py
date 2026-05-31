@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     server_poll_interval_seconds: int = 30
     server_timeout_seconds: int = 10
 
-    # Health-poller failure handling (WP-12)
+    # Health-poller failure handling.
     # Number of consecutive failed health checks before a server is marked
     # offline. Transient blips below this threshold leave status untouched.
     server_offline_threshold: int = 3
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # failing server. Backoff doubles per failure starting at 1s.
     server_backoff_max_seconds: int = 60
 
-    # Periodic background cleanup (WP-11)
+    # Periodic background cleanup.
     # Interval between session-cleanup passes, in seconds.
     session_cleanup_interval_seconds: int = 3600
     # Max number of expired session rows removed per pass. Keeps the
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     # NEVER enable this in production: tokens/sessions will not survive restart.
     allow_insecure_defaults: bool = False
 
-    # Rate limiting (WP-06). When enabled, per-route limits return 429 with
+    # Rate limiting. When enabled, per-route limits return 429 with
     # a Retry-After header. Disabled by default so existing test suites and
     # tight-loop dev tooling are unaffected.
     rate_limit_enabled: bool = False

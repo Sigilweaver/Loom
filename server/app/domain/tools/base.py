@@ -171,7 +171,7 @@ class BaseTool(ABC):
         changes (tool rename, UI flags) do not invalidate downstream caches.
 
         Default implementation returns the full config dict, preserving the
-        pre-WP-17 behavior. Tools should override to drop fields like
+        original behavior. Tools should override to drop fields like
         `name`, `comment`, UI hints, etc.
 
         Args:

@@ -53,7 +53,7 @@ def validate_file_access_config() -> None:
     """Validate file-access configuration at startup.
 
     Refuses to boot when configuration is contradictory; logs a prominent
-    warning for ``open`` mode. See WP-04.
+    warning for ``open`` mode.
     """
     explicit = getattr(settings, "file_access_mode", "auto") or "auto"
 

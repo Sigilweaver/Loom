@@ -349,7 +349,7 @@ class ConnectionStore:
         return connection_id in self._connections
 
     # ------------------------------------------------------------------ #
-    # Async wrappers (WP-10)                                             #
+    # Async wrappers                                                     #
     # ------------------------------------------------------------------ #
     # Async variants offload the sync file I/O onto a worker thread and
     # serialize writers via an asyncio.Lock so two concurrent FastAPI
