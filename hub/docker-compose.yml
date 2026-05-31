@@ -1,7 +1,33 @@
-# Sigilweaver Loom Hub - Development Stack
+# =============================================================================
+# Sigilweaver Loom Hub - One-command development stack
+# =============================================================================
+# Brings up Postgres + Hub + Server with baked-in development secrets so a
+# fresh checkout reaches a working Hub login with a single command:
+#
+#   docker compose -f hub/docker-compose.yml up --build
+#
+# Then open http://localhost:25802 and register the first account, which
+# becomes the owner. The execution Server auto-registers with the Hub.
+#
+# WARNING: the secrets below are fixed, well-known values for LOCAL DEVELOPMENT
+# ONLY. They are intentionally insecure. For production use
+# docker/docker-compose.yml with real Docker secrets (see docker/README.md).
+# =============================================================================
+
+name: sigilweaver-loom-hub-dev
+
+# Shared, well-known development secrets (NOT for production).
+x-dev-secrets: &dev-secrets
+  SESSION_SECRET: dev-session-secret-not-for-production-0000000000
+  SECRET_KEY: dev-secret-key-not-for-production-00000000000000
+  # Valid Fernet key (32 url-safe base64 bytes). Dev only.
+  CONNECTION_ENCRYPTION_KEY: BjsbT6ZrlCbnj1fj0Qon-IP5YmmThAC60YDPcWZkU7Y=
+  SERVER_REGISTRATION_SECRET: dev-server-registration-secret-0000000000
 
 services:
+  # ---------------------------------------------------------------------------
   # PostgreSQL database
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
     container_name: sigilweaver-loom-hub-postgres
@@ -12,24 +38,80 @@ services:
     ports:
       - "25801:5432"
     volumes:
-      - /workspaces/Loom/.working/postgres-data:/var/lib/postgresql/data
+      - hub_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U sigilweaver_loom -d sigilweaver_loom_hub" ]
       interval: 5s
       timeout: 5s
       retries: 5
-  # Hub backend (for production-like local testing)
-  # Uncomment to use containerized backend instead of local dev
-  # hub-backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: sigilweaver-loom-hub-backend
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@postgres:5432/sigilweaver_loom_hub
-  #     SECRET_KEY: development-secret-key-change-in-production
-  #   ports:
-  #     - "25802:25802"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Hub - orchestration, user management, and bundled frontend
+  # ---------------------------------------------------------------------------
+  hub:
+    build:
+      context: ..
+      dockerfile: hub/Dockerfile
+      # Use host network for builds in dev containers (DNS resolution).
+      network: host
+    container_name: sigilweaver-loom-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *dev-secrets
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@postgres:5432/sigilweaver_loom_hub
+      WORKFLOW_STORAGE_PATH: /app/data/workflows
+      STATIC_FILES_PATH: /app/static
+      CORS_ORIGINS: '["http://localhost:25802","http://localhost:25803","http://localhost:25810"]'
+      LOG_LEVEL: info
+      LOG_FORMAT: text
+    ports:
+      - "25802:25802"
+    volumes:
+      - hub_workflows:/app/data/workflows
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:25802/api/v1/health" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Server - workflow execution engine (auto-registers with the Hub)
+  # ---------------------------------------------------------------------------
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+      network: host
+    container_name: sigilweaver-loom-server
+    depends_on:
+      hub:
+        condition: service_healthy
+    environment:
+      AUTH_MODE: hub
+      HUB_URL: http://hub:25802
+      HUB_REGISTRATION_SECRET: dev-server-registration-secret-0000000000
+      SERVER_NAME: dev-server
+      CORS_MODE: development
+      LOG_LEVEL: info
+      LOG_FORMAT: text
+    ports:
+      - "25811:25811"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:25811/api/health" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+# =============================================================================
+# Named volumes (portable across machines; no host-path assumptions)
+# =============================================================================
+volumes:
+  hub_postgres_data:
+    name: sigilweaver_loom_hub_dev_postgres_data
+  hub_workflows:
+    name: sigilweaver_loom_hub_dev_workflows
