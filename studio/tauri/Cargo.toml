@@ -29,9 +29,17 @@ tokio = { version = "1", features = ["full"] }
 dirs = "6"
 whoami = "1"
 
-# Stronghold for secure credential storage
-# iota-stronghold provides encrypted storage similar to OS keychains
-# tauri-plugin-stronghold = "2"  # Uncomment when ready to implement
+# OS-native secure credential storage (Keychain / Credential Manager / Secret Service).
+# Database passwords are stored here, never in the plaintext connections store.
+# Linux builds require system packages: pkg-config and libdbus-1-dev.
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
 
 [features]
 default = ["custom-protocol"]
