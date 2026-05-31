@@ -16,7 +16,8 @@ Free and open source. No compromises.
 
 Sigilweaver Loom is more than a workflow designer - it's a complete data pipeline platform.
 
-**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation.
+**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow.
+**Server** executes those workflows with blazing speed using Polars' lazy evaluation.
 **Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with robust security.
 
 Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver Loom meets you where you are.

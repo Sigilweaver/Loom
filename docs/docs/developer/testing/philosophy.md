@@ -34,7 +34,7 @@ Time spent testing has diminishing returns. The first test for a function catche
 
 Allocate testing time to high-impact areas:
 - Core execution engine
-- Tool implementations  
+- Tool implementations
 - State management
 - Serialization/deserialization
 
