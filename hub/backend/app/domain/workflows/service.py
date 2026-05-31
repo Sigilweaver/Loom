@@ -4,19 +4,22 @@ Orchestrates workflow file storage, metadata extraction,
 and database record management.
 """
 
+import difflib
+import json
 import logging
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Workflow
+from app.db.models import Workflow, WorkflowRevision
 from app.domain.workflows.models import (
     CreateWorkflowInput,
     ParsedWorkflow,
     UpdateWorkflowInput,
     WorkflowContent,
     WorkflowInfo,
+    WorkflowRevisionInfo,
 )
 from app.domain.workflows.parser import ParseError, WorkflowParser
 from app.domain.workflows.store import WorkflowFileStore
@@ -38,6 +41,12 @@ class WorkflowNotFoundError(WorkflowServiceError):
 
 class WorkflowParseError(WorkflowServiceError):
     """Raised when workflow file parsing fails."""
+
+    pass
+
+
+class RevisionNotFoundError(WorkflowServiceError):
+    """Raised when a workflow revision doesn't exist."""
 
     pass
 
@@ -84,11 +93,64 @@ class WorkflowService:
             updated_at=workflow.updated_at,
         )
 
+    @staticmethod
+    def _revision_to_info(revision: WorkflowRevision) -> WorkflowRevisionInfo:
+        """Convert a revision model to its info schema (omits the blob)."""
+        return WorkflowRevisionInfo(
+            id=revision.id,
+            workflow_id=revision.workflow_id,
+            revision_number=revision.revision_number,
+            parent_revision_id=revision.parent_revision_id,
+            author=revision.author,
+            checksum=revision.checksum,
+            size_bytes=len(revision.blob),
+            message=revision.message,
+            created_at=revision.created_at,
+        )
+
+    async def _create_revision(
+        self,
+        workflow: Workflow,
+        content: bytes,
+        author: str,
+        message: str,
+    ) -> WorkflowRevision:
+        """Append a new immutable revision for a content-changing save.
+
+        The new revision points at the workflow's current latest revision as
+        its parent and takes the next monotonic revision number. The caller is
+        responsible for committing the surrounding transaction.
+        """
+        result = await self.db.execute(
+            select(WorkflowRevision)
+            .where(WorkflowRevision.workflow_id == workflow.id)
+            .order_by(WorkflowRevision.revision_number.desc())
+            .limit(1)
+        )
+        latest = result.scalar_one_or_none()
+        parent_id = latest.id if latest else None
+        next_number = (latest.revision_number + 1) if latest else 1
+
+        revision = WorkflowRevision(
+            workflow_id=workflow.id,
+            revision_number=next_number,
+            parent_revision_id=parent_id,
+            author=author,
+            checksum=workflow.checksum,
+            blob=content,
+            message=message,
+        )
+        self.db.add(revision)
+        await self.db.flush()
+        return revision
+
+
     async def create_workflow(
         self,
         content: bytes,
         input: CreateWorkflowInput,
         uploaded_by: str,
+        message: str | None = None,
     ) -> WorkflowInfo:
         """Create a new workflow from uploaded file.
 
@@ -96,6 +158,7 @@ class WorkflowService:
             content: Raw workflow file content.
             input: Additional metadata (folder, tags).
             uploaded_by: Username of uploader.
+            message: Optional revision message for the initial version.
 
         Returns:
             WorkflowInfo for the created workflow.
@@ -136,6 +199,14 @@ class WorkflowService:
         # Update record with file info
         workflow.file_path = str(workflow.id)
         workflow.checksum = checksum
+
+        # Record the initial revision (append-only history).
+        await self._create_revision(
+            workflow,
+            content,
+            author=uploaded_by,
+            message=message or "Initial upload",
+        )
 
         await self.db.commit()
         await self.db.refresh(workflow)
@@ -305,6 +376,8 @@ class WorkflowService:
         workflow_id: UUID,
         input: UpdateWorkflowInput | None = None,
         content: bytes | None = None,
+        author: str | None = None,
+        message: str | None = None,
     ) -> WorkflowInfo:
         """Update workflow metadata and/or file content.
 
@@ -312,6 +385,8 @@ class WorkflowService:
             workflow_id: The workflow UUID.
             input: Fields to update (folder_path, tags).
             content: New file content (if updating the file).
+            author: Username recorded on the revision when content changes.
+            message: Optional revision message when content changes.
 
         Returns:
             Updated WorkflowInfo.
@@ -347,6 +422,14 @@ class WorkflowService:
             workflow.workflow_id = parsed.meta.workflow_id
             workflow.checksum = checksum
 
+            # Record a new revision for the content change.
+            await self._create_revision(
+                workflow,
+                content,
+                author=author or workflow.uploaded_by,
+                message=message or "Updated workflow",
+            )
+
         # Update metadata fields if provided
         if input is not None:
             if input.folder_path is not None:
@@ -359,6 +442,135 @@ class WorkflowService:
         await self.db.refresh(workflow)
 
         return self._model_to_info(workflow)
+
+    # =========================================================================
+    # Revision history
+    # =========================================================================
+
+    async def _require_workflow(self, workflow_id: UUID) -> Workflow:
+        """Fetch a workflow or raise WorkflowNotFoundError."""
+        result = await self.db.execute(
+            select(Workflow).where(Workflow.id == workflow_id)
+        )
+        workflow = result.scalar_one_or_none()
+        if not workflow:
+            raise WorkflowNotFoundError(f"Workflow not found: {workflow_id}")
+        return workflow
+
+    async def list_revisions(self, workflow_id: UUID) -> list[WorkflowRevisionInfo]:
+        """List a workflow's revisions, newest first.
+
+        Raises:
+            WorkflowNotFoundError: If the workflow doesn't exist.
+        """
+        await self._require_workflow(workflow_id)
+
+        result = await self.db.execute(
+            select(WorkflowRevision)
+            .where(WorkflowRevision.workflow_id == workflow_id)
+            .order_by(WorkflowRevision.revision_number.desc())
+        )
+        revisions = result.scalars().all()
+        return [self._revision_to_info(r) for r in revisions]
+
+    async def _get_revision(
+        self, workflow_id: UUID, revision_id: UUID
+    ) -> WorkflowRevision:
+        """Fetch a single revision scoped to its workflow, or raise."""
+        result = await self.db.execute(
+            select(WorkflowRevision).where(
+                WorkflowRevision.id == revision_id,
+                WorkflowRevision.workflow_id == workflow_id,
+            )
+        )
+        revision = result.scalar_one_or_none()
+        if not revision:
+            raise RevisionNotFoundError(f"Revision not found: {revision_id}")
+        return revision
+
+    async def get_revision_content(
+        self, workflow_id: UUID, revision_id: UUID
+    ) -> tuple[WorkflowRevisionInfo, bytes]:
+        """Return a revision's metadata and its raw file blob.
+
+        Raises:
+            WorkflowNotFoundError: If the workflow doesn't exist.
+            RevisionNotFoundError: If the revision doesn't exist.
+        """
+        await self._require_workflow(workflow_id)
+        revision = await self._get_revision(workflow_id, revision_id)
+        return self._revision_to_info(revision), revision.blob
+
+    @staticmethod
+    def _pretty_lines(content: bytes, label: str) -> list[str]:
+        """Render content as stable, line-split text for diffing.
+
+        Workflow files are JSON; pretty-print with sorted keys so structural
+        diffs are meaningful and independent of key ordering. Fall back to the
+        raw decoded text if the content isn't valid JSON.
+        """
+        text = content.decode("utf-8", errors="replace")
+        try:
+            parsed = json.loads(text)
+            text = json.dumps(parsed, indent=2, sort_keys=True, ensure_ascii=False)
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return text.splitlines(keepends=True)
+
+    async def diff_revisions(
+        self,
+        workflow_id: UUID,
+        from_revision_id: UUID,
+        to_revision_id: UUID,
+    ) -> str:
+        """Produce a unified diff between two revisions of a workflow.
+
+        Raises:
+            WorkflowNotFoundError: If the workflow doesn't exist.
+            RevisionNotFoundError: If either revision doesn't exist.
+        """
+        await self._require_workflow(workflow_id)
+        from_rev = await self._get_revision(workflow_id, from_revision_id)
+        to_rev = await self._get_revision(workflow_id, to_revision_id)
+
+        from_label = f"revision {from_rev.revision_number}"
+        to_label = f"revision {to_rev.revision_number}"
+        diff = difflib.unified_diff(
+            self._pretty_lines(from_rev.blob, from_label),
+            self._pretty_lines(to_rev.blob, to_label),
+            fromfile=from_label,
+            tofile=to_label,
+        )
+        return "".join(diff)
+
+    async def rollback_to_revision(
+        self,
+        workflow_id: UUID,
+        revision_id: UUID,
+        author: str,
+        message: str | None = None,
+    ) -> WorkflowInfo:
+        """Roll a workflow back to a prior revision's content.
+
+        Rollback is non-destructive: it restores the target revision's blob as
+        the current file and appends a new revision recording the rollback, so
+        history is never rewritten.
+
+        Raises:
+            WorkflowNotFoundError: If the workflow doesn't exist.
+            RevisionNotFoundError: If the revision doesn't exist.
+            WorkflowParseError: If the stored revision blob is invalid.
+        """
+        await self._require_workflow(workflow_id)
+        target = await self._get_revision(workflow_id, revision_id)
+        blob = target.blob
+
+        return await self.update_workflow(
+            workflow_id=workflow_id,
+            content=blob,
+            author=author,
+            message=message or f"Rollback to revision {target.revision_number}",
+        )
 
     async def update_file(
         self,

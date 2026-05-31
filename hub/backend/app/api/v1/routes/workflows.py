@@ -12,8 +12,8 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,9 +23,11 @@ from app.domain.auth.roles import get_role_level, Role
 from app.domain.auth.sessions import SessionInfo
 from app.domain.workflows import (
     CreateWorkflowInput,
+    RevisionNotFoundError,
     UpdateWorkflowInput,
     WorkflowInfo,
     WorkflowNotFoundError,
+    WorkflowRevisionInfo,
     WorkflowService,
     WorkflowServiceError,
 )
@@ -109,6 +111,48 @@ class WorkflowUpdateMetadataRequest(BaseModel):
     tags: list[str] | None = None
 
 
+class WorkflowRevisionResponse(BaseModel):
+    """A single workflow revision."""
+
+    id: UUID
+    workflow_id: UUID
+    revision_number: int
+    parent_revision_id: UUID | None
+    author: str
+    checksum: str
+    size_bytes: int
+    message: str
+    created_at: str
+
+    @classmethod
+    def from_info(cls, info: WorkflowRevisionInfo) -> "WorkflowRevisionResponse":
+        """Create from WorkflowRevisionInfo."""
+        return cls(
+            id=info.id,
+            workflow_id=info.workflow_id,
+            revision_number=info.revision_number,
+            parent_revision_id=info.parent_revision_id,
+            author=info.author,
+            checksum=info.checksum,
+            size_bytes=info.size_bytes,
+            message=info.message,
+            created_at=_to_iso_utc(info.created_at),
+        )
+
+
+class WorkflowRevisionListResponse(BaseModel):
+    """List of workflow revisions, newest first."""
+
+    revisions: list[WorkflowRevisionResponse]
+    total: int
+
+
+class WorkflowRollbackRequest(BaseModel):
+    """Request body for rolling back to a prior revision."""
+
+    message: str | None = None
+
+
 def _get_service(db: AsyncSession) -> WorkflowService:
     """Create WorkflowService instance."""
     return WorkflowService(db)
@@ -175,6 +219,7 @@ async def upload_workflow(
     db: AsyncSession = Depends(get_db),
     folder_path: str = Form(default="/"),
     tags: str = Form(default=""),  # Comma-separated
+    message: str = Form(default=""),
 ) -> WorkflowUploadResponse:
     """Upload a new workflow file. Requires user role.
 
@@ -184,6 +229,7 @@ async def upload_workflow(
     Form data:
     - folder_path: Virtual folder path (default: "/")
     - tags: Comma-separated list of tags
+    - message: Optional revision message for the initial version
     """
     if not file or not file.filename or not file.filename.endswith(".swwf"):
         raise HTTPException(
@@ -210,6 +256,7 @@ async def upload_workflow(
             content=content,
             input=input,
             uploaded_by=user.username,
+            message=message,
         )
     except WorkflowParseError as e:
         raise HTTPException(
@@ -363,10 +410,12 @@ async def update_workflow_file(
     user: SessionInfo = RequireUser,
     file: Annotated[UploadFile | None, File(description="The updated .swwf workflow file")] = None,
     db: AsyncSession = Depends(get_db),
+    message: str = Form(default=""),
 ) -> WorkflowMetadata:
     """Replace a workflow file. Requires user role.
 
-    Uploads a new file version, updating metadata from the new file.
+    Uploads a new file version, updating metadata from the new file. Each
+    replacement appends a revision to the workflow's history.
     Users can only update their own workflows.
     """
     if not file or not file.filename or not file.filename.endswith(".swwf"):
@@ -404,6 +453,8 @@ async def update_workflow_file(
         info = await service.update_workflow(
             workflow_id=workflow_id,
             content=content,
+            author=user.username,
+            message=message,
         )
     except WorkflowParseError as e:
         raise HTTPException(
@@ -505,3 +556,192 @@ async def delete_workflow(
         )
 
     await service.delete_workflow(workflow_id)
+
+
+# =============================================================================
+# Revision history
+# =============================================================================
+
+
+@router.get(
+    "/{workflow_id}/revisions",
+    response_model=WorkflowRevisionListResponse,
+)
+async def list_workflow_revisions(
+    workflow_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> WorkflowRevisionListResponse:
+    """List a workflow's revision history, newest first.
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
+    service = _get_service(db)
+
+    try:
+        info = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
+    revisions = await service.list_revisions(workflow_id)
+    return WorkflowRevisionListResponse(
+        revisions=[WorkflowRevisionResponse.from_info(r) for r in revisions],
+        total=len(revisions),
+    )
+
+
+@router.get("/{workflow_id}/revisions/{revision_id}/download")
+async def download_workflow_revision(
+    workflow_id: UUID,
+    revision_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Download the .swwf file for a specific revision.
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
+    service = _get_service(db)
+
+    try:
+        info = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
+    try:
+        revision, blob = await service.get_revision_content(workflow_id, revision_id)
+    except RevisionNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Revision not found",
+        )
+
+    filename = f"{info.name}.r{revision.revision_number}.swwf"
+    return Response(
+        content=blob,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@router.get("/{workflow_id}/diff", response_class=PlainTextResponse)
+async def diff_workflow_revisions(
+    workflow_id: UUID,
+    user: CurrentUser,
+    from_revision: UUID = Query(..., alias="from"),
+    to_revision: UUID = Query(..., alias="to"),
+    db: AsyncSession = Depends(get_db),
+) -> PlainTextResponse:
+    """Return a unified diff between two revisions of a workflow.
+
+    Query params `from` and `to` are revision ids. The response is a plain
+    text unified diff of the (pretty-printed) workflow contents.
+
+    Access: Owner of the workflow OR auditor role or higher.
+    """
+    service = _get_service(db)
+
+    try:
+        info = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    if not _can_access_workflow(user, info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this workflow",
+        )
+
+    try:
+        diff = await service.diff_revisions(workflow_id, from_revision, to_revision)
+    except RevisionNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Revision not found",
+        )
+
+    return PlainTextResponse(content=diff)
+
+
+@router.post(
+    "/{workflow_id}/revisions/{revision_id}/rollback",
+    response_model=WorkflowMetadata,
+)
+async def rollback_workflow_revision(
+    workflow_id: UUID,
+    revision_id: UUID,
+    user: SessionInfo = RequireUser,
+    body: WorkflowRollbackRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> WorkflowMetadata:
+    """Roll a workflow back to a prior revision. Requires user role.
+
+    Rollback is non-destructive: the target revision's content becomes the
+    current file and a new revision is appended recording the rollback. Users
+    can only roll back their own workflows.
+    """
+    service = _get_service(db)
+
+    try:
+        existing = await service.get_workflow(workflow_id)
+    except WorkflowNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found",
+        )
+
+    if existing.uploaded_by != user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot roll back workflows uploaded by other users",
+        )
+
+    message = body.message if body is not None else None
+
+    try:
+        info = await service.rollback_to_revision(
+            workflow_id=workflow_id,
+            revision_id=revision_id,
+            author=user.username,
+            message=message,
+        )
+    except RevisionNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Revision not found",
+        )
+    except WorkflowParseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Stored revision corrupted: {e}",
+        )
+    except WorkflowServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+    return WorkflowMetadata.from_info(info)

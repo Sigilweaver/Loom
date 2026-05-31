@@ -7,9 +7,11 @@ from app.domain.workflows.models import (
     WorkflowContent,
     WorkflowInfo,
     WorkflowMeta,
+    WorkflowRevisionInfo,
 )
 from app.domain.workflows.parser import ParseError, WorkflowParser
 from app.domain.workflows.service import (
+    RevisionNotFoundError,
     WorkflowNotFoundError,
     WorkflowParseError,
     WorkflowService,
@@ -30,10 +32,12 @@ __all__ = [
     "WorkflowContent",
     "WorkflowInfo",
     "WorkflowMeta",
+    "WorkflowRevisionInfo",
     # Parser
     "ParseError",
     "WorkflowParser",
     # Service
+    "RevisionNotFoundError",
     "WorkflowNotFoundError",
     "WorkflowParseError",
     "WorkflowService",

@@ -74,3 +74,20 @@ class UpdateWorkflowInput(BaseModel):
 
     folder_path: str | None = Field(None, max_length=1024)
     tags: list[str] | None = None
+
+
+class WorkflowRevisionInfo(BaseModel):
+    """A single workflow revision's metadata (without the file blob)."""
+
+    id: UUID
+    workflow_id: UUID
+    revision_number: int
+    parent_revision_id: UUID | None
+    author: str
+    checksum: str
+    size_bytes: int
+    message: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+

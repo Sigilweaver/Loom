@@ -4,7 +4,18 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -86,6 +97,55 @@ class Workflow(Base):
     )
     schedules: Mapped[list["Schedule"]] = relationship(
         "Schedule", back_populates="workflow"
+    )
+
+
+class WorkflowRevision(Base):
+    """Append-only revision history for a workflow.
+
+    Every content-changing save (upload, replace, or rollback) records a new
+    immutable revision: the full file blob, its checksum, the author, an
+    optional message, and a pointer to the revision it descends from. This
+    gives a non-git, linear history that supports diffing and rollback.
+    """
+
+    __tablename__ = "workflow_revisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # 1-based, monotonic per workflow; orders the history and labels revisions.
+    revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # The revision this one was created from (None for the first revision).
+    parent_revision_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflow_revisions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    author: Mapped[str] = mapped_column(String(255), nullable=False)
+    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+    blob: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    message: Mapped[str] = mapped_column(Text, default="")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_id",
+            "revision_number",
+            name="uq_workflow_revision_number",
+        ),
     )
 
 

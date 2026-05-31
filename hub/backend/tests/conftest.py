@@ -160,6 +160,7 @@ _TABLE_NAMES = [
     "execution_records",
     "executions",
     "schedules",
+    "workflow_revisions",
     "workflows", 
     "server_groups",
     "servers",
