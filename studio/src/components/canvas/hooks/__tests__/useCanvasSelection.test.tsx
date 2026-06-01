@@ -18,9 +18,9 @@ vi.mock("@state/uiStore", () => ({
 
 describe("useCanvasSelection", () => {
   let params: UseCanvasSelectionParams;
-  let setNodes: ReturnType<typeof vi.fn>;
-  let onToolSelect: ReturnType<typeof vi.fn>;
-  let onClosePositionMenu: ReturnType<typeof vi.fn>;
+  let setNodes: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onToolSelect: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onClosePositionMenu: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     setNodes = vi.fn();

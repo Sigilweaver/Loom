@@ -68,7 +68,7 @@ describe("createEmptyOperation", () => {
 // ---------------------------------------------------------------------------
 
 describe("FormulaOperationBuilder rendering", () => {
-  let mockOnChange: ReturnType<typeof vi.fn>;
+  let mockOnChange: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     mockOnChange = vi.fn();
@@ -199,7 +199,7 @@ describe("FormulaOperationBuilder rendering", () => {
 // ---------------------------------------------------------------------------
 
 describe("FormulaOperationBuilder interactions", () => {
-  let mockOnChange: ReturnType<typeof vi.fn>;
+  let mockOnChange: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     mockOnChange = vi.fn();
@@ -403,7 +403,7 @@ describe("FormulaOperationBuilder interactions", () => {
 // ---------------------------------------------------------------------------
 
 describe("FormulaOperationBuilder with string columns", () => {
-  let mockOnChange: ReturnType<typeof vi.fn>;
+  let mockOnChange: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     mockOnChange = vi.fn();

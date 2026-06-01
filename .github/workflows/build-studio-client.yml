@@ -3,11 +3,6 @@ name: Build Studio Client
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      node-version:
-        required: false
-        type: string
-        default: '22'
 
 jobs:
   build-client:
@@ -36,15 +31,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node-version }}
-          cache: 'npm'
-          cache-dependency-path: studio/package-lock.json
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install studio dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
@@ -62,7 +53,7 @@ jobs:
           fi
 
       - name: Build client version
-        run: npm run build:${{ matrix.platform }}:client
+        run: bun run build:${{ matrix.platform }}:client
 
       - name: Sign Windows executables
         if: matrix.platform == 'win'

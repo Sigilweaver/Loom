@@ -14,5 +14,8 @@ export default defineConfig({
     setupFiles: "./src/test/setup.ts",
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     passWithNoTests: true,
+    coverage: {
+      provider: "istanbul",
+    },
   },
 });

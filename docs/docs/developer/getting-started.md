@@ -8,7 +8,7 @@ sidebar_position: 2
 
 You'll need:
 - **Python 3.11+** (for the backend)
-- **Node.js 18+** (for the frontend)
+- **[bun](https://bun.sh)** (for the frontend)
 - **Git** (obviously)
 
 ## Platform Notes
@@ -26,7 +26,7 @@ I develop on Arch Linux. The venv + package-lock approach means everything shoul
 ### Prerequisites
 
 - **Python 3.11+** with [uv](https://github.com/astral-sh/uv) package manager
-- **Node.js 18+** with npm
+- **[bun](https://bun.sh)** (for the frontend)
 - **Git**
 
 Install uv if you don't have it:
@@ -47,7 +47,7 @@ uv sync --all-extras
 
 # Frontend setup
 cd ../studio
-npm install
+bun install
 ```
 
 ### Windows (WSL2)
@@ -56,8 +56,9 @@ Native Windows development is possible but frustrating. I recommend WSL2:
 
 ```bash
 # In WSL2 (Ubuntu)
-sudo apt update && sudo apt install python3 nodejs npm git build-essential
+sudo apt update && sudo apt install python3 git build-essential
 curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -fsSL https://bun.sh/install | bash
 
 # Then follow Linux instructions above
 ```
@@ -96,12 +97,12 @@ uv run uvicorn app.main:app --reload --port 25811
 
 # Terminal 2: Frontend
 cd studio
-npm run dev
+bun run dev
 # Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional, for desktop app testing)
 cd studio
-npm run dev:electron
+bun run dev:electron
 ```
 
 The frontend dev server proxies API calls to the backend, so you need both running.
@@ -125,7 +126,7 @@ uv run alembic upgrade head  # Run database migrations
 
 # Frontend setup
 cd ../frontend
-npm install
+bun install
 
 # Start Hub dev servers
 cd ..
@@ -158,7 +159,7 @@ Electron should have started, but you can also open http://localhost:25810 in yo
 
 # Or individually
 cd server && uv run pytest tests/
-cd studio && npm test
+cd studio && bun run test
 ```
 
 If tests pass, you're ready to contribute.
@@ -214,7 +215,7 @@ Check that the Server is actually running on port 25811. The Vite dev server pro
 
 ### Electron window is blank
 
-The Electron app needs the Vite dev server running first. Start `npm run dev`, wait for it to be ready, then run `npm run dev:electron`.
+The Electron app needs the Vite dev server running first. Start `bun run dev`, wait for it to be ready, then run `bun run dev:electron`.
 
 ### Tests fail on Windows
 

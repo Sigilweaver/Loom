@@ -10,16 +10,16 @@ For comprehensive development documentation, see **[sigilweaver.app/docs/develop
 cd studio
 
 # Install dependencies
-npm install
+bun install
 
 # Start dev server (browser mode)
-npm run dev
+bun run dev
 
 # Start with Electron (requires two terminals)
 # Terminal 1:
-npm run dev
+bun run dev
 # Terminal 2:
-npm run electron
+bun run electron
 ```
 
 Or from the repository root:
@@ -33,15 +33,15 @@ Or from the repository root:
 
 ```bash
 cd studio
-npm test
+bun run test
 ```
 
 ### Linting
 
 ```bash
 cd studio
-npm run lint
-npm run lint:fix
+bun run lint
+bun run lint:fix
 ```
 
 ## Key Documentation

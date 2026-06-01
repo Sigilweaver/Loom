@@ -275,7 +275,7 @@ describe('MyToolConfiguration', () => {
 cd server && uv run pytest tests/test_my_tool.py -v
 
 # Studio tests
-cd studio && npm test MyToolConfig
+cd studio && bun run test MyToolConfig
 
 # Full test suite
 ./scripts/test.py

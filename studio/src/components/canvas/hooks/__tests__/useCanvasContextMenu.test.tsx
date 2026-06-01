@@ -21,8 +21,8 @@ vi.mock("@state/clipboardStore", () => ({
 describe("useCanvasContextMenu", () => {
   let params: UseCanvasContextMenuParams;
   let screenToFlowPosition: (pos: { x: number; y: number }) => XYPosition;
-  let setNodes: ReturnType<typeof vi.fn>;
-  let setPasteAnchor: ReturnType<typeof vi.fn>;
+  let setNodes: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let setPasteAnchor: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     screenToFlowPosition = vi.fn((pos: { x: number; y: number }) => ({ x: pos.x, y: pos.y })) as unknown as (pos: { x: number; y: number }) => XYPosition;

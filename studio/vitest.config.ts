@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // Force zod's compiled CommonJS entry. Zod 4's ESM entry re-exports its
+      // `z` namespace via `import * as z` / `export { z }` chains that the
+      // vitest module runner mishandles (yielding an undefined `z`). The CJS
+      // build exposes a flat `z` export that resolves correctly.
+      zod: path.resolve(__dirname, "node_modules/zod/index.cjs"),
       "@api": path.resolve(__dirname, "src/api"),
       "@components": path.resolve(__dirname, "src/components"),
       "@contexts": path.resolve(__dirname, "src/contexts"),
@@ -27,7 +32,7 @@ export default defineConfig({
       "**/__tests__/**/*.integration.test.{ts,tsx}",
     ],
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       reporter: ["text", "lcov"],
       reportsDirectory: "coverage",
       include: ["src/**/*.{ts,tsx}"],

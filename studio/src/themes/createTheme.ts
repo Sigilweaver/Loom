@@ -42,7 +42,7 @@ function wcagAutoText(bg: string, white: string, dark: string): string {
   return ratio(whiteL, bgL) >= ratio(bgL, darkL) ? white : dark;
 }
 
-type GrayIdx = 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
+type GrayIdx = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
 type BrandIdx = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
 
 export interface ThemeConfig {

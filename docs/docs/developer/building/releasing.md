@@ -72,10 +72,8 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
       
       - name: Build Server
         run: |
@@ -83,9 +81,9 @@ jobs:
             uv sync --all-extras
             uv run pyinstaller sigilweaver.spec
           cd studio
-          npm ci
-          npm run build
-          npm run dist
+          bun install --frozen-lockfile
+          bun run build
+          bun run dist
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

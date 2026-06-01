@@ -29,12 +29,12 @@ uv run uvicorn app.main:app --reload --port 25811
 
 # Terminal 2: Frontend (Vite)
 cd studio
-npm run dev
+bun run dev
 # Runs at http://localhost:25810
 
 # Terminal 3: Electron (optional)
 cd studio
-npm run dev:electron
+bun run dev:electron
 # Opens desktop window
 ```
 
@@ -45,7 +45,7 @@ npm run dev:electron
 For pure frontend work, just use the Vite dev server:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Open http://localhost:25810 in your browser. Faster iteration than Electron, easier to debug.
@@ -55,8 +55,8 @@ Open http://localhost:25810 in your browser. Faster iteration than Electron, eas
 For testing desktop-specific features:
 
 ```bash
-npm run dev       # Start Vite first
-npm run dev:electron  # Then Electron
+bun run dev       # Start Vite first
+bun run dev:electron  # Then Electron
 ```
 
 The Electron window loads from the Vite dev server, so you still get hot reload.
@@ -131,14 +131,14 @@ console.log(useWorkflowStore.getState());
 cd server && uv run pytest tests/
 
 # Studio only  
-cd studio && npm test
+cd studio && bun run test
 
 # Specific test file
 cd server && uv run pytest tests/test_filter.py -v
-cd studio && npm test FilterConfig
+cd studio && bun run test FilterConfig
 
 # Watch mode (Studio)
-cd studio && npm run test:watch
+cd studio && bun run test:watch
 ```
 
 ### Linting and Formatting
@@ -152,8 +152,8 @@ mypy app/
 
 # Studio
 cd studio
-npm run lint:fix
-npm run type-check
+bun run lint:fix
+bun run type-check
 ```
 
 Run these before committing.
@@ -242,12 +242,12 @@ cd server && uv sync --all-extras
 ### Frontend won't start
 
 ```bash
-# Check Node version
-node --version  # Needs 18+
+# Check bun version
+bun --version
 
 # Clear cache and reinstall
 rm -rf node_modules
-npm install
+bun install
 ```
 
 ### Tests failing mysteriously
@@ -263,7 +263,7 @@ rm -rf node_modules/.vitest
 
 ### Electron shows blank window
 
-The Vite dev server must be running first. Start `npm run dev`, wait for "ready in XXms", then run `npm run dev:electron`.
+The Vite dev server must be running first. Start `bun run dev`, wait for "ready in XXms", then run `bun run dev:electron`.
 
 ---
 

@@ -56,24 +56,18 @@ jobs:
     needs: [validate-tag-on-main, build-server]
     uses: ./.github/workflows/build-studio-full.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   build-studio-client:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-studio-client.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   build-web:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   publish-assets:
     name: Publish to GitHub Release

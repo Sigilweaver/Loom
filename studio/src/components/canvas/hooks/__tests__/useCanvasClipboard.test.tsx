@@ -15,12 +15,12 @@ describe("useCanvasClipboard", () => {
   let mockNodes: Node[];
   let mockTools: Tool[];
   let mockWires: Wire[];
-  let setClipboard: ReturnType<typeof vi.fn>;
-  let onAddTool: ReturnType<typeof vi.fn>;
-  let onAddWire: ReturnType<typeof vi.fn>;
-  let onRemoveTool: ReturnType<typeof vi.fn>;
-  let setNodes: ReturnType<typeof vi.fn>;
-  let onToolSelect: ReturnType<typeof vi.fn>;
+  let setClipboard: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onAddTool: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onAddWire: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onRemoveTool: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let setNodes: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onToolSelect: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let getNodes: () => Node[];
   let snap: (x: number, y: number) => { x: number; y: number };
 

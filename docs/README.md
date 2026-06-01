@@ -49,20 +49,19 @@ docs/
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- [bun](https://bun.sh)
 
 ### Installation
 
 ```bash
 cd docs
-npm install
+bun install
 ```
 
 ### Local Development
 
 ```bash
-npm run start
+bun run start
 ```
 
 This starts a local development server at `http://localhost:3000`. Most changes are reflected live without restarting.
@@ -70,19 +69,19 @@ This starts a local development server at `http://localhost:3000`. Most changes 
 ### Build
 
 ```bash
-npm run build
+bun run build
 ```
 
 Generates static content into the `build/` directory. You can serve this locally with:
 
 ```bash
-npm run serve
+bun run serve
 ```
 
 ### Check for Broken Links
 
 ```bash
-npm run build  # Build will fail on broken links
+bun run build  # Build will fail on broken links
 ```
 
 ## Writing Documentation
@@ -154,10 +153,10 @@ For manual deployment to GitHub Pages:
 
 ```bash
 # Using SSH
-USE_SSH=true npm run deploy
+USE_SSH=true bun run deploy
 
 # Using HTTPS
-GIT_USER=<Your GitHub username> npm run deploy
+GIT_USER=<Your GitHub username> bun run deploy
 ```
 
 ## Contributing

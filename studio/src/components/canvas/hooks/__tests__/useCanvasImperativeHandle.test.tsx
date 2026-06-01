@@ -8,7 +8,7 @@ import {
 
 describe("useCanvasImperativeHandle", () => {
   let params: UseCanvasImperativeHandleParams;
-  let fitView: ReturnType<typeof vi.fn>;
+  let fitView: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let refObject: React.MutableRefObject<CanvasRef | null>;
 
   beforeEach(() => {

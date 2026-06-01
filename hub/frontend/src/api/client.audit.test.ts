@@ -32,7 +32,7 @@ describe("audit API client", () => {
             const result = await listAuditEvents();
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
-            const [url, init] = fetchMock.mock.calls[0];
+            const [url, init] = fetchMock.mock.calls[0]!;
             expect(url).toBe("/api/v1/audit/events");
             expect((init.headers as Record<string, string>).Authorization).toBe(
                 "Bearer test-token"
@@ -51,7 +51,7 @@ describe("audit API client", () => {
                 page_size: 25,
             });
 
-            const [url] = fetchMock.mock.calls[0];
+            const [url] = fetchMock.mock.calls[0]!;
             const parsed = new URL(url, "http://localhost");
             expect(parsed.pathname).toBe("/api/v1/audit/events");
             expect(parsed.searchParams.get("event_type")).toBe("execution.requested");
@@ -80,7 +80,7 @@ describe("audit API client", () => {
 
             const result = await verifyAuditChain();
 
-            const [url] = fetchMock.mock.calls[0];
+            const [url] = fetchMock.mock.calls[0]!;
             expect(url).toBe("/api/v1/audit/verify");
             expect(result.valid).toBe(true);
             expect(result.events_checked).toBe(3);
@@ -97,7 +97,7 @@ describe("audit API client", () => {
 
             const result = await verifyAuditChain(500);
 
-            const [url] = fetchMock.mock.calls[0];
+            const [url] = fetchMock.mock.calls[0]!;
             const parsed = new URL(url, "http://localhost");
             expect(parsed.pathname).toBe("/api/v1/audit/verify");
             expect(parsed.searchParams.get("limit")).toBe("500");

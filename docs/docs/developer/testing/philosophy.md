@@ -150,18 +150,18 @@ def test_filter_works():
 cd server && uv run pytest
 
 # Frontend only
-cd studio && npm test
+cd studio && bun run test
 
 # With coverage
 cd server && uv run pytest --cov=app --cov-report=html
-cd studio && npm run test:coverage
+cd studio && bun run test:coverage
 
 # Specific file
 cd server && uv run pytest tests/test_filter.py -v
-cd studio && npm test FilterConfig
+cd studio && bun run test FilterConfig
 
 # Watch mode (frontend)
-cd studio && npm run test:watch
+cd studio && bun run test:watch
 ```
 
 ## Coverage Goals

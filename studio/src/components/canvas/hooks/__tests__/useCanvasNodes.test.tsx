@@ -19,7 +19,7 @@ vi.mock("@data/tools", () => ({
 describe("useCanvasNodes", () => {
   let params: UseCanvasNodesParams;
   let mockTools: Tool[];
-  let onToolMove: ReturnType<typeof vi.fn>;
+  let onToolMove: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     onToolMove = vi.fn();

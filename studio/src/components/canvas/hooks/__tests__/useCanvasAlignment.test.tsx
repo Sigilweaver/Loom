@@ -39,9 +39,9 @@ import { useWorkflowStore } from "@state/workflowStore";
 
 describe("useCanvasAlignment", () => {
   let params: UseCanvasAlignmentParams;
-  let onToolMove: ReturnType<typeof vi.fn>;
-  let onBeginTransaction: ReturnType<typeof vi.fn>;
-  let onCommitTransaction: ReturnType<typeof vi.fn>;
+  let onToolMove: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onBeginTransaction: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onCommitTransaction: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     onToolMove = vi.fn();

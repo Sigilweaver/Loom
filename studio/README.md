@@ -39,8 +39,8 @@ Download from [sigilweaver.app/loom/downloads](https://sigilweaver.app/loom/down
 
 ```bash
 cd studio
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Studio runs at `http://localhost:25810` in dev mode. You'll need a Server running at `localhost:25811` to execute workflows.
@@ -49,15 +49,15 @@ Studio runs at `http://localhost:25810` in dev mode. You'll need a Server runnin
 
 ```bash
 cd studio
-npm run dev      # Terminal 1: Start Vite dev server
-npm run electron  # Terminal 2: Launch Electron (after Vite starts)
+bun run dev      # Terminal 1: Start Vite dev server
+bun run electron  # Terminal 2: Launch Electron (after Vite starts)
 ```
 
 ### With Tauri
 
 ```bash
 cd studio
-npm run dev:tauri  # Starts Tauri dev mode (Vite + Tauri)
+bun run dev:tauri  # Starts Tauri dev mode (Vite + Tauri)
 ```
 
 > **Note:** Electron (Full build) bundles the Server executable. Tauri (Client build) is a lightweight shell that connects to an external Server.

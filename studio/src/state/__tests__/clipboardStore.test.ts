@@ -398,7 +398,7 @@ describe("clipboardStore", () => {
       expect(newToolIds).toHaveLength(1);
       expect(batchAddSpy).toHaveBeenCalledTimes(1);
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       expect(pastedTools).toHaveLength(1);
       expect(pastedTools[0].x).toBe(300); // New X position
       expect(pastedTools[0].y).toBe(400); // New Y position
@@ -421,7 +421,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       expect(pastedTools[0].id).not.toBe("tool1"); // Should have new ID
       expect(pastedTools[0].id).toBeTruthy();
     });
@@ -453,7 +453,7 @@ describe("clipboardStore", () => {
       // Offset: 500-100=400, 600-200=400
       useClipboardStore.getState().pasteToolsAt({ x: 500, y: 600 });
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       expect(pastedTools[0].x).toBe(500); // 100 + 400
       expect(pastedTools[0].y).toBe(600); // 200 + 400
       expect(pastedTools[1].x).toBe(700); // 300 + 400
@@ -498,7 +498,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 500, y: 600 });
 
-      const [pastedTools, pastedWires] = batchAddSpy.mock.calls[0];
+      const [pastedTools, pastedWires] = batchAddSpy.mock.calls[0]!;
 
       // Check that wire references new tool IDs
       expect(pastedWires).toHaveLength(1);
@@ -533,7 +533,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       expect(pastedTools[0].config).toEqual({
         filename: "data.csv",
         delimiter: ";",
@@ -569,7 +569,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       expect(pastedTools[0].sockets).toEqual([
         { id: 'input-left', direction: 'input', multiple: false },
         { id: 'input-right', direction: "input", multiple: false },
@@ -644,7 +644,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       // Should generate new_tool_2 (not new_tool_1 which exists)
       expect(pastedTools[0].id).not.toBe("new_tool_1");
     });
@@ -670,7 +670,7 @@ describe("clipboardStore", () => {
       expect(ids1).toHaveLength(1);
 
       // Second paste (simulate by updating existing tools)
-      const [firstPastedTools] = batchAddSpy.mock.calls[0];
+      const [firstPastedTools] = batchAddSpy.mock.calls[0]!;
       useWorkflowStore.setState({
         tools: [...tools, ...firstPastedTools],
         wires: [],
@@ -716,7 +716,7 @@ describe("clipboardStore", () => {
       expect(newToolIds).toHaveLength(1);
       expect(batchAddSpy).toHaveBeenCalled();
 
-      const [pastedTools] = batchAddSpy.mock.calls[0];
+      const [pastedTools] = batchAddSpy.mock.calls[0]!;
       // Should preserve original config and sockets from clipboard
       expect(pastedTools[0]).toMatchObject({
         type: "Input",
@@ -763,7 +763,7 @@ describe("clipboardStore", () => {
 
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
-      const [, pastedWires] = batchAddSpy.mock.calls[0];
+      const [, pastedWires] = batchAddSpy.mock.calls[0]!;
       // Wire should be filtered out (no mapping for 'nonexistent')
       expect(pastedWires).toHaveLength(0);
     });
@@ -882,8 +882,8 @@ describe("clipboardStore", () => {
       useClipboardStore.getState().pasteToolsAt({ x: 300, y: 400 });
 
       expect(batchAddSpy).toHaveBeenCalledTimes(1);
-      expect(batchAddSpy.mock.calls[0][0]).toHaveLength(1); // 1 tool
-      expect(batchAddSpy.mock.calls[0][1]).toHaveLength(0); // 0 wires
+      expect(batchAddSpy.mock.calls[0]![0]).toHaveLength(1); // 1 tool
+      expect(batchAddSpy.mock.calls[0]![1]).toHaveLength(0); // 0 wires
     });
   });
 });

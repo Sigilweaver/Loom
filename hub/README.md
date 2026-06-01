@@ -48,7 +48,7 @@ docker compose up -d postgres
 cd backend && uv sync && uv run uvicorn app.main:app --port 25802
 
 # Start the frontend (in another terminal)
-cd frontend && npm install && npm run dev
+cd frontend && bun install && bun run dev
 ```
 
 Or use the unified dev script from the repository root:

@@ -28,12 +28,12 @@ function createKeyEvent(
 
 describe("useCanvasKeyboard", () => {
   let params: UseCanvasKeyboardParams;
-  let setNodes: ReturnType<typeof vi.fn>;
-  let setEdges: ReturnType<typeof vi.fn>;
-  let onToolSelect: ReturnType<typeof vi.fn>;
-  let doCopy: ReturnType<typeof vi.fn>;
-  let doCut: ReturnType<typeof vi.fn>;
-  let doPaste: ReturnType<typeof vi.fn>;
+  let setNodes: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let setEdges: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onToolSelect: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let doCopy: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let doCut: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let doPaste: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let moveSelectedNodes: (e: React.KeyboardEvent) => boolean;
 
   beforeEach(() => {
