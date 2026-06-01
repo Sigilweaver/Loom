@@ -472,7 +472,7 @@ class DatasourceFactory:
     def create(path: str) -> Datasource:
         ext = Path(path).suffix.lower()
         # Supports: CSV, TSV, Excel, Parquet, JSON, Avro, IPC/Arrow,
-        #           ODS, YXDB, and database connections (PostgreSQL,
+        #           ODS, YXDB, QVD, and database connections (PostgreSQL,
         #           MySQL, SQLite, MSSQL)
         if ext in [".csv", ".tsv", ".tab", ".txt"]:
             return CSVDatasource(path)

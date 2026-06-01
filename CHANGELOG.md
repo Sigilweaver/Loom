@@ -7,6 +7,11 @@ v0.11.0, entries are maintained alongside each release.
 
 ## [Unreleased] - Security & Quality Remediation
 
+### Added
+
+- **QVD (QlikView Data) reader** - Read `.qvd` files via [OpenQVD](https://github.com/Sigilweaver/OpenQVD); surfaced in the Studio Input tool data-source picker
+- **Hub theme switcher** - Three themes (Sigilweaver Signature, Dark, Light) for the Hub frontend, persisted per browser via semantic CSS-variable design tokens
+
 ### Security
 
 - **Expression sandbox hardening (C1)** - Added AST validation before `eval()` in the expression engine to block sandbox escapes (e.g., `__import__`, attribute access to builtins)
@@ -23,6 +28,7 @@ v0.11.0, entries are maintained alongside each release.
 - **Parallel executor race condition** - Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
 - **Ruff lint violations** - Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
 - **Dev startup crash with default secrets** - Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
+- **Sigilweaver Signature toolbar contrast** - Studio toolbar buttons now render crisp white text in the Sigilweaver Signature theme instead of a muddy mix of black and white labels
 
 ### Changed
 

@@ -309,8 +309,8 @@ List supported file types.
 **Response:**
 ```json
 {
-  "source_types": ["avro", "csv", "excel", "ipc", "json", "ods", "parquet", "yxdb", "postgresql", "mysql", "sqlite", "mssql"],
-  "file_extensions": [".avro", ".csv", ".tsv", ".tab", ".txt", ".xlsx", ".xls", ".xlsb", ".ods", ".json", ".jsonl", ".ndjson", ".parquet", ".yxdb", ".arrow", ".ipc", ".feather"]
+  "source_types": ["avro", "csv", "excel", "ipc", "json", "ods", "parquet", "qvd", "yxdb", "postgresql", "mysql", "sqlite", "mssql"],
+  "file_extensions": [".avro", ".csv", ".tsv", ".tab", ".txt", ".xlsx", ".xls", ".xlsb", ".ods", ".json", ".jsonl", ".ndjson", ".parquet", ".qvd", ".yxdb", ".arrow", ".ipc", ".feather"]
 }
 ```
 

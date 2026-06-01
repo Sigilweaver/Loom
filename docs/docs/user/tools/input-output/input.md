@@ -325,11 +325,30 @@ YXDB files are read eagerly (the entire file is loaded into memory). The row-bas
 Sigilweaver Loom supports all 17 YXDB field types including Bool, Int16/32/64, Float, Double, FixedDecimal, String/WString/VString/VWString, Date, Time, DateTime, Blob, and SpatialObj. Blob and SpatialObj fields are read as strings.
 :::
 
+### QVD
+
+QVD (QlikView Data) files (.qvd). Read using [OpenQVD](https://github.com/Sigilweaver/OpenQVD), a Rust-based reader for the QlikView and Qlik Sense data format.
+
+**Reading Mode:**
+
+QVD files are read eagerly (the entire file is loaded into memory) and wrapped in a LazyFrame for workflow compatibility, so subsequent operations (filter, select, join) are still composed lazily.
+
+**QVD Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Source | (required) | Path to the QVD file |
+| Number of Rows | (all) | Limit number of rows to read |
+
+:::note QVD Support
+QVD is the native storage format produced by QlikView and Qlik Sense. Values are decoded into Polars types (integers, floats, and strings). QVD has no native boolean type, so boolean-like fields surface as integers or strings depending on how they were stored.
+:::
+
 ## Configuration
 
 1. Add an Input tool to the canvas
 2. Select the data source type:
-   - **File sources**: CSV, Excel, Parquet, IPC/Arrow, Avro, ODS, JSON/NDJSON, or YXDB
+   - **File sources**: CSV, Excel, Parquet, IPC/Arrow, Avro, ODS, JSON/NDJSON, YXDB, or QVD
    - **Database sources**: PostgreSQL, MySQL, SQLite, or MSSQL
 3. For file sources, choose the file using the file picker
 4. For database sources, select a connection and write a SQL query
