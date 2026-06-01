@@ -264,9 +264,7 @@ class TestRevisionAccessControl:
         assert response.json()["total"] == 1
 
     @pytest.mark.asyncio
-    async def test_other_user_cannot_rollback(
-        self, user_headers, second_user_headers
-    ):
+    async def test_other_user_cannot_rollback(self, user_headers, second_user_headers):
         async with new_client() as client:
             workflow_id = await _upload(client, user_headers)
             revisions = (

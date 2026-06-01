@@ -105,8 +105,12 @@ class Settings(BaseSettings):
     # These prevent tools from creating outputs that could crash the application
     # Set to 0 to disable individual limits (not recommended)
     safety_max_pivot_columns: int = 1000  # Max unique values in pivot "on" column
-    safety_max_cross_join_rows: int = 10_000_000  # Max rows from cross join (left * right)
-    safety_max_unpivot_rows: int = 100_000_000  # Max rows after unpivot (rows * columns)
+    safety_max_cross_join_rows: int = (
+        10_000_000  # Max rows from cross join (left * right)
+    )
+    safety_max_unpivot_rows: int = (
+        100_000_000  # Max rows after unpivot (rows * columns)
+    )
 
     # Server Connection Store
     # Fernet encryption key for credentials

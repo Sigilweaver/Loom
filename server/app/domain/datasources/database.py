@@ -367,9 +367,7 @@ class DatabaseDataSource(DataSource):
                 }
             )
 
-        return [
-            {"name": name, "columns": columns} for name, columns in tables.items()
-        ]
+        return [{"name": name, "columns": columns} for name, columns in tables.items()]
 
 
 class PostgreSQLDataSource(DatabaseDataSource):

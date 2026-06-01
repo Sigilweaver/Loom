@@ -507,7 +507,7 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
       const decoder = new TextDecoder();
       let buffer = "";
 
-      for (;;) {
+      for (; ;) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });

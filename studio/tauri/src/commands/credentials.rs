@@ -165,7 +165,7 @@ impl StoredConnection {
             updated_at: self.updated_at.clone(),
         }
     }
-    
+
     fn to_resolved(&self, password: String) -> ResolvedConnection {
         ResolvedConnection {
             id: self.id.clone(),
@@ -242,13 +242,13 @@ fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnect
     let store = app
         .store(CONNECTIONS_STORE)
         .map_err(|e| format!("Failed to open connections store: {}", e))?;
-    
+
     let value = serde_json::to_value(connections)
         .map_err(|e| format!("Failed to serialize connections: {}", e))?;
-    
+
     store.set("connections", value);
     store.save().map_err(|e| format!("Failed to save connections: {}", e))?;
-    
+
     Ok(())
 }
 
@@ -287,13 +287,13 @@ pub async fn create_connection(
     input: CreateConnectionInput,
 ) -> Result<ConnectionInfo, String> {
     let mut connections = load_connections(&app)?;
-    
+
     // Check for duplicate names
     let name_lower = input.name.to_lowercase();
     if connections.values().any(|c| c.name.to_lowercase() == name_lower) {
         return Err(format!("A connection named '{}' already exists", input.name));
     }
-    
+
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
 
@@ -312,11 +312,11 @@ pub async fn create_connection(
         created_at: now.clone(),
         updated_at: now,
     };
-    
+
     let info = connection.to_info();
     connections.insert(id.clone(), connection);
     save_connections(&app, &connections)?;
-    
+
     println!("[Credentials] Created connection: {} ({})", info.name, id);
     Ok(info)
 }
@@ -329,7 +329,7 @@ pub async fn update_connection(
     input: UpdateConnectionInput,
 ) -> Result<ConnectionInfo, String> {
     let mut connections = load_connections(&app)?;
-    
+
     // Check for duplicate names first (before mutable borrow)
     if let Some(ref new_name) = input.name {
         let name_lower = new_name.to_lowercase();
@@ -340,16 +340,16 @@ pub async fn update_connection(
             return Err(format!("A connection named '{}' already exists", new_name));
         }
     }
-    
+
     let connection = connections
         .get_mut(&id)
         .ok_or_else(|| format!("Connection {} not found", id))?;
-    
+
     // Apply updates
     if let Some(new_name) = input.name {
         connection.name = new_name;
     }
-    
+
     if let Some(host) = input.host {
         connection.host = host;
     }
@@ -366,12 +366,12 @@ pub async fn update_connection(
         // Updated password goes straight to the OS keychain.
         store_password(&id, &password)?;
     }
-    
+
     connection.updated_at = Utc::now().to_rfc3339();
-    
+
     let info = connection.to_info();
     save_connections(&app, &connections)?;
-    
+
     println!("[Credentials] Updated connection: {} ({})", info.name, id);
     Ok(info)
 }
@@ -380,11 +380,11 @@ pub async fn update_connection(
 #[tauri::command]
 pub async fn delete_connection(app: AppHandle, id: String) -> Result<(), String> {
     let mut connections = load_connections(&app)?;
-    
+
     let connection = connections
         .remove(&id)
         .ok_or_else(|| format!("Connection {} not found", id))?;
-    
+
     save_connections(&app, &connections)?;
 
     // Remove the secret from the OS keychain (best-effort; the metadata is
@@ -417,14 +417,14 @@ pub async fn resolve_connection(
 #[tauri::command]
 pub async fn test_connection(app: AppHandle, id: String) -> Result<ConnectionTestResult, String> {
     let connections = load_connections(&app)?;
-    
+
     if connections.get(&id).is_none() {
         return Ok(ConnectionTestResult {
             success: false,
             message: "Connection not found".to_string(),
         });
     }
-    
+
     // For now, just confirm configuration exists
     // Actual testing would be done via the backend
     Ok(ConnectionTestResult {

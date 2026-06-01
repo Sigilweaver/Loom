@@ -18,7 +18,9 @@ class PythonCodeGenerator:
         self.workflow = workflow
         self.graph = ExecutionGraph(workflow)
         self.tool_map = {tool.id: tool for tool in workflow.tools}
-        self.var_names: dict[str, dict[str, str]] = {}  # tool_id -> socket_id -> var_name
+        self.var_names: dict[
+            str, dict[str, str]
+        ] = {}  # tool_id -> socket_id -> var_name
 
     def generate(self) -> str:
         """Generate complete Python script"""
@@ -45,7 +47,9 @@ class PythonCodeGenerator:
         # Get execution order
         execution_order = self.graph.execution_order()
         if not execution_order:
-            lines.append("# ERROR: Could not determine execution order (cycle detected?)")
+            lines.append(
+                "# ERROR: Could not determine execution order (cycle detected?)"
+            )
             return "\n".join(lines)
 
         # Generate code for each tool
@@ -58,7 +62,9 @@ class PythonCodeGenerator:
                 if len(comment_lines) == 1:
                     comment_header += f" -- {tool.comment}"
                 else:
-                    comment_header += "\n" + "\n".join(f"# {line}" for line in comment_lines)
+                    comment_header += "\n" + "\n".join(
+                        f"# {line}" for line in comment_lines
+                    )
             lines.append(comment_header)
 
             try:
@@ -121,7 +127,9 @@ class PythonCodeGenerator:
                     var_names = []
                     for source_tool_id, source_socket_id in sources:
                         if source_tool_id in self.var_names:
-                            var_name = self.var_names[source_tool_id].get(source_socket_id)
+                            var_name = self.var_names[source_tool_id].get(
+                                source_socket_id
+                            )
                             if var_name:
                                 var_names.append(var_name)
                     if var_names:

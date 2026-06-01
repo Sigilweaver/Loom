@@ -5,8 +5,8 @@ Revises: 005
 Create Date: 2026-02-01
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
 revision = "006"
@@ -50,9 +50,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_execution_artifacts_sha256", table_name="execution_artifacts"
-    )
+    op.drop_index("ix_execution_artifacts_sha256", table_name="execution_artifacts")
     op.drop_index(
         "ix_execution_artifacts_execution_id", table_name="execution_artifacts"
     )

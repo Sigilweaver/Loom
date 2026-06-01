@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Workflow, WorkflowRevision
 from app.domain.workflows.models import (
     CreateWorkflowInput,
-    ParsedWorkflow,
     UpdateWorkflowInput,
     WorkflowContent,
     WorkflowInfo,
@@ -143,7 +142,6 @@ class WorkflowService:
         self.db.add(revision)
         await self.db.flush()
         return revision
-
 
     async def create_workflow(
         self,

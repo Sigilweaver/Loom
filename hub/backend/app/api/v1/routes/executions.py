@@ -3,13 +3,12 @@
 Provides endpoints for triggering and tracking workflow executions.
 """
 
-from datetime import UTC, datetime
-from typing import Any
-from uuid import UUID
-
 import asyncio
 import json
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
@@ -26,7 +25,7 @@ from app.domain.artifacts import (
     ArtifactService,
     get_artifact_store,
 )
-from app.domain.auth.roles import get_role_level, Role
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
@@ -63,7 +62,6 @@ def _sse_event(data: str, event: str | None = None) -> str:
     for line in data.split("\n"):
         lines.append(f"data: {line}")
     return "\n".join(lines) + "\n\n"
-
 
 
 def _to_iso_utc(dt: datetime) -> str:
@@ -434,7 +432,9 @@ def _record_to_response(record: ExecutionRecord) -> ExecutionRecordResponse:
         output_columns=record.output_columns,
         output_bytes=record.output_bytes,
         error_type=record.error_type,
-        connection_ids=[str(c) for c in record.connection_ids] if record.connection_ids else [],
+        connection_ids=[str(c) for c in record.connection_ids]
+        if record.connection_ids
+        else [],
         details=record.details,
     )
 

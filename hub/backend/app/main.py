@@ -109,7 +109,7 @@ def validate_required_secrets() -> None:
         "FATAL: Hub refuses to start - the following secrets are unset: "
         f"{', '.join(s.upper() for s in missing)}. "
         "Generate each with: "
-        "python3 -c \"import secrets; print(secrets.token_urlsafe(32))\". "
+        'python3 -c "import secrets; print(secrets.token_urlsafe(32))". '
         "For local development you may set ALLOW_INSECURE_DEFAULTS=1 to "
         "auto-generate ephemeral values (NOT for production)."
     )
@@ -247,7 +247,9 @@ if settings.static_files_path:
     static_path = Path(settings.static_files_path)
     if static_path.exists() and static_path.is_dir():
         # Note: Mount at "/" must come after all API routes are registered
-        application.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+        application.mount(
+            "/", StaticFiles(directory=static_path, html=True), name="static"
+        )
         _static_mounted = True
         logger.info(f"Serving static files from {static_path}")
     else:

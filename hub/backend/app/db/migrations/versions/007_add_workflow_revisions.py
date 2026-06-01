@@ -5,8 +5,8 @@ Revises: 006
 Create Date: 2026-02-01
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
 revision = "007"
@@ -56,7 +56,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_workflow_revisions_workflow_id", table_name="workflow_revisions"
-    )
+    op.drop_index("ix_workflow_revisions_workflow_id", table_name="workflow_revisions")
     op.drop_table("workflow_revisions")

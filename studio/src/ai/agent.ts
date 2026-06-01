@@ -311,8 +311,8 @@ export function classifyError(message: string): ClassifiedError {
 
   // Authentication / authorization errors
   if (lower.includes('401') || lower.includes('403') || lower.includes('invalid api key')
-      || lower.includes('unauthorized') || lower.includes('authentication')
-      || lower.includes('permission denied')) {
+    || lower.includes('unauthorized') || lower.includes('authentication')
+    || lower.includes('permission denied')) {
     return {
       category: 'auth',
       displayMessage: 'Authentication failed - check your API key in Settings → AI.',
@@ -322,7 +322,7 @@ export function classifyError(message: string): ClassifiedError {
 
   // Rate limiting
   if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')
-      || lower.includes('quota exceeded')) {
+    || lower.includes('quota exceeded')) {
     return {
       category: 'rate-limit',
       displayMessage: 'Rate limited by provider - wait a moment and try again.',
@@ -332,7 +332,7 @@ export function classifyError(message: string): ClassifiedError {
 
   // Provider overloaded
   if (lower.includes('503') || lower.includes('overloaded') || lower.includes('capacity')
-      || lower.includes('temporarily unavailable')) {
+    || lower.includes('temporarily unavailable')) {
     return {
       category: 'overloaded',
       displayMessage: 'Provider temporarily overloaded - try again in a few seconds.',
@@ -342,9 +342,9 @@ export function classifyError(message: string): ClassifiedError {
 
   // Network / connection errors
   if (lower.includes('502') || lower.includes('504') || lower.includes('could not connect')
-      || lower.includes('econnrefused') || lower.includes('enotfound')
-      || lower.includes('network') || lower.includes('timeout')
-      || lower.includes('fetch failed') || lower.includes('econnreset')) {
+    || lower.includes('econnrefused') || lower.includes('enotfound')
+    || lower.includes('network') || lower.includes('timeout')
+    || lower.includes('fetch failed') || lower.includes('econnreset')) {
     return {
       category: 'network',
       displayMessage: `Connection error: ${message}. Is the Sigilweaver Loom Server running?`,
@@ -640,14 +640,14 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
   switch (toolName) {
     case 'build_workflow':
       return `${r.toolCount} tools, ${r.wireCount} wires` +
-        (r.inputColumns ? `, columns: ${(r.inputColumns as Array<{name: string}>).map(c => c.name).join(', ')}` : '');
+        (r.inputColumns ? `, columns: ${(r.inputColumns as Array<{ name: string }>).map(c => c.name).join(', ')}` : '');
     case 'preview_tool_output':
-      return `${r.rowCount ?? '?'} rows, schema: ${((r.schema as Array<{name: string}>) ?? []).map(c => c.name).join(', ')}`;
+      return `${r.rowCount ?? '?'} rows, schema: ${((r.schema as Array<{ name: string }>) ?? []).map(c => c.name).join(', ')}`;
     case 'get_column_metadata':
-      return `cols: ${((r.columns as Array<{name: string; dtype: string}>) ?? []).map(c => `${c.name}(${c.dtype})`).join(', ')}`;
+      return `cols: ${((r.columns as Array<{ name: string; dtype: string }>) ?? []).map(c => `${c.name}(${c.dtype})`).join(', ')}`;
     case 'search_files':
       return `${((r.results as unknown[]) ?? []).length} results` +
-        ((r.results as Array<{path: string}>) ?? []).slice(0, 3).map(f => ` ${f.path}`).join(',');
+        ((r.results as Array<{ path: string }>) ?? []).slice(0, 3).map(f => ` ${f.path}`).join(',');
     case 'add_tool':
       return `${r.type} [${r.toolId}]${r.connected ? ' connected' : ''}`;
     case 'update_tool':

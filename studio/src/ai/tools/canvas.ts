@@ -220,11 +220,11 @@ function enrichFilterConfig(
   // Build flat conditions list for legacy compat (only include flat ones)
   const flatConditions = hasConditions
     ? conditions.map((c) => ({
-        id: crypto.randomUUID(),
-        column: c.column,
-        operator: c.operator,
-        value: c.value ?? '',
-      }))
+      id: crypto.randomUUID(),
+      column: c.column,
+      operator: c.operator,
+      value: c.value ?? '',
+    }))
     : [];
 
   // Remove `groups` from the final config (it's internal to the AI schema)

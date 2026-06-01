@@ -23,9 +23,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:25803", "http://localhost:25810"]
 
     # Database
-    database_url: str = (
-        "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub"
-    )
+    database_url: str = "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub"
 
     # Authentication - Session
     # MUST be set via env (32+ random bytes). No default - Hub refuses to boot if empty.

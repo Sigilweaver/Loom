@@ -170,9 +170,7 @@ class ExecutionService:
             NoAvailableServerError: If no healthy server is available.
         """
         if server_id:
-            result = await self.db.execute(
-                select(Server).where(Server.id == server_id)
-            )
+            result = await self.db.execute(select(Server).where(Server.id == server_id))
             server = result.scalar_one_or_none()
             if not server:
                 raise ServerNotFoundError(f"Server not found: {server_id}")
@@ -357,9 +355,7 @@ class ExecutionService:
         await self._publish_execution_event(self.db, execution)
 
         # Start async execution (fire and forget)
-        asyncio.create_task(
-            self._run_execution(execution.id, workflow.id, server)
-        )
+        asyncio.create_task(self._run_execution(execution.id, workflow.id, server))
 
         return self._model_to_info(execution, workflow.name, server.name)
 
@@ -389,6 +385,7 @@ class ExecutionService:
 
                 # Parse workflow JSON for token generation
                 import json
+
                 try:
                     workflow_json = json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
@@ -495,9 +492,7 @@ class ExecutionService:
         error_message: str,
     ) -> None:
         """Mark an execution as failed."""
-        result = await db.execute(
-            select(Execution).where(Execution.id == execution_id)
-        )
+        result = await db.execute(select(Execution).where(Execution.id == execution_id))
         execution = result.scalar_one_or_none()
         if execution:
             execution.status = ExecutionStatus.FAILED.value

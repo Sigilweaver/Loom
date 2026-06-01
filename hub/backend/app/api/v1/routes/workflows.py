@@ -12,14 +12,23 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
+from app.api.dependencies import CurrentUser, RequireUser
 from app.db.database import get_db
-from app.domain.auth.roles import get_role_level, Role
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.workflows import (
     CreateWorkflowInput,
@@ -215,7 +224,9 @@ async def list_workflows(
 )
 async def upload_workflow(
     user: SessionInfo = RequireUser,
-    file: Annotated[UploadFile | None, File(description="The .swwf workflow file")] = None,
+    file: Annotated[
+        UploadFile | None, File(description="The .swwf workflow file")
+    ] = None,
     db: AsyncSession = Depends(get_db),
     folder_path: str = Form(default="/"),
     tags: str = Form(default=""),  # Comma-separated
@@ -408,7 +419,9 @@ async def download_workflow(
 async def update_workflow_file(
     workflow_id: UUID,
     user: SessionInfo = RequireUser,
-    file: Annotated[UploadFile | None, File(description="The updated .swwf workflow file")] = None,
+    file: Annotated[
+        UploadFile | None, File(description="The updated .swwf workflow file")
+    ] = None,
     db: AsyncSession = Depends(get_db),
     message: str = Form(default=""),
 ) -> WorkflowMetadata:

@@ -9,9 +9,9 @@ import tempfile
 from uuid import UUID
 
 import pytest
-
 from app.config import settings
 from app.domain.artifacts import ArtifactService
+
 from tests.conftest import TestSessionLocal, make_workflow_content, new_client
 
 # A single output socket with two rows; mirrors the Server execute response.
@@ -47,7 +47,9 @@ async def _trigger_execution(client, headers, server_id) -> str:
     upload = await client.post(
         "/api/v1/workflows",
         headers=headers,
-        files={"file": ("test.swwf", make_workflow_content(), "application/octet-stream")},
+        files={
+            "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+        },
         data={"folder_path": "/", "tags": ""},
     )
     assert upload.status_code == 201, upload.text
@@ -159,9 +161,7 @@ class TestArtifactRetrieval:
         assert resp.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_missing_execution_returns_404(
-        self, artifact_storage, user_headers
-    ):
+    async def test_missing_execution_returns_404(self, artifact_storage, user_headers):
         fake_id = "00000000-0000-0000-0000-000000000000"
         async with new_client() as client:
             resp = await client.get(

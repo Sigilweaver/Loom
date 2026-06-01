@@ -5,7 +5,6 @@ from pathlib import Path
 import polars as pl
 import pytest
 import sigilyx
-
 from app.domain.datasources.factory import DataSourceFactory
 from app.domain.datasources.yxdb import YxdbDataSource
 from app.domain.tools.implementations.input import InputTool
@@ -123,14 +122,18 @@ class TestYxdbDataSource:
     async def test_preview_with_column_filter(self, sample_yxdb: Path):
         """Test preview() with column selection"""
         ds = YxdbDataSource()
-        preview = await ds.preview(str(sample_yxdb), {}, max_rows=10, columns=["name", "score"])
+        preview = await ds.preview(
+            str(sample_yxdb), {}, max_rows=10, columns=["name", "score"]
+        )
 
         assert preview.returned_rows == 5
         for row in preview.data:
             assert set(row.keys()) == {"name", "score"}
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(
+        reason="SigilYX reader panics on compressed titanic.yxdb records"
+    )
     async def test_preview_titanic(self, titanic_yxdb: Path):
         """Test preview() on the titanic dataset"""
         ds = YxdbDataSource()
@@ -251,7 +254,9 @@ class TestYxdbInputTool:
         assert len(df) == 5
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(
+        reason="SigilYX reader panics on compressed titanic.yxdb records"
+    )
     async def test_read_titanic(self, titanic_yxdb: Path):
         """Test InputTool reads the full titanic YXDB"""
         tool = InputTool()
@@ -264,7 +269,9 @@ class TestYxdbInputTool:
         assert len(df.columns) == 12
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(
+        reason="SigilYX reader panics on compressed titanic.yxdb records"
+    )
     async def test_read_titanic_subset(self, titanic_yxdb: Path):
         """Test InputTool with n_rows and columns on titanic"""
         tool = InputTool()
@@ -315,7 +322,9 @@ class TestYxdbOutputTool:
         output_tool = OutputTool()
 
         # Read source
-        inputs = await input_tool.execute({"type": "yxdb", "source": str(sample_yxdb)}, {})
+        inputs = await input_tool.execute(
+            {"type": "yxdb", "source": str(sample_yxdb)}, {}
+        )
 
         # Write to new file
         output_path = tmp_path / "output.yxdb"
@@ -336,7 +345,9 @@ class TestYxdbOutputTool:
         input_tool = InputTool()
         output_tool = OutputTool()
 
-        inputs = await input_tool.execute({"type": "yxdb", "source": str(sample_yxdb)}, {})
+        inputs = await input_tool.execute(
+            {"type": "yxdb", "source": str(sample_yxdb)}, {}
+        )
 
         output_path = tmp_path / "nested" / "deep" / "output.yxdb"
         await output_tool.execute(
@@ -349,14 +360,18 @@ class TestYxdbOutputTool:
         assert len(result) == 5
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(
+        reason="SigilYX reader panics on compressed titanic.yxdb records"
+    )
     async def test_write_titanic_roundtrip(self, tmp_path: Path, titanic_yxdb: Path):
         """Test full roundtrip: YXDB → InputTool → OutputTool → YXDB → verify"""
         input_tool = InputTool()
         output_tool = OutputTool()
 
         # Read original
-        inputs = await input_tool.execute({"type": "yxdb", "source": str(titanic_yxdb)}, {})
+        inputs = await input_tool.execute(
+            {"type": "yxdb", "source": str(titanic_yxdb)}, {}
+        )
 
         # Write to new file
         output_path = tmp_path / "titanic_copy.yxdb"
@@ -374,7 +389,9 @@ class TestYxdbOutputTool:
         # Compare values (allow float tolerance)
         for col in original.columns:
             if original[col].dtype.is_float():
-                assert original[col].to_list() == pytest.approx(copy[col].to_list(), nan_ok=True)
+                assert original[col].to_list() == pytest.approx(
+                    copy[col].to_list(), nan_ok=True
+                )
             else:
                 assert original[col].to_list() == copy[col].to_list()
 
@@ -384,7 +401,9 @@ class TestYxdbOutputTool:
         input_tool = InputTool()
         output_tool = OutputTool()
 
-        inputs = await input_tool.execute({"type": "yxdb", "source": str(sample_yxdb)}, {})
+        inputs = await input_tool.execute(
+            {"type": "yxdb", "source": str(sample_yxdb)}, {}
+        )
 
         with pytest.raises(Exception):
             await output_tool.execute(
@@ -397,7 +416,9 @@ class TestYxdbOutputTool:
         """Test OutputTool.validate_config accepts yxdb type"""
         tool = OutputTool()
 
-        errors = await tool.validate_config({"type": "yxdb", "destination": "/tmp/out.yxdb"})
+        errors = await tool.validate_config(
+            {"type": "yxdb", "destination": "/tmp/out.yxdb"}
+        )
         type_errors = [e for e in errors if "Unsupported output type" in e]
         assert len(type_errors) == 0
 
@@ -436,7 +457,9 @@ class TestYxdbCrossFormat:
         assert "PassengerId" in result.columns
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="SigilYX reader panics on compressed titanic.yxdb records")
+    @pytest.mark.xfail(
+        reason="SigilYX reader panics on compressed titanic.yxdb records"
+    )
     async def test_yxdb_to_parquet(self, tmp_path: Path, titanic_yxdb: Path):
         """Test reading YXDB and writing as Parquet"""
         input_tool = InputTool()
@@ -445,7 +468,9 @@ class TestYxdbCrossFormat:
         parquet_path = tmp_path / "from_yxdb.parquet"
 
         # Read YXDB
-        inputs = await input_tool.execute({"type": "yxdb", "source": str(titanic_yxdb)}, {})
+        inputs = await input_tool.execute(
+            {"type": "yxdb", "source": str(titanic_yxdb)}, {}
+        )
 
         # Write as Parquet
         await output_tool.execute(

@@ -1,10 +1,10 @@
 /**
  * Connection Resolution Utilities
- * 
+ *
  * Resolves database connection references in workflows before execution.
  * This ensures credentials are only passed to the backend at execution time,
  * never stored in workflow files.
- * 
+ *
  * Connection ownership:
  * - owner='client': Credentials stored locally, resolved here before sending to backend
  * - owner='hub': Credentials stored on Hub, resolved by Server during execution via Hub validation
@@ -21,13 +21,13 @@ const logger = createLogger('ConnectionResolver');
 
 /**
  * Builds a connection URI from a resolved connection.
- * 
+ *
  * URI formats by database type:
  * - PostgreSQL: postgresql://user:password@host:port/database
  * - MySQL: mysql://user:password@host:port/database
  * - SQLite: sqlite:///path/to/database.db (no credentials)
  * - SQL Server: mssql://user:password@host:port/database?encrypt=true&trust_server_certificate=true
- * 
+ *
  * @param connection - The resolved connection with credentials
  * @returns Connection URI string
  */
@@ -35,7 +35,7 @@ function buildConnectionUri(connection: ResolvedConnection): string {
   // URL encode the password and username in case they contain special characters
   const encodedPassword = encodeURIComponent(connection.password);
   const encodedUsername = encodeURIComponent(connection.username);
-  
+
   switch (connection.type) {
     case 'sqlite': {
       // SQLite uses file path, no credentials needed
@@ -43,13 +43,13 @@ function buildConnectionUri(connection: ResolvedConnection): string {
       const encodedPath = encodeURIComponent(connection.database).replace(/%2F/g, '/');
       return `sqlite://${encodedPath}`;
     }
-    
+
     case 'mssql':
       // SQL Server requires specific parameters for secure connections
       // encrypt=true: Use TLS encryption
       // trust_server_certificate=true: Accept self-signed certs (common in dev)
       return `mssql://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}?encrypt=true&trust_server_certificate=true`;
-    
+
     default:
       // PostgreSQL and MySQL use standard format
       return `${connection.type}://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}`;
@@ -86,14 +86,14 @@ export async function resolveConnectionUri(
 
 /**
  * Resolves all database connection references in a workflow.
- * 
+ *
  * For client-owned connections (owner='client'), resolves the connectionId to a full
  * connection URI with embedded credentials. The resolved URI is stored in the
  * `source` field which the backend expects.
- * 
+ *
  * For server-owned connections (owner='server'), passes the connectionId through
  * without resolving - the backend will resolve these during execution.
- * 
+ *
  * @param workflow - The workflow to resolve connections for
  * @returns A new workflow with resolved connections, or the original if no database tools
  */
@@ -112,8 +112,8 @@ export async function resolveWorkflowConnections(
 
   // Find all Input tools with database category
   const databaseTools = workflow.tools.filter(
-    (tool: Tool) => 
-      tool.type === 'Input' && 
+    (tool: Tool) =>
+      tool.type === 'Input' &&
       tool.config?.category === 'database' &&
       tool.config?.connectionId
   );
@@ -193,7 +193,7 @@ export async function resolveWorkflowConnections(
       }
 
       const owner = (tool.config?.owner as ConnectionOwner) || 'client';
-      
+
       if (owner === 'hub') {
         // Hub-owned: pass through unchanged
         // Server will validate with Hub and get credentials just-in-time
@@ -247,29 +247,29 @@ export async function resolveWorkflowConnections(
 
 /**
  * Checks if a workflow contains any database connection tools.
- * 
+ *
  * @param workflow - The workflow to check
  * @returns True if the workflow has database tools
  */
 export function hasDatabaseConnections(workflow: WorkflowJSON): boolean {
   return workflow.tools.some(
-    (tool: Tool) => 
-      tool.type === 'Input' && 
+    (tool: Tool) =>
+      tool.type === 'Input' &&
       tool.config?.category === 'database'
   );
 }
 
 /**
  * Gets all connection IDs used in a workflow.
- * 
+ *
  * @param workflow - The workflow to inspect
  * @returns Array of connection IDs
  */
 export function getWorkflowConnectionIds(workflow: WorkflowJSON): string[] {
   return workflow.tools
     .filter(
-      (tool: Tool) => 
-        tool.type === 'Input' && 
+      (tool: Tool) =>
+        tool.type === 'Input' &&
         tool.config?.category === 'database' &&
         tool.config?.connectionId
     )
@@ -278,19 +278,19 @@ export function getWorkflowConnectionIds(workflow: WorkflowJSON): string[] {
 
 /**
  * Gets connection IDs by owner type.
- * 
+ *
  * @param workflow - The workflow to inspect
  * @param owner - The owner type to filter by
  * @returns Array of connection IDs
  */
 export function getWorkflowConnectionIdsByOwner(
-  workflow: WorkflowJSON, 
+  workflow: WorkflowJSON,
   owner: ConnectionOwner
 ): string[] {
   return workflow.tools
     .filter(
-      (tool: Tool) => 
-        tool.type === 'Input' && 
+      (tool: Tool) =>
+        tool.type === 'Input' &&
         tool.config?.category === 'database' &&
         tool.config?.connectionId &&
         (tool.config?.owner || 'client') === owner

@@ -7,6 +7,7 @@ Per roles.md:
 """
 
 import pytest
+
 from tests.conftest import make_workflow_content, new_client
 
 
@@ -21,7 +22,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": "test"},
             )
@@ -40,7 +45,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": "test"},
             )
@@ -66,7 +75,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -90,7 +103,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -113,7 +130,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -135,7 +156,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -165,7 +190,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -190,7 +219,11 @@ class TestUserWorkflowCRUD:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -263,7 +296,11 @@ class TestUserCannotAccessOthersWorkflows:
                 "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -287,7 +324,11 @@ class TestUserCannotAccessOthersWorkflows:
                 "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -311,7 +352,11 @@ class TestUserCannotAccessOthersWorkflows:
                 "/api/v1/workflows",
                 headers=second_user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -340,9 +385,7 @@ class TestUserWorkflowsFiltering:
         assert "total" in response.json()
 
     @pytest.mark.asyncio
-    async def test_user_cannot_get_workflow_via_global_endpoint(
-        self, user_headers
-    ):
+    async def test_user_cannot_get_workflow_via_global_endpoint(self, user_headers):
         """User cannot use GET /workflows/{id} (requires auditor+ or ownership)."""
         async with new_client() as client:
             # Upload a workflow first
@@ -350,7 +393,11 @@ class TestUserWorkflowsFiltering:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )

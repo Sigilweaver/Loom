@@ -56,7 +56,9 @@ class ServerClient:
             HealthResponse if successful, ServerError if failed
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=self.timeout, follow_redirects=True
+            ) as client:
                 response = await client.get(
                     f"{self.endpoint_url}/api/health/",
                     headers=self._get_headers(),
@@ -100,7 +102,9 @@ class ServerClient:
             workflow_dict = json.loads(workflow_content.decode("utf-8"))
             request_body = {"workflow": workflow_dict}
 
-            async with httpx.AsyncClient(timeout=settings.server_timeout_seconds * 10) as client:
+            async with httpx.AsyncClient(
+                timeout=settings.server_timeout_seconds * 10
+            ) as client:
                 response = await client.post(
                     f"{self.endpoint_url}/api/workflow/execute",
                     headers={**self._get_headers(), "Content-Type": "application/json"},
@@ -116,7 +120,9 @@ class ServerClient:
                         error_detail = response.json()
                         detail_str = error_detail.get("detail", str(error_detail))
                     except ValueError:
-                        detail_str = response.text[:500] if response.text else "No details"
+                        detail_str = (
+                            response.text[:500] if response.text else "No details"
+                        )
 
                     return ServerError(
                         message=f"Execution failed ({response.status_code}): {detail_str}",

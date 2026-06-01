@@ -42,11 +42,15 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="user")
-    api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     sessions: Mapped[list["Session"]] = relationship(
@@ -164,8 +168,12 @@ class Server(Base):
     # Status
     status: Mapped[str] = mapped_column(String(50), default="unknown")
     version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    last_poll: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_healthy: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_poll: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_healthy: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
@@ -215,8 +223,12 @@ class Execution(Base):
     queued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Results
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
@@ -300,7 +312,9 @@ class Connection(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    type: Mapped[str] = mapped_column(String(20), nullable=False)  # database, filesystem, s3
+    type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # database, filesystem, s3
     description: Mapped[str] = mapped_column(Text, default="")
     read_only: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -325,10 +339,16 @@ class Connection(Base):
 
     # Relationships to type-specific tables
     database_config: Mapped[Optional["ConnectionDatabase"]] = relationship(
-        "ConnectionDatabase", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+        "ConnectionDatabase",
+        back_populates="connection",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
     filesystem_config: Mapped[Optional["ConnectionFilesystem"]] = relationship(
-        "ConnectionFilesystem", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+        "ConnectionFilesystem",
+        back_populates="connection",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     # Hot-path index for connection-list filters/sorts.
@@ -349,7 +369,9 @@ class ConnectionDatabase(Base):
         ForeignKey("connections.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    db_type: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql, mysql, sqlite, mssql
+    db_type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # postgresql, mysql, sqlite, mssql
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
     database: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -358,7 +380,9 @@ class ConnectionDatabase(Base):
     encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Relationship back to base
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="database_config")
+    connection: Mapped["Connection"] = relationship(
+        "Connection", back_populates="database_config"
+    )
 
 
 class ConnectionFilesystem(Base):
@@ -375,10 +399,14 @@ class ConnectionFilesystem(Base):
         primary_key=True,
     )
     path: Mapped[str] = mapped_column(String(1024), nullable=False)
-    path_type: Mapped[str] = mapped_column(String(20), nullable=False, default="local")  # local, unc
+    path_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="local"
+    )  # local, unc
 
     # Relationship back to base
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="filesystem_config")
+    connection: Mapped["Connection"] = relationship(
+        "Connection", back_populates="filesystem_config"
+    )
 
 
 class Session(Base):
@@ -410,8 +438,12 @@ class Session(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="sessions")
@@ -432,9 +464,15 @@ class ServerToken(Base):
     token: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     server_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Group(Base):
@@ -640,7 +678,9 @@ class ExecutionRecord(Base):
     output_bytes: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
     # Error summary (for filtering)
-    error_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    error_type: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, index=True
+    )
 
     # Connections used (for filtering: "show me all executions using connection X")
     connection_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
@@ -730,10 +770,14 @@ class GrantGroup(Base):
 
     # Relationships
     connections: Mapped[list["GrantGroupConnection"]] = relationship(
-        "GrantGroupConnection", back_populates="grant_group", cascade="all, delete-orphan"
+        "GrantGroupConnection",
+        back_populates="grant_group",
+        cascade="all, delete-orphan",
     )
     user_groups: Mapped[list["UserGroupGrantGroup"]] = relationship(
-        "UserGroupGrantGroup", back_populates="grant_group", cascade="all, delete-orphan"
+        "UserGroupGrantGroup",
+        back_populates="grant_group",
+        cascade="all, delete-orphan",
     )
 
 
@@ -762,7 +806,9 @@ class UserGroupGrantGroup(Base):
 
     # Relationships
     user_group: Mapped["Group"] = relationship("Group", back_populates="grant_groups")
-    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="user_groups")
+    grant_group: Mapped["GrantGroup"] = relationship(
+        "GrantGroup", back_populates="user_groups"
+    )
 
     # Indexes on the permission-join hot path. The composite PK
     # (user_group_id, grant_group_id) already covers the leading-column
@@ -799,7 +845,9 @@ class GrantGroupConnection(Base):
     assigned_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Relationships
-    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="connections")
+    grant_group: Mapped["GrantGroup"] = relationship(
+        "GrantGroup", back_populates="connections"
+    )
     connection: Mapped["Connection"] = relationship("Connection")
 
     # Indexes for forward and reverse permission-join lookups.

@@ -73,7 +73,9 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
         datasource = DataSourceFactory.create(source_type)
 
         # Get preview options
-        options = request.options or PreviewOptions(max_rows=100, offset=0, columns=None)
+        options = request.options or PreviewOptions(
+            max_rows=100, offset=0, columns=None
+        )
 
         # Preview the data
         preview = await datasource.preview(

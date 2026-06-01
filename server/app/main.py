@@ -103,9 +103,7 @@ def validate_auth_config() -> None:
 
     if mode == "hub":
         if not settings.hub_url:
-            logger.error(
-                "AUTH_MODE=hub requires HUB_URL to be set. Refusing to start."
-            )
+            logger.error("AUTH_MODE=hub requires HUB_URL to be set. Refusing to start.")
             raise SystemExit(2)
         return
 

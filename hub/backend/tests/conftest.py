@@ -15,15 +15,14 @@ This reduces test time from ~90s to ~15-20s by eliminating:
 - 306+ password hash operations
 """
 
-import tempfile
-import uuid
-from datetime import UTC, datetime, timedelta
-from typing import AsyncGenerator
-
 # Set required-secret env vars before importing app.main (app.main enforces a
 # hard fail at startup when any required secret is unset). Using deterministic
 # test values keeps fixtures reproducible.
 import os as _os
+import tempfile
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import AsyncGenerator
 
 from cryptography.fernet import Fernet as _Fernet
 
@@ -32,26 +31,23 @@ _os.environ.setdefault("SECRET_KEY", "test-secret-key-do-not-use-in-prod")
 _os.environ.setdefault("SERVER_REGISTRATION_SECRET", "test-registration-secret")
 _os.environ.setdefault("CONNECTION_ENCRYPTION_KEY", _Fernet.generate_key().decode())
 
-import pytest
-from argon2 import PasswordHasher
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
-
-from app.config import settings
-from app.db.database import get_db
-from app.db.models import Base, Session, User
-from app.domain.auth.sessions import generate_session_token, hash_token
-from app.main import app
-
 # =============================================================================
 # Fast Password Hashing for Tests
 # =============================================================================
 # Production uses time_cost=2, memory_cost=65536 (64MB) which is secure but slow.
 # For tests, we use minimal settings to speed up user creation significantly.
-
 import app.domain.auth.password as password_module
+import pytest
+from app.config import settings
+from app.db.database import get_db
+from app.db.models import Base, Session, User
+from app.domain.auth.sessions import generate_session_token, hash_token
+from app.main import app
+from argon2 import PasswordHasher
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 _fast_hasher = PasswordHasher(
     time_cost=1,
@@ -121,6 +117,7 @@ def new_client():
 def event_loop_policy():
     """Use default event loop policy."""
     import asyncio
+
     return asyncio.DefaultEventLoopPolicy()
 
 
@@ -130,13 +127,15 @@ async def _ensure_test_db():
     async with admin_engine.connect() as conn:
         # Check if database exists
         result = await conn.execute(
-            text("SELECT 1 FROM pg_database WHERE datname = 'sigilweaver_loom_hub_test'")
+            text(
+                "SELECT 1 FROM pg_database WHERE datname = 'sigilweaver_loom_hub_test'"
+            )
         )
         exists = result.scalar() is not None
-        
+
         if not exists:
             await conn.execute(text("CREATE DATABASE sigilweaver_loom_hub_test"))
-    
+
     await admin_engine.dispose()
     yield
 
@@ -161,7 +160,7 @@ _TABLE_NAMES = [
     "executions",
     "schedules",
     "workflow_revisions",
-    "workflows", 
+    "workflows",
     "server_groups",
     "servers",
     "grant_group_connections",
@@ -194,7 +193,7 @@ async def temp_storage():
 @pytest.fixture(scope="function")
 async def setup_database(_create_tables, temp_storage):
     """Clear tables before each test using TRUNCATE.
-    
+
     TRUNCATE is MUCH faster than DROP/CREATE because:
     1. No schema introspection needed
     2. No table recreation
@@ -205,7 +204,7 @@ async def setup_database(_create_tables, temp_storage):
         # Use a single TRUNCATE statement with CASCADE for speed
         tables = ", ".join(_TABLE_NAMES)
         await conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
-    
+
     yield
 
 
@@ -225,10 +224,10 @@ async def create_user_direct(
     role: str,
 ) -> tuple[User, str]:
     """Create a user directly in the database and return user + auth token.
-    
+
     This bypasses HTTP endpoints and password hashing (uses pre-computed hash),
     making it ~10x faster than the HTTP-based approach.
-    
+
     Returns:
         Tuple of (User object, bearer token string)
     """
@@ -242,12 +241,12 @@ async def create_user_direct(
         )
         session.add(user)
         await session.flush()
-        
+
         # Create session token directly
         token = generate_session_token()
         token_hash = hash_token(token)
         expires_at = datetime.now(UTC) + timedelta(hours=24)
-        
+
         db_session = Session(
             user_id=user.id,
             token_hash=token_hash,
@@ -255,7 +254,7 @@ async def create_user_direct(
         )
         session.add(db_session)
         await session.commit()
-        
+
         return user, token
 
 
@@ -271,6 +270,7 @@ async def ensure_owner_exists() -> tuple[User, str]:
     """Ensure owner user exists, creating if needed. Returns (user, token)."""
     async with TestSessionLocal() as session:
         from sqlalchemy import select
+
         result = await session.execute(select(User).where(User.username == "owner"))
         existing = result.scalar_one_or_none()
         if existing:
@@ -357,7 +357,9 @@ async def test_group(setup_database, owner_headers) -> dict:
 
 
 @pytest.fixture
-async def user_in_group(setup_database, owner_headers, user_headers, test_group) -> dict:
+async def user_in_group(
+    setup_database, owner_headers, user_headers, test_group
+) -> dict:
     """Add the test user to the test group.
 
     Returns the user info after being added to the group.
@@ -373,7 +375,9 @@ async def user_in_group(setup_database, owner_headers, user_headers, test_group)
             f"/api/v1/users/{user_id}/groups/{test_group['id']}",
             headers=owner_headers,
         )
-        assert response.status_code == 201, f"Failed to add user to group: {response.text}"
+        assert response.status_code == 201, (
+            f"Failed to add user to group: {response.text}"
+        )
 
         return {"user_id": user_id, "group_id": test_group["id"]}
 
@@ -398,14 +402,18 @@ async def test_server(setup_database) -> dict:
                     "auth_token": "test-token",
                 },
             )
-            assert response.status_code == 201, f"Server registration failed: {response.text}"
+            assert response.status_code == 201, (
+                f"Server registration failed: {response.text}"
+            )
             return response.json()
     finally:
         settings.server_registration_secret = original_secret
 
 
 @pytest.fixture
-async def server_in_group(setup_database, owner_headers, test_server, test_group) -> dict:
+async def server_in_group(
+    setup_database, owner_headers, test_server, test_group
+) -> dict:
     """Assign the test server to the test group."""
     async with new_client() as client:
         response = await client.post(
@@ -430,24 +438,26 @@ def make_workflow_content(
     """Create valid workflow file content."""
     import json
 
-    return json.dumps({
-        "version": "2.0",
-        "meta": {
-            "name": name,
-            "description": description,
-            "author": author,
-            "workflowId": workflow_id,
-            "created": "2025-11-28T01:27:00.041Z",
-        },
-        "tools": [
-            {
-                "id": "RLOJUUyx",
-                "type": "Input",
-                "x": -300,
-                "y": 180,
-                "config": {"category": "file", "type": "csv"},
-                "sockets": [{"id": 0, "direction": "output"}],
-            }
-        ],
-        "wires": [],
-    }).encode("utf-8")
+    return json.dumps(
+        {
+            "version": "2.0",
+            "meta": {
+                "name": name,
+                "description": description,
+                "author": author,
+                "workflowId": workflow_id,
+                "created": "2025-11-28T01:27:00.041Z",
+            },
+            "tools": [
+                {
+                    "id": "RLOJUUyx",
+                    "type": "Input",
+                    "x": -300,
+                    "y": 180,
+                    "config": {"category": "file", "type": "csv"},
+                    "sockets": [{"id": 0, "direction": "output"}],
+                }
+            ],
+            "wires": [],
+        }
+    ).encode("utf-8")
