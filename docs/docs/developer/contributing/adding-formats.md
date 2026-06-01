@@ -11,16 +11,16 @@ new kind of *input file*.
 
 ## Overview
 
-A format is resolved through two independent registries on the Server plus a
-set of surfacing files in Studio. Every one of these must be updated or the
-format will appear in one code path and fail in another.
+A format is described once in the central registry and read through two paths:
+inspection/preview (`DataSourceFactory`) and execution (`LoaderFactory`). Both
+factories derive their type lists, extension map, and loaders from
+`app/domain/registry.py`, so you register the format in one place on the server.
 
 | Side | File | Responsibility |
 |------|------|----------------|
+| Server | `domain/registry.py` | **Single source of truth**: type, extensions, datasource, loader flag |
 | Server | `domain/datasources/<fmt>.py` | Inspect / preview (schema + sample) |
-| Server | `domain/datasources/factory.py` | Register type + file extensions |
 | Server | `domain/tools/loaders/specs.py` **or** `loaders/<fmt>.py` | Execution (actual read) |
-| Server | `domain/tools/loaders/factory.py` | Register the loader |
 | Studio | `domain/dataSources/<fmt>Input.ts` | Front-end data-source descriptor |
 | Studio | `components/config/inout/<Fmt>Configuration.tsx` | Config panel UI |
 | Studio | `components/config/inout/DataSourceSelector.tsx` | Picker entry |
@@ -28,8 +28,8 @@ format will appear in one code path and fail in another.
 | Studio | `data/toolConfigSchemas.ts` | Config schema/enum |
 | Studio | `ai/prompts/system.ts` | Tell the agent the format exists |
 
-The `type` string (for example `"qvd"`) must match exactly across the Server
-registries and the Studio descriptor.
+The `type` string (for example `"qvd"`) must match exactly across the registry
+and the Studio descriptor.
 
 ## Server
 
@@ -39,47 +39,43 @@ Create `server/app/domain/datasources/<fmt>.py` subclassing `DataSource`. This
 powers schema inspection and previews. Use the existing
 `datasources/qvd.py` as a template.
 
-### 2. Register the data source
+### 2. Register the format
 
-In `server/app/domain/datasources/factory.py`:
+Add a `FormatDescriptor` to `FILE_FORMATS` in
+`server/app/domain/registry.py`. This single entry feeds both factories - the
+type, its file extensions, the data source class, and whether it needs a
+special loader:
 
 ```python
-from app.domain.datasources.myfmt import MyFmtDataSource
-
-class DataSourceFactory:
-    _sources: dict[str, Type[DataSource]] = {
-        # ...
-        "myfmt": MyFmtDataSource,
-    }
-
-    _extension_mapping: dict[str, str] = {
-        # ...
-        ".myfmt": "myfmt",
-    }
+# server/app/domain/registry.py
+FILE_FORMATS: tuple[FormatDescriptor, ...] = (
+    # ...
+    FormatDescriptor("myfmt", (".myfmt",), MyFmtDataSource),
+    # set special_loader=True if it needs a custom loader (see step 3):
+    # FormatDescriptor("myfmt", (".myfmt",), MyFmtDataSource, special_loader=True),
+)
 ```
 
 ### 3. Loader (execution)
 
 There are two paths:
 
-- **Polars-native, simple formats:** add a `LoaderSpec` entry to
-  `server/app/domain/tools/loaders/specs.py`. `GenericLoader` will read it
-  automatically. This is the preferred path - no new class required.
+- **Polars-native, simple formats:** leave `special_loader=False` and add a
+  `LoaderSpec` entry to `server/app/domain/tools/loaders/specs.py` keyed by your
+  `type`. `GenericLoader` reads it automatically - no new class required.
 - **Formats needing custom logic** (eager reads wrapped in a `LazyFrame`,
   external libraries, extension-based dispatch): create
-  `server/app/domain/tools/loaders/<fmt>.py` subclassing `FileLoader`, then
-  register it in `loaders/factory.py` under `_special_loaders`. QVD, YXDB, and
-  JSON take this path.
+  `server/app/domain/tools/loaders/<fmt>.py` subclassing `FileLoader`, set
+  `special_loader=True` on the descriptor, and bind the class in
+  `LoaderFactory._LOADER_CLASSES` (keyed by `type`). QVD, YXDB, and JSON take
+  this path.
 
 ```python
 # loaders/factory.py
-from app.domain.tools.loaders.myfmt import MyFmtLoader
-
-class LoaderFactory:
-    _special_loaders: dict[str, type[FileLoader]] = {
-        # ...
-        "myfmt": MyFmtLoader,
-    }
+_LOADER_CLASSES: dict[str, type[FileLoader]] = {
+    # ...
+    "myfmt": MyFmtLoader,
+}
 ```
 
 ### 4. Verify registry parity
@@ -119,9 +115,9 @@ for the pattern):
 
 ## Checklist
 
-- [ ] Server data source class + registered in `DataSourceFactory._sources`
-- [ ] Extension(s) added to `DataSourceFactory._extension_mapping`
-- [ ] Loader: `LoaderSpec` **or** custom loader registered in `LoaderFactory`
+- [ ] Server data source class in `domain/datasources/<fmt>.py`
+- [ ] `FormatDescriptor` added to `FILE_FORMATS` in `domain/registry.py`
+- [ ] Loader: `LoaderSpec` **or** custom loader bound in `LoaderFactory._LOADER_CLASSES` (with `special_loader=True`)
 - [ ] `tests/test_reader_parity.py` passes
 - [ ] Studio descriptor, config panel, selector, LeftPane, schema, AI prompt
 - [ ] Docs and CHANGELOG updated
