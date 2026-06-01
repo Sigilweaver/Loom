@@ -105,7 +105,7 @@ export function Layout() {
             />
             {!sidebarCollapsed && (
               <span className="text-lg font-semibold text-ink truncate">
-                Sigilweaver Loom Hub
+                Loom Hub
               </span>
             )}
           </div>

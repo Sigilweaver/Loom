@@ -498,7 +498,7 @@ export function DashboardTab() {
       <div className="bg-surface-sunken rounded-lg border border-line p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-ink-muted">
-            Sigilweaver Loom Hub v{stats.hubVersion}
+            Loom Hub v{stats.hubVersion}
           </span>
           <span className="text-ink-subtle">
             {stats.groupCount} groups - {stats.connectionCount} connections - {stats.userCount} users
