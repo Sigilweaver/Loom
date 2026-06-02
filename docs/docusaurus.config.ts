@@ -11,6 +11,7 @@ const config: Config = {
 
   // Custom plugins
   plugins: [
+    'docusaurus-plugin-llms-txt',
     './plugins/remove-google-fonts', // Remove Infima's Google Fonts import
   ],
 
