@@ -6,7 +6,7 @@ This script handles:
 - Uploading release assets to R2
 - Generating and uploading manifests (stable channel, downloads, index)
 - Atomic updates via staging pattern
-- All assets uploaded to versioned releases/{version}/ paths
+- All assets uploaded to versioned releases/loom/{version}/ paths
 
 Usage:
     ./upload_to_r2.py v0.2.5-alpha release-assets/
@@ -100,7 +100,7 @@ def main():
         # Upload to versioned location (immutable)
         uploader.upload_manifest_atomic(
             stable_manifest,
-            f"releases/{args.version}/manifest.json",
+            f"releases/loom/{args.version}/manifest.json",
             cache_control="max-age=31536000,public,immutable",
         )
         print()
@@ -112,18 +112,18 @@ def main():
         # Upload to versioned location
         uploader.upload_manifest_atomic(
             downloads_manifest,
-            f"releases/{args.version}/downloads.json",
+            f"releases/loom/{args.version}/downloads.json",
             cache_control="max-age=31536000,public,immutable",
         )
         print()
 
         # Step 4: Update releases index
         print("Step 4: Updating releases index...")
-        existing_index = uploader.download_json("releases/index.json")
+        existing_index = uploader.download_json("releases/loom/index.json")
         updated_index = builder.update_releases_index(existing_index)
 
         uploader.upload_manifest_atomic(
-            updated_index, "releases/index.json", cache_control="max-age=300,public"
+            updated_index, "releases/loom/index.json", cache_control="max-age=300,public"
         )
         print()
 
@@ -135,12 +135,12 @@ def main():
         print(f"SUCCESS: Release {args.version} uploaded successfully!")
         print()
         print("Download URLs:")
-        print(f"  Release assets: {base_url}/releases/{args.version}/")
-        print(f"  Stable manifest: {base_url}/releases/{args.version}/manifest.json")
+        print(f"  Release assets: {base_url}/releases/loom/{args.version}/")
+        print(f"  Stable manifest: {base_url}/releases/loom/{args.version}/manifest.json")
         print(
-            f"  Downloads manifest: {base_url}/releases/{args.version}/downloads.json"
+            f"  Downloads manifest: {base_url}/releases/loom/{args.version}/downloads.json"
         )
-        print(f"  Releases index: {base_url}/releases/index.json")
+        print(f"  Releases index: {base_url}/releases/loom/index.json")
 
         return 0
 

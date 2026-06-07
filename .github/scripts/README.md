@@ -6,7 +6,7 @@ Python-based release upload automation for Sigilweaver Loom.
 
 This directory contains modular Python scripts for uploading release assets to Cloudflare R2 (S3-compatible storage). The scripts handle:
 
-- Asset upload to both `latest/` and versioned `releases/{version}/` paths
+- Asset upload to versioned `releases/loom/{version}/` paths
 - Manifest generation for stable channel and downloads page
 - Atomic updates via staging pattern (prevents clients seeing partial uploads)
 - SHA256 checksum handling
@@ -88,33 +88,22 @@ After upload, the bucket structure is:
 
 ```
 sigilweaver-loom-downloads/
-├── latest/                                    # Latest stable release (generic names)
-│   ├── Sigilweaver-Loom-Setup.exe                  # No version in filename
-│   ├── Sigilweaver-Loom-Portable.exe
-│   ├── Sigilweaver-Loom-x64.AppImage
-│   ├── Sigilweaver-Loom-x64.snap
-│   ├── Sigilweaver-Loom-Client-Setup.exe
-│   ├── Sigilweaver-Loom-Client-x64.AppImage
-│   ├── Sigilweaver-Loom-Web.zip
-│   ├── SHA256SUMS.txt
-│   ├── downloads.json                         # Downloads page manifest
-│   └── stable/
-│       └── manifest.json                      # Stable channel manifest
 ├── releases/
-│   ├── index.json                             # All releases index
-│   ├── v0.2.5-alpha/                          # Versioned files (immutable)
-│   │   ├── Sigilweaver-Loom-Setup-v0.2.5-alpha.exe
-│   │   ├── manifest.json
-│   │   └── downloads.json
-│   └── v0.2.6/
-│       └── ...
+│   ├── loom/
+│   │   ├── index.json                             # All releases index
+│   │   ├── v0.2.5-alpha/                          # Versioned files (immutable)
+│   │   │   ├── Sigilweaver-Loom-Setup-v0.2.5-alpha.exe
+│   │   │   ├── manifest.json
+│   │   │   └── downloads.json
+│   │   └── v0.2.6/
+│   │       └── ...
 └── .staging/                                  # Temporary staging (not public)
     └── ...
 ```
 
 ## Manifest Schemas
 
-### Stable Channel Manifest (`latest/stable/manifest.json`)
+### Stable Channel Manifest (`releases/loom/{version}/manifest.json`)
 
 ```json
 {
@@ -130,7 +119,7 @@ sigilweaver-loom-downloads/
       "arch": "x64",
       "kind": "installer",
       "fileName": "Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
-      "url": "https://download.sigilweaver.app/latest/Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
+      "url": "https://download.sigilweaver.app/releases/loom/v0.2.5-alpha/Sigilweaver-Loom-Setup-v0.2.5-alpha.exe",
       "size": 207000000,
       "sha256": "abc123..."
     }
@@ -138,7 +127,7 @@ sigilweaver-loom-downloads/
 }
 ```
 
-### Downloads Manifest (`latest/downloads.json`)
+### Downloads Manifest (`releases/loom/{version}/downloads.json`)
 
 ```json
 {
@@ -153,7 +142,7 @@ sigilweaver-loom-downloads/
 }
 ```
 
-### Releases Index (`releases/index.json`)
+### Releases Index (`releases/loom/index.json`)
 
 ```json
 {
@@ -164,7 +153,7 @@ sigilweaver-loom-downloads/
     {
       "version": "v0.2.5-alpha",
       "date": "2025-11-22T12:00:00Z",
-      "manifestUrl": "https://.../releases/v0.2.5-alpha/manifest.json"
+      "manifestUrl": "https://.../releases/loom/v0.2.5-alpha/manifest.json"
     }
   ]
 }
@@ -252,9 +241,8 @@ This shows what would be uploaded without making actual changes.
 
 ## Cache Control Headers
 
-- **Assets**: `max-age=300,public` (5 minutes) for `latest/`, `max-age=31536000,public,immutable` for versioned
-- **Manifests**: `max-age=60,public` (1 minute) for `latest/`, `max-age=31536000,public,immutable` for versioned
-- **Index**: `max-age=300,public` (5 minutes)
+- **Assets**: `max-age=31536000,public,immutable` for versioned `releases/loom/{version}/`
+- **Manifests**: `max-age=31536000,public,immutable` for versioned, `max-age=300,public` for index
 
 ## Future Improvements
 

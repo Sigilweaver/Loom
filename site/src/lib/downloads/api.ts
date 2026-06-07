@@ -5,7 +5,7 @@
 
 import type { DownloadsData, ReleaseInfo, ReleasesIndex } from './types';
 
-const RELEASES_INDEX_URL = 'https://download.sigilweaver.app/releases/index.json';
+const RELEASES_INDEX_URL = 'https://download.sigilweaver.app/releases/loom/index.json';
 
 /**
  * Parse a version string into a numeric tuple for correct semver sorting.
@@ -42,7 +42,7 @@ function compareReleases(a: ReleaseInfo, b: ReleaseInfo): number {
  * Build the URL for a version's downloads.json
  */
 export function buildDownloadsUrl(version: string): string {
-  return `https://download.sigilweaver.app/releases/${version}/downloads.json`;
+  return `https://download.sigilweaver.app/releases/loom/${version}/downloads.json`;
 }
 
 /**
