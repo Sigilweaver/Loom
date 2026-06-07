@@ -7,6 +7,7 @@ import polars as pl
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app import __version__
 from app.config import settings
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -34,7 +35,7 @@ async def health_check() -> HealthResponse:
     """
     return HealthResponse(
         status="healthy",
-        version="0.0.0-dev",
+        version=__version__,
         message="Sigilweaver Loom Backend is running",
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         platform=f"{platform.system()} {platform.release()}",

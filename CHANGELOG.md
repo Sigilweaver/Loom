@@ -5,7 +5,7 @@ All notable changes to Sigilweaver Loom are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
-## [Unreleased] - Security & Quality Remediation
+## [v0.12.0] - 2026-06-06
 
 ### Security
 
@@ -23,11 +23,20 @@ v0.11.0, entries are maintained alongside each release.
 - **Parallel executor race condition (SRV-3)** — Added `asyncio.Lock` around `self.results` writes in `_execute_single_tool_tracked` to prevent concurrent dict mutation
 - **Ruff lint violations (SRV-5/SRV-6)** — Fixed 16 lint issues (import sorting, f-strings), reformatted 77 files, removed 3 unused `type: ignore[import-untyped]` comments
 - **Dev startup crash with default secrets** — Hub no longer crashes in development mode when secrets are left at defaults; only enforced when `ENVIRONMENT=production`
+- **Non-deterministic test in manifest builder** — Fixed flaky CI test caused by unstable sort order
 
 ### Changed
 
+- **Rebrand to "Sigilweaver Loom"** — All components renamed from "Sigilweaver" to "Sigilweaver Loom" across Studio, Server, Hub, infrastructure, documentation, website, and scripts
+- **OpenYXDB integration** — YXDB integration refactored to use OpenYXDB instead of SigilYX
 - **Pin PostgreSQL image (INF-4)** — Docker Compose now uses `postgres:16.8-alpine3.21` instead of `postgres:16-alpine` to prevent surprise upgrades
 - **New `ENVIRONMENT` config setting** — Defaults to `development`; set to `production` in `docker-compose.yml` to enforce strict secret validation
+- **Blog removed** — Removed blog posts and author information; disabled blog feature in Docusaurus configuration
+- **Legacy crash course docs removed** — Removed crash course documentation for Excel, Tableau Prep, Power Query, KNIME, Orange, and Alteryx
+- **CLA clarified** — Updated contributor agreement to clarify proprietary commercial licensing terms
+- **Version injection expanded** — `set-version.py` now updates all version-bearing files (9 files total) including `Cargo.toml`, `__init__.py` files, and hub package manifests, preventing version drift across releases
+- **Health endpoint fixed** — Server health endpoint now reads version from `__version__` instead of hardcoding it
+- **About panel reads version dynamically** — Studio About panel now reads version from `package.json` at build time instead of hardcoding it
 
 ### Documentation
 
@@ -35,6 +44,7 @@ v0.11.0, entries are maintained alongside each release.
 - Updated backend architecture docs with expression security details
 - Updated deployment guide with `ENVIRONMENT` setting and secret validation behavior
 - Updated connections docs with query safety section
+- Enhanced YXDB documentation
 - Expanded Docker README with secrets management, `ENVIRONMENT` variable, and production checklist items
 
 ## [v0.11.3] - 2026-03-08
@@ -466,6 +476,7 @@ The initial prototype: canvas, tools, theming, and the marketing website.
 
 ---
 
+[v0.12.0]: https://download.sigilweaver.app/releases/v0.12.0/manifest.json
 [v0.11.3]: https://download.sigilweaver.app/releases/v0.11.3/manifest.json
 [v0.11.2]: https://download.sigilweaver.app/releases/v0.11.2/manifest.json
 [v0.11.1]: https://download.sigilweaver.app/releases/v0.11.1/manifest.json

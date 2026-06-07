@@ -8,7 +8,7 @@
 >
 > 2. **We give you a license:** You get a license back to use your own contribution however you want.
 >
-> 3. **The "Poison Pill":** This assignment is conditional. If we ever stop keeping the project Open Source, or if we sell the company to a for-profit corporation, the assignment self-destructs. Your rights automatically revert to you.
+> 3. **The "Poison Pill":** This assignment is conditional. If we ever stop keeping the project Open Source (we may *also* offer a proprietary license, but an open source version must always remain available), or if we sell the company to a for-profit corporation, the assignment self-destructs. Your rights automatically revert to you.
 >
 > 4. **The Safety Valve:** We have a strict "No Corporate Sellout" clause, but it includes standard exceptions for family inheritance so the project doesn't break if the founder passes away.
 >
@@ -26,7 +26,7 @@ This Contributor License Agreement ("Agreement") is entered into between the ent
 
 ### 2. Copyright Assignment
 
-**2.1 Assignment.** Subject strictly to the Conditions and Covenants set forth in Section 3 and Section 4 of this Agreement, You hereby assign to the Company all right, title, and interest in and to the Contribution, including all copyrights and other proprietary rights. This assignment includes the right for the Company to license the Contribution under Open Source licenses and proprietary commercial licenses.
+**2.1 Assignment.** Subject strictly to the Conditions and Covenants set forth in Section 3 and Section 4 of this Agreement, You hereby assign to the Company all right, title, and interest in and to the Contribution, including all copyrights and other proprietary rights. This assignment includes the right for the Company to license the Contribution under OSI-Approved Licenses and proprietary licenses; provided, however, that the Company shall at all times maintain a publicly available version of the Work under an OSI-Approved License as required by Section 3(a), and the failure to do so shall trigger the reversion provided for in Section 4.
 
 **2.2 Grant Back.** Upon the assignment of rights in Section 2.1, the Company hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license to reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute Your Contribution and such derivative works.
 

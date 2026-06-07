@@ -7,8 +7,9 @@
 
 import React from 'react';
 
+import { version } from '../../../package.json';
+
 const AboutContent: React.FC = () => {
-  const version = '0.0.0-dev';
 
   return (
     <div className="space-y-6 text-theme-text-primary">

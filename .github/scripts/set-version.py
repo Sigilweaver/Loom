@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
 """
-Set version in package.json, pyproject.toml, and tauri.conf.json from git tag.
+Set version across all project files from git tag.
 
 Used in GitHub Actions to inject version from git tags into the build.
+
+Updates the following files:
+  - studio/package.json
+  - server/pyproject.toml
+  - hub/backend/pyproject.toml
+  - hub/frontend/package.json
+  - docs/package.json
+  - studio/tauri/tauri.conf.json
+  - studio/tauri/Cargo.toml
+  - server/app/__init__.py
+  - hub/backend/app/__init__.py
 
 Usage:
     python3 set-version.py <version>
@@ -139,30 +150,28 @@ def set_tauri_config_version(version: str, tauri_config_path: Path) -> bool:
     return True
 
 
-def set_pyproject_version(version: str, pyproject_path: Path) -> bool:
+def set_toml_version(version: str, toml_path: Path) -> bool:
     """
-    Set version in pyproject.toml.
+    Set version in a TOML file (pyproject.toml or Cargo.toml).
     
     Args:
         version: Version string (e.g., '0.3.3-alpha')
-        pyproject_path: Path to pyproject.toml file
+        toml_path: Path to TOML file
         
     Returns:
         True if successful, False otherwise
     """
-    if not pyproject_path.exists():
-        print(f"WARNING: {pyproject_path} not found, skipping")
-        return True  # Not an error, just skip
+    if not toml_path.exists():
+        print(f"WARNING: {toml_path} not found, skipping")
+        return True
     
-    # Read pyproject.toml
     try:
-        with open(pyproject_path, 'r') as f:
+        with open(toml_path, 'r') as f:
             content = f.read()
     except Exception as e:
-        print(f"ERROR: Failed to read {pyproject_path}: {e}")
+        print(f"ERROR: Failed to read {toml_path}: {e}")
         return False
     
-    # Replace version line
     old_content = content
     content = re.sub(
         r'^version\s*=\s*"[^"]*"',
@@ -172,22 +181,68 @@ def set_pyproject_version(version: str, pyproject_path: Path) -> bool:
     )
     
     if content == old_content:
-        print(f"WARNING: No version found in {pyproject_path}")
+        print(f"WARNING: No version found in {toml_path}")
         return False
     
-    # Write back
     try:
-        with open(pyproject_path, 'w') as f:
+        with open(toml_path, 'w') as f:
             f.write(content)
     except Exception as e:
-        print(f"ERROR: Failed to write {pyproject_path}: {e}")
+        print(f"ERROR: Failed to write {toml_path}: {e}")
         return False
     
-    # Extract old version for logging
     old_match = re.search(r'version\s*=\s*"([^"]*)"', old_content)
     old_version = old_match.group(1) if old_match else 'unknown'
     
-    print(f"Updated pyproject.toml version: {old_version} -> {version}")
+    print(f"Updated {toml_path.name} version: {old_version} -> {version}")
+    return True
+
+
+def set_init_version(version: str, init_path: Path) -> bool:
+    """
+    Set __version__ in a Python __init__.py file.
+    
+    Args:
+        version: Version string (e.g., '0.3.3-alpha')
+        init_path: Path to __init__.py file
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    if not init_path.exists():
+        print(f"WARNING: {init_path} not found, skipping")
+        return True
+    
+    try:
+        with open(init_path, 'r') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"ERROR: Failed to read {init_path}: {e}")
+        return False
+    
+    old_content = content
+    content = re.sub(
+        r'^__version__\s*=\s*"[^"]*"',
+        f'__version__ = "{version}"',
+        content,
+        flags=re.MULTILINE
+    )
+    
+    if content == old_content:
+        print(f"WARNING: No __version__ found in {init_path}")
+        return False
+    
+    try:
+        with open(init_path, 'w') as f:
+            f.write(content)
+    except Exception as e:
+        print(f"ERROR: Failed to write {init_path}: {e}")
+        return False
+    
+    old_match = re.search(r'__version__\s*=\s*"([^"]*)"', old_content)
+    old_version = old_match.group(1) if old_match else 'unknown'
+    
+    print(f"Updated {init_path} __version__: {old_version} -> {version}")
     return True
 
 
@@ -214,19 +269,42 @@ def main():
     project_root = script_dir.parent.parent
     
     package_json = project_root / 'studio' / 'package.json'
-    pyproject_toml = project_root / 'server' / 'pyproject.toml'
+    server_pyproject = project_root / 'server' / 'pyproject.toml'
+    hub_pyproject = project_root / 'hub' / 'backend' / 'pyproject.toml'
+    hub_frontend_package = project_root / 'hub' / 'frontend' / 'package.json'
+    docs_package = project_root / 'docs' / 'package.json'
     tauri_config = project_root / 'studio' / 'tauri' / 'tauri.conf.json'
+    cargo_toml = project_root / 'studio' / 'tauri' / 'Cargo.toml'
+    server_init = project_root / 'server' / 'app' / '__init__.py'
+    hub_init = project_root / 'hub' / 'backend' / 'app' / '__init__.py'
     
     success = True
     
-    # Update all version files
     if not set_package_json_version(version, package_json):
         success = False
     
-    if not set_pyproject_version(version, pyproject_toml):
+    if not set_toml_version(version, server_pyproject):
+        success = False
+    
+    if not set_toml_version(version, hub_pyproject):
+        success = False
+    
+    if not set_package_json_version(version, hub_frontend_package):
+        success = False
+    
+    if not set_package_json_version(version, docs_package):
         success = False
     
     if not set_tauri_config_version(version, tauri_config):
+        success = False
+    
+    if not set_toml_version(version, cargo_toml):
+        success = False
+    
+    if not set_init_version(version, server_init):
+        success = False
+    
+    if not set_init_version(version, hub_init):
         success = False
     
     return 0 if success else 1

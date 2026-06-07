@@ -12,28 +12,28 @@ const publicDir = join(siteRoot, 'public');
 const domain = 'https://sigilweaver.app';
 
 const pages = [
-  { loc: '/', file: 'index.html', changefreq: 'weekly', priority: '1.0' },
+  { loc: '/loom/', file: 'index.html', changefreq: 'weekly', priority: '1.0' },
   {
-    loc: '/downloads',
+    loc: '/loom/downloads',
     file: 'downloads.html',
     changefreq: 'weekly',
     priority: '0.8',
   },
   {
-    loc: '/contributing',
+    loc: '/loom/contributing',
     file: 'contributing.html',
     changefreq: 'monthly',
     priority: '0.5',
   },
   {
-    loc: '/verify-downloads',
+    loc: '/loom/verify-downloads',
     file: 'verify-downloads.html',
     changefreq: 'monthly',
     priority: '0.4',
   },
-  { loc: '/terms', file: 'terms.html', changefreq: 'yearly', priority: '0.3' },
+  { loc: '/loom/terms', file: 'terms.html', changefreq: 'yearly', priority: '0.3' },
   {
-    loc: '/privacy',
+    loc: '/loom/privacy',
     file: 'privacy.html',
     changefreq: 'yearly',
     priority: '0.3',
@@ -61,7 +61,7 @@ function renderCoreSitemap(entries) {
 }
 
 function renderSitemapIndex(lastmod) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${domain}/sitemap-core.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/docs/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/openyxdb/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${domain}/loom/sitemap-core.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${domain}/loom/docs/sitemap.xml</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
 }
 
 function main() {

@@ -25,7 +25,7 @@ describe('Backend E2E Integration', () => {
 
       expect(result).toEqual(expect.objectContaining({
         status: 'healthy',
-        version: '0.0.0-dev',
+        version: expect.any(String),
         message: 'Sigilweaver Loom Backend is running',
       }));
     }, { timeout: 5000 });
