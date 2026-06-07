@@ -33,7 +33,7 @@ Smart Mode (default):
 Auto-Setup:
     The script automatically sets up missing dependencies:
     - Python venvs: runs 'uv sync --all-extras' if .venv is missing
-    - Node modules: runs 'npm ci' (or 'npm install') if node_modules is missing
+    - Node modules: runs 'bun install' if node_modules is missing
     No manual setup required - just run the script!
 
 Performance Notes:
@@ -233,7 +233,7 @@ def detect_changed_components(repo_root: Path) -> ChangedComponents:
         # Root config files - be conservative, test related components
         elif path in ["pyproject.toml", "uv.lock"]:
             components.server = True
-        elif path in ["package.json", "package-lock.json", "tsconfig.json"]:
+        elif path in ["package.json", "package-lock.json", "bun.lock", "tsconfig.json"]:
             components.studio = True
             components.site = True
     
@@ -377,9 +377,9 @@ def ensure_node_modules(project_dir: Path, name: str) -> bool:
             print(f"  {Colors.RED}Error{Colors.RESET}: No package.json in {project_dir}")
         return False
     
-    # Auto-setup: run npm ci (or npm install if no lock file)
-    lock_file = project_dir / "package-lock.json"
-    cmd = ["npm", "ci"] if lock_file.exists() else ["npm", "install"]
+    # Auto-setup: run bun install (frozen lockfile when bun.lock exists)
+    lock_file = project_dir / "bun.lock"
+    cmd = ["bun", "install", "--frozen-lockfile"] if lock_file.exists() else ["bun", "install"]
     
     if not _quiet_mode:
         print(f"  {Colors.YELLOW}Setting up{Colors.RESET}: {name} dependencies ({' '.join(cmd)})...")
@@ -394,7 +394,7 @@ def ensure_node_modules(project_dir: Path, name: str) -> bool:
         )
         if result.returncode != 0:
             if not _quiet_mode:
-                print(f"  {Colors.RED}Failed{Colors.RESET}: npm install failed for {name}")
+                print(f"  {Colors.RED}Failed{Colors.RESET}: bun install failed for {name}")
                 if result.stderr:
                     print(f"    {result.stderr[:500]}")
             return False
@@ -404,11 +404,11 @@ def ensure_node_modules(project_dir: Path, name: str) -> bool:
         return True
     except FileNotFoundError:
         if not _quiet_mode:
-            print(f"  {Colors.RED}Error{Colors.RESET}: 'npm' not found. Install Node.js first.")
+            print(f"  {Colors.RED}Error{Colors.RESET}: 'bun' not found. Install bun first (https://bun.sh).")
         return False
     except subprocess.TimeoutExpired:
         if not _quiet_mode:
-            print(f"  {Colors.RED}Timeout{Colors.RESET}: npm install timed out for {name}")
+            print(f"  {Colors.RED}Timeout{Colors.RESET}: bun install timed out for {name}")
         return False
     except Exception as e:
         if not _quiet_mode:
@@ -584,7 +584,7 @@ def run_studio_typecheck(repo_root: Path) -> CheckResult:
     studio_dir = repo_root / "studio"
     
     return run_command(
-        ["npm", "run", "type-check"],
+        ["bun", "run", "type-check"],
         studio_dir,
         "Studio Types",
         fail_on_error=True
@@ -599,7 +599,7 @@ def run_studio_lint(repo_root: Path, strict: bool = False) -> CheckResult:
     
     # Match CI behavior: lint issues are reported but don't fail unless strict
     return run_command(
-        ["npm", "run", "lint"],
+        ["bun", "run", "lint"],
         studio_dir,
         "Studio Lint",
         fail_on_error=strict
@@ -612,7 +612,7 @@ def run_studio_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
     
     studio_dir = repo_root / "studio"
     
-    cmd = ["npm", "run", "test:coverage" if coverage else "test:unit"]
+    cmd = ["bun", "run", "test:coverage" if coverage else "test:unit"]
     
     result = run_command(cmd, studio_dir, "Studio Tests", fail_on_error=True)
     
@@ -637,7 +637,7 @@ def run_studio_suite(repo_root: Path, coverage: bool = False, strict: bool = Fal
             name="Studio Setup",
             passed=False,
             duration=0,
-            error="Failed to setup Studio dependencies. Check npm is installed."
+            error="Failed to setup Studio dependencies. Check bun is installed."
         ))
         return suite
     
@@ -741,7 +741,7 @@ def run_hub_frontend_typecheck(repo_root: Path) -> CheckResult:
     hub_frontend_dir = repo_root / "hub" / "frontend"
     
     return run_command(
-        ["npm", "run", "type-check"],
+        ["bun", "run", "type-check"],
         hub_frontend_dir,
         "Hub Frontend Types",
         fail_on_error=True
@@ -755,7 +755,7 @@ def run_hub_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
     hub_frontend_dir = repo_root / "hub" / "frontend"
     
     return run_command(
-        ["npm", "run", "lint"],
+        ["bun", "run", "lint"],
         hub_frontend_dir,
         "Hub Frontend Lint",
         fail_on_error=strict
@@ -768,7 +768,7 @@ def run_hub_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResu
     
     hub_frontend_dir = repo_root / "hub" / "frontend"
     
-    cmd = ["npm", "run", "test:coverage" if coverage else "test"]
+    cmd = ["bun", "run", "test:coverage" if coverage else "test"]
     
     result = run_command(cmd, hub_frontend_dir, "Hub Frontend Tests", fail_on_error=True)
     
@@ -826,7 +826,7 @@ def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False,
             name="Hub Frontend Setup",
             passed=False,
             duration=0,
-            error="Failed to setup Hub Frontend dependencies. Check npm is installed."
+            error="Failed to setup Hub Frontend dependencies. Check bun is installed."
         ))
     else:
         # Run frontend checks
@@ -847,7 +847,7 @@ def run_docs_build(repo_root: Path) -> CheckResult:
     docs_dir = repo_root / "docs"
     
     return run_command(
-        ["npm", "run", "build"],
+        ["bun", "run", "build"],
         docs_dir,
         "Docs Build",
         fail_on_error=True
@@ -868,7 +868,7 @@ def run_docs_suite(repo_root: Path) -> SuiteResult:
             name="Docs Setup",
             passed=False,
             duration=0,
-            error="Failed to setup Docs dependencies. Check npm is installed."
+            error="Failed to setup Docs dependencies. Check bun is installed."
         ))
         return suite
     
@@ -889,7 +889,7 @@ def run_site_typecheck(repo_root: Path) -> CheckResult:
     
     # Site doesn't have a typecheck script, so run tsc directly
     return run_command(
-        ["npx", "tsc", "--noEmit"],
+        ["bun", "x", "tsc", "--noEmit"],
         site_dir,
         "Site Types",
         fail_on_error=True
@@ -903,7 +903,7 @@ def run_site_build(repo_root: Path) -> CheckResult:
     site_dir = repo_root / "site"
     
     return run_command(
-        ["npm", "run", "build"],
+        ["bun", "run", "build"],
         site_dir,
         "Site Build",
         fail_on_error=True
@@ -924,7 +924,7 @@ def run_site_suite(repo_root: Path) -> SuiteResult:
             name="Site Setup",
             passed=False,
             duration=0,
-            error="Failed to setup Site dependencies. Check npm is installed."
+            error="Failed to setup Site dependencies. Check bun is installed."
         ))
         return suite
     
@@ -959,11 +959,18 @@ def start_server(repo_root: Path) -> subprocess.Popen | None:
     
     print("Starting server on port 8001 (test server)...")
     
+    # Run the test server with authentication disabled. The integration suite
+    # talks to the server without a session token, and the harness health probe
+    # hits /api/health/ which is auth-protected by default (AUTH_MODE=ephemeral).
+    # AUTH_MODE=disabled keeps the local test server reachable without tokens.
+    server_env = {**os.environ, "AUTH_MODE": "disabled"}
+    
     process = subprocess.Popen(
         [str(python_path), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001"],
         cwd=server_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        env=server_env,
     )
     
     # Wait for server to be ready
@@ -1025,7 +1032,7 @@ def run_integration_tests(repo_root: Path) -> SuiteResult:
     
     try:
         result = run_command(
-            ["npm", "run", "test:integration"],
+            ["bun", "run", "test:integration"],
             studio_dir,
             "Integration Tests",
             fail_on_error=True

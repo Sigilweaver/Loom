@@ -164,33 +164,25 @@ async def list_connections(
             total=len(connections),
         )
 
-    # Get user's group memberships
-    user_groups_result = await db.execute(
-        select(UserGroup.group_id).where(UserGroup.user_id == user.user_id)
-    )
-    user_group_ids = {row[0] for row in user_groups_result.fetchall()}
-
-    if not user_group_ids:
-        # User not in any groups - no connections accessible
-        return ConnectionListResponse(connections=[], total=0)
-
-    # Get connections via grant group path: User -> UserGroup -> GrantGroup -> Connection
-    grant_groups_result = await db.execute(
-        select(UserGroupGrantGroup.grant_group_id)
-        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
-        .distinct()
-    )
-    grant_group_ids = {row[0] for row in grant_groups_result.fetchall()}
-
-    if not grant_group_ids:
-        return ConnectionListResponse(connections=[], total=0)
-
-    grant_conn_result = await db.execute(
+    # Get accessible connection ids in a single JOIN query:
+    #   user_groups -> user_group_grant_groups -> grant_group_connections
+    # This replaces three sequential round-trips with one indexed scan.
+    accessible_stmt = (
         select(GrantGroupConnection.connection_id)
-        .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
+        .join(
+            UserGroupGrantGroup,
+            UserGroupGrantGroup.grant_group_id
+            == GrantGroupConnection.grant_group_id,
+        )
+        .join(
+            UserGroup,
+            UserGroup.group_id == UserGroupGrantGroup.user_group_id,
+        )
+        .where(UserGroup.user_id == user.user_id)
         .distinct()
     )
-    accessible_conn_ids = {row[0] for row in grant_conn_result.fetchall()}
+    accessible_result = await db.execute(accessible_stmt)
+    accessible_conn_ids = {row[0] for row in accessible_result.fetchall()}
 
     if not accessible_conn_ids:
         return ConnectionListResponse(connections=[], total=0)

@@ -2,14 +2,10 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://sigilweaver.app/sitemap-core.xml</loc>
-    <lastmod>2026-03-09</lastmod>
+    <lastmod>2026-05-30</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://sigilweaver.app/docs/sitemap.xml</loc>
-    <lastmod>2026-03-09</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://sigilweaver.app/openyxdb/sitemap.xml</loc>
-    <lastmod>2026-03-09</lastmod>
+    <lastmod>2026-05-30</lastmod>
   </sitemap>
 </sitemapindex>

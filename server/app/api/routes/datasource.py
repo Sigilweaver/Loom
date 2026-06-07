@@ -4,11 +4,16 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.models.common import DataPreview
 from app.api.models.datasource import (
+    DatabaseColumnInfo,
+    DatabaseSchemaRequest,
+    DatabaseSchemaResponse,
+    DatabaseTableInfo,
     InspectRequest,
     InspectResponse,
     PreviewOptions,
     PreviewRequest,
 )
+from app.domain.datasources.database import DatabaseDataSource
 from app.domain.datasources.factory import DataSourceFactory
 from app.utils.errors import DataSourceError
 
@@ -68,7 +73,9 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
         datasource = DataSourceFactory.create(source_type)
 
         # Get preview options
-        options = request.options or PreviewOptions(max_rows=100, offset=0, columns=None)
+        options = request.options or PreviewOptions(
+            max_rows=100, offset=0, columns=None
+        )
 
         # Preview the data
         preview = await datasource.preview(
@@ -85,6 +92,53 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
+
+
+@router.post("/schema", response_model=DatabaseSchemaResponse)
+async def describe_database_schema(
+    request: DatabaseSchemaRequest,
+) -> DatabaseSchemaResponse:
+    """
+    Introspect a database connection and list its tables and columns.
+
+    Only database source types (postgresql, mysql, sqlite, mssql) are
+    supported. The query is a read-only catalog lookup.
+    """
+    try:
+        datasource = DataSourceFactory.create(request.source_type)
+
+        if not isinstance(datasource, DatabaseDataSource):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Schema introspection is only supported for database "
+                    f"sources, not '{request.source_type}'."
+                ),
+            )
+
+        tables = await datasource.list_schema(request.source)
+
+        return DatabaseSchemaResponse(
+            tables=[
+                DatabaseTableInfo(
+                    name=table["name"],
+                    columns=[
+                        DatabaseColumnInfo(name=col["name"], type=col["type"])
+                        for col in table["columns"]
+                    ],
+                )
+                for table in tables
+            ]
+        )
+
+    except DataSourceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Schema introspection failed: {str(e)}"
+        )
 
 
 @router.get("/supported")

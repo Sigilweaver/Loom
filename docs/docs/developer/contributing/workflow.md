@@ -59,7 +59,7 @@ python ./scripts/test.py
 
 # Or test individually
 cd server && uv run pytest
-cd studio && npm test
+cd studio && bun run test
 ```
 
 Don't submit a PR with failing tests. If tests fail for unrelated reasons, note that in the PR.

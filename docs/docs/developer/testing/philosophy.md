@@ -34,7 +34,7 @@ Time spent testing has diminishing returns. The first test for a function catche
 
 Allocate testing time to high-impact areas:
 - Core execution engine
-- Tool implementations  
+- Tool implementations
 - State management
 - Serialization/deserialization
 
@@ -45,7 +45,7 @@ Low-impact areas get less attention:
 
 ### 4. Early-Stage Pragmatism
 
-Sigilweaver Loom is pre-v1.0. The UI will change significantly before release. Writing comprehensive UI tests now means rewriting them later.
+UI surfaces evolve faster than the underlying domain. Writing comprehensive UI tests for screens that are still iterating means rewriting them.
 
 Domain logic is more stable. The tool interface won't change much. Invest in tests that will remain valuable.
 
@@ -150,18 +150,18 @@ def test_filter_works():
 cd server && uv run pytest
 
 # Frontend only
-cd studio && npm test
+cd studio && bun run test
 
 # With coverage
 cd server && uv run pytest --cov=app --cov-report=html
-cd studio && npm run test:coverage
+cd studio && bun run test:coverage
 
 # Specific file
 cd server && uv run pytest tests/test_filter.py -v
-cd studio && npm test FilterConfig
+cd studio && bun run test FilterConfig
 
 # Watch mode (frontend)
-cd studio && npm run test:watch
+cd studio && bun run test:watch
 ```
 
 ## Coverage Goals

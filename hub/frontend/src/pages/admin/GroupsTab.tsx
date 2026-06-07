@@ -50,7 +50,7 @@ const roleConfig: Record<UserRole, { label: string; icon: typeof Shield; color: 
   owner: { label: "Owner", icon: ShieldCheck, color: "text-purple-600" },
   admin: { label: "Admin", icon: Shield, color: "text-blue-600" },
   auditor: { label: "Auditor", icon: Eye, color: "text-amber-600" },
-  user: { label: "User", icon: User, color: "text-gray-600" },
+  user: { label: "User", icon: User, color: "text-ink-muted" },
 };
 
 export function GroupsTab() {
@@ -145,9 +145,9 @@ export function GroupsTab() {
       <div className="w-80 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-medium text-gray-900">Groups</h2>
-            <span className="text-sm text-gray-500">({groups.length})</span>
+            <Users className="h-5 w-5 text-ink-subtle" />
+            <h2 className="text-lg font-medium text-ink">Groups</h2>
+            <span className="text-sm text-ink-subtle">({groups.length})</span>
           </div>
           <button
             onClick={handleCreateGroup}
@@ -159,9 +159,9 @@ export function GroupsTab() {
         </div>
 
         {groups.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-            <Users className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-500 mb-3">No groups yet</p>
+          <div className="bg-surface-sunken rounded-lg border-2 border-dashed border-line p-6 text-center">
+            <Users className="h-10 w-10 text-ink-faint mx-auto mb-2" />
+            <p className="text-sm text-ink-subtle mb-3">No groups yet</p>
             <button
               onClick={handleCreateGroup}
               className="text-sm text-brand-600 hover:text-brand-700 font-medium"
@@ -174,20 +174,20 @@ export function GroupsTab() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className={`bg-white rounded-lg border p-3 cursor-pointer transition-colors ${selectedGroup?.id === group.id
+                className={`bg-surface-raised rounded-lg border p-3 cursor-pointer transition-colors ${selectedGroup?.id === group.id
                   ? "border-brand-600 ring-1 ring-brand-600"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-line hover:border-line-strong"
                   }`}
                 onClick={() => setSelectedGroup(group)}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-gray-900">{group.name}</h3>
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                  <h3 className="font-medium text-ink">{group.name}</h3>
+                  <ChevronRight className="h-4 w-4 text-ink-faint" />
                 </div>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                <p className="text-sm text-ink-subtle mt-1 line-clamp-1">
                   {group.description || "No description"}
                 </p>
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-4 mt-2 text-xs text-ink-subtle">
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" />
                     {group.member_count} members
@@ -212,10 +212,10 @@ export function GroupsTab() {
             }}
           />
         ) : (
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-12 text-center">
-            <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-1">Select a group</h3>
-            <p className="text-sm text-gray-500">
+          <div className="bg-surface-sunken rounded-lg border-2 border-dashed border-line p-12 text-center">
+            <Users className="h-12 w-12 text-ink-faint mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-ink-muted mb-1">Select a group</h3>
+            <p className="text-sm text-ink-subtle">
               Choose a group from the list to view and manage its members and connections.
             </p>
           </div>
@@ -318,46 +318,46 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="bg-surface-raised rounded-lg border border-line">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-line">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{group.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-xl font-semibold text-ink">{group.name}</h2>
+            <p className="text-sm text-ink-subtle mt-1">
               {group.description || "No description"}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onEdit}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-ink-muted bg-surface-raised border border-line-strong rounded-lg hover:bg-surface-sunken"
             >
               <Edit className="h-4 w-4" />
               Edit
             </button>
             <button
               onClick={onDelete}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-surface-raised border border-line-strong rounded-lg hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
               Delete
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-ink-faint mt-2">
           Created by {group.created_by} on {new Date(group.created_at).toLocaleDateString()}
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 px-6">
+      <div className="border-b border-line px-6">
         <div className="flex gap-6">
           <button
             onClick={() => setActiveTab("members")}
             className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "members"
               ? "border-brand-600 text-brand-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-ink-subtle hover:text-ink-muted"
               }`}
           >
             <span className="flex items-center gap-2">
@@ -369,7 +369,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
             onClick={() => setActiveTab("grant-groups")}
             className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "grant-groups"
               ? "border-brand-600 text-brand-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-ink-subtle hover:text-ink-muted"
               }`}
           >
             <span className="flex items-center gap-2">
@@ -385,7 +385,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
         {activeTab === "members" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">Users in this group get access to assigned grant groups.</p>
+              <p className="text-sm text-ink-subtle">Users in this group get access to assigned grant groups.</p>
               <button
                 onClick={() => setShowAddMember(true)}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700"
@@ -400,8 +400,8 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                 <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
               </div>
             ) : members.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <div className="text-center py-8 text-ink-subtle">
+                <Users className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
                 <p>No members yet</p>
               </div>
             ) : (
@@ -412,7 +412,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                   return (
                     <div
                       key={member.user_id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
@@ -421,7 +421,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{member.username}</p>
+                          <p className="text-sm font-medium text-ink">{member.username}</p>
                           <p className={`text-xs flex items-center gap-1 ${config.color}`}>
                             <RoleIcon className="h-3 w-3" />
                             {config.label}
@@ -430,7 +430,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                       </div>
                       <button
                         onClick={() => handleRemoveMember(member.user_id, member.username)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                        className="p-1.5 text-ink-faint hover:text-red-600 rounded"
                         title="Remove from group"
                       >
                         <UserMinus className="h-4 w-4" />
@@ -446,7 +446,7 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
         {activeTab === "grant-groups" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-subtle">
                 Grant groups provide bundled connection access to this group's members.
               </p>
               <button
@@ -463,8 +463,8 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                 <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
               </div>
             ) : grantGroups.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <div className="text-center py-8 text-ink-subtle">
+                <Package className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
                 <p>No grant groups assigned</p>
                 <p className="text-xs mt-1">
                   Assign grant groups to give this group access to bundled connections.
@@ -475,22 +475,22 @@ function GroupDetails({ group, onEdit, onDelete, onUpdate }: GroupDetailsProps) 
                 {grantGroups.map((gg) => (
                   <div
                     key={gg.grant_group_id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-purple-100">
                         <Package className="h-4 w-4 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{gg.grant_group_name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-ink">{gg.grant_group_name}</p>
+                        <p className="text-xs text-ink-subtle">
                           {gg.connection_count} connection{gg.connection_count !== 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => handleRemoveGrantGroup(gg.grant_group_id, gg.grant_group_name)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                      className="p-1.5 text-ink-faint hover:text-red-600 rounded"
                       title="Remove grant group"
                     >
                       <X className="h-4 w-4" />
@@ -571,12 +571,12 @@ function GroupDialog({ group, onClose, onSave }: GroupDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">
             {isEditing ? "Edit Group" : "Create Group"}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -590,25 +590,25 @@ function GroupDialog({ group, onClose, onSave }: GroupDialogProps) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="e.g., Engineering, Finance"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Optional description for this group"
             />
           </div>
@@ -617,7 +617,7 @@ function GroupDialog({ group, onClose, onSave }: GroupDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-sunken"
             >
               Cancel
             </button>
@@ -706,10 +706,10 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Add Member to {group.name}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">Add Member to {group.name}</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -727,8 +727,8 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+            <div className="text-center py-8 text-ink-subtle">
+              <Users className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
               <p>All users are already members</p>
             </div>
           ) : (
@@ -741,7 +741,7 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
                 return (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
@@ -750,7 +750,7 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{user.username}</p>
+                        <p className="text-sm font-medium text-ink">{user.username}</p>
                         <p className={`text-xs flex items-center gap-1 ${config.color}`}>
                           <RoleIcon className="h-3 w-3" />
                           {config.label}
@@ -776,10 +776,10 @@ function AddMemberDialog({ group, existingMembers, onClose, onAdded }: AddMember
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-t border-line bg-surface-sunken">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
+            className="w-full px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-hover"
           >
             Done
           </button>
@@ -843,10 +843,10 @@ function AddGrantGroupDialog({ group, existingGrantGroups, onClose, onAdded }: A
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Assign Grant Group to {group.name}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">Assign Grant Group to {group.name}</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -864,8 +864,8 @@ function AddGrantGroupDialog({ group, existingGrantGroups, onClose, onAdded }: A
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
           ) : grantGroups.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+            <div className="text-center py-8 text-ink-subtle">
+              <Package className="h-10 w-10 mx-auto mb-2 text-ink-faint" />
               <p>All grant groups are already assigned</p>
             </div>
           ) : (
@@ -876,15 +876,15 @@ function AddGrantGroupDialog({ group, existingGrantGroups, onClose, onAdded }: A
                 return (
                   <div
                     key={gg.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-purple-100">
                         <Package className="h-4 w-4 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{gg.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-ink">{gg.name}</p>
+                        <p className="text-xs text-ink-subtle">
                           {gg.connection_count} connection{gg.connection_count !== 1 ? "s" : ""}
                         </p>
                       </div>
@@ -908,10 +908,10 @@ function AddGrantGroupDialog({ group, existingGrantGroups, onClose, onAdded }: A
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-t border-line bg-surface-sunken">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
+            className="w-full px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-hover"
           >
             Done
           </button>

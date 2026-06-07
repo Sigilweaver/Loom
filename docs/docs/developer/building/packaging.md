@@ -28,13 +28,13 @@ This builds for your current platform. Output goes to `studio/dist/`.
 
 ```bash
 # Linux
-cd studio && npm run build:linux
+cd studio && bun run build:linux
 
 # Windows
-cd studio && npm run build:win
+cd studio && bun run build:win
 
 # macOS
-cd studio && npm run build:mac
+cd studio && bun run build:mac
 ```
 
 **Note**: You can only build for your current platform. Cross-compilation is limited.
@@ -61,8 +61,8 @@ Result: `server/dist/server` (~50-100MB)
 
 ```bash
 cd studio
-npm run build
-npm run dist:linux  # or dist:win, dist:mac
+bun run build
+bun run dist:linux  # or dist:win, dist:mac
 ```
 
 This:
@@ -104,10 +104,10 @@ Two build variants exist:
 
 ```bash
 # Full version (default)
-npm run build:linux
+bun run build:linux
 
 # Client version
-npm run build:linux:client
+bun run build:linux:client
 ```
 
 Client builds are smaller (~100MB vs ~200MB) but require a separate backend installation.
@@ -227,7 +227,7 @@ The backend executable must exist at build time:
 cd server && ./build_executable.sh
 
 # Then build studio
-cd studio && npm run build:linux
+cd studio && bun run build:linux
 ```
 
 ### Large build size

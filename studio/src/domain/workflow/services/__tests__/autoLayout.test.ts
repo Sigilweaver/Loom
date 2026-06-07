@@ -303,7 +303,7 @@ const socketWire = (
   to: { tool: to, socket: toSocket },
 });
 
-describe('autoLayout – crossing minimization', () => {
+describe('autoLayout - crossing minimization', () => {
   it('orders inputs to match Join socket positions (left above right)', () => {
     //   inputA ──→ Join(input-right)   ← bottom socket
     //   inputB ──→ Join(input-left)    ← top socket
@@ -480,7 +480,7 @@ describe('autoLayout – crossing minimization', () => {
 // Alignment strategy tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – alignment strategies', () => {
+describe('autoLayout - alignment strategies', () => {
   it('upstream alignment keeps roots at startY', () => {
     //   A → B
     //   A → C
@@ -506,7 +506,7 @@ describe('autoLayout – alignment strategies', () => {
     const result = autoLayout(tools, wires, { alignment: 'downstream' });
     const posMap = new Map(result.positions.map((p) => [p.id, p]));
 
-    // B and C are leaves — assigned from row positions
+    // B and C are leaves - assigned from row positions
     expect(posMap.get('B')!.y).toBe(100);
     expect(posMap.get('C')!.y).toBe(220);
     // A aligns with primary successor (B via first output), not their average
@@ -522,14 +522,14 @@ describe('autoLayout – alignment strategies', () => {
     const result = autoLayout(tools, wires, { alignment: 'balanced' });
     const posMap = new Map(result.positions.map((p) => [p.id, p]));
 
-    // A is a root — balanced aligns it with primary successor (B)
+    // A is a root - balanced aligns it with primary successor (B)
     expect(posMap.get('A')!.y).toBe(posMap.get('B')!.y);
     // C below B
     expect(posMap.get('C')!.y).toBeGreaterThan(posMap.get('B')!.y);
   });
 
   it('balanced alignment preserves linear chain positions', () => {
-    // A → B → C → D (straight chain — balanced should equal upstream)
+    // A → B → C → D (straight chain - balanced should equal upstream)
     const tools = [tool('A'), tool('B'), tool('C'), tool('D')];
     const wires = [wire('A', 'B'), wire('B', 'C'), wire('C', 'D')];
 
@@ -555,7 +555,7 @@ describe('autoLayout – alignment strategies', () => {
     // D should be between B and C in both alignments
     expect(balMap.get('D')!.y).toBeGreaterThanOrEqual(balMap.get('B')!.y);
     expect(balMap.get('D')!.y).toBeLessThanOrEqual(balMap.get('C')!.y);
-    // A is a root — balanced aligns with primary successor (B)
+    // A is a root - balanced aligns with primary successor (B)
     expect(balMap.get('A')!.y).toBe(balMap.get('B')!.y);
     // In upstream, A is also at the top (same behavior for roots)
     expect(upMap.get('A')!.y).toBe(upMap.get('B')!.y);
@@ -627,7 +627,7 @@ describe('autoLayout – alignment strategies', () => {
 // Crossing reduction heuristic tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – crossing reduction heuristics', () => {
+describe('autoLayout - crossing reduction heuristics', () => {
   it('median heuristic orders Join inputs correctly', () => {
     const tools = [sourceTool('A'), sourceTool('B'), joinTool('join')];
     const wires = [
@@ -755,7 +755,7 @@ describe('autoLayout – crossing reduction heuristics', () => {
 // Direction tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – direction', () => {
+describe('autoLayout - direction', () => {
   it('TB direction swaps x and y', () => {
     const tools = [tool('A'), tool('B')];
     const wires = [wire('A', 'B')];
@@ -796,7 +796,7 @@ describe('autoLayout – direction', () => {
 // Grid snap tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – grid snap', () => {
+describe('autoLayout - grid snap', () => {
   it('snaps positions to the nearest grid multiple', () => {
     const tools = [tool('A'), tool('B'), tool('C')];
     const wires = [wire('A', 'B'), wire('A', 'C')];
@@ -833,7 +833,7 @@ describe('autoLayout – grid snap', () => {
 // Selected-only layout tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – selected-only layout', () => {
+describe('autoLayout - selected-only layout', () => {
   it('returns positions only for selected tools', () => {
     const tools = [tool('A'), tool('B'), tool('C'), tool('D')];
     const wires = [wire('A', 'B'), wire('C', 'D')];
@@ -873,7 +873,7 @@ describe('autoLayout – selected-only layout', () => {
     const wires = [wire('A', 'B')];
 
     const result = autoLayout(tools, wires, { selectedToolIds: [] });
-    // Empty selectedToolIds means no filter applied — all tools laid out
+    // Empty selectedToolIds means no filter applied - all tools laid out
     expect(result.positions).toHaveLength(2);
   });
 });
@@ -882,7 +882,7 @@ describe('autoLayout – selected-only layout', () => {
 // Compaction tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – compaction', () => {
+describe('autoLayout - compaction', () => {
   it('closes large vertical gaps when enabled', () => {
     //  A → C
     //  B → D    (B and D are far away due to alignment)
@@ -925,7 +925,7 @@ describe('autoLayout – compaction', () => {
 // Combined options tests
 // ---------------------------------------------------------------
 
-describe('autoLayout – combined options', () => {
+describe('autoLayout - combined options', () => {
   it('works with all options specified', () => {
     const tools = [
       sourceTool('src'),

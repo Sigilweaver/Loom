@@ -10,9 +10,9 @@ describe("useCanvasDrag", () => {
   let params: UseCanvasDragParams;
   let getNodes: () => Node[];
   let snap: (x: number, y: number) => { x: number; y: number };
-  let onToolMove: ReturnType<typeof vi.fn>;
-  let onBeginTransaction: ReturnType<typeof vi.fn>;
-  let onCommitTransaction: ReturnType<typeof vi.fn>;
+  let onToolMove: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onBeginTransaction: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onCommitTransaction: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let mockNodes: Node[];
 
   beforeEach(() => {

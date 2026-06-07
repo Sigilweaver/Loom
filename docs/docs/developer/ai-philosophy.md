@@ -4,9 +4,9 @@ This document describes how AI features are designed, validated, and constrained
 
 ## AI Is Not a Core Feature
 
-Sigilweaver Loom is a visual data pipeline platform. The AI assistant is a convenience layer on top of that platform — it is not the product itself. Every workflow the assistant builds can be built by hand, and the application is fully functional without AI enabled.
+Sigilweaver Loom is a visual data pipeline platform. The AI assistant is a convenience layer on top of that platform - it is not the product itself. Every workflow the assistant builds can be built by hand, and the application is fully functional without AI enabled.
 
-This distinction matters for development decisions. AI should be applied where it provides clear, measurable value — eliminating boilerplate that machines handle effortlessly but humans shouldn't waste time on, translating natural language to expressions, explaining unfamiliar workflows. It should **not** be applied to problems that are better solved by good UI design, clear documentation, or deterministic logic. If a feature works reliably without AI, adding AI to it is not an improvement.
+This distinction matters for development decisions. AI should be applied where it provides clear, measurable value - eliminating boilerplate that machines handle effortlessly but humans shouldn't waste time on, translating natural language to expressions, explaining unfamiliar workflows. It should **not** be applied to problems that are better solved by good UI design, clear documentation, or deterministic logic. If a feature works reliably without AI, adding AI to it is not an improvement.
 
 ## Core Principles
 
@@ -22,21 +22,21 @@ This also means we do not gate basic functionality behind AI. A user who never e
 
 ### Validate at every layer, but know the limits
 
-LLM outputs are inherently probabilistic. Rather than hoping the model gets it right, we validate at every layer. But validation catches _structural_ errors — malformed schemas, missing fields, invalid connections. It does not catch _semantic_ errors like filtering on the wrong column, choosing the wrong join type, or misinterpreting an ambiguous request. No amount of guardrails eliminates the need for the user to review what the assistant produced.
+LLM outputs are inherently probabilistic. Rather than hoping the model gets it right, we validate at every layer. But validation catches _structural_ errors - malformed schemas, missing fields, invalid connections. It does not catch _semantic_ errors like filtering on the wrong column, choosing the wrong join type, or misinterpreting an ambiguous request. No amount of guardrails eliminates the need for the user to review what the assistant produced.
 
 The validation layers:
 
 | Layer | What it catches |
 | --- | --- |
-| **Zod schemas** | Malformed tool call arguments — wrong types, missing fields, extra properties |
+| **Zod schemas** | Malformed tool call arguments - wrong types, missing fields, extra properties |
 | **Compiler** | Unknown tool types, duplicate IDs, invalid connections between steps |
 | **Config enrichment** | Expression format mismatches (e.g., join key arrays, filter operation structures, aggregation shapes) |
-| **Column metadata checks** | The system prompt instructs the agent to always query actual column names before writing expressions — never invent them |
+| **Column metadata checks** | The system prompt instructs the agent to always query actual column names before writing expressions - never invent them |
 | **Iteration cap** | Runaway loops are stopped at a configurable step limit (default: 25) |
 
 ### Transparency over magic
 
-Every tool call the assistant executes is rendered inline in the chat. Users see the tool name, arguments (in debug mode), and result summary. There is no hidden state — what you see in the chat is what happened on the canvas.
+Every tool call the assistant executes is rendered inline in the chat. Users see the tool name, arguments (in debug mode), and result summary. There is no hidden state - what you see in the chat is what happened on the canvas.
 
 ## Architecture
 
@@ -68,21 +68,21 @@ The assistant works with any OpenAI-compatible API. Provider selection, model ch
 The assistant communicates with the canvas exclusively through a fixed set of 14 tools:
 
 **Canvas mutation:**
-- `add_tool` / `remove_tool` / `update_tool` / `update_tools` — Single or batch tool modifications
-- `connect_tools` / `disconnect_tools` — Wire management
-- `batch_canvas_ops` — Execute multiple canvas operations (add, connect, update, remove) in one call with cross-references
+- `add_tool` / `remove_tool` / `update_tool` / `update_tools` - Single or batch tool modifications
+- `connect_tools` / `disconnect_tools` - Wire management
+- `batch_canvas_ops` - Execute multiple canvas operations (add, connect, update, remove) in one call with cross-references
 
 **Data inspection:**
-- `preview_tool_output` / `get_column_metadata` / `profile_tool_data` — Read and profile data from tool outputs
+- `preview_tool_output` / `get_column_metadata` / `profile_tool_data` - Read and profile data from tool outputs
 
 **File discovery:**
-- `list_available_files` / `search_files` — Browse and search the data directory
+- `list_available_files` / `search_files` - Browse and search the data directory
 
 **Workflow building:**
-- `build_workflow` — Compile a multi-step workflow description in one shot
+- `build_workflow` - Compile a multi-step workflow description in one shot
 
 **User interaction:**
-- `ask_user` — Present clarifying questions with optional predefined choices
+- `ask_user` - Present clarifying questions with optional predefined choices
 
 Each tool has a Zod schema that validates the LLM's arguments before execution. If validation fails, the error is returned to the model so it can self-correct.
 
@@ -90,9 +90,9 @@ Each tool has a Zod schema that validates the LLM's arguments before execution. 
 
 LLMs often produce configurations that are _semantically_ correct but _structurally_ different from what the execution engine expects. The enrichment layer normalizes these:
 
-- **Filter** — Wraps raw expressions into the `{ column, operation, value }` structure when needed
-- **Join** — Ensures join keys are arrays of `{ left, right }` pairs and drops empty arrays to prevent accidental cross joins
-- **Summarize** — Normalizes aggregation definitions to the expected shape
+- **Filter** - Wraps raw expressions into the `{ column, operation, value }` structure when needed
+- **Join** - Ensures join keys are arrays of `{ left, right }` pairs and drops empty arrays to prevent accidental cross joins
+- **Summarize** - Normalizes aggregation definitions to the expected shape
 
 This runs automatically after every `add_tool` or `update_tool` call.
 
@@ -102,10 +102,10 @@ The system prompt encodes explicit rules the model must follow:
 
 1. **Always check column metadata** before writing column-dependent expressions. Never invent column names.
 2. **Always search for files** before referencing file paths. Never guess paths.
-3. **Build reproducible pipelines** — results must be computable from the workflow, not from the model doing mental arithmetic.
-4. **Handle errors gracefully** — if a preview fails, read the error, adjust the configuration, and retry.
-5. **Remind the user to review** — the model is instructed to note that AI-generated workflows should be reviewed for accuracy.
-6. **Ask before assuming** — when the user's request is ambiguous, the model should ask a clarifying question rather than guessing. Getting it wrong and rebuilding wastes more time than a one-question pause.
+3. **Build reproducible pipelines** - results must be computable from the workflow, not from the model doing mental arithmetic.
+4. **Handle errors gracefully** - if a preview fails, read the error, adjust the configuration, and retry.
+5. **Remind the user to review** - the model is instructed to note that AI-generated workflows should be reviewed for accuracy.
+6. **Ask before assuming** - when the user's request is ambiguous, the model should ask a clarifying question rather than guessing. Getting it wrong and rebuilding wastes more time than a one-question pause.
 
 ## Safety Measures
 
@@ -121,19 +121,19 @@ The system prompt encodes explicit rules the model must follow:
 | **Canvas write guard** | Agent tool calls verify tab ownership before mutating the canvas, preventing cross-tab writes |
 | **Streaming proxy** | Server proxy preserves SSE streaming end-to-end for progressive token display |
 | **Error classification** | Errors are categorized (auth, rate-limit, network, overloaded) with user-friendly messages |
-| **Lazy loading** | AI SDK modules are only imported when AI is enabled — non-AI users pay zero bundle cost |
+| **Lazy loading** | AI SDK modules are only imported when AI is enabled - non-AI users pay zero bundle cost |
 
 ## Testing
 
 AI features are covered by unit tests:
 
-- **Compiler tests** — Valid compilation, unknown tool types, duplicate IDs, invalid connections, UUID generation, socket injection, auto-layout, config merging
-- **Prompt construction tests** — System prompt assembly, conditional formula catalog, dynamic context injection
-- **Provider tests** — Provider abstraction and model resolution
-- **Agent tests** — Message history budgeting, tool result summarization, error classification, re-entrancy guard
-- **AI store tests** — Tab session snapshot/restore, multi-agent run queues, concurrency guardrails
-- **Enrichment tests** — Filter, formula, and join config normalization
-- **Tool-registry parity test** — Validates AGENT_TOOLS keys match TOOL_DESCRIPTIONS keys (prevents UI/runtime drift)
+- **Compiler tests** - Valid compilation, unknown tool types, duplicate IDs, invalid connections, UUID generation, socket injection, auto-layout, config merging
+- **Prompt construction tests** - System prompt assembly, conditional formula catalog, dynamic context injection
+- **Provider tests** - Provider abstraction and model resolution
+- **Agent tests** - Message history budgeting, tool result summarization, error classification, re-entrancy guard
+- **AI store tests** - Tab session snapshot/restore, multi-agent run queues, concurrency guardrails
+- **Enrichment tests** - Filter, formula, and join config normalization
+- **Tool-registry parity test** - Validates AGENT_TOOLS keys match TOOL_DESCRIPTIONS keys (prevents UI/runtime drift)
 
 Integration-level testing is done through manual agent sessions with representative workflows, documented in the project's test playbooks.
 

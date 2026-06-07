@@ -1,7 +1,7 @@
 /**
  * Data Inspection Tools
  *
- * Vercel AI SDK tool definitions for inspecting data — previews,
+ * Vercel AI SDK tool definitions for inspecting data - previews,
  * schemas, column metadata, file browsing.
  */
 
@@ -16,6 +16,9 @@ import {
 } from '@api';
 import { formatPreviewResult, formatCompactProfile, type ProfileColumn } from '../format';
 import { listFiles, listFileRoots, searchFiles, getSessionToken } from '@api/backend';
+import { describeDatabaseSchema, previewDatabaseQuery } from '@api/backend';
+import { resolveConnectionUri } from '@api/connectionResolver';
+import { useConnectionStore } from '@state/connectionStore';
 import { getHubClient, hasHubClient, initHubClient } from '@api/hub';
 import { createLogger } from '../../utils/logger';
 
@@ -52,7 +55,7 @@ async function getBrowseAuth(): Promise<{ token: string; serverUrl: string }> {
       initHubClient({ url: hub.url, sessionToken: hub.sessionToken });
     }
     if (!hasHubClient()) {
-      throw new Error('Hub client not available — check Hub connection in Settings');
+      throw new Error('Hub client not available - check Hub connection in Settings');
     }
     const hubClient = getHubClient();
     const tokenResponse = await hubClient.requestToken();
@@ -84,7 +87,7 @@ export const listAvailableFiles = tool({
           count: rootList.length,
           hint: rootList.length > 0
             ? 'Pass a root as "directory" to list files'
-            : 'No data directories found — check server data path configuration',
+            : 'No data directories found - check server data path configuration',
         };
       }
       const files = await listFiles(serverUrl, token, directory);
@@ -206,7 +209,7 @@ export const searchFilesTool = tool({
 });
 
 /**
- * Profile a tool's output data — get statistics (min, max, mean, nulls, top values, etc.)
+ * Profile a tool's output data - get statistics (min, max, mean, nulls, top values, etc.)
  * Returns compact text profile instead of JSON to minimize token usage.
  */
 export const profileToolData = tool({
@@ -252,6 +255,95 @@ export const profileToolData = tool({
       return {
         data: formatCompactProfile(result.row_count, result.column_count, profileCols),
       };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  },
+});
+
+/**
+ * List database connections available to the agent (client-managed only).
+ */
+export const listDatabaseConnections = tool({
+  description: 'List configured database connections. Use the returned connectionId with describe_schema and query_database.',
+  inputSchema: z.object({}),
+  execute: async () => {
+    try {
+      const store = useConnectionStore.getState();
+      if (!store.loaded) {
+        await store.loadConnections();
+      }
+      const connections = useConnectionStore.getState().connections;
+      return {
+        connections: connections.map((c) => ({
+          connectionId: c.id,
+          name: c.name,
+          type: c.type,
+          host: c.host,
+          database: c.database,
+        })),
+        hint: connections.length === 0
+          ? 'No database connections configured. Add one in the Connections panel.'
+          : undefined,
+      };
+    } catch (err) {
+      logger.error('listDatabaseConnections failed', err);
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  },
+});
+
+/**
+ * Introspect a database connection and list its tables and columns.
+ */
+export const describeSchema = tool({
+  description: 'List tables and columns for a database connection so you can write correct SQL. Use list_database_connections first to get a connectionId.',
+  inputSchema: z.object({
+    connectionId: z.string().describe('A connectionId from list_database_connections.'),
+  }),
+  execute: async ({ connectionId }) => {
+    try {
+      const { uri, type } = await resolveConnectionUri(connectionId);
+      const { token, serverUrl } = await getBrowseAuth();
+      const result = await describeDatabaseSchema(serverUrl, token, uri, type);
+
+      if (result.tables.length === 0) {
+        return { tables: [], hint: 'No tables found in this database.' };
+      }
+
+      // Compact text: one line per table -> name(col:type, col:type)
+      const schemaText = result.tables
+        .map((t) => `${t.name}(${t.columns.map((c) => `${c.name}:${c.type}`).join(', ')})`)
+        .join('\n');
+
+      return { databaseType: type, tableCount: result.tables.length, schema: schemaText };
+    } catch (err) {
+      logger.error('describeSchema failed', err);
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  },
+});
+
+/**
+ * Run a read-only SQL query against a database connection and preview rows.
+ */
+export const queryDatabase = tool({
+  description: 'Run a read-only SELECT query against a database connection and preview the rows. Only SELECT is allowed. Use describe_schema first to learn table and column names.',
+  inputSchema: z.object({
+    connectionId: z.string().describe('A connectionId from list_database_connections.'),
+    query: z.string().describe('A single read-only SELECT statement.'),
+    limit: z.number().optional().describe('Max rows to return. Default 20.'),
+  }),
+  execute: async ({ connectionId, query, limit }) => {
+    try {
+      const { uri, type } = await resolveConnectionUri(connectionId);
+      const { token, serverUrl } = await getBrowseAuth();
+      const effectiveLimit = limit ?? 20;
+      const result = await previewDatabaseQuery(serverUrl, token, uri, type, query, effectiveLimit);
+
+      const rows = result.data ?? [];
+      const schema = result.data_schema?.columns ?? [];
+      return { data: formatPreviewResult(rows, schema, result.returned_rows ?? rows.length) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
     }

@@ -9,7 +9,7 @@ import { Theme, ColorPalette } from '../types/theme';
 import { buildFieldStates, buildButtonStates } from './tokens/builders';
 
 // ---------------------------------------------------------------------------
-// WCAG helpers — keep text/bg contrast ≥ 4.5:1 (AA normal)
+// WCAG helpers - keep text/bg contrast ≥ 4.5:1 (AA normal)
 // ---------------------------------------------------------------------------
 
 function srgbChannel(c: number): number {
@@ -42,6 +42,9 @@ function wcagAutoText(bg: string, white: string, dark: string): string {
   return ratio(whiteL, bgL) >= ratio(bgL, darkL) ? white : dark;
 }
 
+type GrayIdx = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
+type BrandIdx = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+
 export interface ThemeConfig {
   id: string;
   name: string;
@@ -55,6 +58,19 @@ export interface ThemeConfig {
   accentEdgeAnimated?: string;
   /** Whether this is a dark theme (affects some defaults) */
   isDark?: boolean;
+  /**
+   * Per-theme override of dark-theme header button color indices, as
+   * [default, hover, active]. A few dark palettes have light mid-grays or
+   * pastel brand tints, so the default neutral/secondary/primary buttons
+   * resolve to dark text and look muddy next to the white-text buttons.
+   * Supplying darker indices here keeps every toolbar button crisp white.
+   * Dark themes only; ignored for light themes.
+   */
+  headerButtonIndices?: {
+    neutral?: [GrayIdx, GrayIdx, GrayIdx];
+    secondary?: [GrayIdx, GrayIdx, GrayIdx];
+    primary?: [BrandIdx, BrandIdx, BrandIdx];
+  };
 }
 
 /**
@@ -74,7 +90,7 @@ export function createTheme(config: ThemeConfig): Theme {
   // We use #ffffff/#000000 rather than palette foundation colors because tinted
   // palettes (e.g. Catppuccin Latte, Gruvbox Light) have narrower contrast ranges.
   const autoText = (bg: string) => wcagAutoText(bg, '#ffffff', '#000000');
-  // Accent for text-on-gray (checkbox marks, radio dots) — needs ≥ 4.5:1
+  // Accent for text-on-gray (checkbox marks, radio dots) - needs ≥ 4.5:1
   // Use deeper indices so the accent contrasts against gray backgrounds
   const accentText = p.brand.primary[isDark ? 700 : 800];
   const accentTextHover = p.brand.primary[isDark ? 800 : 900];
@@ -91,11 +107,10 @@ export function createTheme(config: ThemeConfig): Theme {
   // ── Header button presets (intent-based hierarchy) ────────────
   // Light themes always have dark headers, so header buttons need white
   // text.  Walk from gray[500] upward to find the lightest gray where
-  // autoText picks white — each palette hits this threshold at a
+  // autoText picks white - each palette hits this threshold at a
   // different index (Core Light at 500, Solarized Light not until 800).
-  type GrayIdx = 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
   const hdrIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark
-    ? [500, 400, 600]   // dark themes: mid default, lighter hover, darker active
+    ? (config.headerButtonIndices?.neutral ?? [500, 400, 600])   // dark themes: mid default, lighter hover, darker active
     : (() => {
         const base = ([500, 600, 700, 800] as const).find(
           i => autoText(p.gray[i]) === '#ffffff',
@@ -110,14 +125,18 @@ export function createTheme(config: ThemeConfig): Theme {
   // dark themes; on light themes it matches neutral (the primary CTA
   // Run button provides the visual hierarchy instead).
   const hdrSecIdx: [GrayIdx, GrayIdx, GrayIdx] = isDark
-    ? [400, 300, 500]
+    ? (config.headerButtonIndices?.secondary ?? [400, 300, 500])
     : hdrIdx;
 
-  // Primary CTA (Run): brand color stands out from the neutral toolbar
+  // Primary CTA (Run): brand color stands out from the neutral toolbar.
+  // Indices are [default, hover, active] into brand.primary.
+  const hdrPrimIdx: [BrandIdx, BrandIdx, BrandIdx] = isDark
+    ? (config.headerButtonIndices?.primary ?? [400, 300, 500])
+    : [500, 600, 700];
   const headerPrimaryBtn = buildButtonStates({
-    bg: { default: p.brand.primary[isDark ? 400 : 500], hover: p.brand.primary[isDark ? 300 : 600], active: p.brand.primary[isDark ? 500 : 700], disabled: p.gray[isDark ? 300 : 400] },
+    bg: { default: p.brand.primary[hdrPrimIdx[0]], hover: p.brand.primary[hdrPrimIdx[1]], active: p.brand.primary[hdrPrimIdx[2]], disabled: p.gray[isDark ? 300 : 400] },
     border: { default: p.brand.primary[isDark ? 300 : 600], hover: p.brand.primary[isDark ? 200 : 700], active: p.brand.primary[isDark ? 400 : 800], disabled: p.gray[isDark ? 300 : 400] },
-    text: { default: autoText(p.brand.primary[isDark ? 400 : 500]), hover: autoText(p.brand.primary[isDark ? 300 : 600]), active: autoText(p.brand.primary[isDark ? 500 : 700]), disabled: headerDisabledText },
+    text: { default: autoText(p.brand.primary[hdrPrimIdx[0]]), hover: autoText(p.brand.primary[hdrPrimIdx[1]]), active: autoText(p.brand.primary[hdrPrimIdx[2]]), disabled: headerDisabledText },
   });
   // Secondary (Preview): slightly lighter neutral to hint at importance
   const headerSecondaryBtn = buildButtonStates({

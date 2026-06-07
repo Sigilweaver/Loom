@@ -141,7 +141,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
               <ChatMessage key={msg.id} message={msg} debug={debugMode} />
             ))}
 
-            {/* Streaming indicator — shows live segments and text as they arrive */}
+            {/* Streaming indicator - shows live segments and text as they arrive */}
             {isGenerating && (streamingSegments.length > 0 || streamingText) && (
               <StreamingMessage segments={streamingSegments} text={streamingText} />
             )}
@@ -158,7 +158,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
               </div>
             )}
 
-            {/* Continue button — shown when agent hit max iterations */}
+            {/* Continue button - shown when agent hit max iterations */}
             {!isGenerating && stoppedAtLimit && (
               <div className="flex items-center gap-2 px-4 py-3">
                 <button
@@ -278,7 +278,7 @@ const EmptyState: React.FC = () => {
 };
 
 // ---------------------------------------------------------------------------
-// Streaming Message — shows interleaved segments from completed steps + live text
+// Streaming Message - shows interleaved segments from completed steps + live text
 // ---------------------------------------------------------------------------
 
 const StreamingMessage: React.FC<{ segments: MessageSegment[]; text: string }> = ({ segments, text }) => (
@@ -294,7 +294,7 @@ const StreamingMessage: React.FC<{ segments: MessageSegment[]; text: string }> =
         AI Assistant
       </div>
 
-      {/* Completed step segments — interleaved text and tool calls */}
+      {/* Completed step segments - interleaved text and tool calls */}
       {segments.map((seg, i) =>
         seg.type === 'tool-calls' ? (
           <div key={i} className="space-y-1">
@@ -341,7 +341,7 @@ function summarizeStreamingResult(tc: ToolCallInfo): string {
   if (!tc.result) return '';
   const r = tc.result as Record<string, unknown>;
 
-  // Compact text format — new format from all tools
+  // Compact text format - new format from all tools
   if (typeof r.data === 'string') {
     const firstLine = (r.data as string).split('\n')[0] ?? '';
     return `→ ${firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine}`;
@@ -393,6 +393,8 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   add_tool: 'Add a new tool to the workflow canvas. Optionally connect via "after". Returns inline preview of the tool output when connected.',
   update_tool: 'Update a tool\'s configuration. For Join: always set leftKeys and rightKeys.',
   update_tools: 'Batch-update multiple tools in one call. Use instead of multiple update_tool calls when fixing config across several tools.',
+  patch_tool_config: 'Patch specific fields of a tool config by path without resending the whole config. Cheaper than update_tool for small edits to large configs.',
+  insert_tool_between: 'Insert a new tool onto an existing wire, splitting A->B into A->new->B. Adds a step mid-pipeline without rebuilding downstream nodes.',
   remove_tool: 'Remove a tool from the canvas. Also removes any wires connected to it.',
   connect_tools: 'Connect two tools with a wire.',
   disconnect_tools: 'Remove a wire between two tools.',
@@ -402,6 +404,9 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   preview_tool_output: 'Execute a tool and preview its output as CSV with typed headers.',
   get_column_metadata: 'Get column names and types for a tool\'s output without executing.',
   profile_tool_data: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output.',
+  list_database_connections: 'List configured database connections. Use the returned connectionId with describe_schema and query_database.',
+  describe_schema: 'List tables and columns for a database connection so you can write correct SQL.',
+  query_database: 'Run a read-only SELECT query against a database connection and preview the rows. Only SELECT is allowed.',
   build_workflow: 'Build a complete workflow from a simplified specification. Returns idMap and a data profile.',
   ask_user: 'Ask the user a clarifying question before proceeding. Pauses the agent loop until the user responds.',
 };
@@ -512,7 +517,7 @@ function exportChatLog(messages: ChatMessageType[]): void {
   // -----------------------------------------------------------------------
   lines.push('## Workflow State (at export time)');
   lines.push('');
-  lines.push(`**${workflowMeta.name}** — ${tools.length} tool(s), ${wires.length} wire(s)`);
+  lines.push(`**${workflowMeta.name}** - ${tools.length} tool(s), ${wires.length} wire(s)`);
   lines.push('');
   if (tools.length > 0) {
     lines.push('```');
@@ -525,7 +530,7 @@ function exportChatLog(messages: ChatMessageType[]): void {
             return `${k}=${s.length > 60 ? s.slice(0, 60) + '...' : s}`;
           }).join(', ')
         : '(default)';
-      lines.push(`[${t.id.slice(0, 8)}] ${t.type} — ${configSummary}`);
+      lines.push(`[${t.id.slice(0, 8)}] ${t.type} - ${configSummary}`);
     }
     lines.push('');
     for (const w of wires) {

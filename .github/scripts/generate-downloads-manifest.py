@@ -45,7 +45,7 @@ def main():
             "type": type_val,
             "label": label,
             "fileName": filename,
-            "url": f"{os.environ.get('R2_CDN_URL', f'https://{bucket}.{endpoint}')}/latest/{filename}",
+            "url": f"{os.environ.get('R2_CDN_URL', f'https://{bucket}.{endpoint}')}/releases/loom/latest/{filename}",
             "size": info["size"],
             "sha256": info["sha256"],
         }

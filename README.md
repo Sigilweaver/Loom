@@ -1,5 +1,9 @@
 # Sigilweaver Loom
 
+[![CI](https://github.com/Sigilweaver/Loom/actions/workflows/ci.yml/badge.svg)](https://github.com/Sigilweaver/Loom/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE.md)
+[![Docs](https://img.shields.io/badge/docs-sigilweaver.app-blue.svg)](https://sigilweaver.app/loom/docs/)
+
 **The visual data pipeline platform you always wished existed.**
 
 Free and open source. No compromises.
@@ -12,12 +16,13 @@ Free and open source. No compromises.
 
 Sigilweaver Loom is more than a workflow designer - it's a complete data pipeline platform.
 
-**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow. **Server** executes those workflows with blazing speed using Polars' lazy evaluation.
+**Studio** lets you design workflows visually. Drag tools onto an infinite canvas, wire them together, watch your data flow.
+**Server** executes those workflows with blazing speed using Polars' lazy evaluation.
 **Hub** turns it all into a platform - centralizing workflow storage, managing multiple servers, scheduling automated runs, and providing team collaboration with robust security.
 
 Whether you're a data scientist prototyping on a laptop, a hobbyist automating reports at home, or an architect designing large-scale ETL, Sigilweaver Loom meets you where you are.
 
-Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation — without limiting what experienced users can do.
+Powerful no-code expression builders and an optional AI assistant lower the barrier to data transformation - without limiting what experienced users can do.
 
 No artificial limits. No vendor lock-in. No SaaS subscription required. Just you, your data, and infrastructure you control.
 
@@ -41,15 +46,11 @@ See your entire pipeline at a glance - branches, joins, transformations laid out
 
 ### No-Code Where You Want It
 
-Formula and Filter tools include visual builders: 50+ built-in operations covering math, text, dates, type conversion, null handling, and conditional logic — all configured through dropdowns with no expression syntax required. Add multiple conditions with AND/OR logic and nested groups in the Filter builder. Need something beyond the built-ins? Switch to Custom mode and write Polars directly. Both modes coexist in the same tool.
+Formula and Filter tools include visual builders: 50+ built-in operations covering math, text, dates, type conversion, null handling, and conditional logic - all configured through dropdowns with no expression syntax required. Add multiple conditions with AND/OR logic and nested groups in the Filter builder. Need something beyond the built-ins? Switch to Custom mode and write Polars directly. Both modes coexist in the same tool.
 
 ### Optional AI, On Your Terms
 
-An AI assistant in Studio can build entire workflows from natural language, write Polars expressions, explain existing pipelines, and inspect data at any step. It's opt-in — the application is fully functional without it. When enabled, AI calls are proxied through your own Server, no data is stored or logged, and local models via Ollama or LM Studio are fully supported.
-
-### Bring Your Existing Work With You
-
-Sigilweaver Loom reads and writes `.yxdb` files natively. If you have existing `.yxdb` data, it works out of the box — no conversion needed. Under the hood, this is powered by [OpenYXDB](OpenYXDB/README.md), a high-performance Rust library for the YXDB format.
+An AI assistant in Studio can build entire workflows from natural language, write Polars expressions, explain existing pipelines, and inspect data at any step. It's opt-in - the application is fully functional without it. When enabled, AI calls are proxied through your own Server, no data is stored or logged, and local models via Ollama or LM Studio are fully supported.
 
 ## Our Philosophy
 
@@ -70,7 +71,6 @@ Production grade means "it works when you need it." That's a promise we make to 
 | **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Electron/Tauri) |
 | **Server**  | Execution engine that runs workflows (FastAPI + Polars)                                   |
 | **Hub**     | Orchestration platform for teams and automation (Full stack)                              |
-| **OpenYXDB** | Native `.yxdb` read/write engine (Rust)                        |
 
 Use Studio + Server for single-user local development. Add Hub when you need centralized storage, scheduling, multi-server management, or team collaboration.
 

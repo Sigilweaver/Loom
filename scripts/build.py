@@ -172,7 +172,7 @@ def build_server(repo_root: Path, platform: str) -> BuildResult:
                 error="PyInstaller build failed",
             )
 
-        # Verify the build — use host platform extension since PyInstaller
+        # Verify the build - use host platform extension since PyInstaller
         # always builds for the machine it runs on.
         host_ext = get_server_extension(host)
         server_exe = server_dir / "dist" / f"server{host_ext}"
@@ -210,7 +210,7 @@ def copy_server_to_resources(repo_root: Path, platform: str) -> BuildResult:
     The source binary uses the host platform extension (what PyInstaller built).
     The destination uses the target platform extension (what Electron expects).
     When host != target, this copies the binary but renames it to match
-    the target convention — the binary itself is still a host-platform binary,
+    the target convention - the binary itself is still a host-platform binary,
     which is fine for local dev builds. CI builds on each OS for real releases.
     """
     print_header("Step 2/3: Copying Server to Resources")

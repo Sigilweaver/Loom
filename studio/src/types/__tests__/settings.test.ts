@@ -20,7 +20,7 @@ describe("mergeWithDefaults", () => {
       minimapVisible: false,
       minimapPosition: "top-left",
       edgeStyle: "straight",
-      // showBlockingIndicators is missing — should default to true
+      // showBlockingIndicators is missing - should default to true
     };
 
     const result = mergeWithDefaults({ ui: oldUi });

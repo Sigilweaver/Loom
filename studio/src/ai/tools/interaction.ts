@@ -1,5 +1,5 @@
 /**
- * Interaction Tools — Agent ↔ User communication
+ * Interaction Tools - Agent ↔ User communication
  *
  * Tools that let the agent pause execution and ask the user a question
  * before proceeding. The agent loop blocks on the user's response, then

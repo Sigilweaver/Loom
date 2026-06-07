@@ -2,19 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens
+ * ------------
+ * Neutral surfaces, text, and borders are expressed as CSS custom properties
+ * that back the Tailwind surface/ink/line color tokens. The active theme is a
+ * class on <html> (see state/themeStore.ts); swapping it reskins the whole app.
+ */
+:root,
+.theme-light {
+  color-scheme: light;
+  --c-bg: #f9fafb;
+  --c-raised: #ffffff;
+  --c-hover: #f3f4f6;
+  --c-ink: #111827;
+  --c-ink-muted: #374151;
+  --c-ink-subtle: #6b7280;
+  --c-ink-faint: #9ca3af;
+  --c-line: #e5e7eb;
+  --c-line-strong: #d1d5db;
+  --rdp-day-hover: #f3f4f6;
+}
+
+.theme-dark {
+  color-scheme: dark;
+  --c-bg: #0b0f17;
+  --c-raised: #131820;
+  --c-hover: #1c232e;
+  --c-ink: #f3f4f6;
+  --c-ink-muted: #cbd5e1;
+  --c-ink-subtle: #94a3b8;
+  --c-ink-faint: #64748b;
+  --c-line: #283040;
+  --c-line-strong: #3a4458;
+  --rdp-day-hover: #1c232e;
+}
+
+.theme-sigilweaver {
+  color-scheme: dark;
+  --c-bg: #14101f;
+  --c-raised: #1d1730;
+  --c-hover: #281f42;
+  --c-ink: #f5f3ff;
+  --c-ink-muted: #cabfe6;
+  --c-ink-subtle: #a394c7;
+  --c-ink-faint: #7c6ba0;
+  --c-line: #332a4d;
+  --c-line-strong: #45396b;
+  --rdp-day-hover: #281f42;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: var(--c-bg);
+  color: var(--c-ink);
 }
 
 /* DateTimePicker / react-day-picker customizations */
 .rdp-custom {
-  --rdp-accent-color: #6366f1; /* brand-500 */
-  --rdp-accent-background-color: #eef2ff; /* brand-50 */
+  --rdp-accent-color: #7c3aed;
+  /* brand-600 */
+  --rdp-accent-background-color: #ede9fe;
+  /* brand-100 */
 }
 
 .rdp-custom .rdp-day_button:hover {
-  background-color: #f3f4f6;
+  background-color: var(--rdp-day-hover);
 }
 
 .rdp-custom .rdp-selected .rdp-day_button {

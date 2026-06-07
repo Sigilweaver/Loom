@@ -19,7 +19,7 @@ function initializeSmoothScrolling(): void {
   const navLinks = document.querySelectorAll('a[href^="#"]');
   navLinks.forEach((link) => {
     link.addEventListener('click', (e) => {
-      // Re-check href at click time — it may have been updated dynamically
+      // Re-check href at click time - it may have been updated dynamically
       const href = link.getAttribute('href');
       if (!href || !href.startsWith('#')) return;
 

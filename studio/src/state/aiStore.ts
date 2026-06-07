@@ -7,7 +7,7 @@
  * **Tab-scoped sessions**: Chat messages, pending questions, generation state,
  * and token usage are isolated per tab. When the user switches tabs, the current
  * AI session is saved and the target tab's session is restored. Settings
- * (provider, model, API key) remain global — they apply to all tabs.
+ * (provider, model, API key) remain global - they apply to all tabs.
  */
 
 import { create } from 'zustand';
@@ -179,7 +179,7 @@ interface AIState extends AISettings {
   sessionUsage: TokenUsage;
   /** Text currently being streamed (partial, before message is finalized) */
   streamingText: string;
-  /** Segments collected during current stream — interleaved tool calls and text from completed steps */
+  /** Segments collected during current stream - interleaved tool calls and text from completed steps */
   streamingSegments: MessageSegment[];
   /** Whether the agent stopped because it hit the max iteration limit */
   stoppedAtLimit: boolean;
@@ -677,7 +677,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         pendingQuestion: null,
       });
     } else {
-      // No session for this tab — start fresh
+      // No session for this tab - start fresh
       set({
         messages: [],
         sessionUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },

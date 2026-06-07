@@ -22,7 +22,7 @@ export function ProtectedRoute({ children, minRole }: ProtectedRouteProps) {
   // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-surface-sunken">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );

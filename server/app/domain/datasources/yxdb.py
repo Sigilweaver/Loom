@@ -1,12 +1,12 @@
 """YXDB data source implementation
 
-Uses OpenYXDB for reading YXDB files - a high-performance Rust-based
+Uses SigilYX for reading YXDB files - a high-performance Rust-based
 reader/writer for the .yxdb format.
 """
 
 from typing import Any
 
-import openyxdb
+import sigilyx
 
 from app.api.models.common import ColumnSchema, DataPreview, DataSchema, PolarsDataType
 from app.domain.datasources.base import DataSource
@@ -14,8 +14,8 @@ from app.utils.errors import DataSourceError
 from app.utils.security import validate_file_path
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
-# Mapping from YXDB field types (as reported by openyxdb.read_schema) to PolarsDataType.
-# This allows inspect() to derive the schema from metadata alone — no data read needed.
+# Mapping from YXDB field types (as reported by sigilyx.read_schema) to PolarsDataType.
+# This allows inspect() to derive the schema from metadata alone - no data read needed.
 _YXDB_TYPE_MAP: dict[str, PolarsDataType] = {
     "Bool": PolarsDataType.BOOLEAN,
     "Byte": PolarsDataType.INT16,
@@ -38,7 +38,7 @@ _YXDB_TYPE_MAP: dict[str, PolarsDataType] = {
 
 
 class YxdbDataSource(DataSource):
-    """YXDB file data source using OpenYXDB
+    """YXDB file data source using SigilYX
 
     Reads .yxdb files with full support for all 17 YXDB field types.
     Uses a high-performance Rust core for parsing.
@@ -55,7 +55,7 @@ class YxdbDataSource(DataSource):
 
         try:
             # Header-only: extract field metadata without reading data rows
-            fields = openyxdb.read_schema(str(file_path))
+            fields = sigilyx.read_schema(str(file_path))
 
             columns = [
                 ColumnSchema(
@@ -68,7 +68,7 @@ class YxdbDataSource(DataSource):
 
             return DataSchema(
                 columns=columns,
-                row_count=openyxdb.record_count(str(file_path)),
+                row_count=sigilyx.record_count(str(file_path)),
                 file_size_bytes=file_path.stat().st_size,
             )
 
@@ -89,9 +89,9 @@ class YxdbDataSource(DataSource):
         file_path = validate_file_path(source)
 
         try:
-            # YXDB is row-based with LZF compression — partial reads require
+            # YXDB is row-based with LZF compression - partial reads require
             # sequential decompression, so the full file is read and sliced.
-            df = openyxdb.read_yxdb(str(file_path))
+            df = sigilyx.read_yxdb(str(file_path))
 
             # Apply column filter if specified
             if columns:

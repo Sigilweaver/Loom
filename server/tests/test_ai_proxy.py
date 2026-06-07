@@ -23,7 +23,7 @@ def client():
 
 
 # ---------------------------------------------------------------------------
-# Helpers — build mock httpx responses
+# Helpers - build mock httpx responses
 # ---------------------------------------------------------------------------
 
 
@@ -223,7 +223,7 @@ class TestProviderURLResolution:
 
         call_kwargs = mock_instance.build_request.call_args
         url = str(call_kwargs)
-        # Trailing slash stripped — should NOT produce //v1
+        # Trailing slash stripped - should NOT produce //v1
         assert "example.com:11434//v1" not in url
         assert "example.com:11434/v1" in url
 
@@ -270,7 +270,7 @@ class TestSSRFProtection:
             "/api/ai/proxy/openai/v1/chat/completions",
             json={},
         )
-        # Should NOT be 400 — known providers bypass SSRF check
+        # Should NOT be 400 - known providers bypass SSRF check
         assert resp.status_code != 400
 
 

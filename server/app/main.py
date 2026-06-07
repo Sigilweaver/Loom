@@ -2,6 +2,8 @@
 
 import json
 import logging
+import os
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -57,6 +59,65 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
+def validate_auth_config() -> None:
+    """Validate auth configuration at startup.
+
+    - ``disabled``: log a prominent WARNING; server accepts all requests.
+    - ``ephemeral``: if no session_token configured, auto-generate one and
+      log it once so local launchers (Electron, dev) can pick it up via env.
+    - ``static``: require a non-empty session_token; refuse to boot otherwise.
+    - ``hub``: require hub_url; refuse to boot otherwise.
+
+    Must run before AuthMiddleware is instantiated, because the middleware
+    snapshots the token in its __init__.
+    """
+    mode = settings.auth_mode
+
+    if mode == "disabled":
+        logger.warning(
+            "AUTH DISABLED: server accepts unauthenticated requests. "
+            "Set AUTH_MODE=ephemeral|static|hub to require authentication."
+        )
+        return
+
+    if mode == "ephemeral":
+        if not settings.session_token:
+            token = secrets.token_urlsafe(32)
+            settings.session_token = token
+            # Expose to subprocesses (e.g. workers) and to operators reading env.
+            os.environ["SESSION_TOKEN"] = token
+            logger.warning(
+                "AUTH_MODE=ephemeral: generated session token (set SESSION_TOKEN "
+                "explicitly to suppress this message): %s",
+                token,
+            )
+        return
+
+    if mode == "static":
+        if not settings.session_token:
+            logger.error(
+                "AUTH_MODE=static requires SESSION_TOKEN to be set. Refusing to start."
+            )
+            raise SystemExit(2)
+        return
+
+    if mode == "hub":
+        if not settings.hub_url:
+            logger.error("AUTH_MODE=hub requires HUB_URL to be set. Refusing to start.")
+            raise SystemExit(2)
+        return
+
+    logger.error("Unknown AUTH_MODE=%r. Refusing to start.", mode)
+    raise SystemExit(2)
+
+
+validate_auth_config()
+
+from app.utils.security import validate_file_access_config  # noqa: E402
+
+validate_file_access_config()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
@@ -77,7 +138,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.auth_mode == "hub" and settings.hub_url:
         from app.domain.hub.heartbeat import create_heartbeat_manager
 
-        heartbeat_manager = create_heartbeat_manager()
+        heartbeat_manager = create_heartbeat_manager(
+            server_name=settings.server_name or None,
+            endpoint_url=settings.public_endpoint_url or None,
+        )
         if heartbeat_manager:
             await heartbeat_manager.start()
 
@@ -123,6 +187,17 @@ application.add_middleware(
 
 # Add audit logging middleware
 application.add_middleware(AuditMiddleware)
+
+# Rate limiting - workflow routes only
+from slowapi import _rate_limit_exceeded_handler  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+
+from app.middleware.rate_limit import limiter as _rl  # noqa: E402
+
+application.state.limiter = _rl
+application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+application.add_middleware(SlowAPIMiddleware)
 
 # Include API routes
 application.include_router(api_router, prefix="/api")

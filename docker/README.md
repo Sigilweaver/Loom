@@ -87,6 +87,9 @@ server/
   app/
 docker/
   docker-compose.yml  # Orchestration
+  docker-compose.tls.yml  # Optional: Caddy HTTPS reverse-proxy overlay
+  Caddyfile           # Caddy config used by the TLS overlay
+  sidecar/            # Optional: remote Server over Tailscale
   .env.example
   README.md
   build.sh
@@ -95,6 +98,19 @@ docker/
 - **PostgreSQL**: Database for Hub (optional, can use external DATABASE_URL)
 - **Hub**: Web UI, API, workflow orchestration, user management
 - **Server**: Workflow execution engine (stateless, horizontally scalable)
+
+### Optional overlays
+
+- **HTTPS / TLS** - front the Hub with Caddy (automatic Let's Encrypt certs):
+
+  ```bash
+  # Set CADDY_DOMAIN, ACME_EMAIL, CORS_ORIGINS in .env first
+  docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+  ```
+
+- **Remote Server over Tailscale** - run a Server on a host the Hub cannot
+  reach directly. See [`sidecar/README.md`](sidecar/README.md).
+
 
 ## Services
 

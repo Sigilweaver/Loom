@@ -249,10 +249,10 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
     <div className="space-y-4">
       {/* Frequency selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-ink-muted mb-2">
           Run this workflow
         </label>
-        <div className="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-lg">
+        <div className="grid grid-cols-5 gap-1 bg-surface-hover p-1 rounded-lg">
           {(["minutes", "hourly", "daily", "weekly", "monthly"] as FrequencyType[]).map(
             (freq) => (
               <button
@@ -261,8 +261,8 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
                 onClick={() => handleFrequencyChange(freq)}
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors capitalize ${
                   frequency === freq
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-surface-raised text-ink shadow-sm"
+                    : "text-ink-muted hover:text-ink"
                 }`}
               >
                 {freq === "minutes" ? "Minutes" : freq}
@@ -277,11 +277,11 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
         {/* Minutes interval */}
         {frequency === "minutes" && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Every</span>
+            <span className="text-sm text-ink-muted">Every</span>
             <select
               value={interval}
               onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {[1, 2, 5, 10, 15, 20, 30].map((n) => (
                 <option key={n} value={n}>
@@ -289,18 +289,18 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
                 </option>
               ))}
             </select>
-            <span className="text-sm text-gray-600">minute(s)</span>
+            <span className="text-sm text-ink-muted">minute(s)</span>
           </div>
         )}
 
         {/* Hourly - minute selector */}
         {frequency === "hourly" && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">At minute</span>
+            <span className="text-sm text-ink-muted">At minute</span>
             <select
               value={minute}
               onChange={(e) => handleMinuteChange(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
                 <option key={m} value={m}>
@@ -308,18 +308,18 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
                 </option>
               ))}
             </select>
-            <span className="text-sm text-gray-600">of every hour</span>
+            <span className="text-sm text-ink-muted">of every hour</span>
           </div>
         )}
 
         {/* Daily - time selector */}
         {frequency === "daily" && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">At</span>
+            <span className="text-sm text-ink-muted">At</span>
             <select
               value={hour}
               onChange={(e) => handleHourChange(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>
@@ -334,11 +334,11 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
         {frequency === "weekly" && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">On</span>
+              <span className="text-sm text-ink-muted">On</span>
               <select
                 value={weekday}
                 onChange={(e) => handleWeekdayChange(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {WEEKDAYS.map((d) => (
                   <option key={d.value} value={d.value}>
@@ -348,11 +348,11 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
               </select>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">At</span>
+              <span className="text-sm text-ink-muted">At</span>
               <select
                 value={hour}
                 onChange={(e) => handleHourChange(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {Array.from({ length: 24 }, (_, i) => (
                   <option key={i} value={i}>
@@ -368,11 +368,11 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
         {frequency === "monthly" && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">On day</span>
+              <span className="text-sm text-ink-muted">On day</span>
               <select
                 value={monthDay}
                 onChange={(e) => handleMonthDayChange(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {Array.from({ length: 28 }, (_, i) => (
                   <option key={i + 1} value={i + 1}>
@@ -380,14 +380,14 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
                   </option>
                 ))}
               </select>
-              <span className="text-sm text-gray-600">of the month</span>
+              <span className="text-sm text-ink-muted">of the month</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">At</span>
+              <span className="text-sm text-ink-muted">At</span>
               <select
                 value={hour}
                 onChange={(e) => handleHourChange(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {Array.from({ length: 24 }, (_, i) => (
                   <option key={i} value={i}>
@@ -410,7 +410,7 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="flex items-center gap-1 text-sm text-ink-subtle hover:text-ink-muted"
         >
           {showAdvanced ? (
             <ChevronUp className="h-4 w-4" />
@@ -427,9 +427,9 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
               value={manualCron}
               onChange={(e) => handleManualCronChange(e.target.value)}
               placeholder="* * * * * (min hour day month weekday)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono text-sm"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono text-sm"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-subtle">
               Format: minute (0-59) hour (0-23) day (1-31) month (1-12) weekday (0-6, Sun=0)
             </p>
           </div>

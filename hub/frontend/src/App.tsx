@@ -12,6 +12,7 @@ import { SchedulesPage } from "@pages/SchedulesPage";
 // Admin pages
 import { DashboardTab } from "@pages/admin/DashboardTab";
 import { ActivityTab } from "@pages/admin/ActivityTab";
+import { AuditTab } from "@pages/admin/AuditTab";
 import { ServersTab } from "@pages/admin/ServersTab";
 import { ConnectionsTab } from "@pages/admin/ConnectionsTab";
 import { GroupsTab } from "@pages/admin/GroupsTab";
@@ -88,6 +89,16 @@ function App() {
             <ProtectedRoute minRole="auditor">
               <AdminPageWrapper>
                 <ActivityTab />
+              </AdminPageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/audit"
+          element={
+            <ProtectedRoute minRole="auditor">
+              <AdminPageWrapper>
+                <AuditTab />
               </AdminPageWrapper>
             </ProtectedRoute>
           }

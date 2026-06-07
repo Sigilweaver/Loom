@@ -32,7 +32,7 @@ const roleConfig: Record<UserRole, { label: string; icon: typeof Shield; color: 
   owner: { label: "Owner", icon: ShieldCheck, color: "text-purple-700", bg: "bg-purple-100" },
   admin: { label: "Admin", icon: Shield, color: "text-blue-700", bg: "bg-blue-100" },
   auditor: { label: "Auditor", icon: Eye, color: "text-amber-700", bg: "bg-amber-100" },
-  user: { label: "User", icon: User, color: "text-gray-700", bg: "bg-gray-100" },
+  user: { label: "User", icon: User, color: "text-ink-muted", bg: "bg-surface-hover" },
 };
 
 export function UsersTab() {
@@ -138,9 +138,9 @@ export function UsersTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-gray-500" />
-          <h2 className="text-lg font-medium text-gray-900">Users</h2>
-          <span className="text-sm text-gray-500">({users.length})</span>
+          <Users className="h-5 w-5 text-ink-subtle" />
+          <h2 className="text-lg font-medium text-ink">Users</h2>
+          <span className="text-sm text-ink-subtle">({users.length})</span>
         </div>
         <button
           onClick={() => setShowCreateDialog(true)}
@@ -152,25 +152,25 @@ export function UsersTab() {
       </div>
 
       {/* Users table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-surface-raised rounded-lg border border-line overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-surface-sunken border-b border-line">
             <tr>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
+              <th className="text-left text-xs font-medium text-ink-subtle uppercase tracking-wider px-4 py-3">
                 User
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
+              <th className="text-left text-xs font-medium text-ink-subtle uppercase tracking-wider px-4 py-3">
                 Role
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
+              <th className="text-left text-xs font-medium text-ink-subtle uppercase tracking-wider px-4 py-3">
                 Created
               </th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
+              <th className="text-right text-xs font-medium text-ink-subtle uppercase tracking-wider px-4 py-3">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-line">
             {users.map((user) => {
               const config = roleConfig[user.role] || roleConfig.user;
               const RoleIcon = config.icon;
@@ -178,7 +178,7 @@ export function UsersTab() {
               const canManage = canManageUser(user.role) && !isCurrentUser;
 
               return (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className="hover:bg-surface-sunken">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
@@ -187,10 +187,10 @@ export function UsersTab() {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-ink">
                           {user.username}
                           {isCurrentUser && (
-                            <span className="ml-2 text-xs text-gray-500">(you)</span>
+                            <span className="ml-2 text-xs text-ink-subtle">(you)</span>
                           )}
                         </p>
                       </div>
@@ -204,7 +204,7 @@ export function UsersTab() {
                       {config.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
+                  <td className="px-4 py-3 text-sm text-ink-subtle">
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -212,14 +212,14 @@ export function UsersTab() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setEditingUser(user)}
-                          className="text-gray-400 hover:text-brand-600 p-1"
+                          className="text-ink-faint hover:text-brand-600 p-1"
                           title="Edit user role"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.id, user.username)}
-                          className="text-gray-400 hover:text-red-600 p-1"
+                          className="text-ink-faint hover:text-red-600 p-1"
                           title="Delete user"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -232,7 +232,7 @@ export function UsersTab() {
             })}
             {users.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-ink-subtle">
                   No users found
                 </td>
               </tr>
@@ -305,11 +305,11 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Create User</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">Create User</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -325,7 +325,7 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
 
           {/* Username */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Username
             </label>
             <input
@@ -335,14 +335,14 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
               required
               minLength={3}
               autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Enter username"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Password
             </label>
             <input
@@ -351,25 +351,25 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Min 8 characters"
             />
           </div>
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">Role</label>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full flex items-center justify-between px-3 py-2 border border-line-strong rounded-lg bg-surface-raised hover:bg-surface-sunken focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <span className="flex items-center gap-2">
                   <SelectedIcon className={`h-4 w-4 ${selectedRoleConfig.color}`} />
                   <span className="text-sm">{selectedRoleConfig.label}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-ink-faint" />
               </button>
 
               {showRoleDropdown && (
@@ -378,7 +378,7 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
                     className="fixed inset-0 z-10"
                     onClick={() => setShowRoleDropdown(false)}
                   />
-                  <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
+                  <div className="absolute z-20 mt-1 w-full bg-surface-raised rounded-lg border border-line shadow-lg overflow-hidden">
                     {assignableRoles.map((r) => {
                       const config = roleConfig[r];
                       const Icon = config.icon;
@@ -390,8 +390,8 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
                             setRole(r);
                             setShowRoleDropdown(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 ${
-                            role === r ? "bg-gray-50" : ""
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-surface-sunken ${
+                            role === r ? "bg-surface-sunken" : ""
                           }`}
                         >
                           <Icon className={`h-4 w-4 ${config.color}`} />
@@ -410,7 +410,7 @@ function CreateUserDialog({ onClose, onCreated, currentUserRole }: CreateUserDia
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-sunken"
             >
               Cancel
             </button>
@@ -494,11 +494,11 @@ function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserD
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="relative bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Edit User</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-lg font-semibold text-ink">Edit User</h3>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -514,47 +514,47 @@ function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserD
 
           {/* Username */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
               minLength={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               Password
-              <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>
+              <span className="text-ink-faint font-normal ml-1">(leave blank to keep current)</span>
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={8}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="New password (min 8 characters)"
             />
           </div>
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">Role</label>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full flex items-center justify-between px-3 py-2 border border-line-strong rounded-lg bg-surface-raised hover:bg-surface-sunken focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <span className="flex items-center gap-2">
                   <SelectedIcon className={`h-4 w-4 ${selectedRoleConfig.color}`} />
                   <span className="text-sm">{selectedRoleConfig.label}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-ink-faint" />
               </button>
 
               {showRoleDropdown && (
@@ -563,7 +563,7 @@ function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserD
                     className="fixed inset-0 z-10"
                     onClick={() => setShowRoleDropdown(false)}
                   />
-                  <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
+                  <div className="absolute z-20 mt-1 w-full bg-surface-raised rounded-lg border border-line shadow-lg overflow-hidden">
                     {assignableRoles.map((r) => {
                       const config = roleConfig[r];
                       const Icon = config.icon;
@@ -575,8 +575,8 @@ function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserD
                             setRole(r);
                             setShowRoleDropdown(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 ${
-                            role === r ? "bg-gray-50" : ""
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-surface-sunken ${
+                            role === r ? "bg-surface-sunken" : ""
                           }`}
                         >
                           <Icon className={`h-4 w-4 ${config.color}`} />
@@ -595,7 +595,7 @@ function EditUserDialog({ user, onClose, onUpdated, currentUserRole }: EditUserD
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-line-strong text-ink-muted font-medium rounded-lg hover:bg-surface-sunken"
             >
               Cancel
             </button>

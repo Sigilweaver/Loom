@@ -4,7 +4,7 @@
 # Builds amd64 Docker images for Hub and Server and pushes them to
 # GitHub Container Registry (ghcr.io).
 #
-# NOTE: openyxdb is installed from PyPI (has manylinux wheels for amd64).
+# NOTE: sigilyx is installed from PyPI (has manylinux wheels for amd64+arm64).
 #
 # Triggers:
 #   - On release publish: Builds and pushes with version tags
@@ -39,7 +39,7 @@ jobs:
   # ===========================================================================
   build-hub:
     name: Build Hub Image
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -99,7 +99,7 @@ jobs:
   # ===========================================================================
   build-server:
     name: Build Server Image
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write

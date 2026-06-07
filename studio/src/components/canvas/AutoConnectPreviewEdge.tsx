@@ -27,7 +27,7 @@ const AutoConnectPreviewEdge: React.FC = () => {
   const tx = targetX * zoom + vpX;
   const ty = targetY * zoom + vpY;
 
-  // Bezier control points — horizontal offset for a natural curve
+  // Bezier control points - horizontal offset for a natural curve
   const dx = Math.abs(tx - sx) * 0.5;
   const path = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
 

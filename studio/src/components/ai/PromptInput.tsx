@@ -46,7 +46,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed) return;
-    // Allow sends during generation — they'll be queued by the agent
+    // Allow sends during generation - they'll be queued by the agent
     onSend(trimmed);
     setValue('');
     // Reset textarea height

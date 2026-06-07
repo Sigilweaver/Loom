@@ -3,7 +3,7 @@
  *
  * Converts data structures (preview rows, schemas, profiles) into
  * token-efficient text formats for the LLM. JSON is extremely wasteful
- * for tabular data — column names are repeated per row, null keys are
+ * for tabular data - column names are repeated per row, null keys are
  * included, and verbose nesting burns tokens.
  *
  * Conventions:
@@ -15,7 +15,7 @@
 import type { ColumnSchema } from '@api/backend';
 
 // ---------------------------------------------------------------------------
-// Type abbreviations — keep header short
+// Type abbreviations - keep header short
 // ---------------------------------------------------------------------------
 
 const DTYPE_SHORT: Record<string, string> = {
@@ -74,7 +74,7 @@ export function formatRowsAsCSV(
   rowCount: number,
 ): string {
   if (rows.length === 0) {
-    return `(empty — 0 rows)\nSchema: ${formatTypedHeader(schema)}`;
+    return `(empty - 0 rows)\nSchema: ${formatTypedHeader(schema)}`;
   }
 
   const colNames = schema.map((c) => c.name);

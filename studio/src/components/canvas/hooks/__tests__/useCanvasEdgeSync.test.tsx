@@ -8,7 +8,7 @@ import {
 
 describe("useCanvasEdgeSync", () => {
   let params: UseCanvasEdgeSyncParams;
-  let setEdges: ReturnType<typeof vi.fn>;
+  let setEdges: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let mockEdges: Edge[];
 
   beforeEach(() => {

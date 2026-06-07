@@ -4,7 +4,18 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -31,11 +42,15 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="user")
-    api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     sessions: Mapped[list["Session"]] = relationship(
@@ -89,6 +104,55 @@ class Workflow(Base):
     )
 
 
+class WorkflowRevision(Base):
+    """Append-only revision history for a workflow.
+
+    Every content-changing save (upload, replace, or rollback) records a new
+    immutable revision: the full file blob, its checksum, the author, an
+    optional message, and a pointer to the revision it descends from. This
+    gives a non-git, linear history that supports diffing and rollback.
+    """
+
+    __tablename__ = "workflow_revisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # 1-based, monotonic per workflow; orders the history and labels revisions.
+    revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # The revision this one was created from (None for the first revision).
+    parent_revision_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflow_revisions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    author: Mapped[str] = mapped_column(String(255), nullable=False)
+    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+    blob: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    message: Mapped[str] = mapped_column(Text, default="")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_id",
+            "revision_number",
+            name="uq_workflow_revision_number",
+        ),
+    )
+
+
 class Server(Base):
     """Registered server instance"""
 
@@ -104,8 +168,12 @@ class Server(Base):
     # Status
     status: Mapped[str] = mapped_column(String(50), default="unknown")
     version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    last_poll: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_healthy: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_poll: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_healthy: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
@@ -155,8 +223,12 @@ class Execution(Base):
     queued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Results
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
@@ -240,7 +312,9 @@ class Connection(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    type: Mapped[str] = mapped_column(String(20), nullable=False)  # database, filesystem, s3
+    type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # database, filesystem, s3
     description: Mapped[str] = mapped_column(Text, default="")
     read_only: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -265,11 +339,20 @@ class Connection(Base):
 
     # Relationships to type-specific tables
     database_config: Mapped[Optional["ConnectionDatabase"]] = relationship(
-        "ConnectionDatabase", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+        "ConnectionDatabase",
+        back_populates="connection",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
     filesystem_config: Mapped[Optional["ConnectionFilesystem"]] = relationship(
-        "ConnectionFilesystem", back_populates="connection", uselist=False, cascade="all, delete-orphan"
+        "ConnectionFilesystem",
+        back_populates="connection",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
+
+    # Hot-path index for connection-list filters/sorts.
+    __table_args__ = (Index("idx_connections_status", "status"),)
 
 
 class ConnectionDatabase(Base):
@@ -286,7 +369,9 @@ class ConnectionDatabase(Base):
         ForeignKey("connections.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    db_type: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql, mysql, sqlite, mssql
+    db_type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # postgresql, mysql, sqlite, mssql
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
     database: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -295,7 +380,9 @@ class ConnectionDatabase(Base):
     encrypted_credentials: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Relationship back to base
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="database_config")
+    connection: Mapped["Connection"] = relationship(
+        "Connection", back_populates="database_config"
+    )
 
 
 class ConnectionFilesystem(Base):
@@ -312,10 +399,14 @@ class ConnectionFilesystem(Base):
         primary_key=True,
     )
     path: Mapped[str] = mapped_column(String(1024), nullable=False)
-    path_type: Mapped[str] = mapped_column(String(20), nullable=False, default="local")  # local, unc
+    path_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="local"
+    )  # local, unc
 
     # Relationship back to base
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="filesystem_config")
+    connection: Mapped["Connection"] = relationship(
+        "Connection", back_populates="filesystem_config"
+    )
 
 
 class Session(Base):
@@ -347,11 +438,41 @@ class Session(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="sessions")
+
+
+class ServerToken(Base):
+    """One-time-use opaque token authorizing a server to act for a user.
+
+    Persisted to support multi-replica Hub deployments where in-memory tokens
+    cannot be shared. Atomic claim is performed via
+    ``UPDATE ... SET used_at = NOW() WHERE token = :t AND used_at IS NULL
+    AND expires_at > NOW() RETURNING ...`` so concurrent consumers race to
+    claim and only one succeeds.
+    """
+
+    __tablename__ = "server_tokens"
+
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    server_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Group(Base):
@@ -415,6 +536,15 @@ class UserGroup(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="groups")
     group: Mapped["Group"] = relationship("Group", back_populates="members")
+
+    # Explicit indexes for reverse-direction lookups. The composite
+    # primary key (user_id, group_id) already covers user_id-leading
+    # scans; per-column indexes serve "find all users in group" and
+    # "find all groups for user" workloads independently.
+    __table_args__ = (
+        Index("idx_user_groups_user", "user_id"),
+        Index("idx_user_groups_group", "group_id"),
+    )
 
 
 # NOTE: ConnectionGroup model removed in API v1
@@ -507,6 +637,9 @@ class AuditEvent(Base):
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
+    # Timeline queries fetch newest-first.
+    __table_args__ = (Index("idx_audit_events_timestamp", "timestamp"),)
+
 
 class ExecutionRecord(Base):
     """Complete execution record with rich details.
@@ -545,13 +678,56 @@ class ExecutionRecord(Base):
     output_bytes: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
     # Error summary (for filtering)
-    error_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    error_type: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, index=True
+    )
 
     # Connections used (for filtering: "show me all executions using connection X")
     connection_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     # === Rich JSONB details ===
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    # Relationships
+    execution: Mapped["Execution"] = relationship("Execution")
+
+
+class ExecutionArtifact(Base):
+    """Pointer to a content-addressed execution output blob.
+
+    The blob bytes live in the artifact store (keyed by ``sha256``); this row
+    records the pointer, the integrity checksum, and lightweight metadata so
+    outputs can be listed and streamed back, and verified on retrieval.
+    """
+
+    __tablename__ = "execution_artifacts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("executions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Human-facing file name, e.g. "output-<socket>.csv".
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="application/octet-stream"
+    )
+
+    # Content address + integrity checksum (hex SHA-256, 64 chars).
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    # Optional output-shape metadata.
+    row_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
 
     # Relationships
     execution: Mapped["Execution"] = relationship("Execution")
@@ -594,10 +770,14 @@ class GrantGroup(Base):
 
     # Relationships
     connections: Mapped[list["GrantGroupConnection"]] = relationship(
-        "GrantGroupConnection", back_populates="grant_group", cascade="all, delete-orphan"
+        "GrantGroupConnection",
+        back_populates="grant_group",
+        cascade="all, delete-orphan",
     )
     user_groups: Mapped[list["UserGroupGrantGroup"]] = relationship(
-        "UserGroupGrantGroup", back_populates="grant_group", cascade="all, delete-orphan"
+        "UserGroupGrantGroup",
+        back_populates="grant_group",
+        cascade="all, delete-orphan",
     )
 
 
@@ -626,7 +806,18 @@ class UserGroupGrantGroup(Base):
 
     # Relationships
     user_group: Mapped["Group"] = relationship("Group", back_populates="grant_groups")
-    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="user_groups")
+    grant_group: Mapped["GrantGroup"] = relationship(
+        "GrantGroup", back_populates="user_groups"
+    )
+
+    # Indexes on the permission-join hot path. The composite PK
+    # (user_group_id, grant_group_id) already covers the leading-column
+    # lookup; the reverse-direction index supports "given a grant group,
+    # find all user groups referencing it".
+    __table_args__ = (
+        Index("idx_uggg_lookup", "user_group_id", "grant_group_id"),
+        Index("idx_uggg_grant_group", "grant_group_id"),
+    )
 
 
 class GrantGroupConnection(Base):
@@ -654,5 +845,13 @@ class GrantGroupConnection(Base):
     assigned_by: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Relationships
-    grant_group: Mapped["GrantGroup"] = relationship("GrantGroup", back_populates="connections")
+    grant_group: Mapped["GrantGroup"] = relationship(
+        "GrantGroup", back_populates="connections"
+    )
     connection: Mapped["Connection"] = relationship("Connection")
+
+    # Indexes for forward and reverse permission-join lookups.
+    __table_args__ = (
+        Index("idx_gg_conn_lookup", "grant_group_id", "connection_id"),
+        Index("idx_gg_conn_reverse", "connection_id"),
+    )

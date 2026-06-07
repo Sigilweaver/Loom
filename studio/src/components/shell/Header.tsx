@@ -36,8 +36,10 @@ export interface HeaderRef {
 
 const Header = forwardRef<HeaderRef, object>((_, ref) => {
   // Access stores directly
-  const tools = useWorkflowStore((s) => s.tools);
-  const wires = useWorkflowStore((s) => s.wires);
+  // Header only reads tools/wires inside event handlers (save,
+  // export, run, preview). Subscribing to those arrays here would
+  // re-render the entire header on every node drag or config edit. We
+  // read them from the store on demand instead via getState().
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
   const setSelectedTool = useWorkflowStore((s) => s.setSelectedTool);
 
@@ -120,6 +122,10 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     });
 
     return cleanup;
+    // Event subscription should only be set up once on mount; handlers are
+    // closed over via React state and resolve at call time. Adding the
+    // handlers as deps would re-subscribe on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOpenWorkflowFromPath = async (filePath: string) => {
@@ -273,6 +279,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     // If tab already has a file path, save to that file
     if (activeTab?.filePath) {
       try {
+        const { tools, wires } = useWorkflowStore.getState();
         const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
 
         if (hasNativeDialogs()) {
@@ -297,6 +304,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     if (!activeTabId) return;
 
     try {
+      const { tools, wires } = useWorkflowStore.getState();
       const json = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
 
       // Build filesystem-safe filename
@@ -363,6 +371,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const handlePreviewWorkflow = async () => {
     try {
+      const { tools, wires } = useWorkflowStore.getState();
       // Validate workflow has tools
       if (tools.length === 0) {
         showNotification("Cannot preview empty workflow", "error");
@@ -432,6 +441,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const handleRunWorkflow = async () => {
     try {
+      const { tools, wires } = useWorkflowStore.getState();
       // Validate workflow has tools
       if (tools.length === 0) {
         showNotification("Cannot execute empty workflow", "error");
@@ -509,7 +519,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
                 size="md"
               />
               <h1 className="text-xl font-bold text-theme-header-title-text">
-                Sigilweaver Loom Studio
+                Loom Studio
               </h1>
             </div>
             <div className="text-sm opacity-75 text-theme-header-metadata-text">

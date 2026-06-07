@@ -85,7 +85,7 @@ describe('getOsMeta', () => {
     const meta = getOsMeta('windows', 'sigilweaver-loom.exe');
     expect(meta.name).toBe('Windows');
     expect(meta.icon).toContain('microsoft-windows');
-    expect(meta.note).toContain('Unsigned build');
+    expect(meta.note).toContain('Signed installer');
   });
 
   it('should return Linux AppImage metadata', () => {

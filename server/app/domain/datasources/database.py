@@ -91,6 +91,60 @@ def _dtype_to_polars_type(dtype: pl.DataType) -> PolarsDataType:
     return PolarsDataType.STRING
 
 
+def _schema_introspection_query(database_type: str) -> str:
+    """Return a read-only catalog query listing tables and their columns.
+
+    The query yields rows with normalized lowercase aliases:
+    ``table_name``, ``column_name``, ``data_type`` and ``ordinal_position``.
+
+    Args:
+        database_type: One of postgresql, mysql, sqlite, mssql.
+
+    Raises:
+        DataSourceError: If the database type is not supported.
+    """
+    db = database_type.lower()
+
+    if db == "postgresql":
+        return (
+            "SELECT table_name, column_name, data_type, ordinal_position "
+            "FROM information_schema.columns "
+            "WHERE table_schema = 'public' "
+            "ORDER BY table_name, ordinal_position"
+        )
+
+    if db == "mysql":
+        return (
+            "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name, "
+            "COLUMN_TYPE AS data_type, ORDINAL_POSITION AS ordinal_position "
+            "FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA = DATABASE() "
+            "ORDER BY TABLE_NAME, ORDINAL_POSITION"
+        )
+
+    if db == "mssql":
+        return (
+            "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name, "
+            "DATA_TYPE AS data_type, ORDINAL_POSITION AS ordinal_position "
+            "FROM INFORMATION_SCHEMA.COLUMNS "
+            "WHERE TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA') "
+            "ORDER BY TABLE_NAME, ORDINAL_POSITION"
+        )
+
+    if db == "sqlite":
+        return (
+            "SELECT m.name AS table_name, p.name AS column_name, "
+            "p.type AS data_type, p.cid AS ordinal_position "
+            "FROM sqlite_master m, pragma_table_info(m.name) p "
+            "WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%' "
+            "ORDER BY m.name, p.cid"
+        )
+
+    raise DataSourceError(
+        f"Schema introspection is not supported for database type: {database_type}"
+    )
+
+
 class DatabaseDataSource(DataSource):
     """Data source for database connections using SQL queries."""
 
@@ -270,6 +324,50 @@ class DatabaseDataSource(DataSource):
             errors.append("SQL query cannot be empty")
 
         return errors
+
+    async def list_schema(self, source: str) -> list[dict[str, Any]]:
+        """Introspect the database and list tables with their columns.
+
+        Args:
+            source: Connection URI.
+
+        Returns:
+            A list of tables, each as ``{"name": str, "columns": [...]}``
+            where every column is ``{"name": str, "type": str}``.
+
+        Raises:
+            DataSourceError: If introspection fails.
+        """
+        introspection_query = _schema_introspection_query(self.database_type)
+
+        try:
+            df = pl.read_database_uri(
+                query=introspection_query,
+                uri=source,
+                engine="connectorx",
+            )
+        except Exception as e:
+            raise DataSourceError(f"Failed to introspect database schema: {e}")
+
+        # Normalize column names to lowercase so dialect casing differences
+        # (e.g. MySQL uppercase aliases) do not matter when reading rows.
+        df = df.rename({col: col.lower() for col in df.columns})
+
+        tables: dict[str, list[dict[str, str]]] = {}
+        for row in df.to_dicts():
+            table_name = row.get("table_name")
+            column_name = row.get("column_name")
+            if table_name is None or column_name is None:
+                continue
+            data_type = row.get("data_type")
+            tables.setdefault(str(table_name), []).append(
+                {
+                    "name": str(column_name),
+                    "type": str(data_type) if data_type is not None else "unknown",
+                }
+            )
+
+        return [{"name": name, "columns": columns} for name, columns in tables.items()]
 
 
 class PostgreSQLDataSource(DatabaseDataSource):

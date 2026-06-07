@@ -3,71 +3,34 @@
 from pathlib import Path
 from typing import Type
 
-from app.domain.datasources.avro import AvroDataSource
 from app.domain.datasources.base import DataSource
-from app.domain.datasources.csv import CSVDataSource
-from app.domain.datasources.database import (
-    MsSQLDataSource,
-    MySQLDataSource,
-    PostgreSQLDataSource,
-    SQLiteDataSource,
+from app.domain.registry import (
+    DATABASE_SOURCES,
+    DATABASE_TYPES,
+    extension_mapping,
+    file_source_classes,
 )
-from app.domain.datasources.excel import ExcelDataSource
-from app.domain.datasources.ipc import IPCDataSource
-from app.domain.datasources.json import JSONDataSource
-from app.domain.datasources.ods import ODSDataSource
-from app.domain.datasources.parquet import ParquetDataSource
-from app.domain.datasources.yxdb import YxdbDataSource
 from app.utils.errors import DataSourceError
 
 
 class DataSourceFactory:
-    """Factory for creating data source instances"""
+    """Factory for creating data source instances.
 
-    # Registry of data source implementations
+    Registries are derived from app.domain.registry so that adding a format in
+    one place updates both the inspect/preview and execution paths.
+    """
+
+    # Registry of data source implementations (file formats + databases)
     _sources: dict[str, Type[DataSource]] = {
-        "avro": AvroDataSource,
-        "csv": CSVDataSource,
-        "excel": ExcelDataSource,
-        "ipc": IPCDataSource,
-        "json": JSONDataSource,
-        "ods": ODSDataSource,
-        "parquet": ParquetDataSource,
-        "yxdb": YxdbDataSource,
-        "postgresql": PostgreSQLDataSource,
-        "mysql": MySQLDataSource,
-        "sqlite": SQLiteDataSource,
-        "mssql": MsSQLDataSource,
+        **file_source_classes(),
+        **DATABASE_SOURCES,
     }
 
     # File extension to source type mapping
-    _extension_mapping: dict[str, str] = {
-        ".avro": "avro",  # Apache Avro binary format
-        ".csv": "csv",
-        ".tsv": "csv",  # Tab-separated values are CSV with different separator
-        ".tab": "csv",
-        ".txt": "csv",
-        ".xlsx": "excel",
-        ".xls": "excel",
-        ".xlsb": "excel",
-        ".ods": "ods",  # OpenDocument Spreadsheet
-        ".json": "json",
-        ".jsonl": "json",  # Newline-delimited JSON
-        ".ndjson": "json",  # Newline-delimited JSON (alternative extension)
-        ".parquet": "parquet",
-        ".yxdb": "yxdb",  # YXDB format (via OpenYXDB)
-        ".arrow": "ipc",  # Apache Arrow IPC format
-        ".ipc": "ipc",  # IPC format
-        ".feather": "ipc",  # Feather v2 (same as Arrow IPC)
-    }
+    _extension_mapping: dict[str, str] = extension_mapping()
 
     # Database source types (not file-based)
-    _database_types: set[str] = {
-        "postgresql",
-        "mysql",
-        "sqlite",
-        "mssql",
-    }
+    _database_types: set[str] = set(DATABASE_TYPES)
 
     @classmethod
     def create(cls, source_type: str) -> DataSource:

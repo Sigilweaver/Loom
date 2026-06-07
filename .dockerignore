@@ -109,4 +109,4 @@ server/backend.egg-info
 # Studio (not in docker builds)
 studio/
 
-# OpenYXDB is installed from PyPI — no local source needed
+# OpenYXDB is installed from PyPI - no local source needed

@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -14,6 +15,12 @@ from app.utils.errors import ToolError
 from app.utils.expression import parse_polars_expression
 
 
+class FilterToolConfig(BaseModel):
+    """Typed config for Filter."""
+
+    expression: str = Field(default="", description="Polars expression evaluated per row.")
+
+
 @register_tool("Filter")
 class FilterTool(BaseTool):
     """
@@ -23,6 +30,13 @@ class FilterTool(BaseTool):
     - Socket output-true (T): Rows that match the filter
     - Socket output-false (F): Rows that don't match the filter
     """
+
+    @classmethod
+    def config_model(cls) -> type[FilterToolConfig]:
+        return FilterToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {"expression": config.get("expression", "")}
 
     def _build_operation(self, config: dict[str, Any]) -> FilterOperation:
         """Build the filter operation from config."""

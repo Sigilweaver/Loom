@@ -76,7 +76,7 @@ function StatCard({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
   return (
     <Wrapper
       onClick={onClick}
-      className={`bg-white rounded-lg border border-gray-200 p-5 text-left ${onClick ? "hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer" : ""
+      className={`bg-surface-raised rounded-lg border border-line p-5 text-left ${onClick ? "hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer" : ""
         }`}
     >
       <div className="flex items-start justify-between">
@@ -84,20 +84,20 @@ function StatCard({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
         {onClick && (
-          <ArrowRight className="w-4 h-4 text-gray-400" />
+          <ArrowRight className="w-4 h-4 text-ink-faint" />
         )}
       </div>
       <div className="mt-3">
-        <p className="text-2xl font-semibold text-gray-900">{value}</p>
-        <p className="text-sm font-medium text-gray-600 mt-0.5">{title}</p>
-        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+        <p className="text-2xl font-semibold text-ink">{value}</p>
+        <p className="text-sm font-medium text-ink-muted mt-0.5">{title}</p>
+        {subtitle && <p className="mt-1 text-xs text-ink-subtle">{subtitle}</p>}
       </div>
     </Wrapper>
   );
 }
 
 function ExecutionStatusBadge({ status }: { status: string }) {
-  const defaultConfig = { icon: Clock, className: "text-gray-500" };
+  const defaultConfig = { icon: Clock, className: "text-ink-subtle" };
   const config: Record<string, { icon: typeof Clock; className: string }> = {
     queued: defaultConfig,
     running: { icon: Loader2, className: "text-blue-500" },
@@ -219,16 +219,16 @@ export function HomePage() {
             <Home className="w-6 h-6 text-brand-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-2xl font-semibold text-ink">
               {greeting}, {user?.username}
             </h1>
-            <p className="text-sm text-gray-500">Here's what's happening with your workflows</p>
+            <p className="text-sm text-ink-subtle">Here's what's happening with your workflows</p>
           </div>
         </div>
         <button
           onClick={() => fetchDashboardData(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 transition-colors rounded-lg hover:text-gray-900 hover:bg-gray-100 disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-ink-muted transition-colors rounded-lg hover:text-ink hover:bg-surface-hover disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
@@ -268,11 +268,11 @@ export function HomePage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Executions */}
-        <div className="bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="bg-surface-raised border border-line rounded-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-line">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-gray-500" />
-              <h2 className="font-medium text-gray-900">Recent Executions</h2>
+              <TrendingUp className="w-5 h-5 text-ink-subtle" />
+              <h2 className="font-medium text-ink">Recent Executions</h2>
             </div>
             <button
               onClick={() => navigate("/executions")}
@@ -281,28 +281,28 @@ export function HomePage() {
               View all
             </button>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {recentExecutions.length === 0 ? (
               <div className="px-5 py-8 text-center">
-                <Play className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm text-gray-500">No executions yet</p>
-                <p className="mt-1 text-xs text-gray-400">Run a workflow to see it here</p>
+                <Play className="w-8 h-8 mx-auto mb-2 text-ink-faint" />
+                <p className="text-sm text-ink-subtle">No executions yet</p>
+                <p className="mt-1 text-xs text-ink-faint">Run a workflow to see it here</p>
               </div>
             ) : (
               recentExecutions.map((execution) => (
-                <div key={execution.id} className="px-5 py-3 hover:bg-gray-50">
+                <div key={execution.id} className="px-5 py-3 hover:bg-surface-sunken">
                   <div className="flex items-center gap-3">
                     <ExecutionStatusBadge status={execution.status} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-ink truncate">
                         {execution.workflow_name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-ink-subtle">
                         {execution.server_name} - {formatRelativeTime(execution.queued_at)}
                       </p>
                     </div>
                     {execution.duration_seconds !== null && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-ink-faint">
                         {execution.duration_seconds.toFixed(1)}s
                       </span>
                     )}
@@ -314,11 +314,11 @@ export function HomePage() {
         </div>
 
         {/* Recent Workflows */}
-        <div className="bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="bg-surface-raised border border-line rounded-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-line">
             <div className="flex items-center gap-2">
-              <FileCode2 className="w-5 h-5 text-gray-500" />
-              <h2 className="font-medium text-gray-900">Recent Workflows</h2>
+              <FileCode2 className="w-5 h-5 text-ink-subtle" />
+              <h2 className="font-medium text-ink">Recent Workflows</h2>
             </div>
             <button
               onClick={() => navigate("/workflows")}
@@ -327,11 +327,11 @@ export function HomePage() {
               View all
             </button>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {recentWorkflows.length === 0 ? (
               <div className="px-5 py-8 text-center">
-                <FileCode2 className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm text-gray-500">No workflows uploaded</p>
+                <FileCode2 className="w-8 h-8 mx-auto mb-2 text-ink-faint" />
+                <p className="text-sm text-ink-subtle">No workflows uploaded</p>
                 <button
                   onClick={() => navigate("/workflows")}
                   className="mt-1 text-xs text-brand-600 hover:text-brand-700"
@@ -341,21 +341,21 @@ export function HomePage() {
               </div>
             ) : (
               recentWorkflows.map((workflow) => (
-                <div key={workflow.id} className="px-5 py-3 hover:bg-gray-50">
+                <div key={workflow.id} className="px-5 py-3 hover:bg-surface-sunken">
                   <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded bg-gray-100">
-                      <FileCode2 className="w-4 h-4 text-gray-500" />
+                    <div className="p-1.5 rounded bg-surface-hover">
+                      <FileCode2 className="w-4 h-4 text-ink-subtle" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-ink truncate">
                         {workflow.name}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-ink-subtle truncate">
                         {workflow.folder_path || "/"} - {formatRelativeTime(workflow.updated_at)}
                       </p>
                     </div>
                     {workflow.tags.length > 0 && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                      <span className="text-xs bg-surface-hover text-ink-muted px-2 py-0.5 rounded">
                         {workflow.tags[0]}
                         {workflow.tags.length > 1 && ` +${workflow.tags.length - 1}`}
                       </span>

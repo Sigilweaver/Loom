@@ -6,7 +6,10 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+
+from app.config import settings as _rl_settings
+from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -165,8 +168,10 @@ async def list_servers(
 
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
+@_rl.limit(_rl_settings.rate_limit_server_registration)
 async def register_server(
     request: ServerCreate,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
     x_registration_secret: Annotated[str | None, Header()] = None,
 ) -> ServerResponse:

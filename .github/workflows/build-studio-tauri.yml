@@ -3,11 +3,6 @@ name: Build Studio Tauri
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      node-version:
-        required: false
-        type: string
-        default: "22"
 
 jobs:
   build-tauri:
@@ -15,15 +10,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: warp-ubuntu-latest-x64-2x
+          - os: ubuntu-latest
             platform: linux
             target: x86_64-unknown-linux-gnu
             artifact-name: linux-tauri-artifacts
-          - os: warp-windows-latest-x64-2x
+          - os: windows-latest
             platform: win
             target: x86_64-pc-windows-msvc
             artifact-name: windows-tauri-artifacts
-          - os: warp-macos-latest-arm64-6x
+          - os: macos-latest
             platform: mac-arm
             target: aarch64-apple-darwin
             artifact-name: macos-arm-tauri-artifacts
@@ -37,12 +32,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node-version }}
-          cache: "npm"
-          cache-dependency-path: studio/package-lock.json
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -69,7 +60,7 @@ jobs:
             libgtk-3-dev
 
       - name: Install studio dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
@@ -77,10 +68,10 @@ jobs:
         run: python3 .github/scripts/set-version.py
 
       - name: Build web assets
-        run: npm run build:web
+        run: bun run build:web
 
       - name: Build Tauri app
-        run: npx tauri build --target ${{ matrix.target }}
+        run: bun x tauri build --target ${{ matrix.target }}
 
       # Collect artifacts based on platform
       - name: Collect Linux artifacts

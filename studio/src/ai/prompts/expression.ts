@@ -1,5 +1,5 @@
 /**
- * System Prompt — Expression Assist
+ * System Prompt - Expression Assist
  *
  * Constructs the prompt for AI-assisted Polars expression writing.
  * Used in Formula and Filter configuration panels (advanced/custom mode only).
@@ -53,14 +53,14 @@ ${expressionHint}
    For multi-condition expressions, comment each condition:
    \`(pl.col("Survived") == 1   # Survivors only\n) & (pl.col("Sex") == "female"  # Female passengers\n)\`
 
-3. **Handle nullable columns** — when a column is nullable, guard with \`.fill_null()\` or \`.is_not_null()\`.
+3. **Handle nullable columns** - when a column is nullable, guard with \`.fill_null()\` or \`.is_not_null()\`.
 
 ## Output Format
 
 - Return ONLY the expression, no explanation or markdown formatting.
 - Do not wrap in quotes or backticks.
 - Include inline comments as shown above.
-- Column names are case-sensitive — use exactly as listed.
+- Column names are case-sensitive - use exactly as listed.
 - Expressions must be valid Polars lazy-compatible Python.
 
 User request: ${userRequest}`;
@@ -81,7 +81,7 @@ export function buildBasicFilterPrompt(
   return `You are a filter condition builder for Sigilweaver Loom Studio, a visual data pipeline tool.
 
 Given a natural-language request, produce a JSON array of structured filter conditions.
-Do NOT write Polars expressions — output JSON only.
+Do NOT write Polars expressions - output JSON only.
 
 Available columns:
 ${columnList}
@@ -121,7 +121,7 @@ For mixed AND/OR logic, use groups:
 }
 
 Rules:
-- Column names are case-sensitive — use exactly as listed.
+- Column names are case-sensitive - use exactly as listed.
 - All values must be strings (e.g. "18" not 18).
 - Use the simplest combinator structure possible.
 - Return ONLY the JSON object. No explanation, no markdown, no code fences.
@@ -145,7 +145,7 @@ export function buildBasicFormulaPrompt(
   return `You are a formula operation builder for Sigilweaver Loom Studio, a visual data pipeline tool.
 
 Given a natural-language request, produce a JSON array of structured formula operations.
-Do NOT write Polars expressions — output JSON only.
+Do NOT write Polars expressions - output JSON only.
 
 Available columns:
 ${columnList}
@@ -182,7 +182,7 @@ Multiple operations example (add two new columns):
 ]
 
 Rules:
-- Column names are case-sensitive — use exactly as listed.
+- Column names are case-sensitive - use exactly as listed.
 - All param values must be strings.
 - Choose an appropriate output columnName that describes the result.
 - Return ONLY the JSON array. No explanation, no markdown, no code fences.

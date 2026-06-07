@@ -100,7 +100,20 @@ class CacheManager:
         upstream_ids = plan.get_dependencies(tool.id)
         upstream_keys = [self._lineage_hashes.get(tid, "") for tid in upstream_ids]
 
-        lineage_hash = self._cache.compute_key(tool.id, tool.type, tool.config, upstream_keys)
+        # Hash only the cache-relevant subset of config so cosmetic
+        # edits (rename, UI flags) do not bust downstream caches. Falls
+        # back to the full config when the tool type is not registered or
+        # when cache_keys() raises.
+        cache_config: dict[str, Any] = tool.config
+        try:
+            tool_impl = ToolRegistry.get(tool.type)
+            cache_config = tool_impl.cache_keys(tool.config)
+        except Exception as e:
+            logger.debug(
+                f"cache_keys() unavailable for {tool.type}, hashing full config: {e}"
+            )
+
+        lineage_hash = self._cache.compute_key(tool.id, tool.type, cache_config, upstream_keys)
 
         # Clean up stale cache files that don't match current lineage
         if invalidate_stale:

@@ -78,7 +78,7 @@ construct_database_url() {
         return
     fi
 
-    # Fallback: legacy pattern — DATABASE_URL with empty password (user:@host)
+    # Fallback: legacy pattern - DATABASE_URL with empty password (user:@host)
     if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" =~ :\/\/([^:]+):@([^/]+) ]]; then
         local user="${BASH_REMATCH[1]}"
         local host_and_rest="${BASH_REMATCH[2]}"

@@ -50,9 +50,7 @@ export const YxdbOutputConfiguration: React.FC<
         <div className="space-y-3">
           <div>
             <p className="text-xs text-theme-text-tertiary">
-              Write data to Alteryx YXDB format using OpenYXDB. The output file
-              can be opened in Alteryx Designer or read by any OpenYXDB-compatible
-              tool.
+              Write data to Alteryx YXDB format.
             </p>
           </div>
           <a
@@ -95,7 +93,6 @@ export const YxdbOutputConfiguration: React.FC<
               />
             </div>
           </section>
-
           {/* Info box about YXDB format */}
           <section className="p-3 border rounded-lg bg-theme-surface-elevated border-theme-border-primary">
             <h4 className="mb-2 text-sm font-medium text-theme-text-primary">

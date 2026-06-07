@@ -18,8 +18,8 @@ uv run uvicorn app.main:app --reload --port 25802
 
 # Frontend (separate terminal)
 cd hub/frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Or from the repository root:
@@ -37,7 +37,7 @@ uv run pytest tests/ -v
 
 # Frontend
 cd hub/frontend
-npm test
+bun run test
 ```
 
 ### Database Migrations

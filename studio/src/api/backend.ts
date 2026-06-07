@@ -1,6 +1,6 @@
 /**
  * Backend API Client
- * 
+ *
  * Connects to the Sigilweaver Loom backend for workflow execution,
  * schema inference, and data preview functionality.
  */
@@ -200,10 +200,10 @@ async function apiRequest<T>(
 
 /**
  * Get schema information for a tool's output socket
- * 
+ *
  * This endpoint returns column names and types without executing the workflow.
  * Use this to populate dropdowns and validate configurations.
- * 
+ *
  * @param toolId - The ID of the tool to get schema for
  * @param workflow - The complete workflow definition
  * @param socketId - The socket ID to get schema for
@@ -228,10 +228,10 @@ export async function getToolSchema(
 
 /**
  * Execute a single tool with dependencies and return preview data
- * 
+ *
  * This endpoint executes the target tool plus all upstream dependencies,
  * returning a sample of the data for preview purposes.
- * 
+ *
  * @param toolId - The ID of the tool to preview
  * @param workflow - The complete workflow definition
  * @param socketId - The socket ID to get data for
@@ -262,7 +262,7 @@ export async function previewTool(
 
 /**
  * Execute a complete workflow
- * 
+ *
  * @param workflow - The complete workflow definition
  * @param targetToolId - Optional tool ID to execute up to (default: all tools)
  * @param forceRefresh - Clear cache before execution (default: false)
@@ -287,10 +287,10 @@ export async function executeWorkflow(
 
 /**
  * Generate Python code preview for a workflow
- * 
+ *
  * This endpoint generates executable Python code using Polars that
  * replicates the workflow's data transformations.
- * 
+ *
  * @param workflow - The complete workflow definition
  * @param context - Optional request context for logging
  * @returns Generated Python code as a string
@@ -309,7 +309,7 @@ export async function previewCode(
 
 /**
  * Health check endpoint
- * 
+ *
  * @returns Backend health status
  */
 export async function healthCheck(): Promise<{
@@ -345,7 +345,7 @@ export interface PolarsFunction {
 
 /**
  * Metadata response from /api/workflow/tool/metadata endpoint
- * 
+ *
  * When socket_id is provided in request, columns contains that socket's columns.
  * The inputs field always contains all sockets for backward compatibility.
  */
@@ -358,7 +358,7 @@ export interface MetadataResponse {
 
 /**
  * Polars functions response from /api/polars/functions endpoint
- * 
+ *
  * Functions are dynamically introspected from the installed Polars library,
  * so they automatically support new Polars versions.
  */
@@ -377,10 +377,10 @@ export interface PolarsFunctionsResponse {
 
 /**
  * Get metadata for a tool for autocomplete suggestions
- * 
+ *
  * Returns available columns from input sockets.
  * Use this to populate Monaco editor autocomplete with column names.
- * 
+ *
  * @param toolId - The ID of the tool to get metadata for
  * @param workflow - The complete workflow definition
  * @param socketId - Optional socket ID to get columns for (if not provided, returns all sockets)
@@ -472,13 +472,13 @@ export type ProfileMetric =
 
 /**
  * Profile columns for a tool's input data
- * 
+ *
  * Computes statistical profiles for columns in the data flowing into
  * the specified tool socket. Useful for:
  * - Understanding data quality (nulls, whitespace issues)
  * - Determining pivot safety (unique value counts)
  * - Exploring data distribution
- * 
+ *
  * @param toolId - The tool to profile input for
  * @param workflow - The complete workflow definition
  * @param socketId - The input socket to profile
@@ -509,10 +509,10 @@ export async function profileColumns(
 
 /**
  * Get available Polars functions for autocomplete
- * 
+ *
  * Returns all Polars functions categorized by scope and type.
  * This should be called once on app startup and cached.
- * 
+ *
  * @returns Polars functions categorized by scope
  */
 export async function getPolarsFunctions(): Promise<PolarsFunctionsResponse> {
@@ -532,11 +532,11 @@ export interface PreviewAllResponse {
 
 /**
  * Preview all tools in workflow in a single request
- * 
+ *
  * This is more efficient than calling previewTool multiple times
  * because upstream tools are only executed once. Useful for loading
  * all previews after opening a workflow or when input data changes.
- * 
+ *
  * @param workflow - The complete workflow definition
  * @param previewLimit - Maximum number of rows to return per tool (default: 100)
  * @param forceRefresh - Clear cache before execution (default: false)
@@ -569,13 +569,13 @@ export interface ClearCacheResponse {
 
 /**
  * Clear backend disk cache for a specific workflow
- * 
+ *
  * Removes all cached blocking tool outputs for the workflow from the backend.
  * Useful when you want to force re-execution of all tools.
- * 
+ *
  * Note: This clears the BACKEND disk cache, not the frontend in-memory cache.
  * For frontend cache, use clearWorkflowCache from './cache'.
- * 
+ *
  * @param workflowId - The workflow ID to clear cache for
  * @param context - Optional request context for logging
  * @returns Status of the cache clear operation
@@ -594,19 +594,19 @@ export async function clearBackendWorkflowCache(
 
 /**
  * Notify backend that a workflow has been closed
- * 
+ *
  * This signals to the backend that the workflow is no longer active.
  * If cache_clear_on_close is enabled (default), the backend will clear
  * the workflow's disk cache. This is more efficient than keeping cache
  * for workflows that are no longer in use.
- * 
+ *
  * Call this when:
  * - User closes a workflow tab
  * - User switches to a different workflow (for the previous workflow)
  * - Application is shutting down (for all open workflows)
- * 
+ *
  * Note: This is fire-and-forget - errors are logged but not thrown.
- * 
+ *
  * @param workflowId - The workflow ID being closed
  * @param context - Optional request context for logging
  */
@@ -640,16 +640,16 @@ interface BatchClearCacheResponse {
 
 /**
  * Notify backend that multiple workflows have been closed (batch)
- * 
+ *
  * This is more efficient than calling closeWorkflowCacheOnBackend for each
  * workflow individually. Use this when the application is shutting down
  * to clear all open workflow caches in a single request.
- * 
+ *
  * If cache_clear_on_close is enabled (default), the backend will clear
  * the disk cache for each workflow.
- * 
+ *
  * Note: This is fire-and-forget - errors are logged but not thrown.
- * 
+ *
  * @param workflowIds - Array of workflow IDs being closed
  * @param context - Optional request context for logging
  */
@@ -915,5 +915,111 @@ export async function searchFiles(
     serverUrl,
     `/api/files/search?${params}`,
     browseToken
+  );
+}
+
+/**
+ * A column reported by database schema introspection
+ */
+export interface DatabaseColumnInfo {
+  /** Column name */
+  name: string;
+  /** Database-reported column type */
+  type: string;
+}
+
+/**
+ * A table reported by database schema introspection
+ */
+export interface DatabaseTableInfo {
+  /** Table name */
+  name: string;
+  /** Columns in the table */
+  columns: DatabaseColumnInfo[];
+}
+
+/**
+ * Response from the /api/datasource/schema endpoint
+ */
+export interface DatabaseSchemaResponse {
+  /** Tables discovered in the database */
+  tables: DatabaseTableInfo[];
+}
+
+/**
+ * Response from the /api/datasource/preview endpoint
+ */
+export interface DatabasePreviewResponse {
+  /** Schema of the returned rows */
+  data_schema?: DataSchema;
+  /** Preview rows */
+  data: Record<string, unknown>[];
+  /** Total rows available, if known */
+  total_rows: number | null;
+  /** Number of rows returned */
+  returned_rows: number;
+}
+
+/**
+ * Introspect a database connection and list its tables and columns.
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse/session token for authentication
+ * @param source - Database connection URI
+ * @param sourceType - Database type (postgresql, mysql, sqlite, mssql)
+ * @returns Tables and their columns
+ */
+export async function describeDatabaseSchema(
+  serverUrl: string,
+  browseToken: string,
+  source: string,
+  sourceType: string,
+): Promise<DatabaseSchemaResponse> {
+  return serverRequest<DatabaseSchemaResponse>(
+    serverUrl,
+    '/api/datasource/schema',
+    browseToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({ source, sourceType }),
+    }
+  );
+}
+
+/**
+ * Run a read-only SQL query against a database connection and preview rows.
+ *
+ * Reuses the generic /api/datasource/preview endpoint, which validates that
+ * the query is read-only and wraps it with a LIMIT.
+ *
+ * @param serverUrl - Server base URL
+ * @param browseToken - Browse/session token for authentication
+ * @param source - Database connection URI
+ * @param sourceType - Database type (postgresql, mysql, sqlite, mssql)
+ * @param query - The SELECT query to execute
+ * @param maxRows - Maximum rows to return
+ * @returns Preview rows with schema
+ */
+export async function previewDatabaseQuery(
+  serverUrl: string,
+  browseToken: string,
+  source: string,
+  sourceType: string,
+  query: string,
+  maxRows: number,
+): Promise<DatabasePreviewResponse> {
+  return serverRequest<DatabasePreviewResponse>(
+    serverUrl,
+    '/api/datasource/preview',
+    browseToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        source,
+        sourceType,
+        config: { query },
+        options: { max_rows: maxRows, offset: 0, columns: null },
+      }),
+    }
   );
 }

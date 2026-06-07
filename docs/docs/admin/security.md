@@ -87,10 +87,10 @@ Expressions that fail validation are rejected with a descriptive error before an
 
 The Server includes an AI proxy endpoint that forwards requests to LLM providers (OpenAI, Anthropic, etc.) for in-app AI assistance. This endpoint is hardened against SSRF:
 
-- **IP validation** — Target URLs are resolved and checked against private (RFC 1918), loopback, link-local (169.254.x.x), and reserved IP ranges
-- **Hostname blocking** — Known internal hostnames (`localhost`, `metadata.google.internal`, etc.) are rejected
-- **Header allowlist** — Only safe headers (`content-type`, `accept`, `authorization`, provider-specific headers) are forwarded; all others are stripped
-- **Internal token filtering** — Authorization headers with internal `Bearer sw-` prefixes are never forwarded upstream
+- **IP validation** - Target URLs are resolved and checked against private (RFC 1918), loopback, link-local (169.254.x.x), and reserved IP ranges
+- **Hostname blocking** - Known internal hostnames (`localhost`, `metadata.google.internal`, etc.) are rejected
+- **Header allowlist** - Only safe headers (`content-type`, `accept`, `authorization`, provider-specific headers) are forwarded; all others are stripped
+- **Internal token filtering** - Authorization headers with internal `Bearer sw-` prefixes are never forwarded upstream
 
 ## Database Query Safety
 
@@ -105,7 +105,7 @@ When users inspect or preview database tables, the query input is validated to r
 Hub validates secrets at startup to prevent running with insecure defaults:
 
 - `SESSION_SECRET` and `SECRET_KEY` must not equal `CHANGE_ME_IN_PRODUCTION`
-  - In **production** (`ENVIRONMENT=production`): fatal — Hub refuses to start
+  - In **production** (`ENVIRONMENT=production`): fatal - Hub refuses to start
   - In **development** (default): warning is logged, startup continues
 - Empty `SERVER_REGISTRATION_SECRET` triggers a warning (allows open server registration)
 - Docker entrypoint validates all required environment variables are set

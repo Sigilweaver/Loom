@@ -1,6 +1,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -9,8 +10,23 @@ from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import UnionSockets
 
 
+class UnionToolConfig(BaseModel):
+    """Typed config for Union."""
+
+    model_config = ConfigDict(extra="allow")
+
+    mode: str = Field(default="ByName")
+
+
 @register_tool("Union")
 class UnionTool(BaseTool):
+    @classmethod
+    def config_model(cls) -> type[UnionToolConfig]:
+        return UnionToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {"mode": config.get("mode", "ByName")}
+
     def _build_operation(self, config: dict[str, Any]) -> UnionOperation:
         """Build the union operation from config."""
         return UnionOperation(mode=config.get("mode", "ByName"))

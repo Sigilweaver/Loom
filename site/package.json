@@ -8,13 +8,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "sitemap": "node scripts/generate-sitemaps.mjs",
-    "build": "npm run sitemap && tsc && vite build",
+    "sitemap": "bun scripts/generate-sitemaps.mjs",
+    "build": "bun run sitemap && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "generate-favicon": "node public/icons/generate-favicon.js"
+    "generate-favicon": "bun public/icons/generate-favicon.js"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

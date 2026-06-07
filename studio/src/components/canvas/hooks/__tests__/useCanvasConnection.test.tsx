@@ -8,10 +8,10 @@ import {
 
 describe("useCanvasConnection", () => {
   let params: UseCanvasConnectionParams;
-  let onAddWire: ReturnType<typeof vi.fn>;
-  let onRemoveWire: ReturnType<typeof vi.fn>;
-  let onRemoveTool: ReturnType<typeof vi.fn>;
-  let onToolSelect: ReturnType<typeof vi.fn>;
+  let onAddWire: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onRemoveWire: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onRemoveTool: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onToolSelect: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     onAddWire = vi.fn();

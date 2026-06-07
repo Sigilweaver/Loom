@@ -63,10 +63,10 @@ uv run uvicorn app.main:app --reload --port 25802
 cd hub/frontend
 
 # Install dependencies
-npm install
+bun install
 
 # Start dev server
-npm run dev
+bun run dev
 ```
 
 Or use the dev script from the repository root:
@@ -191,10 +191,10 @@ uv run pytest tests/test_auth.py::test_login -v
 cd hub/frontend
 
 # Run tests
-npm test
+bun run test
 
 # Watch mode
-npm run test:watch
+bun run test:watch
 ```
 
 ## Environment Variables

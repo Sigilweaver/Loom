@@ -67,7 +67,7 @@ export default function ToolCommentEditor({
   };
 
   const handleClear = () => {
-    // Explicit clear — no comment
+    // Explicit clear - no comment
     onCommentChange(tool.id, "");
     setDraft("");
     setEditing(false);

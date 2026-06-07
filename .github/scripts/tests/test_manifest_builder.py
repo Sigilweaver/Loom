@@ -55,7 +55,7 @@ class TestManifestBuilder:
         # Find the web zip asset (iteration order is not guaranteed)
         asset = next(a for a in manifest["assets"] if a["fileName"].endswith(".zip"))
         assert asset["url"].startswith(base_url)
-        assert f"/releases/{version}/" in asset["url"]
+        assert f"/releases/loom/{version}/" in asset["url"]
         # URL should use the original versioned filename
         assert "Sigilweaver-Loom-Web-v0.2.5-alpha.zip" in asset["url"]
         # fileName should also keep the original versioned name
@@ -111,7 +111,7 @@ class TestManifestBuilder:
                 {
                     "version": "v0.2.4",
                     "date": "2025-01-01T00:00:00Z",
-                    "manifestUrl": "https://example.com/releases/v0.2.4/manifest.json",
+                    "manifestUrl": "https://example.com/releases/loom/v0.2.4/manifest.json",
                 }
             ],
         }
@@ -162,12 +162,12 @@ class TestManifestBuilder:
                 {
                     "version": "v0.9.0",
                     "date": "2025-06-01T00:00:00Z",
-                    "manifestUrl": "https://example.com/releases/v0.9.0/manifest.json",
+                    "manifestUrl": "https://example.com/releases/loom/v0.9.0/manifest.json",
                 },
                 {
                     "version": "v0.8.0",
                     "date": "2025-05-01T00:00:00Z",
-                    "manifestUrl": "https://example.com/releases/v0.8.0/manifest.json",
+                    "manifestUrl": "https://example.com/releases/loom/v0.8.0/manifest.json",
                 },
             ],
         }

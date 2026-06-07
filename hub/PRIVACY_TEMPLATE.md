@@ -4,7 +4,7 @@
 > **If you deploy Hub for others, you MUST have your own privacy policy and terms of use.**
 >
 > Sigilweaver Loom Hub is production-grade software designed with compliance in mind. It collects
-> detailed, immutable audit logs of all user activity — who did what, when, from where. It
+> detailed, immutable audit logs of all user activity - who did what, when, from where. It
 > stores workflow definitions, execution history, administrator-configured credentials, and
 > session data including IP addresses. This data may be highly sensitive depending on the
 > workflows and systems Hub connects to.
@@ -69,33 +69,33 @@ Sigilweaver Loom Hub is self-hosted workflow orchestration software. Administrat
 ### 2.1 Account Information
 
 When you create an account, we collect:
-- **Username** — your chosen identifier
-- **Password** — stored as a secure hash (we cannot read your password)
-- **API keys** — if you generate them for programmatic access
+- **Username** - your chosen identifier
+- **Password** - stored as a secure hash (we cannot read your password)
+- **API keys** - if you generate them for programmatic access
 
 ### 2.2 Session Data
 
 When you log in, we record:
-- **IP address** — for security and session management
-- **User agent** — browser/client information
-- **Session timestamps** — login time, last activity, expiration
+- **IP address** - for security and session management
+- **User agent** - browser/client information
+- **Session timestamps** - login time, last activity, expiration
 
 ### 2.3 Workflow Data
 
 When you upload or create workflows, we store:
-- **Workflow files (.swwf)** — your pipeline definitions
-- **Workflow metadata** — name, description, author, tags, folder path
-- **Upload metadata** — who uploaded, when, checksums
+- **Workflow files (.swwf)** - your pipeline definitions
+- **Workflow metadata** - name, description, author, tags, folder path
+- **Upload metadata** - who uploaded, when, checksums
 
 ### 2.4 Execution Records
 
 When workflows run, we record:
-- **Execution status** — queued, running, completed, failed
-- **Timing data** — start time, end time, duration
-- **Trigger information** — who/what started the execution (user, schedule, API)
-- **Output summary** — row counts, column counts, byte sizes (not your actual data)
-- **Error messages** — if the execution failed
-- **Connections used** — which database connections were accessed
+- **Execution status** - queued, running, completed, failed
+- **Timing data** - start time, end time, duration
+- **Trigger information** - who/what started the execution (user, schedule, API)
+- **Output summary** - row counts, column counts, byte sizes (not your actual data)
+- **Error messages** - if the execution failed
+- **Connections used** - which database connections were accessed
 
 ### 2.5 Audit Logs
 
@@ -118,7 +118,7 @@ Audit logs include:
 - Event-specific details
 - Cryptographic hash chain for tamper evidence
 
-**Audit logs cannot be deleted or modified** — this is by design for security and compliance. Administrators and auditors can view these logs.
+**Audit logs cannot be deleted or modified** - this is by design for security and compliance. Administrators and auditors can view these logs.
 
 ### 2.6 Connection Credentials
 
@@ -156,7 +156,7 @@ If you store database connection credentials in Hub:
 | User accounts | [X days/months/years] after account deletion request |
 | Workflow files | [X days/months/years] after deletion |
 | Execution records | [X days/months/years] |
-| Audit logs | [X days/months/years] — **cannot be deleted early** |
+| Audit logs | [X days/months/years] - **cannot be deleted early** |
 | Session data | Until logout or [X days] expiration |
 
 ## 5. Data Security
@@ -176,19 +176,19 @@ We implement the following security measures:
 We do not sell your data.
 
 We may share data:
-- **With your consent** — when you explicitly agree
-- **Within your organization** — as permitted by your role/groups
-- **Legal requirements** — if required by law or court order
-- **Service providers** — [list any third parties, e.g., cloud hosting provider]
+- **With your consent** - when you explicitly agree
+- **Within your organization** - as permitted by your role/groups
+- **Legal requirements** - if required by law or court order
+- **Service providers** - [list any third parties, e.g., cloud hosting provider]
 
 ## 7. Your Rights
 
 Depending on your jurisdiction, you may have rights to:
-- **Access** — request a copy of your data
-- **Correction** — fix inaccurate data
-- **Deletion** — request deletion (note: audit logs cannot be deleted)
-- **Portability** — export your workflows
-- **Objection** — object to certain processing
+- **Access** - request a copy of your data
+- **Correction** - fix inaccurate data
+- **Deletion** - request deletion (note: audit logs cannot be deleted)
+- **Portability** - export your workflows
+- **Objection** - object to certain processing
 
 To exercise these rights, contact: [contact information]
 
@@ -201,8 +201,8 @@ Your data is stored in: [location/region/country]
 ## 9. Third-Party Services
 
 This Hub instance uses:
-- **Hosting:** [Your hosting provider] — [link to their privacy policy]
-- **Database:** [PostgreSQL hosted on X] — [if relevant]
+- **Hosting:** [Your hosting provider] - [link to their privacy policy]
+- **Database:** [PostgreSQL hosted on X] - [if relevant]
 - [Add any other services]
 
 ## 10. Children's Privacy

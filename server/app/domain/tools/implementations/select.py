@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
@@ -36,6 +37,26 @@ DTYPE_STRING_TO_POLARS: dict[str, type[pl.DataType]] = {
 }
 
 
+class SelectColumnConfig(BaseModel):
+    """Single column configuration. Typed config."""
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str
+    selected: bool = True
+    rename: str | None = None
+    targetType: str | None = None
+    size: int | None = None
+
+
+class SelectToolConfig(BaseModel):
+    """Typed config for Select."""
+
+    model_config = ConfigDict(extra="allow")
+
+    columnConfigs: list[SelectColumnConfig] = Field(default_factory=list)
+
+
 @register_tool("Select")
 class SelectTool(BaseTool):
     """
@@ -50,6 +71,13 @@ class SelectTool(BaseTool):
         - targetType: str | None - cast to this type (optional)
         - size: int | None - max string length (optional, for String type)
     """
+
+    @classmethod
+    def config_model(cls) -> type[SelectToolConfig]:
+        return SelectToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {"columnConfigs": config.get("columnConfigs", [])}
 
     def _build_operation(self, config: dict[str, Any]) -> SelectOperation:
         """Build the select operation from config."""

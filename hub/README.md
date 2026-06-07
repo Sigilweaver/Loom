@@ -23,17 +23,32 @@ Hub is built with Zero-Trust security principles and production-grade RBAC, but 
 
 ## Quick Start
 
+### One command (full stack)
+
+Bring up Postgres + Hub + Server with development secrets baked in:
+
+```bash
+docker compose -f hub/docker-compose.yml up --build
+```
+
+Open `http://localhost:25802` and register the first account - it becomes the
+owner. The execution Server auto-registers with the Hub. The dev secrets in that
+compose file are intentionally insecure; for production use
+`docker/docker-compose.yml` with real Docker secrets.
+
+### Local development (hot reload)
+
 ```bash
 cd hub
 
-# Start PostgreSQL
-docker compose up -d
+# Start PostgreSQL only
+docker compose up -d postgres
 
 # Start the backend
 cd backend && uv sync && uv run uvicorn app.main:app --port 25802
 
 # Start the frontend (in another terminal)
-cd frontend && npm install && npm run dev
+cd frontend && bun install && bun run dev
 ```
 
 Or use the unified dev script from the repository root:

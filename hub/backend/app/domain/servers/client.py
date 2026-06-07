@@ -56,7 +56,9 @@ class ServerClient:
             HealthResponse if successful, ServerError if failed
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=self.timeout, follow_redirects=True
+            ) as client:
                 response = await client.get(
                     f"{self.endpoint_url}/api/health/",
                     headers=self._get_headers(),
@@ -82,7 +84,7 @@ class ServerClient:
             logger.debug("Timeout connecting to %s", self.endpoint_url)
             return ServerError(message="Connection timeout")
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             logger.warning("Unexpected error polling %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
@@ -100,7 +102,9 @@ class ServerClient:
             workflow_dict = json.loads(workflow_content.decode("utf-8"))
             request_body = {"workflow": workflow_dict}
 
-            async with httpx.AsyncClient(timeout=settings.server_timeout_seconds * 10) as client:
+            async with httpx.AsyncClient(
+                timeout=settings.server_timeout_seconds * 10
+            ) as client:
                 response = await client.post(
                     f"{self.endpoint_url}/api/workflow/execute",
                     headers={**self._get_headers(), "Content-Type": "application/json"},
@@ -115,8 +119,10 @@ class ServerClient:
                     try:
                         error_detail = response.json()
                         detail_str = error_detail.get("detail", str(error_detail))
-                    except Exception:
-                        detail_str = response.text[:500] if response.text else "No details"
+                    except ValueError:
+                        detail_str = (
+                            response.text[:500] if response.text else "No details"
+                        )
 
                     return ServerError(
                         message=f"Execution failed ({response.status_code}): {detail_str}",
@@ -129,7 +135,7 @@ class ServerClient:
         except httpx.TimeoutException:
             return ServerError(message="Execution timeout")
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             logger.error("Execution error on %s: %s", self.endpoint_url, e)
             return ServerError(message=str(e))
 
@@ -155,5 +161,5 @@ class ServerClient:
                         status_code=response.status_code,
                     )
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError) as e:
             return ServerError(message=str(e))

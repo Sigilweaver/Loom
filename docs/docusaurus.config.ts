@@ -11,6 +11,7 @@ const config: Config = {
 
   // Custom plugins
   plugins: [
+    'docusaurus-plugin-llms-txt',
     './plugins/remove-google-fonts', // Remove Infima's Google Fonts import
   ],
 
@@ -31,7 +32,7 @@ const config: Config = {
   // Set the production url of your site here
   url: 'https://sigilweaver.app',
   // Serve in /docs subfolder
-  baseUrl: '/docs/',
+  baseUrl: '/loom/docs/',
 
   // GitHub pages deployment config.
   organizationName: 'sigilweaver',
@@ -71,11 +72,11 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/sigilweaver-social-card.jpg',
+    image: 'img/docusaurus-social-card.jpg',
     // SEO Metadata
     metadata: [
-      {name: 'keywords', content: 'Sigilweaver Loom, ETL, visual data pipeline, data engineering, Python, Polars, workflow automation, low-code data tool'},
-      {name: 'description', content: 'Sigilweaver Loom is the visual data pipeline tool you always wished existed. Craft powerful data pipelines with the intuitive flow of visual design.'},
+      { name: 'keywords', content: 'Sigilweaver Loom, ETL, visual data pipeline, data engineering, Python, Polars, workflow automation, low-code data tool' },
+      { name: 'description', content: 'Sigilweaver Loom is the visual data pipeline tool you always wished existed. Craft powerful data pipelines with the intuitive flow of visual design.' },
     ],
     // Color mode configuration
     colorMode: {

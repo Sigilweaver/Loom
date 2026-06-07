@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLongPress, type UseLongPressOptions } from "../useLongPress";
 
 describe("useLongPress", () => {
-  let onLongPress: ReturnType<typeof vi.fn>;
-  let onTap: ReturnType<typeof vi.fn>;
+  let onLongPress: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let onTap: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let options: UseLongPressOptions;
 
   beforeEach(() => {

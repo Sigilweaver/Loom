@@ -482,7 +482,7 @@ def _introspect_namespace(
                 )
             )
 
-        except Exception:
+        except (AttributeError, TypeError, ValueError, pl.exceptions.PolarsError):
             # Skip methods that can't be introspected
             continue
 
@@ -554,7 +554,7 @@ def _introspect_expr_methods() -> list[MethodInfo]:
                 )
             )
 
-        except Exception:
+        except (AttributeError, TypeError, ValueError, pl.exceptions.PolarsError):
             continue
 
     return methods
@@ -631,7 +631,7 @@ def _introspect_table_level() -> list[MethodInfo]:
                 )
             )
 
-        except Exception:
+        except (AttributeError, TypeError, ValueError, pl.exceptions.PolarsError):
             continue
 
     return methods

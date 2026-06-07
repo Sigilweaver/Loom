@@ -31,10 +31,10 @@ Configuration lives in `pyproject.toml`. Ruff handles:
 
 ```bash
 # Format and lint
-npm run lint:fix
+bun run lint:fix
 
 # Type check
-npm run type-check
+bun run type-check
 ```
 
 Configuration lives in `.eslintrc.cjs` and `tsconfig.json`. ESLint + Prettier handle:
@@ -334,9 +334,9 @@ pytest
 
 # Frontend
 cd frontend
-npm run lint:fix
-npm run type-check
-npm test
+bun run lint:fix
+bun run type-check
+bun run test
 ```
 
 Or use the script:

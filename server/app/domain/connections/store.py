@@ -5,6 +5,7 @@ Uses Fernet symmetric encryption with a master key from environment variable.
 Stores connections in a JSON file with credentials encrypted at rest.
 """
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -76,6 +77,10 @@ class ConnectionStore:
             self._encryption_key = settings.connection_encryption_key
         self._fernet: Fernet | None = None
         self._connections: dict[str, StoredConnection] = {}
+        # Serializes async writers (acreate / aupdate / adelete). Created
+        # lazily because the singleton may be constructed before an event
+        # loop exists.
+        self._async_lock: asyncio.Lock | None = None
 
         # Initialize encryption if key is available
         if self._encryption_key:
@@ -342,6 +347,35 @@ class ConnectionStore:
     def has_connection(self, connection_id: str) -> bool:
         """Check if a connection exists."""
         return connection_id in self._connections
+
+    # ------------------------------------------------------------------ #
+    # Async wrappers                                                     #
+    # ------------------------------------------------------------------ #
+    # Async variants offload the sync file I/O onto a worker thread and
+    # serialize writers via an asyncio.Lock so two concurrent FastAPI
+    # handlers cannot race on the underlying JSON file. Read methods
+    # (list_connections / get_connection / has_connection / resolve_connection)
+    # are intentionally not wrapped because they touch only the in-memory
+    # dict; the lock is exclusively for writers that go through _save().
+
+    def _get_async_lock(self) -> asyncio.Lock:
+        if self._async_lock is None:
+            self._async_lock = asyncio.Lock()
+        return self._async_lock
+
+    async def acreate_connection(self, input: CreateConnectionInput) -> ConnectionInfo:
+        async with self._get_async_lock():
+            return await asyncio.to_thread(self.create_connection, input)
+
+    async def aupdate_connection(
+        self, connection_id: str, input: UpdateConnectionInput
+    ) -> ConnectionInfo:
+        async with self._get_async_lock():
+            return await asyncio.to_thread(self.update_connection, connection_id, input)
+
+    async def adelete_connection(self, connection_id: str) -> None:
+        async with self._get_async_lock():
+            await asyncio.to_thread(self.delete_connection, connection_id)
 
 
 # Singleton instance

@@ -47,7 +47,7 @@ interface UIState {
   minimapPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   positionMenuOpen: boolean;
   positionMenuCoords: { x: number; y: number } | null;
-  /** Debug mode — shows AI tool call details expanded by default */
+  /** Debug mode - shows AI tool call details expanded by default */
   debugMode: boolean;
   activeToolTab: ToolCategory;
   leftPaneTab: LeftPaneTab;

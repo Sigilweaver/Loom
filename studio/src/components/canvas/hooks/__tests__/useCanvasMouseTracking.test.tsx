@@ -9,7 +9,7 @@ import {
 describe("useCanvasMouseTracking", () => {
   let params: UseCanvasMouseTrackingParams;
   let screenToFlowPosition: (pos: { x: number; y: number }) => XYPosition;
-  let setPasteAnchor: ReturnType<typeof vi.fn>;
+  let setPasteAnchor: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     screenToFlowPosition = vi.fn((pos: { x: number; y: number }) => ({

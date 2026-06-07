@@ -28,7 +28,7 @@ describe('Backend E2E Integration', () => {
         version: expect.any(String),
         message: 'Sigilweaver Loom Backend is running',
       }));
-    }, { timeout: 5000 });
+    }, 5000);
   });
 
   const createWorkflow = (tools: Tool[], wires: Wire[] = []): WorkflowJSON => ({
@@ -75,7 +75,7 @@ describe('Backend E2E Integration', () => {
 
       const columnTypes = schema?.columns.map(c => c.dtype);
       expect(columnTypes).toEqual(['Int64', 'String', 'Int64', 'String']);
-    }, { timeout: 5000 });
+    }, 5000);
 
     it('should preview CSV data', async () => {
       const workflow = createWorkflow([
@@ -108,7 +108,7 @@ describe('Backend E2E Integration', () => {
         age: 30,
         city: 'New York',
       });
-    }, { timeout: 5000 });
+    }, 5000);
   });
 
   describe('Filter Tool', () => {
@@ -169,7 +169,7 @@ describe('Backend E2E Integration', () => {
       // All ages should be > 28
       const ages = matchedData?.map(row => row.age as number) ?? [];
       expect(ages.every(age => age > 28)).toBe(true);
-    }, { timeout: 5000 });
+    }, 5000);
   });
 
   describe('Select Tool', () => {
@@ -228,7 +228,7 @@ describe('Backend E2E Integration', () => {
       expect(data?.[0]).toHaveProperty('city');
       expect(data?.[0]).not.toHaveProperty('id');
       expect(data?.[0]).not.toHaveProperty('age');
-    }, { timeout: 5000 });
+    }, 5000);
   });
 
   describe('Complete Workflow Execution', () => {
@@ -314,6 +314,6 @@ describe('Backend E2E Integration', () => {
       expect(names).toContain('Alice');
       expect(names).toContain('Charlie');
       expect(names).toContain('Eve');
-    }, { timeout: 5000 });
+    }, 5000);
   });
 });

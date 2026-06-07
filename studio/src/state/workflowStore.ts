@@ -443,3 +443,36 @@ export const useWorkflowMeta = () =>
   useWorkflowStore((state) => state.workflowMeta);
 export const useSelectedTool = () =>
   useWorkflowStore((state) => state.selectedTool);
+
+// Per-tool atomic selectors. Components that only need a single
+// tool by id should subscribe via these helpers instead of grabbing the
+// entire `tools` array, so unrelated tool mutations do not trigger a
+// re-render on the consumer.
+export const useToolById = (toolId: string | null | undefined) =>
+  useWorkflowStore((state) =>
+    toolId == null ? null : (state.tools.find((t) => t.id === toolId) ?? null)
+  );
+
+export const useToolIds = () =>
+  useWorkflowStore((state) => state.tools.map((t) => t.id).join("|"));
+
+// Count-only selectors. Subscribing to a number means the
+// consumer only re-renders when the count actually changes, not on
+// every position/config edit.
+export const useToolCount = () =>
+  useWorkflowStore((state) => state.tools.length);
+export const useWireCount = () =>
+  useWorkflowStore((state) => state.wires.length);
+
+// Derived "shape" selector returning a compact, primitive digest
+// of tool types in their canvas order. Re-renders only when the set of
+// types or their order changes - position/config mutations are ignored.
+export const useToolTypesDigest = () =>
+  useWorkflowStore((state) => state.tools.map((t) => t.type).join("|"));
+
+// Returns true iff a tool with the given id currently exists.
+// Avoids subscribing to the full tools array just to existence-check.
+export const useToolExists = (toolId: string | null | undefined) =>
+  useWorkflowStore((state) =>
+    toolId == null ? false : state.tools.some((t) => t.id === toolId)
+  );

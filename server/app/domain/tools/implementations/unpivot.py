@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.execution.safety import check_unpivot_safety, raise_if_unsafe
@@ -12,6 +13,17 @@ from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.columns import resolve_column_names
 from app.utils.errors import ToolError
+
+
+class UnpivotToolConfig(BaseModel):
+    """Typed config for Unpivot."""
+
+    model_config = ConfigDict(extra="allow")
+
+    on: list[str] = Field(default_factory=list)
+    index: list[str] = Field(default_factory=list)
+    variableName: str = "variable"
+    valueName: str = "value"
 
 
 @register_tool("Unpivot")
@@ -42,6 +54,18 @@ class UnpivotTool(BaseTool):
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Unpivot is not blocking - it's a lazy column reshape."""
         return False
+
+    @classmethod
+    def config_model(cls) -> type[UnpivotToolConfig]:
+        return UnpivotToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "on": config.get("on", []),
+            "index": config.get("index", []),
+            "variableName": config.get("variableName", "variable"),
+            "valueName": config.get("valueName", "value"),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> UnpivotOperation:
         """Build the unpivot operation from config."""

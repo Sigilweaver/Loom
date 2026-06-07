@@ -1,5 +1,5 @@
 /**
- * System Prompt — Workflow Agent
+ * System Prompt - Workflow Agent
  *
  * Constructs the system prompt for the agentic workflow builder.
  *
@@ -22,36 +22,46 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 
 ## How to Build Workflows
 
-**For new workflows** (empty canvas), use \`build_workflow\` with a spec — it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Read tool.
+**For new workflows** (empty canvas), use \`build_workflow\` with a spec - it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Read tool.
 
 **For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** (up to 5 rows as CSV).
 
 ### Key Patterns
 - **Data format**: Compact text (CSV rows, one-line profiles), typed headers like \`ColName:type?\`
-- **Finding files**: Use \`search_files\` before building — never guess paths
+- **Finding files**: Use \`search_files\` before building - never guess paths
 - **Column names are case-sensitive**: Usually lowercase. Use names from profiles/metadata only.
 - **Two-phase builds**: search_files → build_workflow (Read only) → read profile → add_tool with exact column names
-- **Branching**: Fan-out from Read — do NOT chain Aggregates in series (columns get dropped)
+- **Branching**: Fan-out from Read - do NOT chain Aggregates in series (columns get dropped)
 - **Batch builds**: Use \`batch_canvas_ops\` to add+connect multiple tools in one call. Assign \`refId\` strings to reference new tools within the same batch (e.g. add tool with refId "t1", then connect from "t1" to another). Layout runs once at the end.
 
+### Editing Existing Workflows
+- **Change one field**: Use \`patch_tool_config\` with a path (e.g. \`conditions.0.value\`) to amend a single nested field. Do NOT resend the whole config via \`update_tool\` - patching saves tokens and leaves sibling fields untouched.
+- **Add a step in the middle**: Use \`insert_tool_between\` to splice a tool onto an existing wire (A->B becomes A->new->B). Do NOT remove and rebuild the downstream nodes.
+- Only touch the tools that need to change - leave unrelated nodes alone.
+
+### Databases
+- **Discover connections**: Use \`list_database_connections\` to get a \`connectionId\`. Never guess connection ids.
+- **Learn the schema first**: Use \`describe_schema\` to list tables and columns before writing SQL - use exact table/column names from it.
+- **Run read-only queries**: Use \`query_database\` to validate a SELECT against the real database. Only SELECT is allowed; DDL/DML is rejected.
+
 ## Rules
-1. Column names are case-sensitive — use exact names from data profiles/metadata
+1. Column names are case-sensitive - use exact names from data profiles/metadata
 2. Right tool for the job: Aggregate (type: "Summarize") for aggregation, Formula for row-level math, Filter for row selection
-3. Build reproducible pipelines — never calculate values yourself, add tools instead
+3. Build reproducible pipelines - never calculate values yourself, add tools instead
 4. Use \`add_tool\` with \`after\` (auto-connects, auto-layouts)
-5. Handle errors — if preview fails, read the error, adjust config, retry
+5. Handle errors - if preview fails, read the error, adjust config, retry
 6. Explain briefly between tool calls
-7. Use \`ask_user\` when genuinely ambiguous — ask BEFORE building, not after
-8. ALWAYS add comments to every tool — a workflow without comments is incomplete`;
+7. Use \`ask_user\` when genuinely ambiguous - ask BEFORE building, not after
+8. ALWAYS add comments to every tool - a workflow without comments is incomplete`;
 
 const TOOL_CONFIG_REFERENCE = `## Tool Config Reference
 
-**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` — types: csv, parquet, yxdb, xlsx, json
-**Filter**: \`{ "conditions": [{ "column": "col", "operator": "gt", "value": "18" }], "combinator": "and" }\` — Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null. Nested: add \`groups\` array.
-**Aggregate** (type: "Summarize"): \`{ "groupByColumns": ["cat"], "aggregations": [{ "column": "amt", "operation": "Sum", "outputName": "total" }] }\` — Ops: Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct
-**Formula**: Prefer structured ops: \`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "qty" }, "columnName": "unit_price" }] }\` — Raw Polars fallback: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
+**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` - types: csv, parquet, yxdb, qvd, xlsx, json
+**Filter**: \`{ "conditions": [{ "column": "col", "operator": "gt", "value": "18" }], "combinator": "and" }\` - Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null. Nested: add \`groups\` array.
+**Aggregate** (type: "Summarize"): \`{ "groupByColumns": ["cat"], "aggregations": [{ "column": "amt", "operation": "Sum", "outputName": "total" }] }\` - Ops: Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct
+**Formula**: Prefer structured ops: \`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "qty" }, "columnName": "unit_price" }] }\` - Raw Polars fallback: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
 **Sort**: \`{ "sortColumns": [{ "column": "created_at", "order": "descending" }] }\`
-**Join**: \`{ "joinType": "inner", "leftKeys": ["customer_id"], "rightKeys": ["id"] }\` — Types: inner, left, right, outer, cross. Sockets: input-left, input-right, output-match (default), output-left, output-right. ALWAYS set keys.
+**Join**: \`{ "joinType": "inner", "leftKeys": ["customer_id"], "rightKeys": ["id"] }\` - Types: inner, left, right, outer, cross. Sockets: input-left, input-right, output-match (default), output-left, output-right. ALWAYS set keys.
 **Output**: \`{ "type": "csv", "path": "/path/to/output.csv" }\`
 
 ## Sockets
@@ -92,7 +102,7 @@ export function buildWorkflowSystemPrompt(
 
   // 2. Audit notice (conditional)
   if (options?.auditEnabled) {
-    parts.push('\n9. **Your work will be audited** — A separate model will review your output. Ensure correct tool types, connections, and comments.');
+    parts.push('\n9. **Your work will be audited** - A separate model will review your output. Ensure correct tool types, connections, and comments.');
   }
 
   // 3. Available tool types (semi-static, changes rarely)
@@ -104,7 +114,7 @@ export function buildWorkflowSystemPrompt(
   // 4. Tool config reference (static)
   parts.push(`\n${TOOL_CONFIG_REFERENCE}`);
 
-  // 5. Formula catalog (conditional — only when relevant)
+  // 5. Formula catalog (conditional - only when relevant)
   // Include when: canvas is empty (new workflow), has <10 tools (early building), or has Formula tools
   const hasFormulaTools = tools.some((t) => t.type === 'Formula');
   const includeFormulaCatalog = tools.length === 0 || tools.length < 10 || hasFormulaTools;
@@ -116,7 +126,7 @@ export function buildWorkflowSystemPrompt(
   // 6. Dynamic canvas context
   const canvasContext = tools.length > 0
     ? `\nCurrent canvas has ${tools.length} tool(s) and ${wires.length} wire(s):\n${formatCanvasState(tools, wires)}`
-    : '\nCanvas is empty — no tools or wires yet.';
+    : '\nCanvas is empty - no tools or wires yet.';
   parts.push(`\n## Current Workflow\n\nName: ${meta.name}${canvasContext}`);
 
   // 7. Tail reminder (compact rule reinforcement)
@@ -180,7 +190,7 @@ function formatCanvasState(tools: Tool[], wires: Wire[]): string {
     }
     const configStr = configParts.join(', ') || '(default)';
     const commentStr = t.comment ? ` // ${t.comment}` : '';
-    return `  [${t.id.slice(0, 8)}] ${t.type} — ${configStr}${commentStr}`;
+    return `  [${t.id.slice(0, 8)}] ${t.type} - ${configStr}${commentStr}`;
   });
 
   const wireLines = wires.map((w) => {

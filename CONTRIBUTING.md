@@ -10,7 +10,7 @@ Sigilweaver Loom requires all contributors to sign an **IP Assignment CLA** befo
 
 ### Why an IP Assignment?
 
-Sigilweaver Loom is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity with unified copyright ownership — necessary to defend the AGPL license and enforce copyleft.
+Sigilweaver Loom is built to be a permanent, open source alternative to proprietary data science "walled gardens." To guarantee that independence and ensure the project remains viable for the long term, I need a single entity with unified copyright ownership - necessary to defend the AGPL license and enforce copyleft.
 
 However, I know that assigning rights requires trust. **Trust is good, but binding legal safeguards are better.**
 
@@ -25,7 +25,7 @@ This CLA contains a specialized legal structure designed to safeguard the commun
     * The IP **cannot** be transferred to a for-profit third party (via sale, hostile takeover, or lawsuit judgment).
 
 **The "Teeth" (Reversion Clause):**
-If the holding company ever violates these terms—or if a third party tries to seize the IP to close it—**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
+If the holding company ever violates these terms-or if a third party tries to seize the IP to close it-**the IP assignment automatically terminates.** Ownership of the code instantly reverts back to the individual contributors.
 
 This ensures that Sigilweaver Loom acts like a community-owned project (similar to Linux) if the holding company ever fails its mission.
 

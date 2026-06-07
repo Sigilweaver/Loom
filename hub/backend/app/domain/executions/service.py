@@ -7,12 +7,14 @@ and managing execution history.
 import asyncio
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Execution, Server, Workflow
+from app.domain.executions.broker import execution_broker
 from app.domain.executions.models import (
     ExecutionInfo,
     ExecutionStatus,
@@ -103,6 +105,57 @@ class ExecutionService:
             duration_seconds=execution.duration_seconds,
         )
 
+    async def _publish_execution_event(
+        self, db: AsyncSession, execution: Execution
+    ) -> None:
+        """Publish the current execution state to the live event broker.
+
+        Best-effort: a broker/serialization failure must never disrupt the
+        execution lifecycle, so errors are logged and swallowed. Names are
+        resolved from ``db`` so this works from background-task sessions.
+        """
+        try:
+            wf_result = await db.execute(
+                select(Workflow.name).where(Workflow.id == execution.workflow_id)
+            )
+            workflow_name = wf_result.scalar_one_or_none() or "Unknown"
+
+            srv_result = await db.execute(
+                select(Server.name).where(Server.id == execution.server_id)
+            )
+            server_name = srv_result.scalar_one_or_none() or "Unknown"
+
+            info = self._model_to_info(execution, workflow_name, server_name)
+            execution_broker.publish(self._info_to_event(info, execution))
+        except Exception as e:  # pragma: no cover - defensive, broker is in-proc
+            logger.warning(
+                "Failed to publish execution event for %s: %s", execution.id, e
+            )
+
+    @staticmethod
+    def _iso_utc(dt: datetime | None) -> str | None:
+        """Serialize a datetime as ISO-8601 with an explicit UTC offset.
+
+        Mirrors the REST response formatting so live events and polled
+        responses share an identical timestamp representation (naive
+        timestamps are assumed to be UTC).
+        """
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt.isoformat()
+
+    def _info_to_event(
+        self, info: ExecutionInfo, execution: Execution
+    ) -> dict[str, Any]:
+        """Build a JSON-serializable SSE payload for an execution."""
+        event = info.model_dump(mode="json")
+        event["queued_at"] = self._iso_utc(execution.queued_at)
+        event["started_at"] = self._iso_utc(execution.started_at)
+        event["completed_at"] = self._iso_utc(execution.completed_at)
+        return event
+
     async def _select_server(self, server_id: UUID | None = None) -> Server:
         """Select a server for execution.
 
@@ -117,9 +170,7 @@ class ExecutionService:
             NoAvailableServerError: If no healthy server is available.
         """
         if server_id:
-            result = await self.db.execute(
-                select(Server).where(Server.id == server_id)
-            )
+            result = await self.db.execute(select(Server).where(Server.id == server_id))
             server = result.scalar_one_or_none()
             if not server:
                 raise ServerNotFoundError(f"Server not found: {server_id}")
@@ -300,10 +351,11 @@ class ExecutionService:
             server.name,
         )
 
+        # Announce the queued execution to live subscribers.
+        await self._publish_execution_event(self.db, execution)
+
         # Start async execution (fire and forget)
-        asyncio.create_task(
-            self._run_execution(execution.id, workflow.id, server)
-        )
+        asyncio.create_task(self._run_execution(execution.id, workflow.id, server))
 
         return self._model_to_info(execution, workflow.name, server.name)
 
@@ -333,6 +385,7 @@ class ExecutionService:
 
                 # Parse workflow JSON for token generation
                 import json
+
                 try:
                     workflow_json = json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
@@ -368,6 +421,9 @@ class ExecutionService:
                 execution.started_at = datetime.now(UTC)
                 await db.commit()
 
+                # Announce the running transition.
+                await self._publish_execution_event(db, execution)
+
                 # Execute on server with the issued token
                 client = ServerClient(server.endpoint_url, auth_token)
                 exec_result = await client.execute(workflow_content)
@@ -400,6 +456,25 @@ class ExecutionService:
 
                 await db.commit()
 
+                # Announce the terminal transition (completed/failed).
+                await self._publish_execution_event(db, execution)
+
+                # Persist outputs as content-addressed artifacts. Storage
+                # failures must not fail an otherwise-successful execution.
+                if isinstance(exec_result, dict):
+                    try:
+                        from app.domain.artifacts import ArtifactService
+
+                        await ArtifactService(db).store_execution_outputs(
+                            execution_id, exec_result
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to store artifacts for execution %s: %s",
+                            execution_id,
+                            e,
+                        )
+
                 logger.info(
                     "Execution %s %s",
                     execution_id,
@@ -417,9 +492,7 @@ class ExecutionService:
         error_message: str,
     ) -> None:
         """Mark an execution as failed."""
-        result = await db.execute(
-            select(Execution).where(Execution.id == execution_id)
-        )
+        result = await db.execute(select(Execution).where(Execution.id == execution_id))
         execution = result.scalar_one_or_none()
         if execution:
             execution.status = ExecutionStatus.FAILED.value
@@ -427,6 +500,9 @@ class ExecutionService:
             execution.error_message = error_message
             execution.completed_at = datetime.now(UTC)
             await db.commit()
+
+            # Announce the failed transition.
+            await self._publish_execution_event(db, execution)
 
     async def cancel_execution(self, execution_id: UUID) -> ExecutionInfo:
         """Cancel a running or queued execution.
@@ -474,5 +550,10 @@ class ExecutionService:
         )
         server_name = srv_result.scalar_one_or_none() or "Unknown"
 
+        info = self._model_to_info(execution, workflow_name, server_name)
+
+        # Announce the cancelled transition.
+        execution_broker.publish(self._info_to_event(info, execution))
+
         logger.info("Cancelled execution %s", execution_id)
-        return self._model_to_info(execution, workflow_name, server_name)
+        return info

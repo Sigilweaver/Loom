@@ -2,7 +2,7 @@
  * AI Provider Abstraction
  *
  * Wraps the Vercel AI SDK to provide a unified interface for multiple LLM providers.
- * Optional dependency — only imported when AI is enabled in settings.
+ * Optional dependency - only imported when AI is enabled in settings.
  *
  * All calls are routed through the Sigilweaver Loom Server's reverse proxy
  * (/api/ai/proxy/) to avoid CORS restrictions. This applies to both

@@ -1,13 +1,13 @@
-"""YXDB file loader using OpenYXDB
+"""YXDB file loader using SigilYX
 
-Loads Alteryx .yxdb files via the OpenYXDB Rust library.
+Loads Alteryx .yxdb files via the SigilYX Rust library.
 Not affiliated with Alteryx, Inc.
 """
 
 from typing import Any
 
 import polars as pl
-import openyxdb
+import sigilyx
 
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
@@ -16,7 +16,7 @@ from app.utils.security import validate_file_path
 
 class YxdbLoader(FileLoader):
     """
-    Loader for Alteryx YXDB files using OpenYXDB.
+    Loader for Alteryx YXDB files using SigilYX.
 
     YXDB is a row-based binary format with LZF compression.
     scan_yxdb() returns a LazyFrame directly, allowing deferred
@@ -34,7 +34,7 @@ class YxdbLoader(FileLoader):
 
         try:
             # scan_yxdb returns a LazyFrame directly
-            lf: pl.LazyFrame = openyxdb.scan_yxdb(source)
+            lf: pl.LazyFrame = sigilyx.scan_yxdb(source)
 
             # Apply n_rows limit if specified
             n_rows = config.get("n_rows")
@@ -52,7 +52,7 @@ class YxdbLoader(FileLoader):
             raise ToolError(f"Failed to read YXDB file: {e!s}") from e
 
     def build_kwargs(self, config: dict[str, Any]) -> dict[str, Any]:
-        """YXDB has no additional kwargs — OpenYXDB handles everything."""
+        """YXDB has no additional kwargs - SigilYX handles everything."""
         return {}
 
     def to_python_code(
@@ -72,14 +72,14 @@ class YxdbLoader(FileLoader):
 
         escaped_path = PythonCodeGenerator.escape_path(source_path)
 
-        lines.append("import openyxdb")
+        lines.append("import sigilyx")
         lines.append("")
 
         n_rows = config.get("n_rows")
         columns = config.get("columns")
 
-        # scan_yxdb returns a LazyFrame directly — no .lazy() needed
-        lines.append(f'{var_name} = openyxdb.scan_yxdb("{escaped_path}")')
+        # scan_yxdb returns a LazyFrame directly - no .lazy() needed
+        lines.append(f'{var_name} = sigilyx.scan_yxdb("{escaped_path}")')
 
         if n_rows is not None:
             lines.append(f"{var_name} = {var_name}.head({n_rows})")

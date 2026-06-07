@@ -888,7 +888,7 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
     
     # Set environment variables for Hub
     # Secrets (CONNECTION_ENCRYPTION_KEY, SERVER_REGISTRATION_SECRET, etc.)
-    # are read from hub/backend/.env by pydantic-settings — don't override here.
+    # are read from hub/backend/.env by pydantic-settings - don't override here.
     env = os.environ.copy()
     
     try:

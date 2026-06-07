@@ -6,13 +6,13 @@ sidebar_position: 10
 
 Strategic direction and planned features for the Sigilweaver Loom platform.
 
-**Target v1.0 Release: June 2026**
-
 ---
 
 ## Current Status
 
-Sigilweaver Loom is in **Private Beta**. The codebase is not yet public, but binaries and documentation are available for testing the distribution pipeline. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and polish leading to a v1.0 public release.
+Sigilweaver Loom v1.0 has shipped. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and continued polish.
+
+The primary, fully-supported way to use Sigilweaver Loom is the **desktop app with its bundled server** - no external infrastructure required. **Hub** and a standalone **Server** are entirely optional, for teams that want centralized storage, scheduling, and multi-user orchestration. Hub is currently in **open beta**.
 
 ### What Works Today
 
@@ -20,9 +20,9 @@ Sigilweaver Loom is in **Private Beta**. The codebase is not yet public, but bin
 | ----------------- | ---------------- | ------------------------------------------- |
 | Studio            | Production-ready | All core tools, theming, keyboard shortcuts |
 | Server            | Production-ready | Lazy execution, caching, Python export      |
-| Hub               | Beta             | Multi-user orchestration, RBAC, scheduling  |
-| Desktop Apps      | Production-ready | Electron and Tauri builds for all platforms |
+| Desktop Apps      | Production-ready | Bundled server, Electron and Tauri builds for all platforms |
 | Docker Deployment | Production-ready | Compose templates with secret management    |
+| Hub (optional)    | Open beta        | Multi-user orchestration, RBAC, scheduling  |
 
 ---
 
@@ -46,16 +46,28 @@ Sigilweaver Loom is in **Private Beta**. The codebase is not yet public, but bin
 | New Tools: Python          | Execute arbitrary Python code in workflows     | Medium   |
 | Streaming Preview          | Incremental preview for large datasets         | Medium   |
 
-### Hub
+### Hub (optional, open beta)
 
-| Feature             | Description                                    | Priority |
-| ------------------- | ---------------------------------------------- | -------- |
-| OIDC Integration    | Single sign-on via external identity providers | High     |
-| GUI Configuration   | Web-based server and connection management     | High     |
-| Git Integration     | Version control for workflows stored in Hub    | High     |
-| Demo Instance       | Public read-only Hub for evaluation            | Medium   |
-| Execution Dashboard | Real-time monitoring of running workflows      | Medium   |
-| Notifications       | Email and webhook alerts for execution status  | Medium   |
+| Feature              | Description                                          | Priority |
+| -------------------- | --------------------------------------------------- | -------- |
+| Auditor Experience   | UI for browsing the audit log and verifying its hash chain | High     |
+| Execution Artifacts  | Store and retrieve workflow outputs from Hub        | High     |
+| Workflow Versioning  | Internal revision history with diff and rollback    | High     |
+| GUI Configuration    | Web-based server and connection management          | High     |
+| Per-User API Tokens  | Scoped tokens for automation                        | Medium   |
+| Execution Dashboard  | Real-time monitoring of running workflows           | Medium   |
+| Demo Instance        | Public read-only Hub for evaluation                 | Medium   |
+
+#### Deferred to v1.x
+
+These were previously listed as near-term but are intentionally deferred so the
+roadmap reflects what is actually shipping:
+
+| Feature           | Description                                          | Notes                                    |
+| ----------------- | --------------------------------------------------- | ---------------------------------------- |
+| OIDC / SSO        | Single sign-on via external identity providers      | Scoping in progress; API tokens land first |
+| Git Remote Sync   | Sync Hub workflow revisions to an external Git remote | Builds on internal versioning           |
+| Notifications     | Email and webhook alerts for execution status       | Under consideration; not yet committed   |
 
 ---
 

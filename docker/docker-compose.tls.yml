@@ -1,0 +1,62 @@
+# =============================================================================
+# Sigilweaver Loom - TLS Reverse Proxy Overlay (Caddy)
+# =============================================================================
+#
+# Fronts the Hub with Caddy for automatic HTTPS (Let's Encrypt / ZeroSSL).
+# Caddy terminates TLS on 443, redirects 80 -> 443, and reverse-proxies to the
+# Hub over the internal Docker network. Server-Sent Events (live execution
+# updates) are streamed without buffering.
+#
+# Usage:
+#   1. Point a DNS A/AAAA record at this host (e.g. loom.example.com).
+#   2. In .env set:
+#        CADDY_DOMAIN=loom.example.com
+#        ACME_EMAIL=admin@example.com
+#        CORS_ORIGINS=["https://loom.example.com"]
+#        # Keep the app ports on loopback so only Caddy is internet-facing:
+#        HUB_PORT=127.0.0.1:25802
+#        SERVER_PORT=127.0.0.1:25811
+#   3. Start the stack with both files:
+#        docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+#
+# Notes:
+#   - For a staging/test certificate, set CADDY_ACME_CA to the Let's Encrypt
+#     staging directory (see .env.example) to avoid rate limits.
+#   - Caddy needs ports 80 and 443 reachable from the public internet for the
+#     ACME HTTP/TLS-ALPN challenge.
+# =============================================================================
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    init: true
+    depends_on:
+      hub:
+        condition: service_healthy
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?set CADDY_DOMAIN to your public hostname}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL for certificate notifications}
+      CADDY_ACME_CA: ${CADDY_ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - sigilweaver-loom-external
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:2019/config/" ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  caddy_data:
+    name: sigilweaver_loom_caddy_data
+  caddy_config:
+    name: sigilweaver_loom_caddy_config

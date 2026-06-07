@@ -394,4 +394,10 @@ async def test_profile_endpoint_socket_not_found_error(client, sample_csv):
 
     # Should fail with execution error (socket not found)
     assert response.status_code == 500
-    assert "not found" in response.json()["detail"].lower()
+    detail = response.json()["detail"]
+    # Detail is now a structured dict with error_id for log correlation.
+    if isinstance(detail, dict):
+        assert "error_id" in detail
+        assert "not found" in detail["message"].lower()
+    else:
+        assert "not found" in detail.lower()

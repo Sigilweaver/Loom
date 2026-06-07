@@ -12,7 +12,7 @@ vi.mock("@state/clipboardStore", () => ({
 
 describe("useCanvasPaste", () => {
   let params: UseCanvasPasteParams;
-  let doPaste: ReturnType<typeof vi.fn>;
+  let doPaste: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
 
   beforeEach(() => {
     doPaste = vi.fn();

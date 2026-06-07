@@ -86,7 +86,7 @@ function extractContrastPairs(colors: ThemeColors): ContrastPair[] {
 
   // ── Header ────────────────────────────────────────────────────────
   const hdr = colors.header;
-  // Logo icon is decorative/brand — exempt from WCAG 1.4.3
+  // Logo icon is decorative/brand - exempt from WCAG 1.4.3
   add('Header logo text on header bg', hdr.logo.text, hdr.background);
   add('Header title on header bg', hdr.title.text, hdr.background);
   add('Header metadata on header bg', hdr.metadata.text, hdr.background, WCAG_AA_LARGE);
@@ -195,7 +195,7 @@ describe('WCAG contrast compliance', () => {
       for (const { label, fg, bg, level = WCAG_AA_NORMAL } of pairs) {
         const levelLabel = level >= WCAG_AA_NORMAL ? 'AA' : 'AA-large';
 
-        it(`${levelLabel} — ${label}`, () => {
+        it(`${levelLabel} - ${label}`, () => {
           const ratio = contrastRatio(fg, bg);
           const passes = ratio >= level;
 

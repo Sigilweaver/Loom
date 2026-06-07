@@ -81,3 +81,139 @@ class TestHealthPollerBackoff:
         poller._failure_counts[server_id] = 0  # Reset on success
 
         assert poller._failure_counts[server_id] == 0
+
+
+class TestHealthPollerOfflineThreshold:
+    """Poll must not flip status to offline below the configured
+    consecutive-failure threshold."""
+
+    def _make_server(self, status: str = "online"):
+        from uuid import uuid4
+
+        s = MagicMock()
+        s.id = uuid4()
+        s.name = "srv"
+        s.endpoint_url = "http://srv"
+        s.auth_token = "tok"
+        s.status = status
+        s.version = "1.0"
+        return s
+
+    @pytest.mark.asyncio
+    async def test_below_threshold_keeps_status(self):
+        """Two consecutive failures must not flip status to offline."""
+        poller = HealthPoller()
+        server = self._make_server(status="online")
+
+        with (
+            patch(
+                "app.domain.servers.health_poller.ServerClient"
+            ) as mock_client_cls,
+            patch(
+                "app.domain.servers.health_poller.settings"
+            ) as mock_settings,
+        ):
+            mock_settings.server_offline_threshold = 3
+            mock_settings.server_backoff_max_seconds = 60
+
+            instance = MagicMock()
+            instance.health = AsyncMock(return_value=ServerError("boom"))
+            mock_client_cls.return_value = instance
+
+            # Failure 1 - clear any backoff first so subsequent polls run
+            await poller._poll_server(MagicMock(), server)
+            poller._next_retry_at.clear()
+            # Failure 2
+            await poller._poll_server(MagicMock(), server)
+
+        assert server.status == "online"
+        assert poller._failure_counts[str(server.id)] == 2
+
+    @pytest.mark.asyncio
+    async def test_threshold_flips_to_offline(self):
+        """The Nth consecutive failure (default 3) flips status to offline."""
+        poller = HealthPoller()
+        server = self._make_server(status="online")
+
+        with (
+            patch(
+                "app.domain.servers.health_poller.ServerClient"
+            ) as mock_client_cls,
+            patch(
+                "app.domain.servers.health_poller.settings"
+            ) as mock_settings,
+        ):
+            mock_settings.server_offline_threshold = 3
+            mock_settings.server_backoff_max_seconds = 60
+
+            instance = MagicMock()
+            instance.health = AsyncMock(return_value=ServerError("boom"))
+            mock_client_cls.return_value = instance
+
+            for _ in range(3):
+                await poller._poll_server(MagicMock(), server)
+                # Clear backoff so the next call isn't skipped.
+                poller._next_retry_at.clear()
+
+        assert server.status == "offline"
+        assert poller._failure_counts[str(server.id)] == 3
+
+    @pytest.mark.asyncio
+    async def test_success_resets_counter_and_backoff(self):
+        """A successful health response clears failure counter and backoff."""
+        poller = HealthPoller()
+        server = self._make_server(status="offline")
+        # Seed two prior failures.
+        poller._failure_counts[str(server.id)] = 2
+        poller._next_retry_at[str(server.id)] = datetime.now(timezone.utc)
+
+        with patch(
+            "app.domain.servers.health_poller.ServerClient"
+        ) as mock_client_cls:
+            instance = MagicMock()
+            instance.health = AsyncMock(
+                return_value=HealthResponse(status="ok", version="2.0")
+            )
+            mock_client_cls.return_value = instance
+
+            await poller._poll_server(MagicMock(), server)
+
+        assert server.status == "online"
+        assert str(server.id) not in poller._failure_counts
+        assert str(server.id) not in poller._next_retry_at
+
+    @pytest.mark.asyncio
+    async def test_backoff_is_exponential_and_capped(self):
+        """Backoff doubles per failure and is capped at the configured max."""
+        from datetime import timedelta
+
+        poller = HealthPoller()
+        server = self._make_server(status="online")
+
+        with (
+            patch(
+                "app.domain.servers.health_poller.ServerClient"
+            ) as mock_client_cls,
+            patch(
+                "app.domain.servers.health_poller.settings"
+            ) as mock_settings,
+        ):
+            mock_settings.server_offline_threshold = 100  # don't flip
+            mock_settings.server_backoff_max_seconds = 8
+
+            instance = MagicMock()
+            instance.health = AsyncMock(return_value=ServerError("x"))
+            mock_client_cls.return_value = instance
+
+            deltas: list[float] = []
+            for _ in range(6):
+                before = datetime.now(timezone.utc)
+                await poller._poll_server(MagicMock(), server)
+                after = poller._next_retry_at[str(server.id)]
+                deltas.append((after - before).total_seconds())
+                poller._next_retry_at.clear()
+
+        # Expected sequence: 1, 2, 4, 8 (cap), 8, 8.
+        # Allow small tolerance for clock drift between samples.
+        for actual, expected in zip(deltas, [1, 2, 4, 8, 8, 8]):
+            assert abs(actual - expected) < 0.5

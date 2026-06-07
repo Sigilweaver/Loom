@@ -62,7 +62,7 @@ Full license: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## GSAP (GreenSock Animation Platform)
 
-**Location:** Bundled via npm in `site/` and `studio/`
+**Location:** Bundled via bun in `site/` and `studio/`
 
 **License:** Standard "No Charge" GreenSock License (for non-commercial or open source use)
 
@@ -76,7 +76,7 @@ Full license: https://gsap.com/licensing/
 
 ## Prism.js
 
-**Location:** Bundled via npm in `site/`
+**Location:** Bundled via bun in `site/`
 
 **License:** MIT License
 

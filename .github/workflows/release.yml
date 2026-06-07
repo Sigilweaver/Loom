@@ -63,24 +63,18 @@ jobs:
     needs: [validate-tag-on-main, build-server]
     uses: ./.github/workflows/build-studio-full.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   build-studio-client:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-studio-client.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   build-web:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
-    with:
-      node-version: '22'
 
   publish-assets:
     name: Publish to GitHub Release
@@ -230,16 +224,16 @@ jobs:
           CDN="${R2_CDN_URL:-https://download.sigilweaver.app}"
           echo "## R2 Upload Summary" >> "$GITHUB_STEP_SUMMARY"
           if compgen -G "release-assets/*" > /dev/null; then
-            echo "Uploaded the following to ${CDN}/releases/${VERSION}/:" >> "$GITHUB_STEP_SUMMARY"
+            echo "Uploaded the following to ${CDN}/releases/loom/${VERSION}/:" >> "$GITHUB_STEP_SUMMARY"
             for f in release-assets/*; do
               [ -e "$f" ] || continue
               base=$(basename "$f")
-              echo "- ${CDN}/releases/${VERSION}/${base}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- ${CDN}/releases/loom/${VERSION}/${base}" >> "$GITHUB_STEP_SUMMARY"
             done
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Downloads manifest:** ${CDN}/releases/${VERSION}/downloads.json" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Stable manifest:** ${CDN}/releases/${VERSION}/manifest.json" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Releases index:** ${CDN}/releases/index.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Downloads manifest:** ${CDN}/releases/loom/${VERSION}/downloads.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Stable manifest:** ${CDN}/releases/loom/${VERSION}/manifest.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Releases index:** ${CDN}/releases/loom/index.json" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No release-assets present." >> "$GITHUB_STEP_SUMMARY"
           fi

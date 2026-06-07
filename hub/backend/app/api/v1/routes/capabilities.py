@@ -18,6 +18,9 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from app.config import settings as _rl_settings
+from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -110,6 +113,7 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse)
+@_rl.limit(_rl_settings.rate_limit_capability_token)
 async def request_token(
     request: TokenRequest,
     current_user: CurrentUser,

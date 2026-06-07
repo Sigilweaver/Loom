@@ -27,7 +27,7 @@ concurrency:
 jobs:
   test:
     name: Test & Lint
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,26 +45,20 @@ jobs:
         with:
           python-version-file: "server/.python-version"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: |
-            studio/package-lock.json
-            hub/frontend/package-lock.json
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Server dependencies
         run: cd server && uv sync --all-extras
 
       - name: Install Studio dependencies
-        run: cd studio && npm ci
+        run: cd studio && bun install --frozen-lockfile
 
       - name: Install Hub Backend dependencies
         run: cd hub/backend && uv sync --all-extras
 
       - name: Install Hub Frontend dependencies
-        run: cd hub/frontend && npm ci
+        run: cd hub/frontend && bun install --frozen-lockfile
 
       - name: Run all tests
         run: python scripts/test.py --full --ci --server --studio --hub -p
@@ -98,24 +92,20 @@ jobs:
 
   build-studio:
     name: Build Studio Web
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: studio/package-lock.json
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: cd studio && npm ci
+        run: cd studio && bun install --frozen-lockfile
 
       - name: Build web
-        run: cd studio && npm run build:web
+        run: cd studio && bun run build:web
 
       - name: Upload web build
         uses: actions/upload-artifact@v4
@@ -124,3 +114,18 @@ jobs:
           path: studio/dist/**
           if-no-files-found: warn
           retention-days: 7
+
+  docs:
+    name: Docs (Docusaurus)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: bun install
+        run: bun install --frozen-lockfile
+      - name: bun run build:cloudflare
+        run: bun run build:cloudflare
+

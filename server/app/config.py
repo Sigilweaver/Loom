@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     log_level: str = "info"
     log_format: str = "text"  # "text" or "json"
 
+    # Identity advertised to the Hub (auth_mode="hub").
+    # server_name: display name in the Hub UI. Empty -> "server-{port}".
+    server_name: str = ""
+    # public_endpoint_url: the URL the Hub should use to reach this server for
+    # health polling and execution dispatch. Empty -> "http://{host}:{port}".
+    # Set this when the Hub cannot reach the server at its bind address, e.g.
+    # behind NAT or across a Tailscale tailnet (use the MagicDNS name:
+    # "http://my-server.tailnet-name.ts.net:25811").
+    public_endpoint_url: str = ""
+
     # CORS
     cors_origins: list[str] = ["http://localhost:25810"]  # Studio dev server
     cors_mode: str = "development"  # "development" (permissive) | "production" (strict)
@@ -25,16 +35,27 @@ class Settings(BaseSettings):
     max_preview_rows: int = 10000
 
     # Security - File Access
+    # Explicit modes:
+    #  - "open":      no path restriction (logs a startup warning)
+    #  - "allowlist": deny anything outside allowed_file_paths (which must be non-empty)
+    #  - "hub":       Hub-issued per-request grants (auth_mode must be "hub")
+    #  - "auto":      derived from auth_mode/restrict_file_access (default; back-compat)
+    file_access_mode: str = "auto"
     allowed_file_paths: list[str] = []
-    restrict_file_access: bool = True
+    # Legacy boolean. With file_access_mode="auto" it selects allowlist vs open;
+    # ignored for explicit modes. Kept for backward compatibility.
+    # Default is False so an unconfigured server fails open (with a warning)
+    # rather than refusing to boot; explicit configs are required for prod.
+    restrict_file_access: bool = False
 
     # Security - Authentication
     # Auth mode options:
-    #  - "disabled": no auth
-    #  - "ephemeral": Electron-generated token
-    #  - "static": env token
+    #  - "disabled": no auth (explicit opt-in; logs a startup warning)
+    #  - "ephemeral": auto-generated session token, also accepted from Electron
+    #  - "static": env-provided token (required)
     #  - "hub": Hub-validated
-    auth_mode: str = "disabled"
+    # Default is "ephemeral" so an unconfigured server is not silently open.
+    auth_mode: str = "ephemeral"
     # Session token for ephemeral/static modes (set by Electron or .env)
     session_token: str = ""
     # Protect /docs and /redoc endpoints (default: protected)
@@ -72,9 +93,11 @@ class Settings(BaseSettings):
     cache_clear_on_close: bool = True
 
     # Parallel Execution
-    # Execute independent tools concurrently for improved performance
-    # Modes: "sequential" (default, safe), "parallel" (concurrent independent tools)
-    execution_mode: str = "sequential"
+    # Execute independent tools concurrently for improved performance.
+    # Modes: "sequential" (safe), "parallel" (concurrent independent tools).
+    # Default is "parallel" so independent branches run concurrently.
+    # Tuning: lower max_parallel_tools on memory-constrained hosts.
+    execution_mode: str = "parallel"
     # Maximum concurrent tool executions (0 = unlimited)
     max_parallel_tools: int = 4
 
@@ -82,8 +105,12 @@ class Settings(BaseSettings):
     # These prevent tools from creating outputs that could crash the application
     # Set to 0 to disable individual limits (not recommended)
     safety_max_pivot_columns: int = 1000  # Max unique values in pivot "on" column
-    safety_max_cross_join_rows: int = 10_000_000  # Max rows from cross join (left * right)
-    safety_max_unpivot_rows: int = 100_000_000  # Max rows after unpivot (rows * columns)
+    safety_max_cross_join_rows: int = (
+        10_000_000  # Max rows from cross join (left * right)
+    )
+    safety_max_unpivot_rows: int = (
+        100_000_000  # Max rows after unpivot (rows * columns)
+    )
 
     # Server Connection Store
     # Fernet encryption key for credentials
@@ -91,11 +118,17 @@ class Settings(BaseSettings):
     connection_encryption_key: str = ""
     connection_store_path: str = "../.working/server/connections.json"
 
-    # AI Proxy
+# AI Proxy
     # Default base URL for openai-compatible providers (e.g. Ollama) when the
     # client does not supply ``base_url``. Must be an externally reachable
     # address; SSRF validation still applies.
     ollama_default_url: str = "http://localhost:11434"
+
+    # Rate limiting. When enabled, a per-key limit is applied to all
+    # /api/workflow/* endpoints. Disabled by default so existing test suites
+    # are unaffected.
+    rate_limit_enabled: bool = False
+    rate_limit_workflow: str = "600/minute"
 
 
 settings = Settings()

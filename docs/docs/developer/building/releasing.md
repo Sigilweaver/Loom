@@ -72,10 +72,8 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
       
       - name: Build Server
         run: |
@@ -83,9 +81,9 @@ jobs:
             uv sync --all-extras
             uv run pyinstaller sigilweaver.spec
           cd studio
-          npm ci
-          npm run build
-          npm run dist
+          bun install --frozen-lockfile
+          bun run build
+          bun run dist
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -116,7 +114,7 @@ jobs:
 
 ## Distribution
 
-Releases are distributed via Backblaze B2 CDN:
+Releases are distributed via Cloudflare R2 CDN:
 
 ```
 https://download.sigilweaver.app/
@@ -126,33 +124,28 @@ https://download.sigilweaver.app/
 
 ```
 download.sigilweaver.app/
-├── latest/                     # Always points to newest
-│   ├── Sigilweaver-Loom.AppImage    # Generic names
-│   ├── Sigilweaver-Loom-Setup.exe
-│   ├── Sigilweaver-Loom.dmg
-│   └── SHA256SUMS.txt
-│
 └── releases/
-    ├── index.json              # List of all releases
-    ├── v0.3.0/                 # Versioned archives
-    │   ├── Sigilweaver-Loom-v0.3.0.AppImage
-    │   ├── Sigilweaver-Loom-Setup-v0.3.0.exe
-    │   └── manifest.json
-    └── v0.2.0/
-        └── ...
+    └── loom/
+        ├── index.json              # List of all releases
+        ├── v0.3.0/                 # Versioned archives
+        │   ├── Sigilweaver-Loom-v0.3.0.AppImage
+        │   ├── Sigilweaver-Loom-Setup-v0.3.0.exe
+        │   └── manifest.json
+        └── v0.2.0/
+            └── ...
 ```
 
 ### Download Links
 
-For download pages, use `/latest/` URLs:
+For download pages, use versioned URLs:
 
 ```html
-<a href="https://download.sigilweaver.app/latest/Sigilweaver-Loom.AppImage">
+<a href="https://download.sigilweaver.app/releases/loom/v0.3.0/Sigilweaver-Loom-v0.3.0.AppImage">
   Download for Linux
 </a>
 ```
 
-These always point to the newest version without changing the URL.
+The releases index at `releases/loom/index.json` lists all available versions.
 
 ### Auto-Updates
 
@@ -176,7 +169,7 @@ electron-updater checks the manifest for updates:
 ### Cache Headers
 
 - `/latest/`: 5-minute cache (frequent updates)
-- `/releases/{version}/`: 1-year cache, immutable
+- `/releases/loom/{version}/`: 1-year cache, immutable
 - Manifests: 1-minute cache (auto-update checks)
 
 ## Checksums
@@ -192,7 +185,7 @@ def456...  Sigilweaver-Loom-Setup.exe
 Users can verify downloads:
 
 ```bash
-curl -O https://download.sigilweaver.app/latest/SHA256SUMS.txt
+curl -O https://download.sigilweaver.app/releases/loom/latest/SHA256SUMS.txt
 sha256sum -c SHA256SUMS.txt
 ```
 
@@ -253,7 +246,7 @@ If a release is broken:
 2. Update manifest version
 3. Users will auto-update back
 
-Versioned releases in `/releases/{version}/` are never deleted, so historical versions remain available.
+Versioned releases in `/releases/loom/{version}/` are never deleted, so historical versions remain available.
 
 ## Release Checklist
 

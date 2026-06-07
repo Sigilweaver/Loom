@@ -1,0 +1,37 @@
+# =============================================================================
+# Sigilweaver Loom - Caddy reverse proxy
+# =============================================================================
+# Automatic HTTPS for the Hub. Used by docker-compose.tls.yml.
+# Configured entirely through environment variables (see .env).
+# =============================================================================
+
+{
+	email {$ACME_EMAIL}
+	acme_ca {$CADDY_ACME_CA}
+}
+
+{$CADDY_DOMAIN} {
+	encode zstd gzip
+
+	# Hub serves both the REST API and the bundled frontend on 25802.
+	# Caddy auto-detects text/event-stream responses and disables buffering,
+	# so the live execution stream (SSE) is forwarded in real time.
+	reverse_proxy hub:25802 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	# Security headers. HSTS is safe here because Caddy enforces HTTPS.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

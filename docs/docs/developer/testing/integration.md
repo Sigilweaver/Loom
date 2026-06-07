@@ -19,7 +19,7 @@ Unit tests verify individual pieces work. Integration tests verify the pieces wo
 
 ```bash
 # From studio/
-npm run test:integration
+bun run test:integration
 
 # Or from repo root
 ./scripts/test.py --integration
@@ -233,10 +233,8 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
       
       - name: Install backend
         run: |

@@ -64,7 +64,7 @@ class R2Uploader:
 
     def upload_assets(self, assets_dir: Path, version: str):
         """
-        Upload release assets to releases/{version}/.
+        Upload release assets to releases/loom/{version}/.
 
         Args:
             assets_dir: Directory containing release assets
@@ -76,15 +76,13 @@ class R2Uploader:
             if not file.is_file():
                 continue
 
-            # Skip checksums and manifests (uploaded separately)
             if file.name in ("SHA256SUMS.txt", "downloads.json"):
                 continue
 
-            # Upload to versioned location
             self._upload_file(
                 file,
-                f"releases/{version}/{file.name}",
-                cache_control="max-age=31536000,public,immutable",  # 1 year - versioned is immutable
+                f"releases/loom/{version}/{file.name}",
+                cache_control="max-age=31536000,public,immutable",
             )
 
     def upload_manifest_atomic(

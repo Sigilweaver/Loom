@@ -333,8 +333,9 @@ export function useMultiSocketConfiguration({
   });
 
   // Fetch metadata when connections change - socket 0
+  const connectionKey0 = connectionKeys[0];
   useEffect(() => {
-    const connectionKey = connectionKeys[0];
+    const connectionKey = connectionKey0;
     if (!connectionKey) return;
 
     const socket = socketsRef.current[0];
@@ -352,11 +353,12 @@ export function useMultiSocketConfiguration({
       workflowMetaRef.current
     );
     meta0Ref.current.fetchMetadata(toolId, JSON.parse(workflow), socket.id);
-  }, [connectionKeys[0], toolId]);
+  }, [connectionKey0, toolId]);
 
   // Fetch metadata when connections change - socket 1
+  const connectionKey1 = connectionKeys[1];
   useEffect(() => {
-    const connectionKey = connectionKeys[1];
+    const connectionKey = connectionKey1;
     if (!connectionKey) return;
 
     const socket = socketsRef.current[1];
@@ -374,7 +376,7 @@ export function useMultiSocketConfiguration({
       workflowMetaRef.current
     );
     meta1Ref.current.fetchMetadata(toolId, JSON.parse(workflow), socket.id);
-  }, [connectionKeys[1], toolId]);
+  }, [connectionKey1, toolId]);
 
   // Create stable refresh callbacks
   const refreshSocket0 = useCallback(() => {

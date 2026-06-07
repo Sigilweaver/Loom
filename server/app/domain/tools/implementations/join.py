@@ -1,8 +1,9 @@
 """Join tool - combines two datasets based on key columns."""
 
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.execution.safety import check_cross_join_safety, raise_if_unsafe
@@ -11,6 +12,18 @@ from app.domain.tools.expr_builder import JoinOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import JoinSockets
 from app.utils.columns import resolve_column_names
+
+
+class JoinToolConfig(BaseModel):
+    """Typed config for Join."""
+
+    model_config = ConfigDict(extra="allow")
+
+    leftKeys: list[str] = Field(default_factory=list)
+    rightKeys: list[str] = Field(default_factory=list)
+    joinType: Literal["inner", "left", "right", "outer"] = "inner"
+    leftSuffix: str = "_left"
+    rightSuffix: str = "_right"
 
 
 @register_tool("Join")
@@ -38,6 +51,19 @@ class JoinTool(BaseTool):
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Join is blocking - must scan both sides for matches."""
         return True
+
+    @classmethod
+    def config_model(cls) -> type[JoinToolConfig]:
+        return JoinToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "leftKeys": config.get("leftKeys", []),
+            "rightKeys": config.get("rightKeys", []),
+            "joinType": config.get("joinType", "inner"),
+            "leftSuffix": config.get("leftSuffix", "_left"),
+            "rightSuffix": config.get("rightSuffix", "_right"),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> JoinOperation:
         """Build the join operation from config."""

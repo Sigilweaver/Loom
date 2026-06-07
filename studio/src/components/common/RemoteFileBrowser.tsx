@@ -192,6 +192,9 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
             setSearchMode(false);
             setSearching(false);
         }
+        // Intentionally depends only on `open`; loadRoots/initialized are reset
+        // inline above and should not retrigger this open/close lifecycle effect.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     const loadRoots = useCallback(async () => {

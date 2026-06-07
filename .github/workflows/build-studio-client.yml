@@ -3,27 +3,22 @@ name: Build Studio Client
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      node-version:
-        required: false
-        type: string
-        default: '22'
 
 jobs:
   build-client:
     strategy:
       matrix:
         include:
-          - os: warp-ubuntu-latest-x64-2x
+          - os: ubuntu-latest
             platform: linux
             artifact-name: linux-client-artifacts
-          - os: warp-windows-latest-x64-2x
+          - os: windows-latest
             platform: win
             artifact-name: windows-client-artifacts
-          - os: warp-macos-latest-arm64-6x
+          - os: macos-latest
             platform: mac
             artifact-name: macos-client-artifacts
-    
+
     runs-on: ${{ matrix.os }}
     environment: ${{ matrix.platform == 'win' && 'windows-signing' || '' }}
     defaults:
@@ -35,22 +30,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node-version }}
-          cache: 'npm'
-          cache-dependency-path: studio/package-lock.json
-      
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install studio dependencies
-        run: npm ci
-      
+        run: bun install --frozen-lockfile
+
       - name: Set version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: .
         run: python3 .github/scripts/set-version.py
-      
+
       - name: Install snapcraft (Linux only)
         if: matrix.platform == 'linux'
         run: |
@@ -60,9 +51,9 @@ jobs:
             sudo apt-get update -y
             sudo apt-get install -y snapcraft || true
           fi
-      
+
       - name: Build client version
-        run: npm run build:${{ matrix.platform }}:client
+        run: bun run build:${{ matrix.platform }}:client
 
       - name: Sign Windows executables
         if: matrix.platform == 'win'
@@ -79,7 +70,7 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -10,6 +10,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import __version__
 from app.api.v1.router import v1_router
@@ -61,26 +62,98 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
-# Session cleanup interval (1 hour)
-SESSION_CLEANUP_INTERVAL = 3600
+# Required secrets that must be set (or auto-generated when
+# ALLOW_INSECURE_DEFAULTS=1) before Hub can start.
+_REQUIRED_SECRETS = (
+    "session_secret",
+    "secret_key",
+    "connection_encryption_key",
+    "server_registration_secret",
+)
+
+
+def validate_required_secrets() -> None:
+    """Refuse to boot if required secrets are missing.
+
+    The dev escape hatch (``ALLOW_INSECURE_DEFAULTS=1``) auto-generates
+    ephemeral values and logs them once. Tokens/sessions issued with these
+    values will not survive a restart.
+
+    Must run before FastAPI/middleware import the values.
+    """
+    import os
+    import secrets as _secrets
+
+    missing = [name for name in _REQUIRED_SECRETS if not getattr(settings, name)]
+    if not missing:
+        return
+
+    if settings.allow_insecure_defaults:
+        for name in missing:
+            if name == "connection_encryption_key":
+                from cryptography.fernet import Fernet
+
+                value = Fernet.generate_key().decode()
+            else:
+                value = _secrets.token_urlsafe(32)
+            setattr(settings, name, value)
+            os.environ[name.upper()] = value
+            logger.warning(
+                "ALLOW_INSECURE_DEFAULTS: generated ephemeral %s. "
+                "Do not use this in production.",
+                name.upper(),
+            )
+        return
+
+    msg = (
+        "FATAL: Hub refuses to start - the following secrets are unset: "
+        f"{', '.join(s.upper() for s in missing)}. "
+        "Generate each with: "
+        'python3 -c "import secrets; print(secrets.token_urlsafe(32))". '
+        "For local development you may set ALLOW_INSECURE_DEFAULTS=1 to "
+        "auto-generate ephemeral values (NOT for production)."
+    )
+    logger.critical(msg)
+    raise SystemExit(msg)
+
+
+validate_required_secrets()
+
+
+# Session cleanup interval (default 1 hour, configurable via settings)
+SESSION_CLEANUP_INTERVAL = settings.session_cleanup_interval_seconds
 
 
 async def _session_cleanup_loop() -> None:
-    """Background task to periodically clean up expired sessions."""
+    """Background task to periodically clean up expired sessions.
+
+    Runs forever until cancelled; each pass deletes at most
+    ``settings.session_cleanup_batch_size`` rows to keep the delete
+    transaction short. If a pass removes a full batch, an immediate
+    follow-up pass drains the remaining backlog before sleeping again.
+    """
     import asyncio
 
+    batch_size = settings.session_cleanup_batch_size
     while True:
         try:
             await asyncio.sleep(SESSION_CLEANUP_INTERVAL)
-            async with async_session_maker() as db:
-                manager = SessionManager(db)
-                deleted = await manager.cleanup_expired_sessions()
+            while True:
+                async with async_session_maker() as db:
+                    manager = SessionManager(db)
+                    deleted = await manager.cleanup_expired_sessions(
+                        batch_size=batch_size
+                    )
                 if deleted > 0:
                     logger.info(f"Cleaned up {deleted} expired sessions")
+                if deleted < batch_size:
+                    break
         except asyncio.CancelledError:
             break
-        except Exception as e:
-            logger.error(f"Session cleanup error: {e}")
+        except SQLAlchemyError:
+            # Keep the cleanup loop alive across transient database failures;
+            # the next pass retries after the normal interval.
+            logger.exception("Session cleanup database error")
 
 
 _INSECURE_DEFAULT = "CHANGE_ME_IN_PRODUCTION"
@@ -91,32 +164,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
     import asyncio
 
-    # Reject insecure default secrets — these MUST be changed before deployment
-    _insecure_settings = []
-    if settings.session_secret == _INSECURE_DEFAULT:
-        _insecure_settings.append("SESSION_SECRET")
-    if settings.secret_key == _INSECURE_DEFAULT:
-        _insecure_settings.append("SECRET_KEY")
-    if _insecure_settings:
-        msg = (
-            f"{', '.join(_insecure_settings)} still set to default value. "
-            "Generate secure values before running Hub:\n"
-            '  python3 -c "import secrets; print(secrets.token_urlsafe(32))"'
-        )
-        if settings.environment == "production":
-            logger.critical("FATAL: " + msg)
-            raise SystemExit(msg)
-        else:
-            logger.warning(msg + " (ignored in development mode)")
-
     logger.info("Sigilweaver Loom Hub starting up...")
-
-    # Warn about open server registration
-    if not settings.server_registration_secret:
-        logger.warning(
-            "SERVER_REGISTRATION_SECRET is empty — any server can register "
-            "without authentication. Set this secret in production."
-        )
 
     # Initialize server token infrastructure
     token_store = init_token_store()
@@ -178,6 +226,17 @@ application.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting
+from slowapi import _rate_limit_exceeded_handler  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+
+from app.middleware.rate_limit import limiter  # noqa: E402
+
+application.state.limiter = limiter
+application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+application.add_middleware(SlowAPIMiddleware)
+
 # Include API v1 routes
 application.include_router(v1_router, prefix="/api/v1")
 
@@ -188,7 +247,9 @@ if settings.static_files_path:
     static_path = Path(settings.static_files_path)
     if static_path.exists() and static_path.is_dir():
         # Note: Mount at "/" must come after all API routes are registered
-        application.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+        application.mount(
+            "/", StaticFiles(directory=static_path, html=True), name="static"
+        )
         _static_mounted = True
         logger.info(f"Serving static files from {static_path}")
     else:

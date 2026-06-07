@@ -6,6 +6,7 @@ Per roles.md:
 """
 
 import pytest
+
 from tests.conftest import make_workflow_content, new_client
 
 
@@ -13,9 +14,7 @@ class TestAuditorCanReadAllWorkflows:
     """Auditor can read all workflows regardless of owner."""
 
     @pytest.mark.asyncio
-    async def test_auditor_can_list_all_workflows(
-        self, auditor_headers, user_headers
-    ):
+    async def test_auditor_can_list_all_workflows(self, auditor_headers, user_headers):
         """Auditor can list all workflows via GET /workflows."""
         async with new_client() as client:
             # User creates a workflow
@@ -23,7 +22,11 @@ class TestAuditorCanReadAllWorkflows:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -36,16 +39,18 @@ class TestAuditorCanReadAllWorkflows:
         assert data["total"] == 1
 
     @pytest.mark.asyncio
-    async def test_auditor_can_get_any_workflow(
-        self, auditor_headers, user_headers
-    ):
+    async def test_auditor_can_get_any_workflow(self, auditor_headers, user_headers):
         """Auditor can get details of any workflow."""
         async with new_client() as client:
             upload_response = await client.post(
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -59,7 +64,6 @@ class TestAuditorCanReadAllWorkflows:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Pre-existing bug: WorkflowMeta not serialized to dict")
     async def test_auditor_can_get_any_workflow_content(
         self, auditor_headers, user_headers
     ):
@@ -69,7 +73,11 @@ class TestAuditorCanReadAllWorkflows:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -92,7 +100,11 @@ class TestAuditorCanReadAllWorkflows:
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -118,7 +130,11 @@ class TestAuditorCannotModifyWorkflows:
                 "/api/v1/workflows",
                 headers=auditor_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -126,16 +142,18 @@ class TestAuditorCannotModifyWorkflows:
         assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_auditor_cannot_update_workflow(
-        self, auditor_headers, user_headers
-    ):
+    async def test_auditor_cannot_update_workflow(self, auditor_headers, user_headers):
         """Auditor cannot update workflows."""
         async with new_client() as client:
             upload_response = await client.post(
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )
@@ -151,16 +169,18 @@ class TestAuditorCannotModifyWorkflows:
         assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_auditor_cannot_delete_workflow(
-        self, auditor_headers, user_headers
-    ):
+    async def test_auditor_cannot_delete_workflow(self, auditor_headers, user_headers):
         """Auditor cannot delete workflows."""
         async with new_client() as client:
             upload_response = await client.post(
                 "/api/v1/workflows",
                 headers=user_headers,
                 files={
-                    "file": ("test.swwf", make_workflow_content(), "application/octet-stream")
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
                 },
                 data={"folder_path": "/", "tags": ""},
             )

@@ -25,11 +25,11 @@ export interface FieldSchema {
   required?: boolean;
   /** Default value (should match the tool's defaultConfig) */
   default?: unknown;
-  /** For enum type — allowed values */
+  /** For enum type - allowed values */
   enum?: readonly string[];
-  /** For array type — schema of each element */
+  /** For array type - schema of each element */
   items?: FieldSchema | Record<string, FieldSchema>;
-  /** For object type — nested field schemas */
+  /** For object type - nested field schemas */
   properties?: Record<string, FieldSchema>;
 }
 
@@ -56,7 +56,7 @@ const INPUT_SCHEMA: ToolConfigSchema = {
     type: {
       description: 'File format type (when category is "file")',
       type: 'enum',
-      enum: ['csv', 'parquet', 'xlsx', 'json', 'yxdb'] as const,
+      enum: ['csv', 'parquet', 'xlsx', 'json', 'yxdb', 'qvd'] as const,
     },
     source: {
       description: 'File path or connection identifier',
@@ -124,13 +124,13 @@ const FILTER_SCHEMA: ToolConfigSchema = {
   description: 'Filter rows based on conditions. Has two outputs: matching rows (True) and non-matching rows (False).',
   fields: {
     mode: {
-      description: 'Configuration mode. Do not set manually — it is set automatically.',
+      description: 'Configuration mode. Do not set manually - it is set automatically.',
       type: 'enum',
       enum: ['Basic', 'Custom'] as const,
       default: 'Basic',
     },
     expression: {
-      description: 'Polars filter expression. Auto-generated from conditions — do not set manually.',
+      description: 'Polars filter expression. Auto-generated from conditions - do not set manually.',
       type: 'string',
       default: '',
     },

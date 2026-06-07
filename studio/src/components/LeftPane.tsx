@@ -7,7 +7,11 @@ import { JSONOutputMode } from "@domain/dataSources/jsonOutput";
 import { ParquetMode } from "@domain/dataSources/parquet";
 import { ParquetOutputMode } from "@domain/dataSources/parquetOutput";
 import { useHistoryStore } from "@state/historyStore";
-import { useWorkflowStore } from "@state/workflowStore";
+import {
+  useToolCount,
+  useWireCount,
+  useWorkflowStore,
+} from "@state/workflowStore";
 import { useTabStore } from "@state/tabStore";
 import { createLogger } from "@utils/logger";
 import { ToolConfig } from "../domain/workflow/entities/workflow";
@@ -31,6 +35,7 @@ import { ExcelOutputConfiguration } from "./config/inout/ExcelOutputConfiguratio
 import { IpcOutputConfiguration } from "./config/inout/IpcOutputConfiguration";
 import { JsonOutputConfiguration } from "./config/inout/JsonOutputConfiguration";
 import { ParquetOutputConfiguration } from "./config/inout/ParquetOutputConfiguration";
+import { QvdConfiguration } from "./config/inout/QvdConfiguration";
 import { YxdbConfiguration } from "./config/inout/YxdbConfiguration";
 import { YxdbOutputConfiguration } from "./config/inout/YxdbOutputConfiguration";
 // Shell components
@@ -53,6 +58,14 @@ const logger = createLogger('LeftPane');
 export default function LeftPane() {
   // Access stores directly
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
+  // Count-only selectors for the summary chips so position/config
+  // edits on individual tools do not re-render the entire left pane.
+  const toolCount = useToolCount();
+  const wireCount = useWireCount();
+  // The full tools/wires arrays are still needed when a workflow-aware
+  // config panel is mounted (Filter, Formula, Join, etc) and when the
+  // history snapshot helper fires below. We subscribe to them so the
+  // mounted config panel updates when upstream tools change.
   const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const workflowMeta = useWorkflowStore((s) => s.workflowMeta);
@@ -69,6 +82,13 @@ export default function LeftPane() {
   const activeTabId = useTabStore((s) => s.activeTabId);
   const markTabDirty = useTabStore((s) => s.markTabDirty);
 
+  // Snapshot helper reads fresh state from the store at call
+  // time so handlers stay stable across renders.
+  const snapshotForHistory = () => {
+    const s = useWorkflowStore.getState();
+    pushState(s.tools, s.wires, s.workflowMeta);
+  };
+
   // Handler functions
   const handleWorkflowMetaChange = (meta: {
     name: string;
@@ -76,8 +96,7 @@ export default function LeftPane() {
     author: string;
   }) => {
     logger.info("Workflow metadata updated:", meta.name);
-    // Save current state before change
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
 
     // Update meta in store
     updateWorkflowMeta(meta);
@@ -90,8 +109,7 @@ export default function LeftPane() {
 
   const handleToolConfigChange = (toolId: string, config: ToolConfig) => {
     logger.debug("Tool configuration updated:", toolId);
-    // Save current state before change
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
 
     // Update configuration in store
     updateToolConfiguration(toolId, config);
@@ -103,15 +121,12 @@ export default function LeftPane() {
   };
 
   const handleToolCommentChange = (toolId: string, comment: string | undefined) => {
-    pushState(tools, wires, workflowMeta);
+    snapshotForHistory();
     updateToolComment(toolId, comment);
     if (activeTabId) {
       markTabDirty(activeTabId);
     }
   };
-
-  const toolCount = tools.length;
-  const wireCount = wires.length;
 
   // Show tool palette / workflow configuration if no tool is selected
   if (!selectedTool) {
@@ -128,8 +143,8 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("tools")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "tools"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -138,8 +153,8 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("workflow")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "workflow"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <Settings className="w-4 h-4" />
@@ -148,24 +163,24 @@ export default function LeftPane() {
             <button
               onClick={() => setLeftPaneTab("settings")}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "settings"
-                  ? "bg-theme-surface-elevated text-theme-interactive-accent"
-                  : "text-theme-text-secondary hover:text-theme-text-primary"
+                ? "bg-theme-surface-elevated text-theme-interactive-accent"
+                : "text-theme-text-secondary hover:text-theme-text-primary"
                 }`}
             >
               <Sliders className="w-4 h-4" />
               <span>Settings</span>
             </button>
             {aiEnabled && (
-            <button
-              onClick={() => setLeftPaneTab("ai")}
-              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "ai"
+              <button
+                onClick={() => setLeftPaneTab("ai")}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${leftPaneTab === "ai"
                   ? "bg-theme-surface-elevated text-theme-interactive-accent"
                   : "text-theme-text-secondary hover:text-theme-text-primary"
-                }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>AI</span>
-            </button>
+                  }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI</span>
+              </button>
             )}
           </div>
         </div>
@@ -376,10 +391,25 @@ export default function LeftPane() {
                     }
                     handleToolConfigChange(selectedTool.id, newConfig);
                   } else if (dataSource.id === "yxdb") {
-                    // YXDB has no mode selection (always eager read via OpenYXDB)
+                    // YXDB has no mode selection (always eager read via SigilYX)
                     const newConfig: ToolConfig = {
                       category: "file" as const,
                       type: "yxdb" as const,
+                    };
+                    // Preserve existing file path if any
+                    const existingFilePath = selectedTool.config?.filePath;
+                    if (
+                      existingFilePath !== undefined &&
+                      existingFilePath !== null
+                    ) {
+                      newConfig.filePath = existingFilePath;
+                    }
+                    handleToolConfigChange(selectedTool.id, newConfig);
+                  } else if (dataSource.id === "qvd") {
+                    // QVD has no mode selection (always eager read via OpenQVD)
+                    const newConfig: ToolConfig = {
+                      category: "file" as const,
+                      type: "qvd" as const,
                     };
                     // Preserve existing file path if any
                     const existingFilePath = selectedTool.config?.filePath;
@@ -517,6 +547,15 @@ export default function LeftPane() {
               selectedTool.config.type === "yxdb" ? (
               /* YXDB Configuration Panel */
               <YxdbConfiguration
+                config={selectedTool.config}
+                onChange={(config) =>
+                  handleToolConfigChange(selectedTool.id, config)
+                }
+              />
+            ) : selectedTool.config.category === "file" &&
+              selectedTool.config.type === "qvd" ? (
+              /* QVD Configuration Panel */
+              <QvdConfiguration
                 config={selectedTool.config}
                 onChange={(config) =>
                   handleToolConfigChange(selectedTool.id, config)

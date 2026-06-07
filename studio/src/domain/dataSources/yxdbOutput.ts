@@ -1,8 +1,8 @@
 /**
  * YXDB (Alteryx Database) Output Configuration
  *
- * Uses OpenYXDB for writing Alteryx .yxdb files.
- * YXDB is always written eagerly — the format requires knowing
+ * Uses SigilYX for writing Alteryx .yxdb files.
+ * YXDB is always written eagerly - the format requires knowing
  * the record count upfront and uses row-based LZF-compressed blocks.
  *
  * There is no mode selection (sink vs write) because YXDB does not
@@ -15,7 +15,7 @@
  */
 
 /**
- * YXDB output configuration — minimal since the format has no tuning knobs.
+ * YXDB output configuration - minimal since the format has no tuning knobs.
  */
 export interface PolarsYxdbOutputConfig {
   // === Output Type ===

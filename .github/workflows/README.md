@@ -73,7 +73,7 @@ gh workflow run build-server.yml
 1. Downloads server-{platform} artifact
 2. Copies to studio/resources/server/
 3. Makes executable (Linux/macOS)
-4. Runs npm run build:{platform}:full
+4. Runs bun run build:{platform}:full
 5. Uses electron-builder-full.json config
 
 **Product Name**: Sigilweaver Loom (no suffix)
@@ -103,8 +103,8 @@ gh workflow run build-studio-full.yml
 - `macos-client-artifacts` (DMG)
 
 **Build Process**:
-1. Installs npm dependencies
-2. Runs npm run build:{platform}:client
+1. Installs bun dependencies
+2. Runs bun run build:{platform}:client
 3. Uses electron-builder-client.json config
 
 **Product Name**: Sigilweaver-Loom-Client (with suffix)
@@ -127,8 +127,8 @@ gh workflow run build-studio-client.yml
 - `web-dist-zip` artifact (dist-web.zip)
 
 **Build Process**:
-1. Runs npm ci
-2. Executes npm run build:web:zip
+1. Runs bun install --frozen-lockfile
+2. Executes bun run build:web:zip
 3. Creates dist-web.zip with static files
 
 **Can be tested standalone**:
@@ -251,7 +251,7 @@ gh release delete v0.0.1-test --yes
 
 - `actions/checkout@v4` - Repository checkout
 - `actions/setup-python@v5` - Python environment
-- `actions/setup-node@v4` - Node.js environment  
+- `oven-sh/setup-bun@v2` - bun environment  
 - `actions/upload-artifact@v4` - Artifact storage
 - `actions/download-artifact@v4` - Artifact retrieval
 - `softprops/action-gh-release@v2` - GitHub Release creation
@@ -313,7 +313,7 @@ gh release delete v0.0.1-test --yes
 - Client version uses strict confinement
 
 **5. Windows build missing exe**:
-- Verify npm run build:win:{variant} creates dist/ directory
+- Verify bun run build:win:{variant} creates dist/ directory
 - Check electron-builder config has correct targets (nsis, portable)
 - Review Windows runner logs for electron-builder errors
 
@@ -331,14 +331,15 @@ env:
 
 ## Maintenance
 
-### Updating Node Version
+### Updating bun Version
 
-Update in these files:
-- `.github/workflows/ci.yml` (setup-node)
-- `.github/workflows/build-studio-full.yml` (input default)
-- `.github/workflows/build-studio-client.yml` (input default)
-- `.github/workflows/build-web.yml` (input default)
-- `.github/workflows/release.yml` (workflow_call inputs)
+bun is installed via `oven-sh/setup-bun@v2` (latest by default). To pin a
+specific version, add `bun-version:` to the setup-bun step in these files:
+- `.github/workflows/ci.yml`
+- `.github/workflows/build-studio-full.yml`
+- `.github/workflows/build-studio-client.yml`
+- `.github/workflows/build-studio-tauri.yml`
+- `.github/workflows/build-web.yml`
 
 ### Updating Python Version
 
@@ -375,7 +376,7 @@ Update in these files:
 
 ### Optimization Opportunities
 
-- Cache npm dependencies (already enabled)
+- Cache bun dependencies (already enabled)
 - Cache Python dependencies (could add)
 - Use matrix strategies for parallelization (already done)
 - Reusable workflows reduce duplication (already done)

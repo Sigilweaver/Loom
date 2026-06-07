@@ -3,6 +3,7 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -13,6 +14,18 @@ from app.utils.errors import ToolError
 
 # Valid sample modes
 SAMPLE_MODES = {"FirstN", "LastN", "EveryN", "Random", "RandomPercent", "FirstPercent"}
+
+
+class SampleToolConfig(BaseModel):
+    """Typed config for Sample."""
+
+    model_config = ConfigDict(extra="allow")
+
+    mode: str = Field(default="FirstN")
+    n: int = Field(default=100)
+    percent: float = Field(default=10.0)
+    offset: int = Field(default=0)
+    seed: int | None = Field(default=None)
 
 
 @register_tool("Sample")
@@ -51,6 +64,19 @@ class SampleTool(BaseTool):
     def should_cache(self, config: dict[str, Any]) -> bool:
         """Cache only if blocking - non-blocking modes are cheap to re-run."""
         return self.is_blocking(config)
+
+    @classmethod
+    def config_model(cls) -> type[SampleToolConfig]:
+        return SampleToolConfig
+
+    def cache_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "mode": config.get("mode", "FirstN"),
+            "n": config.get("n", 100),
+            "percent": config.get("percent", 10.0),
+            "offset": config.get("offset", 0),
+            "seed": config.get("seed"),
+        }
 
     def _build_operation(self, config: dict[str, Any]) -> SampleOperation:
         """Build the sample operation from config."""

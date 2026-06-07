@@ -255,3 +255,79 @@ class TestSessionManager:
         assert count == 5
         mock_db.execute.assert_called_once()
         mock_db.commit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cleanup_expired_sessions_batched(
+        self, session_manager, mock_db
+    ):
+        """batch_size kwarg should issue a bounded subquery-based DELETE.
+
+        We can't introspect the rendered SQL trivially from a MagicMock,
+        but we can assert the manager honours the kwarg signature, runs
+        a single DELETE per call, and returns the result row count.
+        """
+        mock_result = MagicMock()
+        mock_result.rowcount = 1000
+        mock_db.execute.return_value = mock_result
+
+        count = await session_manager.cleanup_expired_sessions(batch_size=1000)
+
+        assert count == 1000
+        assert mock_db.execute.call_count == 1
+        mock_db.commit.assert_called_once()
+
+
+class TestSessionCleanupLoop:
+    """Tests for the periodic session-cleanup background task."""
+
+    @pytest.mark.asyncio
+    async def test_loop_invokes_cleanup_each_interval(self):
+        """The loop sleeps for the configured interval then runs cleanup."""
+        import asyncio
+
+        from app import main as main_module
+
+        sleep_calls: list[float] = []
+        cleanup_calls: list[int | None] = []
+        # First sleep returns normally so we run the body once; the second
+        # raises CancelledError so the loop exits cleanly.
+        sleep_side_effects = iter([None, asyncio.CancelledError()])
+
+        async def fake_sleep(seconds):
+            sleep_calls.append(seconds)
+            result = next(sleep_side_effects)
+            if isinstance(result, BaseException):
+                raise result
+            return result
+
+        class FakeManager:
+            def __init__(self, _db):
+                pass
+
+            async def cleanup_expired_sessions(self, batch_size=None):
+                cleanup_calls.append(batch_size)
+                return 0
+
+        class FakeCtx:
+            async def __aenter__(self):
+                return MagicMock()
+
+            async def __aexit__(self, *exc):
+                return False
+
+        with (
+            patch("asyncio.sleep", fake_sleep),
+            patch.object(main_module, "SessionManager", FakeManager),
+            patch.object(
+                main_module, "async_session_maker", lambda: FakeCtx()
+            ),
+            patch.object(
+                main_module.settings, "session_cleanup_batch_size", 250
+            ),
+            patch.object(main_module, "SESSION_CLEANUP_INTERVAL", 42),
+        ):
+            await main_module._session_cleanup_loop()
+
+        assert sleep_calls[0] == 42
+        assert cleanup_calls == [250]
+

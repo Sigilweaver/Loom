@@ -18,19 +18,19 @@ Patterns and practices for testing the TypeScript/React Studio.
 cd studio
 
 # All unit tests
-npm test
+bun run test
 
 # Watch mode (re-runs on change)
-npm run test:watch
+bun run test:watch
 
 # With coverage
-npm run test:coverage
+bun run test:coverage
 
 # Specific file
-npm test WorkflowSerializer
+bun run test WorkflowSerializer
 
 # Integration tests (requires Server)
-npm run test:integration
+bun run test:integration
 ```
 
 ## Test Organization
@@ -628,7 +628,7 @@ describe('API Integration', () => {
 Run with:
 
 ```bash
-npm run test:integration
+bun run test:integration
 ```
 
 This starts the backend, runs integration tests, then stops the backend.

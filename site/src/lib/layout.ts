@@ -3,7 +3,7 @@
  * Handles dynamic component injection and page setup
  */
 
-import { createHeader, createFooter, createSkipLink, createBetaBanner, HeaderOptions, FooterOptions } from '@components/index';
+import { createHeader, createFooter, createSkipLink, HeaderOptions, FooterOptions } from '@components/index';
 
 export interface LayoutOptions {
   header?: HeaderOptions | false;
@@ -41,12 +41,6 @@ export function initializeLayout(options: LayoutOptions = {}): void {
       } else {
         document.body.insertAdjacentHTML('afterbegin', createHeader(header));
       }
-    }
-
-    // Insert beta banner after header
-    const headerEl = document.querySelector('nav[role="navigation"]');
-    if (headerEl) {
-      headerEl.insertAdjacentHTML('afterend', createBetaBanner());
     }
   }
 

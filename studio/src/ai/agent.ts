@@ -16,8 +16,8 @@ import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 
 // Agent tools
-import { addTool, updateTool, updateTools, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
-import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData } from './tools/data';
+import { addTool, updateTool, updateTools, patchToolConfig, insertToolBetween, removeTool, connectTools, disconnectTools, batchCanvasOps } from './tools/canvas';
+import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData, listDatabaseConnections, describeSchema, queryDatabase } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
 
@@ -26,6 +26,8 @@ const AGENT_TOOLS = {
   add_tool: addTool,
   update_tool: updateTool,
   update_tools: updateTools,
+  patch_tool_config: patchToolConfig,
+  insert_tool_between: insertToolBetween,
   remove_tool: removeTool,
   connect_tools: connectTools,
   disconnect_tools: disconnectTools,
@@ -35,6 +37,9 @@ const AGENT_TOOLS = {
   preview_tool_output: previewToolOutput,
   get_column_metadata: getColumnMetadata,
   profile_tool_data: profileToolData,
+  list_database_connections: listDatabaseConnections,
+  describe_schema: describeSchema,
+  query_database: queryDatabase,
   build_workflow: buildWorkflowTool,
   ask_user: askUser,
 };
@@ -154,7 +159,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
           result: (step.toolResults ?? []).find((tr) => tr.toolCallId === tc.toolCallId)?.output,
         }));
         // Push the completed step's segments (text then tool calls)
-        // Reset streaming text since it was for this step — next step starts fresh
+        // Reset streaming text since it was for this step - next step starts fresh
         useAIStore.getState().addStreamingStepSegments(step.text || '', stepToolCalls);
         useAIStore.getState().setStreamingText('');
       },
@@ -279,7 +284,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       if (activeTab === finishedTabId) {
         const next = useAIStore.getState().dequeuePrompt(finishedTabId);
         if (next) {
-          // Fire-and-forget — don't await to avoid recursive stack growth
+          // Fire-and-forget - don't await to avoid recursive stack growth
           void sendAgentMessage(next);
         }
       }
@@ -306,40 +311,40 @@ export function classifyError(message: string): ClassifiedError {
 
   // Authentication / authorization errors
   if (lower.includes('401') || lower.includes('403') || lower.includes('invalid api key')
-      || lower.includes('unauthorized') || lower.includes('authentication')
-      || lower.includes('permission denied')) {
+    || lower.includes('unauthorized') || lower.includes('authentication')
+    || lower.includes('permission denied')) {
     return {
       category: 'auth',
-      displayMessage: 'Authentication failed — check your API key in Settings → AI.',
+      displayMessage: 'Authentication failed - check your API key in Settings → AI.',
       retryable: false,
     };
   }
 
   // Rate limiting
   if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')
-      || lower.includes('quota exceeded')) {
+    || lower.includes('quota exceeded')) {
     return {
       category: 'rate-limit',
-      displayMessage: 'Rate limited by provider — wait a moment and try again.',
+      displayMessage: 'Rate limited by provider - wait a moment and try again.',
       retryable: true,
     };
   }
 
   // Provider overloaded
   if (lower.includes('503') || lower.includes('overloaded') || lower.includes('capacity')
-      || lower.includes('temporarily unavailable')) {
+    || lower.includes('temporarily unavailable')) {
     return {
       category: 'overloaded',
-      displayMessage: 'Provider temporarily overloaded — try again in a few seconds.',
+      displayMessage: 'Provider temporarily overloaded - try again in a few seconds.',
       retryable: true,
     };
   }
 
   // Network / connection errors
   if (lower.includes('502') || lower.includes('504') || lower.includes('could not connect')
-      || lower.includes('econnrefused') || lower.includes('enotfound')
-      || lower.includes('network') || lower.includes('timeout')
-      || lower.includes('fetch failed') || lower.includes('econnreset')) {
+    || lower.includes('econnrefused') || lower.includes('enotfound')
+    || lower.includes('network') || lower.includes('timeout')
+    || lower.includes('fetch failed') || lower.includes('econnreset')) {
     return {
       category: 'network',
       displayMessage: `Connection error: ${message}. Is the Sigilweaver Loom Server running?`,
@@ -357,7 +362,7 @@ export function classifyError(message: string): ClassifiedError {
 
 /**
  * Generate a Polars expression using AI.
- * Lighter-weight than the full agent — no tool use, just prompt-in/expression-out.
+ * Lighter-weight than the full agent - no tool use, just prompt-in/expression-out.
  */
 export async function generateExpression(
   userRequest: string,
@@ -406,7 +411,7 @@ export interface BasicFilterResult {
 
 /**
  * Generate structured filter conditions from natural language (basic mode).
- * Returns JSON conditions — not raw Polars expressions.
+ * Returns JSON conditions - not raw Polars expressions.
  */
 export async function generateBasicFilter(
   userRequest: string,
@@ -481,7 +486,7 @@ export interface BasicFormulaOperation {
 
 /**
  * Generate structured formula operations from natural language (basic mode).
- * Returns JSON operation configs — not raw Polars expressions.
+ * Returns JSON operation configs - not raw Polars expressions.
  */
 export async function generateBasicFormula(
   userRequest: string,
@@ -610,7 +615,7 @@ export function buildMessageHistory(
 
 /**
  * Produce a compact summary of a tool result for message history.
- * Avoids sending raw output — extracts the key facts instead.
+ * Avoids sending raw output - extracts the key facts instead.
  *
  * Most tools now return `{ data: "compact text" }`. For those, we
  * extract the first line (or truncate) as the summary. Legacy JSON
@@ -624,7 +629,7 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
   // Error result
   if (r.error) return `error: ${truncateStr(String(r.error), 150)}`;
 
-  // Compact text format — used by preview, add_tool, build_workflow, profile
+  // Compact text format - used by preview, add_tool, build_workflow, profile
   if (typeof r.data === 'string') {
     // For message history, take just the first line as a summary
     const firstLine = (r.data as string).split('\n')[0] ?? '';
@@ -635,14 +640,14 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
   switch (toolName) {
     case 'build_workflow':
       return `${r.toolCount} tools, ${r.wireCount} wires` +
-        (r.inputColumns ? `, columns: ${(r.inputColumns as Array<{name: string}>).map(c => c.name).join(', ')}` : '');
+        (r.inputColumns ? `, columns: ${(r.inputColumns as Array<{ name: string }>).map(c => c.name).join(', ')}` : '');
     case 'preview_tool_output':
-      return `${r.rowCount ?? '?'} rows, schema: ${((r.schema as Array<{name: string}>) ?? []).map(c => c.name).join(', ')}`;
+      return `${r.rowCount ?? '?'} rows, schema: ${((r.schema as Array<{ name: string }>) ?? []).map(c => c.name).join(', ')}`;
     case 'get_column_metadata':
-      return `cols: ${((r.columns as Array<{name: string; dtype: string}>) ?? []).map(c => `${c.name}(${c.dtype})`).join(', ')}`;
+      return `cols: ${((r.columns as Array<{ name: string; dtype: string }>) ?? []).map(c => `${c.name}(${c.dtype})`).join(', ')}`;
     case 'search_files':
       return `${((r.results as unknown[]) ?? []).length} results` +
-        ((r.results as Array<{path: string}>) ?? []).slice(0, 3).map(f => ` ${f.path}`).join(',');
+        ((r.results as Array<{ path: string }>) ?? []).slice(0, 3).map(f => ` ${f.path}`).join(',');
     case 'add_tool':
       return `${r.type} [${r.toolId}]${r.connected ? ' connected' : ''}`;
     case 'update_tool':

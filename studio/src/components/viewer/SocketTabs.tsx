@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useUIStore } from "@state/uiStore";
-import { useWorkflowStore } from "@state/workflowStore";
+import {
+  useToolById,
+  useWorkflowStore,
+} from "@state/workflowStore";
 import { TOOL_DEFINITIONS } from "@data/tools";
 import { useSocketPreview } from "@hooks/useSocketPreview";
 
@@ -18,9 +21,11 @@ interface SocketTabInfo {
  */
 const SocketTabs = () => {
   const previewState = useUIStore((s) => s.previewState);
-  const tools = useWorkflowStore((s) => s.tools);
   const wires = useWorkflowStore((s) => s.wires);
   const selectedTool = useWorkflowStore((s) => s.selectedTool);
+  // Subscribe to just the preview-targeted tool by id so unrelated
+  // tool mutations do not re-render this panel.
+  const previewTool = useToolById(previewState?.toolId);
   const { previewSocket } = useSocketPreview();
 
   // Get the current tool - prefer selectedTool (what user clicked), fallback to previewState
@@ -30,11 +35,8 @@ const SocketTabs = () => {
       return selectedTool;
     }
     // Fallback to tool from preview state if nothing selected
-    if (previewState?.toolId) {
-      return tools.find((t) => t.id === previewState.toolId) ?? null;
-    }
-    return null;
-  }, [selectedTool, previewState?.toolId, tools]);
+    return previewTool;
+  }, [selectedTool, previewTool]);
 
   // Get tool definition for socket info
   const toolDefinition = useMemo(() => {

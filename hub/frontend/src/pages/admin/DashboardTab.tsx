@@ -113,7 +113,7 @@ function StatCard({
   trendLabel,
 }: StatCardProps) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5">
+    <div className="bg-surface-raised rounded-lg border border-line p-5">
       <div className="flex items-start justify-between">
         <div className={`p-2.5 rounded-lg ${iconBg}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
@@ -125,7 +125,7 @@ function StatCard({
                 ? "text-green-600"
                 : trend === "down"
                   ? "text-red-600"
-                  : "text-gray-500"
+                  : "text-ink-subtle"
             }`}
           >
             {trend === "up" && <ArrowUpRight className="h-3.5 w-3.5" />}
@@ -136,9 +136,9 @@ function StatCard({
         )}
       </div>
       <div className="mt-3">
-        <p className="text-2xl font-semibold text-gray-900">{value}</p>
-        <p className="text-sm font-medium text-gray-600 mt-0.5">{title}</p>
-        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        <p className="text-2xl font-semibold text-ink">{value}</p>
+        <p className="text-sm font-medium text-ink-muted mt-0.5">{title}</p>
+        {subtitle && <p className="text-xs text-ink-subtle mt-1">{subtitle}</p>}
       </div>
     </div>
   );
@@ -154,15 +154,15 @@ function ServerStatusRow({ server }: { server: ServerResponse }) {
         }`}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{server.name}</p>
-        <p className="text-xs text-gray-500 truncate">{server.endpoint_url}</p>
+        <p className="text-sm font-medium text-ink truncate">{server.name}</p>
+        <p className="text-xs text-ink-subtle truncate">{server.endpoint_url}</p>
       </div>
       <div className="text-right">
         <p className={`text-xs font-medium ${isOnline ? "text-green-600" : "text-red-600"}`}>
           {isOnline ? "Online" : "Offline"}
         </p>
         {server.last_poll && (
-          <p className="text-xs text-gray-400">{formatRelativeTime(server.last_poll)}</p>
+          <p className="text-xs text-ink-faint">{formatRelativeTime(server.last_poll)}</p>
         )}
       </div>
     </div>
@@ -170,7 +170,7 @@ function ServerStatusRow({ server }: { server: ServerResponse }) {
 }
 
 function ExecutionStatusBadge({ status }: { status: string }) {
-  const defaultConfig = { icon: Clock, className: "bg-gray-100 text-gray-600", label: "Queued" };
+  const defaultConfig = { icon: Clock, className: "bg-surface-hover text-ink-muted", label: "Queued" };
   const config: Record<string, { icon: typeof Clock; className: string; label: string }> = {
     queued: defaultConfig,
     running: { icon: Loader2, className: "bg-blue-100 text-blue-600", label: "Running" },
@@ -329,7 +329,7 @@ export function DashboardTab() {
         <button
           onClick={() => fetchStats(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-hover rounded-lg transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
@@ -370,7 +370,7 @@ export function DashboardTab() {
 
       {/* Execution Stats */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-ink-muted mb-3 flex items-center gap-2">
           <Activity className="h-4 w-4" />
           Execution Activity (Last 24 Hours)
         </h3>
@@ -379,8 +379,8 @@ export function DashboardTab() {
             title="Total Executions"
             value={stats.executions24h}
             icon={Play}
-            iconColor="text-gray-600"
-            iconBg="bg-gray-100"
+            iconColor="text-ink-muted"
+            iconBg="bg-surface-hover"
             trend={stats.executionTrend}
             trendLabel="vs prev 24h"
           />
@@ -419,11 +419,11 @@ export function DashboardTab() {
       {/* Two column layout for servers and recent executions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Server Health */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="bg-surface-raised rounded-lg border border-line">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-line">
             <div className="flex items-center gap-2">
-              <Server className="h-5 w-5 text-gray-500" />
-              <h3 className="font-medium text-gray-900">Server Health</h3>
+              <Server className="h-5 w-5 text-ink-subtle" />
+              <h3 className="font-medium text-ink">Server Health</h3>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="flex items-center gap-1.5">
@@ -441,14 +441,14 @@ export function DashboardTab() {
           <div className="p-5">
             {stats.servers.length === 0 ? (
               <div className="text-center py-6">
-                <Server className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No servers registered</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <Server className="h-10 w-10 text-ink-faint mx-auto mb-2" />
+                <p className="text-sm text-ink-subtle">No servers registered</p>
+                <p className="text-xs text-ink-faint mt-1">
                   Add servers in the Servers tab to start executing workflows
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 {stats.servers.map((server) => (
                   <ServerStatusRow key={server.id} server={server} />
                 ))}
@@ -458,29 +458,29 @@ export function DashboardTab() {
         </div>
 
         {/* Recent Executions */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="bg-surface-raised rounded-lg border border-line">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-line">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-gray-500" />
-              <h3 className="font-medium text-gray-900">Recent Executions</h3>
+              <TrendingUp className="h-5 w-5 text-ink-subtle" />
+              <h3 className="font-medium text-ink">Recent Executions</h3>
             </div>
-            <span className="text-sm text-gray-500">{stats.executionCount} total</span>
+            <span className="text-sm text-ink-subtle">{stats.executionCount} total</span>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {stats.recentExecutions.length === 0 ? (
               <div className="text-center py-8">
-                <Play className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No executions yet</p>
+                <Play className="h-10 w-10 text-ink-faint mx-auto mb-2" />
+                <p className="text-sm text-ink-subtle">No executions yet</p>
               </div>
             ) : (
               stats.recentExecutions.map((execution) => (
-                <div key={execution.id} className="px-5 py-3 hover:bg-gray-50">
+                <div key={execution.id} className="px-5 py-3 hover:bg-surface-sunken">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-ink truncate">
                         {execution.workflow_name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-ink-subtle">
                         {execution.server_name} - {formatRelativeTime(execution.queued_at)}
                         {execution.triggered_by && ` - by ${execution.triggered_by}`}
                       </p>
@@ -495,12 +495,12 @@ export function DashboardTab() {
       </div>
 
       {/* System Info */}
-      <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+      <div className="bg-surface-sunken rounded-lg border border-line p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">
-            Sigilweaver Loom Hub v{stats.hubVersion}
+          <span className="text-ink-muted">
+            Loom Hub v{stats.hubVersion}
           </span>
-          <span className="text-gray-500">
+          <span className="text-ink-subtle">
             {stats.groupCount} groups - {stats.connectionCount} connections - {stats.userCount} users
           </span>
         </div>

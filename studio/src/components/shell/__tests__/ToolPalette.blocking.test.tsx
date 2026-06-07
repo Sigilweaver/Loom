@@ -40,9 +40,9 @@ describe("ToolPalette blocking indicators", () => {
 
     render(<ToolPalette />);
 
-    // Sort is a blocking tool — its labels should include the blocking explanation.
+    // Sort is a blocking tool - its labels should include the blocking explanation.
     // Multiple matches expected (favorites + category section).
-    const sortLabels = screen.getAllByTitle("Sort (blocking operation — breaks lazy evaluation)");
+    const sortLabels = screen.getAllByTitle("Sort (blocking operation - breaks lazy evaluation)");
     expect(sortLabels.length).toBeGreaterThanOrEqual(1);
   });
 

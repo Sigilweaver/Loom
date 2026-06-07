@@ -1,5 +1,5 @@
 /**
- * Comment Generator — auto-generates human-readable comments for tools
+ * Comment Generator - auto-generates human-readable comments for tools
  * based on their type and configuration.
  *
  * Comment semantics:
@@ -113,7 +113,7 @@ function generateFilterComment(config: ToolConfig): string {
     return expr ?? "";
   }
 
-  // Basic mode — conditions array
+  // Basic mode - conditions array
   const conditions = config.conditions as
     | Array<{ column?: string; operator?: string; value?: unknown }>
     | undefined;
@@ -163,7 +163,7 @@ function generateSortComment(config: ToolConfig): string {
     return s.column ? `by ${s.column} ${dir}` : "";
   }
 
-  // Multiple sort columns — show first + count
+  // Multiple sort columns - show first + count
   const first = sortCols[0];
   if (!first) return `${sortCols.length} sort keys`;
   const dir = (first.direction || "asc").toUpperCase();

@@ -1,6 +1,7 @@
 """Workflow execution API routes"""
 
 import logging
+import uuid
 from contextlib import contextmanager
 from typing import Annotated, Any, Generator
 
@@ -13,12 +14,51 @@ from app.domain.connections.resolver import ConnectionResolver, get_connection_r
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.hub import AuthorizationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
-from app.utils.errors import ExecutionError, ToolError, ValidationError
+from app.utils.errors import ExecutionError, ExecutionTimeoutError, ToolConfigError, ToolError, ValidationError
 from app.utils.security import FilePathGrant, allowed_paths_context
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
+
+
+def _raise_unexpected(exc: BaseException) -> HTTPException:
+    """Map an unexpected exception to a 500 carrying a stable error id.
+
+    The full traceback is logged at ERROR level keyed by the same id so
+    operators can correlate a client-visible 500 with the server log entry.
+    """
+    error_id = uuid.uuid4().hex
+    logger.error(
+        "unexpected workflow error",
+        exc_info=True,
+        extra={"error_id": error_id, "error_class": type(exc).__name__},
+    )
+    return HTTPException(
+        status_code=500,
+        detail={
+            "error": "Unexpected error",
+            "error_id": error_id,
+            "message": str(exc),
+        },
+    )
+
+
+def _raise_execution_error(exc: ExecutionError) -> HTTPException:
+    """Map an ExecutionError to a 500 surfacing its correlation id.
+
+    ExecutionTimeoutError maps to 504 instead.
+    """
+    status = 504 if isinstance(exc, ExecutionTimeoutError) else 500
+    label = "Execution timeout" if isinstance(exc, ExecutionTimeoutError) else "Execution error"
+    return HTTPException(
+        status_code=status,
+        detail={
+            "error": label,
+            "error_id": exc.error_id,
+            "message": str(exc),
+        },
+    )
 
 
 # Hub mode authentication
@@ -298,12 +338,14 @@ async def execute_workflow(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
 
 
 @router.post("/tool/execute")
@@ -352,12 +394,45 @@ async def execute_tool(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
+
+
+@router.get("/tool/{tool_type}/schema")
+async def get_tool_config_schema(tool_type: str) -> dict[str, Any]:
+    """
+    Return the JSON Schema for a tool's *config*.
+
+    Returns a JSON Schema document derived from the tool's
+    `config_model()`. Tools that have not yet been migrated to typed
+    configs return an empty schema with `"x-typed": False` so callers
+    can detect the legacy case. Unknown tool types -> 404.
+    """
+    from app.domain.tools.registry import ToolRegistry
+
+    try:
+        tool_impl = ToolRegistry.get(tool_type)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Unknown tool type: {tool_type}")
+
+    model = tool_impl.config_model()
+    if model is None:
+        return {
+            "title": tool_type,
+            "type": "object",
+            "properties": {},
+            "x-typed": False,
+        }
+
+    schema = dict(model.model_json_schema())
+    schema["x-typed"] = True
+    return schema
 
 
 @router.post("/tool/schema")
@@ -402,12 +477,14 @@ async def get_tool_schema(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
 
 
 @router.post("/tool/metadata")
@@ -451,12 +528,14 @@ async def get_tool_metadata(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
 
 
 @router.post("/tool/profile")
@@ -516,12 +595,14 @@ async def profile_tool_input(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
 
 
 class PreviewAllRequest(BaseModel):
@@ -580,12 +661,14 @@ async def preview_all_tools(
 
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ToolConfigError as e:
+        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        raise _raise_execution_error(e)
     except ToolError as e:
         raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise _raise_unexpected(e)
 
 
 class PreviewCodeRequest(BaseModel):

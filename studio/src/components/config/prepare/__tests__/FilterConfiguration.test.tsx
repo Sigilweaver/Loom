@@ -200,7 +200,7 @@ describe('FilterConfiguration', () => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]![0];
       expect(lastCall._emit.expression).toBe(true);
     });
 
@@ -225,7 +225,7 @@ describe('FilterConfiguration', () => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]![0];
       expect(lastCall._emit.expression).toBe(true);
     });
 
@@ -256,7 +256,7 @@ describe('FilterConfiguration', () => {
         expect(mockOnChange).toHaveBeenCalled();
       });
 
-      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]![0];
       expect(lastCall._emit.someOtherField).toBe(true);
       expect(lastCall._emit.expression).toBe(true);
     });

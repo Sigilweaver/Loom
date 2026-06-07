@@ -78,7 +78,7 @@ class ManifestBuilder:
         self.version = version
         self.base_url = base_url.rstrip("/")
         # Path prefix for all assets in this release
-        self.path_prefix = f"releases/{version}"
+        self.path_prefix = f"releases/loom/{version}"
 
     def build_stable_manifest(self, commit_sha: str) -> Dict:
         """
@@ -168,7 +168,7 @@ class ManifestBuilder:
 
         Args:
             file: Path to asset file
-            path_prefix: URL path prefix (e.g., 'releases/v0.2.5')
+            path_prefix: URL path prefix (e.g., 'releases/loom/v0.2.5')
 
         Returns:
             Asset info dictionary or None if file should be skipped
@@ -227,7 +227,7 @@ class ManifestBuilder:
             {
                 "version": self.version,
                 "date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                "manifestUrl": f"{self.base_url}/releases/{self.version}/manifest.json",
+                "manifestUrl": f"{self.base_url}/releases/loom/{self.version}/manifest.json",
             }
         )
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate synthetic YXDB test data for Sigilweaver Loom integration testing.
 
-Requires openyxdb to be installed (available on PyPI). Run from the repo root:
+Requires sigilyx to be installed (available on PyPI). Run from the repo root:
 
     python scripts/generate_synthetic_yxdb.py
 
@@ -24,7 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 import polars as pl
-import openyxdb as yx
+import sigilyx as yx
 
 OUTPUT_DIR = REPO_ROOT / ".untracked" / "data" / "ro" / "sigilweaver-synthetic-yxdb"
 SEED = 42

@@ -1,12 +1,22 @@
 """Loader factory for creating appropriate file loaders"""
 
+from app.domain.registry import DATABASE_TYPES, special_loader_types
 from app.domain.tools.loaders.base import FileLoader
 from app.domain.tools.loaders.database import DatabaseLoader
 from app.domain.tools.loaders.generic import GenericLoader
 from app.domain.tools.loaders.json import JsonLoader
+from app.domain.tools.loaders.qvd import QvdLoader
 from app.domain.tools.loaders.specs import LOADER_SPECS
 from app.domain.tools.loaders.yxdb import YxdbLoader
 from app.utils.errors import ToolError
+
+# Concrete special-loader classes, keyed by format type. Every type marked
+# special_loader in app.domain.registry must have an entry here.
+_LOADER_CLASSES: dict[str, type[FileLoader]] = {
+    "json": JsonLoader,
+    "qvd": QvdLoader,
+    "yxdb": YxdbLoader,
+}
 
 
 class LoaderFactory:
@@ -16,21 +26,20 @@ class LoaderFactory:
     Most formats use GenericLoader with their spec from LOADER_SPECS.
     JSON is a special case that handles extension-based format detection.
     Database loaders handle SQL query execution.
+
+    The set of formats needing a special loader is declared in
+    app.domain.registry; this factory binds those types to concrete classes
+    here (it cannot live in the registry without an import cycle).
     """
 
-    # Special case loaders that need custom behavior
+    # Special case loaders that need custom behavior (derived from the registry)
     _special_loaders: dict[str, type[FileLoader]] = {
-        "json": JsonLoader,
-        "yxdb": YxdbLoader,
+        source_type: _LOADER_CLASSES[source_type]
+        for source_type in special_loader_types()
     }
 
     # Database loaders by type
-    _database_loaders: dict[str, str] = {
-        "postgresql": "postgresql",
-        "mysql": "mysql",
-        "sqlite": "sqlite",
-        "mssql": "mssql",
-    }
+    _database_loaders: dict[str, str] = {db_type: db_type for db_type in DATABASE_TYPES}
 
     @classmethod
     def create(cls, source_type: str) -> FileLoader:
