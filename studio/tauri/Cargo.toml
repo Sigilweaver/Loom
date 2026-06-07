@@ -1,6 +1,6 @@
 [package]
 name = "sigilweaver-loom-studio"
-version = "0.0.0"
+version = "0.0.0-dev"
 description = "Sigilweaver Loom Studio - Visual Workflow Designer"
 authors = ["Sigilweaver Loom Team"]
 license = "AGPL-3.0"
