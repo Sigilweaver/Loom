@@ -20,7 +20,6 @@ LICENSE MAP
 | Server    | /server   | GNU AGPLv3   |
 | Hub       | /hub      | GNU AGPLv3   |
 | Scripts   | /scripts  | GNU AGPLv3   |
-| Website   | /site     | CC BY-SA 4.0 |
 | Docs      | /docs     | CC BY-SA 4.0 |
 
 Specific license files are included in the subdirectories for clarity.

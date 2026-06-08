@@ -7,8 +7,7 @@ Runs all checks to ensure CI will pass:
 2. Studio: Type check (tsc) + Lint (eslint) + Tests (vitest) + Coverage
 3. Hub: Backend (ruff + mypy + pytest) + Frontend (tsc + eslint + vitest)
 4. Docs: Build check (validates broken links)
-5. Site: Build check + Type check
-6. Integration tests (requires server running)
+5. Integration tests (requires server running)
 
 Usage:
     ./scripts/test.py                   # Smart mode: only test changed components
@@ -19,7 +18,6 @@ Usage:
     ./scripts/test.py --studio           # Studio checks only
     ./scripts/test.py --hub              # Hub checks only
     ./scripts/test.py --docs             # Docs build check only
-    ./scripts/test.py --site             # Site build check only
     ./scripts/test.py --studio --server  # Multiple components
     ./scripts/test.py --integration      # Integration tests only
     ./scripts/test.py --no-integration   # Skip integration tests
@@ -124,23 +122,22 @@ class ChangedComponents:
     hub_backend: bool = False
     hub_frontend: bool = False
     docs: bool = False
-    site: bool = False
     scripts: bool = False
     workflows: bool = False  # .github/workflows
-    
+
     @property
     def hub(self) -> bool:
         """True if any hub component changed."""
         return self.hub_backend or self.hub_frontend
-    
+
     @property
     def any_changed(self) -> bool:
         """True if any component has changes."""
         return any([
             self.server, self.studio, self.hub_backend, self.hub_frontend,
-            self.docs, self.site, self.scripts, self.workflows
+            self.docs, self.scripts, self.workflows
         ])
-    
+
     def summary(self) -> str:
         """Human-readable summary of changed components."""
         changed = []
@@ -154,8 +151,6 @@ class ChangedComponents:
             changed.append("Hub Frontend")
         if self.docs:
             changed.append("Docs")
-        if self.site:
-            changed.append("Site")
         if self.scripts:
             changed.append("Scripts")
         if self.workflows:
@@ -224,8 +219,6 @@ def detect_changed_components(repo_root: Path) -> ChangedComponents:
             components.hub_frontend = True
         elif path.startswith("docs/"):
             components.docs = True
-        elif path.startswith("site/"):
-            components.site = True
         elif path.startswith("scripts/"):
             components.scripts = True
         elif path.startswith(".github/"):
@@ -235,8 +228,7 @@ def detect_changed_components(repo_root: Path) -> ChangedComponents:
             components.server = True
         elif path in ["package.json", "package-lock.json", "bun.lock", "tsconfig.json"]:
             components.studio = True
-            components.site = True
-    
+
     return components
 
 
@@ -874,63 +866,7 @@ def run_docs_suite(repo_root: Path) -> SuiteResult:
     
     # Build check validates broken links via Docusaurus
     suite.checks.append(run_docs_build(repo_root))
-    
-    return suite
 
-
-# --- Site checks ---
-
-
-def run_site_typecheck(repo_root: Path) -> CheckResult:
-    """Run TypeScript type checker on site."""
-    print_subheader("Site Type Check (tsc)")
-    
-    site_dir = repo_root / "site"
-    
-    # Site doesn't have a typecheck script, so run tsc directly
-    return run_command(
-        ["bun", "x", "tsc", "--noEmit"],
-        site_dir,
-        "Site Types",
-        fail_on_error=True
-    )
-
-
-def run_site_build(repo_root: Path) -> CheckResult:
-    """Run site build check."""
-    print_subheader("Site Build Check")
-    
-    site_dir = repo_root / "site"
-    
-    return run_command(
-        ["bun", "run", "build"],
-        site_dir,
-        "Site Build",
-        fail_on_error=True
-    )
-
-
-def run_site_suite(repo_root: Path) -> SuiteResult:
-    """Run site verification (typecheck + build)."""
-    print_header("Site Verification")
-    
-    site_dir = repo_root / "site"
-    
-    suite = SuiteResult(name="Site")
-    
-    # Auto-setup node_modules if needed
-    if not ensure_node_modules(site_dir, "Site"):
-        suite.checks.append(CheckResult(
-            name="Site Setup",
-            passed=False,
-            duration=0,
-            error="Failed to setup Site dependencies. Check bun is installed."
-        ))
-        return suite
-    
-    suite.checks.append(run_site_typecheck(repo_root))
-    suite.checks.append(run_site_build(repo_root))
-    
     return suite
 
 
@@ -1109,7 +1045,6 @@ Examples:
   ./scripts/test.py --studio          # Studio only (tsc + eslint + vitest + coverage)
   ./scripts/test.py --hub             # Hub only (backend + frontend checks)
   ./scripts/test.py --docs            # Docs only (build + link check)
-  ./scripts/test.py --site            # Site only (typecheck + build)
   ./scripts/test.py --studio --server # Multiple components
   ./scripts/test.py --no-coverage     # Skip coverage reports (faster)
   ./scripts/test.py --strict          # Fail on lint/type warnings
@@ -1139,11 +1074,6 @@ Examples:
         "--docs",
         action="store_true",
         help="Run docs checks (build + link validation)"
-    )
-    parser.add_argument(
-        "--site",
-        action="store_true",
-        help="Run site checks (typecheck + build)"
     )
     parser.add_argument(
         "--integration",
@@ -1204,41 +1134,38 @@ Examples:
     run_studio = True
     run_hub = True
     run_docs = True
-    run_site = True
     run_integration = True
-    
+
     # Track if we're using smart mode
     smart_mode = False
     changed_components: ChangedComponents | None = None
-    
+
     # If any specific tests requested, only run those (explicit override)
-    any_specific = args.server or args.studio or args.hub or args.docs or args.site or args.integration
-    
+    any_specific = args.server or args.studio or args.hub or args.docs or args.integration
+
     if any_specific:
         # Explicit component selection - run exactly what was requested
         run_server = args.server
         run_studio = args.studio
         run_hub = args.hub
         run_docs = args.docs
-        run_site = args.site
         run_integration = args.integration
     elif not args.full:
         # Smart mode: detect changed components from git
         changed_components = detect_changed_components(repo_root)
-        
+
         if changed_components.any_changed:
             smart_mode = True
             run_server = changed_components.server
             run_studio = changed_components.studio
             run_hub = changed_components.hub
             run_docs = changed_components.docs
-            run_site = changed_components.site
             # Run integration tests if server changed
             run_integration = changed_components.server
-            
+
             # If CI workflows changed, run everything
             if changed_components.workflows:
-                run_server = run_studio = run_hub = run_docs = run_site = run_integration = True
+                run_server = run_studio = run_hub = run_docs = run_integration = True
                 smart_mode = False  # Effectively full mode
         else:
             # No changes detected - run nothing (or show message)
@@ -1268,11 +1195,9 @@ Examples:
             print(f"  {Colors.BLUE}Hub{Colors.RESET}: backend (lint, types, tests) + frontend (types, lint, tests)")
         if run_docs:
             print(f"  {Colors.BLUE}Docs{Colors.RESET}: build")
-        if run_site:
-            print(f"  {Colors.BLUE}Site{Colors.RESET}: types, build")
         if run_integration:
             print(f"  {Colors.BLUE}Integration{Colors.RESET}: server health tests")
-        if not any([run_server, run_studio, run_hub, run_docs, run_site, run_integration]):
+        if not any([run_server, run_studio, run_hub, run_docs, run_integration]):
             print(f"  {Colors.DIM}(nothing){Colors.RESET}")
         print()
         if smart_mode:
@@ -1337,10 +1262,7 @@ Examples:
     
     if run_docs:
         suite_runners.append(("Docs", lambda: run_docs_suite(repo_root)))
-    
-    if run_site:
-        suite_runners.append(("Site", lambda: run_site_suite(repo_root)))
-    
+
     # Run suites (either in parallel or sequentially)
     if run_parallel and len(suite_runners) > 1:
         # Run independent suites in parallel using ThreadPoolExecutor
@@ -1370,7 +1292,7 @@ Examples:
         results.append(run_integration_tests(repo_root))
     
     # Determine if this is a full run (all suites enabled, no exclusions)
-    is_full_run = run_server and run_studio and run_hub and run_docs and run_site and run_integration and not smart_mode
+    is_full_run = run_server and run_studio and run_hub and run_docs and run_integration and not smart_mode
     
     # Print summary
     print_summary(results, strict=args.strict, coverage=run_coverage, is_full_run=is_full_run, parallel=run_parallel, smart_mode=smart_mode)

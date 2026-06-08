@@ -2,7 +2,7 @@
 """
 Sigilweaver Loom Development Script
 
-Starts development servers for Studio, Server, Hub, Docs, and/or Site.
+Starts development servers for Studio, Server, Hub, and/or Docs.
 Dependencies are automatically installed when missing.
 
 Usage:
@@ -13,7 +13,6 @@ Usage:
     ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Documentation site only (Docusaurus)
-    ./scripts/dev.py --site             # Marketing website only (Vite)
     ./scripts/dev.py --studio --server  # Multiple components
     ./scripts/dev.py --hub-auth         # Specified components with Hub authentication enabled
     ./scripts/dev.py --all              # Start all core components (Server, Studio, Hub)
@@ -47,7 +46,6 @@ tauri_process: subprocess.Popen | None = None
 hub_backend_process: subprocess.Popen | None = None
 hub_frontend_process: subprocess.Popen | None = None
 docs_process: subprocess.Popen | None = None
-site_process: subprocess.Popen | None = None
 shutdown_requested = False
 
 # Patterns for noisy log lines to filter out (case-insensitive matching)
@@ -92,7 +90,6 @@ DEV_PORTS = {
     25801: "PostgreSQL",
     25802: "Hub API",
     25803: "Hub UI",
-    25808: "Site",
     25809: "Docs",
     25810: "Studio",
     25811: "Server",
@@ -291,18 +288,6 @@ def install_docs(repo_root: Path) -> bool:
         print_error("Failed to install docs dependencies")
         return False
     print_success("Docs dependencies installed")
-    return True
-
-
-def install_site(repo_root: Path) -> bool:
-    """Install site Node.js dependencies."""
-    print_info("Installing site dependencies...")
-    site_dir = repo_root / "site"
-    result = subprocess.run(["npm", "install"], cwd=site_dir)
-    if result.returncode != 0:
-        print_error("Failed to install site dependencies")
-        return False
-    print_success("Site dependencies installed")
     return True
 
 
@@ -612,16 +597,6 @@ def check_docs_setup(repo_root: Path) -> bool:
     if not node_modules.exists():
         print_warning("Docs dependencies not found, installing...")
         if not install_docs(repo_root):
-            return False
-    return True
-
-
-def check_site_setup(repo_root: Path) -> bool:
-    """Check if site node_modules exists. Auto-installs if missing."""
-    node_modules = repo_root / "site" / "node_modules"
-    if not node_modules.exists():
-        print_warning("Site dependencies not found, installing...")
-        if not install_site(repo_root):
             return False
     return True
 
@@ -981,39 +956,6 @@ def start_docs(repo_root: Path) -> subprocess.Popen | None:
         return None
 
 
-def start_site(repo_root: Path) -> subprocess.Popen | None:
-    """Start the marketing website (Vite)."""
-    global site_process
-    
-    print_success("Starting Site dev server...")
-    
-    site_dir = repo_root / "site"
-    npm_cmd = get_npm_command()
-    
-    try:
-        site_process = subprocess.Popen(
-            [npm_cmd, "run", "dev"],
-            cwd=site_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            shell=(sys.platform == "win32"),
-        )
-        
-        thread = threading.Thread(
-            target=stream_output,
-            args=(site_process, "SITE"),
-            daemon=True
-        )
-        thread.start()
-        
-        return site_process
-    except Exception as e:
-        print_error(f"Failed to start Site: {e}")
-        return None
-
-
 def terminate_process(process: subprocess.Popen | None, name: str) -> None:
     """Gracefully terminate a process."""
     if process is None:
@@ -1043,7 +985,6 @@ def cleanup() -> None:
     
     terminate_process(electron_process, "Electron")
     terminate_process(tauri_process, "Tauri")
-    terminate_process(site_process, "Site")
     terminate_process(docs_process, "Docs")
     terminate_process(hub_frontend_process, "Hub Frontend")
     terminate_process(hub_backend_process, "Hub Backend")
@@ -1064,18 +1005,16 @@ def print_status(
     run_studio: bool,
     studio_mode: str = "web",
     run_hub: bool = False,
-    run_docs: bool = False,
-    run_site: bool = False
+    run_docs: bool = False
 ) -> None:
     """Print status information after services start.
-    
+
     Args:
         run_server: Whether server is running.
         run_studio: Whether studio is running.
         studio_mode: One of "web", "electron", or "tauri".
         run_hub: Whether hub is running.
         run_docs: Whether docs server is running.
-        run_site: Whether marketing site is running.
     """
     print()
     print_success("Services started!")
@@ -1091,8 +1030,6 @@ def print_status(
         print(f"Hub UI:         {GREEN}http://localhost:25803{NC}")
     if run_docs:
         print(f"Docs:           {GREEN}http://localhost:25809{NC}")
-    if run_site:
-        print(f"Site:           {GREEN}http://localhost:25808{NC}")
     print(f"{BLUE}========================================{NC}")
     if run_studio and studio_mode == "electron":
         print_success("Electron desktop mode enabled")
@@ -1118,7 +1055,6 @@ Examples:
     ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Docs only (Docusaurus)
-    ./scripts/dev.py --site             # Site only (marketing website)
     ./scripts/dev.py --studio --server  # Multiple components
     ./scripts/dev.py --hub-auth         # All components with Hub authentication enabled
         """
@@ -1164,11 +1100,6 @@ Examples:
         help="Start documentation site (Docusaurus)"
     )
     parser.add_argument(
-        "--site",
-        action="store_true",
-        help="Start marketing website (Vite)"
-    )
-    parser.add_argument(
         "--install",
         action="store_true",
         help="Force reinstall dependencies for selected components (then exit)"
@@ -1191,21 +1122,18 @@ Examples:
         run_studio = True
         run_hub = True
         run_docs = False
-        run_site = False
     # If any specific services requested, only run those
-    elif args.server or args.studio or args.studio_electron or args.studio_tauri or args.hub or args.docs or args.site:
+    elif args.server or args.studio or args.studio_electron or args.studio_tauri or args.hub or args.docs:
         run_server = args.server
         run_studio = args.studio or args.studio_electron or args.studio_tauri
         run_hub = args.hub
         run_docs = args.docs
-        run_site = args.site
     # Default: run all core components (server, studio, hub)
     else:
         run_server = True
         run_studio = True
         run_hub = True
         run_docs = False
-        run_site = False
     
     # If Hub is running, enable hub auth mode for the server automatically
     # This ensures Hub connections work without requiring --hub-auth flag
@@ -1228,9 +1156,7 @@ Examples:
             success = install_hub(repo_root) and success
         if run_docs:
             success = install_docs(repo_root) and success
-        if run_site:
-            success = install_site(repo_root) and success
-        
+
         if success:
             print_success("All dependencies installed!")
         else:
@@ -1254,10 +1180,7 @@ Examples:
     
     if run_docs and not check_docs_setup(repo_root):
         return 1
-    
-    if run_site and not check_site_setup(repo_root):
-        return 1
-    
+
     # Register cleanup handlers
     atexit.register(cleanup)
     signal.signal(signal.SIGINT, signal_handler)
@@ -1277,9 +1200,7 @@ Examples:
         ports_to_clean.extend([25802, 25803])
     if run_docs:
         ports_to_clean.append(25809)
-    if run_site:
-        ports_to_clean.append(25808)
-    
+
     cleanup_stale_processes(list(set(ports_to_clean)))
     
     # Start services in dependency order:
@@ -1331,14 +1252,9 @@ Examples:
         if start_docs(repo_root) is None:
             return 1
         time.sleep(2)
-    
-    if run_site:
-        if start_site(repo_root) is None:
-            return 1
-        time.sleep(2)
-    
+
     # Print status
-    print_status(run_server, run_studio, studio_mode, run_hub, run_docs, run_site)
+    print_status(run_server, run_studio, studio_mode, run_hub, run_docs)
     
     # Wait for processes to complete (they run until interrupted)
     try:
@@ -1360,13 +1276,10 @@ Examples:
             if run_docs and docs_process and docs_process.poll() is not None:
                 print_error("Docs process died unexpectedly!")
                 break
-            if run_site and site_process and site_process.poll() is not None:
-                print_error("Site process died unexpectedly!")
-                break
             if studio_mode == "tauri" and tauri_process and tauri_process.poll() is not None:
                 print_warning("Tauri process exited - web UI still available")
                 # Don't break, web server is still running
-            
+
             time.sleep(1)
     except KeyboardInterrupt:
         pass

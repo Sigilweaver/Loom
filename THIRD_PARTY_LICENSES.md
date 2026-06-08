@@ -6,7 +6,7 @@ This file documents the licenses for third-party assets bundled with Sigilweaver
 
 ## Inter Font
 
-**Location:** `site/public/fonts/`, `docs/static/fonts/`, `studio/public/fonts/`
+**Location:** `docs/static/fonts/`, `studio/public/fonts/`
 
 **License:** SIL Open Font License 1.1
 
@@ -62,7 +62,7 @@ Full license: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## GSAP (GreenSock Animation Platform)
 
-**Location:** Bundled via bun in `site/` and `studio/`
+**Location:** Bundled via bun in `studio/`
 
 **License:** Standard "No Charge" GreenSock License (for non-commercial or open source use)
 
@@ -76,7 +76,7 @@ Full license: https://gsap.com/licensing/
 
 ## Prism.js
 
-**Location:** Bundled via bun in `site/`
+**Location:** Bundled via bun in `studio/`
 
 **License:** MIT License
 
@@ -118,7 +118,7 @@ Full license: https://gsap.com/licensing/
 
 ## React
 
-**Location:** `site/`, `studio/`, `hub/`, `docs/`
+**Location:** `studio/`, `hub/`, `docs/`
 
 **License:** MIT License
 
@@ -155,7 +155,7 @@ Some portions Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES
 
 ## Tailwind CSS
 
-**Location:** `site/`, `studio/`, `hub/`
+**Location:** `studio/`, `hub/`
 
 **License:** MIT License
 

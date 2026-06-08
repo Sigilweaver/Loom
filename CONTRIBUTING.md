@@ -67,7 +67,6 @@ That's it. The dev script handles dependency installation, database setup, and l
 | **Server**  | Execution engine (Python/FastAPI) | [Server Guide](https://sigilweaver.app/docs/developer/contributing/server) |
 | **Hub**     | Orchestration platform            | [Hub Guide](https://sigilweaver.app/docs/developer/contributing/hub)       |
 | **Docs**    | Documentation site (Docusaurus)   | [docs/README.md](docs/README.md)                                           |
-| **Website** | Marketing site (Vite)             | [site/README.md](site/README.md)                                           |
 
 ---
 
@@ -91,7 +90,7 @@ For detailed workflow documentation, see [Contributing Workflow](https://sigilwe
 
 ## License
 
-Sigilweaver Loom is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for documentation and the website.
+Sigilweaver Loom is licensed under AGPLv3 for the core programs, and CC BY-SA 4.0 for documentation.
 
 By contributing, you agree that your contributions will be licensed under these licenses, and you agree to the terms of the CLA.
 

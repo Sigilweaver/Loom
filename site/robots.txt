@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-
-# Sitemap
-Sitemap: https://sigilweaver.app/sitemap.xml
-

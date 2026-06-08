@@ -1,7 +1,0 @@
-# Site-specific (common patterns in root .gitignore)
-
-# Backup folder from migration
-.backup/
-
-# Demo folder
-demo/
