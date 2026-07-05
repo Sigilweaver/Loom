@@ -37,7 +37,6 @@ docs/
 │   │   ├── expressions/      # Expression language
 │   │   ├── interface/        # UI documentation
 │   │   └── tools/            # Tool reference
-│   ├── code-of-conduct.md    # Community guidelines
 │   └── intro.md              # Getting started
 ├── src/                      # Docusaurus customizations
 ├── static/                   # Static assets (images, etc.)

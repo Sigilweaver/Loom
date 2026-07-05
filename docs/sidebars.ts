@@ -171,7 +171,6 @@ const sidebars: SidebarsConfig = {
         'developer/ai-philosophy',
       ],
     },
-    'code-of-conduct',
     'roadmap',
   ],
 };

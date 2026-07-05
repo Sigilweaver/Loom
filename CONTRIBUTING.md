@@ -86,7 +86,7 @@ For detailed workflow documentation, see [Contributing Workflow](https://sigilwe
 
 - **Documentation**: [sigilweaver.app/docs](https://sigilweaver.app/docs)
 - **Issues**: [GitHub Issues](https://github.com/Sigilweaver/Loom/issues)
-- **Code of Conduct**: [sigilweaver.app/docs/code-of-conduct](https://sigilweaver.app/docs/code-of-conduct)
+- **Code of Conduct**: [Sigilweaver/.github/CODE_OF_CONDUCT.md](https://github.com/Sigilweaver/.github/blob/main/CODE_OF_CONDUCT.md)
 
 ## License
 
