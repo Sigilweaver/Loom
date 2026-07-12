@@ -12,6 +12,12 @@ Free and open source. No compromises.
 
 ---
 
+> **Pre-release software.** Loom (currently v0.12.0) has not yet had a
+> stable v1.0 release. Dependency updates and a vulnerability-scanning CI
+> gate now run automatically on every change, but expect breaking changes
+> and rougher edges than the "production grade" language below implies
+> until v1.0 ships.
+
 ## What is Sigilweaver Loom?
 
 Sigilweaver Loom is more than a workflow designer - it's a complete data pipeline platform.
