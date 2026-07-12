@@ -1,0 +1,151 @@
+# Dependency vulnerability audit for Loom.
+#
+# Runs pip-audit (server, hub/backend), bun audit (hub/frontend, studio),
+# and cargo-audit (studio/tauri) against their respective lockfiles on
+# every push/PR that touches them, plus a weekly schedule so advisories
+# published after the last dependency change are still caught.
+
+name: Audit
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "server/uv.lock"
+      - "server/pyproject.toml"
+      - "hub/backend/uv.lock"
+      - "hub/backend/pyproject.toml"
+      - "hub/frontend/bun.lock"
+      - "hub/frontend/package.json"
+      - "studio/bun.lock"
+      - "studio/package.json"
+      - "studio/tauri/Cargo.lock"
+      - "studio/tauri/Cargo.toml"
+      - ".github/workflows/audit.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "server/uv.lock"
+      - "server/pyproject.toml"
+      - "hub/backend/uv.lock"
+      - "hub/backend/pyproject.toml"
+      - "hub/frontend/bun.lock"
+      - "hub/frontend/package.json"
+      - "studio/bun.lock"
+      - "studio/package.json"
+      - "studio/tauri/Cargo.lock"
+      - "studio/tauri/Cargo.toml"
+      - ".github/workflows/audit.yml"
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit-server:
+    name: pip-audit (server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cd server && uv export --no-dev --no-emit-project -o requirements.txt
+      - run: cd server && uvx pip-audit --strict -r requirements.txt
+
+  pip-audit-hub-backend:
+    name: pip-audit (hub/backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cd hub/backend && uv export --no-dev --no-emit-project -o requirements.txt
+      - run: cd hub/backend && uvx pip-audit --strict -r requirements.txt
+
+  bun-audit-hub-frontend:
+    name: bun audit (hub/frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: cd hub/frontend && bun install --frozen-lockfile
+      # Advisories tracked in Sigilweaver/Loom#3 - all in eslint's/vite's/vitest's
+      # own transitive chains, none shipped in the built bundle. Remove these
+      # --ignore flags once that migration lands.
+      - run: >
+          cd hub/frontend && bun audit --audit-level=high
+          --ignore=GHSA-23c5-xmqv-rm74
+          --ignore=GHSA-25h7-pfq9-p65f
+          --ignore=GHSA-3ppc-4f35-3m26
+          --ignore=GHSA-7r86-cg39-jmmj
+          --ignore=GHSA-96hv-2xvq-fx4p
+          --ignore=GHSA-c2c7-rcm5-vvqj
+          --ignore=GHSA-fx2h-pf6j-xcff
+          --ignore=GHSA-hmw2-7cc7-3qxx
+          --ignore=GHSA-mw96-cpmx-2vgc
+          --ignore=GHSA-rf6f-7fwh-wjgh
+
+  bun-audit-studio:
+    name: bun audit (studio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: cd studio && bun install --frozen-lockfile
+      # Advisories tracked in Sigilweaver/Loom#3 - electron-builder's own bundled
+      # deps plus eslint's/vite's/vitest's transitive chains, none shipped in the
+      # built app. Remove these --ignore flags once that migration lands.
+      - run: >
+          cd studio && bun audit --audit-level=high
+          --ignore=GHSA-23c5-xmqv-rm74
+          --ignore=GHSA-25h7-pfq9-p65f
+          --ignore=GHSA-2v35-w6hq-6mfw
+          --ignore=GHSA-34x7-hfp2-rc4v
+          --ignore=GHSA-35jp-ww65-95wh
+          --ignore=GHSA-3g43-6gmg-66jw
+          --ignore=GHSA-3ppc-4f35-3m26
+          --ignore=GHSA-43fc-jf86-j433
+          --ignore=GHSA-6chq-wfr3-2hj9
+          --ignore=GHSA-777c-7fjr-54vf
+          --ignore=GHSA-7h2j-956f-4vf2
+          --ignore=GHSA-7r86-cg39-jmmj
+          --ignore=GHSA-83g3-92jg-28cx
+          --ignore=GHSA-8qq5-rm4j-mr97
+          --ignore=GHSA-96hv-2xvq-fx4p
+          --ignore=GHSA-9ppj-qmqm-q256
+          --ignore=GHSA-c2c7-rcm5-vvqj
+          --ignore=GHSA-f6ww-3ggp-fr8h
+          --ignore=GHSA-fx2h-pf6j-xcff
+          --ignore=GHSA-hfxv-24rg-xrqf
+          --ignore=GHSA-hmw2-7cc7-3qxx
+          --ignore=GHSA-j5f8-grm9-p9fc
+          --ignore=GHSA-j759-j44w-7fr8
+          --ignore=GHSA-mw96-cpmx-2vgc
+          --ignore=GHSA-p92q-9vqr-4j8v
+          --ignore=GHSA-p9ff-h696-f583
+          --ignore=GHSA-pf86-5x62-jrwf
+          --ignore=GHSA-ph9p-34f9-6g65
+          --ignore=GHSA-pmwg-cvhr-8vh7
+          --ignore=GHSA-q3j6-qgpj-74h6
+          --ignore=GHSA-q8qp-cvcw-x6jj
+          --ignore=GHSA-qffp-2rhf-9h96
+          --ignore=GHSA-r5fr-rjxr-66jc
+          --ignore=GHSA-r6q2-hw4h-h46w
+          --ignore=GHSA-rf6f-7fwh-wjgh
+          --ignore=GHSA-v2wj-q39q-566r
+          --ignore=GHSA-v39h-62p7-jpjc
+          --ignore=GHSA-wh4c-j3r5-mjhp
+          --ignore=GHSA-x6wf-f3px-wcqx
+
+  cargo-audit:
+    name: cargo audit (studio/tauri)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@cargo-audit
+      # RUSTSEC-2026-0194/0195 (quick-xml, via plist -> tauri-utils -> tauri) are
+      # tracked in Sigilweaver/Loom#3 - no independent fix without an upstream
+      # tauri/plist bump. Remove these --ignore flags once that lands.
+      - run: >
+          cd studio/tauri && cargo audit
+          --ignore RUSTSEC-2026-0194
+          --ignore RUSTSEC-2026-0195
