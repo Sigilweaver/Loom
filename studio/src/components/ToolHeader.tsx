@@ -33,7 +33,7 @@ export default function ToolHeader({ tool }: ToolHeaderProps) {
             <div className="flex items-center gap-1.5">
               <h2 className="text-lg font-semibold text-theme-text-primary">{toolDefinition?.name || tool.type}</h2>
               {toolDefinition?.blocking && showBlockingIndicators && (
-                <span title="Blocking operation — materializes the dataframe and breaks lazy evaluation">
+                <span title="Blocking operation - materializes the dataframe and breaks lazy evaluation">
                   <AlertTriangle className="w-4 h-4 opacity-50" style={{ color: 'var(--color-warning)' }} />
                 </span>
               )}

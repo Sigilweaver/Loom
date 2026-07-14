@@ -184,8 +184,8 @@ async def list_grant_groups(
 Grant groups are assigned **from the User Groups side**, not from the Grant Groups side. This enforces the parent → child hierarchy:
 
 ```
-✓ POST /groups/{group_id}/grant-groups/{grant_group_id}   # Correct
-✗ POST /grant-groups/{grant_group_id}/user-groups/{group_id}  # Not implemented
+POST /groups/{group_id}/grant-groups/{grant_group_id}   # Correct
+POST /grant-groups/{grant_group_id}/user-groups/{group_id}  # Not implemented
 ```
 
 The Grant Groups tab shows which user groups reference it (read-only). To modify assignments, use the User Groups tab.

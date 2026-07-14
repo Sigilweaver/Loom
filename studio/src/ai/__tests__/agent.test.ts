@@ -34,8 +34,8 @@ describe("summarizeToolResult", () => {
   it("should truncate long error messages", () => {
     const result = { error: "x".repeat(200) };
     const summary = summarizeToolResult("any", result);
-    expect(summary.length).toBeLessThanOrEqual(160); // "error: " + 150 + "…"
-    expect(summary).toContain("…");
+    expect(summary.length).toBeLessThanOrEqual(160); // "error: " + 150 + "..."
+    expect(summary).toContain("...");
   });
 
   it("should extract first line from compact text data", () => {
@@ -46,7 +46,7 @@ describe("summarizeToolResult", () => {
   it("should truncate long compact text data", () => {
     const result = { data: "x".repeat(300) };
     const summary = summarizeToolResult("any", result);
-    expect(summary.length).toBeLessThanOrEqual(201); // 200 + "…"
+    expect(summary.length).toBeLessThanOrEqual(203); // 200 + "..."
   });
 
   // Legacy format tests

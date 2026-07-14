@@ -13,11 +13,11 @@ You'll need:
 
 ## Platform Notes
 
-| Platform    | Development        | Notes                                 |
-| ----------- | ------------------ | ------------------------------------- |
-| **Linux**   | ✅ Primary          | Most heavily tested                   |
-| **Windows** | ⚠️ WSL2 recommended | Native Windows dev tooling is painful |
-| **macOS**   | ✅ Should work      | Needs testing before v1.0             |
+| Platform    | Development         | Notes                                 |
+| ----------- | ------------------- | -------------------------------------- |
+| **Linux**   | Primary             | Most heavily tested                   |
+| **Windows** | WSL2 recommended    | Native Windows dev tooling is painful |
+| **macOS**   | Should work         | Needs testing before v1.0             |
 
 I develop on Arch Linux. The venv + package-lock approach means everything should work on any platform, but I can only verify what I actually run.
 

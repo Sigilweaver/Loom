@@ -12,11 +12,11 @@ Tools are organized into categories, displayed as tabs:
 
 | Tab | Icon | Description |
 |-----|------|-------------|
-| **Favorites** | ⭐ | Quick access to commonly used tools |
-| **In/Out** | 📁 | Data input and output tools |
-| **Preparation** | 🔧 | Data cleaning and transformation tools |
-| **Join** | 🔗 | Tools for combining datasets |
-| **Aggregate** | 📊 | Summarization and grouping tools |
+| **Favorites** | `Star` | Quick access to commonly used tools |
+| **In/Out** | `Folder` | Data input and output tools |
+| **Preparation** | `Wrench` | Data cleaning and transformation tools |
+| **Join** | `Link` | Tools for combining datasets |
+| **Aggregate** | `BarChart3` | Summarization and grouping tools |
 
 Click a tab to see the tools in that category.
 
@@ -32,34 +32,34 @@ The most commonly used tools for quick access:
 
 | Tool | Icon | Purpose |
 |------|------|---------|
-| **Input** | 📂 | Load data from files or databases |
-| **Output** | 💾 | Save data to files |
+| **Input** | `FolderOpen` | Load data from files or databases |
+| **Output** | `Save` | Save data to files |
 
 ### Preparation
 
 | Tool | Icon | Purpose |
 |------|------|---------|
-| **Filter** | 🔍 | Split data based on a condition |
-| **Select** | ✅ | Choose, rename, reorder, and cast columns |
-| **Sort** | 🔢 | Order rows by column values |
-| **Formula** | 🧮 | Create or replace calculated columns |
-| **Sample** | 🎲 | Take a subset of rows |
-| **Unique** | 🔑 | Remove duplicate rows |
+| **Filter** | `Search` | Split data based on a condition |
+| **Select** | `CircleCheck` | Choose, rename, reorder, and cast columns |
+| **Sort** | `Hash` | Order rows by column values |
+| **Formula** | `Calculator` | Create or replace calculated columns |
+| **Sample** | `Dices` | Take a subset of rows |
+| **Unique** | `KeyRound` | Remove duplicate rows |
 
 ### Join
 
 | Tool | Icon | Purpose |
 |------|------|---------|
-| **Union** | 🔗 | Stack datasets vertically |
-| **Join** | 🤝 | Combine datasets horizontally on key columns |
+| **Union** | `Link` | Stack datasets vertically |
+| **Join** | `Handshake` | Combine datasets horizontally on key columns |
 
 ### Aggregate
 
 | Tool | Icon | Purpose |
 |------|------|---------|
-| **Summarize** | 📊 | Group data and calculate aggregations |
-| **Pivot** | 🔄 | Reshape data from long to wide format |
-| **Unpivot** | 📐 | Reshape data from wide to long format |
+| **Summarize** | `BarChart3` | Group data and calculate aggregations |
+| **Pivot** | `RefreshCw` | Reshape data from long to wide format |
+| **Unpivot** | `Ruler` | Reshape data from wide to long format |
 
 ## Adding Tools to Canvas
 

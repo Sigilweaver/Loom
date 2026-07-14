@@ -1274,14 +1274,14 @@ Examples:
                 try:
                     result = future.result()
                     results.append(result)
-                    status = f"{Colors.GREEN}✓{Colors.RESET}" if result.passed else f"{Colors.RED}✗{Colors.RESET}"
+                    status = f"{Colors.GREEN}PASS{Colors.RESET}" if result.passed else f"{Colors.RED}FAIL{Colors.RESET}"
                     print(f"  {status} {suite_name} completed ({result.duration:.1f}s)")
                 except Exception as e:
                     results.append(SuiteResult(
                         name=suite_name,
                         checks=[CheckResult(name=suite_name, passed=False, duration=0, error=str(e))]
                     ))
-                    print(f"  {Colors.RED}✗{Colors.RESET} {suite_name} failed: {e}")
+                    print(f"  {Colors.RED}FAIL{Colors.RESET} {suite_name} failed: {e}")
     else:
         # Sequential execution
         for name, runner in suite_runners:

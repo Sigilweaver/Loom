@@ -20,7 +20,7 @@ const path = require('path');
 
 // Try to use sharp for conversion (install with: npm install sharp)
 async function generateFavicons() {
-    console.log('🎨 Generating favicons from SVG logo...');
+    console.log('Generating favicons from SVG logo...');
     
     try {
         // Check if sharp is available
@@ -39,7 +39,7 @@ async function generateFavicons() {
             { size: 512, name: 'icon-512.png' }
         ];
         
-        console.log('📐 Generating PNG files...');
+        console.log('Generating PNG files...');
         for (const { size, name } of sizes) {
             await sharp(svgBuffer)
                 .resize(size, size)
@@ -49,11 +49,11 @@ async function generateFavicons() {
         }
         
         // Create ICO file from multiple PNGs
-        console.log('🔨 Creating favicon.ico...');
+        console.log('Creating favicon.ico...');
         await createIcoFile();
-        
-        console.log('✨ All favicons generated successfully!');
-        console.log('\n📋 Don\'t forget to add these to your HTML:');
+
+        console.log('All favicons generated successfully!');
+        console.log('\nDon\'t forget to add these to your HTML:');
         console.log('   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">');
         console.log('   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">');
         console.log('   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">');
@@ -61,7 +61,7 @@ async function generateFavicons() {
         
     } catch (error) {
         if (error.code === 'MODULE_NOT_FOUND') {
-            console.log('⚠️  Sharp not found. Installing dependencies...');
+            console.log('Sharp not found. Installing dependencies...');
             await installDependencies();
         } else {
             console.error('Error generating favicons:', error.message);
@@ -88,7 +88,7 @@ async function createIcoFile() {
         console.log('  Generated favicon.ico (16x16, 32x32, 48x48)');
         
     } catch (error) {
-        console.log('  ⚠️  png-to-ico not available, using 32x32 PNG as ICO fallback');
+        console.log('  png-to-ico not available, using 32x32 PNG as ICO fallback');
         // Fallback: copy 32x32 PNG as ICO
         const png32 = await fs.readFile(path.join(__dirname, 'assets', 'favicon-32x32.png'));
         await fs.writeFile(path.join(__dirname, 'assets', 'favicon.ico'), png32);
@@ -99,7 +99,7 @@ async function createIcoFile() {
 async function installDependencies() {
     const { spawn } = require('child_process');
     
-    console.log('📦 Installing required dependencies...');
+    console.log('Installing required dependencies...');
     
     return new Promise((resolve, reject) => {
         const npm = spawn('npm', ['install', 'sharp', 'png-to-ico'], {
@@ -110,7 +110,7 @@ async function installDependencies() {
         npm.on('close', (code) => {
             if (code === 0) {
                 console.log('Dependencies installed successfully!');
-                console.log('🔄 Re-running favicon generation...');
+                console.log('Re-running favicon generation...');
                 generateFavicons().then(resolve).catch(reject);
             } else {
                 console.log('Failed to install dependencies. Trying fallback method...');
@@ -121,8 +121,8 @@ async function installDependencies() {
 }
 
 async function fallbackGeneration() {
-    console.log('🛠️  Using fallback method (requires ImageMagick or manual conversion)');
-    console.log('\n💡 Manual generation options:');
+    console.log('Using fallback method (requires ImageMagick or manual conversion)');
+    console.log('\nManual generation options:');
     console.log('');
     console.log('Option 1 - Using ImageMagick (if installed):');
     console.log('  convert assets/sigilweaver-logo.svg -resize 16x16 assets/favicon-16x16.png');
@@ -146,7 +146,7 @@ async function ensurePackageJson() {
     try {
         await fs.access(packagePath);
     } catch (error) {
-        console.log('📄 Creating package.json...');
+        console.log('Creating package.json...');
         const packageJson = {
             "name": "sigilweaver-website",
             "version": "1.0.0",
@@ -167,7 +167,7 @@ async function ensurePackageJson() {
 
 // Main execution
 async function main() {
-    console.log('🎭 Sigilweaver Favicon Generator');
+    console.log('Sigilweaver Favicon Generator');
     console.log('================================\n');
     
     await ensurePackageJson();

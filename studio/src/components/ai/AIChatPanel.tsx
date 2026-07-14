@@ -344,7 +344,7 @@ function summarizeStreamingResult(tc: ToolCallInfo): string {
   // Compact text format - new format from all tools
   if (typeof r.data === 'string') {
     const firstLine = (r.data as string).split('\n')[0] ?? '';
-    return `→ ${firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine}`;
+    return `→ ${firstLine.length > 80 ? firstLine.slice(0, 80) + '...' : firstLine}`;
   }
 
   // Success with details (legacy)

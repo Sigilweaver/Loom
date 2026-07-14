@@ -1,10 +1,11 @@
 import React from 'react';
+import { Folder } from 'lucide-react';
 import { BrowserFileWarning } from './BrowserFileWarning';
 
 export interface FileConfigSectionProps {
   title: string;
   description?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   showBrowserWarning?: boolean;
   className?: string;
@@ -17,7 +18,7 @@ export interface FileConfigSectionProps {
 export const FileConfigSection: React.FC<FileConfigSectionProps> = ({
   title,
   description,
-  icon = "📁",
+  icon = <Folder className="h-5 w-5" />,
   children,
   showBrowserWarning = true,
   className = ""

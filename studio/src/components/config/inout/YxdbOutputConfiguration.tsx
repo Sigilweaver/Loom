@@ -1,5 +1,6 @@
 import { ConfigFile } from "@components/primitives";
 import { mergeEmitPatch } from "@components/primitives/hooks";
+import { Lightbulb } from "lucide-react";
 import {
   YXDB_OUTPUT_DOCUMENTATION_URL,
   type PolarsYxdbOutputConfig,
@@ -116,8 +117,8 @@ export const YxdbOutputConfiguration: React.FC<
 
           {/* Recommendation box */}
           <section className="p-3 border rounded-lg border-theme-status-warning-border bg-theme-status-warning-bg">
-            <h4 className="mb-1 text-sm font-medium text-theme-text-primary">
-              💡 Recommendation
+            <h4 className="mb-1 flex items-center gap-1.5 text-sm font-medium text-theme-text-primary">
+              <Lightbulb className="h-4 w-4" /> Recommendation
             </h4>
             <p className="text-xs text-theme-text-secondary">
               For new projects, consider using{" "}

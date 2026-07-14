@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { platform } from '@platform';
 
 export interface BrowserFileWarningProps {
@@ -20,7 +21,7 @@ export const BrowserFileWarning: React.FC<BrowserFileWarningProps> = ({
   return (
     <div className={`p-3 bg-theme-warning/10 border border-theme-warning rounded-md ${className}`}>
       <div className="flex items-start space-x-2">
-        <div className="text-theme-warning text-sm">⚠️</div>
+        <div className="text-theme-warning text-sm"><AlertTriangle className="h-4 w-4" /></div>
         <div className="flex-1 text-xs text-theme-text-secondary">
           <div className="font-medium text-theme-warning mb-1">
             Browser Security Limitation

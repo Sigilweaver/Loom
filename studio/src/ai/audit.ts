@@ -117,7 +117,7 @@ ${wireSummary}`;
 
     // Parse the verdict
     const isWarning = auditText.startsWith('WARNING:');
-    const prefix = isWarning ? '⚠️ Audit' : '✅ Audit';
+    const prefix = isWarning ? 'Audit warning' : 'Audit passed';
 
     const auditMsg: ChatMessage = {
       id: uuid(),

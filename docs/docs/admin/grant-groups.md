@@ -68,7 +68,7 @@ User (alice)
   └── Member of: Engineering (User Group)
         └── Has Grant Group: Production DBs
               └── Contains: prod-postgres (Connection)
-                    ✓ Access granted
+                    -> Access granted
 ```
 
 If any link in this chain is missing, access is denied.
@@ -150,8 +150,8 @@ Or in reverse - from **Admin > Grant Groups**:
 ## Best Practices
 
 1. **Name grant groups by what they grant**, not who uses them
-   - ✓ "Production Databases"
-   - ✗ "Engineering Database Access"
+   - Good: "Production Databases"
+   - Bad: "Engineering Database Access"
 
 2. **Keep grant groups focused** - one logical set of resources per group
 

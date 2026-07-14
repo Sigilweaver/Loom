@@ -49,7 +49,7 @@ The Assignment granted in Section 2.1 is conditional. In the event that the Comp
 
 Then the Assignment granted in Section 2.1 shall automatically and immediately terminate without the need for further notice, judicial action, or demand. Upon such termination, all right, title, and interest in and to the Contribution shall immediately revert to You.
 
-For the purposes of Section 4(b), a "Commercial Third Party" shall NOT include: (i) a qualified non-profit successor as defined in Section 3; (ii) a spouse, child, or lineal descendant of the Company’s current members; (iii) a trust created for the benefit of such persons for estate planning purposes; or (iv) any transfer occurring by operation of law upon death (will or intestacy).
+For the purposes of Section 4(b), a "Commercial Third Party" shall NOT include: (i) a qualified non-profit successor as defined in Section 3; (ii) a spouse, child, or lineal descendant of the Company's current members; (iii) a trust created for the benefit of such persons for estate planning purposes; or (iv) any transfer occurring by operation of law upon death (will or intestacy).
 
 ### 5. Patent License
 

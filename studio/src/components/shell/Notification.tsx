@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AlertTriangle, CheckCircle2, FileText, Info, XCircle } from "lucide-react";
 import { useUIStore } from "@state/uiStore";
 
 export default function Notification() {
@@ -37,15 +38,15 @@ export default function Notification() {
   const getIcon = () => {
     switch (type) {
       case "error":
-        return "❌";
+        return <XCircle className="h-5 w-5" />;
       case "warning":
-        return "⚠️";
+        return <AlertTriangle className="h-5 w-5" />;
       case "success":
-        return "✅";
+        return <CheckCircle2 className="h-5 w-5" />;
       case "info":
-        return "ℹ️";
+        return <Info className="h-5 w-5" />;
       default:
-        return "📝";
+        return <FileText className="h-5 w-5" />;
     }
   };
 
@@ -72,7 +73,7 @@ export default function Notification() {
         className={`border rounded-lg p-4 shadow-lg ${getTypeStyles()} animate-slide-in`}
       >
         <div className="flex items-start gap-3">
-          <span className="text-lg flex-shrink-0">{getIcon()}</span>
+          <span className="flex-shrink-0">{getIcon()}</span>
           <div className="flex-1">
             <p className="text-sm font-medium leading-relaxed">{message}</p>
           </div>
