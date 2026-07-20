@@ -64,7 +64,7 @@ jobs:
         run: python scripts/test.py --full --ci --server --studio --hub -p
 
       - name: Upload Server coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: server-coverage
@@ -73,7 +73,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Studio coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: studio-coverage
@@ -82,7 +82,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Hub coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: hub-coverage
@@ -108,7 +108,7 @@ jobs:
         run: cd studio && bun run build:web
 
       - name: Upload web build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: studio/dist/**
