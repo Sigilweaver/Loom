@@ -47,7 +47,7 @@ jobs:
     name: pip-audit (server)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
       - run: cd server && uv export --no-dev --no-emit-project -o requirements.txt
       - run: cd server && uvx pip-audit --strict -r requirements.txt
@@ -56,7 +56,7 @@ jobs:
     name: pip-audit (hub/backend)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
       - run: cd hub/backend && uv export --no-dev --no-emit-project -o requirements.txt
       - run: cd hub/backend && uvx pip-audit --strict -r requirements.txt
@@ -65,7 +65,7 @@ jobs:
     name: bun audit (hub/frontend)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: cd hub/frontend && bun install --frozen-lockfile
       # Advisories tracked in Sigilweaver/Loom#3 - all in eslint's/vite's/vitest's
@@ -88,7 +88,7 @@ jobs:
     name: bun audit (studio)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: cd studio && bun install --frozen-lockfile
       # Advisories tracked in Sigilweaver/Loom#3 - electron-builder's own bundled
@@ -140,7 +140,7 @@ jobs:
     name: cargo audit (studio/tauri)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: taiki-e/install-action@cargo-audit
       # RUSTSEC-2026-0194/0195 (quick-xml, via plist -> tauri-utils -> tauri) are
       # tracked in Sigilweaver/Loom#3 - no independent fix without an upstream
