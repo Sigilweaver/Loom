@@ -1272,7 +1272,7 @@ requires-dist = [
     { name = "sigilyx" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "structlog", specifier = ">=23.2.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
     { name = "xlsxwriter", specifier = ">=3.1.0" },
     { name = "xlwt", marker = "extra == 'dev'", specifier = ">=1.3.0" },
 ]
