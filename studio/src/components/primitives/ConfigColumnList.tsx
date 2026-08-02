@@ -1,5 +1,6 @@
 import { EmissionMap } from "@domain/workflow/entities/workflow";
 import clsx from "clsx";
+import { X } from "lucide-react";
 import React, { ReactNode, useCallback, useId, useMemo, useState } from "react";
 import { ConfigField } from "./ConfigField";
 import { ConfigValidationMessage } from "./ConfigValidationMessage";
@@ -365,7 +366,7 @@ export const ConfigColumnList: React.FC<ConfigColumnListProps> = ({
                         "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-theme-text-secondary"
                       )}
                     >
-                      ✕
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

@@ -504,7 +504,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   };
 
   const truncate = (value: string, max: number) =>
-    value.length > max ? value.slice(0, max).trimEnd() + "…" : value;
+    value.length > max ? value.slice(0, max).trimEnd() + "..." : value;
 
   const truncatedWorkflowName = truncate(workflowMeta.name, 60);
   return (

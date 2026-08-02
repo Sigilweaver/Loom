@@ -4,11 +4,11 @@ version = "0.0.0-dev"
 description = "Sigilweaver Loom Hub - Workflow management and server coordination"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
+    "fastapi>=0.139.2",
+    "uvicorn[standard]>=0.51.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
-    "sqlalchemy[asyncio]>=2.0.0",
+    "sqlalchemy[asyncio]>=2.0.51",
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
     "passlib[bcrypt]>=1.7.4",
@@ -19,7 +19,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
     "cryptography>=46.0.7",
-    "polars[connectorx]>=1.0.0",
+    "polars[connectorx]>=1.42.1",
     "pyarrow>=23.0.1",
     "slowapi>=0.1.9",
 ]
@@ -30,8 +30,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pytest-xdist>=3.5.0",
-    "ruff>=0.1.0",
-    "mypy>=1.7.0",
+    "ruff>=0.15.22",
+    "mypy>=2.3.0",
 ]
 
 [build-system]

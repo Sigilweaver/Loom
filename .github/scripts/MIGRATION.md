@@ -67,11 +67,11 @@ Each module has a single responsibility:
 
 ### 2. Better B2 Layout
 Fixed issues in your bucket:
-- ✅ Assets uploaded to both `latest/` AND `releases/{version}/`
-- ✅ Manifests use atomic staging (no partial uploads)
-- ✅ Proper cache headers (immutable for versioned)
-- ✅ No leaked `.staging/` directories
-- ✅ Removed duplicate `latest/manifests/` directory
+- Assets uploaded to both `latest/` AND `releases/{version}/`
+- Manifests use atomic staging (no partial uploads)
+- Proper cache headers (immutable for versioned)
+- No leaked `.staging/` directories
+- Removed duplicate `latest/manifests/` directory
 
 ### 3. Testability
 - 23 unit tests covering all logic

@@ -1,5 +1,6 @@
 import { EmissionMap } from "@domain/workflow/entities/workflow";
 import clsx from "clsx";
+import { X } from "lucide-react";
 import React, {
   ChangeEvent,
   ReactNode,
@@ -316,7 +317,7 @@ export const ConfigKeyValueList: React.FC<ConfigKeyValueListProps> = ({
                     "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-theme-text-secondary"
                   )}
                 >
-                  ✕
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}

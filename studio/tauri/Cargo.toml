@@ -27,7 +27,7 @@ uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1", features = ["full"] }
 dirs = "6"
-whoami = "1"
+whoami = "2"
 
 # OS-native secure credential storage (Keychain / Credential Manager / Secret Service).
 # Database passwords are stored here, never in the plaintext connections store.

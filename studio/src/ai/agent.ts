@@ -680,7 +680,7 @@ export function summarizeToolResult(toolName: string, result: unknown): string {
   }
 }
 
-/** Truncate a string to a maximum length, appending "…" if truncated. */
+/** Truncate a string to a maximum length, appending "..." if truncated. */
 function truncateStr(s: string, maxLen: number): string {
-  return s.length <= maxLen ? s : s.slice(0, maxLen) + '…';
+  return s.length <= maxLen ? s : s.slice(0, maxLen) + '...';
 }

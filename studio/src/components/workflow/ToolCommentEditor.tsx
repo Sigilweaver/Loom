@@ -122,7 +122,7 @@ export default function ToolCommentEditor({
           onKeyDown={handleKeyDown}
           rows={2}
           className="w-full px-2 py-1 text-xs border rounded resize-y focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary"
-          placeholder="Add a comment…"
+          placeholder="Add a comment..."
         />
       ) : (
         <button
@@ -141,7 +141,7 @@ export default function ToolCommentEditor({
             >
               {displayValue || (
                 <span className="text-theme-text-tertiary italic">
-                  Add a comment…
+                  Add a comment...
                 </span>
               )}
             </span>

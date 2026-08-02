@@ -54,17 +54,17 @@ def print_info(message: str) -> None:
 
 def print_success(message: str) -> None:
     """Print a success message."""
-    print(f"{GREEN}✓ {message}{NC}")
+    print(f"{GREEN}{message}{NC}")
 
 
 def print_warning(message: str) -> None:
     """Print a warning message."""
-    print(f"{YELLOW}⚠ {message}{NC}")
+    print(f"{YELLOW}Warning: {message}{NC}")
 
 
 def print_error(message: str) -> None:
     """Print an error message."""
-    print(f"{RED}✗ {message}{NC}")
+    print(f"{RED}Error: {message}{NC}")
 
 
 def check_docker() -> bool:

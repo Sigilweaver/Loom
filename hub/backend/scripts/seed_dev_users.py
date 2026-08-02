@@ -58,7 +58,7 @@ def register_user(client: httpx.Client, username: str, password: str, token: str
     )
     
     if resp.status_code == 409:
-        print(f"  ⚠ User '{username}' already exists, skipping")
+        print(f"  WARNING: User '{username}' already exists, skipping")
         return None
     
     resp.raise_for_status()
@@ -124,9 +124,9 @@ def seed_users(hub_url: str) -> None:
                     if result:
                         owner_token = result["access_token"]
                         created.append(username)
-                        print(f"  ✓ Created as owner")
+                        print(f"  Created as owner")
                     else:
-                        print(f"  ✗ Failed to create owner")
+                        print(f"  Failed to create owner")
                         sys.exit(1)
                 else:
                     # Users exist, try to login as owner
@@ -137,7 +137,7 @@ def seed_users(hub_url: str) -> None:
                         print(f"  → Logged in as existing user")
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 401:
-                            print(f"  ⚠ User '{username}' doesn't exist or wrong password")
+                            print(f"  WARNING: User '{username}' doesn't exist or wrong password")
                             print(f"    Hub already has {existing_count} users - cannot create new owner")
                             print(f"    Try resetting the database: cd hub/backend && docker compose down -v && docker compose up -d")
                         else:
@@ -146,26 +146,26 @@ def seed_users(hub_url: str) -> None:
             else:
                 # Subsequent users - need owner token
                 if not owner_token:
-                    print(f"  ✗ No owner token available, cannot create {username}")
+                    print(f"  No owner token available, cannot create {username}")
                     continue
                 
                 result = register_user(client, username, DEFAULT_PASSWORD, owner_token)
                 if result:
                     user_id = result["user"]["id"]
                     created.append(username)
-                    print(f"  ✓ Created as user")
-                    
+                    print(f"  Created as user")
+
                     # Promote to target role if not 'user'
                     if target_role != "user":
                         update_user_role(client, user_id, target_role, owner_token)
-                        print(f"  ✓ Promoted to {target_role}")
+                        print(f"  Promoted to {target_role}")
                 else:
                     skipped.append(username)
         
         # Summary
         print("\n" + "=" * 40)
         if created:
-            print(f"✓ Created: {', '.join(created)}")
+            print(f"Created: {', '.join(created)}")
         if skipped:
             print(f"- Skipped (already exist): {', '.join(skipped)}")
         
@@ -194,11 +194,11 @@ def main() -> None:
     try:
         seed_users(args.hub_url)
     except httpx.ConnectError:
-        print(f"\n✗ Cannot connect to Hub at {args.hub_url}")
+        print(f"\nCannot connect to Hub at {args.hub_url}")
         print("  Make sure the Hub is running: ./scripts/dev.py --hub")
         sys.exit(1)
     except httpx.HTTPStatusError as e:
-        print(f"\n✗ HTTP error: {e.response.status_code} - {e.response.text}")
+        print(f"\nHTTP error: {e.response.status_code} - {e.response.text}")
         sys.exit(1)
     
     print("=" * 40)
