@@ -71,6 +71,12 @@ jobs:
       # Advisories tracked in Sigilweaver/Loom#3 - all in eslint's/vite's/vitest's
       # own transitive chains, none shipped in the built bundle. Remove these
       # --ignore flags once that migration lands.
+      #
+      # GHSA-mh99-v99m-4gvg (brace-expansion) is tracked in Sigilweaver/Loom#28 -
+      # a second, newer DoS advisory in the same eslint-8.x-owned
+      # minimatch -> brace-expansion chain as the Loom#3 entries above. The fix
+      # landed in brace-expansion 5.0.8, but minimatch (and eslint 8.x itself)
+      # still pin the pre-5.0.8 1.x/2.x majors, so no compatible bump exists yet.
       - run: >
           cd hub/frontend && bun audit --audit-level=high
           --ignore=GHSA-23c5-xmqv-rm74
@@ -81,6 +87,7 @@ jobs:
           --ignore=GHSA-c2c7-rcm5-vvqj
           --ignore=GHSA-fx2h-pf6j-xcff
           --ignore=GHSA-hmw2-7cc7-3qxx
+          --ignore=GHSA-mh99-v99m-4gvg
           --ignore=GHSA-mw96-cpmx-2vgc
           --ignore=GHSA-rf6f-7fwh-wjgh
 
@@ -94,6 +101,17 @@ jobs:
       # Advisories tracked in Sigilweaver/Loom#3 - electron-builder's own bundled
       # deps plus eslint's/vite's/vitest's transitive chains, none shipped in the
       # built app. Remove these --ignore flags once that migration lands.
+      #
+      # The following are tracked in Sigilweaver/Loom#28:
+      # - GHSA-mh99-v99m-4gvg (brace-expansion) is a second, newer DoS advisory
+      #   in the same eslint-8.x-owned minimatch -> brace-expansion chain as the
+      #   Loom#3 entries above. The fix landed in brace-expansion 5.0.8, but
+      #   minimatch (and eslint 8.x itself) still pin the pre-5.0.8 1.x/2.x
+      #   majors, so no compatible bump exists yet.
+      # - GHSA-v9p9-hfj2-hcw8, GHSA-vrm6-8vpv-qv8q, GHSA-vxpw-j846-p89q (undici)
+      #   come from @ai-sdk/provider-utils, which pins undici at ^5.29.0 across
+      #   its whole 4.0.x line (the patched releases are 6.24.0/7.24.0). Moving
+      #   past this needs a major @ai-sdk/* bump, not just a lockfile refresh.
       - run: >
           cd studio && bun audit --audit-level=high
           --ignore=GHSA-23c5-xmqv-rm74
@@ -119,6 +137,7 @@ jobs:
           --ignore=GHSA-hmw2-7cc7-3qxx
           --ignore=GHSA-j5f8-grm9-p9fc
           --ignore=GHSA-j759-j44w-7fr8
+          --ignore=GHSA-mh99-v99m-4gvg
           --ignore=GHSA-mw96-cpmx-2vgc
           --ignore=GHSA-p92q-9vqr-4j8v
           --ignore=GHSA-p9ff-h696-f583
@@ -133,6 +152,9 @@ jobs:
           --ignore=GHSA-rf6f-7fwh-wjgh
           --ignore=GHSA-v2wj-q39q-566r
           --ignore=GHSA-v39h-62p7-jpjc
+          --ignore=GHSA-v9p9-hfj2-hcw8
+          --ignore=GHSA-vrm6-8vpv-qv8q
+          --ignore=GHSA-vxpw-j846-p89q
           --ignore=GHSA-wh4c-j3r5-mjhp
           --ignore=GHSA-x6wf-f3px-wcqx
 
