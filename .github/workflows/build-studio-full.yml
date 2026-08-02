@@ -53,7 +53,7 @@ jobs:
           fi
 
       - name: Download server artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: server-${{ matrix.platform }}
           path: studio/resources/server
@@ -67,7 +67,7 @@ jobs:
 
       - name: Sign Windows executables
         if: matrix.platform == 'win'
-        uses: azure/trusted-signing-action@07c81171dd46a04e1b9f382b6c693815828bbbf7 # v0.5.0
+        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
