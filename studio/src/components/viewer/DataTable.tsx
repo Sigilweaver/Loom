@@ -8,6 +8,7 @@ import {
   flexRender,
   SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useUIStore } from "@state/uiStore";
 
@@ -27,6 +28,9 @@ interface CellSelection {
 
 // Max characters to show before truncating
 const MAX_STRING_LENGTH = 50;
+
+// Fixed row height for virtualization (matches px-3 py-2 padding + text-xs line height)
+const ROW_HEIGHT = 33;
 
 // Format numeric values for display (handles Decimal artifacts)
 const formatNumericDisplay = (value: unknown): string => {
@@ -75,6 +79,7 @@ const DataTable = () => {
   const [anchorRow, setAnchorRow] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{x: number; y: number} | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevSocketKeyRef = useRef<string | null>(null);
   
   // Generate a unique key for the current socket to detect changes
@@ -630,9 +635,26 @@ const DataTable = () => {
 
   // Keep the sorted-rows ref in sync so copyData (defined earlier) can read
   // through the current sort order rather than the unsorted previewState.data.
-  sortedRowsRef.current = table.getRowModel().rows as unknown as {
+  const tableRows = table.getRowModel().rows;
+  sortedRowsRef.current = tableRows as unknown as {
     original: Record<string, unknown>;
   }[];
+
+  // Only render rows within the visible scroll window, plus overscan - without
+  // this, previewing a large result set renders thousands of real <tr>/<td>
+  // DOM nodes (each carrying selection-border math) in one synchronous commit
+  // and freezes the UI. An earlier attempt at this (see studio/CHANGELOG.md
+  // v0.4.0-alpha) was reverted because it froze too; `min-h-0` on the scroll
+  // container below (added this time) keeps it from growing to fit content
+  // before the virtualizer measures it, which is the most likely explanation
+  // for that regression.
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
 
   if (!previewState) {
     return (
@@ -760,8 +782,9 @@ const DataTable = () => {
       </div>
 
       {/* Table */}
-      <div 
-        className="flex-1 overflow-auto"
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-auto"
         onMouseMove={handleMouseMove}
         onContextMenu={handleContextMenu}
       >
@@ -846,10 +869,30 @@ const DataTable = () => {
               </tr>
             ))}
           </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row, rowIdx) => (
+          <tbody
+            style={{
+              display: 'block',
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: 'relative',
+            }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const rowIdx = virtualRow.index;
+              const row = tableRows[rowIdx];
+              if (!row) return null;
+              return (
               <tr
                 key={row.id}
+                data-index={rowIdx}
+                style={{
+                  display: 'flex',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${ROW_HEIGHT}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
                 className={`border-b border-theme-border-secondary transition-colors ${
                   rowIdx % 2 === 0 ? "" : "bg-theme-surface-elevated"
                 }`}
@@ -861,7 +904,7 @@ const DataTable = () => {
                   const colIdx = cellIdx - 1;
                   const isSelected = !isRowNum && isCellSelected(rowIdx, colIdx);
                   const edges = !isRowNum ? getSelectionEdges(rowIdx, colIdx) : null;
-                  
+
                   // Build border classes for selection outline
                   const borderClasses = edges ? [
                     edges.top ? 'border-t-2 border-t-theme-interactive-accent' : '',
@@ -869,18 +912,19 @@ const DataTable = () => {
                     edges.left ? 'border-l-2 border-l-theme-interactive-accent' : '',
                     edges.right ? 'border-r-2 border-r-theme-interactive-accent' : '',
                   ].filter(Boolean).join(' ') : '';
-                  
+
+                  const cellSize = cell.column.getSize();
                   return (
                     <td
                       key={cell.id}
                       data-row={isRowNum ? undefined : rowIdx}
                       data-col={isRowNum ? undefined : colIdx}
-                      className={`px-3 py-2 text-theme-text-primary ${!edges ? 'border-r border-theme-border-primary last:border-r-0' : ''} ${
-                        isNumeric ? 'text-right' : ''
+                      className={`flex items-center px-3 py-2 text-theme-text-primary ${!edges ? 'border-r border-theme-border-primary last:border-r-0' : ''} ${
+                        isNumeric ? 'text-right justify-end' : ''
                       } ${isRowNum ? 'bg-theme-surface-elevated cursor-cell hover:bg-theme-surface-panel border-r border-theme-border-primary' : ''} ${
                         isSelected ? 'bg-theme-interactive-accent/20' : ''
                       } ${!isRowNum ? 'cursor-cell' : ''} ${borderClasses}`}
-                      style={{ width: cell.column.getSize() }}
+                      style={{ width: cellSize, minWidth: cellSize, maxWidth: cellSize, flexShrink: 0 }}
                       onMouseDown={(e) => {
                         if (isRowNum) {
                           handleRowHeaderMouseDown(e, rowIdx);
@@ -894,7 +938,7 @@ const DataTable = () => {
                         }
                       }}
                     >
-                      {isRowNum 
+                      {isRowNum
                         ? <span className="text-theme-text-tertiary select-none">{rowIdx + 1}</span>
                         : flexRender(cell.column.columnDef.cell, cell.getContext())
                       }
@@ -902,7 +946,8 @@ const DataTable = () => {
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
