@@ -112,6 +112,20 @@ jobs:
       #   come from @ai-sdk/provider-utils, which pins undici at ^5.29.0 across
       #   its whole 4.0.x line (the patched releases are 6.24.0/7.24.0). Moving
       #   past this needs a major @ai-sdk/* bump, not just a lockfile refresh.
+      #
+      # Newly surfaced 2026-08-08, same eslint-8.x/electron-builder debt as
+      # Loom#3 (re-scoped there rather than filed separately):
+      # - GHSA-5p4m-2wfm-xmqj (js-yaml) and GHSA-7p8r-x3mc-p8w7 (fast-uri) are
+      #   both pulled in by eslint's own @eslint/eslintrc dependency chain
+      #   (and, for fast-uri, also by electron-builder's ajv chain); neither
+      #   has a compatible bump on eslint 8.x.
+      # - GHSA-rgw5-rvv9-x895 (brace-expansion) is a third DoS advisory in the
+      #   same minimatch -> brace-expansion chain as the Loom#3/#28 entries
+      #   above - still no compatible bump while eslint 8.x/electron-builder
+      #   pin the pre-fix minimatch majors.
+      # nanoid (GHSA-2v37-7h3g-55p8, postcss's dependency) is pinned to the
+      # patched 3.3.17 via the "overrides" field in package.json instead of
+      # being ignored here, since a same-major patch bump was available.
       - run: >
           cd studio && bun audit --audit-level=high
           --ignore=GHSA-23c5-xmqv-rm74
@@ -122,9 +136,11 @@ jobs:
           --ignore=GHSA-3g43-6gmg-66jw
           --ignore=GHSA-3ppc-4f35-3m26
           --ignore=GHSA-43fc-jf86-j433
+          --ignore=GHSA-5p4m-2wfm-xmqj
           --ignore=GHSA-6chq-wfr3-2hj9
           --ignore=GHSA-777c-7fjr-54vf
           --ignore=GHSA-7h2j-956f-4vf2
+          --ignore=GHSA-7p8r-x3mc-p8w7
           --ignore=GHSA-7r86-cg39-jmmj
           --ignore=GHSA-83g3-92jg-28cx
           --ignore=GHSA-8qq5-rm4j-mr97
@@ -150,6 +166,7 @@ jobs:
           --ignore=GHSA-r5fr-rjxr-66jc
           --ignore=GHSA-r6q2-hw4h-h46w
           --ignore=GHSA-rf6f-7fwh-wjgh
+          --ignore=GHSA-rgw5-rvv9-x895
           --ignore=GHSA-v2wj-q39q-566r
           --ignore=GHSA-v39h-62p7-jpjc
           --ignore=GHSA-v9p9-hfj2-hcw8
