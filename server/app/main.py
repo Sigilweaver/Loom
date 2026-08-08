@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import to register all tool implementations
 import app.domain.tools.register  # noqa: F401
 from app import __version__
+from app.api.exception_handlers import WORKFLOW_EXCEPTION_HANDLERS
 from app.api.router import api_router
 from app.api.routes.cache import run_startup_maintenance
 from app.config import settings
@@ -197,6 +198,8 @@ from app.middleware.rate_limit import limiter as _rl  # noqa: E402
 
 application.state.limiter = _rl
 application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+for exception_type, handler in WORKFLOW_EXCEPTION_HANDLERS.items():
+    application.add_exception_handler(exception_type, handler)
 application.add_middleware(SlowAPIMiddleware)
 
 # Include API routes
