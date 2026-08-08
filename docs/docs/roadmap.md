@@ -10,7 +10,13 @@ Strategic direction and planned features for the Sigilweaver Loom platform.
 
 ## Current Status
 
-Sigilweaver Loom v1.0 has shipped. The core platform is feature-complete for most data transformation workflows. Development now focuses on platform features, ecosystem expansion, and continued polish.
+> **Pre-release software.** Sigilweaver Loom has not yet had a stable v1.0
+> release. This page previously said v1.0 had shipped; that was written
+> ahead of a launch target that slipped and was never corrected. Expect
+> breaking changes and rougher edges than the status table below implies
+> until v1.0 actually ships.
+
+The core platform is feature-complete for most data transformation workflows, and development is focused on closing the remaining gaps to a stable v1.0.
 
 The primary, fully-supported way to use Sigilweaver Loom is the **desktop app with its bundled server** - no external infrastructure required. **Hub** and a standalone **Server** are entirely optional, for teams that want centralized storage, scheduling, and multi-user orchestration. Hub is currently in **open beta**.
 

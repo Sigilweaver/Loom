@@ -10,6 +10,9 @@
   },
   "type": "module",
   "main": "dist-electron/main.js",
+  "overrides": {
+    "nanoid": "3.3.17"
+  },
   "homepage": "./",
   "engines": {
     "node": ">=18.0"
@@ -129,7 +132,7 @@
     "tailwindcss": "^3.3.6",
     "typescript": "^7.0.2",
     "vite": "^8.0.0",
-    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron": "^1.1.0",
     "vite-plugin-electron-renderer": "^0.14.5",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vitest": "^4.0.18",

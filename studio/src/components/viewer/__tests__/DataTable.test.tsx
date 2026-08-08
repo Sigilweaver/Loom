@@ -1,8 +1,24 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@contexts/ThemeContext";
 import { useUIStore } from "@state/uiStore";
 import DataTable from "../DataTable";
+
+// jsdom's ResizeObserver mock never reports a real size, so the virtualizer
+// would otherwise measure a zero-height viewport and render no rows. Mock it
+// to report every row as visible so these tests exercise real DOM output.
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, i) => ({
+        index: i,
+        start: i * 33,
+        size: 33,
+        key: i,
+      })),
+    getTotalSize: () => count * 33,
+  }),
+}));
 
 describe("DataTable", () => {
   beforeEach(() => {

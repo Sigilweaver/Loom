@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0-dev",
   "type": "module",
+  "overrides": {
+    "nanoid": "3.3.17"
+  },
   "engines": {
     "node": ">=18.0"
   },
@@ -38,14 +41,15 @@
     "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.7",
     "react-router-dom": "^6.30.4",
-    "zustand": "^4.5.0"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^24.1.0",
+    "@types/node": "^26.1.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
@@ -56,11 +60,11 @@
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.3.3",
+    "typescript": "^7.0.2",
     "vite": "^6.4.3",
     "vitest": "^4.0.18"
   }
