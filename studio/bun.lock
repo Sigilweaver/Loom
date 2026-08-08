@@ -32,7 +32,7 @@
         "ai": "^7.0.48",
         "clsx": "^2.1.0",
         "electron-store": "^11.0.2",
-        "lucide": "^0.556.0",
+        "lucide": "^1.28.0",
         "lucide-react": "^0.556.0",
         "monaco-editor": "^0.56.0",
         "react": "^18.2.0",
@@ -1255,7 +1255,7 @@
 
     "lru-cache": ["lru-cache@11.5.2", "", {}, "sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g=="],
 
-    "lucide": ["lucide@0.556.0", "", {}, "sha512-sJ6NrZ+Q2Fv0Uardg7nsgjoKZ3r70wp3n30fvfbxMt5Fi1fQy1deS99z1g3xQpObok+LT1LjjcCyojUKGIHo7A=="],
+    "lucide": ["lucide@1.30.0", "", {}, "sha512-K6fsjKaZmzrvDATXHpKdRRNresG/z5/RnGK6OPJRoZ5Pu4A/OOJRFM/BlGpDsUeRZl12Hj3ULmXqz1qObs6x3A=="],
 
     "lucide-react": ["lucide-react@0.556.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-iOb8dRk7kLaYBZhR2VlV1CeJGxChBgUthpSP8wom9jfj79qovgG6qcSdiy6vkoREKPnbUYzJsCn4o4PtG3Iy+A=="],
 
