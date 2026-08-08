@@ -180,14 +180,15 @@ export const useWorkflowStore = create<WorkflowState>()(
         }),
 
       // NEW: Tool CRUD operations
-      addTool: (tool) =>
+      addTool: (tool) => {
         set((state) => {
           state.tools.push(tool);
-          get().syncEdges();
-          get()._markDirty();
-        }),
+        });
+        get().syncEdges();
+        get()._markDirty();
+      },
 
-      removeTool: (toolId) =>
+      removeTool: (toolId) => {
         set((state) => {
           state.tools = state.tools.filter((t) => t.id !== toolId);
           state.wires = state.wires.filter(
@@ -196,9 +197,10 @@ export const useWorkflowStore = create<WorkflowState>()(
           if (state.selectedTool?.id === toolId) {
             state.selectedTool = null;
           }
-          get().syncEdges();
-          get()._markDirty();
-        }),
+        });
+        get().syncEdges();
+        get()._markDirty();
+      },
 
       updateTool: (toolId, updates) =>
         set((state) => {

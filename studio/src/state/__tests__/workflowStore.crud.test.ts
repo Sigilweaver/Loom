@@ -95,21 +95,33 @@ describe("workflowStore CRUD operations", () => {
         expect(tools).toHaveLength(0);
       });
 
-      it("should remove connected wires when removing a tool", () => {
+      it("should remove inbound and outbound wires and their edges", () => {
         const tool1 = createTestTool("tool_001");
         const tool2 = createTestToolWithSockets("tool_002");
+        const tool3 = createTestToolWithSockets("tool_003");
 
         useWorkflowStore.getState().addTool(tool1);
         useWorkflowStore.getState().addTool(tool2);
+        useWorkflowStore.getState().addTool(tool3);
 
-        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
-        useWorkflowStore.getState().addWire(wire);
+        const inboundWire = createTestWire('tool_001', 'output', 'tool_002', 'input');
+        const outboundWire = createTestWire('tool_002', 'output', 'tool_003', 'input');
+        useWorkflowStore.getState().addWire(inboundWire);
+        useWorkflowStore.getState().addWire(outboundWire);
 
-        expect(useWorkflowStore.getState().wires).toHaveLength(1);
+        expect(useWorkflowStore.getState().wires).toHaveLength(2);
+        expect(useWorkflowStore.getState().edges).toHaveLength(2);
 
-        useWorkflowStore.getState().removeTool("tool_001");
+        useWorkflowStore.getState().removeTool("tool_002");
 
         expect(useWorkflowStore.getState().wires).toHaveLength(0);
+        expect(useWorkflowStore.getState().edges).toHaveLength(0);
+        expect(useWorkflowStore.getState().edges).not.toContainEqual(
+          expect.objectContaining({ source: "tool_002" })
+        );
+        expect(useWorkflowStore.getState().edges).not.toContainEqual(
+          expect.objectContaining({ target: "tool_002" })
+        );
       });
 
       it("should clear selection if removing selected tool", () => {
