@@ -5,7 +5,7 @@ description = "Backend service for Sigilweaver Loom workflow execution"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.141.1",
-    "uvicorn[standard]>=0.51.0",
+    "uvicorn[standard]>=0.52.1",
     "polars>=1.43.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
