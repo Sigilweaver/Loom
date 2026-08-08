@@ -2,7 +2,7 @@
 
 from collections import defaultdict, deque
 
-from app.api.models.workflow import Workflow
+from app.api.models.workflow import Socket, Tool, Workflow
 from app.utils.errors import ValidationError
 
 
@@ -11,14 +11,16 @@ class ExecutionGraph:
 
     def __init__(self, workflow: Workflow):
         self.workflow = workflow
-        self.dependencies = self._build_dependency_graph()
+        self.dependencies, self.dependents, self.in_degree = self._build_dependency_graph()
 
-    def _build_dependency_graph(self) -> dict[str, list[str]]:
+    def _build_dependency_graph(
+        self,
+    ) -> tuple[dict[str, list[str]], dict[str, list[str]], dict[str, int]]:
         """
-        Build dependency graph from wires.
-        Returns dict of tool_id -> list of tool_ids it depends on.
+        Build dependency and reverse dependency graphs from wires.
         """
         graph: dict[str, list[str]] = defaultdict(list)
+        dependency_sets: dict[str, set[str]] = defaultdict(set)
 
         # Initialize all tools in graph
         for tool in self.workflow.tools:
@@ -31,10 +33,20 @@ class ExecutionGraph:
             target_tool_id = wire.to.tool
             source_tool_id = wire.from_.tool
 
-            if source_tool_id not in graph[target_tool_id]:
+            if source_tool_id not in dependency_sets[target_tool_id]:
                 graph[target_tool_id].append(source_tool_id)
+                dependency_sets[target_tool_id].add(source_tool_id)
 
-        return dict(graph)
+        dependencies = dict(graph)
+        dependents: dict[str, list[str]] = defaultdict(list)
+        in_degree = {tool_id: len(deps) for tool_id, deps in dependencies.items()}
+
+        # Iterate in dependency graph order to preserve the existing queue ordering.
+        for tool_id, deps in dependencies.items():
+            for dependency in deps:
+                dependents[dependency].append(tool_id)
+
+        return dependencies, dict(dependents), in_degree
 
     def execution_order(self) -> list[str]:
         """
@@ -42,10 +54,8 @@ class ExecutionGraph:
         Returns list of tool IDs in execution order.
         Raises ValidationError if cycle detected.
         """
-        # Calculate in-degrees
-        in_degree: dict[str, int] = defaultdict(int)
-        for tool_id in self.dependencies:
-            in_degree[tool_id] = len(self.dependencies[tool_id])
+        # Work on a copy so repeated calls return the same result.
+        in_degree = self.in_degree.copy()
 
         # Queue of nodes with no dependencies
         queue = deque([tool_id for tool_id, degree in in_degree.items() if degree == 0])
@@ -57,12 +67,10 @@ class ExecutionGraph:
             current = queue.popleft()
             result.append(current)
 
-            # Find nodes that depend on current node
-            for tool_id, deps in self.dependencies.items():
-                if current in deps:
-                    in_degree[tool_id] -= 1
-                    if in_degree[tool_id] == 0:
-                        queue.append(tool_id)
+            for tool_id in self.dependents.get(current, []):
+                in_degree[tool_id] -= 1
+                if in_degree[tool_id] == 0:
+                    queue.append(tool_id)
 
         # Check for cycles
         if len(result) != len(self.dependencies):
@@ -100,8 +108,18 @@ class ExecutionGraph:
         except ValidationError as e:
             errors.append(str(e))
 
+        # Index tools and sockets once while preserving the first-match behavior.
+        tools_by_id: dict[str, Tool] = {}
+        sockets_by_tool_id: dict[str, dict[str, Socket]] = {}
+        for tool in self.workflow.tools:
+            if tool.id not in tools_by_id:
+                tools_by_id[tool.id] = tool
+                sockets_by_tool_id[tool.id] = {}
+                for socket in tool.sockets:
+                    sockets_by_tool_id[tool.id].setdefault(socket.id, socket)
+
         # Check all wires reference valid tools
-        tool_ids = {tool.id for tool in self.workflow.tools}
+        tool_ids = tools_by_id.keys()
         for wire in self.workflow.wires:
             if wire.from_.tool not in tool_ids:
                 errors.append(f"Wire references unknown source tool: {wire.from_.tool}")
@@ -110,13 +128,11 @@ class ExecutionGraph:
 
         # Check all wires reference valid sockets
         for wire in self.workflow.wires:
-            source_tool = next((t for t in self.workflow.tools if t.id == wire.from_.tool), None)
-            target_tool = next((t for t in self.workflow.tools if t.id == wire.to.tool), None)
+            source_tool = tools_by_id.get(wire.from_.tool)
+            target_tool = tools_by_id.get(wire.to.tool)
 
             if source_tool:
-                source_socket = next(
-                    (s for s in source_tool.sockets if s.id == wire.from_.socket), None
-                )
+                source_socket = sockets_by_tool_id[source_tool.id].get(wire.from_.socket)
                 if not source_socket:
                     errors.append(
                         f"Wire references unknown socket {wire.from_.socket} "
@@ -129,9 +145,7 @@ class ExecutionGraph:
                     )
 
             if target_tool:
-                target_socket = next(
-                    (s for s in target_tool.sockets if s.id == wire.to.socket), None
-                )
+                target_socket = sockets_by_tool_id[target_tool.id].get(wire.to.socket)
                 if not target_socket:
                     errors.append(
                         f"Wire references unknown socket {wire.to.socket} on tool {wire.to.tool}"
