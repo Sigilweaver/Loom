@@ -32,6 +32,8 @@ import { useUIStore } from "./uiStore";
 import { useAIStore, type TabAISession } from "./aiStore";
 import { v4 as uuidv4 } from "uuid";
 import { clearWorkflowCache } from "../api/cache";
+import { useExecutionStore } from "./executionStore";
+import { useRuntimeLogStore } from "./runtimeLogStore";
 
 /**
  * Tab metadata
@@ -296,6 +298,8 @@ export const useTabStore = create<TabState>()(
 
         // Clean up per-tab AI run queue
         useAIStore.getState().clearRunQueue(tabId);
+        useExecutionStore.getState().removeTab(tabId);
+        useRuntimeLogStore.getState().removeTab(tabId);
 
         // Clear all caches for this workflow
         if (workflowId) {
@@ -603,6 +607,8 @@ export const useTabStore = create<TabState>()(
        * @param tabId - ID of tab to load
        */
       loadTab: (tabId: string) => {
+        useExecutionStore.getState().setActiveTab(tabId);
+        useRuntimeLogStore.getState().setActiveTab(tabId);
         const { tabData } = get();
         const data = tabData[tabId];
 

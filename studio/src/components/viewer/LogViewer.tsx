@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useExecutionStore } from "@state/executionStore";
+import { useTabStore } from "@state/tabStore";
 
 const LogViewer = () => {
-  const logs = useExecutionStore((s) => s.logs);
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const logs = useExecutionStore((s) => activeTabId ? s.executions[activeTabId]?.logs ?? [] : s.logs);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when logs change

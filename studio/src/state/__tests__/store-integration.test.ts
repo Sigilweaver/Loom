@@ -113,6 +113,8 @@ describe("Store Integration Tests", () => {
     
     // Reset execution store
     useExecutionStore.setState({
+      executions: {},
+      activeTabId: null,
       isExecuting: false,
       currentToolId: null,
       result: null,
@@ -805,23 +807,26 @@ describe("Store Integration Tests", () => {
       expect(useExecutionStore.getState().result?.tool_id).toBe("tool1");
     });
 
-    test("should clear execution state when switching tabs", () => {
+    test("keeps an in-flight execution and its response on the originating tab", () => {
       // Create tab and start execution
-      useTabStore.getState().createTab("Tab 1");
-      useExecutionStore.getState().startExecution();
-      useExecutionStore.getState().addLog({ level: "info", message: "Running..." });
+      const firstTabId = useTabStore.getState().createTab("Tab 1");
+      useExecutionStore.getState().startExecution(firstTabId);
+      useExecutionStore.getState().addLog({ level: "info", message: "Running..." }, firstTabId);
       
       expect(useExecutionStore.getState().logs).toHaveLength(1);
 
-      // Switch to new tab - execution state persists (it's a separate concern)
-      useTabStore.getState().createTab("Tab 2");
+      const secondTabId = useTabStore.getState().createTab("Tab 2");
       
-      // Execution state is global, not per-tab
-      expect(useExecutionStore.getState().isExecuting).toBe(true);
-      
-      // Explicitly clear when needed
-      useExecutionStore.getState().clearExecution();
       expect(useExecutionStore.getState().isExecuting).toBe(false);
+      expect(useExecutionStore.getState().logs).toHaveLength(0);
+
+      // Simulate the response resolving after the active tab changed.
+      useExecutionStore.getState().finishExecution({ tool_id: "output", outputs: {} }, firstTabId);
+
+      expect(useExecutionStore.getState().executions[firstTabId]?.result?.tool_id).toBe("output");
+      expect(useExecutionStore.getState().executions[firstTabId]?.logs).toHaveLength(1);
+      expect(useExecutionStore.getState().executions[secondTabId]?.result).toBeNull();
+      expect(useExecutionStore.getState().result).toBeNull();
     });
 
     test("should accumulate logs during execution", () => {

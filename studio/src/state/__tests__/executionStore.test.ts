@@ -7,6 +7,8 @@ describe("ExecutionStore", () => {
     vi.clearAllMocks();
     // Reset the store state before each test
     useExecutionStore.setState({
+      executions: {},
+      activeTabId: null,
       isExecuting: false,
       currentToolId: null,
       result: null,

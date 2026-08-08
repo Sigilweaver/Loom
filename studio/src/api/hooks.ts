@@ -15,6 +15,7 @@ import {
   type WorkflowExecuteResponse,
   type PreviewAllResponse,
   type ColumnSchema,
+  type RequestContext,
 } from './backend';
 import {
   // Hub-aware execution functions
@@ -181,7 +182,7 @@ export interface UseWorkflowExecuteResult {
   result: WorkflowExecuteResponse | null;
   loading: boolean;
   error: string | null;
-  execute: (workflow: WorkflowJSON, targetToolId?: string) => Promise<void>;
+  execute: (workflow: WorkflowJSON, targetToolId?: string, context?: RequestContext) => Promise<void>;
 }
 
 /**
@@ -213,7 +214,7 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: b
   const loginRequired = needsHubLogin();
 
   const execute = useCallback(
-    async (workflow: WorkflowJSON, targetToolId?: string) => {
+    async (workflow: WorkflowJSON, targetToolId?: string, context?: RequestContext) => {
       setLoading(true);
       setError(null);
       
@@ -222,7 +223,7 @@ export function useWorkflowExecute(): UseWorkflowExecuteResult & { needsLogin: b
         const resolvedWorkflow = await resolveWorkflowConnections(workflow);
         
         // executeWorkflow from execution.ts handles Hub mode transparently
-        const execResult = await executeWorkflow(resolvedWorkflow, targetToolId);
+        const execResult = await executeWorkflow(resolvedWorkflow, targetToolId, false, context);
         
         setResult(execResult);
       } catch (err) {
