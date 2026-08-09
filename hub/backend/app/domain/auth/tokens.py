@@ -310,24 +310,3 @@ def init_token_store(backend: str | None = None) -> TokenStore:
             f"Unknown token_store_backend={backend!r}; expected 'memory' or 'postgres'"
         )
     return _token_store
-
-
-# =============================================================================
-# Legacy Compatibility (to be removed after migration)
-# =============================================================================
-
-TokenTracker = TokenStore
-_token_tracker: TokenStore | None = None
-
-
-def get_token_tracker() -> TokenStore:
-    """Legacy alias for :func:`get_token_store`."""
-    return get_token_store()
-
-
-def init_token_tracker() -> TokenStore:
-    """Legacy alias for :func:`init_token_store`."""
-    global _token_tracker
-    store = init_token_store()
-    _token_tracker = store
-    return store
