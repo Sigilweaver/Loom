@@ -11,6 +11,7 @@ import { buildExpressionPrompt, buildBasicFilterPrompt, buildBasicFormulaPrompt 
 import { runAudit } from './audit';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
+import { useHistoryStore } from '@state/historyStore';
 import { useTabStore } from '@state/tabStore';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
@@ -51,6 +52,12 @@ const AGENT_TOOLS = {
  */
 export function getAgentTabId(): string | null {
   return useAIStore.getState().agentTabId;
+}
+
+/** Record the workflow state before an agent turn so all of its edits undo together. */
+export function recordAgentTurnSnapshot(): void {
+  const { tools, wires, workflowMeta } = useWorkflowStore.getState();
+  useHistoryStore.getState().pushState(tools, wires, workflowMeta);
 }
 
 /**
@@ -132,6 +139,10 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
 
     // Dynamic import of streamText to keep AI SDK lazy
     const { streamText, stepCountIs } = await import('ai');
+
+    // Agent tools mutate the workflow store directly. Capture one snapshot at
+    // the turn boundary so any number of tool calls can be undone as a unit.
+    recordAgentTurnSnapshot();
 
     // Run the agent loop with streaming
     // System prompt is passed as a message (not the `system` param) so we can
