@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.dependencies import CurrentUser, RequireAdmin, RequireAuditor
+from app.api.dependencies import CurrentUser, OptionalUser, RequireAdmin, RequireAuditor
 from app.config import settings
 from app.db.database import get_db
 from app.db.models import Group, Server, ServerGroup, UserGroup
@@ -172,6 +172,7 @@ async def list_servers(
 async def register_server(
     request: ServerCreate,
     http_request: Request,
+    current_user: OptionalUser,
     db: AsyncSession = Depends(get_db),
     x_registration_secret: Annotated[str | None, Header()] = None,
 ) -> ServerResponse:
@@ -181,15 +182,23 @@ async def register_server(
     This allows servers to re-register after restarts, even if their
     endpoint URL changes (e.g., different port).
 
-    Requires X-Registration-Secret header if server_registration_secret is configured.
+    Two callers are accepted:
+    - An admin/owner session (the "Add Server" GUI form).
+    - A machine self-registering with a valid X-Registration-Secret header.
+      Unlike a plain admin-required endpoint, the secret path has no
+      session, so it always requires the header, even if
+      server_registration_secret isn't configured - that previously left
+      this endpoint unauthenticated whenever the secret was unset.
     """
-    # Validate registration secret if configured
-    if settings.server_registration_secret:
-        if not x_registration_secret:
-            logger.warning("Server registration attempt without secret")
+    admin_level = get_role_level(Role.ADMIN)
+    is_admin_session = current_user is not None and get_role_level(current_user.role) <= admin_level
+
+    if not is_admin_session:
+        if not settings.server_registration_secret or not x_registration_secret:
+            logger.warning("Server registration attempt without admin session or secret")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="X-Registration-Secret header required",
+                detail="Admin session or X-Registration-Secret header required",
             )
         if not secrets.compare_digest(x_registration_secret, settings.server_registration_secret):
             logger.warning("Server registration attempt with invalid secret")
@@ -218,7 +227,7 @@ async def register_server(
             endpoint_url=endpoint_url,
             auth_token=request.auth_token,
             status="unknown",
-            created_by="system",  # TODO: Use actual user from auth
+            created_by=current_user.username if is_admin_session else "system",
         )
         db.add(server)
         logger.info("Registered new server: %s (%s)", server.name, server.endpoint_url)

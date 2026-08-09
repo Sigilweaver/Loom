@@ -383,31 +383,25 @@ async def user_in_group(
 
 
 @pytest.fixture
-async def test_server(setup_database) -> dict:
+async def test_server(setup_database, owner_headers) -> dict:
     """Register a test server and return its data.
 
-    Note: Server registration doesn't require auth if no secret is configured.
+    Registers via an owner session, same as the "Add Server" admin GUI form.
     """
-    # Temporarily disable server registration secret for testing
-    original_secret = settings.server_registration_secret
-    settings.server_registration_secret = ""
-
-    try:
-        async with new_client() as client:
-            response = await client.post(
-                "/api/v1/servers",
-                json={
-                    "name": "Test Server",
-                    "endpoint_url": "http://localhost:25811",
-                    "auth_token": "test-token",
-                },
-            )
-            assert response.status_code == 201, (
-                f"Server registration failed: {response.text}"
-            )
-            return response.json()
-    finally:
-        settings.server_registration_secret = original_secret
+    async with new_client() as client:
+        response = await client.post(
+            "/api/v1/servers",
+            headers=owner_headers,
+            json={
+                "name": "Test Server",
+                "endpoint_url": "http://localhost:25811",
+                "auth_token": "test-token",
+            },
+        )
+        assert response.status_code == 201, (
+            f"Server registration failed: {response.text}"
+        )
+        return response.json()
 
 
 @pytest.fixture
