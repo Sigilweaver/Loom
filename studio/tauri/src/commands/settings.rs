@@ -71,8 +71,7 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         // Try to get system username
-        let author = whoami::fallible::username()
-            .unwrap_or_else(|_| "User".to_string());
+        let author = whoami::username().unwrap_or_else(|_| "User".to_string());
         
         Self {
             author,

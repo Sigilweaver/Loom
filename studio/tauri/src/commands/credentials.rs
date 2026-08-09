@@ -418,7 +418,7 @@ pub async fn resolve_connection(
 pub async fn test_connection(app: AppHandle, id: String) -> Result<ConnectionTestResult, String> {
     let connections = load_connections(&app)?;
 
-    if connections.get(&id).is_none() {
+    if !connections.contains_key(&id) {
         return Ok(ConnectionTestResult {
             success: false,
             message: "Connection not found".to_string(),
