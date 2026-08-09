@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.api.models.workflow import Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
+from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.graph import ExecutionGraph
 from app.utils.errors import ValidationError
 
@@ -73,6 +73,36 @@ def test_parallel_branches():
     # A must come first, B and C can be in any order
     assert order[0] == "A"
     assert set(order[1:]) == {"B", "C"}
+
+
+def test_parallel_branches_preserve_tool_order():
+    """Dependents becoming ready together retain workflow tool order."""
+    workflow = Workflow(
+        meta=WorkflowMeta(
+            name="Test",
+            description="Test",
+            author="Test",
+            workflowId="test",
+            created="2025-08-01",
+        ),
+        tools=[
+            Tool(id="A", type="Input", x=0, y=0, config={}, sockets=[]),
+            Tool(id="B", type="Filter", x=0, y=0, config={}, sockets=[]),
+            Tool(id="C", type="Select", x=0, y=0, config={}, sockets=[]),
+        ],
+        wires=[
+            Wire(
+                from_=WireEndpoint(tool="A", socket="output"),
+                to=WireEndpoint(tool="C", socket="input"),
+            ),
+            Wire(
+                from_=WireEndpoint(tool="A", socket="output"),
+                to=WireEndpoint(tool="B", socket="input"),
+            ),
+        ],
+    )
+
+    assert ExecutionGraph(workflow).execution_order() == ["A", "B", "C"]
 
 
 def test_diamond_pattern():
@@ -154,8 +184,53 @@ def test_cycle_detection():
     )
 
     graph = ExecutionGraph(workflow)
-    with pytest.raises(ValidationError, match="cycle"):
+    with pytest.raises(
+        ValidationError,
+        match=r"^Workflow contains a cycle\. Cannot determine execution order\.$",
+    ):
         graph.execution_order()
+
+
+def test_validate_preserves_wire_error_messages():
+    """Validation reports socket errors with the established wording and order."""
+    workflow = Workflow(
+        meta=WorkflowMeta(
+            name="Test",
+            description="Test",
+            author="Test",
+            workflowId="test",
+            created="2025-08-01",
+        ),
+        tools=[
+            Tool(
+                id="A",
+                type="Input",
+                x=0,
+                y=0,
+                config={},
+                sockets=[Socket(id="input", direction="input")],
+            ),
+            Tool(
+                id="B",
+                type="Filter",
+                x=0,
+                y=0,
+                config={},
+                sockets=[Socket(id="output", direction="output")],
+            ),
+        ],
+        wires=[
+            Wire(
+                from_=WireEndpoint(tool="A", socket="input"),
+                to=WireEndpoint(tool="B", socket="missing"),
+            ),
+        ],
+    )
+
+    assert ExecutionGraph(workflow).validate() == [
+        "Wire source socket input on tool A is not an output socket",
+        "Wire references unknown socket missing on tool B",
+    ]
 
 
 def test_get_tool_inputs():
