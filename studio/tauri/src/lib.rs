@@ -10,6 +10,7 @@
 mod commands;
 
 use commands::{credentials, files, settings};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -48,7 +49,7 @@ pub fn run() {
             {
                 // Open devtools in debug mode
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.open_devtools();
+                    window.open_devtools();
                 }
             }
 
