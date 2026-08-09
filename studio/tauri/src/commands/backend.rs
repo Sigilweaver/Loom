@@ -49,7 +49,7 @@ const HEALTH_INTERVAL: Duration = Duration::from_millis(500);
 
 /// Whether this build bundles the server sidecar. `true` only for Full builds
 /// compiled with `--features bundled-server`.
-const HAS_BUNDLED_SERVER: bool = cfg!(feature = "bundled-server");
+pub(crate) const HAS_BUNDLED_SERVER: bool = cfg!(feature = "bundled-server");
 
 /// Holds the spawned server child so it can be terminated on app exit.
 /// Managed as Tauri state and reaped from the `RunEvent` handler.
@@ -60,13 +60,17 @@ pub struct BackendManager {
 
 impl BackendManager {
     fn set(&self, child: CommandChild) {
-        if let Ok(mut guard) = self.child.lock() {
-            *guard = Some(child);
-        }
+        // Recover a poisoned lock rather than dropping the update: a panic
+        // elsewhere while holding this mutex doesn't invalidate the child
+        // handle itself, and silently skipping registration here would leave
+        // the sidecar unkillable on shutdown.
+        let mut guard = self.child.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        *guard = Some(child);
     }
 
     fn take(&self) -> Option<CommandChild> {
-        self.child.lock().ok().and_then(|mut guard| guard.take())
+        let mut guard = self.child.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        guard.take()
     }
 }
 
@@ -109,14 +113,25 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| format!("Failed to create server data directory: {e}"))?;
 
+    // A Full build should always have this binary; if it's missing (e.g. a
+    // packaging mistake), degrade the same way Electron's `getBackendPath`
+    // does for a missing server executable - log and run without a backend -
+    // rather than treating a bundling defect as an unrecoverable startup
+    // failure the user can't do anything about.
+    let sidecar_cmd = match app.shell().sidecar(SIDECAR_NAME) {
+        Ok(cmd) => cmd,
+        Err(e) => {
+            eprintln!("[Backend] Server sidecar not found ({e})");
+            println!("[Backend] Connect to a remote server via Settings");
+            return Ok(());
+        }
+    };
+
     println!("[Backend] Starting bundled server (Full build)");
     println!("[Backend] Server data directory: {}", data_dir.display());
     println!("[Backend] Auth mode: ephemeral");
 
-    let (mut rx, child) = app
-        .shell()
-        .sidecar(SIDECAR_NAME)
-        .map_err(|e| format!("Failed to prepare server sidecar: {e}"))?
+    let (mut rx, child) = sidecar_cmd
         .envs(build_env(&token, &data_dir))
         .spawn()
         .map_err(|e| format!("Failed to spawn server sidecar: {e}"))?;
@@ -130,6 +145,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     // (Electron rejects startBackend on early process exit).
     let terminated = Arc::new(AtomicBool::new(false));
     let terminated_reader = terminated.clone();
+    let app_for_reader = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
             match event {
@@ -138,6 +154,10 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
                 CommandEvent::Error(err) => {
                     eprintln!("[Backend] Sidecar error: {err}");
                     terminated_reader.store(true, Ordering::SeqCst);
+                    // Drop the stored child: it's already gone, and leaving it
+                    // registered risks a later `stop_backend` killing a PID the
+                    // OS has since recycled for something else.
+                    app_for_reader.state::<BackendManager>().take();
                 }
                 CommandEvent::Terminated(payload) => {
                     println!(
@@ -145,6 +165,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
                         payload.code, payload.signal
                     );
                     terminated_reader.store(true, Ordering::SeqCst);
+                    app_for_reader.state::<BackendManager>().take();
                 }
                 _ => {}
             }
@@ -268,15 +289,24 @@ async fn health_ok(token: &str) -> bool {
         return false;
     }
 
-    // The status line ("HTTP/1.1 200 OK") arrives well within the first read.
-    let mut buf = [0u8; 256];
-    let n = match stream.read(&mut buf).await {
-        Ok(0) | Err(_) => return false,
-        Ok(n) => n,
-    };
-
-    let head = String::from_utf8_lossy(&buf[..n]);
-    is_2xx_status_line(head.lines().next().unwrap_or_default())
+    // Accumulate reads until the status line's terminating CRLF shows up; a
+    // single `read` is not guaranteed to return the whole line in one call.
+    let mut received = Vec::with_capacity(256);
+    let mut chunk = [0u8; 256];
+    loop {
+        if received.len() > 4096 {
+            return false;
+        }
+        let n = match stream.read(&mut chunk).await {
+            Ok(0) | Err(_) => return false,
+            Ok(n) => n,
+        };
+        received.extend_from_slice(&chunk[..n]);
+        if let Some(line_end) = received.windows(2).position(|w| w == b"\r\n") {
+            let head = String::from_utf8_lossy(&received[..line_end]);
+            return is_2xx_status_line(&head);
+        }
+    }
 }
 
 /// Parse an HTTP status line and report whether the code is 2xx.

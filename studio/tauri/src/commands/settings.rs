@@ -82,28 +82,28 @@ impl Default for AppSettings {
     }
 }
 
-/// Load application settings, falling back to defaults if the store is missing
-/// or unreadable. Shared by the `get_settings` command and internal callers
-/// such as the backend-lifecycle autoStart check.
-pub fn load_settings(app: &AppHandle) -> AppSettings {
-    let store = match app.store(SETTINGS_STORE) {
-        Ok(store) => store,
-        Err(e) => {
-            eprintln!("[Settings] Failed to open settings store, using defaults: {}", e);
-            return AppSettings::default();
-        }
-    };
+/// Load application settings, propagating any store-open or parse error. A
+/// missing "settings" key (first run) is not an error - it resolves defaults.
+fn try_load_settings(app: &AppHandle) -> Result<AppSettings, String> {
+    let store = app
+        .store(SETTINGS_STORE)
+        .map_err(|e| format!("Failed to open settings store: {}", e))?;
 
-    if let Some(value) = store.get("settings") {
-        match serde_json::from_value::<AppSettings>(value.clone()) {
-            Ok(settings) => return settings,
-            Err(e) => {
-                eprintln!("[Settings] Failed to parse settings, using defaults: {}", e);
-            }
-        }
+    match store.get("settings") {
+        Some(value) => serde_json::from_value::<AppSettings>(value.clone())
+            .map_err(|e| format!("Failed to parse settings: {}", e)),
+        None => Ok(AppSettings::default()),
     }
+}
 
-    AppSettings::default()
+/// Load application settings, falling back to defaults if the store is missing
+/// or unreadable. For internal callers, such as the backend-lifecycle
+/// autoStart check, that must not fail startup over a settings-read problem.
+pub fn load_settings(app: &AppHandle) -> AppSettings {
+    try_load_settings(app).unwrap_or_else(|e| {
+        eprintln!("[Settings] {}, using defaults", e);
+        AppSettings::default()
+    })
 }
 
 /// Whether the bundled server should auto-start (Full build only).
@@ -115,7 +115,7 @@ pub fn backend_auto_start(app: &AppHandle) -> bool {
 /// Get application settings
 #[tauri::command]
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
-    Ok(load_settings(&app))
+    try_load_settings(&app)
 }
 
 /// Save application settings

@@ -79,9 +79,12 @@ def get_server_extension(platform: str) -> str:
     return ".exe" if platform == "win" else ""
 
 
-# Fallback host target triples per platform, assuming x86_64. Used only when
-# `rustc -vV` is unavailable. Tauri resolves sidecars by triple suffix, so these
-# must match the triple the Tauri build targets.
+# Target triples per platform. These must match the `--target` flag hardcoded
+# in each `build:tauri:<platform>:full` npm script (studio/package.json), since
+# that flag - not the host machine's own arch - determines the triple Tauri's
+# `externalBin` will look for. PyInstaller cannot cross-compile, so the staged
+# binary is always a host build; this naming exists purely to satisfy Tauri's
+# sidecar resolution for the target the npm scripts actually build.
 DEFAULT_TARGET_TRIPLES = {
     "linux": "x86_64-unknown-linux-gnu",
     "win": "x86_64-pc-windows-msvc",
@@ -90,28 +93,60 @@ DEFAULT_TARGET_TRIPLES = {
 
 
 def get_target_triple(platform: str) -> str:
-    """Return the Rust host target triple, for naming Tauri sidecar binaries.
+    """Return the Rust target triple to name the Tauri sidecar binary with.
 
     Tauri's `externalBin` resolves a sidecar by a `-<target-triple>` suffix
-    (e.g. `server-x86_64-unknown-linux-gnu`). Prefer the real host triple from
-    `rustc -vV` so Apple Silicon and other arches are named correctly; fall back
-    to an x86_64 default only if rustc is not on PATH.
+    (e.g. `server-x86_64-unknown-linux-gnu`). This must match the `--target`
+    flag the corresponding npm script passes to `tauri build`, not whatever
+    triple the host machine happens to be (e.g. an Apple Silicon dev machine
+    still builds `x86_64-apple-darwin` per package.json).
     """
-    try:
-        result = subprocess.run(
-            ["rustc", "-vV"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            for line in result.stdout.splitlines():
-                if line.startswith("host:"):
-                    return line.split(":", 1)[1].strip()
-    except FileNotFoundError:
-        pass
-
     return DEFAULT_TARGET_TRIPLES[platform]
+
+
+def _stage_server_binary(
+    server_src: Path, dest: Path, platform: str, result_name: str
+) -> BuildResult:
+    """Copy the built server executable to `dest`, making it executable.
+
+    Shared by `stage_server_sidecar` (Tauri) and `copy_server_to_resources`
+    (Electron); the two differ only in destination path and naming scheme.
+    """
+    start_time = time.time()
+
+    try:
+        if not server_src.exists():
+            return BuildResult(
+                name=result_name,
+                success=False,
+                duration=time.time() - start_time,
+                error=f"Server executable not found at {server_src}",
+            )
+
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        print(f"Staging {server_src} -> {dest}")
+        shutil.copy2(server_src, dest)
+
+        if platform != "win":
+            dest.chmod(0o755)
+
+        size_mb = dest.stat().st_size / (1024 * 1024)
+        print(f"Staged: {dest} ({size_mb:.1f} MB)")
+
+        return BuildResult(
+            name=result_name,
+            success=True,
+            duration=time.time() - start_time,
+        )
+
+    except Exception as e:
+        return BuildResult(
+            name=result_name,
+            success=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
 
 
 def stage_server_sidecar(repo_root: Path, platform: str) -> BuildResult:
@@ -125,50 +160,15 @@ def stage_server_sidecar(repo_root: Path, platform: str) -> BuildResult:
     """
     print_header("Staging Server Sidecar (Tauri)")
 
-    start_time = time.time()
-    host = get_host_platform()
+    host_ext = get_server_extension(get_host_platform())
+    target_ext = get_server_extension(platform)
+    server_src = repo_root / "server" / "dist" / f"server{host_ext}"
+    triple = get_target_triple(platform)
+    sidecar_dest = (
+        repo_root / "studio" / "tauri" / "binaries" / f"server-{triple}{target_ext}"
+    )
 
-    try:
-        host_ext = get_server_extension(host)
-        target_ext = get_server_extension(platform)
-        server_src = repo_root / "server" / "dist" / f"server{host_ext}"
-        binaries_dir = repo_root / "studio" / "tauri" / "binaries"
-
-        triple = get_target_triple(platform)
-        sidecar_dest = binaries_dir / f"server-{triple}{target_ext}"
-
-        if not server_src.exists():
-            return BuildResult(
-                name="Stage Sidecar",
-                success=False,
-                duration=time.time() - start_time,
-                error=f"Server executable not found at {server_src}",
-            )
-
-        binaries_dir.mkdir(parents=True, exist_ok=True)
-
-        print(f"Staging {server_src} -> {sidecar_dest}")
-        shutil.copy2(server_src, sidecar_dest)
-
-        if platform != "win":
-            sidecar_dest.chmod(0o755)
-
-        size_mb = sidecar_dest.stat().st_size / (1024 * 1024)
-        print(f"Sidecar staged: {sidecar_dest} ({size_mb:.1f} MB)")
-
-        return BuildResult(
-            name="Stage Sidecar",
-            success=True,
-            duration=time.time() - start_time,
-        )
-
-    except Exception as e:
-        return BuildResult(
-            name="Stage Sidecar",
-            success=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+    return _stage_server_binary(server_src, sidecar_dest, platform, "Stage Sidecar")
 
 
 def clean_build_artifacts(repo_root: Path) -> None:
@@ -315,84 +315,33 @@ def copy_server_to_resources(repo_root: Path, platform: str) -> BuildResult:
     """
     print_header("Step 2/3: Copying Server to Resources")
 
-    start_time = time.time()
-    host = get_host_platform()
+    host_ext = get_server_extension(get_host_platform())
+    target_ext = get_server_extension(platform)
+    server_src = repo_root / "server" / "dist" / f"server{host_ext}"
+    server_dest = repo_root / "studio" / "resources" / "server" / f"server{target_ext}"
 
-    try:
-        host_ext = get_server_extension(host)
-        target_ext = get_server_extension(platform)
-        server_src = repo_root / "server" / "dist" / f"server{host_ext}"
-        resources_dir = repo_root / "studio" / "resources" / "server"
-        server_dest = resources_dir / f"server{target_ext}"
-
-        if not server_src.exists():
-            return BuildResult(
-                name="Copy Server",
-                success=False,
-                duration=time.time() - start_time,
-                error=f"Server executable not found at {server_src}",
-            )
-
-        # Create resources directory
-        resources_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy the executable
-        print(f"Copying {server_src} -> {server_dest}")
-        shutil.copy2(server_src, server_dest)
-
-        # Make executable on Unix
-        if platform != "win":
-            server_dest.chmod(0o755)
-
-        size_mb = server_dest.stat().st_size / (1024 * 1024)
-        print(f"Server copied: {server_dest} ({size_mb:.1f} MB)")
-
-        return BuildResult(
-            name="Copy Server",
-            success=True,
-            duration=time.time() - start_time,
-        )
-
-    except Exception as e:
-        return BuildResult(
-            name="Copy Server",
-            success=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+    return _stage_server_binary(server_src, server_dest, platform, "Copy Server")
 
 
-def build_studio(repo_root: Path, platform: str) -> BuildResult:
-    """Build the studio + Electron application."""
-    print_header("Step 3/3: Building Studio + Electron")
+def _run_studio_npm_build(
+    repo_root: Path, npm_script: str, result_name: str
+) -> BuildResult:
+    """Run a studio build via `npm run <npm_script>`.
 
+    Shared by `build_studio` (Electron) and `build_studio_tauri`; the two
+    differ only in which npm script/platform map they select.
+    """
     studio_dir = repo_root / "studio"
     node_modules = studio_dir / "node_modules"
 
     if not node_modules.exists():
         return BuildResult(
-            name="Studio",
+            name=result_name,
             success=False,
             duration=0,
             error="node_modules not found. Run: cd studio && npm install",
         )
 
-    # Map platform to npm script
-    platform_scripts = {
-        "linux": "build:linux:full",
-        "win": "build:win:full",
-        "mac": "build:mac:full",
-    }
-
-    if platform not in platform_scripts:
-        return BuildResult(
-            name="Studio",
-            success=False,
-            duration=0,
-            error=f"Unknown platform: {platform}. Use: linux, win, or mac",
-        )
-
-    npm_script = platform_scripts[platform]
     start_time = time.time()
 
     try:
@@ -407,14 +356,49 @@ def build_studio(repo_root: Path, platform: str) -> BuildResult:
 
         if result.returncode != 0:
             return BuildResult(
-                name="Studio",
+                name=result_name,
                 success=False,
                 duration=duration,
-                error="Studio build failed",
+                error=f"{result_name} build failed",
             )
 
-        # List output files
-        dist_dir = studio_dir / "dist"
+        return BuildResult(
+            name=result_name,
+            success=True,
+            duration=duration,
+        )
+
+    except Exception as e:
+        return BuildResult(
+            name=result_name,
+            success=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
+
+
+def build_studio(repo_root: Path, platform: str) -> BuildResult:
+    """Build the studio + Electron application."""
+    print_header("Step 3/3: Building Studio + Electron")
+
+    platform_scripts = {
+        "linux": "build:linux:full",
+        "win": "build:win:full",
+        "mac": "build:mac:full",
+    }
+
+    if platform not in platform_scripts:
+        return BuildResult(
+            name="Studio",
+            success=False,
+            duration=0,
+            error=f"Unknown platform: {platform}. Use: linux, win, or mac",
+        )
+
+    result = _run_studio_npm_build(repo_root, platform_scripts[platform], "Studio")
+
+    if result.success:
+        dist_dir = repo_root / "studio" / "dist"
         if dist_dir.exists():
             print()
             print("Output files:")
@@ -423,19 +407,7 @@ def build_studio(repo_root: Path, platform: str) -> BuildResult:
                     size_mb = item.stat().st_size / (1024 * 1024)
                     print(f"  {item.name} ({size_mb:.1f} MB)")
 
-        return BuildResult(
-            name="Studio",
-            success=True,
-            duration=duration,
-        )
-
-    except Exception as e:
-        return BuildResult(
-            name="Studio",
-            success=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+    return result
 
 
 def build_studio_tauri(repo_root: Path, platform: str, *, client: bool) -> BuildResult:
@@ -448,17 +420,6 @@ def build_studio_tauri(repo_root: Path, platform: str, *, client: bool) -> Build
     """
     variant = "Client" if client else "Full"
     print_header(f"Building Studio + Tauri ({variant})")
-
-    studio_dir = repo_root / "studio"
-    node_modules = studio_dir / "node_modules"
-
-    if not node_modules.exists():
-        return BuildResult(
-            name="Studio (Tauri)",
-            success=False,
-            duration=0,
-            error="node_modules not found. Run: cd studio && npm install",
-        )
 
     suffix = "client" if client else "full"
     platform_scripts = {
@@ -475,40 +436,9 @@ def build_studio_tauri(repo_root: Path, platform: str, *, client: bool) -> Build
             error=f"Unknown platform: {platform}. Use: linux, win, or mac",
         )
 
-    npm_script = platform_scripts[platform]
-    start_time = time.time()
-
-    try:
-        print(f"Running npm run {npm_script}...")
-        result = subprocess.run(
-            ["npm", "run", npm_script],
-            cwd=studio_dir,
-            capture_output=False,
-        )
-
-        duration = time.time() - start_time
-
-        if result.returncode != 0:
-            return BuildResult(
-                name="Studio (Tauri)",
-                success=False,
-                duration=duration,
-                error="Tauri build failed",
-            )
-
-        return BuildResult(
-            name="Studio (Tauri)",
-            success=True,
-            duration=duration,
-        )
-
-    except Exception as e:
-        return BuildResult(
-            name="Studio (Tauri)",
-            success=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
+    return _run_studio_npm_build(
+        repo_root, platform_scripts[platform], "Studio (Tauri)"
+    )
 
 
 def print_summary(results: list[BuildResult]) -> None:
@@ -584,6 +514,12 @@ def main() -> int:
         stage_server_step = False
     elif args.studio_only:
         build_server_step = False
+
+    if not (build_server_step or stage_server_step or build_studio_step):
+        parser.error(
+            "--client combined with --server-only leaves nothing to build "
+            "(a Client build has no server to build or stage)"
+        )
 
     repo_root = get_repo_root()
     results: list[BuildResult] = []
