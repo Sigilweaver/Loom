@@ -106,25 +106,17 @@ class ExecutionService:
         )
 
     async def _publish_execution_event(
-        self, db: AsyncSession, execution: Execution
+        self,
+        execution: Execution,
+        workflow_name: str,
+        server_name: str,
     ) -> None:
         """Publish the current execution state to the live event broker.
 
         Best-effort: a broker/serialization failure must never disrupt the
-        execution lifecycle, so errors are logged and swallowed. Names are
-        resolved from ``db`` so this works from background-task sessions.
+        execution lifecycle, so errors are logged and swallowed.
         """
         try:
-            wf_result = await db.execute(
-                select(Workflow.name).where(Workflow.id == execution.workflow_id)
-            )
-            workflow_name = wf_result.scalar_one_or_none() or "Unknown"
-
-            srv_result = await db.execute(
-                select(Server.name).where(Server.id == execution.server_id)
-            )
-            server_name = srv_result.scalar_one_or_none() or "Unknown"
-
             info = self._model_to_info(execution, workflow_name, server_name)
             execution_broker.publish(self._info_to_event(info, execution))
         except Exception as e:  # pragma: no cover - defensive, broker is in-proc
@@ -232,7 +224,9 @@ class ExecutionService:
 
         # Apply pagination
         query = (
-            select(Execution)
+            select(Execution, Workflow.name, Server.name)
+            .outerjoin(Workflow, Workflow.id == Execution.workflow_id)
+            .outerjoin(Server, Server.id == Execution.server_id)
             .where(*filters)
             .order_by(Execution.queued_at.desc())
             .offset(offset)
@@ -240,24 +234,16 @@ class ExecutionService:
         )
 
         result = await self.db.execute(query)
-        executions = result.scalars().all()
+        rows = result.all()
 
-        # Resolve workflow and server names
-        infos = []
-        for execution in executions:
-            # Get workflow name
-            wf_result = await self.db.execute(
-                select(Workflow.name).where(Workflow.id == execution.workflow_id)
+        infos = [
+            self._model_to_info(
+                execution,
+                workflow_name or "Unknown",
+                server_name or "Unknown",
             )
-            workflow_name = wf_result.scalar_one_or_none() or "Unknown"
-
-            # Get server name
-            srv_result = await self.db.execute(
-                select(Server.name).where(Server.id == execution.server_id)
-            )
-            server_name = srv_result.scalar_one_or_none() or "Unknown"
-
-            infos.append(self._model_to_info(execution, workflow_name, server_name))
+            for execution, workflow_name, server_name in rows
+        ]
 
         return infos, total
 
@@ -355,10 +341,12 @@ class ExecutionService:
         )
 
         # Announce the queued execution to live subscribers.
-        await self._publish_execution_event(self.db, execution)
+        await self._publish_execution_event(execution, workflow.name, server.name)
 
         # Start async execution (fire and forget)
-        asyncio.create_task(self._run_execution(execution.id, workflow.id, server))
+        asyncio.create_task(
+            self._run_execution(execution.id, workflow.id, workflow.name, server)
+        )
 
         return self._model_to_info(execution, workflow.name, server.name)
 
@@ -366,6 +354,7 @@ class ExecutionService:
         self,
         execution_id: UUID,
         workflow_id: UUID,
+        workflow_name: str,
         server: Server,
     ) -> None:
         """Run execution on server (background task).
@@ -382,7 +371,11 @@ class ExecutionService:
                     workflow_content = self.file_store.load(workflow_id)
                 except Exception as e:
                     await self._fail_execution(
-                        db, execution_id, f"Failed to load workflow: {e}"
+                        db,
+                        execution_id,
+                        f"Failed to load workflow: {e}",
+                        workflow_name,
+                        server.name,
                     )
                     return
 
@@ -393,7 +386,11 @@ class ExecutionService:
                     workflow_json = json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
                     await self._fail_execution(
-                        db, execution_id, f"Invalid workflow JSON: {e}"
+                        db,
+                        execution_id,
+                        f"Invalid workflow JSON: {e}",
+                        workflow_name,
+                        server.name,
                     )
                     return
 
@@ -425,7 +422,9 @@ class ExecutionService:
                 await db.commit()
 
                 # Announce the running transition.
-                await self._publish_execution_event(db, execution)
+                await self._publish_execution_event(
+                    execution, workflow_name, server.name
+                )
 
                 # Execute on server with the issued token
                 client = ServerClient(server.endpoint_url, auth_token)
@@ -460,7 +459,9 @@ class ExecutionService:
                 await db.commit()
 
                 # Announce the terminal transition (completed/failed).
-                await self._publish_execution_event(db, execution)
+                await self._publish_execution_event(
+                    execution, workflow_name, server.name
+                )
 
                 # Persist outputs as content-addressed artifacts. Storage
                 # failures must not fail an otherwise-successful execution.
@@ -486,13 +487,17 @@ class ExecutionService:
 
             except Exception as e:
                 logger.exception("Error running execution %s: %s", execution_id, e)
-                await self._fail_execution(db, execution_id, str(e))
+                await self._fail_execution(
+                    db, execution_id, str(e), workflow_name, server.name
+                )
 
     async def _fail_execution(
         self,
         db: AsyncSession,
         execution_id: UUID,
         error_message: str,
+        workflow_name: str,
+        server_name: str,
     ) -> None:
         """Mark an execution as failed."""
         result = await db.execute(select(Execution).where(Execution.id == execution_id))
@@ -505,7 +510,9 @@ class ExecutionService:
             await db.commit()
 
             # Announce the failed transition.
-            await self._publish_execution_event(db, execution)
+            await self._publish_execution_event(
+                execution, workflow_name, server_name
+            )
 
     async def cancel_execution(self, execution_id: UUID) -> ExecutionInfo:
         """Cancel a running or queued execution.
