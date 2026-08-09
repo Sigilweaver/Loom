@@ -171,3 +171,23 @@ jobs:
         run: bun install --frozen-lockfile
       - name: bun run build:cloudflare
         run: bun run build:cloudflare
+
+  test-release-scripts:
+    name: Test Release Scripts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github/scripts
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: "server/.python-version"
+
+      - name: Install test dependencies
+        run: python3 -m pip install pytest boto3
+
+      - name: Run tests
+        run: ./run-tests.sh
