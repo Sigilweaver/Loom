@@ -12,6 +12,7 @@ import { runAudit } from './audit';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useHistoryStore } from '@state/historyStore';
+import type { Tool, Wire, WorkflowMeta } from '@domain/workflow/entities/workflow';
 import { useTabStore } from '@state/tabStore';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
@@ -54,10 +55,57 @@ export function getAgentTabId(): string | null {
   return useAIStore.getState().agentTabId;
 }
 
-/** Record the workflow state before an agent turn so all of its edits undo together. */
-export function recordAgentTurnSnapshot(): void {
+/**
+ * Workflow state captured at the start of the current agent turn, held until
+ * the turn ends. Not pushed to history yet: pushing eagerly would clear the
+ * redo stack even for turns that never touch the canvas.
+ */
+let pendingTurnSnapshot:
+  | { tools: Tool[]; wires: Wire[]; meta: WorkflowMeta; serialized: string }
+  | null = null;
+
+function serializeWorkflow(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
+  return JSON.stringify({ tools, wires, meta });
+}
+
+/**
+ * Capture workflow state at the start of an agent turn. Nothing is written to
+ * history here; see {@link commitAgentTurn}.
+ *
+ * The captured arrays are safe to hold: the workflow store is immer-backed, so
+ * store mutations produce new arrays and leave these untouched.
+ */
+export function beginAgentTurn(): void {
   const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-  useHistoryStore.getState().pushState(tools, wires, workflowMeta);
+  pendingTurnSnapshot = {
+    tools,
+    wires,
+    meta: workflowMeta,
+    serialized: serializeWorkflow(tools, wires, workflowMeta),
+  };
+}
+
+/**
+ * Close out an agent turn, pushing the captured pre-turn snapshot only if the
+ * turn actually changed the workflow.
+ *
+ * Agent tools mutate the store directly and a turn may issue many of them, so
+ * one snapshot per turn makes the whole turn undo as a unit. Skipping the push
+ * when nothing changed keeps a question-only turn from consuming an undo step
+ * or clearing the redo stack.
+ *
+ * Safe to call when no turn is open, and safe to call after a failed or
+ * aborted turn: a turn that mutated before failing is still recorded.
+ */
+export function commitAgentTurn(): void {
+  const pending = pendingTurnSnapshot;
+  pendingTurnSnapshot = null;
+  if (!pending) return;
+
+  const { tools, wires, workflowMeta } = useWorkflowStore.getState();
+  if (serializeWorkflow(tools, wires, workflowMeta) === pending.serialized) return;
+
+  useHistoryStore.getState().pushState(pending.tools, pending.wires, pending.meta);
 }
 
 /**
@@ -140,9 +188,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     // Dynamic import of streamText to keep AI SDK lazy
     const { streamText, stepCountIs } = await import('ai');
 
-    // Agent tools mutate the workflow store directly. Capture one snapshot at
-    // the turn boundary so any number of tool calls can be undone as a unit.
-    recordAgentTurnSnapshot();
+    // Agent tools mutate the workflow store directly. Capture the pre-turn
+    // state here and let the finally block decide whether it is worth
+    // recording, so any number of tool calls undo as a unit while a turn that
+    // changes nothing leaves history alone.
+    beginAgentTurn();
 
     // Run the agent loop with streaming
     // System prompt is passed as a message (not the `system` param) so we can
@@ -279,6 +329,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.addMessage(errorMsg);
     }
   } finally {
+    // Close the history turn first. This must precede the auto-dequeue below,
+    // which re-enters sendAgentMessage and would otherwise overwrite the
+    // pending snapshot before it was recorded.
+    commitAgentTurn();
+
     // Capture the tab this agent was running on before clearing state
     const finishedTabId = useAIStore.getState().agentTabId;
 
