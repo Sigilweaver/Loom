@@ -14,7 +14,7 @@ from app.domain.connections.resolver import ConnectionResolver, get_connection_r
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.hub import AuthorizationResult, get_hub_client
 from app.domain.workflow.code_generator import PythonCodeGenerator
-from app.utils.errors import ExecutionError, ExecutionTimeoutError, ToolConfigError, ToolError, ValidationError
+from app.utils.errors import ExecutionError, ToolError, ValidationError
 from app.utils.security import FilePathGrant, allowed_paths_context
 
 logger = logging.getLogger(__name__)
@@ -44,21 +44,26 @@ def _raise_unexpected(exc: BaseException) -> HTTPException:
     )
 
 
-def _raise_execution_error(exc: ExecutionError) -> HTTPException:
-    """Map an ExecutionError to a 500 surfacing its correlation id.
+@contextmanager
+def _map_unexpected_errors() -> Generator[None, None, None]:
+    """Map unexpected workflow errors while deferring known errors to the application."""
+    try:
+        yield
+    except (ValidationError, ToolError, ExecutionError):
+        raise
+    except Exception as exc:
+        raise _raise_unexpected(exc)
 
-    ExecutionTimeoutError maps to 504 instead.
-    """
-    status = 504 if isinstance(exc, ExecutionTimeoutError) else 500
-    label = "Execution timeout" if isinstance(exc, ExecutionTimeoutError) else "Execution error"
-    return HTTPException(
-        status_code=status,
-        detail={
-            "error": label,
-            "error_id": exc.error_id,
-            "message": str(exc),
-        },
-    )
+
+@contextmanager
+def _map_preview_code_errors() -> Generator[None, None, None]:
+    """Preserve the preview-code endpoint's legacy unexpected-error response."""
+    try:
+        yield
+    except ValidationError:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
 
 
 # Hub mode authentication
@@ -311,7 +316,7 @@ async def execute_workflow(
     have their source URI already populated. In hub mode, Bearer token is
     required and hub connections are resolved from Hub.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -336,17 +341,6 @@ async def execute_workflow(
             )
         return result
 
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
-
 
 @router.post("/tool/execute")
 async def execute_tool(
@@ -366,7 +360,7 @@ async def execute_tool(
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
     In hub mode, Bearer token is required.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -391,17 +385,6 @@ async def execute_tool(
                 force_refresh=request.force_refresh,
             )
         return result
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
 
 
 @router.get("/tool/{tool_type}/schema")
@@ -451,7 +434,7 @@ async def get_tool_schema(
     Returns schema for the specified socket only.
     In hub mode, Bearer token is required.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -475,17 +458,6 @@ async def get_tool_schema(
             )
         return result
 
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
-
 
 @router.post("/tool/metadata")
 async def get_tool_metadata(
@@ -502,7 +474,7 @@ async def get_tool_metadata(
     This executes upstream tools to determine input columns.
     In hub mode, Bearer token is required.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -525,17 +497,6 @@ async def get_tool_metadata(
                 socket_id=request.socket_id,
             )
         return result
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
 
 
 @router.post("/tool/profile")
@@ -567,7 +528,7 @@ async def profile_tool_input(
     faster response times when only specific columns are of interest.
     In hub mode, Bearer token is required.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -592,17 +553,6 @@ async def profile_tool_input(
                 metrics=request.metrics,
             )
         return result
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
 
 
 class PreviewAllRequest(BaseModel):
@@ -635,7 +585,7 @@ async def preview_all_tools(
     Use force_refresh to clear cache and re-execute (useful for DB refresh).
     In hub mode, Bearer token is required.
     """
-    try:
+    with _map_unexpected_errors():
         # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
         hub_result = await _authorize_hub_request(request.workflow, authorization)
 
@@ -658,17 +608,6 @@ async def preview_all_tools(
                 force_refresh=request.force_refresh,
             )
         return result
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except ToolConfigError as e:
-        raise HTTPException(status_code=400, detail=f"Tool config error: {str(e)}")
-    except ExecutionError as e:
-        raise _raise_execution_error(e)
-    except ToolError as e:
-        raise HTTPException(status_code=400, detail=f"Tool error: {str(e)}")
-    except Exception as e:
-        raise _raise_unexpected(e)
 
 
 class PreviewCodeRequest(BaseModel):
@@ -693,16 +632,11 @@ async def preview_code(request: PreviewCodeRequest) -> PreviewCodeResponse:
 
     The generated code uses Polars and can be run independently.
     """
-    try:
+    with _map_preview_code_errors():
         workflow = _parse_workflow(request.workflow)
         generator = PythonCodeGenerator(workflow)
         code = generator.generate()
         return PreviewCodeResponse(code=code)
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 class ClearCacheRequest(BaseModel):
