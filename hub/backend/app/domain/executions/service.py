@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Execution, Server, Workflow
@@ -213,28 +213,31 @@ class ExecutionService:
         Returns:
             Tuple of (list of ExecutionInfo, total count).
         """
-        # Build query
-        query = select(Execution).order_by(Execution.queued_at.desc())
+        filters = []
 
         if workflow_id:
-            query = query.where(Execution.workflow_id == workflow_id)
+            filters.append(Execution.workflow_id == workflow_id)
         if server_id:
-            query = query.where(Execution.server_id == server_id)
+            filters.append(Execution.server_id == server_id)
         if status:
-            query = query.where(Execution.status == status)
+            filters.append(Execution.status == status)
         if triggered_by:
-            query = query.where(Execution.triggered_by == triggered_by)
+            filters.append(Execution.triggered_by == triggered_by)
 
         # Get total count (before pagination)
         count_result = await self.db.execute(
-            select(Execution.id).where(
-                *[c for c in query.whereclause.clauses] if query.whereclause else []
-            )
+            select(func.count()).select_from(Execution).where(*filters)
         )
-        total = len(count_result.all())
+        total = count_result.scalar_one()
 
         # Apply pagination
-        query = query.offset(offset).limit(limit)
+        query = (
+            select(Execution)
+            .where(*filters)
+            .order_by(Execution.queued_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
 
         result = await self.db.execute(query)
         executions = result.scalars().all()

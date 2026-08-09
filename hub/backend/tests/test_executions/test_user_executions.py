@@ -7,6 +7,7 @@ Per roles.md:
 """
 
 import pytest
+
 from tests.conftest import make_workflow_content, new_client
 
 
@@ -85,6 +86,7 @@ class TestUserExecutionOperations:
         assert response.status_code == 200
         data = response.json()
         assert "executions" in data
+        assert data["total"] == 1
         execution_ids = [e["id"] for e in data["executions"]]
         assert execution_id in execution_ids
 
@@ -168,6 +170,7 @@ class TestUserCannotAccessOthersExecutions:
         assert response.status_code == 200
         # Second user has no executions, so sees empty list
         assert response.json()["executions"] == []
+        assert response.json()["total"] == 0
 
     @pytest.mark.asyncio
     async def test_user_cannot_cancel_other_users_execution(

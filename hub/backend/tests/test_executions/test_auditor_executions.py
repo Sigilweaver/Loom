@@ -6,6 +6,7 @@ Per roles.md:
 """
 
 import pytest
+
 from tests.conftest import make_workflow_content, new_client
 
 
@@ -48,6 +49,72 @@ class TestAuditorCanReadAllExecutions:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] >= 1
+
+    @pytest.mark.parametrize(
+        "filter_names",
+        [
+            (),
+            ("workflow_id",),
+            ("workflow_id", "server_id", "status", "triggered_by"),
+        ],
+        ids=["zero-filters", "one-filter", "multiple-filters"],
+    )
+    @pytest.mark.asyncio
+    async def test_auditor_can_list_executions_with_filters(
+        self, filter_names, auditor_headers, user_headers, test_server
+    ):
+        """Execution listing supports zero, one, and multiple active filters."""
+        async with new_client() as client:
+            upload_response = await client.post(
+                "/api/v1/workflows",
+                headers=user_headers,
+                files={
+                    "file": (
+                        "test.swwf",
+                        make_workflow_content(),
+                        "application/octet-stream",
+                    )
+                },
+                data={"folder_path": "/", "tags": ""},
+            )
+            workflow_id = upload_response.json()["id"]
+
+            trigger_response = await client.post(
+                "/api/v1/executions",
+                headers=user_headers,
+                json={
+                    "workflow_id": workflow_id,
+                    "server_id": test_server["id"],
+                },
+            )
+            execution_id = trigger_response.json()["id"]
+
+            unfiltered_response = await client.get(
+                "/api/v1/executions", headers=auditor_headers
+            )
+            execution = next(
+                item
+                for item in unfiltered_response.json()["executions"]
+                if item["id"] == execution_id
+            )
+            available_filters = {
+                "workflow_id": workflow_id,
+                "server_id": test_server["id"],
+                "status": execution["status"],
+                "triggered_by": "testuser",
+            }
+
+            response = await client.get(
+                "/api/v1/executions",
+                headers=auditor_headers,
+                params={name: available_filters[name] for name in filter_names},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+        assert [item["id"] for item in response.json()["executions"]] == [
+            execution_id
+        ]
 
     @pytest.mark.asyncio
     async def test_auditor_can_get_execution_details(
