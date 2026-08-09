@@ -16,6 +16,10 @@ import { createLogger } from "@utils/logger";
 import { useSettingsStore } from "./settingsStore";
 import { invalidateTool, invalidateWireChange } from "../api/cache";
 
+/**
+ * Stores workflow data and mutations. Dirty state is owned by tabStore:
+ * useCanvasHandlers and LeftPane call markTabDirty for user-facing mutations.
+ */
 interface WorkflowState {
   // State
   tools: Tool[];
@@ -23,9 +27,6 @@ interface WorkflowState {
   edges: Edge[];
   workflowMeta: WorkflowMeta;
   selectedTool: Tool | null;
-
-  // Internal helper for dirty state tracking
-  _markDirty: () => void;
 
   // Legacy actions (kept for backward compatibility during migration)
   setEdges: (edges: Edge[]) => void;
@@ -152,13 +153,6 @@ export const useWorkflowStore = create<WorkflowState>()(
       workflowMeta: createDefaultMeta(),
       selectedTool: null,
 
-      // Internal helper to mark active tab as dirty
-      _markDirty: () => {
-        // Note: This is called internally but the actual tab dirty marking
-        // is handled by components or the tab store itself when workflows change
-        // This avoids circular dependencies between stores
-      },
-
       // Legacy actions (kept for backward compatibility)
       setEdges: (edges) =>
         set((state) => {
@@ -185,7 +179,6 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.tools.push(tool);
         });
         get().syncEdges();
-        get()._markDirty();
       },
 
       removeTool: (toolId) => {
@@ -199,7 +192,6 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
         });
         get().syncEdges();
-        get()._markDirty();
       },
 
       updateTool: (toolId, updates) =>
@@ -231,7 +223,6 @@ export const useWorkflowStore = create<WorkflowState>()(
               state.selectedTool = tool;
             }
           }
-          get()._markDirty();
         });
       },
 
@@ -249,7 +240,6 @@ export const useWorkflowStore = create<WorkflowState>()(
               state.selectedTool = tool;
             }
           }
-          get()._markDirty();
         });
       },
 
@@ -281,7 +271,6 @@ export const useWorkflowStore = create<WorkflowState>()(
         invalidateWireChange(wire.to.tool, get().wires, workflowId);
         
         get().syncEdges();
-        get()._markDirty();
         return { success: true };
       },
 
@@ -314,7 +303,6 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
         
         get().syncEdges();
-        get()._markDirty();
       },
 
       removeWiresByTool: (toolId) => {
@@ -333,7 +321,6 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.wires.push(...wires);
         });
         get().syncEdges();
-        get()._markDirty();
       },
 
       // NEW: Metadata operations
@@ -341,7 +328,6 @@ export const useWorkflowStore = create<WorkflowState>()(
         set((state) => {
           logger.debug("Updating workflow metadata:", meta.name || '(name unchanged)');
           Object.assign(state.workflowMeta, meta);
-          get()._markDirty();
         }),
 
       // NEW: Lifecycle operations
