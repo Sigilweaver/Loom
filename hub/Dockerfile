@@ -18,22 +18,22 @@ ARG VCS_REF
 # =============================================================================
 # Stage 1: Build frontend
 # =============================================================================
-FROM node:20.18-slim AS frontend-builder
+FROM oven/bun:1.3.14-slim AS frontend-builder
 
 WORKDIR /build
 
 # Copy frontend package files
-COPY hub/frontend/package*.json ./
+COPY hub/frontend/package.json hub/frontend/bun.lock ./
 
 # Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile --ignore-scripts
 
 # Copy frontend source
 COPY hub/frontend/ ./
 
 # Build production bundle
-RUN npm run build
+RUN bun run build
 
 # =============================================================================
 # Stage 2: Build backend dependencies
