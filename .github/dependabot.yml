@@ -41,6 +41,16 @@ updates:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
 
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "cargo"
     directory: "/studio/tauri"
     schedule:
@@ -49,6 +59,20 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "docker"
+    directory: "/hub"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "docker"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "github-actions"
