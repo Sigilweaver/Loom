@@ -407,8 +407,8 @@ def enforce_cache_quota(cache_root: Path, max_size_bytes: int) -> int:
             if workflow_dir.is_dir() and not any(workflow_dir.iterdir()):
                 workflow_dir.rmdir()
                 logger.debug(f"Removed empty cache directory: {workflow_dir}")
-    except Exception:
-        pass  # Best effort cleanup
+    except Exception as e:
+        logger.debug(f"Best-effort empty cache directory cleanup failed: {e}")
 
     if evicted:
         logger.info(

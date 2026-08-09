@@ -401,7 +401,7 @@ async def get_tool_config_schema(tool_type: str) -> dict[str, Any]:
 
     try:
         tool_impl = ToolRegistry.get(tool_type)
-    except Exception:
+    except ToolError:
         raise HTTPException(status_code=404, detail=f"Unknown tool type: {tool_type}")
 
     model = tool_impl.config_model()

@@ -7,10 +7,13 @@ Provides modular statistics computation for data columns including:
 - Top values distribution
 """
 
+import logging
 from enum import Enum
 from typing import Any
 
 import polars as pl
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileMetrics(str, Enum):
@@ -289,8 +292,9 @@ class ColumnProfiler:
                 case ProfileMetrics.MAX_VALUES:
                     return self._compute_max_values(col)
 
-        except Exception:
+        except Exception as e:
             # If any metric computation fails, return None for that metric
+            logger.debug(f"Profile metric {metric} failed: {e}")
             return None
 
         return None

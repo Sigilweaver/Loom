@@ -8,6 +8,7 @@ Handles database connections for:
 Uses Polars' read_database_uri with connectorx engine.
 """
 
+import logging
 from typing import Any
 
 import polars as pl
@@ -24,6 +25,8 @@ from app.domain.connections.query_policy import (
 )
 from app.domain.datasources.base import DataSource
 from app.utils.errors import DataSourceError
+
+logger = logging.getLogger(__name__)
 
 
 # DDL/DML statements that must not be executed through the data source.
@@ -188,8 +191,9 @@ class DatabaseDataSource(DataSource):
 
             return DataSchema(columns=columns, row_count=None)
 
-        except Exception:
+        except Exception as e:
             # If the LIMIT 0 wrapper fails, try original query with a small limit
+            logger.debug(f"LIMIT 0 schema query failed, falling back to LIMIT 1: {e}")
             try:
                 limited_query = f"SELECT * FROM ({query}) AS _schema_fallback LIMIT 1"
                 df = pl.read_database_uri(
