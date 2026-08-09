@@ -199,6 +199,13 @@ pub async fn get_session_token() -> Result<Option<String>, String> {
     Ok(session.clone())
 }
 
+/// Read the current session token from Rust (for wiring into the spawned
+/// server's environment). Returns `None` if the session has not been
+/// initialized or the lock is poisoned.
+pub fn session_token() -> Option<String> {
+    SESSION_TOKEN.lock().ok().and_then(|s| s.clone())
+}
+
 /// Check if secure credential storage is available
 #[tauri::command]
 pub async fn is_encryption_available() -> Result<bool, String> {

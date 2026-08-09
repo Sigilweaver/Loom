@@ -82,25 +82,40 @@ impl Default for AppSettings {
     }
 }
 
-/// Get application settings
-#[tauri::command]
-pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
-    let store = app
-        .store(SETTINGS_STORE)
-        .map_err(|e| format!("Failed to open settings store: {}", e))?;
-    
-    // Try to load existing settings
+/// Load application settings, falling back to defaults if the store is missing
+/// or unreadable. Shared by the `get_settings` command and internal callers
+/// such as the backend-lifecycle autoStart check.
+pub fn load_settings(app: &AppHandle) -> AppSettings {
+    let store = match app.store(SETTINGS_STORE) {
+        Ok(store) => store,
+        Err(e) => {
+            eprintln!("[Settings] Failed to open settings store, using defaults: {}", e);
+            return AppSettings::default();
+        }
+    };
+
     if let Some(value) = store.get("settings") {
         match serde_json::from_value::<AppSettings>(value.clone()) {
-            Ok(settings) => return Ok(settings),
+            Ok(settings) => return settings,
             Err(e) => {
                 eprintln!("[Settings] Failed to parse settings, using defaults: {}", e);
             }
         }
     }
-    
-    // Return defaults if not found or parse failed
-    Ok(AppSettings::default())
+
+    AppSettings::default()
+}
+
+/// Whether the bundled server should auto-start (Full build only).
+/// Mirrors Electron's `settings.backend.autoStart` default of `true`.
+pub fn backend_auto_start(app: &AppHandle) -> bool {
+    load_settings(app).backend.auto_start
+}
+
+/// Get application settings
+#[tauri::command]
+pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
+    Ok(load_settings(&app))
 }
 
 /// Save application settings

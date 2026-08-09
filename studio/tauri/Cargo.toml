@@ -44,6 +44,10 @@ keyring = { version = "3", features = ["windows-native"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+# Enabled for "Full" desktop builds that bundle the PyInstaller server as a
+# Tauri sidecar (built with `tauri.conf.full.json`). Client builds omit this
+# feature and never spawn a server. See src/commands/backend.rs.
+bundled-server = []
 
 [profile.release]
 panic = "abort"

@@ -4,16 +4,20 @@ Cross-platform build script for Sigilweaver Loom.
 
 Builds the complete application:
 1. Server executable (PyInstaller)
-2. Copy server to studio resources
-3. Studio + Electron app
+2. Stage the server for the chosen shell:
+   - Electron: copy into studio resources (extraResources)
+   - Tauri: stage as a target-triple-named sidecar (externalBin)
+3. Studio + desktop shell (Electron by default, or Tauri with --tauri)
 
 Usage:
-    ./scripts/build.py                # Build for current platform
+    ./scripts/build.py                    # Electron Full build, current platform
     ./scripts/build.py --platform linux   # Build for Linux
     ./scripts/build.py --platform win     # Build for Windows
     ./scripts/build.py --platform mac     # Build for macOS
     ./scripts/build.py --server-only      # Build server only
     ./scripts/build.py --studio-only      # Build studio only (assumes server exists)
+    ./scripts/build.py --tauri            # Tauri Full build (bundled server sidecar)
+    ./scripts/build.py --tauri --client   # Tauri Client build (no bundled server)
     ./scripts/build.py --clean            # Clean build artifacts before building
 """
 
@@ -75,6 +79,98 @@ def get_server_extension(platform: str) -> str:
     return ".exe" if platform == "win" else ""
 
 
+# Fallback host target triples per platform, assuming x86_64. Used only when
+# `rustc -vV` is unavailable. Tauri resolves sidecars by triple suffix, so these
+# must match the triple the Tauri build targets.
+DEFAULT_TARGET_TRIPLES = {
+    "linux": "x86_64-unknown-linux-gnu",
+    "win": "x86_64-pc-windows-msvc",
+    "mac": "x86_64-apple-darwin",
+}
+
+
+def get_target_triple(platform: str) -> str:
+    """Return the Rust host target triple, for naming Tauri sidecar binaries.
+
+    Tauri's `externalBin` resolves a sidecar by a `-<target-triple>` suffix
+    (e.g. `server-x86_64-unknown-linux-gnu`). Prefer the real host triple from
+    `rustc -vV` so Apple Silicon and other arches are named correctly; fall back
+    to an x86_64 default only if rustc is not on PATH.
+    """
+    try:
+        result = subprocess.run(
+            ["rustc", "-vV"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if line.startswith("host:"):
+                    return line.split(":", 1)[1].strip()
+    except FileNotFoundError:
+        pass
+
+    return DEFAULT_TARGET_TRIPLES[platform]
+
+
+def stage_server_sidecar(repo_root: Path, platform: str) -> BuildResult:
+    """Stage the PyInstaller server binary as a Tauri sidecar.
+
+    Tauri's `externalBin` names sidecars `server-<target-triple>[.exe]` under a
+    directory relative to `tauri.conf.json`; the base name (`server`) and the
+    dir (`binaries/`) match the `externalBin` entry in `tauri.conf.full.json`.
+    This differs from Electron's `extraResources`, which just copies the binary
+    into `resources/server/`, so the Tauri build needs this extra rename step.
+    """
+    print_header("Staging Server Sidecar (Tauri)")
+
+    start_time = time.time()
+    host = get_host_platform()
+
+    try:
+        host_ext = get_server_extension(host)
+        target_ext = get_server_extension(platform)
+        server_src = repo_root / "server" / "dist" / f"server{host_ext}"
+        binaries_dir = repo_root / "studio" / "tauri" / "binaries"
+
+        triple = get_target_triple(platform)
+        sidecar_dest = binaries_dir / f"server-{triple}{target_ext}"
+
+        if not server_src.exists():
+            return BuildResult(
+                name="Stage Sidecar",
+                success=False,
+                duration=time.time() - start_time,
+                error=f"Server executable not found at {server_src}",
+            )
+
+        binaries_dir.mkdir(parents=True, exist_ok=True)
+
+        print(f"Staging {server_src} -> {sidecar_dest}")
+        shutil.copy2(server_src, sidecar_dest)
+
+        if platform != "win":
+            sidecar_dest.chmod(0o755)
+
+        size_mb = sidecar_dest.stat().st_size / (1024 * 1024)
+        print(f"Sidecar staged: {sidecar_dest} ({size_mb:.1f} MB)")
+
+        return BuildResult(
+            name="Stage Sidecar",
+            success=True,
+            duration=time.time() - start_time,
+        )
+
+    except Exception as e:
+        return BuildResult(
+            name="Stage Sidecar",
+            success=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
+
+
 def clean_build_artifacts(repo_root: Path) -> None:
     """Clean previous build artifacts."""
     print("Cleaning build artifacts...")
@@ -88,7 +184,11 @@ def clean_build_artifacts(repo_root: Path) -> None:
 
     # Studio artifacts
     studio_dir = repo_root / "studio"
-    for path in [studio_dir / "dist", studio_dir / "resources" / "server"]:
+    for path in [
+        studio_dir / "dist",
+        studio_dir / "resources" / "server",
+        studio_dir / "tauri" / "binaries",
+    ]:
         if path.exists():
             print(f"  Removing {path}")
             shutil.rmtree(path)
@@ -338,6 +438,79 @@ def build_studio(repo_root: Path, platform: str) -> BuildResult:
         )
 
 
+def build_studio_tauri(repo_root: Path, platform: str, *, client: bool) -> BuildResult:
+    """Build the studio + Tauri application.
+
+    A Full build (`client=False`) bundles the staged server sidecar via the
+    `build:tauri:<platform>:full` npm script, which compiles with the
+    `bundled-server` feature and `tauri.conf.full.json`. A Client build
+    (`client=True`) bundles no server and uses the base config.
+    """
+    variant = "Client" if client else "Full"
+    print_header(f"Building Studio + Tauri ({variant})")
+
+    studio_dir = repo_root / "studio"
+    node_modules = studio_dir / "node_modules"
+
+    if not node_modules.exists():
+        return BuildResult(
+            name="Studio (Tauri)",
+            success=False,
+            duration=0,
+            error="node_modules not found. Run: cd studio && npm install",
+        )
+
+    suffix = "client" if client else "full"
+    platform_scripts = {
+        "linux": f"build:tauri:linux:{suffix}",
+        "win": f"build:tauri:win:{suffix}",
+        "mac": f"build:tauri:mac:{suffix}",
+    }
+
+    if platform not in platform_scripts:
+        return BuildResult(
+            name="Studio (Tauri)",
+            success=False,
+            duration=0,
+            error=f"Unknown platform: {platform}. Use: linux, win, or mac",
+        )
+
+    npm_script = platform_scripts[platform]
+    start_time = time.time()
+
+    try:
+        print(f"Running npm run {npm_script}...")
+        result = subprocess.run(
+            ["npm", "run", npm_script],
+            cwd=studio_dir,
+            capture_output=False,
+        )
+
+        duration = time.time() - start_time
+
+        if result.returncode != 0:
+            return BuildResult(
+                name="Studio (Tauri)",
+                success=False,
+                duration=duration,
+                error="Tauri build failed",
+            )
+
+        return BuildResult(
+            name="Studio (Tauri)",
+            success=True,
+            duration=duration,
+        )
+
+    except Exception as e:
+        return BuildResult(
+            name="Studio (Tauri)",
+            success=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
+
+
 def print_summary(results: list[BuildResult]) -> None:
     """Print build summary."""
     print_header("Build Summary")
@@ -378,31 +551,49 @@ def main() -> int:
         help="Build studio only (assumes server already built)",
     )
     parser.add_argument(
+        "--tauri",
+        action="store_true",
+        help="Build the Tauri shell instead of Electron (stages the server as a sidecar)",
+    )
+    parser.add_argument(
+        "--client",
+        action="store_true",
+        help="Tauri only: build the Client variant (no bundled server)",
+    )
+    parser.add_argument(
         "--clean", action="store_true", help="Clean build artifacts before building"
     )
 
     args = parser.parse_args()
 
+    if args.client and not args.tauri:
+        parser.error("--client is only valid together with --tauri")
+
     # Determine platform
     platform = args.platform or detect_platform()
 
-    # Determine what to build
-    build_server_step = True
-    copy_server_step = True
+    # Determine what to build. A Tauri Client build bundles no server, so it
+    # skips the server build and the sidecar/resource staging entirely.
+    tauri_client = args.tauri and args.client
+    build_server_step = not tauri_client
+    stage_server_step = not tauri_client
     build_studio_step = True
 
     if args.server_only:
         build_studio_step = False
-        copy_server_step = False
+        stage_server_step = False
     elif args.studio_only:
         build_server_step = False
 
     repo_root = get_repo_root()
     results: list[BuildResult] = []
 
+    shell = "Tauri" if args.tauri else "Electron"
+    variant = "Client" if tauri_client else "Full"
     print_header("Sigilweaver Loom Build")
     print(f"Repository: {repo_root}")
     print(f"Platform: {platform}")
+    print(f"Shell: {shell} ({variant})")
 
     # Clean if requested
     if args.clean:
@@ -416,15 +607,23 @@ def main() -> int:
             print_summary(results)
             return 1
 
-    if copy_server_step:
-        result = copy_server_to_resources(repo_root, platform)
+    if stage_server_step:
+        # Tauri consumes the server as a target-triple-named sidecar; Electron
+        # consumes it as a plain resource copy.
+        if args.tauri:
+            result = stage_server_sidecar(repo_root, platform)
+        else:
+            result = copy_server_to_resources(repo_root, platform)
         results.append(result)
         if not result.success:
             print_summary(results)
             return 1
 
     if build_studio_step:
-        result = build_studio(repo_root, platform)
+        if args.tauri:
+            result = build_studio_tauri(repo_root, platform, client=args.client)
+        else:
+            result = build_studio(repo_root, platform)
         results.append(result)
 
     # Print summary
