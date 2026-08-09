@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 import polars as pl
 import pytest
+
 from app.api.models.common import PolarsDataType
 from app.domain.datasources.database import (
     DatabaseDataSource,
@@ -510,6 +511,25 @@ class TestDatabaseLoader:
         with pytest.raises(ToolError, match="cannot be empty"):
             await loader.load(
                 {"source": "postgresql://user:pass@localhost/db", "query": "   "}
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "DELETE FROM users",
+            "UPDATE users SET active = false",
+            "DROP TABLE users",
+            "/* disguised */ INSERT INTO users VALUES (1)",
+        ],
+    )
+    async def test_load_rejects_write_queries(self, query):
+        """Execution enforces the same read-only policy as preview."""
+        loader = DatabaseLoader()
+
+        with pytest.raises(ToolError, match="Only SELECT queries are allowed"):
+            await loader.load(
+                {"source": "postgresql://user:pass@localhost/db", "query": query}
             )
 
     @pytest.mark.asyncio

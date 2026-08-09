@@ -8,7 +8,6 @@ Handles database connections for:
 Uses Polars' read_database_uri with connectorx engine.
 """
 
-import re
 from typing import Any
 
 import polars as pl
@@ -19,32 +18,22 @@ from app.api.models.common import (
     DataSchema,
     PolarsDataType,
 )
+from app.domain.connections.query_policy import (
+    ReadOnlyQueryError,
+    validate_readonly_query,
+)
 from app.domain.datasources.base import DataSource
 from app.utils.errors import DataSourceError
 
+
 # DDL/DML statements that must not be executed through the data source.
 # Only SELECT queries are permitted.
-_FORBIDDEN_SQL_PATTERN = re.compile(
-    r"\b(DROP|ALTER|CREATE|DELETE|UPDATE|INSERT|TRUNCATE|GRANT|REVOKE|EXEC|EXECUTE|CALL)\b",
-    re.IGNORECASE,
-)
-
-
 def _validate_readonly_query(query: str) -> None:
-    """Reject queries containing DDL or write DML statements.
-
-    Raises:
-        DataSourceError: If the query contains forbidden SQL keywords.
-    """
-    # Strip SQL comments before checking
-    stripped = re.sub(r"--[^\n]*", "", query)
-    stripped = re.sub(r"/\*.*?\*/", "", stripped, flags=re.DOTALL)
-
-    if _FORBIDDEN_SQL_PATTERN.search(stripped):
-        raise DataSourceError(
-            "Only SELECT queries are allowed. DDL and write operations "
-            "(DROP, ALTER, CREATE, DELETE, UPDATE, INSERT, TRUNCATE) are forbidden."
-        )
+    """Backward-compatible adapter for the shared connection policy."""
+    try:
+        validate_readonly_query(query)
+    except ReadOnlyQueryError as e:
+        raise DataSourceError(str(e)) from e
 
 
 def _dtype_to_polars_type(dtype: pl.DataType) -> PolarsDataType:

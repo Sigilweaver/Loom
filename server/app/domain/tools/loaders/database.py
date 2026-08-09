@@ -13,6 +13,10 @@ from typing import Any
 
 import polars as pl
 
+from app.domain.connections.query_policy import (
+    ReadOnlyQueryError,
+    validate_readonly_query,
+)
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
 
@@ -70,6 +74,11 @@ class DatabaseLoader(FileLoader):
         query = query.strip()
         if not query:
             raise ToolError("SQL query cannot be empty")
+
+        try:
+            validate_readonly_query(query)
+        except ReadOnlyQueryError as e:
+            raise ToolError(str(e)) from e
 
         try:
             # read_database_uri returns a DataFrame (eager)

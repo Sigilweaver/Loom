@@ -14,11 +14,11 @@ Future: Add RBAC checks here (can this user access this connection?).
 """
 
 import logging
-from urllib.parse import quote_plus
 
 from app.api.models.workflow import Tool, Workflow
 from app.domain.connections.models import ResolvedConnection
 from app.domain.connections.store import ConnectionStore, get_connection_store
+from app.domain.connections.uri import build_connection_uri
 from app.utils.errors import ExecutionError
 
 logger = logging.getLogger(__name__)
@@ -235,38 +235,7 @@ class ConnectionResolver:
 
     def _build_uri(self, connection: ResolvedConnection) -> str:
         """Build a database URI from a resolved connection."""
-        # URL-encode credentials
-        username = quote_plus(connection.username)
-        password = quote_plus(connection.password)
-
-        conn_type = connection.type
-        db_type = conn_type.value if hasattr(conn_type, "value") else str(conn_type)
-
-        # Build URI based on database type
-        if db_type == "postgresql":
-            return (
-                f"postgresql://{username}:{password}@"
-                f"{connection.host}:{connection.port}/{connection.database}"
-            )
-        elif db_type == "mysql":
-            return (
-                f"mysql://{username}:{password}@"
-                f"{connection.host}:{connection.port}/{connection.database}"
-            )
-        elif db_type == "mssql":
-            return (
-                f"mssql://{username}:{password}@"
-                f"{connection.host}:{connection.port}/{connection.database}"
-            )
-        elif db_type == "sqlite":
-            # SQLite doesn't use credentials
-            return f"sqlite:///{connection.database}"
-        else:
-            # Fallback to generic format
-            return (
-                f"{db_type}://{username}:{password}@"
-                f"{connection.host}:{connection.port}/{connection.database}"
-            )
+        return build_connection_uri(connection)
 
     def _validate_connections_exist(self, server_connections: dict[str, str]) -> None:
         """

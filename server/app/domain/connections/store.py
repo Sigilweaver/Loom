@@ -10,7 +10,6 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote as url_quote
 from uuid import uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -23,6 +22,7 @@ from app.domain.connections.models import (
     StoredConnection,
     UpdateConnectionInput,
 )
+from app.domain.connections.uri import build_connection_uri
 
 logger = logging.getLogger(__name__)
 
@@ -228,37 +228,10 @@ class ConnectionStore:
         - SQLite: sqlite:///path/to/database.db (file path in 'database' field)
         - MSSQL: mssql://user:pass@host:port/database?encrypt=true&trust_server_certificate=true
         """
-        from app.domain.connections.models import DatabaseType
-
         resolved = self.resolve_connection(connection_id)
         if not resolved:
             return None
-
-        # URL-encode username and password to handle special characters
-        encoded_user = url_quote(resolved.username, safe="")
-        encoded_pass = url_quote(resolved.password, safe="")
-
-        db_type = resolved.type
-
-        if db_type == DatabaseType.SQLITE:
-            # SQLite uses file path, no credentials needed
-            # Format: sqlite:///path/to/database.db
-            # URL-encode the path for special characters
-            encoded_path = url_quote(resolved.database, safe="/")
-            return f"sqlite://{encoded_path}"
-
-        elif db_type == DatabaseType.MSSQL:
-            # SQL Server requires specific parameters for secure connections
-            # encrypt=true: Use TLS encryption
-            # trust_server_certificate=true: Accept self-signed certs (common in dev)
-            return (
-                f"mssql://{encoded_user}:{encoded_pass}@{resolved.host}:{resolved.port}/{resolved.database}"
-                f"?encrypt=true&trust_server_certificate=true"
-            )
-
-        else:
-            # PostgreSQL and MySQL use standard format
-            return f"{db_type.value}://{encoded_user}:{encoded_pass}@{resolved.host}:{resolved.port}/{resolved.database}"
+        return build_connection_uri(resolved)
 
     def create_connection(self, input: CreateConnectionInput) -> ConnectionInfo:
         """Create a new connection."""
