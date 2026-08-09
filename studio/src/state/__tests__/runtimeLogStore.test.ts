@@ -25,7 +25,7 @@ describe("RuntimeLogStore", () => {
     vi.clearAllMocks();
     mockNow.mockReturnValue(0);
     // Reset the store state before each test
-    useRuntimeLogStore.setState({ logs: [] });
+    useRuntimeLogStore.setState({ logs: [], logsByTabId: {}, activeTabId: null });
     // Clear pending requests by calling clearLogs which also clears pendingRequests
     useRuntimeLogStore.getState().clearLogs();
   });
@@ -125,6 +125,21 @@ describe("RuntimeLogStore", () => {
       expect(responseLog.tabId).toBe("tab-1");
       expect(responseLog.workflowId).toBe("wf-1");
       expect(responseLog.endpoint).toBe("/api/workflow/execute");
+    });
+
+    it("keeps an in-flight response with the tab that made the request", () => {
+      const store = useRuntimeLogStore.getState();
+      store.setActiveTab("tab-1");
+      const requestId = store.logRequest("/api/workflow/execute", "POST");
+
+      useRuntimeLogStore.getState().setActiveTab("tab-2");
+      store.logResponse(requestId, 200, 100);
+
+      const state = useRuntimeLogStore.getState();
+      expect(state.logs).toEqual([]);
+      expect(state.logsByTabId["tab-1"]).toHaveLength(2);
+      expect(state.logsByTabId["tab-1"]?.[1]?.type).toBe("response");
+      expect(state.logsByTabId["tab-2"]).toEqual([]);
     });
 
     it("ignores response for unknown request ID", () => {

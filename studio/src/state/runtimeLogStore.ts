@@ -1,16 +1,15 @@
 /**
- * runtimeLogStore - Application-wide runtime/network logging
+ * runtimeLogStore - Per-tab runtime/network logging
  *
- * Tracks all API requests, responses, cache hits, and errors across the entire
- * application session. This is separate from workflow execution logs which are
+ * Tracks API requests, responses, cache hits, and errors for the tab that
+ * initiated them. This is separate from workflow execution logs which are
  * per-run and workflow-specific.
  *
  * Features:
- * - Logs all network activity regardless of active tab
+ * - Keeps network activity isolated by tab
  * - Tracks request timing (duration)
  * - Correlates requests to workflows/tabs when context is provided
  * - Auto-limits to MAX_LOGS entries (oldest dropped)
- * - Can optionally forward to execution store for active tab
  */
 
 import { create } from "zustand";
@@ -60,6 +59,8 @@ const MAX_LOGS = 1000;
 
 interface RuntimeLogState {
   logs: RuntimeLog[];
+  logsByTabId: Record<string, RuntimeLog[]>;
+  activeTabId: string | null;
   
   // Actions
   logRequest: (endpoint: string, method: string, context?: RequestContext) => string;
@@ -67,14 +68,32 @@ interface RuntimeLogState {
   logError: (requestId: string, error: string, duration: number, status?: number) => void;
   logCacheHit: (endpoint: string, context?: RequestContext) => void;
   logCacheMiss: (endpoint: string, context?: RequestContext) => void;
-  clearLogs: () => void;
+  setActiveTab: (tabId: string | null) => void;
+  removeTab: (tabId: string) => void;
+  clearLogs: (tabId?: string) => void;
 }
 
 // Track pending requests for timing
 const pendingRequests = new Map<string, { endpoint: string; method: string; startTime: number; context?: RequestContext | undefined }>();
 
-export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
+export const useRuntimeLogStore = create<RuntimeLogState>((set, get) => ({
   logs: [],
+  logsByTabId: {},
+  activeTabId: null,
+
+  setActiveTab: (tabId) => set((state) => {
+    const logs = tabId ? state.logsByTabId[tabId] ?? [] : [];
+    return {
+      activeTabId: tabId,
+      ...(tabId ? { logsByTabId: { ...state.logsByTabId, [tabId]: logs } } : {}),
+      logs,
+    };
+  }),
+
+  removeTab: (tabId) => set((state) => {
+    const { [tabId]: _removed, ...logsByTabId } = state.logsByTabId;
+    return { logsByTabId };
+  }),
 
   /**
    * Log an outgoing request. Returns request ID for correlation.
@@ -82,9 +101,13 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
   logRequest: (endpoint: string, method: string, context?: RequestContext) => {
     const id = uuidv4();
     const startTime = performance.now();
+    const requestContext = {
+      ...context,
+      tabId: context?.tabId ?? get().activeTabId ?? undefined,
+    };
     
     // Store for timing when response comes back
-    pendingRequests.set(id, { endpoint, method, startTime, context });
+    pendingRequests.set(id, { endpoint, method, startTime, context: requestContext });
 
     const log: RuntimeLog = {
       id,
@@ -92,15 +115,13 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
       type: "request",
       endpoint,
       method,
-      workflowId: context?.workflowId,
-      tabId: context?.tabId,
-      toolId: context?.toolId,
+      workflowId: requestContext.workflowId,
+      tabId: requestContext.tabId,
+      toolId: requestContext.toolId,
       message: `${method} ${endpoint}`,
     };
 
-    set((state) => ({
-      logs: [...state.logs, log].slice(-MAX_LOGS),
-    }));
+    set((state) => appendLog(state, requestContext.tabId, log));
 
     return id;
   },
@@ -128,9 +149,7 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
       message: `${status} OK ${pending.endpoint} (${Math.round(duration)}ms)`,
     };
 
-    set((state) => ({
-      logs: [...state.logs, log].slice(-MAX_LOGS),
-    }));
+    set((state) => appendLog(state, pending.context?.tabId, log));
   },
 
   /**
@@ -156,9 +175,7 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
       message: `ERROR ${pending.endpoint}: ${error}`,
     };
 
-    set((state) => ({
-      logs: [...state.logs, log].slice(-MAX_LOGS),
-    }));
+    set((state) => appendLog(state, pending.context?.tabId, log));
   },
 
   /**
@@ -178,9 +195,7 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
       cached: true,
     };
 
-    set((state) => ({
-      logs: [...state.logs, log].slice(-MAX_LOGS),
-    }));
+    set((state) => appendLog(state, context?.tabId, log));
   },
 
   /**
@@ -200,19 +215,42 @@ export const useRuntimeLogStore = create<RuntimeLogState>((set) => ({
       cached: false,
     };
 
-    set((state) => ({
-      logs: [...state.logs, log].slice(-MAX_LOGS),
-    }));
+    set((state) => appendLog(state, context?.tabId, log));
   },
 
   /**
    * Clear all logs
    */
-  clearLogs: () => {
-    pendingRequests.clear();
-    set({ logs: [] });
+  clearLogs: (tabId) => {
+    set((state) => {
+      const id = tabId ?? state.activeTabId ?? "__default__";
+      for (const [requestId, pending] of pendingRequests) {
+        const pendingTabId = pending.context?.tabId ?? "__default__";
+        if (pendingTabId === id) pendingRequests.delete(requestId);
+      }
+      return {
+        logsByTabId: { ...state.logsByTabId, [id]: [] },
+        ...(id === state.activeTabId || (!state.activeTabId && id === "__default__") ? { logs: [] } : {}),
+      };
+    });
   },
 }));
+
+function appendLog(
+  state: RuntimeLogState,
+  requestedTabId: string | undefined,
+  log: RuntimeLog,
+): Partial<RuntimeLogState> {
+  const tabId = requestedTabId ?? state.activeTabId ?? "__default__";
+  const currentLogs = tabId === state.activeTabId || !state.activeTabId
+    ? state.logs
+    : state.logsByTabId[tabId] ?? [];
+  const logs = [...currentLogs, { ...log, tabId }].slice(-MAX_LOGS);
+  return {
+    logsByTabId: { ...state.logsByTabId, [tabId]: logs },
+    ...(tabId === state.activeTabId || !state.activeTabId ? { logs } : {}),
+  };
+}
 
 /**
  * Helper to get runtime log store actions without subscribing to state

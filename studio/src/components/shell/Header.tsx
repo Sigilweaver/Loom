@@ -61,7 +61,9 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   const previewRows = useSettingsStore((s) => s.backend.previewRows);
 
   // Execution state
-  const isExecuting = useExecutionStore((s) => s.isExecuting);
+  const isExecuting = useExecutionStore((s) =>
+    activeTabId ? s.executions[activeTabId]?.isExecuting ?? false : false
+  );
   const startExecution = useExecutionStore((s) => s.startExecution);
   const finishExecution = useExecutionStore((s) => s.finishExecution);
   const failExecution = useExecutionStore((s) => s.failExecution);
@@ -440,6 +442,8 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   }, [workflowMeta.workflowId, showNotification]);
 
   const handleRunWorkflow = async () => {
+    const executionTabId = activeTabId;
+    if (!executionTabId) return;
     try {
       const { tools, wires } = useWorkflowStore.getState();
       // Validate workflow has tools
@@ -456,8 +460,8 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
       }
 
       // Clear previous logs and start execution
-      clearLogs();
-      startExecution();
+      clearLogs(executionTabId);
+      startExecution(executionTabId);
 
       // Open bottom pane to logs tab
       setBottomPaneOpen(true);
@@ -467,7 +471,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
       addLog({
         level: "info",
         message: `Starting workflow execution: ${workflowMeta.name}`,
-      });
+      }, executionTabId);
 
       // Serialize workflow
       const workflowJSON = WorkflowSerializer.toJSON(tools, wires, workflowMeta);
@@ -476,18 +480,21 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
       addLog({
         level: "info",
         message: `Executing ${tools.length} tools with ${wires.length} connections`,
-      });
+      }, executionTabId);
 
       // Execute workflow
-      await execute(workflow);
+      await execute(workflow, undefined, {
+        tabId: executionTabId,
+        workflowId: workflowMeta.workflowId,
+      });
 
       // Success
       addLog({
         level: "success",
         message: "Workflow execution completed successfully",
-      });
+      }, executionTabId);
 
-      finishExecution({ tool_id: "", outputs: {} });
+      finishExecution({ tool_id: "", outputs: {} }, executionTabId);
       showNotification("Workflow executed successfully!", "success");
 
     } catch (error) {
@@ -496,9 +503,9 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
       addLog({
         level: "error",
         message: `Execution failed: ${message}`,
-      });
+      }, executionTabId);
 
-      failExecution(message);
+      failExecution(message, executionTabId);
       showNotification(`Execution failed: ${message}`, "error");
     }
   };

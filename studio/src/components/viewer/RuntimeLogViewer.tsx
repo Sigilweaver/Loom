@@ -7,6 +7,7 @@
 
 import { useRuntimeLogStore, type RuntimeLogType } from "@state/runtimeLogStore";
 import { useState } from "react";
+import { useTabStore } from "@state/tabStore";
 
 /**
  * Color classes for each log type
@@ -43,7 +44,8 @@ const filterOptions: { value: RuntimeLogType | "all"; label: string }[] = [
 ];
 
 const RuntimeLogViewer = () => {
-  const logs = useRuntimeLogStore((s) => s.logs);
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const logs = useRuntimeLogStore((s) => activeTabId ? s.logsByTabId[activeTabId] ?? [] : []);
   const clearLogs = useRuntimeLogStore((s) => s.clearLogs);
   const [filter, setFilter] = useState<RuntimeLogType | "all">("all");
 
@@ -104,7 +106,7 @@ const RuntimeLogViewer = () => {
 
         {/* Clear button */}
         <button
-          onClick={clearLogs}
+          onClick={() => clearLogs(activeTabId ?? undefined)}
           disabled={logs.length === 0}
           className="px-2 py-1 text-xs transition-colors rounded text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-surface-panel disabled:opacity-50 disabled:cursor-not-allowed"
         >
