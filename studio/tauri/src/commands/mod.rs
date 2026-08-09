@@ -2,6 +2,7 @@
 //!
 //! Organized by functionality to match the PlatformAdapter interface.
 
+pub mod backend;
 pub mod credentials;
 pub mod files;
 pub mod settings;

@@ -145,6 +145,43 @@ Configuration lives in `package.json` and `electron-builder*.json`:
 }
 ```
 
+### Tauri Shell (Sidecar Server)
+
+The Tauri shell is packaged in parallel with Electron and reuses the same
+PyInstaller server. Where Electron ships the server via `extraResources`, Tauri
+ships it as a **sidecar** declared under `externalBin`, resolved by
+target-triple suffix.
+
+```bash
+# Full Tauri build (bundled server sidecar)
+./scripts/build.py --tauri
+
+# Client Tauri build (no bundled server)
+./scripts/build.py --tauri --client
+```
+
+`--tauri` runs three steps: build the server, stage it as a sidecar, then build
+the Tauri app.
+
+- **Staging**: `scripts/build.py` copies `server/dist/server[.exe]` to
+  `studio/tauri/binaries/server-<target-triple>[.exe]` (for example,
+  `server-x86_64-unknown-linux-gnu`). This rename is the key difference from
+  Electron's `extraResources` copy, and is the most common source of
+  "works on my platform" breakage if the triple is wrong.
+- **Full vs Client**: the Full build compiles with the `bundled-server` Cargo
+  feature and merges `studio/tauri/tauri.conf.full.json` (which sets
+  `externalBin`); the Client build uses the base config, which declares no
+  sidecar. The Rust dispatch keys off the `bundled-server` feature, so
+  client-vs-full is a compile-time decision, matching how Tauri embeds its
+  config.
+- **Runtime**: on launch, a Full build spawns the sidecar, injects the
+  `SESSION_TOKEN` and writable `*_PATH` environment, polls `/api/health/` until
+  ready, and terminates the process on exit (including abnormal exit). Dev and
+  Client builds never spawn.
+
+Underlying npm scripts: `build:tauri:<platform>:full` and
+`build:tauri:<platform>:client`.
+
 ### PyInstaller Spec
 
 Server bundling is configured in `server/sigilweaver.spec`:
@@ -173,6 +210,10 @@ Hidden imports are manually specified because PyInstaller can't detect dynamic i
 4. Waits for Server health check (`/api/health/`)
 5. Opens main window pointing to bundled Studio
 6. On quit, terminates Server process
+
+The Tauri Full build follows the same lifecycle, spawning the server as a
+sidecar rather than from `resources/server/` and reaping it on the app's
+`ExitRequested`/`Exit` events.
 
 ### Development Mode
 

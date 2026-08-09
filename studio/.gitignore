@@ -1,2 +1,9 @@
 # Studio-specific (common patterns in root .gitignore)
 # Electron build output (dist-electron/) is in root .gitignore
+
+# Electron: PyInstaller server copied in by scripts/build.py
+resources/server/
+
+# Tauri: PyInstaller server staged as a sidecar by scripts/build.py
+# (named server-<target-triple>[.exe])
+tauri/binaries/
