@@ -194,7 +194,8 @@ const SORT_SCHEMA: ToolConfigSchema = {
       type: 'array',
       items: {
         column: { description: 'Column name', type: 'string', required: true },
-        order: { description: 'Sort direction', type: 'enum', enum: ['ascending', 'descending'] as const, required: true },
+        direction: { description: 'Sort direction', type: 'enum', enum: ['asc', 'desc'] as const, required: true },
+        nullsFirst: { description: 'Place null values before non-null values', type: 'boolean', default: false },
       },
       default: [],
       required: true,
@@ -273,9 +274,9 @@ const UNIQUE_SCHEMA: ToolConfigSchema = {
       default: [],
     },
     mode: {
-      description: 'Which row to keep when duplicates are found',
+      description: 'Whether to keep the first occurrence or only strictly unique values',
       type: 'enum',
-      enum: ['First', 'Last', 'None'] as const,
+      enum: ['First', 'Strict'] as const,
       default: 'First',
     },
   },

@@ -90,9 +90,12 @@ export interface HubConnectionInfo {
 export interface HubServerInfo {
   id: string;
   name: string;
-  endpoint: string;
-  healthy: boolean;
-  load: number;
+  endpoint_url: string;
+  status: string;
+  version: string | null;
+  last_poll: string | null;
+  last_healthy: string | null;
+  created_at: string;
 }
 
 /**

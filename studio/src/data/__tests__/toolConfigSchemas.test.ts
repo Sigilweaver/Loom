@@ -121,6 +121,22 @@ describe('toolConfigSchemas', () => {
       expect(schema.fields.joinType!.enum).toContain('outer');
     });
 
+    it('Unique schema matches backend-supported modes', () => {
+      const schema = getToolConfigSchema('Unique')!;
+      expect(schema.fields.mode!.enum).toEqual(['First', 'Strict']);
+    });
+
+    it('Sort schema uses the serialized direction contract', () => {
+      const schema = getToolConfigSchema('Sort')!;
+      const items = schema.fields.sortColumns!.items as Record<
+        string,
+        { enum?: readonly string[]; type: string }
+      >;
+      expect(items.direction!.enum).toEqual(['asc', 'desc']);
+      expect(items.nullsFirst!.type).toBe('boolean');
+      expect(items).not.toHaveProperty('order');
+    });
+
     it('Summarize aggregation operations include common functions', () => {
       const schema = getToolConfigSchema('Summarize')!;
       const aggField = schema.fields.aggregations!;
