@@ -185,7 +185,6 @@ The `docker-compose.override.yml` file disables secrets for local development.
 | `HUB_PORT`     | `25802`         | Hub external port                              |
 | `ENVIRONMENT`  | `development`   | `production` enforces secret validation at startup |
 | `LOG_LEVEL`    | `info`          | Logging level                                  |
-| `LOG_FORMAT`   | `json`          | Log format (text/json)                         |
 | `CORS_ORIGINS` | -               | Allowed CORS origins                           |
 | `DATABASE_URL` | -               | External PostgreSQL URL                        |
 | `SERVER_NAME`  | auto            | Server display name in Hub                     |
@@ -331,7 +330,7 @@ SCAN=1 ./docker/build.sh
 - [ ] `SERVER_REGISTRATION_SECRET` is set (empty = open server registration)
 - [ ] Using production compose: `docker compose -f docker-compose.yml up -d`
 - [ ] `CORS_ORIGINS` set to your domain(s)
-- [ ] `LOG_FORMAT=json` for log aggregation
+- [ ] JSON log format is enabled by default for log aggregation (hardcoded in `docker-compose.yml`, not configurable via `.env`)
 - [ ] External PostgreSQL (recommended for production)
 - [ ] Reverse proxy (nginx/traefik) with TLS
 - [ ] Resource limits configured

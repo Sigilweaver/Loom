@@ -2,12 +2,10 @@
 
 ## Supported Versions
 
-| Version      | Supported |
-| ------------ | --------- |
-| v1.0.x       | Yes       |
-| < v1.0       | No        |
-
-Only the latest release receives security updates.
+Sigilweaver Loom is pre-1.0 (currently v0.12.0) and has not yet had a stable
+v1.0 release. Only the latest pre-1.0 release receives security updates;
+older pre-1.0 releases are not supported. Once v1.0 ships, this policy will
+be updated to reflect a stable supported-version line.
 
 ## Reporting a Vulnerability
 

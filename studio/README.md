@@ -60,7 +60,7 @@ cd studio
 bun run dev:tauri  # Starts Tauri dev mode (Vite + Tauri)
 ```
 
-> **Note:** Electron (Full build) bundles the Server executable. Tauri (Client build) is a lightweight shell that connects to an external Server.
+> **Note:** Both Electron and Tauri ship in a Full variant, which bundles the Server executable as a sidecar/extra resource, and a Client variant, which is a lightweight shell that connects to an external Server. Use `bun run build:tauri:*:full` / `build:tauri:*:client` (or the Electron equivalents) to choose a variant.
 
 ## Connecting to a Backend
 

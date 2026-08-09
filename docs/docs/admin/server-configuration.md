@@ -61,7 +61,7 @@ Server supports four authentication modes:
 
 | Variable              | Default    | Description                           |
 | --------------------- | ---------- | ------------------------------------- |
-| `AUTH_MODE`           | `disabled` | Authentication mode                   |
+| `AUTH_MODE`           | `ephemeral` | Authentication mode                  |
 | `SESSION_TOKEN`       | `""`       | Token for `ephemeral`/`static` modes  |
 | `AUTH_PROTECT_DOCS`   | `true`     | Require auth for `/docs` and `/redoc` |
 | `AUTH_PROTECT_HEALTH` | `true`     | Require auth for `/api/health`        |

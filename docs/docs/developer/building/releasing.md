@@ -8,109 +8,38 @@ CI/CD pipeline and distribution workflow.
 
 ## Release Process
 
-### 1. Version Bump
+### 1. Tag and Push
 
-Update version in:
-- `server/app/__init__.py`
-- `studio/package.json`
-
-```bash
-# server/app/__init__.py
-__version__ = "0.3.0"
-
-# studio/package.json
-{
-  "version": "0.3.0"
-}
-```
-
-### 2. Create Release
+There is no manual version-bump step. Version numbers across every
+component (`studio/package.json`, `server/pyproject.toml`,
+`hub/backend/pyproject.toml`, `hub/frontend/package.json`,
+`docs/package.json`, `studio/tauri/tauri.conf.json`,
+`studio/tauri/Cargo.toml`, `server/app/__init__.py`,
+`hub/backend/app/__init__.py`) are derived from the git tag itself and
+written by `.github/scripts/set-version.py`, which each build job runs
+before compiling.
 
 ```bash
-git add -A
-git commit -m "Release v0.3.0"
 git tag v0.3.0
-git push origin main --tags
+git push origin v0.3.0
 ```
 
-The tag triggers the GitHub Actions release workflow.
+The tag triggers `.github/workflows/release.yml` (`Build Release`), but
+only if the tagged commit is reachable from `main` -
+`validate-tag-on-main` gates the rest of the workflow on this.
 
-### 3. CI/CD Pipeline
+### 2. CI/CD Pipeline
 
-When a version tag is pushed:
+When a valid version tag is pushed, `release.yml` fans out into:
 
-1. **Build** runs on all platforms (Linux, Windows, macOS)
-2. **Test** runs full test suite
-3. **Package** creates distributable artifacts
-4. **Upload** pushes to Cloudflare R2 CDN
-5. **Release** creates GitHub release with assets
+1. `build-server` - PyInstaller executables for Linux/Windows/macOS (calls the reusable `build-server.yml`)
+2. `build-studio-full` - Electron builds with the server bundled in (depends on `build-server`)
+3. `build-studio-client` - Electron builds without a bundled server
+4. `build-web` - static web build zip
+5. `publish-assets` - downloads all artifacts, computes checksums, uploads to the GitHub Release, and mirrors everything to Cloudflare R2
 
-## GitHub Actions Workflow
-
-```yaml
-# .github/workflows/release.yml
-
-name: Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-      
-      - name: Build Server
-        run: |
-          cd server
-            uv sync --all-extras
-            uv run pyinstaller sigilweaver.spec
-          cd studio
-          bun install --frozen-lockfile
-          bun run build
-          bun run dist
-      
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.os }}
-          path: studio/dist/
-  
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-      
-      - name: Upload to B2
-        run: ./scripts/upload-release.sh
-        env:
-          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
-          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-      
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build-*/Sigilweaver Loom*
-          generate_release_notes: true
-```
+Note the Tauri desktop build (`build-studio-tauri.yml`) is not part of
+this chain yet - see the workflow's own README for details.
 
 ## Distribution
 
@@ -228,8 +157,8 @@ appimagetool --sign Sigilweaver-Loom.AppImage
 
 Before tagging a release:
 
-1. Run full test suite: `./scripts/test.sh`
-2. Build locally: `./scripts/build.sh`
+1. Run full test suite: `./scripts/test.py --full`
+2. Build locally: `./scripts/build.py`
 3. Test on clean system (VM without dev tools)
 4. Verify:
    - App launches
@@ -250,7 +179,6 @@ Versioned releases in `/releases/loom/{version}/` are never deleted, so historic
 
 ## Release Checklist
 
-- [ ] Version bumped in both frontend and backend
 - [ ] Changelog updated
 - [ ] All tests passing
 - [ ] Local build tested
