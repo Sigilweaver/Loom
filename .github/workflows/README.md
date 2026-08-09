@@ -7,19 +7,20 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 ### Workflow Files
 
 #### 1. ci.yml - Continuous Integration
-**Trigger**: Pull requests and pushes to `main`
+**Trigger**: Pull requests and pushes to any branch (skipped for docs/markdown-only changes via `paths-ignore`)
 
 **Purpose**: Validates code quality and runs tests
 
 **Jobs**:
-- Server tests (pytest, ruff, mypy)
-- Studio tests (vitest, eslint, tsc)
-- Web build verification
+- `check-studio-tauri` - `cargo check` + `cargo clippy` on the Tauri sidecar crate
+- `test` - Server (pytest, ruff, mypy), Studio (vitest, eslint, tsc), and Hub backend+frontend (pytest, vitest, ruff, mypy, eslint, tsc) via `scripts/test.py --full --ci --server --studio --hub -p`
+- `build-studio` - Web build verification (depends on `test`)
+- `docs` - Docusaurus build check (runs independently; note this job is defined here but the top-level `paths-ignore: docs/**` means it never actually triggers on docs-only changes - see the Known Issues note below)
 
 **Usage**:
-- Automatically runs on all PRs
+- Automatically runs on all PRs and branch pushes
 - Blocks merging if tests fail
-- Uploads coverage artifacts
+- Uploads coverage artifacts (server, studio, hub)
 
 ---
 
@@ -138,7 +139,35 @@ gh workflow run build-web.yml
 
 ---
 
-#### 6. release.yml - Release Orchestrator
+#### 6. build-studio-tauri.yml - Tauri Builds (Reusable)
+**Trigger**: Called by other workflows via `workflow_call`, or manual `workflow_dispatch`
+
+**Purpose**: Build the Tauri desktop app (client-only; no bundled-server variant yet)
+
+**Matrix Strategy**:
+- Linux (deb, rpm, AppImage)
+- Windows (msi, nsis)
+- macOS ARM64 (dmg)
+
+**Outputs**:
+- `linux-tauri-artifacts`, `windows-tauri-artifacts`, `macos-arm-tauri-artifacts`
+
+**Build Process**:
+1. Installs bun and Rust
+2. Builds web assets (`bun run build:web`)
+3. Runs `tauri build --target {matrix.target}`
+4. Collects platform-specific bundle output
+
+**Can be tested standalone**:
+```bash
+gh workflow run build-studio-tauri.yml
+```
+
+**Known gap**: this workflow is not currently wired into `release.yml`, so tagged releases do not ship a Tauri build even though the app supports it. Manual dispatch is the only way to produce Tauri artifacts today.
+
+---
+
+#### 7. release.yml - Release Orchestrator
 **Trigger**: 
 - Git tags matching `v*` (e.g., v1.0.0)
 - Manual workflow_dispatch
@@ -249,12 +278,12 @@ gh release delete v0.0.1-test --yes
 
 ### External Actions
 
-- `actions/checkout@v4` - Repository checkout
-- `actions/setup-python@v5` - Python environment
-- `oven-sh/setup-bun@v2` - bun environment  
-- `actions/upload-artifact@v4` - Artifact storage
-- `actions/download-artifact@v4` - Artifact retrieval
-- `softprops/action-gh-release@v2` - GitHub Release creation
+- `actions/checkout@v7` - Repository checkout
+- `actions/setup-python@v7` - Python environment
+- `oven-sh/setup-bun@v2` - bun environment
+- `actions/upload-artifact@v7` - Artifact storage
+- `actions/download-artifact@v8` - Artifact retrieval
+- `softprops/action-gh-release@v3` - GitHub Release creation
 
 ---
 
