@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useTheme } from "@contexts/ThemeContext";
 import { FileText, Database, Search } from "lucide-react";
 
-interface DataSource {
+export interface DataSource {
   id: string;
   name: string;
   category: "file" | "database";
@@ -13,7 +13,7 @@ interface DataSource {
   supportedOperations?: ("input" | "output")[];
 }
 
-const DATA_SOURCES: DataSource[] = [
+export const DATA_SOURCES: DataSource[] = [
   // File formats
   {
     id: "csv",
