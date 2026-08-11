@@ -27,7 +27,7 @@ class HealthResponse(BaseModel):
 
 
 @router.get("/", response_model=HealthResponse)
-@_rl.exempt
+@_rl.exempt  # type: ignore[untyped-decorator]  # slowapi's exempt decorator is untyped
 async def health_check() -> HealthResponse:
     """
     Health check endpoint

@@ -4,7 +4,7 @@ import re
 
 from app.utils.errors import (
     ExecutionError,
-    SafetyLimitExceeded,
+    SafetyLimitExceededError,
     ToolConfigError,
     ToolError,
     ToolRuntimeError,
@@ -29,6 +29,6 @@ def test_tool_subclasses_are_tool_error():
 
 
 def test_safety_limit_is_execution_error():
-    err = SafetyLimitExceeded("rows exceeded")
+    err = SafetyLimitExceededError("rows exceeded")
     assert isinstance(err, ExecutionError)
     assert err.error_id  # inherits id behaviour

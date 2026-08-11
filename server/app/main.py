@@ -197,7 +197,10 @@ from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
 from app.middleware.rate_limit import limiter as _rl  # noqa: E402
 
 application.state.limiter = _rl
-application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+application.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,  # type: ignore[arg-type]  # slowapi handler typed (Request, RateLimitExceeded)
+)
 for exception_type, handler in WORKFLOW_EXCEPTION_HANDLERS.items():
     application.add_exception_handler(exception_type, handler)
 application.add_middleware(SlowAPIMiddleware)

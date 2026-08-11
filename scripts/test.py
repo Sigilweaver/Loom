@@ -476,12 +476,12 @@ def run_server_lint(repo_root: Path, strict: bool = False) -> CheckResult:
             error="Virtual environment not found"
         )
     
-    # Match CI behavior: ruff check with exit-zero unless strict mode
+    # The server declares a zero-ignore ruff policy (pyproject: ignore = [])
+    # and the baseline is clean, so lint is enforced unconditionally: any
+    # finding fails the build, in CI and locally. `strict` no longer downgrades
+    # this (it only ever added extra checks).
     cmd = [str(python_path), "-m", "ruff", "check", "app/", "tests/"]
-    if not strict:
-        cmd.append("--exit-zero")
-    
-    return run_command(cmd, server_dir, "Server Lint", fail_on_error=strict)
+    return run_command(cmd, server_dir, "Server Lint", fail_on_error=True)
 
 
 def run_server_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
@@ -500,9 +500,10 @@ def run_server_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
         )
     
     cmd = [str(python_path), "-m", "mypy", "app/"]
-    
-    # Match CI behavior: mypy issues are reported but don't fail unless strict
-    return run_command(cmd, server_dir, "Server Types", fail_on_error=strict)
+
+    # mypy runs in strict mode (pyproject) and the baseline is clean, so type
+    # errors fail the build unconditionally, in CI and locally.
+    return run_command(cmd, server_dir, "Server Types", fail_on_error=True)
 
 
 def run_server_tests(repo_root: Path, coverage: bool = False, parallel: bool = False) -> CheckResult:

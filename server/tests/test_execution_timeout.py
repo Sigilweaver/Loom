@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from app.api.models.workflow import Tool, Workflow, WorkflowMeta, Socket
+from app.api.models.workflow import Socket, Tool, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
 from app.utils.errors import ExecutionTimeoutError
 
@@ -56,8 +56,9 @@ async def test_execute_workflow_raises_on_timeout(monkeypatch):
 @pytest.mark.asyncio
 async def test_timeout_completes_within_slack(monkeypatch):
     """The timeout should fire close to the configured budget, not the full sleep."""
-    from app.domain.execution import executor as executor_mod
     import time
+
+    from app.domain.execution import executor as executor_mod
 
     monkeypatch.setattr(executor_mod.settings, "max_execution_time_seconds", 1)
 

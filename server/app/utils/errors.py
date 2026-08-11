@@ -52,13 +52,13 @@ class ToolRuntimeError(ToolError):
     pass
 
 
-class SafetyLimitExceeded(ExecutionError):
+class SafetyLimitExceededError(ExecutionError):
     """A safety budget (rows, memory, time) was exceeded."""
 
     pass
 
 
-class ExecutionTimeoutError(SafetyLimitExceeded):
+class ExecutionTimeoutError(SafetyLimitExceededError):
     """Workflow / tool execution exceeded its time budget."""
 
     pass

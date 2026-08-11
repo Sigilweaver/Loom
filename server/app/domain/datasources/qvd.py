@@ -37,7 +37,10 @@ class QvdDataSource(DataSource):
 
         try:
             table = openqvd.read(str(file_path))
+            # openqvd.read returns an Arrow Table, so from_arrow yields a
+            # DataFrame (not a Series); narrow the DataFrame | Series union.
             df = pl.from_arrow(table)
+            assert isinstance(df, pl.DataFrame)
 
             schema = schema_from_polars(df.lazy())
 
@@ -71,7 +74,9 @@ class QvdDataSource(DataSource):
                 if columns
                 else openqvd.read(str(file_path))
             )
+            # from_arrow on an Arrow Table yields a DataFrame; narrow the union.
             df = pl.from_arrow(table)
+            assert isinstance(df, pl.DataFrame)
 
             total_rows = df.height
 

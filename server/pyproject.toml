@@ -50,6 +50,12 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "W"]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+# Tool config models mirror the camelCase JSON contract shared with the
+# frontend / AI layer (e.g. sortColumns, variableName, nullsFirst), so N815
+# (mixedCase in class scope) is intentional for these Pydantic fields.
+"app/domain/tools/implementations/*.py" = ["N815"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
