@@ -205,9 +205,22 @@ class TestProviderURLResolution:
         assert resp.status_code == 400
         assert "unknown_provider" in resp.json()["detail"].lower()
 
+    @patch("app.api.routes.ai.socket.getaddrinfo")
     @patch("app.api.routes.ai.httpx.AsyncClient")
-    def test_openai_compatible_strips_trailing_slash(self, mock_client_cls, client):
-        """Server strips trailing slashes from base_url to avoid double-slash."""
+    def test_openai_compatible_strips_trailing_slash(
+        self, mock_client_cls, mock_getaddrinfo, client
+    ):
+        """Server strips trailing slashes from base_url to avoid double-slash.
+
+        The upstream host is pinned to its resolved (public) IP, so the built
+        URL targets the IP while the original hostname is preserved in the Host
+        header for name-based routing and TLS SNI.
+        """
+        import socket as _socket
+
+        mock_getaddrinfo.return_value = [
+            (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("93.184.216.34", 11434))
+        ]
         mock_resp = _mock_response()
         mock_instance = MagicMock()
         mock_instance.build_request = MagicMock(return_value=MagicMock())
@@ -221,11 +234,13 @@ class TestProviderURLResolution:
             json={},
         )
 
-        call_kwargs = mock_instance.build_request.call_args
-        url = str(call_kwargs)
+        _, kwargs = mock_instance.build_request.call_args
+        url = str(kwargs["url"])
         # Trailing slash stripped - should NOT produce //v1
-        assert "example.com:11434//v1" not in url
-        assert "example.com:11434/v1" in url
+        assert "11434//v1" not in url
+        assert "93.184.216.34:11434/v1/chat/completions" in url
+        # Original hostname preserved for the Host header.
+        assert kwargs["headers"].get("host") == "my-llm-server.example.com"
 
 
 class TestSSRFProtection:
@@ -272,6 +287,71 @@ class TestSSRFProtection:
         )
         # Should NOT be 400 - known providers bypass SSRF check
         assert resp.status_code != 400
+
+    def test_blocks_dns_name_resolving_to_loopback(self, client):
+        """A DNS name (not an IP literal) that resolves to an internal address
+        must be rejected - the classic DNS-rebinding / SSRF-via-DNS bypass."""
+        import socket as _socket
+
+        def _fake_getaddrinfo(host, port, *args, **kwargs):
+            # Attacker-controlled name resolves to loopback.
+            return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("127.0.0.1", port or 80))]
+
+        with patch("app.api.routes.ai.socket.getaddrinfo", side_effect=_fake_getaddrinfo):
+            resp = client.post(
+                "/api/ai/proxy/openai-compatible/v1/chat/completions"
+                "?base_url=http://evil.example.com",
+                json={},
+            )
+        assert resp.status_code == 400
+        assert "private" in resp.json()["detail"].lower()
+
+    def test_blocks_dns_name_resolving_to_metadata_ip(self, client):
+        """DNS name resolving to the cloud metadata endpoint is rejected."""
+        import socket as _socket
+
+        def _fake_getaddrinfo(host, port, *args, **kwargs):
+            return [
+                (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("169.254.169.254", port or 80))
+            ]
+
+        with patch("app.api.routes.ai.socket.getaddrinfo", side_effect=_fake_getaddrinfo):
+            resp = client.post(
+                "/api/ai/proxy/openai-compatible/v1/chat/completions"
+                "?base_url=http://metadata.attacker.test",
+                json={},
+            )
+        assert resp.status_code == 400
+
+
+class TestUpstreamPinning:
+    """The IP validated must be the IP actually connected to (no re-resolution)."""
+
+    def test_pin_host_swaps_hostname_for_ip_and_preserves_host(self):
+        from app.api.routes.ai import _pin_host
+
+        pinned, host = _pin_host("https://api.example.com:8443", "203.0.113.7")
+        assert pinned == "https://203.0.113.7:8443"
+        assert host == "api.example.com"
+
+    def test_pin_host_ipv6_is_bracketed(self):
+        from app.api.routes.ai import _pin_host
+
+        pinned, host = _pin_host("http://api.example.com", "2001:db8::1")
+        assert pinned == "http://[2001:db8::1]"
+        assert host == "api.example.com"
+
+    def test_validate_returns_safe_public_ip_for_dns_name(self):
+        import socket as _socket
+
+        from app.api.routes.ai import _validate_upstream_url
+
+        def _fake_getaddrinfo(host, port, *args, **kwargs):
+            return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("93.184.216.34", port or 443))]
+
+        with patch("app.api.routes.ai.socket.getaddrinfo", side_effect=_fake_getaddrinfo):
+            ip = _validate_upstream_url("https://api.example.com")
+        assert ip == "93.184.216.34"
 
 
 # ---------------------------------------------------------------------------
