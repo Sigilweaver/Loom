@@ -3,11 +3,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.domain.tools.registry import ToolRegistry
-from app.main import app as fastapi_app
-
 # Importing implementations ensures @register_tool side effects run.
 import app.domain.tools.implementations  # noqa: F401,E402
+from app.domain.tools.registry import ToolRegistry
+from app.main import app as fastapi_app
 
 
 @pytest.fixture

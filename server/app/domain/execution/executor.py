@@ -91,7 +91,11 @@ class WorkflowExecutor:
             # Defensively skip enforcement when the setting is not a positive
             # number (e.g. tests patching settings with a MagicMock, or an
             # explicit 0/None disabling the budget).
-            if isinstance(timeout_s, (int, float)) and not isinstance(timeout_s, bool) and timeout_s > 0:
+            if (
+                isinstance(timeout_s, (int, float))
+                and not isinstance(timeout_s, bool)
+                and timeout_s > 0
+            ):
                 try:
                     async with asyncio.timeout(timeout_s):
                         tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
