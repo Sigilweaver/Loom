@@ -64,6 +64,11 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Expose the identity for per-user rate-limiting (see _user_or_ip). Set on
+    # request.state so slowapi's key function can read it after this dependency
+    # resolves and before the route's limit is evaluated.
+    request.state.user_id = str(session_info.user_id)
+
     return session_info
 
 
@@ -85,7 +90,11 @@ async def get_optional_user(
         return None
 
     session_manager = SessionManager(db)
-    return await session_manager.validate_session(token)
+    session_info = await session_manager.validate_session(token)
+    if session_info is not None:
+        # Expose identity for per-user rate-limiting (see _user_or_ip).
+        request.state.user_id = str(session_info.user_id)
+    return session_info
 
 
 # Type alias for cleaner dependency injection

@@ -7,9 +7,6 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-
-from app.config import settings as _rl_settings
-from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,11 +14,14 @@ from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, OptionalUser, RequireAdmin, RequireAuditor
 from app.config import settings
+from app.config import settings as _rl_settings
 from app.db.database import get_db
 from app.db.models import Group, Server, ServerGroup, UserGroup
 from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
+from app.middleware.rate_limit import _user_or_ip
+from app.middleware.rate_limit import limiter as _rl
 
 router = APIRouter(prefix="/servers")
 logger = logging.getLogger(__name__)
@@ -168,7 +168,11 @@ async def list_servers(
 
 
 @router.post("", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
-@_rl.limit(_rl_settings.rate_limit_server_registration)
+# Key by user id when an admin session is registering (falling back to IP for
+# the machine self-registration path that carries X-Registration-Secret rather
+# than a session). get_optional_user populates request.state.user_id when a
+# session is present.
+@_rl.limit(_rl_settings.rate_limit_server_registration, key_func=_user_or_ip)
 async def register_server(
     request: ServerCreate,
     http_request: Request,

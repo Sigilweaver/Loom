@@ -18,18 +18,18 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-
-from app.config import settings as _rl_settings
-from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
+from app.config import settings as _rl_settings
 from app.db.database import get_db
 from app.db.models import Server
 from app.domain.audit import AuditService
 from app.domain.capabilities import CapabilityIssuer, get_issuer
+from app.middleware.rate_limit import _user_or_ip
+from app.middleware.rate_limit import limiter as _rl
 
 router = APIRouter(prefix="/capabilities", tags=["capabilities"])
 logger = logging.getLogger(__name__)
@@ -113,7 +113,10 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse)
-@_rl.limit(_rl_settings.rate_limit_capability_token)
+# Authenticated route: key by user id (falling back to IP) so multiple users
+# behind one NAT don't share a token-issuance budget, and a single user cycling
+# IPs can't escape theirs. get_current_user populates request.state.user_id.
+@_rl.limit(_rl_settings.rate_limit_capability_token, key_func=_user_or_ip)
 async def request_token(
     request: TokenRequest,
     current_user: CurrentUser,
