@@ -101,9 +101,10 @@ class FilterTool(BaseTool):
         errors = []
 
         expression = config.get("expression", "")
-        if not expression or expression.strip() == "":
-            errors.append("Filter expression is empty")
-        else:
+        # An empty expression is a valid pass-through (all rows routed to the
+        # True output); execution and code-gen both treat it that way, so
+        # validation must not reject it (this method now runs before execution).
+        if expression and expression.strip():
             # Try to parse expression using shared utility
             try:
                 parse_polars_expression(expression)

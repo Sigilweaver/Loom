@@ -3,7 +3,7 @@
 from typing import Any, Literal
 
 import polars as pl
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.models.common import DataSchema
 from app.domain.tools.base import BaseTool
@@ -18,7 +18,15 @@ SORT_DIRECTIONS = {"asc", "desc"}
 
 
 class SortColumnConfig(BaseModel):
-    """Single sort-column definition. Typed-config exemplar."""
+    """Single sort-column definition. Typed-config exemplar.
+
+    Unknown keys are rejected (`extra="forbid"`) so config drift surfaces as a
+    validation error rather than being silently dropped: an AI-generated config
+    using `order: "descending"` instead of `direction: "desc"` previously
+    produced a silent ascending sort.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     column: str = Field(..., min_length=1, description="Column to sort by.")
     direction: Literal["asc", "desc"] = Field(
@@ -29,6 +37,8 @@ class SortColumnConfig(BaseModel):
 
 class SortToolConfig(BaseModel):
     """Top-level Sort tool config. Typed-config exemplar."""
+
+    model_config = ConfigDict(extra="forbid")
 
     sortColumns: list[SortColumnConfig] = Field(default_factory=list)
 
@@ -133,8 +143,22 @@ class SortTool(BaseTool):
         return {CommonSockets.OUTPUT: input_schema}
 
     async def validate_config(self, config: dict[str, Any]) -> list[str]:
-        """Validate sort configuration"""
+        """Validate sort configuration.
+
+        Runs the typed config model first so unknown/drifted keys (e.g.
+        `order` instead of `direction`) are rejected rather than silently
+        dropped, then adds Sort-specific friendly messages.
+        """
         errors: list[str] = []
+
+        # Reject unknown/drifted keys against the typed contract. Doing this
+        # explicitly (rather than a full model_validate) avoids duplicating the
+        # friendly per-column messages below. This is what catches an
+        # AI-generated `order: "descending"` instead of `direction: "desc"`.
+        allowed_top = set(SortToolConfig.model_fields)
+        for key in config:
+            if key not in allowed_top:
+                errors.append(f"Unknown config key: '{key}'")
 
         sort_columns = config.get("sortColumns", [])
 
@@ -142,12 +166,17 @@ class SortTool(BaseTool):
         if not sort_columns:
             return errors
 
+        allowed_col = set(SortColumnConfig.model_fields)
         seen_columns: set[str] = set()
 
         for i, sort_col in enumerate(sort_columns):
             if not isinstance(sort_col, dict):
                 errors.append(f"Sort column at index {i} must be an object")
                 continue
+
+            for key in sort_col:
+                if key not in allowed_col:
+                    errors.append(f"Sort column at index {i} has unknown key: '{key}'")
 
             column = sort_col.get("column")
             direction = sort_col.get("direction", "asc")
