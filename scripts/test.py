@@ -1108,7 +1108,7 @@ Examples:
     parser.add_argument(
         "--ci",
         action="store_true",
-        help="CI mode: XML coverage output, skip Hub DB tests, optimized for GitHub Actions"
+        help="CI mode: XML coverage output, optimized for GitHub Actions"
     )
     
     args = parser.parse_args()
