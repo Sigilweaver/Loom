@@ -10,6 +10,9 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import __version__
@@ -22,6 +25,7 @@ from app.domain.capabilities import init_issuer
 from app.domain.connections.health_poller import connection_health_poller
 from app.domain.schedules.scheduler import get_scheduler
 from app.domain.servers.health_poller import health_poller
+from app.middleware.rate_limit import limiter
 
 
 class JsonFormatter(logging.Formatter):
@@ -227,12 +231,6 @@ application.add_middleware(
 )
 
 # Rate limiting
-from slowapi import _rate_limit_exceeded_handler  # noqa: E402
-from slowapi.errors import RateLimitExceeded  # noqa: E402
-from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
-
-from app.middleware.rate_limit import limiter  # noqa: E402
-
 application.state.limiter = limiter
 application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 application.add_middleware(SlowAPIMiddleware)

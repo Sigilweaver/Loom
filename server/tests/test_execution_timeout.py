@@ -39,7 +39,7 @@ async def test_execute_workflow_raises_on_timeout(monkeypatch):
 
     monkeypatch.setattr(executor_mod.settings, "max_execution_time_seconds", 1)
 
-    async def _slow_plan(self, plan, cache_mgr):  # noqa: ANN001
+    async def _slow_plan(self, plan, cache_mgr):
         await asyncio.sleep(5)
         return [], 0
 
@@ -62,7 +62,7 @@ async def test_timeout_completes_within_slack(monkeypatch):
 
     monkeypatch.setattr(executor_mod.settings, "max_execution_time_seconds", 1)
 
-    async def _slow_plan(self, plan, cache_mgr):  # noqa: ANN001
+    async def _slow_plan(self, plan, cache_mgr):
         await asyncio.sleep(10)
         return [], 0
 

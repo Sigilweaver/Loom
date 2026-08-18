@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Importing implementations ensures @register_tool side effects run.
-import app.domain.tools.implementations  # noqa: F401,E402
+import app.domain.tools.implementations  # noqa: F401
 from app.domain.tools.registry import ToolRegistry
 from app.main import app as fastapi_app
 

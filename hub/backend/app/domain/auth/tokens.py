@@ -130,7 +130,7 @@ class InMemoryTokenStore(TokenStore):
                 await self._cleanup_expired()
             except asyncio.CancelledError:
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logger.error("Error in token cleanup: %s", e)
 
     async def _cleanup_expired(self) -> None:
@@ -258,7 +258,7 @@ class PostgresTokenStore(TokenStore):
                 await self._cleanup_expired()
             except asyncio.CancelledError:
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logger.error("Error in token cleanup: %s", e)
 
     async def _cleanup_expired(self) -> None:

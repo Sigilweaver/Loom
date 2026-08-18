@@ -10,9 +10,12 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # Import to register all tool implementations
-import app.domain.tools.register  # noqa: F401
+import app.domain.tools.register
 from app import __version__
 from app.api.exception_handlers import WORKFLOW_EXCEPTION_HANDLERS
 from app.api.router import api_router
@@ -20,6 +23,8 @@ from app.api.routes.cache import run_startup_maintenance
 from app.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.auth import AuthMiddleware
+from app.middleware.rate_limit import limiter as _rl
+from app.utils.security import validate_file_access_config
 
 
 class JsonFormatter(logging.Formatter):
@@ -114,8 +119,6 @@ def validate_auth_config() -> None:
 
 validate_auth_config()
 
-from app.utils.security import validate_file_access_config  # noqa: E402
-
 validate_file_access_config()
 
 
@@ -190,12 +193,6 @@ application.add_middleware(
 application.add_middleware(AuditMiddleware)
 
 # Rate limiting - workflow routes only
-from slowapi import _rate_limit_exceeded_handler  # noqa: E402
-from slowapi.errors import RateLimitExceeded  # noqa: E402
-from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
-
-from app.middleware.rate_limit import limiter as _rl  # noqa: E402
-
 application.state.limiter = _rl
 application.add_exception_handler(
     RateLimitExceeded,
