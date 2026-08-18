@@ -124,7 +124,7 @@ jobs:
         run: cd hub/frontend && bun install --frozen-lockfile
 
       - name: Run all tests
-        run: python scripts/test.py --full --ci --server --studio --hub -p
+        run: python scripts/test.py --full --ci --server --studio --hub --repo -p
 
       - name: Upload Server coverage
         uses: actions/upload-artifact@v7

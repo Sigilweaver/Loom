@@ -91,7 +91,8 @@ def ensure_act_installed() -> str | None:
             [
                 "bash",
                 "-c",
-                "curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash",
+                "curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh"
+                " | sudo bash",
             ],
             capture_output=True,
             text=True,
