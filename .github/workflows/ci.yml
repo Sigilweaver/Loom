@@ -71,6 +71,26 @@ jobs:
   test:
     name: Test & Lint
     runs-on: ubuntu-latest
+
+    # Hub backend tests need Postgres. conftest.py connects to
+    # localhost:25801 and creates its own throwaway
+    # sigilweaver_loom_hub_test database, so the credentials here must match
+    # hub/docker-compose.yml (which maps the same 25801:5432 for local dev).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sigilweaver_loom
+          POSTGRES_PASSWORD: sigilweaver_loom
+          POSTGRES_DB: sigilweaver_loom_hub
+        ports:
+          - 25801:5432
+        options: >-
+          --health-cmd "pg_isready -U sigilweaver_loom -d sigilweaver_loom_hub"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
