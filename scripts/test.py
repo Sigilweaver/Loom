@@ -916,6 +916,17 @@ def run_repo_suite(repo_root: Path) -> SuiteResult:
     print_header("Repo Verification")
 
     suite = SuiteResult(name="Repo")
+
+    # Auto-setup the server venv if needed - it supplies the ruff binary.
+    if not ensure_python_venv(repo_root / "server", "Server"):
+        suite.checks.append(CheckResult(
+            name="Repo Setup",
+            passed=False,
+            duration=0,
+            error="Failed to setup Server venv (needed for ruff). Check uv is installed."
+        ))
+        return suite
+
     suite.checks.append(run_scripts_lint(repo_root))
 
     return suite
@@ -1357,8 +1368,13 @@ Examples:
     if run_docs:
         suite_runners.append(("Docs", lambda: run_docs_suite(repo_root)))
 
+    # The Repo suite is deliberately not in suite_runners: it reads the server
+    # venv's ruff, so running it alongside the Server suite in the parallel pool
+    # could race that suite creating or repairing the venv. It takes ~0.05s, so
+    # there is nothing to gain from parallelising it. Runs first so a tooling
+    # break is reported before the long suites start.
     if run_repo:
-        suite_runners.append(("Repo", lambda: run_repo_suite(repo_root)))
+        results.append(run_repo_suite(repo_root))
 
     # Run suites (either in parallel or sequentially)
     if run_parallel and len(suite_runners) > 1:
