@@ -7,8 +7,8 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 ### Workflow Files
 
 #### 1. ci.yml - Continuous Integration
-**Trigger**: Pull requests and pushes on any branch, excluding docs-only and
-markdown-only changes (those are covered by `docs.yml`)
+**Trigger**: Pull requests and pushes on any branch, excluding changes that
+only touch markdown or `docs/**`
 
 **Purpose**: Validates code quality and runs tests
 
@@ -16,7 +16,7 @@ markdown-only changes (those are covered by `docs.yml`)
 - Tauri crate check (cargo check, clippy)
 - Server tests (pytest, ruff, mypy)
 - Studio tests (vitest, eslint, tsc)
-- Hub tests, backend and frontend (pytest against a Postgres service, ruff, mypy, vitest, tsc)
+- Hub checks, backend and frontend (pytest, ruff, mypy, vitest, tsc)
 - Web build verification
 
 **Usage**:
@@ -32,6 +32,12 @@ markdown-only changes (those are covered by `docs.yml`)
 **Purpose**: Builds the Docusaurus site so a docs-only change still gets a
 build check. `ci.yml` excludes `docs/**`, so without this workflow a broken
 link or invalid MDX in a docs-only PR would reach `main` with no CI signal.
+
+Note this covers the documentation site only. Markdown outside `docs/`
+(`README.md`, `SECURITY.md`, `docker/README.md` and so on) is not part of the
+Docusaurus build and is checked by neither workflow. `scripts/lint_repo.py`
+is the right home for repo-wide markdown checks; wiring it in is tracked in
+#140.
 
 **Jobs**:
 - Typecheck (`bun run typecheck`)
