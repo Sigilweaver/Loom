@@ -358,7 +358,7 @@ export function SchedulesPage() {
     try {
       const serversRes = await listServers();
       setServers(serversRes.servers);
-    } catch (err) {
+    } catch {
       // Users with no group assignments will have no servers - that's OK
       console.debug("No servers available for user");
     }

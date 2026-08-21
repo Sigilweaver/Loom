@@ -41,7 +41,6 @@ describe('useArrowKeyMovement', () => {
     key,
     shiftKey,
     preventDefault: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
   it('should move single selected node by grid increment', () => {

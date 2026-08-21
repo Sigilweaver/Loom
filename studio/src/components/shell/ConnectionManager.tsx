@@ -385,7 +385,7 @@ export const ConnectionManager: React.FC<{ showHeader?: boolean }> = ({ showHead
     try {
       await createConnection(data as CreateConnectionInput);
       setShowForm(false);
-    } catch (err) {
+    } catch {
       // Error is set in store
     } finally {
       setFormLoading(false);
@@ -409,7 +409,7 @@ export const ConnectionManager: React.FC<{ showHeader?: boolean }> = ({ showHead
       
       await updateConnection(editingConnection.id, updateData);
       setEditingConnection(null);
-    } catch (err) {
+    } catch {
       // Error is set in store
     } finally {
       setFormLoading(false);
@@ -419,7 +419,7 @@ export const ConnectionManager: React.FC<{ showHeader?: boolean }> = ({ showHead
   const handleDelete = async (connection: ConnectionInfo) => {
     try {
       await deleteConnection(connection.id);
-    } catch (err) {
+    } catch {
       // Error is set in store
     }
   };

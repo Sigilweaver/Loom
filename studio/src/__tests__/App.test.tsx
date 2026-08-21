@@ -32,10 +32,9 @@ vi.mock("@xyflow/react", () => ({
 
 // Mock all the components
 vi.mock("../components/Canvas", () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { forwardRef } = require("react");
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     default: forwardRef((_props: any, ref: any) => (
       <div data-testid="canvas" ref={ref}>
         Canvas
