@@ -14,13 +14,11 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-
-from app.config import settings as _rl_settings
-from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings as _rl_settings
 from app.db.database import get_db
 from app.db.models import (
     Connection,
@@ -32,6 +30,8 @@ from app.db.models import (
 )
 from app.domain.audit import AuditService
 from app.domain.auth.tokens import get_token_store
+from app.middleware.rate_limit import _server_token
+from app.middleware.rate_limit import limiter as _rl
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 logger = logging.getLogger(__name__)
@@ -147,7 +147,10 @@ class AuthorizeResponse(BaseModel):
 
 
 @router.post("/authorize", response_model=AuthorizeResponse)
-@_rl.limit(_rl_settings.rate_limit_internal_authorize)
+# Keyed by the presenting server's bearer token, not source IP: this endpoint
+# is called server-to-server, so IP-keying let a token-holder that cycled IPs
+# escape its per-identity budget and lumped distinct servers behind one NAT.
+@_rl.limit(_rl_settings.rate_limit_internal_authorize, key_func=_server_token)
 async def authorize(
     request: AuthorizeRequest,
     http_request: Request,

@@ -17,8 +17,21 @@ from slowapi.util import get_remote_address
 
 from app.config import settings
 
-
 _BYPASS_PATHS: frozenset[str] = frozenset({"/health", "/api/health"})
+
+
+# Per-route key-function assignment (wired via `@limiter.limit(..., key_func=)`):
+#
+#   _client_ip     - auth login/register (default). Deliberately IP-keyed so a
+#                    logged-in-looking client can't escape credential-stuffing
+#                    limits by presenting an identity.
+#   _user_or_ip    - capability-token issuance and server registration.
+#                    Authenticated user actions; keyed per user id (IP fallback)
+#                    so NAT'd users don't share a bucket and an IP-cycling user
+#                    can't escape one. Requires request.state.user_id, set by
+#                    get_current_user / get_optional_user.
+#   _server_token  - internal server-to-server authorize endpoint, keyed by the
+#                    presenting server's bearer token.
 
 
 def _client_ip(request: Request) -> str:
