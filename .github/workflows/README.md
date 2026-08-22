@@ -7,13 +7,16 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 ### Workflow Files
 
 #### 1. ci.yml - Continuous Integration
-**Trigger**: Pull requests and pushes to `main`
+**Trigger**: Pull requests and pushes on any branch, excluding changes that
+only touch markdown or `docs/**`
 
 **Purpose**: Validates code quality and runs tests
 
 **Jobs**:
+- Tauri crate check (cargo check, clippy)
 - Server tests (pytest, ruff, mypy)
 - Studio tests (vitest, eslint, tsc)
+- Hub checks, backend and frontend (pytest, ruff, mypy, vitest, tsc)
 - Web build verification
 
 **Usage**:
@@ -23,7 +26,26 @@ The CI/CD system uses a modular approach with reusable workflows for better main
 
 ---
 
-#### 2. build-server.yml - Server Builds (Reusable)
+#### 2. docs.yml - Documentation Site
+**Trigger**: Pull requests and pushes that touch `docs/**`
+
+**Purpose**: Builds the Docusaurus site so a docs-only change still gets a
+build check. `ci.yml` excludes `docs/**`, so without this workflow a broken
+link or invalid MDX in a docs-only PR would reach `main` with no CI signal.
+
+Note this covers the documentation site only. Markdown outside `docs/`
+(`README.md`, `SECURITY.md`, `docker/README.md` and so on) is not part of the
+Docusaurus build and is checked by neither workflow. `scripts/lint_repo.py`
+is the right home for repo-wide markdown checks; wiring it in is tracked in
+#140.
+
+**Jobs**:
+- Typecheck (`bun run typecheck`)
+- Build (`bun run build:cloudflare`, which validates broken links)
+
+---
+
+#### 3. build-server.yml - Server Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
 **Purpose**: Build Python server executables for all platforms
@@ -51,7 +73,7 @@ gh workflow run build-server.yml
 
 ---
 
-#### 3. build-studio-full.yml - Full Version Builds (Reusable)
+#### 4. build-studio-full.yml - Full Version Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
 **Purpose**: Build Electron apps with bundled server
@@ -85,7 +107,7 @@ gh workflow run build-studio-full.yml
 
 ---
 
-#### 4. build-studio-client.yml - Client Version Builds (Reusable)
+#### 5. build-studio-client.yml - Client Version Builds (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
 **Purpose**: Build Electron apps without bundled server
@@ -116,7 +138,7 @@ gh workflow run build-studio-client.yml
 
 ---
 
-#### 5. build-web.yml - Web Version Build (Reusable)
+#### 6. build-web.yml - Web Version Build (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
 **Purpose**: Build static web files (no Electron wrapper)
@@ -138,7 +160,7 @@ gh workflow run build-web.yml
 
 ---
 
-#### 6. release.yml - Release Orchestrator
+#### 7. release.yml - Release Orchestrator
 **Trigger**: 
 - Git tags matching `v*` (e.g., v1.0.0)
 - Manual workflow_dispatch
