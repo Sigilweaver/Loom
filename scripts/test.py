@@ -774,9 +774,11 @@ def run_hub_frontend_tests(repo_root: Path, coverage: bool = False) -> CheckResu
 
 def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False, parallel: bool = False) -> SuiteResult:
     """Run all hub checks (backend + frontend).
-    
-    In CI mode, skips Hub backend pytest tests (which require database + encryption key).
-    Lint and typecheck still run.
+
+    Every check runs in CI as well as locally. The backend pytest suite needs
+    Postgres reachable on localhost:25801; nothing else has to be provisioned,
+    because tests/conftest.py sets its own required secrets and creates its own
+    throwaway database.
     """
     print_header("Hub Verification")
     
@@ -799,19 +801,11 @@ def run_hub_suite(repo_root: Path, coverage: bool = False, strict: bool = False,
         suite.checks.append(run_hub_backend_lint(repo_root, strict=strict))
         suite.checks.append(run_hub_backend_typecheck(repo_root, strict=strict))
         
-        # Skip backend pytest tests in CI mode (requires database + encryption key)
-        if _ci_mode:
-            suite.checks.append(CheckResult(
-                name="Hub Backend Tests",
-                passed=True,
-                duration=0,
-                warnings=1,
-                error=None
-            ))
-            if not _quiet_mode:
-                print(f"  {Colors.YELLOW}Skipped{Colors.RESET}: Hub Backend Tests (CI mode - no database)")
-        else:
-            suite.checks.append(run_hub_backend_tests(repo_root, coverage=coverage, parallel=parallel))
+        # Hub backend tests run everywhere, including CI. They need Postgres on
+        # localhost:25801 (see hub/docker-compose.yml locally, and the postgres
+        # service container in .github/workflows/ci.yml); conftest.py supplies
+        # its own secrets and creates its own throwaway test database.
+        suite.checks.append(run_hub_backend_tests(repo_root, coverage=coverage, parallel=parallel))
     
     # Auto-setup frontend node_modules if needed
     if not ensure_node_modules(hub_frontend_dir, "Hub Frontend"):
@@ -1114,7 +1108,7 @@ Examples:
     parser.add_argument(
         "--ci",
         action="store_true",
-        help="CI mode: XML coverage output, skip Hub DB tests, optimized for GitHub Actions"
+        help="CI mode: XML coverage output, optimized for GitHub Actions"
     )
     
     args = parser.parse_args()
