@@ -76,6 +76,10 @@ class WorkflowExecutor:
             # Create execution plan
             planner = ExecutionPlanner(workflow)
             validation_errors = planner.validate()
+            # Structural validation (above) covers the graph; this enforces each
+            # tool's own config contract, which otherwise never runs on the
+            # execution path (see _validate_tool_configs).
+            validation_errors.extend(await self._validate_tool_configs(workflow))
             if validation_errors:
                 return self._handle_validation_failure(execution_log, validation_errors, start_time)
 
@@ -660,6 +664,31 @@ class WorkflowExecutor:
         except (OSError, ImportError) as e:
             logger.error("Failed to create workflow archive: %s", e, exc_info=True)
             self.archive_dir = None
+
+    async def _validate_tool_configs(self, workflow: Workflow) -> list[str]:
+        """Run each tool's own config validation before execution begins.
+
+        `BaseTool.validate_config` (and per-tool overrides such as
+        `FilterTool.validate_config`) parse the config through the tool's
+        Pydantic `config_model` and return per-field errors. Nothing on the
+        execution path invoked it, so malformed or drifted configs executed
+        with silently-wrong results instead of failing. This enforces the same
+        contract published at `GET /api/workflow/tool/{type}/schema`.
+
+        Returns a flat list of `"<tool_id> (<type>): <message>"` errors; empty
+        when every tool config is valid.
+        """
+        errors: list[str] = []
+        for tool in workflow.tools:
+            engine = workflow.get_engine_for_tool(tool)
+            try:
+                tool_impl = ToolRegistry.get(tool.type, engine=engine)
+            except ToolError as exc:
+                errors.append(f"{tool.id} ({tool.type}): {exc}")
+                continue
+            for message in await tool_impl.validate_config(tool.config):
+                errors.append(f"{tool.id} ({tool.type}): {message}")
+        return errors
 
     def _handle_validation_failure(
         self,
