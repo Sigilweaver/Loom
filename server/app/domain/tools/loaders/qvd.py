@@ -6,7 +6,7 @@ Not affiliated with QlikTech.
 
 from typing import Any
 
-import openqvd.polars  # noqa: F401  (registers the Polars QVD integration)
+import openqvd.polars
 import polars as pl
 
 from app.domain.tools.loaders.base import FileLoader
