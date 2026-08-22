@@ -14,8 +14,9 @@ Also provides a model listing endpoint for the settings UI.
 
 import ipaddress
 import logging
+import socket
 from collections.abc import AsyncIterator
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -74,18 +75,49 @@ _FORWARD_ALLOWLIST = frozenset(
 )
 
 
-def _validate_upstream_url(url: str) -> None:
+def _reject_if_unsafe(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> None:
+    """Raise if an IP falls in a range the proxy must never target."""
+    if (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_reserved
+        or addr.is_multicast
+        or addr.is_unspecified
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Upstream URL must not target private or internal networks",
+        )
+
+
+def _validate_upstream_url(url: str) -> str:
     """Block SSRF by rejecting URLs that resolve to internal/private networks.
 
+    Unlike a bare IP-literal check, this resolves DNS hostnames and applies the
+    same private/loopback/link-local/reserved checks to every resolved address,
+    so an attacker-controlled name that resolves to ``127.0.0.1`` or a cloud
+    metadata endpoint is rejected. The first validated address is returned so
+    the caller can connect to that exact IP rather than re-resolving (which
+    would reopen a DNS-rebinding TOCTOU window).
+
+    Args:
+        url: Upstream base URL supplied by the caller.
+
+    Returns:
+        A validated IP literal (as a string) safe to connect to.
+
     Raises:
-        HTTPException: If the URL targets a private, loopback, or link-local address.
+        HTTPException: If the URL is malformed or targets a private, loopback,
+            link-local, reserved, multicast, or unspecified address.
     """
     parsed = urlparse(url)
     hostname = parsed.hostname
     if not hostname:
         raise HTTPException(status_code=400, detail="Invalid upstream URL")
 
-    # Block common internal hostnames
+    # Block common internal hostnames outright (defence in depth; the DNS
+    # resolution below would catch most of these anyway).
     _blocked_hostnames = {
         "localhost",
         "metadata.google.internal",
@@ -97,20 +129,53 @@ def _validate_upstream_url(url: str) -> None:
             detail="Upstream URL must not target internal services",
         )
 
-    # Resolve hostname and check if IP is private/reserved
+    # IP literal: validate directly.
     try:
-        addr = ipaddress.ip_address(hostname)
+        literal = ipaddress.ip_address(hostname)
     except ValueError:
-        # Not an IP literal - could be a DNS name.
-        # We allow DNS names for known providers; openai-compatible
-        # users are trusted to provide valid external URLs.
-        return
+        literal = None
+    if literal is not None:
+        _reject_if_unsafe(literal)
+        return str(literal)
 
-    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+    # DNS name: resolve and validate EVERY answer. A single unsafe answer
+    # rejects the whole request rather than letting us cherry-pick a safe one,
+    # since which address the real connection would use is not guaranteed.
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(hostname, port, proto=socket.IPPROTO_TCP)
+    except socket.gaierror as exc:
         raise HTTPException(
-            status_code=400,
-            detail="Upstream URL must not target private or internal networks",
+            status_code=400, detail=f"Could not resolve upstream host: {hostname}"
+        ) from exc
+
+    resolved: list[str] = []
+    for info in infos:
+        ip_str = str(info[4][0])
+        _reject_if_unsafe(ipaddress.ip_address(ip_str))
+        resolved.append(ip_str)
+
+    if not resolved:
+        raise HTTPException(
+            status_code=400, detail=f"Could not resolve upstream host: {hostname}"
         )
+    return resolved[0]
+
+
+def _pin_host(url: str, ip: str) -> tuple[str, str]:
+    """Rewrite ``url``'s host to a validated IP, returning (pinned_url, host).
+
+    The original hostname is returned so the caller can preserve it for the
+    ``Host`` header and TLS SNI, keeping name-based virtual hosting and
+    certificate validation working while the connection targets the pinned IP.
+    """
+    parsed = urlparse(url)
+    host = parsed.hostname or ""
+    netloc_host = f"[{ip}]" if ":" in ip else ip
+    if parsed.port:
+        netloc_host = f"{netloc_host}:{parsed.port}"
+    pinned = urlunparse(parsed._replace(netloc=netloc_host))
+    return pinned, host
 
 
 # -------------------------------------------------------------------------
@@ -174,11 +239,23 @@ async def _fetch_models(
     """Fetch models from a provider API."""
     async with httpx.AsyncClient(timeout=15.0) as client:
         if provider == "openai" or provider == "openai-compatible":
-            url = f"{base_url or 'https://api.openai.com'}/v1/models"
+            base = base_url or "https://api.openai.com"
+            sni: str | None = None
+            # openai-compatible base_url is caller-controlled: same SSRF guard
+            # and IP pinning as the streaming proxy.
+            if provider == "openai-compatible" and base_url:
+                safe_ip = _validate_upstream_url(base)
+                base, sni = _pin_host(base, safe_ip)
+            url = f"{base}/v1/models"
             headers: dict[str, str] = {}
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
-            resp = await client.get(url, headers=headers)
+            if sni is not None:
+                headers["host"] = sni
+            req = client.build_request("GET", url, headers=headers)
+            if sni is not None:
+                req.extensions["sni_hostname"] = sni
+            resp = await client.send(req)
             resp.raise_for_status()
             data = resp.json()
             return [ModelInfo(id=m["id"], owned_by=m.get("owned_by")) for m in data.get("data", [])]
@@ -256,12 +333,15 @@ async def proxy_llm_request(
       /api/ai/proxy/openai-compatible/v1/chat/completions?base_url=http://localhost:11434
     """
     # Resolve base URL
+    pinned_host: str | None = None
     if provider == "openai-compatible":
         base_url = request.query_params.get("base_url", settings.ollama_default_url)
         # Normalize: strip trailing slashes to avoid double-slash in URL
         base_url = base_url.rstrip("/")
-        # SSRF protection: block internal/private network targets
-        _validate_upstream_url(base_url)
+        # SSRF protection: resolve + validate, then pin the vetted IP so the
+        # connection cannot be re-resolved to an internal address (rebinding).
+        safe_ip = _validate_upstream_url(base_url)
+        base_url, pinned_host = _pin_host(base_url, safe_ip)
     else:
         resolved_url = PROVIDER_URLS.get(provider)
         if not resolved_url:
@@ -279,6 +359,10 @@ async def proxy_llm_request(
     auth_header = request.headers.get("authorization", "")
     if auth_header and not auth_header.startswith("Bearer sw-"):
         forward_headers["authorization"] = auth_header
+    # When the host was pinned to a raw IP, preserve the original hostname for
+    # name-based virtual hosting and TLS SNI (set on the request below).
+    if pinned_host is not None:
+        forward_headers["host"] = pinned_host
 
     # Read request body
     body = await request.body()
@@ -295,16 +379,17 @@ async def proxy_llm_request(
     )
 
     try:
-        upstream_resp = await client.send(
-            client.build_request(
-                method=request.method,
-                url=upstream_url,
-                headers=forward_headers,
-                content=body if body else None,
-                params=forward_params,
-            ),
-            stream=True,
+        upstream_req = client.build_request(
+            method=request.method,
+            url=upstream_url,
+            headers=forward_headers,
+            content=body if body else None,
+            params=forward_params,
         )
+        if pinned_host is not None:
+            # TLS SNI must use the original hostname, not the pinned IP.
+            upstream_req.extensions["sni_hostname"] = pinned_host
+        upstream_resp = await client.send(upstream_req, stream=True)
     except httpx.ConnectError:
         await client.aclose()
         raise HTTPException(status_code=502, detail=f"Could not connect to {provider}")
