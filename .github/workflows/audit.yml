@@ -123,9 +123,18 @@ jobs:
       #   same minimatch -> brace-expansion chain as the Loom#3/#28 entries
       #   above - still no compatible bump while eslint 8.x/electron-builder
       #   pin the pre-fix minimatch majors.
-      # nanoid (GHSA-2v37-7h3g-55p8, postcss's dependency) is pinned to the
-      # patched 3.3.17 via the "overrides" field in package.json instead of
-      # being ignored here, since a same-major patch bump was available.
+      # nanoid (GHSA-2v37-7h3g-55p8, postcss's dependency) is constrained to the
+      # patched ^3.3.18 via the "overrides" field in package.json instead of
+      # being ignored here, since a same-major patch bump was available. The
+      # advisory range was later widened to < 3.3.18, so this is a caret rather
+      # than the exact 3.3.17 pin it started as - an exact pin silently froze
+      # both frontends below the fix when the range moved.
+      #
+      # GHSA-jmr9-qjv8-65gv (extract-zip symlink path traversal) is tracked in
+      # Sigilweaver/Loom#148. It has no patched version at all - the advisory
+      # covers <= 2.0.1 and 2.0.1 is the latest release. It reaches us only via
+      # electron's install-time unpack of the prebuilt runtime archive, and is
+      # not shipped in the packaged app.
       - run: >
           cd studio && bun audit --audit-level=high
           --ignore=GHSA-23c5-xmqv-rm74
@@ -153,6 +162,7 @@ jobs:
           --ignore=GHSA-hmw2-7cc7-3qxx
           --ignore=GHSA-j5f8-grm9-p9fc
           --ignore=GHSA-j759-j44w-7fr8
+          --ignore=GHSA-jmr9-qjv8-65gv
           --ignore=GHSA-mh99-v99m-4gvg
           --ignore=GHSA-mw96-cpmx-2vgc
           --ignore=GHSA-p92q-9vqr-4j8v
