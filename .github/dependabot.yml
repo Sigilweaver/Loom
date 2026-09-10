@@ -29,6 +29,16 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # typescript-eslint declares `typescript: ">=4.8.4 <6.1.0"` and hard-fails
+      # at load on anything newer. TS 7 reached this repo as an unreviewed
+      # dependabot bump (#24) and silently killed eslint in both frontends
+      # (#119). Hold at 6.0.x until typescript-eslint supports TS 7:
+      # https://github.com/typescript-eslint/typescript-eslint/issues/10940
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "npm"
@@ -39,6 +49,16 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # typescript-eslint declares `typescript: ">=4.8.4 <6.1.0"` and hard-fails
+      # at load on anything newer. TS 7 reached this repo as an unreviewed
+      # dependabot bump (#24) and silently killed eslint in both frontends
+      # (#119). Hold at 6.0.x until typescript-eslint supports TS 7:
+      # https://github.com/typescript-eslint/typescript-eslint/issues/10940
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "cargo"

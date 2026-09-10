@@ -603,12 +603,15 @@ def run_studio_lint(repo_root: Path, strict: bool = False) -> CheckResult:
 
     studio_dir = repo_root / "studio"
 
-    # Match CI behavior: lint issues are reported but don't fail unless strict
+    # eslint runs again (#119) and the baseline is clean, so lint is enforced
+    # unconditionally: any finding fails the build, in CI and locally. This
+    # previously used fail_on_error=strict, which meant eslint crashing on
+    # startup was reported as a passing check with a warning.
     return run_command(
         ["bun", "run", "lint"],
         studio_dir,
         "Studio Lint",
-        fail_on_error=strict
+        fail_on_error=True
     )
 
 
@@ -762,11 +765,12 @@ def run_hub_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
 
     hub_frontend_dir = repo_root / "hub" / "frontend"
 
+    # Enforced unconditionally - see run_studio_lint.
     return run_command(
         ["bun", "run", "lint"],
         hub_frontend_dir,
         "Hub Frontend Lint",
-        fail_on_error=strict
+        fail_on_error=True
     )
 
 
