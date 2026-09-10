@@ -87,7 +87,7 @@ async function createIcoFile() {
         await fs.writeFile(path.join(__dirname, 'assets', 'favicon.ico'), icoBuffer);
         console.log('  Generated favicon.ico (16x16, 32x32, 48x48)');
         
-    } catch (error) {
+    } catch {
         console.log('  png-to-ico not available, using 32x32 PNG as ICO fallback');
         // Fallback: copy 32x32 PNG as ICO
         const png32 = await fs.readFile(path.join(__dirname, 'assets', 'favicon-32x32.png'));
@@ -145,7 +145,7 @@ async function ensurePackageJson() {
     
     try {
         await fs.access(packagePath);
-    } catch (error) {
+    } catch {
         console.log('Creating package.json...');
         const packageJson = {
             "name": "sigilweaver-website",

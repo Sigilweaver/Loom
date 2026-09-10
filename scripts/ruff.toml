@@ -1,0 +1,13 @@
+# Lint policy for the repo's build/dev/test tooling.
+#
+# Mirrors the zero-ignore policy the server and hub backends declare, so the
+# scripts that enforce that policy are held to it too. Ruff discovers this file
+# by walking up from each target, so `ruff check scripts/` picks it up
+# regardless of which venv's ruff binary runs it.
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "N", "RUF100", "W"]
+ignore = []

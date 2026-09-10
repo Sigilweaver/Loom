@@ -212,7 +212,9 @@ def download_file(url, local_path, dry_run=False):
                     if total_size > 0:
                         pct = (downloaded / total_size) * 100
                         print(
-                            f"\r  {pct:.1f}% ({downloaded / (1024 * 1024):.1f} MB / {total_size / (1024 * 1024):.1f} MB)",
+                            f"\r  {pct:.1f}% "
+                            f"({downloaded / (1024 * 1024):.1f} MB / "
+                            f"{total_size / (1024 * 1024):.1f} MB)",
                             end="",
                         )
 
