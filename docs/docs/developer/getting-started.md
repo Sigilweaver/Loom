@@ -9,6 +9,7 @@ sidebar_position: 2
 You'll need:
 - **Python 3.11+** (for the backend)
 - **[bun](https://bun.sh)** (for the frontend)
+- **Node.js 22** (the pinned toolchain baseline; minimum 20.19). The repo ships `.nvmrc` and `.node-version`, so `nvm use` / `fnm use` will select it automatically.
 - **Git** (obviously)
 
 ## Platform Notes
@@ -27,6 +28,7 @@ I develop on Arch Linux. The venv + package-lock approach means everything shoul
 
 - **Python 3.11+** with [uv](https://github.com/astral-sh/uv) package manager
 - **[bun](https://bun.sh)** (for the frontend)
+- **Node.js 22** (pinned via `.nvmrc` / `.node-version`; minimum 20.19)
 - **Git**
 
 Install uv if you don't have it:
