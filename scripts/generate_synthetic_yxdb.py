@@ -20,11 +20,11 @@ import random
 import string
 from pathlib import Path
 
-# Resolve repo root relative to this script (scripts/ -> ..)
-REPO_ROOT = Path(__file__).resolve().parent.parent
-
 import polars as pl
 import sigilyx as yx
+
+# Resolve repo root relative to this script (scripts/ -> ..)
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 OUTPUT_DIR = REPO_ROOT / ".untracked" / "data" / "ro" / "sigilweaver-synthetic-yxdb"
 SEED = 42

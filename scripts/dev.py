@@ -16,7 +16,7 @@ Usage:
     ./scripts/dev.py --studio --server  # Multiple components
     ./scripts/dev.py --hub-auth         # Specified components with Hub authentication enabled
     ./scripts/dev.py --all              # Start all core components (Server, Studio, Hub)
-    
+
     # Force reinstall dependencies (useful after branch switch)
     ./scripts/dev.py --server --install
 """
@@ -98,7 +98,7 @@ DEV_PORTS = {
 
 def read_dotenv(path: Path) -> dict[str, str]:
     """Read a .env file and return a dict of key=value pairs.
-    
+
     Handles quoting (single/double), inline comments, and skips blanks/comments.
     Does NOT handle multi-line values.
     """
@@ -157,7 +157,7 @@ def print_success(message: str) -> None:
 
 def kill_process_on_port(port: int) -> bool:
     """Kill any process using a specific port.
-    
+
     Returns:
         True if a process was killed, False if port was free.
     """
@@ -213,7 +213,7 @@ def cleanup_stale_processes(ports: list[int]) -> None:
             service_name = DEV_PORTS.get(port, f"port {port}")
             print_warning(f"  Killed stale process on {service_name} (port {port})")
             killed_any = True
-    
+
     if killed_any:
         time.sleep(1)  # Give OS time to release ports
 
@@ -407,7 +407,7 @@ def is_display_available() -> bool:
                 return True
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
-    
+
     # Check for Wayland - harder to verify, but check if socket exists
     wayland_display = os.environ.get("WAYLAND_DISPLAY")
     xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "/run/user/1000")
@@ -415,7 +415,7 @@ def is_display_available() -> bool:
         socket_path = Path(xdg_runtime) / wayland_display
         if socket_path.exists():
             return True
-    
+
     return False
 
 
@@ -433,16 +433,16 @@ def check_postgres_running(port: int = 25801) -> bool:
 
 def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
     """Ensure PostgreSQL is running, starting it if needed.
-    
+
     Returns:
         True if PostgreSQL is running, False if it failed to start.
     """
     if check_postgres_running():
         return True
-    
+
     print_warning("PostgreSQL not running, starting it...")
     hub_dir = repo_root / "hub"
-    
+
     try:
         # Start PostgreSQL via docker compose
         result = subprocess.run(
@@ -455,7 +455,7 @@ def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
         if result.returncode != 0:
             print_error(f"Failed to start PostgreSQL: {result.stderr}")
             return False
-        
+
         # Wait for PostgreSQL to be ready
         print("  Waiting for PostgreSQL to be ready...")
         start_time = time.time()
@@ -464,10 +464,10 @@ def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
                 print_success("  PostgreSQL is ready!")
                 return True
             time.sleep(1)
-        
+
         print_error("PostgreSQL failed to start within timeout")
         return False
-        
+
     except subprocess.TimeoutExpired:
         print_error("Timed out starting PostgreSQL")
         return False
@@ -478,17 +478,17 @@ def ensure_postgres_running(repo_root: Path, timeout: int = 30) -> bool:
 
 def wait_for_hub_healthy(timeout: int = 45) -> bool:
     """Wait for Hub backend to be healthy.
-    
+
     Returns:
         True if Hub is healthy, False if timeout.
     """
-    import urllib.request
     import urllib.error
-    
+    import urllib.request
+
     print("  Waiting for Hub API to be ready...")
     start_time = time.time()
     last_error = None
-    
+
     while time.time() - start_time < timeout:
         try:
             req = urllib.request.Request("http://localhost:25802/api/v1/health")
@@ -499,7 +499,7 @@ def wait_for_hub_healthy(timeout: int = 45) -> bool:
         except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
             last_error = e
         time.sleep(0.5)
-    
+
     if last_error:
         print_warning(f"  Hub API not responding after {timeout}s: {last_error}")
     else:
@@ -510,17 +510,17 @@ def wait_for_hub_healthy(timeout: int = 45) -> bool:
 
 def run_hub_migrations(repo_root: Path) -> bool:
     """Run database migrations for the Hub backend.
-    
+
     Returns:
         True if migrations succeeded, False otherwise.
     """
     hub_backend_dir = repo_root / "hub" / "backend"
     venv_python = get_venv_python(hub_backend_dir / ".venv")
-    
+
     if not venv_python.exists():
         print_error("Hub backend venv not found, skipping migrations")
         return False
-    
+
     print("  Running database migrations...")
     try:
         result = subprocess.run(
@@ -538,10 +538,10 @@ def run_hub_migrations(repo_root: Path) -> bool:
             print_error(f"Migration failed: {result.stderr}")
             print(result.stdout)
             return False
-        
+
         print_success("  Migrations complete!")
         return True
-        
+
     except subprocess.TimeoutExpired:
         print_error("Migrations timed out")
         return False
@@ -552,14 +552,14 @@ def run_hub_migrations(repo_root: Path) -> bool:
 
 def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
     """Check if hub backend and frontend are set up.
-    
+
     Returns:
         Tuple of (backend_ready, frontend_ready)
     """
     hub_dir = repo_root / "hub"
     backend_ready = True
     frontend_ready = True
-    
+
     # Check backend
     hub_backend_dir = hub_dir / "backend"
     if venv_needs_sync(hub_backend_dir):
@@ -572,7 +572,7 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
             print_warning("Hub backend dependencies may have changed, syncing...")
         if not sync_venv(hub_backend_dir, "Hub backend"):
             backend_ready = False
-    
+
     # Ensure PostgreSQL is running (auto-start if needed)
     if not ensure_postgres_running(repo_root):
         backend_ready = False
@@ -580,14 +580,14 @@ def check_hub_setup(repo_root: Path) -> tuple[bool, bool]:
         # Run migrations if PostgreSQL is running and backend is set up
         if not run_hub_migrations(repo_root):
             print_warning("Migrations failed, Hub may not work correctly")
-    
+
     # Check frontend
     frontend_modules = hub_dir / "frontend" / "node_modules"
     if not frontend_modules.exists():
         print_warning("Hub frontend dependencies not found, installing...")
         if not install_hub_frontend(repo_root):
             frontend_ready = False
-    
+
     return backend_ready, frontend_ready
 
 
@@ -617,23 +617,23 @@ def stream_output(process: subprocess.Popen, prefix: str) -> None:
     """Stream process output with a prefix, filtering out noise."""
     if process.stdout is None:
         return
-    
+
     try:
         for line in iter(process.stdout.readline, ""):
             if shutdown_requested:
                 break
             if line:
                 line_lower = line.lower()
-                
+
                 # Always show important messages
                 is_important = any(pattern in line_lower for pattern in IMPORTANT_PATTERNS)
-                
+
                 # Filter out noise unless it's important
                 if not is_important:
                     is_noise = any(pattern in line_lower for pattern in NOISE_PATTERNS)
                     if is_noise:
                         continue
-                
+
                 print(f"[{prefix}] {line}", end="", flush=True)
     except (ValueError, OSError):
         # Process closed or pipe broken
@@ -643,12 +643,12 @@ def stream_output(process: subprocess.Popen, prefix: str) -> None:
 def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | None:
     """Start the server uvicorn server."""
     global server_process
-    
+
     print_success("Starting Python server...")
-    
+
     server_dir = repo_root / "server"
     python_path = get_python_executable(repo_root)
-    
+
     cmd = [
         str(python_path),
         "-m", "uvicorn",
@@ -657,12 +657,12 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         "--host", "0.0.0.0",
         "--port", "25811"
     ]
-    
+
     # Set environment variables
     env = os.environ.copy()
     env["POLARS_VERBOSE"] = "1"
     env["PORT"] = "25811"  # Must match --port arg so settings.port is correct for Hub registration
-    
+
     if hub_auth:
         env["AUTH_MODE"] = "hub"
         env["HUB_URL"] = "http://localhost:25802"  # Hub backend port
@@ -680,7 +680,7 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
         print_success("  Server will auto-register with Hub on startup")
     else:
         env["AUTH_MODE"] = "disabled"  # Disable auth for direct API access
-    
+
     try:
         # Use shell=False for cross-platform compatibility
         server_process = subprocess.Popen(
@@ -692,7 +692,7 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
             text=True,
             bufsize=1,  # Line buffered
         )
-        
+
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
@@ -700,7 +700,7 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
             daemon=True
         )
         thread.start()
-        
+
         return server_process
     except Exception as e:
         print_error(f"Failed to start server: {e}")
@@ -709,21 +709,21 @@ def start_server(repo_root: Path, hub_auth: bool = False) -> subprocess.Popen | 
 
 def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
     """Start Studio in the specified mode.
-    
+
     Args:
         repo_root: Repository root path.
         mode: One of "web", "electron", or "tauri"
     """
     global studio_process
-    
+
     print_success(f"Starting Studio ({mode} mode)...")
-    
+
     studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
-    
+
     # Set environment
     env = os.environ.copy()
-    
+
     if mode == "web":
         # Web mode - disable Electron
         env["NO_ELECTRON"] = "1"
@@ -736,7 +736,7 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
         # Should not reach here for Tauri - handled by start_tauri()
         print_error(f"Unknown studio mode: {mode}")
         return None
-    
+
     try:
         studio_process = subprocess.Popen(
             cmd,
@@ -748,7 +748,7 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
             bufsize=1,
             shell=(sys.platform == "win32"),  # Required for npm.cmd on Windows
         )
-        
+
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
@@ -756,7 +756,7 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
             daemon=True
         )
         thread.start()
-        
+
         return studio_process
     except Exception as e:
         print_error(f"Failed to start studio: {e}")
@@ -766,18 +766,18 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
 def start_tauri(repo_root: Path) -> subprocess.Popen | None:
     """Start Studio as Tauri desktop app."""
     global tauri_process
-    
+
     # Check for display in headless environments
     if not is_display_available():
         print_warning("No display available (headless environment)")
         print_warning("Skipping Tauri - use Studio web UI at http://localhost:25810")
         return None
-    
+
     print_success("Starting Tauri...")
-    
+
     studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
-    
+
     try:
         tauri_process = subprocess.Popen(
             [npm_cmd, "run", "dev:tauri"],
@@ -788,7 +788,7 @@ def start_tauri(repo_root: Path) -> subprocess.Popen | None:
             bufsize=1,
             shell=(sys.platform == "win32"),
         )
-        
+
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
@@ -796,7 +796,7 @@ def start_tauri(repo_root: Path) -> subprocess.Popen | None:
             daemon=True
         )
         thread.start()
-        
+
         return tauri_process
     except Exception as e:
         print_error(f"Failed to start Tauri: {e}")
@@ -806,18 +806,18 @@ def start_tauri(repo_root: Path) -> subprocess.Popen | None:
 def start_electron(repo_root: Path) -> subprocess.Popen | None:
     """Start Electron (optional)."""
     global electron_process
-    
+
     # Check for display in headless environments
     if not is_display_available():
         print_warning("No display available (headless environment)")
         print_warning("Skipping Electron - use Studio web UI at http://localhost:25810")
         return None
-    
+
     print_success("Starting Electron...")
-    
+
     studio_dir = repo_root / "studio"
     npm_cmd = get_npm_command()
-    
+
     try:
         electron_process = subprocess.Popen(
             [npm_cmd, "run", "electron"],
@@ -828,7 +828,7 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
             bufsize=1,
             shell=(sys.platform == "win32"),
         )
-        
+
         # Start output streaming in a separate thread
         thread = threading.Thread(
             target=stream_output,
@@ -836,7 +836,7 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
             daemon=True
         )
         thread.start()
-        
+
         return electron_process
     except Exception as e:
         print_error(f"Failed to start Electron: {e}")
@@ -846,12 +846,12 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
 def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
     """Start the Hub backend (FastAPI)."""
     global hub_backend_process
-    
+
     print_success("Starting Hub backend...")
-    
+
     hub_backend_dir = repo_root / "hub" / "backend"
     python_path = get_venv_python(hub_backend_dir / ".venv")
-    
+
     cmd = [
         str(python_path),
         "-m", "uvicorn",
@@ -860,12 +860,12 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
         "--host", "0.0.0.0",
         "--port", "25802"
     ]
-    
+
     # Set environment variables for Hub
     # Secrets (CONNECTION_ENCRYPTION_KEY, SERVER_REGISTRATION_SECRET, etc.)
     # are read from hub/backend/.env by pydantic-settings - don't override here.
     env = os.environ.copy()
-    
+
     try:
         hub_backend_process = subprocess.Popen(
             cmd,
@@ -876,14 +876,14 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
             text=True,
             bufsize=1,
         )
-        
+
         thread = threading.Thread(
             target=stream_output,
             args=(hub_backend_process, "HUB-API"),
             daemon=True
         )
         thread.start()
-        
+
         return hub_backend_process
     except Exception as e:
         print_error(f"Failed to start Hub backend: {e}")
@@ -893,12 +893,12 @@ def start_hub_backend(repo_root: Path) -> subprocess.Popen | None:
 def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
     """Start the Hub frontend (Vite)."""
     global hub_frontend_process
-    
+
     print_success("Starting Hub frontend...")
-    
+
     hub_frontend_dir = repo_root / "hub" / "frontend"
     npm_cmd = get_npm_command()
-    
+
     try:
         hub_frontend_process = subprocess.Popen(
             [npm_cmd, "run", "dev"],
@@ -909,14 +909,14 @@ def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
             bufsize=1,
             shell=(sys.platform == "win32"),
         )
-        
+
         thread = threading.Thread(
             target=stream_output,
             args=(hub_frontend_process, "HUB-UI"),
             daemon=True
         )
         thread.start()
-        
+
         return hub_frontend_process
     except Exception as e:
         print_error(f"Failed to start Hub frontend: {e}")
@@ -926,12 +926,12 @@ def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
 def start_docs(repo_root: Path) -> subprocess.Popen | None:
     """Start the documentation site (Docusaurus)."""
     global docs_process
-    
+
     print_success("Starting Docs dev server...")
-    
+
     docs_dir = repo_root / "docs"
     npm_cmd = get_npm_command()
-    
+
     try:
         docs_process = subprocess.Popen(
             [npm_cmd, "run", "start"],
@@ -942,14 +942,14 @@ def start_docs(repo_root: Path) -> subprocess.Popen | None:
             bufsize=1,
             shell=(sys.platform == "win32"),
         )
-        
+
         thread = threading.Thread(
             target=stream_output,
             args=(docs_process, "DOCS"),
             daemon=True
         )
         thread.start()
-        
+
         return docs_process
     except Exception as e:
         print_error(f"Failed to start Docs: {e}")
@@ -960,7 +960,7 @@ def terminate_process(process: subprocess.Popen | None, name: str) -> None:
     """Gracefully terminate a process."""
     if process is None:
         return
-    
+
     if process.poll() is None:  # Process still running
         print_warning(f"Stopping {name} (PID: {process.pid})...")
         try:
@@ -979,10 +979,10 @@ def cleanup() -> None:
     """Clean up all running processes."""
     global shutdown_requested
     shutdown_requested = True
-    
+
     print()
     print_warning("Shutting down services...")
-    
+
     terminate_process(electron_process, "Electron")
     terminate_process(tauri_process, "Tauri")
     terminate_process(docs_process, "Docs")
@@ -990,7 +990,7 @@ def cleanup() -> None:
     terminate_process(hub_backend_process, "Hub Backend")
     terminate_process(studio_process, "Studio")
     terminate_process(server_process, "Server")
-    
+
     print_success("All services stopped")
 
 
@@ -1104,9 +1104,9 @@ Examples:
         action="store_true",
         help="Force reinstall dependencies for selected components (then exit)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Determine studio mode
     # Priority: tauri > electron > web (if multiple specified, use highest priority)
     studio_mode = "web"
@@ -1114,7 +1114,7 @@ Examples:
         studio_mode = "tauri"
     elif args.studio_electron:
         studio_mode = "electron"
-    
+
     # Determine what to run
     # If --all flag is set, run core components
     if args.all:
@@ -1123,7 +1123,10 @@ Examples:
         run_hub = True
         run_docs = False
     # If any specific services requested, only run those
-    elif args.server or args.studio or args.studio_electron or args.studio_tauri or args.hub or args.docs:
+    elif (
+        args.server or args.studio or args.studio_electron
+        or args.studio_tauri or args.hub or args.docs
+    ):
         run_server = args.server
         run_studio = args.studio or args.studio_electron or args.studio_tauri
         run_hub = args.hub
@@ -1134,20 +1137,20 @@ Examples:
         run_studio = True
         run_hub = True
         run_docs = False
-    
+
     # If Hub is running, enable hub auth mode for the server automatically
     # This ensures Hub connections work without requiring --hub-auth flag
     hub_auth = args.hub_auth or run_hub
-    
+
     # Get repo root
     repo_root = get_repo_root()
-    
+
     # Handle --install mode: install dependencies and exit
     if args.install:
         print_banner()
         print_info("Installing dependencies...")
         success = True
-        
+
         if run_server:
             success = install_server(repo_root) and success
         if run_studio:
@@ -1162,22 +1165,22 @@ Examples:
         else:
             print_error("Some dependencies failed to install")
         return 0 if success else 1
-    
+
     # Print banner
     print_banner()
-    
+
     # Check prerequisites
     if run_server and not check_server_setup(repo_root):
         return 1
-    
+
     if run_studio and not check_studio_setup(repo_root):
         return 1
-    
+
     if run_hub:
         hub_backend_ready, hub_frontend_ready = check_hub_setup(repo_root)
         if not hub_backend_ready or not hub_frontend_ready:
             return 1
-    
+
     if run_docs and not check_docs_setup(repo_root):
         return 1
 
@@ -1185,11 +1188,11 @@ Examples:
     atexit.register(cleanup)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     # On Windows, also handle CTRL_C_EVENT and CTRL_BREAK_EVENT
     if sys.platform == "win32":
         signal.signal(signal.SIGBREAK, signal_handler)
-    
+
     # Clean up any stale processes from previous runs
     ports_to_clean = []
     if run_server:
@@ -1202,26 +1205,26 @@ Examples:
         ports_to_clean.append(25809)
 
     cleanup_stale_processes(list(set(ports_to_clean)))
-    
+
     # Start services in dependency order:
     # 1. Hub backend (if needed) - Server depends on Hub for registration
     # 2. Server - needs Hub to be ready for registration
     # 3. Studio/Hub frontend - can start in parallel with Server
     # 4. Docs/Site - independent
-    
+
     if run_hub:
         if start_hub_backend(repo_root) is None:
             return 1
         # Wait for Hub to be healthy before starting Server
         # Server will auto-retry registration if Hub isn't ready yet
         wait_for_hub_healthy(timeout=45)
-    
+
     if run_server:
         if start_server(repo_root, hub_auth=hub_auth) is None:
             return 1
         # Give server a moment to start
         time.sleep(2)
-    
+
     if run_studio:
         if studio_mode == "tauri":
             # Tauri mode - start web server then tauri
@@ -1241,13 +1244,13 @@ Examples:
             if start_studio(repo_root, mode="web") is None:
                 return 1
             time.sleep(3)
-    
+
     if run_hub:
         # Hub backend already started above, now start frontend
         if start_hub_frontend(repo_root) is None:
             return 1
         time.sleep(2)
-    
+
     if run_docs:
         if start_docs(repo_root) is None:
             return 1
@@ -1255,7 +1258,7 @@ Examples:
 
     # Print status
     print_status(run_server, run_studio, studio_mode, run_hub, run_docs)
-    
+
     # Wait for processes to complete (they run until interrupted)
     try:
         while True:
@@ -1283,7 +1286,7 @@ Examples:
             time.sleep(1)
     except KeyboardInterrupt:
         pass
-    
+
     cleanup()
     return 0
 

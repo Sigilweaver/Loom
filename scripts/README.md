@@ -19,6 +19,7 @@ Utility scripts for building, testing, and running Sigilweaver Loom.
 ./scripts/test.py --server          # Server tests only
 ./scripts/test.py --studio          # Studio tests only
 ./scripts/test.py --hub             # Hub tests only
+./scripts/test.py --repo            # Repo tooling checks only (ruff over scripts/)
 ./scripts/test.py --ci              # CI mode (XML coverage output)
 ./scripts/test.py -p                # Parallel execution (faster)
 ./scripts/test.py --dry-run         # Show what would run
@@ -110,6 +111,7 @@ Press `Ctrl+C` to stop all services.
 | `--studio`         | Run studio checks (tsc + eslint + vitest)           |
 | `--hub`            | Run hub checks (backend + frontend)                 |
 | `--docs`           | Run docs build check                                |
+| `--repo`           | Run repo tooling checks (ruff over `scripts/`)      |
 | `--integration`    | Run integration tests only                          |
 | `--no-integration` | Skip integration tests                              |
 | `--no-coverage`    | Skip coverage reports (faster)                      |
@@ -120,6 +122,19 @@ Press `Ctrl+C` to stop all services.
 
 **Smart Mode**:
 By default, `test.py` uses git to detect changed files and only runs tests for affected components. Use `--full` for complete validation before merging.
+
+**Lint policy for this directory**:
+`scripts/ruff.toml` mirrors the zero-ignore policy the server and hub backends
+declare (`select = ["E", "F", "I", "N", "RUF100", "W"]`, `ignore = []`,
+`line-length = 100`), so the tooling that enforces that policy is held to it
+too. The baseline is clean and enforced unconditionally by `--repo`: any
+finding fails the build, in CI and locally.
+
+```bash
+./scripts/test.py --repo                       # via the suite
+server/.venv/bin/ruff check scripts/           # directly
+server/.venv/bin/ruff check scripts/ --fix     # auto-fix
+```
 
 ---
 
