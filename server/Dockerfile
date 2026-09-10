@@ -17,7 +17,7 @@ ARG VCS_REF
 # =============================================================================
 # Stage 1: Build Python dependencies
 # =============================================================================
-FROM python:3.11.9-slim-bookworm AS builder
+FROM python:3.13-slim-bookworm AS builder
 
 WORKDIR /build
 
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # =============================================================================
 # Stage 2: Production runtime
 # =============================================================================
-FROM python:3.11.9-slim-bookworm AS runtime
+FROM python:3.13-slim-bookworm AS runtime
 
 # Re-declare ARGs after FROM
 ARG VERSION
