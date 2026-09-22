@@ -24,6 +24,7 @@ Usage:
 import argparse
 import atexit
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -234,10 +235,10 @@ def install_server(repo_root: Path) -> bool:
 
 
 def install_studio(repo_root: Path) -> bool:
-    """Install studio Node.js dependencies."""
+    """Install studio JavaScript dependencies from the Bun lockfile."""
     print_info("Installing studio dependencies...")
     studio_dir = repo_root / "studio"
-    result = subprocess.run(["npm", "install"], cwd=studio_dir)
+    result = subprocess.run(["bun", "install", "--frozen-lockfile"], cwd=studio_dir)
     if result.returncode != 0:
         print_error("Failed to install studio dependencies")
         return False
@@ -261,10 +262,10 @@ def install_hub_backend(repo_root: Path) -> bool:
 
 
 def install_hub_frontend(repo_root: Path) -> bool:
-    """Install hub frontend Node.js dependencies."""
+    """Install hub frontend JavaScript dependencies from the Bun lockfile."""
     print_info("Installing hub frontend dependencies...")
     hub_dir = repo_root / "hub"
-    result = subprocess.run(["npm", "install"], cwd=hub_dir / "frontend")
+    result = subprocess.run(["bun", "install", "--frozen-lockfile"], cwd=hub_dir / "frontend")
     if result.returncode != 0:
         print_error("Failed to install hub frontend dependencies")
         return False
@@ -280,10 +281,10 @@ def install_hub(repo_root: Path) -> bool:
 
 
 def install_docs(repo_root: Path) -> bool:
-    """Install docs Node.js dependencies."""
+    """Install docs JavaScript dependencies from the Bun lockfile."""
     print_info("Installing docs dependencies...")
     docs_dir = repo_root / "docs"
-    result = subprocess.run(["npm", "install"], cwd=docs_dir)
+    result = subprocess.run(["bun", "install", "--frozen-lockfile"], cwd=docs_dir)
     if result.returncode != 0:
         print_error("Failed to install docs dependencies")
         return False
@@ -606,13 +607,6 @@ def get_python_executable(repo_root: Path) -> Path:
     return get_venv_python(repo_root / "server" / ".venv")
 
 
-def get_npm_command() -> str:
-    """Get the npm command (npm.cmd on Windows)."""
-    if sys.platform == "win32":
-        return "npm.cmd"
-    return "npm"
-
-
 def stream_output(process: subprocess.Popen, prefix: str) -> None:
     """Stream process output with a prefix, filtering out noise."""
     if process.stdout is None:
@@ -719,19 +713,17 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
     print_success(f"Starting Studio ({mode} mode)...")
 
     studio_dir = repo_root / "studio"
-    npm_cmd = get_npm_command()
-
     # Set environment
     env = os.environ.copy()
 
     if mode == "web":
         # Web mode - disable Electron
         env["NO_ELECTRON"] = "1"
-        cmd = [npm_cmd, "run", "dev"]
+        cmd = ["bun", "run", "dev"]
     elif mode == "electron":
         # Electron mode - let vite-plugin-electron handle it
         env["NO_ELECTRON"] = "0"
-        cmd = [npm_cmd, "run", "dev:electron"]
+        cmd = ["bun", "run", "dev:electron"]
     else:
         # Should not reach here for Tauri - handled by start_tauri()
         print_error(f"Unknown studio mode: {mode}")
@@ -746,7 +738,6 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            shell=(sys.platform == "win32"),  # Required for npm.cmd on Windows
         )
 
         # Start output streaming in a separate thread
@@ -776,17 +767,14 @@ def start_tauri(repo_root: Path) -> subprocess.Popen | None:
     print_success("Starting Tauri...")
 
     studio_dir = repo_root / "studio"
-    npm_cmd = get_npm_command()
-
     try:
         tauri_process = subprocess.Popen(
-            [npm_cmd, "run", "dev:tauri"],
+            ["bun", "run", "dev:tauri"],
             cwd=studio_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            shell=(sys.platform == "win32"),
         )
 
         # Start output streaming in a separate thread
@@ -816,17 +804,14 @@ def start_electron(repo_root: Path) -> subprocess.Popen | None:
     print_success("Starting Electron...")
 
     studio_dir = repo_root / "studio"
-    npm_cmd = get_npm_command()
-
     try:
         electron_process = subprocess.Popen(
-            [npm_cmd, "run", "electron"],
+            ["bun", "run", "electron"],
             cwd=studio_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            shell=(sys.platform == "win32"),
         )
 
         # Start output streaming in a separate thread
@@ -897,17 +882,14 @@ def start_hub_frontend(repo_root: Path) -> subprocess.Popen | None:
     print_success("Starting Hub frontend...")
 
     hub_frontend_dir = repo_root / "hub" / "frontend"
-    npm_cmd = get_npm_command()
-
     try:
         hub_frontend_process = subprocess.Popen(
-            [npm_cmd, "run", "dev"],
+            ["bun", "run", "dev"],
             cwd=hub_frontend_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            shell=(sys.platform == "win32"),
         )
 
         thread = threading.Thread(
@@ -930,17 +912,14 @@ def start_docs(repo_root: Path) -> subprocess.Popen | None:
     print_success("Starting Docs dev server...")
 
     docs_dir = repo_root / "docs"
-    npm_cmd = get_npm_command()
-
     try:
         docs_process = subprocess.Popen(
-            [npm_cmd, "run", "start"],
+            ["bun", "run", "start"],
             cwd=docs_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            shell=(sys.platform == "win32"),
         )
 
         thread = threading.Thread(
@@ -1144,6 +1123,10 @@ Examples:
 
     # Get repo root
     repo_root = get_repo_root()
+
+    if (run_studio or run_hub or run_docs) and shutil.which("bun") is None:
+        print_error("Bun is required for Studio, Hub frontend, and Docs. Install Bun first.")
+        return 1
 
     # Handle --install mode: install dependencies and exit
     if args.install:
