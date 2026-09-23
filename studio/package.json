@@ -63,8 +63,8 @@
     "test:unit": "vitest run src/domain src/state",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:ui": "vitest --ui",
-    "verify": "bun run -s type-check && bun run -s test && bun run -s lint",
-    "verify:quick": "bun run -s type-check && bun run -s test"
+    "verify": "bun run --silent type-check && bun run --silent test && bun run --silent lint",
+    "verify:quick": "bun run --silent type-check && bun run --silent test"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.27",
