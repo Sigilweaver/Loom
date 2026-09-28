@@ -43,7 +43,7 @@ import {
   type UserResponse,
   type GroupGrantGroupResponse,
   type GrantGroupSummary,
-} from "@api/client";
+} from "@api";
 import type { UserRole } from "@state/authStore";
 
 const roleConfig: Record<UserRole, { label: string; icon: typeof Shield; color: string }> = {

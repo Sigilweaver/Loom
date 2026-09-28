@@ -35,7 +35,7 @@ import {
     type GrantGroupDetail,
     type GrantGroupConnection,
     type ConnectionResponse,
-} from "@api/client";
+} from "@api";
 
 export function GrantGroupsTab() {
     const [grantGroups, setGrantGroups] = useState<GrantGroupSummary[]>([]);

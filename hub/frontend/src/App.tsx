@@ -1,172 +1,91 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Layout } from "@components/Layout";
-import { ProtectedRoute } from "@components/ProtectedRoute";
-import { UserRoute } from "@components/UserRoute";
-import { RoleBasedRedirect } from "@components/RoleBasedRedirect";
-import { AdminPageWrapper } from "@components/AdminPageWrapper";
+import { AppLayout } from "@components/layout/AppLayout";
+import { ProtectedRoute, RoleBasedRedirect, UserRoute } from "@components/ProtectedRoute";
+import { LoadingState } from "@components/ui";
 import { LoginPage } from "@pages/LoginPage";
-import { HomePage } from "@pages/HomePage";
-import { WorkflowsPage } from "@pages/WorkflowsPage";
-import { ExecutionsPage } from "@pages/ExecutionsPage";
-import { SchedulesPage } from "@pages/SchedulesPage";
-// Admin pages
-import { DashboardTab } from "@pages/admin/DashboardTab";
-import { ActivityTab } from "@pages/admin/ActivityTab";
-import { AuditTab } from "@pages/admin/AuditTab";
-import { ServersTab } from "@pages/admin/ServersTab";
-import { ConnectionsTab } from "@pages/admin/ConnectionsTab";
-import { GroupsTab } from "@pages/admin/GroupsTab";
-import { GrantGroupsTab } from "@pages/admin/GrantGroupsTab";
-import { UsersTab } from "@pages/admin/UsersTab";
-import { SettingsPage } from "@pages/admin/SettingsPage";
+
+// Pages are loaded on demand so the first paint only ships the shell.
+const HomePage = lazy(() => import("@pages/HomePage").then((m) => ({ default: m.HomePage })));
+const WorkflowsPage = lazy(() =>
+  import("@pages/WorkflowsPage").then((m) => ({ default: m.WorkflowsPage }))
+);
+const ExecutionsPage = lazy(() =>
+  import("@pages/ExecutionsPage").then((m) => ({ default: m.ExecutionsPage }))
+);
+const SchedulesPage = lazy(() =>
+  import("@pages/SchedulesPage").then((m) => ({ default: m.SchedulesPage }))
+);
+
+const DashboardTab = lazy(() =>
+  import("@pages/admin/DashboardTab").then((m) => ({ default: m.DashboardTab }))
+);
+const ActivityTab = lazy(() =>
+  import("@pages/admin/ActivityTab").then((m) => ({ default: m.ActivityTab }))
+);
+const AuditTab = lazy(() => import("@pages/admin/AuditTab").then((m) => ({ default: m.AuditTab })));
+const ServersTab = lazy(() =>
+  import("@pages/admin/ServersTab").then((m) => ({ default: m.ServersTab }))
+);
+const ConnectionsTab = lazy(() =>
+  import("@pages/admin/ConnectionsTab").then((m) => ({ default: m.ConnectionsTab }))
+);
+const GroupsTab = lazy(() =>
+  import("@pages/admin/GroupsTab").then((m) => ({ default: m.GroupsTab }))
+);
+const GrantGroupsTab = lazy(() =>
+  import("@pages/admin/GrantGroupsTab").then((m) => ({ default: m.GrantGroupsTab }))
+);
+const UsersTab = lazy(() => import("@pages/admin/UsersTab").then((m) => ({ default: m.UsersTab })));
+const SettingsPage = lazy(() =>
+  import("@pages/admin/SettingsPage").then((m) => ({ default: m.SettingsPage }))
+);
 
 function App() {
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected routes */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <Layout />
+            <AppLayout />
           </ProtectedRoute>
         }
       >
-        {/* Role-based redirect at root */}
         <Route index element={<RoleBasedRedirect />} />
 
-        {/* User routes - only for regular users */}
-        <Route
-          path="home"
-          element={
-            <UserRoute>
-              <HomePage />
-            </UserRoute>
-          }
-        />
-        <Route
-          path="workflows"
-          element={
-            <UserRoute>
-              <WorkflowsPage />
-            </UserRoute>
-          }
-        />
-        <Route
-          path="executions"
-          element={
-            <UserRoute>
-              <ExecutionsPage />
-            </UserRoute>
-          }
-        />
-        <Route
-          path="schedules"
-          element={
-            <UserRoute>
-              <SchedulesPage />
-            </UserRoute>
-          }
-        />
+        {/* Regular users */}
+        <Route element={<UserRoute />}>
+          <Route path="home" element={<Lazy><HomePage /></Lazy>} />
+          <Route path="workflows" element={<Lazy><WorkflowsPage /></Lazy>} />
+          <Route path="executions" element={<Lazy><ExecutionsPage /></Lazy>} />
+          <Route path="schedules" element={<Lazy><SchedulesPage /></Lazy>} />
+        </Route>
 
-        {/* Admin routes - for admins, owners, and auditors */}
-        <Route
-          path="admin"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <DashboardTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/activity"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <ActivityTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/audit"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <AuditTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/servers"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <ServersTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/connections"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <ConnectionsTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/groups"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <GroupsTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/grant-groups"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <GrantGroupsTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/users"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <AdminPageWrapper>
-                <UsersTab />
-              </AdminPageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="admin/settings"
-          element={
-            <ProtectedRoute minRole="auditor">
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Admins, owners and auditors */}
+        <Route path="admin" element={<ProtectedRoute minRole="auditor" />}>
+          <Route index element={<Lazy><DashboardTab /></Lazy>} />
+          <Route path="activity" element={<Lazy><ActivityTab /></Lazy>} />
+          <Route path="audit" element={<Lazy><AuditTab /></Lazy>} />
+          <Route path="servers" element={<Lazy><ServersTab /></Lazy>} />
+          <Route path="connections" element={<Lazy><ConnectionsTab /></Lazy>} />
+          <Route path="groups" element={<Lazy><GroupsTab /></Lazy>} />
+          <Route path="grant-groups" element={<Lazy><GrantGroupsTab /></Lazy>} />
+          <Route path="users" element={<Lazy><UsersTab /></Lazy>} />
+          <Route path="settings" element={<Lazy><SettingsPage /></Lazy>} />
+        </Route>
       </Route>
 
-      {/* Catch-all redirect */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+/** Suspense boundary for lazily loaded pages. */
+function Lazy({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<LoadingState className="h-full min-h-64" />}>{children}</Suspense>;
 }
 
 export default App;
