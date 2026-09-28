@@ -24,10 +24,8 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 **SmartScreen warnings on install**
 
-- **Issue**: Windows flags unsigned executables as potentially harmful
-- **Root cause**: No code signing certificate yet
-- **Workaround**: Click "More info" → "Run anyway"
-- **Future**: Code signing is on the roadmap
+- **Status**: Release builds are signed with Azure Trusted Signing. A new release can still trigger SmartScreen until it builds reputation.
+- **Workaround**: Click "More info" then "Run anyway"
 
 **Path length limits**
 
@@ -41,13 +39,12 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 - **Issue**: macOS blocks apps from "unidentified developers"
 - **Root cause**: No Apple Developer certificate yet
-- **Workaround**: Right-click → Open → Open anyway
+- **Workaround**: Right-click -> Open -> Open anyway
 - **Future**: Notarization is on the roadmap
 
 **Apple Silicon (M1/M2/M3)**
 
-- **Status**: Builds are generated but limited testing
-- **Known**: Works via Rosetta 2, native ARM builds in progress
+- **Status**: Release builds target x64 only. They run on Apple Silicon through Rosetta 2.
 - **Notes**: Report issues if you encounter them
 
 ---

@@ -50,7 +50,7 @@ System prompt (behavioral rules + tool schemas)
 LLM (provider-agnostic via AI SDK)
     |
     v
-Tool calls ──> Zod schema validation ──> Tool execution
+Tool calls --> Zod schema validation --> Tool execution
     |                                         |
     v                                         v
 Streaming response                   Canvas state mutations

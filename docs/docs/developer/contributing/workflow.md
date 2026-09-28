@@ -66,11 +66,12 @@ Don't submit a PR with failing tests. If tests fail for unrelated reasons, note 
 
 ### 6. Commit
 
-Write meaningful commit messages:
+Write meaningful commit messages in the `type(scope): summary` style the repository uses:
 
 ```
 # Good
-Add Formula tool validation for invalid expressions
+fix(server): reject invalid Calculate expressions before execution
+docs(admin): correct Hub environment variable defaults
 
 # Bad
 fix stuff
