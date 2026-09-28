@@ -37,13 +37,13 @@ import {
   uploadWorkflow,
   deleteWorkflow,
   updateWorkflowMetadata,
-  getWorkflowDownloadUrl,
+  downloadWorkflow,
   getWorkflowContent,
   triggerExecution,
   type WorkflowMetadata,
   type WorkflowContent,
-} from "@api/client";
-import { getAuthToken } from "@state/authStore";
+} from "@api";
+import { saveBlob } from "@utils/download";
 
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString);
@@ -1121,25 +1121,8 @@ function WorkflowCard({ workflow, onView, onEdit, onDelete, onRun }: WorkflowCar
 
   const handleDownload = async () => {
     setMenuOpen(false);
-    const token = getAuthToken();
-    const url = getWorkflowDownloadUrl(workflow.id);
-
     try {
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!response.ok) throw new Error("Download failed");
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `${workflow.name}.swwf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(downloadUrl);
-      document.body.removeChild(a);
+      saveBlob(await downloadWorkflow(workflow.id), `${workflow.name}.swwf`);
     } catch (e) {
       console.error("Download failed:", e);
     }
@@ -1398,26 +1381,8 @@ export function WorkflowsPage() {
   // Download handler for detail dialog
   const handleDownloadFromDetail = async () => {
     if (!viewingWorkflow) return;
-
-    const token = getAuthToken();
-    const url = getWorkflowDownloadUrl(viewingWorkflow.id);
-
     try {
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!response.ok) throw new Error("Download failed");
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `${viewingWorkflow.name}.swwf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(downloadUrl);
-      document.body.removeChild(a);
+      saveBlob(await downloadWorkflow(viewingWorkflow.id), `${viewingWorkflow.name}.swwf`);
     } catch (e) {
       console.error("Download failed:", e);
     }

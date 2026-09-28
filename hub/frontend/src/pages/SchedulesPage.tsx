@@ -36,7 +36,7 @@ import {
   type ScheduleResponse,
   type WorkflowMetadata,
   type ServerResponse,
-} from "@api/client";
+} from "@api";
 
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString);

@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
 import { useThemeStore, type Theme } from "@state/themeStore";
-import { logout, updateProfile } from "@api/client";
+import { logout, updateProfile } from "@api";
 
 const themeOptions: { value: Theme; label: string; icon: typeof Sparkles }[] = [
   { value: "sigilweaver", label: "Sigilweaver", icon: Sparkles },

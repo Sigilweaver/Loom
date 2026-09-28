@@ -25,7 +25,7 @@ import {
     verifyAuditChain,
     type AuditEventResponse,
     type AuditChainVerifyResponse,
-} from "@api/client";
+} from "@api";
 
 const PAGE_SIZE = 25;
 
