@@ -34,7 +34,7 @@ key_data = {
     "tool_type": tool_type,    # e.g., "Sort"
     "config": tool_config,     # e.g., {"sortColumns": [...]}
     "upstream": sorted(upstream_keys),  # Hashes from upstream tools
-    "mtime": source_mtime,     # File mod time (for Input tools)
+    "mtime": source_mtime,     # accepted, but callers currently pass None
 }
 key_json = json.dumps(key_data, sort_keys=True, default=str)
 return hashlib.sha256(key_json.encode()).hexdigest()[:16]
@@ -259,7 +259,7 @@ class InputTool(BaseTool):
 | Pivot | `True` | `True` | Always cached |
 | Unique | `True` | `True` | Always cached |
 | Input (file) | `False` | `False` | Polars scans lazily |
-| Input (database) | `False` | `True` | Avoid repeated DB queries |
+| Input (database) | `True` | `True` | Avoid repeated DB queries |
 | Filter | `False` | `False` | Streaming-compatible |
 | Select | `False` | `False` | Streaming-compatible |
 | Formula | `False` | `False` | Streaming-compatible |
@@ -307,7 +307,7 @@ async def _execute_tool_with_cache(self, tool, inputs, cache_mgr, plan):
 ```python
 # app/server/app/config.py
 cache_enabled: bool = True          # Enable/disable caching globally
-cache_path: str = "./cache"         # Root directory for all workflow caches
+cache_path: str = "../.working/server/cache"   # Root directory for all workflow caches
 ```
 
 ### API Parameters
@@ -331,14 +331,14 @@ This is useful for:
 
 ```
 cache/
-├── workflow-uuid-1/
-│   ├── sort-1_output_abc123.parquet
-│   ├── join-1_output_left_def456.parquet
-│   ├── join-1_output_match_def456.parquet
-│   └── join-1_output_right_def456.parquet
-├── workflow-uuid-2/
-│   └── summarize-1_output_ghi789.parquet
-└── ...
+|-- workflow-uuid-1/
+|   |-- sort-1_output_abc123.parquet
+|   |-- join-1_output_left_def456.parquet
+|   |-- join-1_output_match_def456.parquet
+|   `-- join-1_output_right_def456.parquet
+|-- workflow-uuid-2/
+|   `-- summarize-1_output_ghi789.parquet
+`-- ...
 ```
 
 File naming: `{tool_id}_{socket_id}_{lineage_hash}.parquet`

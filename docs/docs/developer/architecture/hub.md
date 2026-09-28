@@ -1,286 +1,180 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
+title: Hub Architecture
 ---
 
 # Hub Architecture
 
-Hub is the orchestration platform for team deployments. It manages user authentication, access control, workflow storage, and execution scheduling.
+Hub is the platform for team deployments. It manages accounts and roles, shared connections, workflow storage, schedules and an audit log, and it authorizes what Servers do on a user's behalf. Hub is in **open beta**. See [Hub Open Beta](../../admin/hub-beta.md) for its limits.
 
-## Technology Stack
+## Technology stack
 
 | Layer | Technology | Why |
-|-------|------------|-----|
+| ----- | ---------- | --- |
 | Backend | FastAPI | Async, OpenAPI docs, dependency injection |
-| Database | PostgreSQL | ACID compliance, JSON support, proven |
-| ORM | SQLAlchemy 2.0 | Async support, type hints, migrations |
-| Frontend | React + Vite | Fast dev experience, modern tooling |
-| State | Zustand | Simple, no boilerplate, TypeScript-first |
+| Database | PostgreSQL with SQLAlchemy 2.0 (async) | ACID, migrations with Alembic |
+| Scheduling | APScheduler (in process) | Cron schedules without another service |
+| Frontend | React with Vite and Zustand | Same patterns as Studio |
+| Password hashing | Argon2id | Memory-hard hashing |
+| Credential encryption | Fernet (`cryptography`) | Authenticated symmetric encryption |
 
-## Directory Structure
+## Directory structure
 
 ```
 hub/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── routes/           # HTTP endpoints
-│   │   │   │   ├── auth.py       # Login, register, sessions
-│   │   │   │   ├── users.py      # User CRUD
-│   │   │   │   ├── groups.py     # User group management
-│   │   │   │   ├── grant_groups.py  # Grant group management
-│   │   │   │   ├── connections.py   # Connection CRUD
-│   │   │   │   └── servers.py    # Server registration
-│   │   │   └── dependencies.py   # Auth dependencies
-│   │   ├── db/
-│   │   │   ├── models.py         # SQLAlchemy models
-│   │   │   ├── database.py       # Session management
-│   │   │   └── migrations/       # Alembic migrations
-│   │   └── domain/
-│   │       ├── audit/             # Audit trail logging
-│   │       ├── auth/              # Authentication logic
-│   │       ├── capabilities/      # Feature capability checks
-│   │       ├── connections/       # Credential encryption
-│   │       ├── executions/        # Workflow execution management
-│   │       ├── schedules/         # Execution scheduling
-│   │       ├── servers/           # Server registration and management
-│   │       └── workflows/         # Workflow storage and versioning
-│   └── tests/
-│       ├── test_grant_group_routes.py
-│       ├── test_grant_group_permissions.py
-│       └── test_connections/
-├── frontend/
-│   └── src/
-│       ├── api/client.ts         # API client
-│       ├── components/           # Shared components
-│       ├── pages/admin/          # Admin UI
-│       └── state/                # Zustand stores
-└── docker-compose.yml
+|-- backend/
+|   |-- app/
+|   |   |-- main.py               App, startup checks, background tasks
+|   |   |-- config.py             Settings (environment variables)
+|   |   |-- api/
+|   |   |   |-- dependencies.py   CurrentUser, RequireUser, RequireAdmin, RequireAuditor
+|   |   |   `-- v1/routes/        auth, users, groups, grant_groups, connections,
+|   |   |                         servers, workflows, executions, schedules,
+|   |   |                         capabilities, internal, audit, health
+|   |   |-- db/
+|   |   |   |-- models.py         SQLAlchemy models
+|   |   |   `-- migrations/       Alembic versions
+|   |   |-- domain/
+|   |   |   |-- auth/             passwords, roles, sessions, server-token store
+|   |   |   |-- capabilities/     Issues Server tokens
+|   |   |   |-- connections/      Encrypted store, health poller
+|   |   |   |-- servers/          Server client, health poller
+|   |   |   |-- workflows/        File store, parser, revisions
+|   |   |   |-- executions/       Service, in-memory event broker
+|   |   |   |-- schedules/        Scheduler and service
+|   |   |   |-- artifacts/        Content-addressed output storage
+|   |   |   `-- audit/            Hash-chained audit events
+|   |   `-- middleware/           Rate limiting
+|   |-- scripts/                  Dev seed scripts
+|   `-- tests/
+`-- frontend/
+    `-- src/
+        |-- pages/                User pages, plus pages/admin/ for administrators
+        |-- components/           Layout, route guards, schedule builder
+        |-- api/client.ts         API client
+        `-- state/                Auth and settings stores
 ```
 
-## Permission Hierarchy
+## API
 
-Hub implements a unidirectional permission hierarchy. Access flows in one direction only:
+All routes are under `/api/v1`. `GET /api/v1/health` needs no authentication. Every other route needs a session (`Authorization: Bearer <session token>`), except registration of the first account and login. Interactive docs are served at `/docs`.
+
+| Resource | Routes | Roles |
+| -------- | ------ | ----- |
+| Auth | `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/status` | Public, then any user |
+| Users | `/users` and `/users/{id}` (with `/groups`) | Auditor reads, Admin writes (within role rules) |
+| User groups | `/groups`, `/groups/{id}/members`, `/groups/{id}/grant-groups` | Auditor reads, Admin writes |
+| Grant groups | `/grant-groups`, `/grant-groups/{id}/connections`, `/grant-groups/{id}/user-groups` | Auditor reads, Admin writes |
+| Connections | `/connections`, `/connections/{id}/check`, `/connections/test` | Admin |
+| Servers | `/servers`, `/servers/{id}/refresh`, `/servers/{id}/groups` | Admin writes, Auditor reads, self-registration by secret |
+| Workflows | `/workflows`, `/workflows/{id}/content`, `/download`, `/revisions`, `/diff` | User owns, Admin deletes, Auditor reads |
+| Executions | `/executions`, `/executions/stream`, `/executions/{id}/cancel`, `/artifacts`, and auditor-only `/record`, `/code`, `/plans`, `/connections`, `/logs` | User creates and reads own |
+| Schedules | `/schedules`, `/schedules/{id}/toggle`, `/schedules/{id}/trigger` | User owns |
+| Capabilities | `POST /capabilities/token` | Any authenticated user |
+| Internal | `POST /internal/authorize` | Servers (by their `auth_token`) |
+| Audit | `/audit/events`, `/audit/verify` | Auditor and above |
+
+## Permission model
+
+Access to connections flows one way:
 
 ```
-Users → User Groups → Grant Groups → Connections
+Users -> User Groups -> Grant Groups -> Connections
 ```
-
-### Data Model
 
 ```mermaid
 flowchart LR
-    User -->|user_group_members| UserGroup
-    UserGroup -->|user_group_grant_group| GrantGroup
-    GrantGroup -->|grant_group_connection| Connection
-    
-    User -.->|role| Role["(role)"]
+    User -->|user_groups| Group
+    Group -->|user_group_grant_groups| GrantGroup
+    GrantGroup -->|grant_group_connections| Connection
 ```
-
-### Database Tables
 
 | Table | Purpose |
-|-------|---------|
-| `users` | User accounts with roles |
-| `groups` | User groups for organizing users |
-| `user_groups` | Junction: users ↔ groups |
-| `grant_groups` | Permission bundles containing connections |
-| `user_group_grant_groups` | Junction: groups ↔ grant groups |
-| `grant_group_connections` | Junction: grant groups ↔ connections |
+| ----- | ------- |
+| `users` | Accounts, with a role |
+| `groups` | User groups |
+| `user_groups` | Junction: users and groups |
+| `grant_groups` | Reusable permission bundles |
+| `user_group_grant_groups` | Junction: groups and grant groups |
+| `grant_group_connections` | Junction: grant groups and connections |
+| `connections`, `connection_databases`, `connection_filesystems` | Connection metadata and type-specific settings, with encrypted credentials |
+| `servers`, `server_groups` | Registered Servers, and which groups can see them |
+| `workflows`, `workflow_revisions` | Workflow metadata, and stored revisions |
+| `executions`, `execution_records`, `execution_artifacts` | Runs, their audit records and stored outputs |
+| `schedules` | Cron schedules |
+| `sessions`, `server_tokens` | Login sessions, and Server tokens when `TOKEN_STORE_BACKEND=postgres` |
+| `audit_events` | The hash-chained audit log |
 
-### Why This Design?
+A single audit path answers "why can user X use connection Y?". Grant groups cannot contain grant groups or users, so cycles are impossible. Assignments are made from the user-group side only. The grant-group side shows them read-only.
 
-**Single audit path**: To answer "why does user X have access to connection Y?", trace:
-```
-User → UserGroup membership → GrantGroup assignment → Connection assignment
-```
+### Roles
 
-**No cycles possible**: Grant Groups cannot reference other Grant Groups or Users directly. This prevents circular permission dependencies.
+`domain/auth/roles.py` defines `owner`, `admin`, `auditor` and `user` with a hierarchy. Route dependencies in `api/dependencies.py`:
 
-**Reusable permission bundles**: A single Grant Group (e.g., "Production Databases") can be assigned to multiple User Groups without duplicating connection assignments.
-
-**Clear separation of concerns**:
-- User Groups = organizational structure (teams, departments)
-- Grant Groups = permission bundles (what resources)
-- Connections = actual resources
-
-## Access Control Implementation
-
-### Checking User Access to Connections
-
-```python
-# hub/backend/app/api/routes/connections.py
-
-async def list_connections(user: SessionInfo, db: AsyncSession):
-    # Admins/auditors see all
-    if user.role in ("owner", "admin", "auditor"):
-        return await store.list_connections()
-    
-    # Users: trace through the hierarchy
-    # 1. Get user's groups
-    user_group_ids = await get_user_group_ids(db, user.user_id)
-    
-    # 2. Get grant groups assigned to those user groups
-    grant_group_ids = await db.execute(
-        select(UserGroupGrantGroup.grant_group_id)
-        .where(UserGroupGrantGroup.user_group_id.in_(user_group_ids))
-    )
-    
-    # 3. Get connections in those grant groups
-    accessible_ids = await db.execute(
-        select(GrantGroupConnection.connection_id)
-        .where(GrantGroupConnection.grant_group_id.in_(grant_group_ids))
-    )
-    
-    return [c for c in connections if c.id in accessible_ids]
-```
-
-### Route Dependencies
+| Dependency | Allows |
+| ---------- | ------ |
+| `CurrentUser` | Any valid session |
+| `RequireAuditor` | Owner, Admin, Auditor |
+| `RequireAdmin` | Owner, Admin |
+| `RequireUser` | The `user` role only (not Admin or Owner) |
 
 ```python
-# Require specific roles
-from app.api.dependencies import RequireAdmin, RequireAuditor
-
 @router.post("/grant-groups")
 async def create_grant_group(
     request: GrantGroupCreate,
-    _admin: SessionInfo = RequireAdmin,  # 403 if not admin
+    admin: SessionInfo = RequireAdmin,
     db: AsyncSession = Depends(get_db),
-):
-    ...
-
-@router.get("/grant-groups")
-async def list_grant_groups(
-    _user: SessionInfo = RequireAuditor,  # Admin or auditor
-    db: AsyncSession = Depends(get_db),
-):
-    ...
+): ...
 ```
 
-## API Endpoints
+`can_manage_role` and `can_assign_role` implement who may create, edit and delete whom. See [Roles and Permissions](../../admin/roles.md).
 
-### Grant Groups
+## Authorization flow
 
-| Method | Endpoint | Role | Description |
-|--------|----------|------|-------------|
-| GET | `/grant-groups` | Auditor+ | List all grant groups |
-| POST | `/grant-groups` | Admin | Create grant group |
-| GET | `/grant-groups/{id}` | Auditor+ | Get grant group with connections and user groups |
-| PATCH | `/grant-groups/{id}` | Admin | Update grant group |
-| DELETE | `/grant-groups/{id}` | Admin | Delete grant group |
-| POST | `/grant-groups/{id}/connections/{conn_id}` | Admin | Add connection to grant group |
-| DELETE | `/grant-groups/{id}/connections/{conn_id}` | Admin | Remove connection from grant group |
-| GET | `/grant-groups/{id}/user-groups` | Auditor+ | List user groups with this grant group (read-only) |
+Studio requests a token at `POST /capabilities/token`. `CapabilityIssuer` picks an online Server, creates an opaque token in the token store (`memory` or `postgres`) with the user ID, the Server ID and a TTL, and returns it with the Server's endpoint. When the Server calls `POST /internal/authorize`, Hub authenticates the Server by its `auth_token`, atomically consumes the token, checks the user's grants for every requested connection, resolves the credentials and file paths, and writes an audit event. See [Component Relationships](./component-relationships.md).
 
-### User Groups (Grant Group Assignment)
+## Background work
 
-| Method | Endpoint | Role | Description |
-|--------|----------|------|-------------|
-| GET | `/groups/{id}/grant-groups` | Auditor+ | List grant groups assigned to user group |
-| POST | `/groups/{id}/grant-groups/{gg_id}` | Admin | Assign grant group to user group |
-| DELETE | `/groups/{id}/grant-groups/{gg_id}` | Admin | Remove grant group from user group |
+Everything below runs inside the Hub process, started in the app's lifespan hook in `main.py`:
 
-### Design Decision: Unidirectional Assignment
+| Task | Does |
+| ---- | ---- |
+| Server health poller | Checks every Server each `SERVER_POLL_INTERVAL_SECONDS`, with backoff and an offline threshold |
+| Connection health poller | Tests every connection about hourly |
+| Scheduler | Loads enabled schedules from the database and fires them from APScheduler |
+| Session cleanup | Deletes expired sessions in batches |
+| Token store cleanup | Drops expired in-memory tokens |
+| Execution tasks | One `asyncio` task per execution, started by `ExecutionService.trigger_execution` |
+| Event broker | In-memory fan-out of execution events to Server-Sent Events clients |
 
-Grant groups are assigned **from the User Groups side**, not from the Grant Groups side. This enforces the parent → child hierarchy:
+Because these are in-process, Hub runs as one replica, and executions do not survive a restart. That is the biggest architectural limit of the beta. A durable design would move execution and scheduling to a job queue.
 
-```
-POST /groups/{group_id}/grant-groups/{grant_group_id}   # Correct
-POST /grant-groups/{grant_group_id}/user-groups/{group_id}  # Not implemented
-```
+## Frontend
 
-The Grant Groups tab shows which user groups reference it (read-only). To modify assignments, use the User Groups tab.
+The Hub frontend is a Vite React app served by the backend in production (`STATIC_FILES_PATH`). Users see Home, Workflows, Executions and Schedules. Auditors and above see an admin area.
+
+| Page | File |
+| ---- | ---- |
+| Dashboard | `pages/admin/DashboardTab.tsx` |
+| Activity | `pages/admin/ActivityTab.tsx` |
+| Audit Log | `pages/admin/AuditTab.tsx` |
+| Servers | `pages/admin/ServersTab.tsx` |
+| Users, User Groups, Grant Groups | `UsersTab.tsx`, `GroupsTab.tsx`, `GrantGroupsTab.tsx` |
+| Connections | `pages/admin/ConnectionsTab.tsx` |
+| Settings | `pages/admin/SettingsPage.tsx` (a placeholder) |
+
+`api/client.ts` holds one typed function per endpoint. `state/authStore.ts` keeps the session. There are three themes (Sigilweaver, Dark and Light) driven by semantic CSS variables.
 
 ## Testing
 
-### Test Structure
-
-```
-hub/backend/tests/
-├── test_grant_group_routes.py      # CRUD and assignment operations
-├── test_grant_group_permissions.py # Access control verification
-└── test_connections/
-    ├── test_user_connections.py    # User role access tests
-    ├── test_admin_connections.py   # Admin role tests
-    └── test_auditor_connections.py # Auditor role tests
-```
-
-### Key Test Patterns
-
-```python
-# Test that users can only see connections via grant groups
-async def test_user_can_list_connections_via_grant_group(client, db):
-    # Setup: user → user_group → grant_group → connection
-    user = await create_user(db, role="user")
-    group = await create_group(db)
-    await add_user_to_group(db, user.id, group.id)
-    
-    grant_group = await create_grant_group(db)
-    await assign_grant_group_to_group(db, group.id, grant_group.id)
-    
-    connection = await create_connection(db)
-    await add_connection_to_grant_group(db, grant_group.id, connection.id)
-    
-    # Test: user can see the connection
-    response = await client.get("/connections", headers=auth_headers(user))
-    assert response.status_code == 200
-    assert connection.id in [c["id"] for c in response.json()["connections"]]
-```
-
-### Running Tests
+Backend tests are in `hub/backend/tests/`, grouped by area: authentication and roles, connections and permissions per role, servers, workflows, schedules, executions, artifacts, the token store, rate limiting and health polling.
 
 ```bash
 cd hub/backend
-
-# All grant group tests
-uv run pytest tests/test_grant_group_routes.py tests/test_grant_group_permissions.py -v
-
-# Connection access tests
-uv run pytest tests/test_connections/ -v
-
-# Full test suite
 uv run pytest -v
+uv run pytest tests/test_grant_group_permissions.py -v
 ```
 
-## Frontend Implementation
+Frontend tests use Vitest: `cd hub/frontend && bun run test`. `./scripts/test.py --hub` runs both, plus lint and type checks.
 
-### State Management
-
-The frontend uses Zustand stores with separate concerns:
-
-```typescript
-// src/state/authStore.ts - Authentication state
-// src/state/settingsStore.ts - UI preferences
-```
-
-### API Client
-
-```typescript
-// src/api/client.ts
-
-// Grant Groups
-export async function listGrantGroups(): Promise<GrantGroupListResponse>;
-export async function createGrantGroup(data: GrantGroupCreate): Promise<GrantGroupSummary>;
-export async function getGrantGroup(id: string): Promise<GrantGroupDetail>;
-export async function addConnectionToGrantGroup(grantGroupId: string, connectionId: string): Promise<void>;
-
-// User Group → Grant Group assignment
-export async function listGroupGrantGroups(groupId: string): Promise<GroupGrantGroupsResponse>;
-export async function assignGrantGroupToGroup(groupId: string, grantGroupId: string): Promise<void>;
-export async function removeGrantGroupFromGroup(groupId: string, grantGroupId: string): Promise<void>;
-```
-
-### UI Components
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `DashboardTab` | `pages/admin/DashboardTab.tsx` | Overview dashboard |
-| `UsersTab` | `pages/admin/UsersTab.tsx` | Manage users |
-| `GroupsTab` | `pages/admin/GroupsTab.tsx` | Manage user groups, assign grant groups |
-| `GrantGroupsTab` | `pages/admin/GrantGroupsTab.tsx` | Manage grant groups, assign connections |
-| `ConnectionsTab` | `pages/admin/ConnectionsTab.tsx` | Manage connections |
-| `ServersTab` | `pages/admin/ServersTab.tsx` | Manage registered servers |
-| `ActivityTab` | `pages/admin/ActivityTab.tsx` | View audit trail and activity |
-| `SettingsPage` | `pages/admin/SettingsPage.tsx` | Hub settings |
-| `SettingsPage` | `pages/admin/SettingsPage.tsx` | Hub settings |
-
-The sidebar follows the hierarchy: Users → User Groups → Grant Groups → Connections
+A typical permission test creates a user, a group, a grant group and a connection, links them, and asserts that the user can list the connection through that path and not without it.
