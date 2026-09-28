@@ -2,12 +2,15 @@
 
 import logging
 import uuid
-from contextlib import contextmanager
-from typing import Annotated, Any, Generator
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager, contextmanager
+from typing import Annotated, Any, Generator, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.routes.cache import ClearCacheResponse, WorkflowCacheRequest
+from app.api.routes.cache import clear_workflow_cache as clear_cache_route
 from app.config import settings
 from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 from app.domain.execution.executor import WorkflowExecutor
@@ -46,10 +49,14 @@ def _raise_unexpected(exc: BaseException) -> HTTPException:
 
 @contextmanager
 def _map_unexpected_errors() -> Generator[None, None, None]:
-    """Map unexpected workflow errors while deferring known errors to the application."""
+    """Map unexpected workflow errors while deferring known errors to the application.
+
+    HTTPExceptions raised on purpose (401 from Hub authorization, 400 for a malformed
+    workflow) and domain errors keep their own status code.
+    """
     try:
         yield
-    except (ValidationError, ToolError, ExecutionError, FileAccessError):
+    except (HTTPException, ValidationError, ToolError, ExecutionError, FileAccessError):
         raise
     except Exception as exc:
         raise _raise_unexpected(exc)
@@ -60,7 +67,7 @@ def _map_preview_code_errors() -> Generator[None, None, None]:
     """Preserve the preview-code endpoint's legacy unexpected-error response."""
     try:
         yield
-    except ValidationError:
+    except (HTTPException, ValidationError):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
@@ -138,7 +145,7 @@ def _parse_workflow(workflow_json: dict[str, Any]) -> Workflow:
 async def _authorize_hub_request(
     workflow_json: dict[str, Any],
     authorization: str | None,
-    request_type: str = "execute",
+    request_type: Literal["execute", "preview"] = "execute",
 ) -> AuthorizationResult | None:
     """Authorize a request with Hub if in hub auth mode.
 
@@ -179,7 +186,7 @@ async def _authorize_hub_request(
     # Authorize with Hub - token is validated and consumed (one-time use)
     result = await hub_client.authorize(
         server_token=token,
-        request_type=request_type,  # type: ignore[arg-type]
+        request_type=request_type,
         connection_ids=hub_connection_ids,
         workflow=workflow_json,
     )
@@ -192,6 +199,35 @@ async def _authorize_hub_request(
         )
 
     return result
+
+
+@asynccontextmanager
+async def _authorized_workflow(
+    raw_workflow: dict[str, Any],
+    authorization: str | None,
+    resolver: ConnectionResolver,
+) -> AsyncGenerator[Workflow, None]:
+    """Prepare a workflow for execution: authorize, parse, resolve connections, scope files.
+
+    Yields the workflow with connections resolved. In hub mode the Hub-granted file
+    paths are in force for as long as the caller stays inside the ``async with`` block.
+    """
+    # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
+    hub_result = await _authorize_hub_request(raw_workflow, authorization)
+
+    # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
+    workflow = _parse_workflow(raw_workflow)
+
+    # Resolve server connections and validate client connections
+    resolved_workflow = resolver.resolve_workflow_connections(
+        workflow,
+        hub_connections=hub_result.connections if hub_result else None,
+    )
+    resolver.validate_client_connections(resolved_workflow)
+
+    # Set file paths context for Hub mode (restricts file access during execution)
+    with _set_file_paths_context(hub_result):
+        yield resolved_workflow
 
 
 def _extract_hub_connections(workflow_json: dict[str, Any]) -> list[str]:
@@ -317,29 +353,13 @@ async def execute_workflow(
     required and hub connections are resolved from Hub.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.execute_workflow(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().execute_workflow(
+                workflow=workflow,
                 target_tool_id=request.target_tool_id,
                 preview_limit=_clamp_preview_limit(request.preview_limit),
                 force_refresh=request.force_refresh,
             )
-        return result
 
 
 @router.post("/tool/execute")
@@ -361,30 +381,14 @@ async def execute_tool(
     In hub mode, Bearer token is required.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.execute_single_tool(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().execute_single_tool(
+                workflow=workflow,
                 tool_id=request.tool_id,
                 socket_id=request.socket_id,
                 preview_limit=_clamp_preview_limit(request.preview_limit),
                 force_refresh=request.force_refresh,
             )
-        return result
 
 
 @router.get("/tool/{tool_type}/schema")
@@ -435,28 +439,12 @@ async def get_tool_schema(
     In hub mode, Bearer token is required.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.get_tool_schema(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().get_tool_schema(
+                workflow=workflow,
                 tool_id=request.tool_id,
                 socket_id=request.socket_id,
             )
-        return result
 
 
 @router.post("/tool/metadata")
@@ -475,28 +463,12 @@ async def get_tool_metadata(
     In hub mode, Bearer token is required.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.get_tool_metadata(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().get_tool_metadata(
+                workflow=workflow,
                 tool_id=request.tool_id,
                 socket_id=request.socket_id,
             )
-        return result
 
 
 @router.post("/tool/profile")
@@ -529,30 +501,14 @@ async def profile_tool_input(
     In hub mode, Bearer token is required.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.profile_columns(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().profile_columns(
+                workflow=workflow,
                 tool_id=request.tool_id,
                 socket_id=request.socket_id,
                 columns=request.columns,
                 metrics=request.metrics,
             )
-        return result
 
 
 class PreviewAllRequest(BaseModel):
@@ -586,28 +542,12 @@ async def preview_all_tools(
     In hub mode, Bearer token is required.
     """
     with _map_unexpected_errors():
-        # Validate Hub token if in hub mode (uses raw JSON for hash integrity)
-        hub_result = await _authorize_hub_request(request.workflow, authorization)
-
-        # Parse workflow AFTER hub validation to avoid Pydantic transformation issues
-        workflow = _parse_workflow(request.workflow)
-
-        # Resolve server connections and validate client connections
-        resolved_workflow = resolver.resolve_workflow_connections(
-            workflow,
-            hub_connections=hub_result.connections if hub_result else None,
-        )
-        resolver.validate_client_connections(resolved_workflow)
-
-        # Set file paths context for Hub mode (restricts file access during execution)
-        with _set_file_paths_context(hub_result):
-            executor = WorkflowExecutor()
-            result = await executor.preview_all_tools(
-                workflow=resolved_workflow,
+        async with _authorized_workflow(request.workflow, authorization, resolver) as workflow:
+            return await WorkflowExecutor().preview_all_tools(
+                workflow=workflow,
                 preview_limit=_clamp_preview_limit(request.preview_limit),
                 force_refresh=request.force_refresh,
             )
-        return result
 
 
 class PreviewCodeRequest(BaseModel):
@@ -639,47 +579,11 @@ async def preview_code(request: PreviewCodeRequest) -> PreviewCodeResponse:
         return PreviewCodeResponse(code=code)
 
 
-class ClearCacheRequest(BaseModel):
-    """Request to clear workflow cache"""
-
-    workflow_id: str = Field(description="Workflow ID to clear cache for")
-
-
-class ClearCacheResponse(BaseModel):
-    """Response from cache clear operation"""
-
-    status: str = Field(description="Operation status")
-    workflow_id: str = Field(description="Workflow ID that was cleared")
-
-
 @router.post("/cache/clear", response_model=ClearCacheResponse)
-async def clear_workflow_cache(request: ClearCacheRequest) -> ClearCacheResponse:
+async def clear_workflow_cache(request: WorkflowCacheRequest) -> ClearCacheResponse:
     """
     Clear cache for a specific workflow.
 
-    This removes all cached blocking tool outputs for the workflow.
-    Useful when you want to force re-execution of all tools.
+    Kept at this path for existing clients; identical to ``POST /api/cache/clear``.
     """
-    from pathlib import Path
-
-    from app.domain.execution.cache import BlockingToolCache
-
-    try:
-        if not settings.cache_enabled:
-            return ClearCacheResponse(
-                status="cache_disabled",
-                workflow_id=request.workflow_id,
-            )
-
-        cache = BlockingToolCache(
-            Path(settings.cache_path),
-            request.workflow_id,
-        )
-        cache.clear()
-        return ClearCacheResponse(
-            status="cleared",
-            workflow_id=request.workflow_id,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
+    return await clear_cache_route(request)
