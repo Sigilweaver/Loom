@@ -19,7 +19,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
     "cryptography>=46.0.7",
-    "polars[connectorx]>=1.43.0",
+    "polars[connectorx]>=1.43.2",
     "pyarrow>=23.0.1",
     "slowapi>=0.1.9",
 ]
