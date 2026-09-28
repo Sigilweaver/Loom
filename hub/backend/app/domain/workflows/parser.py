@@ -80,7 +80,7 @@ class WorkflowParser:
             name=meta.get("name", ""),
             description=meta.get("description", ""),
             author=meta.get("author", ""),
-            workflowId=meta.get("workflowId", ""),
+            workflow_id=meta.get("workflowId", ""),
             created=meta.get("created", ""),
         )
 

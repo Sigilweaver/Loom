@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.models import Session, User
+from app.db.utils import rows_affected
 
 # Token length in bytes (32 bytes = 256 bits of entropy)
 TOKEN_BYTES = 32
@@ -182,8 +183,7 @@ class SessionManager:
         )
         await self.db.commit()
 
-        deleted: int = result.rowcount  # type: ignore[attr-defined]
-        return deleted > 0
+        return rows_affected(result) > 0
 
     async def invalidate_all_user_sessions(self, user_id: uuid.UUID) -> int:
         """Invalidate all sessions for a user (logout everywhere).
@@ -199,8 +199,7 @@ class SessionManager:
         )
         await self.db.commit()
 
-        count: int = result.rowcount  # type: ignore[attr-defined]
-        return count
+        return rows_affected(result)
 
     async def get_user_sessions(self, user_id: uuid.UUID) -> list[Session]:
         """Get all active sessions for a user.
@@ -257,5 +256,4 @@ class SessionManager:
             )
         await self.db.commit()
 
-        count: int = result.rowcount  # type: ignore[attr-defined]
-        return count
+        return rows_affected(result)

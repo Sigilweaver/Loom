@@ -36,18 +36,19 @@ _os.environ.setdefault("CONNECTION_ENCRYPTION_KEY", _Fernet.generate_key().decod
 # =============================================================================
 # Production uses time_cost=2, memory_cost=65536 (64MB) which is secure but slow.
 # For tests, we use minimal settings to speed up user creation significantly.
-import app.domain.auth.password as password_module
 import pytest
-from app.config import settings
-from app.db.database import get_db
-from app.db.models import Base, Session, User
-from app.domain.auth.sessions import generate_session_token, hash_token
-from app.main import app
 from argon2 import PasswordHasher
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+
+import app.domain.auth.password as password_module
+from app.config import settings
+from app.db.database import get_db
+from app.db.models import Base, Session, User
+from app.domain.auth.sessions import generate_session_token, hash_token
+from app.main import app
 
 _fast_hasher = PasswordHasher(
     time_cost=1,
@@ -65,8 +66,12 @@ _TEST_PASSWORD_HASH = _fast_hasher.hash("password123")
 # =============================================================================
 
 # Connection URL to the main database (used for creating test database)
-ADMIN_DATABASE_URL = "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub"
-TEST_DATABASE_URL = "postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:25801/sigilweaver_loom_hub_test"
+# The Postgres port defaults to the docker-compose one; set HUB_TEST_DB_PORT to
+# run the suite against a different local instance.
+_DB_PORT = _os.environ.get("HUB_TEST_DB_PORT", "25801")
+_DB_URL_PREFIX = f"postgresql+asyncpg://sigilweaver_loom:sigilweaver_loom@localhost:{_DB_PORT}"
+ADMIN_DATABASE_URL = f"{_DB_URL_PREFIX}/sigilweaver_loom_hub"
+TEST_DATABASE_URL = f"{_DB_URL_PREFIX}/sigilweaver_loom_hub_test"
 
 # Admin engine for database creation (connects to main db)
 admin_engine = create_async_engine(

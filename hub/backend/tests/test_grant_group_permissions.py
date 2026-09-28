@@ -12,7 +12,7 @@ These tests verify:
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import new_client, setup_database  # noqa: F401 - fixtures
+from tests.conftest import new_client
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ async def create_connection(
     client: AsyncClient, admin_token: str, name: str
 ) -> dict:
     """Helper: Create a connection and return its data.
-    
+
     Skips test if CONNECTION_ENCRYPTION_KEY is not configured (returns 503).
     """
     response = await client.post(
@@ -204,7 +204,7 @@ class TestUserAccessViaGrantGroups:
 
             # Create resources
             conn_assigned = await create_connection(client, owner_token, "Assigned")
-            conn_unassigned = await create_connection(client, owner_token, "Unassigned")
+            await create_connection(client, owner_token, "Unassigned")
             grant_group = await create_grant_group(client, owner_token, "Limited Access")
             user_group = await create_user_group(client, owner_token, "Team")
 
@@ -478,7 +478,7 @@ class TestAdminAccessUnaffected:
 
             # Create connections
             conn1 = await create_connection(client, owner_token, "Assigned Conn")
-            conn2 = await create_connection(client, owner_token, "Unassigned Conn")
+            await create_connection(client, owner_token, "Unassigned Conn")
 
             # Only assign one to a grant group
             grant_group = await create_grant_group(client, owner_token, "Partial")
