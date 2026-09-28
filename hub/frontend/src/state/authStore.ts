@@ -108,20 +108,25 @@ export function expireSession(): void {
   });
 }
 
-/**
- * Check if the current user has at least the specified role level
- * Role hierarchy: owner > admin > auditor > user
- */
+/** Lower number = more privileged. Role hierarchy: owner > admin > auditor > user. */
+const ROLE_LEVEL: Record<UserRole, number> = {
+  owner: 0,
+  admin: 1,
+  auditor: 2,
+  user: 3,
+};
+
+/** Does this role have at least the privileges of `required`? */
+export function roleAtLeast(role: UserRole | undefined, required: UserRole): boolean {
+  return role !== undefined && ROLE_LEVEL[role] <= ROLE_LEVEL[required];
+}
+
+/** Check whether the signed-in user has at least the given role (non-reactive; for route guards). */
 export function hasMinRole(requiredRole: UserRole): boolean {
-  const { user } = useAuthStore.getState();
-  if (!user) return false;
+  return roleAtLeast(useAuthStore.getState().user?.role, requiredRole);
+}
 
-  const roleLevel: Record<UserRole, number> = {
-    owner: 0,
-    admin: 1,
-    auditor: 2,
-    user: 3,
-  };
-
-  return roleLevel[user.role] <= roleLevel[requiredRole];
+/** Reactive version of `hasMinRole`, for hiding controls the user is not allowed to use. */
+export function useHasMinRole(requiredRole: UserRole): boolean {
+  return useAuthStore((state) => roleAtLeast(state.user?.role, requiredRole));
 }

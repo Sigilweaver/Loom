@@ -1,474 +1,293 @@
 /**
- * Servers tab for Admin panel
- *
- * Manages server instances that Hub can dispatch workflows to.
+ * Servers: the Loom Server instances the Hub can send workflow runs to.
  */
 
-import { useState, useEffect } from "react";
+import { useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, RefreshCw, Server, Trash2 } from "lucide-react";
 import {
-  Plus,
-  Server,
-  RefreshCw,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  X,
-} from "lucide-react";
-import {
-  listServers,
-  registerServer,
   deleteServer,
+  listServers,
   refreshServer,
+  registerServer,
   testServerConnection,
   type ServerResponse,
 } from "@api";
+import { useHasMinRole } from "@state/authStore";
+import { errorMessage, fieldError } from "@utils/errors";
+import { formatRelativeTime } from "@utils/format";
+import { ServerStatusBadge } from "@components/ServerStatus";
+import {
+  Alert,
+  Button,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  Input,
+  LoadingState,
+  Modal,
+  Page,
+  PageHeader,
+  TBody,
+  THead,
+  Table,
+  Td,
+  Th,
+  Tr,
+  useConfirm,
+  useToast,
+} from "@components/ui";
 
-type ServerStatus = "online" | "offline" | "unknown";
-
-function StatusBadge({ status }: { status: string }) {
-  const statusConfig: Record<
-    ServerStatus,
-    { icon: React.ReactNode; className: string; label: string }
-  > = {
-    online: {
-      icon: <CheckCircle className="h-4 w-4" />,
-      className: "bg-green-100 text-green-700",
-      label: "Online",
-    },
-    offline: {
-      icon: <XCircle className="h-4 w-4" />,
-      className: "bg-red-100 text-red-700",
-      label: "Offline",
-    },
-    unknown: {
-      icon: <AlertCircle className="h-4 w-4" />,
-      className: "bg-surface-hover text-ink-muted",
-      label: "Unknown",
-    },
-  };
-
-  const config = statusConfig[status as ServerStatus] || statusConfig.unknown;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}
-    >
-      {config.icon}
-      {config.label}
-    </span>
-  );
+interface TestResult {
+  success: boolean;
+  message: string;
 }
 
-function formatRelativeTime(isoString: string | null): string {
-  if (!isoString) return "Never";
-
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
-}
-
-interface AddServerDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (server: ServerResponse) => void;
-}
-
-function AddServerDialog({ open, onClose, onAdd }: AddServerDialogProps) {
+function AddServerDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [name, setName] = useState("");
   const [endpointUrl, setEndpointUrl] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const resetForm = () => {
-    setName("");
-    setEndpointUrl("");
-    setAuthToken("");
-    setTestResult(null);
-    setError(null);
-  };
-
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
+  const input = { name, endpoint_url: endpointUrl, auth_token: authToken || undefined };
 
   const handleTest = async () => {
     setTesting(true);
     setTestResult(null);
-    setError(null);
-
     try {
-      const result = await testServerConnection({
-        name,
-        endpoint_url: endpointUrl,
-        auth_token: authToken || undefined,
-      });
-
+      const result = await testServerConnection(input);
       setTestResult({
         success: result.success,
         message: result.success
-          ? `Connected! Version: ${result.version || "unknown"}`
-          : result.message || "Connection failed",
+          ? `Connected. Server version ${result.version || "unknown"}.`
+          : result.message || "Could not connect to that server.",
       });
-    } catch (e) {
-      setTestResult({
-        success: false,
-        message: e instanceof Error ? e.message : "Test failed",
-      });
+    } catch (err) {
+      setTestResult({ success: false, message: errorMessage(err, "Connection test failed") });
     } finally {
       setTesting(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setSubmitting(true);
     setError(null);
-
+    setFieldErrors({});
     try {
-      const server = await registerServer({
-        name,
-        endpoint_url: endpointUrl,
-        auth_token: authToken || undefined,
-      });
-      onAdd(server);
-      handleClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add server");
+      await registerServer(input);
+      onAdded();
+      onClose();
+    } catch (err) {
+      const next: Record<string, string> = {};
+      for (const key of ["name", "endpoint_url", "auth_token"]) {
+        const message = fieldError(err, key);
+        if (message) next[key] = message;
+      }
+      setFieldErrors(next);
+      if (Object.keys(next).length === 0) setError(errorMessage(err, "Failed to add server"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-raised rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-          <h2 className="text-lg font-semibold text-ink">Add Server</h2>
-          <button
-            onClick={handleClose}
-            className="text-ink-faint hover:text-ink-subtle"
+    <Modal
+      open
+      onClose={onClose}
+      title="Add server"
+      description="Register a Loom Server so the Hub can run workflows on it."
+      icon={<Server className="h-5 w-5" />}
+      dismissable={!submitting}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <Button
+            icon={<RefreshCw className="h-4 w-4" />}
+            onClick={handleTest}
+            loading={testing}
+            disabled={!endpointUrl || submitting}
           >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+            Test connection
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+            loading={submitting}
+            disabled={!name || !endpointUrl}
+          >
+            Add server
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Name" required error={fieldErrors.name}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Production server 1" required />
+        </Field>
+        <Field label="Endpoint URL" required error={fieldErrors.endpoint_url} hint="Where the Hub can reach the server.">
+          <Input
+            type="url"
+            value={endpointUrl}
+            onChange={(e) => setEndpointUrl(e.target.value)}
+            placeholder="http://localhost:25811"
+            required
+          />
+        </Field>
+        <Field label="Auth token (optional)" error={fieldErrors.auth_token} hint="The token the server expects from the Hub.">
+          <Input
+            type="password"
+            value={authToken}
+            onChange={(e) => setAuthToken(e.target.value)}
+            autoComplete="off"
+          />
+        </Field>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-ink-muted mb-1"
-            >
-              Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Production Server 1"
-              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="endpoint"
-              className="block text-sm font-medium text-ink-muted mb-1"
-            >
-              Endpoint URL
-            </label>
-            <input
-              id="endpoint"
-              type="url"
-              value={endpointUrl}
-              onChange={(e) => setEndpointUrl(e.target.value)}
-              placeholder="http://localhost:25811"
-              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="token"
-              className="block text-sm font-medium text-ink-muted mb-1"
-            >
-              Auth Token{" "}
-              <span className="text-ink-faint font-normal">(optional)</span>
-            </label>
-            <input
-              id="token"
-              type="password"
-              value={authToken}
-              onChange={(e) => setAuthToken(e.target.value)}
-              placeholder="Server auth token"
-              className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-            />
-          </div>
-
-          {testResult && (
-            <div
-              className={`p-3 rounded-lg text-sm ${testResult.success
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-700"
-                }`}
-            >
-              {testResult.message}
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleTest}
-              disabled={!endpointUrl || testing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-line-strong text-ink-muted rounded-lg hover:bg-surface-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {testing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Test Connection
-            </button>
-            <button
-              type="submit"
-              disabled={!name || !endpointUrl || submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              Add Server
-            </button>
-          </div>
-        </form>
+        {testResult && <Alert tone={testResult.success ? "success" : "danger"}>{testResult.message}</Alert>}
+        {error && <Alert>{error}</Alert>}
       </div>
-    </div>
+    </Modal>
   );
 }
 
 export function ServersTab() {
-  const [servers, setServers] = useState<ServerResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const canManage = useHasMinRole("admin");
 
-  const fetchServers = async () => {
+  const [adding, setAdding] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Poll so status changes show up without a manual refresh.
+  const servers = useQuery({ queryKey: ["admin", "servers"], queryFn: () => listServers(), refetchInterval: 30_000 });
+
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["admin", "servers"] });
+
+  const handleRefresh = async (server: ServerResponse) => {
+    setBusyId(server.id);
     try {
-      const response = await listServers();
-      setServers(response.servers);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load servers");
+      await refreshServer(server.id);
+      await reload();
+    } catch (err) {
+      toast.error(err, `Could not refresh "${server.name}"`);
     } finally {
-      setLoading(false);
+      setBusyId(null);
     }
   };
 
-  useEffect(() => {
-    fetchServers();
-
-    // Poll every 30 seconds to get updated status
-    const interval = setInterval(fetchServers, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleRefresh = async (id: string) => {
-    setRefreshingId(id);
+  const handleDelete = async (server: ServerResponse) => {
+    const ok = await confirm({
+      title: "Remove server?",
+      message: `"${server.name}" will no longer receive workflow runs. Its past executions stay in the history.`,
+      confirmLabel: "Remove server",
+      tone: "danger",
+    });
+    if (!ok) return;
+    setBusyId(server.id);
     try {
-      const updated = await refreshServer(id);
-      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)));
-    } catch (e) {
-      console.error("Failed to refresh server:", e);
+      await deleteServer(server.id);
+      toast.success(`Removed "${server.name}".`);
+      await reload();
+    } catch (err) {
+      toast.error(err, "Failed to remove server");
     } finally {
-      setRefreshingId(null);
+      setBusyId(null);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to remove "${name}"?`)) return;
-
-    setDeletingId(id);
-    try {
-      await deleteServer(id);
-      setServers((prev) => prev.filter((s) => s.id !== id));
-    } catch (e) {
-      console.error("Failed to delete server:", e);
-      alert(e instanceof Error ? e.message : "Failed to delete server");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleServerAdded = (server: ServerResponse) => {
-    setServers((prev) => [...prev, server]);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
-      </div>
-    );
-  }
+  const rows = servers.data?.servers ?? [];
+  const addButton = canManage && (
+    <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)}>
+      Add server
+    </Button>
+  );
 
   return (
-    <div>
-      {/* Header with action button */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-ink-subtle">
-            Manage Sigilweaver Loom Server instances that Hub can dispatch workflows to.
-          </p>
-        </div>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Server
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {servers.length === 0 ? (
-        <div className="bg-surface-raised rounded-lg border border-line p-12 text-center">
-          <div className="mx-auto w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4">
-            <Server className="h-8 w-8 text-ink-faint" />
-          </div>
-          <h3 className="text-lg font-medium text-ink mb-2">
-            No servers registered
-          </h3>
-          <p className="text-ink-subtle mb-4">
-            Register a Sigilweaver Loom Server instance to start executing workflows
-          </p>
-          <button
-            onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors mx-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Add Server
-          </button>
-        </div>
-      ) : (
-        <div className="bg-surface-raised rounded-lg border border-line overflow-hidden">
-          <table className="min-w-full divide-y divide-line">
-            <thead className="bg-surface-sunken">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                  Server
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                  Version
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                  Last Polled
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-surface-raised divide-y divide-line">
-              {servers.map((server) => (
-                <tr key={server.id} className="hover:bg-surface-sunken">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="font-medium text-ink">
-                        {server.name}
-                      </div>
-                      <div className="text-sm text-ink-subtle">
-                        {server.endpoint_url}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={server.status} />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-ink-subtle">
-                    {server.version || "-"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-ink-subtle">
-                    {formatRelativeTime(server.last_poll)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleRefresh(server.id)}
-                        disabled={refreshingId === server.id}
-                        className="p-2 text-ink-faint hover:text-ink-muted hover:bg-surface-hover rounded-lg transition-colors disabled:opacity-50"
-                        title="Refresh status"
-                      >
-                        <RefreshCw
-                          className={`h-4 w-4 ${refreshingId === server.id ? "animate-spin" : ""}`}
-                        />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(server.id, server.name)}
-                        disabled={deletingId === server.id}
-                        className="p-2 text-ink-faint hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                        title="Remove server"
-                      >
-                        {deletingId === server.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <AddServerDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onAdd={handleServerAdded}
+    <Page>
+      <PageHeader
+        title="Servers"
+        description="Loom Server instances the Hub can send workflow runs to."
+        actions={addButton}
       />
-    </div>
+
+      {servers.isPending ? (
+        <LoadingState label="Loading servers..." />
+      ) : servers.isError ? (
+        <ErrorState title="Could not load servers" message={errorMessage(servers.error)} onRetry={() => void servers.refetch()} />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={Server}
+          title="No servers registered"
+          description="Register a Loom Server to start running workflows."
+          className="rounded-xl border border-line bg-surface-raised"
+          action={addButton}
+        />
+      ) : (
+        <Table>
+          <THead>
+            <tr>
+              <Th>Server</Th>
+              <Th>Status</Th>
+              <Th className="hidden sm:table-cell">Version</Th>
+              <Th className="hidden md:table-cell">Last checked</Th>
+              {canManage && <Th className="text-right">Actions</Th>}
+            </tr>
+          </THead>
+          <TBody>
+            {rows.map((server) => (
+              <Tr key={server.id}>
+                <Td>
+                  <div className="font-medium text-ink">{server.name}</div>
+                  <div className="text-xs break-all text-ink-subtle">{server.endpoint_url}</div>
+                </Td>
+                <Td>
+                  <ServerStatusBadge status={server.status} />
+                </Td>
+                <Td className="hidden sm:table-cell">{server.version || "-"}</Td>
+                <Td className="hidden whitespace-nowrap md:table-cell">
+                  {server.last_poll ? formatRelativeTime(server.last_poll) : "Never"}
+                </Td>
+                {canManage && (
+                  <Td className="text-right whitespace-nowrap">
+                    <IconButton
+                      label={`Check status of ${server.name}`}
+                      onClick={() => void handleRefresh(server)}
+                      disabled={busyId === server.id}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${busyId === server.id ? "animate-spin" : ""}`} />
+                    </IconButton>
+                    <IconButton
+                      label={`Remove ${server.name}`}
+                      tone="danger"
+                      onClick={() => void handleDelete(server)}
+                      disabled={busyId === server.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </IconButton>
+                  </Td>
+                )}
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
+      )}
+
+      {adding && (
+        <AddServerDialog
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            toast.success("Server added.");
+            void reload();
+          }}
+        />
+      )}
+    </Page>
   );
 }

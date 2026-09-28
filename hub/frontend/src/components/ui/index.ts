@@ -15,3 +15,6 @@ export type { ActionMenuItem } from "./ActionMenu";
 export { StatCard } from "./StatCard";
 export { Pagination } from "./Pagination";
 export { SegmentedControl } from "./SegmentedControl";
+export { Tabs } from "./Tabs";
+export type { TabItem } from "./Tabs";
+export { ListRow } from "./ListRow";
