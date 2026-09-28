@@ -37,8 +37,12 @@ def resolve_file_access_mode() -> FileAccessMode:
     ``restrict_file_access``/``allowed_file_paths`` pair.
     """
     explicit = getattr(settings, "file_access_mode", "auto") or "auto"
-    if explicit in ("open", "allowlist", "hub"):
-        return explicit  # type: ignore[return-value]
+    if explicit == "open":
+        return "open"
+    if explicit == "allowlist":
+        return "allowlist"
+    if explicit == "hub":
+        return "hub"
 
     # auto
     if getattr(settings, "auth_mode", "") == "hub":
@@ -46,6 +50,21 @@ def resolve_file_access_mode() -> FileAccessMode:
     if settings.restrict_file_access and settings.allowed_file_paths:
         return "allowlist"
     return "open"
+
+
+def active_server_allowlist() -> list[str] | None:
+    """The server-level path allowlist that currently applies, or None.
+
+    Applies in ``allowlist`` mode, and also whenever the legacy
+    ``restrict_file_access`` flag is set together with ``allowed_file_paths``
+    (so a Hub deployment can still fence Hub grants inside an admin allowlist).
+    Path validation and the file browser both use this so they cannot disagree.
+    """
+    if resolve_file_access_mode() == "allowlist" or (
+        settings.restrict_file_access and settings.allowed_file_paths
+    ):
+        return list(settings.allowed_file_paths)
+    return None
 
 
 def validate_file_access_config() -> None:
@@ -129,16 +148,17 @@ def validate_file_path(file_path: str) -> Path:
         if not context_grants:
             raise FileAccessDeniedError("File access denied: no file paths granted")
         grant_paths = [g.path for g in context_grants]
-        if not _is_path_in_allowlist(path, grant_paths):
+        if not is_path_in_allowlist(path, grant_paths):
             raise FileAccessDeniedError("File path not allowed. Must be within granted paths.")
         # Hub grants satisfied; still apply server-level allowlist if configured.
 
-    if mode == "allowlist":
-        if not _is_path_in_allowlist(path, settings.allowed_file_paths):
+    server_allowlist = active_server_allowlist()
+    if server_allowlist is not None:
+        if not is_path_in_allowlist(path, server_allowlist):
             raise FileAccessDeniedError(
-                f"File path not allowed. Must be within: {settings.allowed_file_paths}"
+                f"File path not allowed. Must be within: {server_allowlist}"
             )
-    elif mode == "hub" and context_grants is None:
+    if mode == "hub" and context_grants is None:
         # Hub mode without per-request grants is a misconfiguration. Deny
         # rather than silently allowing.
         raise FileAccessDeniedError("File access requires a Hub-issued grant.")
@@ -201,18 +221,19 @@ def validate_file_path_for_write(file_path: str) -> Path:
         if matching_grant.read_only:
             raise FileAccessDeniedError("Cannot write to read-only path.")
 
-    if mode == "allowlist":
-        if not _is_path_in_allowlist(path, settings.allowed_file_paths):
+    server_allowlist = active_server_allowlist()
+    if server_allowlist is not None:
+        if not is_path_in_allowlist(path, server_allowlist):
             raise FileAccessDeniedError(
-                f"File path not allowed. Must be within: {settings.allowed_file_paths}"
+                f"File path not allowed. Must be within: {server_allowlist}"
             )
-    elif mode == "hub" and context_grants is None:
+    if mode == "hub" and context_grants is None:
         raise FileAccessDeniedError("File access requires a Hub-issued grant.")
 
     return path
 
 
-def _is_path_in_allowlist(path: Path, allowed_paths: list[str]) -> bool:
+def is_path_in_allowlist(path: Path, allowed_paths: list[str]) -> bool:
     """Check if a resolved path is within any of the allowed paths."""
     for allowed_path_str in allowed_paths:
         allowed_path = Path(allowed_path_str).resolve()
