@@ -1,0 +1,118 @@
+# Mirror a published release to Cloudflare R2.
+#
+# release.yml creates the GitHub release as a draft. Publishing the draft (a
+# deliberate human step after reviewing the assets) triggers this workflow,
+# which downloads the release assets and mirrors them to R2 together with the
+# download manifests, so the download site never serves an unreviewed build.
+#
+# Pre-releases (tags with a '-' suffix, or a release marked as pre-release) are
+# uploaded to their versioned path only. The stable releases index that the
+# website reads is left untouched. See .github/scripts/upload_to_r2.py.
+#
+# Run it by hand (workflow_dispatch) to re-mirror an already published release,
+# for example after fixing an R2 credential problem.
+
+name: Mirror Release to R2
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Published release tag to mirror (e.g. v0.13.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One mirror run per tag: two runs would race on the releases index.
+concurrency:
+  group: mirror-release-${{ github.event.release.tag_name || github.event.inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Mirror assets and manifests
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install boto3
+        run: python -m pip install boto3
+
+      - name: Resolve release state
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft,isPrerelease)
+          if [ "$(jq -r .isDraft <<<"${state}")" = "true" ]; then
+            echo "::error::Release ${TAG} is still a draft. Publish it before mirroring."
+            exit 1
+          fi
+          echo "prerelease=$(jq -r .isPrerelease <<<"${state}")" >> "$GITHUB_OUTPUT"
+
+      - name: Download release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --dir release-assets
+          ls -lh release-assets/
+
+      - name: Mirror assets and manifests to Cloudflare R2 (S3 API)
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_CDN_URL: ${{ secrets.R2_CDN_URL }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The tagged commit, so the manifest records what was actually built.
+          export GITHUB_SHA
+          GITHUB_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)
+
+          args=()
+          if [ "${PRERELEASE}" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          python .github/scripts/upload_to_r2.py "${TAG}" release-assets/ "${args[@]}"
+
+      - name: Summary of uploaded assets
+        env:
+          R2_CDN_URL: ${{ secrets.R2_CDN_URL }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CDN="${R2_CDN_URL:-https://download.sigilweaver.app}"
+          {
+            echo "## R2 Upload Summary"
+            echo "Uploaded the following to ${CDN}/releases/loom/${TAG}/:"
+            for f in release-assets/*; do
+              [ -e "$f" ] || continue
+              echo "- ${CDN}/releases/loom/${TAG}/$(basename "$f")"
+            done
+            echo ""
+            echo "**Downloads manifest:** ${CDN}/releases/loom/${TAG}/downloads.json"
+            echo "**Release manifest:** ${CDN}/releases/loom/${TAG}/manifest.json"
+            if [ "${PRERELEASE}" = "true" ]; then
+              echo "**Releases index:** not updated (pre-release)"
+            else
+              echo "**Releases index:** ${CDN}/releases/loom/index.json"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

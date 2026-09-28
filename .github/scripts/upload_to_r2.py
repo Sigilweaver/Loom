@@ -4,13 +4,18 @@ Upload Sigilweaver Loom release to Cloudflare R2.
 
 This script handles:
 - Uploading release assets to R2
-- Generating and uploading manifests (stable channel, downloads, index)
+- Generating and uploading manifests (per-version manifest, downloads, index)
 - Atomic updates via staging pattern
 - All assets uploaded to versioned releases/loom/{version}/ paths
+
+Pre-releases (a tag with a '-' suffix such as v1.0.0-rc.1, or --prerelease) are
+uploaded to their versioned path only. The releases index, which the website
+reads to find the latest stable download, is left untouched.
 
 Usage:
     ./upload_to_r2.py v0.2.5-alpha release-assets/
     ./upload_to_r2.py v0.2.5-alpha release-assets/ --dry-run
+    ./upload_to_r2.py v0.13.0 release-assets/ --prerelease
 
 Environment variables required:
     R2_ACCESS_KEY_ID: R2 access key ID
@@ -29,7 +34,7 @@ from pathlib import Path
 # Add lib directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from lib.manifest_builder import ManifestBuilder
+from lib.manifest_builder import ManifestBuilder, is_prerelease
 from lib.r2_uploader import R2Uploader
 
 
@@ -47,7 +52,17 @@ def main():
         "--dry-run", action="store_true", help="Print actions without executing uploads"
     )
 
+    parser.add_argument(
+        "--prerelease",
+        action="store_true",
+        help=(
+            "Treat the release as a pre-release even if the tag has no '-' suffix "
+            "(tags with a '-' suffix are always pre-releases)"
+        ),
+    )
+
     args = parser.parse_args()
+    prerelease = args.prerelease or is_prerelease(args.version)
 
     # Validate assets directory
     if not args.assets_dir.exists():
@@ -75,6 +90,8 @@ def main():
 
     print(f"Uploading Sigilweaver Loom {args.version}")
     print(f"Assets directory: {args.assets_dir}")
+    if prerelease:
+        print("Pre-release: the releases index will NOT be updated")
     if args.dry_run:
         print("DRY-RUN MODE - No uploads will be performed")
     print()
@@ -86,15 +103,17 @@ def main():
 
         # Initialize manifest builder
         commit_sha = os.environ.get("GITHUB_SHA", "unknown")
-        builder = ManifestBuilder(args.assets_dir, args.version, base_url)
+        builder = ManifestBuilder(
+            args.assets_dir, args.version, base_url, prerelease=prerelease
+        )
 
         # Step 1: Upload release assets
         print("Step 1: Uploading release assets...")
         uploader.upload_assets(args.assets_dir, args.version)
         print()
 
-        # Step 2: Generate and upload stable manifest
-        print("Step 3: Uploading stable channel manifest...")
+        # Step 2: Generate and upload the per-version manifest
+        print("Step 2: Uploading release manifest...")
         stable_manifest = builder.build_stable_manifest(commit_sha)
 
         # Upload to versioned location (immutable)
@@ -117,14 +136,19 @@ def main():
         )
         print()
 
-        # Step 4: Update releases index
-        print("Step 4: Updating releases index...")
-        existing_index = uploader.download_json("releases/loom/index.json")
-        updated_index = builder.update_releases_index(existing_index)
+        # Step 4: Update releases index (stable releases only)
+        if prerelease:
+            print("Step 4: Skipping releases index update (pre-release)")
+        else:
+            print("Step 4: Updating releases index...")
+            existing_index = uploader.download_json("releases/loom/index.json")
+            updated_index = builder.update_releases_index(existing_index)
 
-        uploader.upload_manifest_atomic(
-            updated_index, "releases/loom/index.json", cache_control="max-age=300,public"
-        )
+            uploader.upload_manifest_atomic(
+                updated_index,
+                "releases/loom/index.json",
+                cache_control="max-age=300,public",
+            )
         print()
 
         # Step 5: Clean up staging files
@@ -136,11 +160,12 @@ def main():
         print()
         print("Download URLs:")
         print(f"  Release assets: {base_url}/releases/loom/{args.version}/")
-        print(f"  Stable manifest: {base_url}/releases/loom/{args.version}/manifest.json")
+        print(f"  Release manifest: {base_url}/releases/loom/{args.version}/manifest.json")
         print(
             f"  Downloads manifest: {base_url}/releases/loom/{args.version}/downloads.json"
         )
-        print(f"  Releases index: {base_url}/releases/loom/index.json")
+        if not prerelease:
+            print(f"  Releases index: {base_url}/releases/loom/index.json")
 
         return 0
 

@@ -28,42 +28,42 @@ def main():
         print("Usage: generate-checksums.py <assets_dir>")
         print("Example: generate-checksums.py release-assets/")
         return 1
-    
+
     assets_dir = Path(sys.argv[1])
-    
+
     if not assets_dir.exists() or not assets_dir.is_dir():
         print(f"Error: {assets_dir} is not a valid directory")
         return 1
-    
+
     checksums = []
-    
+
     # Process all files except existing checksums
     for file in sorted(assets_dir.iterdir()):
         if not file.is_file():
             continue
-        
+
         # Skip existing checksums and manifests
         if file.name in ('SHA256SUMS.txt', 'downloads.json'):
             continue
-        
+
         # Compute hash
         sha256 = compute_sha256(file)
-        
+
         # Use generic filename (no version)
         generic_name = strip_version_from_filename(file.name)
-        
+
         checksums.append(f"{sha256}  {generic_name}\n")
-    
+
     # Write to SHA256SUMS.txt
     output_path = assets_dir / 'SHA256SUMS.txt'
     with open(output_path, 'w') as f:
         f.writelines(checksums)
-    
+
     print(f"Generated {output_path} with {len(checksums)} checksums")
     print("Files:")
     for line in checksums:
         print(f"  {line.strip()}")
-    
+
     return 0
 
 

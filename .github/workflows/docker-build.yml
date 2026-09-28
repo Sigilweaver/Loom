@@ -7,8 +7,16 @@
 # NOTE: sigilyx is installed from PyPI (has manylinux wheels for amd64+arm64).
 #
 # Triggers:
-#   - On release publish: Builds and pushes with version tags
+#   - On release publish: Builds and pushes with version tags. release.yml
+#     creates releases as drafts, so this runs when a maintainer publishes one.
 #   - Manual dispatch: Allows building with custom version tag
+#
+# Tags pushed for each image:
+#   - Stable release (v1.2.3): 1.2.3, 1.2 and latest
+#   - Pre-release (v1.2.3-rc.1, or a release marked as pre-release): only the
+#     exact version tag (1.2.3-rc.1); never latest or the major.minor tag
+#   - Manual dispatch: the exact version, plus major.minor for a stable version;
+#     latest only when the "tag_latest" input is set
 # =============================================================================
 
 name: Build Docker Images
@@ -19,9 +27,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g., 1.0.0)"
+        description: "Version tag (e.g., 1.0.0 or 1.0.0-rc.1)"
         required: true
         type: string
+      tag_latest:
+        description: "Also move the latest tag (ignored for pre-release versions)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -60,21 +73,49 @@ jobs:
 
       - name: Extract version metadata
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_TAG_LATEST: ${{ github.event.inputs.tag_latest }}
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "release" ]; then
+            VERSION="${RELEASE_TAG}"
+            PRERELEASE="${RELEASE_PRERELEASE}"
+            TAG_LATEST=true
           else
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${INPUT_VERSION}"
+            PRERELEASE=false
+            TAG_LATEST="${INPUT_TAG_LATEST}"
           fi
           # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
-          MAJOR_MINOR="${VERSION%.*}"
+          # A '-' suffix (1.0.0-rc.1) always means pre-release
+          if [[ "${VERSION}" == *-* ]]; then
+            PRERELEASE=true
+          fi
           IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-loom-hub"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
-          echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-          echo "Image: $IMAGE_NAME"
+
+          TAGS="${IMAGE_NAME}:${VERSION}"
+          if [ "${PRERELEASE}" != "true" ]; then
+            TAGS+=$'\n'"${IMAGE_NAME}:${VERSION%.*}"
+            if [ "${TAG_LATEST}" = "true" ]; then
+              TAGS+=$'\n'"${IMAGE_NAME}:latest"
+            fi
+          fi
+
+          {
+            echo "version=${VERSION}"
+            echo "image=${IMAGE_NAME}"
+            echo "tags<<TAGS_EOF"
+            echo "${TAGS}"
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building version: ${VERSION} (pre-release: ${PRERELEASE})"
+          echo "Tags:"
+          echo "${TAGS}"
 
       - name: Build and push Hub image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -83,10 +124,7 @@ jobs:
           file: hub/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ steps.version.outputs.image }}:latest
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.major_minor }}
+          tags: ${{ steps.version.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
@@ -120,20 +158,49 @@ jobs:
 
       - name: Extract version metadata
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_TAG_LATEST: ${{ github.event.inputs.tag_latest }}
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "release" ]; then
+            VERSION="${RELEASE_TAG}"
+            PRERELEASE="${RELEASE_PRERELEASE}"
+            TAG_LATEST=true
           else
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${INPUT_VERSION}"
+            PRERELEASE=false
+            TAG_LATEST="${INPUT_TAG_LATEST}"
           fi
+          # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
-          MAJOR_MINOR="${VERSION%.*}"
+          # A '-' suffix (1.0.0-rc.1) always means pre-release
+          if [[ "${VERSION}" == *-* ]]; then
+            PRERELEASE=true
+          fi
           IMAGE_NAME="${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}/sigilweaver-loom-server"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
-          echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-          echo "Image: $IMAGE_NAME"
+
+          TAGS="${IMAGE_NAME}:${VERSION}"
+          if [ "${PRERELEASE}" != "true" ]; then
+            TAGS+=$'\n'"${IMAGE_NAME}:${VERSION%.*}"
+            if [ "${TAG_LATEST}" = "true" ]; then
+              TAGS+=$'\n'"${IMAGE_NAME}:latest"
+            fi
+          fi
+
+          {
+            echo "version=${VERSION}"
+            echo "image=${IMAGE_NAME}"
+            echo "tags<<TAGS_EOF"
+            echo "${TAGS}"
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building version: ${VERSION} (pre-release: ${PRERELEASE})"
+          echo "Tags:"
+          echo "${TAGS}"
 
       - name: Build and push Server image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -142,10 +209,7 @@ jobs:
           file: server/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ steps.version.outputs.image }}:latest
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.major_minor }}
+          tags: ${{ steps.version.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
