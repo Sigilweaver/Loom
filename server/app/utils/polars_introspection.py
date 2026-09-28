@@ -19,6 +19,8 @@ from typing import Any, Callable
 
 import polars as pl
 
+from app.utils.expression import PL_ALLOWED_NAMES, is_denied_method_name
+
 
 @dataclass
 class MethodInfo:
@@ -440,7 +442,7 @@ def _introspect_namespace(
     methods = []
 
     for method_name in dir(namespace):
-        if method_name.startswith("_"):
+        if method_name.startswith("_") or is_denied_method_name(method_name):
             continue
 
         try:
@@ -496,9 +498,6 @@ def _introspect_expr_methods() -> list[MethodInfo]:
 
     # Methods to skip (internal, deprecated, or not useful for autocomplete)
     skip_methods = {
-        "map",
-        "map_batches",
-        "map_elements",  # Advanced, require Python functions
         "struct",
         "list",
         "cat",
@@ -511,7 +510,7 @@ def _introspect_expr_methods() -> list[MethodInfo]:
     }
 
     for method_name in dir(expr):
-        if method_name.startswith("_"):
+        if method_name.startswith("_") or is_denied_method_name(method_name):
             continue
         if method_name in skip_methods:
             continue
@@ -595,6 +594,9 @@ def _introspect_table_level() -> list[MethodInfo]:
     }
 
     for func_name, (category, fallback_desc) in functions.items():
+        # Only advertise what the expression sandbox will accept
+        if func_name not in PL_ALLOWED_NAMES:
+            continue
         try:
             func = getattr(pl, func_name, None)
             if func is None:
