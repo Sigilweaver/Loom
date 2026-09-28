@@ -16,6 +16,7 @@ from app.domain.connections.query_policy import (
     ReadOnlyQueryError,
     validate_readonly_query,
 )
+from app.domain.connections.uri import guard_database_uri
 from app.domain.datasources.base import DataSource
 from app.domain.models.common import (
     ColumnSchema,
@@ -163,6 +164,7 @@ class DatabaseDataSource(DataSource):
             return DataSchema(columns=[], row_count=None)
 
         _validate_readonly_query(query)
+        source = guard_database_uri(source)
 
         try:
             # Execute query with LIMIT 0 to get schema without data
@@ -244,6 +246,7 @@ class DatabaseDataSource(DataSource):
             )
 
         _validate_readonly_query(query)
+        source = guard_database_uri(source)
 
         try:
             # For preview, we add LIMIT/OFFSET to the query
@@ -326,6 +329,7 @@ class DatabaseDataSource(DataSource):
             DataSourceError: If introspection fails.
         """
         introspection_query = _schema_introspection_query(self.database_type)
+        source = guard_database_uri(source)
 
         try:
             df = pl.read_database_uri(
