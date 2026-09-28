@@ -6,6 +6,11 @@ sidebar_position: 5
 
 Take a subset of rows from your data using various sampling strategies.
 
+| | |
+|---|---|
+| **Palette name** | Sample (category Compute) |
+| **Type name** | `Sample` |
+
 ## Sockets
 
 | Socket | Direction | Description |

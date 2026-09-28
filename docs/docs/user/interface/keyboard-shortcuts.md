@@ -1,59 +1,75 @@
 ---
 sidebar_position: 6
+title: Keyboard Shortcuts
 ---
 
 # Keyboard Shortcuts
 
-Keyboard shortcuts help you work faster in Sigilweaver Loom.
+Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Shortcuts do not fire while you are typing in a text field or an editor.
 
-## File Operations
+## Files
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+S` / `Cmd+S` | Save workflow |
-| `Ctrl+Shift+S` / `Cmd+Shift+S` | Save workflow as (new file) |
-| `Ctrl+O` / `Cmd+O` | Open workflow |
+| Shortcut         | Action                       |
+| ---------------- | ---------------------------- |
+| `Ctrl+O`         | Open a workflow              |
+| `Ctrl+S`         | Save                         |
+| `Ctrl+Shift+S`   | Save As                      |
 
-## Tab Management
+## Running
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+T` / `Cmd+T` | New tab |
-| `Ctrl+W` / `Cmd+W` | Close current tab |
-| `Ctrl+Tab` | Switch to next tab |
-| `Ctrl+Shift+Tab` | Switch to previous tab |
+| Shortcut         | Action                                      |
+| ---------------- | ------------------------------------------- |
+| `F5`             | Run the workflow                            |
+| `Ctrl+P`         | Preview All                                 |
+| `Ctrl+Alt+X`     | Open the Workflow tab (JSON and Python code) |
+
+## Tabs
+
+| Shortcut          | Action          |
+| ----------------- | --------------- |
+| `Ctrl+T`          | New tab         |
+| `Ctrl+W`          | Close the tab   |
+| `Ctrl+Tab`        | Next tab        |
+| `Ctrl+Shift+Tab`  | Previous tab    |
 
 ## Editing
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Z` / `Cmd+Z` | Undo |
-| `Ctrl+Shift+Z` / `Cmd+Shift+Z` | Redo |
-| `Ctrl+Y` / `Cmd+Y` | Redo (alternative) |
-| `Ctrl+C` / `Cmd+C` | Copy selected tools |
-| `Ctrl+X` / `Cmd+X` | Cut selected tools |
-| `Ctrl+V` / `Cmd+V` | Paste tools |
-| `Ctrl+A` / `Cmd+A` | Select all tools |
-| `Delete` / `Backspace` | Delete selected tools/wires |
+| Shortcut                   | Action                        |
+| -------------------------- | ----------------------------- |
+| `Ctrl+Z`                   | Undo                          |
+| `Ctrl+Shift+Z`, `Ctrl+Y`   | Redo                          |
+| `Ctrl+C`                   | Copy selected tools           |
+| `Ctrl+X`                   | Cut selected tools            |
+| `Ctrl+V`                   | Paste                         |
+| `Ctrl+A`                   | Select all tools              |
+| `Delete`                   | Delete the selected tools or wire |
+| `Escape`                   | Clear the selection           |
 
-## Navigation
+## Moving tools
 
-| Shortcut | Action |
-|----------|--------|
-| `Escape` | Deselect all, close menus |
-| `Arrow keys` | Move selected tools (10px) |
-| `Shift+Arrow keys` | Move selected tools (1px, fine adjustment) |
+| Shortcut              | Action                           |
+| --------------------- | -------------------------------- |
+| Arrow keys            | Move the selection one grid step (20 px) |
+| `Shift` + arrow keys  | Move five grid steps (100 px)    |
 
-## Workflow Execution
+## Canvas
 
-| Shortcut | Action |
-|----------|--------|
-| `F5` | Run workflow |
-| `Ctrl+P` / `Cmd+P` | Preview all tools |
-| `Ctrl+Alt+X` / `Cmd+Alt+X` | Toggle code viewer |
+| Gesture                      | Action                       |
+| ---------------------------- | ---------------------------- |
+| Scroll                       | Pan                          |
+| `Ctrl` + scroll, or pinch    | Zoom                         |
+| `Ctrl` or `Cmd` + click      | Add or remove from selection |
+| Drag on empty canvas         | Select with a box            |
 
-## Notes
+## Data table
 
-- **Ctrl** is used on Windows/Linux, **Cmd** is used on macOS
-- Shortcuts are disabled when typing in text fields or editors
-- Some shortcuts may vary based on your operating system
+These apply in the Data Preview tab.
+
+| Shortcut                 | Action                        |
+| ------------------------ | ----------------------------- |
+| `Ctrl+C`                 | Copy the selection with headers |
+| `Ctrl+Shift+C`           | Copy without headers          |
+| `Ctrl+A`                 | Select all                    |
+| Arrow keys               | Move the selection            |
+| `Shift` + click or arrow | Extend the selection          |
+| `Esc`                    | Clear the selection           |

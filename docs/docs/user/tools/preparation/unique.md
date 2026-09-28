@@ -6,6 +6,11 @@ sidebar_position: 6
 
 Remove duplicate rows from your data, with the option to output both unique and duplicate rows.
 
+| | |
+|---|---|
+| **Palette name** | Unique (category Compute) |
+| **Type name** | `Unique` |
+
 ## Sockets
 
 | Socket | Direction | Description |

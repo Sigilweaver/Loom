@@ -1,5 +1,6 @@
 ---
-sidebar_position: 5
+sidebar_position: 9
+title: Grant Groups
 ---
 
 # Grant Groups
@@ -11,9 +12,9 @@ Grant Groups are reusable permission bundles that contain connections. Instead o
 ### Without Grant Groups (problematic)
 
 ```
-Engineering → [Prod DB, Dev DB, Analytics DB]
-Analytics   → [Analytics DB, Data Warehouse]
-DevOps      → [Prod DB, Dev DB, Monitoring DB]
+Engineering -> [Prod DB, Dev DB, Analytics DB]
+Analytics   -> [Analytics DB, Data Warehouse]
+DevOps      -> [Prod DB, Dev DB, Monitoring DB]
 ```
 
 If you need to revoke production access from all teams, you must edit each group individually.
@@ -22,15 +23,15 @@ If you need to revoke production access from all teams, you must edit each group
 
 ```
 Grant Groups:
-  Production DBs    → [Prod DB]
-  Development DBs   → [Dev DB]  
-  Analytics DBs     → [Analytics DB, Data Warehouse]
-  Monitoring        → [Monitoring DB]
+  Production DBs    -> [Prod DB]
+  Development DBs   -> [Dev DB]  
+  Analytics DBs     -> [Analytics DB, Data Warehouse]
+  Monitoring        -> [Monitoring DB]
 
 User Groups:
-  Engineering → [Production DBs, Development DBs, Analytics DBs]
-  Analytics   → [Analytics DBs]
-  DevOps      → [Production DBs, Development DBs, Monitoring]
+  Engineering -> [Production DBs, Development DBs, Analytics DBs]
+  Analytics   -> [Analytics DBs]
+  DevOps      -> [Production DBs, Development DBs, Monitoring]
 ```
 
 To revoke production access, remove "Production DBs" from the relevant user groups. One place to audit, one place to change.
@@ -57,7 +58,7 @@ A connection can belong to multiple grant groups. For example, a database might 
 
 The **User Groups** section shows which user groups have this grant group assigned. This is **read-only** - to modify assignments, go to **Admin > User Groups** and edit the user group directly.
 
-This enforces the parent → child hierarchy and provides a clear audit trail.
+This enforces the parent -> child hierarchy and provides a clear audit trail.
 
 ## Permission Flow
 
@@ -65,9 +66,9 @@ When a user tries to access a connection, Hub traces the path:
 
 ```
 User (alice)
-  └── Member of: Engineering (User Group)
-        └── Has Grant Group: Production DBs
-              └── Contains: prod-postgres (Connection)
+  `-- Member of: Engineering (User Group)
+        `-- Has Grant Group: Production DBs
+              `-- Contains: prod-postgres (Connection)
                     -> Access granted
 ```
 
@@ -79,36 +80,36 @@ If any link in this chain is missing, access is denied.
 
 ```
 Production Databases
-  └── prod-postgres, prod-mysql, prod-redis
+  `-- prod-postgres, prod-mysql, prod-redis
 
 Staging Databases  
-  └── staging-postgres, staging-mysql
+  `-- staging-postgres, staging-mysql
 
 Development Databases
-  └── dev-postgres, dev-mysql
+  `-- dev-postgres, dev-mysql
 ```
 
 ### Function-Based
 
 ```
 Read-Only Analytics
-  └── analytics-replica, data-warehouse (read-only credentials)
+  `-- analytics-replica, data-warehouse (read-only credentials)
 
 Application Databases
-  └── app-postgres, app-redis (read-write credentials)
+  `-- app-postgres, app-redis (read-write credentials)
 
 Admin Access
-  └── all databases (admin credentials)
+  `-- all databases (admin credentials)
 ```
 
 ### Project-Based
 
 ```
 Project Alpha Resources
-  └── alpha-db, alpha-cache, alpha-queue
+  `-- alpha-db, alpha-cache, alpha-queue
 
 Shared Services
-  └── auth-db, logging-db, metrics-db
+  `-- auth-db, logging-db, metrics-db
 ```
 
 ## Cascade Behavior

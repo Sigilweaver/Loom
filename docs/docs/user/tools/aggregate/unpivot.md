@@ -6,6 +6,11 @@ sidebar_position: 3
 
 Reshape data from wide format to long format by turning columns into rows (also known as "melt").
 
+| | |
+|---|---|
+| **Palette name** | Unpivot (category Reshape) |
+| **Type name** | `Unpivot` |
+
 ## Sockets
 
 | Socket | Direction | Description |

@@ -1,129 +1,72 @@
 ---
 sidebar_position: 3
+title: Wiring
 ---
 
 # Wiring
 
-Wires connect tools together, defining how data flows through your workflow.
+Wires connect tools and define how data flows through a workflow.
 
 ## Sockets
 
-Every tool has **sockets** - connection points for wires:
+Every tool has **sockets**:
 
-- **Input sockets**: Left side of the tool - receive data from upstream tools
-- **Output sockets**: Right side of the tool - send data to downstream tools
+- **Input sockets** are on the left edge. They receive data from upstream tools.
+- **Output sockets** are on the right edge. They send data downstream.
 
-Some tools have multiple sockets with labels indicating their purpose (e.g., for a filter tool: `T` for true, `F` for false).
+Tools with several sockets label them with a letter. See [Socket labels](#socket-labels).
 
-## Creating Wires
+## Creating a wire
 
-1. Click on an **output socket** (right side of a tool)
-2. Drag to an **input socket** (left side of another tool)
-3. Release to create the connection
+1. Press on an output socket.
+2. Drag to an input socket on another tool.
+3. Release.
 
-The wire appears as a curved line connecting the two sockets.
+If you release on empty canvas instead, Studio offers a menu of tools that can accept the wire and adds the one you choose. With auto-connect on, a tool you drop from the palette is wired for you.
 
-### Connection Rules
+### Rules
 
-- Wires flow **left to right** (output to input)
-- Each input socket can receive from **one** output (except multi-input sockets)
-- Each output socket can send to **multiple** inputs
-- You cannot create cycles (loops) in the workflow
+- Wires run from an output to an input.
+- An output can feed many inputs.
+- An input accepts one wire, unless it is marked `M` (multiple). Studio refuses a second wire to a single input.
+- A wire that would create a loop is drawn as a dashed, animated line in the error color. Remove it, because a workflow with a loop cannot run.
+- You cannot connect two inputs or two outputs.
 
-## Multi-Input Sockets
+## Multi-input sockets
 
-Some tools (like **Union**) accept multiple inputs on a single socket. These sockets are marked with an `M` and allow you to connect multiple wires.
+The Concatenate tool's input is marked `M`. You can connect any number of wires to it.
 
-## Removing Wires
+## Changing or removing a wire
 
-- Click on a wire to select it, then press **Delete** or **Backspace**, or right click the wire, and select **Delete**
-- Drag a new wire to an already-connected input to replace the existing wire
+- Select a wire and press `Delete`, or right-click it and choose **Delete**.
+- Right-click a wire and choose **Change input to** or **Change output to** to move one end to another socket on the same tool. The menu lists only sockets that are free.
+- To rewire an input that is already connected, remove the old wire first.
 
-## Wire Validation
+## Socket labels
 
-Sigilweaver Loom validates connections as you work:
+Studio shows a letter on sockets that need one.
 
-- Invalid connections are prevented (e.g., input-to-input)
-- Cycle detection prevents infinite loops
+| Tool        | Socket                | Label | Carries                                  |
+| ----------- | --------------------- | ----- | ---------------------------------------- |
+| Read        | `output`              |       | The loaded data                          |
+| Write       | `input`               |       | The data to save. No outputs.            |
+| Filter      | `input`               |       | Data to filter                           |
+|             | `output-true`         | `T`   | Rows where the condition is true         |
+|             | `output-false`        | `F`   | Rows where it is false                   |
+| Schema, Sort, Calculate, Sample, Aggregate, Pivot, Unpivot | `input`, `output` | | One in, one out |
+| Unique      | `input`               |       | Data to check                            |
+|             | `output-unique`       | `U`   | Rows counted as unique                   |
+|             | `output-duplicate`    | `D`   | Rows counted as duplicates               |
+| Concatenate | `input`               | `M`   | Any number of datasets                   |
+|             | `output`              |       | The stacked result                       |
+| Join        | `input-left`          | `L`   | Left dataset                             |
+|             | `input-right`         | `R`   | Right dataset                            |
+|             | `output-left`         | `L`   | Left rows with no match                  |
+|             | `output-match`        | `J`   | Joined rows                              |
+|             | `output-right`        | `R`   | Right rows with no match                 |
 
-## Socket Types by Tool
+The socket IDs in the second column are what workflow files and the API use.
 
-### Input Tool
+## Previewing a wire
 
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `output` | Output | Loaded data from file |
-
-### Output Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to save to file |
-
-### Filter Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to filter |
-| `T` (output-true) | Output | Rows matching the condition |
-| `F` (output-false) | Output | Rows not matching the condition |
-
-### Select, Sort, Formula Tools
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to transform |
-| `output` | Output | Transformed data |
-
-### Union Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Multiple datasets to combine (multi-input) |
-| `output` | Output | Combined dataset |
-
-### Join Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `L` (input-left) | Input | Left dataset |
-| `R` (input-right) | Input | Right dataset |
-| `L` (output-left) | Output | Unmatched rows from left |
-| `J` (output-match) | Output | Matched/joined rows |
-| `R` (output-right) | Output | Unmatched rows from right |
-
-### Summarize Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to summarize |
-| `output` | Output | Aggregated results |
-
-### Sample Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to sample from |
-| `output` | Output | Sampled rows |
-
-### Unique Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to deduplicate |
-| `U` (output-unique) | Output | Unique rows |
-| `D` (output-duplicate) | Output | Duplicate rows |
-
-### Pivot Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to pivot |
-| `output` | Output | Pivoted (wide-format) data |
-
-### Unpivot Tool
-
-| Socket | Direction | Description |
-|--------|-----------|-------------|
-| `input` | Input | Data to unpivot |
-| `output` | Output | Unpivoted (long-format) data |
+Click any socket to preview the data at that point. See [Data Preview](./data-preview.md).

@@ -1,156 +1,77 @@
 ---
 sidebar_position: 7
+title: Managing Connections
 ---
 
 # Managing Connections
 
-Sigilweaver Loom supports connecting to external databases for querying data directly in your workflows. Database credentials are handled securely through the Connection Manager.
+A **connection** tells Loom how to reach a database. Workflows store only a connection ID, so credentials never appear in a `.swwf` file.
 
-## Accessing the Connection Manager
+## Kinds of connections
 
-Open **Settings** from the header bar and navigate to the **Connections** tab. Here you can view, create, edit, and delete database connections.
+| Kind       | Where credentials live                                | Who manages it   | Can you see the password? |
+| ---------- | ----------------------------------------------------- | ---------------- | ------------------------- |
+| **Client** | Your machine, in the operating system's credential store | You           | You typed it, but Studio never shows it again |
+| **Hub**    | Hub, encrypted                                        | A Hub administrator | No                     |
 
-## Connection Types
+Client connections need the desktop app. The browser build cannot store them. Hub connections appear when you are [logged in to Hub](./hub.md) and belong to a group that has been granted them.
 
-### Client Connections
+## Open the Connection Manager
 
-Client connections store credentials locally on your machine using Electron's secure storage (safeStorage API). These connections are:
+Open the **Settings** tab in the left pane and expand **Connections**. In Hub mode with an active login, Hub connections are listed first, then your local ones.
 
-- **Private to you** - Only accessible on the machine where they were created
-- **Encrypted at rest** - Protected by your operating system's credential storage
-- **Ideal for** - Personal databases, development environments, individual work
+## Create a client connection
 
-### Hub Connections
+1. Click **Add Connection**.
+2. Fill in the form:
+   - **Connection Name**: any label you will recognize.
+   - **Database Type**: PostgreSQL, MySQL or SQL Server. The port fills in with the default (5432, 3306 or 1433).
+   - **Host**, **Port** and **Database**.
+   - **Username** and **Password**.
+3. Save.
 
-Hub connections are managed by your organization's administrators through [Sigilweaver Loom Hub](/admin/). The credentials are stored on the Hub server using Fernet encryption. These connections are:
+SQLite does not use a connection. Choose the SQLite source in a Read tool and pick the database file. See [Read (Input)](../tools/input-output/input.md).
 
-- **Managed centrally** - Administrators create and maintain connections
-- **Shared through groups** - Available to users who are members of assigned groups
-- **Opaque to users** - You can use the connection but cannot see the username/password
-- **Ideal for** - Team databases, production systems, controlled access environments
+## Edit or delete a connection
 
-:::note Hub Connections
-Hub connections appear in your connection list when you're connected to a Hub server and are a member of groups with assigned connections. You can use them in workflows but cannot edit or view their credentials.
+Use the pencil or trash icon next to a connection. When you edit, leave **Username** and **Password** blank to keep the stored values. You cannot change a connection's type after you create it. You cannot edit or delete Hub connections.
 
-See the [Administrator Guide](/admin/connections) for details on how Hub connections are managed.
-:::
+Deleting a connection breaks workflows that use it. Check before you delete.
 
-## Creating a Client Connection
+## Use a connection in a workflow
 
-1. Click **Add Connection** in the Connection Manager
-2. Fill in the connection details:
-   - **Name**: A descriptive name for the connection
-   - **Type**: Database type (PostgreSQL, MySQL, SQLite, or MSSQL)
-   - **Host**: Database server hostname or IP
-   - **Port**: Database port (default: 5432 for PostgreSQL)
-   - **Database**: Name of the database to connect to
-   - **Username**: Database user
-   - **Password**: Database password
-3. Click **Test Connection** to verify connectivity
-4. Click **Save** to store the connection
+1. Add a **Read** tool.
+2. Choose a database source: PostgreSQL, MySQL or SQL Server.
+3. Pick a connection from the list. Hub connections are marked `[Hub]` and yours `[Local]`. Choose **Configure new connection** to jump to Settings.
+4. Write a SQL query. Loom rejects queries that contain write or DDL keywords such as `INSERT`, `UPDATE`, `DELETE`, `DROP` or `CREATE`. This is a safety net, not a guarantee, so give the database user read-only permissions.
 
-## Editing a Client Connection
+The query runs when you preview or run the workflow, not while you type. Results from database sources are cached on the Server so repeated previews do not query the database again. See [Performance and Caching](./caching.md).
 
-1. Find the connection in the list
-2. Click the edit (pencil) icon
-3. Update the fields as needed
-4. Leave username/password blank to keep existing credentials
-5. Click **Save**
+## How credentials are handled
 
-:::note Hub Connections
-You cannot edit Hub connections - they are managed by your administrator. Contact your admin if credentials need to be updated.
-:::
+- Workflow files store connection IDs only.
+- The JSON view and the exported Python code do not contain credentials. Exported code uses placeholders.
+- **Client connection credentials are sent to the Server** when you run or preview a workflow, because the Server opens the database connection. Use HTTPS if the Server is not on your own machine.
+- **Hub connection credentials stay on Hub.** The Server asks Hub for them only for the duration of the request. You never receive them. Prefer Hub connections for production databases and shared work.
 
-## Deleting a Client Connection
+See the [Security Model](../../admin/security.md) for how Hub protects credentials.
 
-1. Find the connection in the list
-2. Click the delete (trash) icon
-3. Confirm deletion
+## Sharing workflows
 
-:::warning
-Deleting a connection may break workflows that use it. Check your workflows before removing connections.
+| Situation                          | What happens                                                         |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| Same machine                       | Client connections work as they are.                                 |
+| Another machine                    | The other person needs a connection with the same ID, or a Hub connection. |
+| Hub connections                    | Work for anyone who has been granted the connection.                 |
 
-Hub connections cannot be deleted by users - contact your administrator.
-:::
-
-## Using Connections in Workflows
-
-1. Add an **Input** tool to your workflow
-2. Select **Database** as the data source category
-3. Choose the database type (PostgreSQL, MySQL, SQLite, or MSSQL)
-4. Select your connection from the dropdown
-5. Enter your SQL query
-6. The query results are available as output
-
-## Security Model
-
-Sigilweaver Loom is designed to protect your database credentials:
-
-### What's Protected
-
-- **Credentials never appear in workflow files** - Only connection IDs are saved
-- **Python code exports omit credentials** - Generated code uses placeholder comments
-- **JSON previews strip sensitive data** - Workflow JSON shows IDs, not passwords
-- **Hub credentials stay on Hub** - Users cannot extract Hub-managed passwords
-
-### How It Works
-
-| Connection Type | Storage | Who Can Access | Sent to Server |
-|-----------------|---------|----------------|----------------|
-| Client | Electron safeStorage (OS keychain) | Only you, on this machine | **Yes** - when executing workflows |
-| Hub | Fernet-encrypted on Hub server | Hub administrators only | No - Hub resolves internally |
-
-:::important Client Credentials Are Transmitted
-**Client connections** store credentials on your local machine, but they are **sent to the Server** when you execute a workflow that queries a database. The Server needs the credentials to connect to your database and run the query.
-
-This means:
-- Your credentials are transmitted over the network (use HTTPS/localhost)
-- The Server temporarily has access to your credentials during execution
-- For production or sensitive databases, use **Hub connections** instead
-
-**Hub connections** are different - the credentials are stored on the Hub server and resolved internally. They are never transmitted to your machine and you cannot see the actual username/password. This is the recommended approach for team databases.
-
-See [Hub Security Model](/admin/security) for details on how Hub protects credentials.
-:::
-
-### Workflow Portability
-
-When you share a workflow that uses database connections:
-
-- **Same machine**: Client connections work automatically (your credentials are available)
-- **Different machine**: User must have matching connection IDs configured
-- **Hub connections**: Work automatically for anyone with access to the same Hub and group membership
-
-:::tip Best Practice
-**For team workflows**, use **Hub connections** so all team members can run the workflow without configuring individual credentials.
-
-**For production databases**, always use **Hub connections** - this keeps credentials centrally managed and avoids transmitting them from client machines. Client connections are best for local development databases or personal data sources.
-:::
+For team workflows, use Hub connections.
 
 ## Troubleshooting
 
-### "Connection not found"
+**Connection not found.** The workflow references an ID that does not exist on this machine. Recreate the connection, or select another one in the Read tool.
 
-The workflow references a connection ID that doesn't exist on your machine or server. Create a new connection with the same settings, or ask your administrator to set up a server connection.
+**Client credential storage not available.** You are using the browser build, or the operating system's credential store is unavailable. Use the desktop app, or use a Hub connection.
 
-### "Encryption not available"
+**Failed to connect.** Check that the database is running, the host and port are right, the user may connect from your Server's address, and no firewall blocks the port. Remember that the Server opens the connection, so the Server must be able to reach the database.
 
-Client connections require the desktop application with Electron. If running in a browser or without safeStorage support, you can only use server connections.
-
-### "Failed to connect"
-
-Check:
-- Is the database server running?
-- Are the host and port correct?
-- Is the database name spelled correctly?
-- Does the user have permission to connect?
-- Are there firewall rules blocking the connection?
-
-### "Hub connections unavailable"
-
-You may not be connected to a Hub server, or you may not be in any groups with connections assigned.
-
-**Solutions:**
-- Connect to Hub from Studio settings
-- Ask your administrator to add you to groups with connections
-- See [Groups](/admin/groups) for how group membership works
+**Hub connections do not appear.** Confirm you are in Hub mode and logged in. Then ask your administrator whether you belong to a group that has been granted the connection. See [User Groups](../../admin/groups.md).

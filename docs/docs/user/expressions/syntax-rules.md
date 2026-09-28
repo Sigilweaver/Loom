@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+title: Expression Syntax Rules
 ---
 
 # Expression Syntax Rules
@@ -40,33 +41,31 @@ pl.col("price") > (100 & pl.col("qty")) > 0  # Not what you want!
 
 ## Multi-Line Expressions
 
-For readability, you can break long expressions across multiple lines. **Wrap the entire expression in outer parentheses** to make this work:
+You can break a long expression across lines. Python allows line breaks inside parentheses, so **wrap the whole expression in outer parentheses**:
 
 ```python
-(pl.col("category") == "electronics"
-) & (pl.col("price") > 500
-) & (pl.col("in_stock") == True
+(
+    (pl.col("category") == "electronics")
+    & (pl.col("price") > 500)
+    & (pl.col("in_stock") == True)
 )
 ```
 
 ### With Comments
 
-You can add inline comments to explain each part:
+Comments start with `#` and run to the end of the line:
 
 ```python
-(pl.col("amount") > 1000           # High value transaction
-) & (pl.col("status") == "pending" # Not yet processed
-) & (pl.col("risk_score") >= 7     # Flagged as risky
+(
+    (pl.col("amount") > 1000)            # High value transaction
+    & (pl.col("status") == "pending")    # Not yet processed
+    & (pl.col("risk_score") >= 7)        # Flagged as risky
 )
 ```
 
-:::tip
-The closing parenthesis on its own line before `&` or `|` is intentional - it makes Python's parser happy with the newlines.
-:::
-
 ## Method Chaining for Readability
 
-When an expression has multiple method calls, use **method chaining** with one method per line. Wrap the entire chain in parentheses:
+When an expression has several method calls, put one call on each line. Wrap the entire chain in parentheses:
 
 ```python
 (pl.col("customer_email")
@@ -88,17 +87,17 @@ This is especially useful for complex string operations:
 )
 ```
 
-### Chaining with Conditionals
+### Conditionals
 
-You can chain `.when()` / `.then()` / `.otherwise()` calls for complex logic:
+Use `pl.when()`, `.then()` and `.otherwise()`. You can repeat `.when()` and `.then()` for several cases:
 
 ```python
-(pl.col("purchase_amount")
-    .when(pl.col("customer_tier") == "gold")
-    .then(pl.col("purchase_amount") * 0.8)   # 20% discount
+(
+    pl.when(pl.col("customer_tier") == "gold")
+    .then(pl.col("purchase_amount") * 0.8)    # 20% discount
     .when(pl.col("customer_tier") == "silver")
-    .then(pl.col("purchase_amount") * 0.9)   # 10% discount
-    .otherwise(pl.col("purchase_amount"))    # No discount
+    .then(pl.col("purchase_amount") * 0.9)    # 10% discount
+    .otherwise(pl.col("purchase_amount"))     # No discount
 )
 ```
 
@@ -115,7 +114,7 @@ Date/time methods chain naturally:
 ```
 
 :::tip Key Rule
-Always wrap the entire chain in outer parentheses. Each method call goes on its own line, indented for readability.
+Wrap a multi-line expression in outer parentheses.
 :::
 
 ## Quote Characters
@@ -133,6 +132,10 @@ For strings containing quotes, use the other quote type:
 pl.col("status") == 'it\'s done'     # Escaped single quote
 pl.col("status") == "it's done"      # Or use double quotes outside
 ```
+
+## What Loom Accepts
+
+An expression must be a single Polars expression that starts from `pl`. Loom checks it before running it and rejects imports, lambdas, comprehensions and names other than `pl`, `True`, `False` and `None`. The editor reports the reason.
 
 ## Common Errors and Fixes
 
@@ -178,7 +181,7 @@ pl.col("Status") == "active"
 |------|---------|
 | Wrap comparisons with `&`/`\|` | `(a > 10) & (b < 20)` |
 | Use `~` for NOT (booleans only) | `~pl.col("is_deleted")` |
-| Multi-line needs outer parens | `(expr1\n) & (expr2\n)` |
+| Multi-line needs outer parens | `(\n  (a > 1)\n  & (b < 2)\n)` |
 | Chain methods with line breaks | `(col\n  .method1()\n  .method2()\n)` |
 | Use `pl.lit()` for constants | `pl.lit("active")` |
 | Use `==` for equality | `pl.col("x") == 5` |
