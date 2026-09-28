@@ -17,6 +17,7 @@ from app.domain.connections.query_policy import (
     ReadOnlyQueryError,
     validate_readonly_query,
 )
+from app.domain.connections.uri import guard_database_uri
 from app.domain.tools.loaders.base import FileLoader
 from app.utils.errors import ToolError
 
@@ -79,6 +80,9 @@ class DatabaseLoader(FileLoader):
             validate_readonly_query(query)
         except ReadOnlyQueryError as e:
             raise ToolError(str(e)) from e
+
+        # Security: SQLite URIs name a local file, so apply the file-access rules.
+        source = guard_database_uri(source)
 
         try:
             # read_database_uri returns a DataFrame (eager)

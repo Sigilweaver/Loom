@@ -141,6 +141,8 @@ async def describe_database_schema(
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
+    except FileAccessError:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Schema introspection failed: {str(e)}"
