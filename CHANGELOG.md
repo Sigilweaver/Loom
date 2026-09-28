@@ -5,6 +5,65 @@ All notable changes to Sigilweaver Loom are documented in this file.
 This changelog was retroactively assembled from commit history. Starting with
 v0.11.0, entries are maintained alongside each release.
 
+## [v0.13.0] - Unreleased
+
+A foundation release: security hardening across every component, a rebuilt
+Hub frontend, real workflow validation in Studio, a safer release pipeline,
+and documentation checked against the code.
+
+### Added
+
+- **Workflow validation (Studio)** - A Validate button (and desktop menu action) checks for unconnected inputs, loops, missing required settings and more; a Problems tab jumps to the offending tool and canvas nodes show warning badges. Validation is advisory and never blocks Run or Preview (#65)
+- **Workflow version history (Hub)** - List, diff, download and restore any version of a workflow, and upload a new version from Edit workflow (#109)
+- **Hub responsive layout** - Mobile drawer navigation, grouped admin navigation, skip link, toasts and confirmation dialogs, page error boundary, session-expired notice, and return to the requested page after login
+- **Release pipeline** - `mirror-release.yml` mirrors assets to R2 when a release is published; `check_ci_status.py` gate; CI `docker-build-check` job; release-script test suite wired into `scripts/test.py --repo`; Dependabot for Docker base images
+- **Documentation** - Getting Started, Core Concepts, Studio Settings, Hub Configuration and Hub Open Beta pages
+
+### Changed
+
+- **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
+- **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
+- **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
+- **Hub frontend rebuilt** - API client split by resource with a typed `ApiError` (#91); shared component layer with per-theme status colors (#90); all pages rebuilt with loading, empty and error states
+- **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
+- **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
+- **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
+- **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
+- **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
+
+### Fixed
+
+- **Partial executions** no longer run unrelated workflow branches; an unknown target returns 400 (#84)
+- **Workflow routes** returned 500 for deliberate 400/401 responses
+- **Connection resolution** dropped workflow `version` and `engines`
+- **Hub-triggered executions** failed at `/internal/authorize` with a 500
+- **Hub schedules** at midnight or on Sundays were mis-parsed; clearing schedule fields did not clear them; the dashboard's active schedule count included inactive ones
+- **Hub workflow folder filter** matched lookalike paths; half-typed tags were dropped on submit
+- **Hub mobile layout** was unusable at phone widths
+- **Electron preload** never loaded (built as an ES module), so the desktop bridge was unavailable
+- **Tauri** was detected as the web build, dropped newer settings on save, looked for the bundled server at the wrong sidecar path, and orphaned the server process on exit (#105)
+- **Studio** marked a workflow modified just by selecting a Read or Write tool; desktop menu actions used stale workflow state; expression editors hung when the code editor could not load offline
+- **Hub Docker image** build failed (`npm ci` without a lockfile; now uses Bun)
+- **File search** rescanned symlink cycles; browse and execute now share one allowlist rule
+
+### Security
+
+- **Expression sandbox** - Polars expressions run against an allowlisted namespace that blocks file and network access, callables, format-string tricks and memory-exhaustion literals (#74). Expressions using `pl.selectors`, `pl.Series` or `pl.sql_expr` now error
+- **Desktop file access** - Electron and Tauri only read or write paths chosen in a native open/save dialog (#75, #106)
+- **Desktop hardening** - Electron window sandboxed with CSP, navigation and external-URL limits and IPC sender checks; Tauri capabilities reduced to opening URLs; credentials are no longer stored as base64 when no OS keychain is available
+- **Connection credentials** - In Full desktop builds, database credentials no longer reach the renderer (#89, partial)
+- **Capability tokens** - Hub no longer falls back to a server's shared secret when token issuance fails (#81); `/internal/authorize` denies tokens not issued for a Hub user
+- **AI proxy** - SSRF guard blocks CGNAT (100.64.0.0/10) and IPv6-embedded internal addresses
+- **File access** - Permission is checked before existence; with `RESTRICT_FILE_ACCESS=true` the server allowlist is enforced at execution as well as browsing
+- **Dependencies** - anyio 4.15.1 (CVE-2026-63374, CVE-2026-64847, CVE-2026-63349), polars 1.43.2, js-yaml and other Studio advisories, quick-xml 0.41; the Audit workflow is green
+- **Lint policy** - Zero-ignore ruff and mypy policy is now enforced for the Hub backend (#142)
+
+### Removed
+
+- Completed B2-to-R2 migration scripts, `convert-tags.sh`, `generate-downloads-manifest.py`, `cleanup-r2-staging.py` and the orphaned `scripts/lint_repo.py` (#140)
+- Dead server modules and helpers; unused platform-layer APIs (`listByType`, `isDesktop`, `isBrowser`, `nativeMenus`, `backendManagement`) and the Tauri `list_connections_by_type` command
+- Hub frontend `window.confirm`/`alert` usage, hand-rolled popups and unused barrel files
+
 ## [v0.12.0] - 2026-06-06
 
 ### Added
