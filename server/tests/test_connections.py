@@ -706,6 +706,48 @@ class TestConnectionResolver:
         assert "source" in resolved_db_tool.config
         assert resolved_db_tool.config["source"] == "postgresql://user:secret@localhost:5432/testdb"
 
+    def test_resolve_keeps_engines_and_version(self, resolver, store, sample_workflow):
+        """Resolving connections must not drop workflow fields other than the tools."""
+        from app.domain.models.workflow import EngineConfig, Tool
+
+        conn = store.create_connection(
+            CreateConnectionInput(
+                name="Test DB",
+                type=DatabaseType.POSTGRESQL,
+                host="localhost",
+                port=5432,
+                database="testdb",
+                username="user",
+                password="secret",
+            )
+        )
+        sample_workflow.tools.append(
+            Tool(
+                id="db_input",
+                type="Input",
+                x=0,
+                y=0,
+                config={
+                    "category": "database",
+                    "type": "postgresql",
+                    "connectionId": conn.id,
+                    "owner": "server",
+                    "query": "SELECT 1",
+                },
+                sockets=[],
+            )
+        )
+        sample_workflow.version = "2.5"
+        sample_workflow.engines = {"dbt/core": EngineConfig(project_path="/dbt")}
+
+        result = resolver.resolve_workflow_connections(sample_workflow)
+
+        assert "source" in next(t for t in result.tools if t.id == "db_input").config
+        assert result.version == "2.5"
+        assert result.engines is not None
+        assert result.engines["dbt/core"].model_dump() == {"project_path": "/dbt"}
+        assert result.meta == sample_workflow.meta
+
     def test_resolve_preserves_client_connection_with_source(self, resolver, sample_workflow):
         """Should not modify client connections that already have source."""
         from app.domain.models.workflow import Tool

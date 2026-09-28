@@ -94,10 +94,8 @@ class ConnectionResolver:
         if hub_connection_refs:
             self._validate_hub_connections_provided(hub_connection_refs, hub_connections)
 
-        # Future: Add RBAC authorization check here
-        # self._authorize_connections(server_connections, user)
-
         # Resolve all connections
+        provided_hub_connections = hub_connections or {}
         resolved_tools = []
         for tool in workflow.tools:
             if tool.id in server_connections:
@@ -105,18 +103,15 @@ class ConnectionResolver:
                 resolved_tools.append(resolved_tool)
             elif tool.id in hub_connection_refs:
                 connection_id = hub_connection_refs[tool.id]
-                hub_conn = hub_connections[connection_id]  # type: ignore
+                hub_conn = provided_hub_connections[connection_id]
                 resolved_tool = self._resolve_hub_tool_connection(tool, hub_conn)
                 resolved_tools.append(resolved_tool)
             else:
                 resolved_tools.append(tool)
 
-        # Return new workflow with resolved tools
-        return Workflow(
-            meta=workflow.meta,
-            tools=resolved_tools,
-            wires=workflow.wires,
-        )
+        # Return a copy with resolved tools; every other field (version, engines)
+        # is carried over unchanged
+        return workflow.model_copy(update={"tools": resolved_tools})
 
     def _find_server_connections(self, workflow: Workflow) -> dict[str, str]:
         """
