@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
-from app.domain.auth.roles import get_role_level, Role
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
@@ -286,11 +286,11 @@ async def update_schedule(
     try:
         # Only include fields that were actually provided in the request
         request_data = request.model_dump(exclude_unset=True)
-        
+
         # Parse start_at if provided
         if "start_at" in request_data:
             request_data["start_at"] = _parse_iso_datetime(request_data["start_at"])
-        
+
         input = UpdateScheduleInput(**request_data)
         schedule = await service.update_schedule(schedule_id, input)
     except ServerNotFoundError as e:

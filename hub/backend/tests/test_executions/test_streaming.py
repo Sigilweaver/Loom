@@ -3,12 +3,12 @@
 import asyncio
 
 import pytest
+
 from app.domain.executions.broker import (
     GLOBAL_TOPIC,
     ExecutionBroker,
     execution_broker,
 )
-
 from tests.conftest import make_workflow_content, new_client
 
 

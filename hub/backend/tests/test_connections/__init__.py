@@ -3,7 +3,7 @@
 
 def database_connection_payload(name: str = "Test Connection") -> dict:
     """Generate a standard database connection payload.
-    
+
     New unified format requires:
     - type: "database" (not "postgresql")
     - db_type: "postgresql"

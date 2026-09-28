@@ -1,6 +1,5 @@
 """Tests for server client"""
 
-import pytest
 
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
 

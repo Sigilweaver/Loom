@@ -1,11 +1,12 @@
 """Tests for health poller"""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.domain.servers.health_poller import HealthPoller
+import pytest
+
 from app.domain.servers.client import HealthResponse, ServerError
+from app.domain.servers.health_poller import HealthPoller
 
 
 class TestHealthPoller:
@@ -185,7 +186,6 @@ class TestHealthPollerOfflineThreshold:
     @pytest.mark.asyncio
     async def test_backoff_is_exponential_and_capped(self):
         """Backoff doubles per failure and is capped at the configured max."""
-        from datetime import timedelta
 
         poller = HealthPoller()
         server = self._make_server(status="online")

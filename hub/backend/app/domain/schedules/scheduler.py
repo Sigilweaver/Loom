@@ -8,8 +8,8 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
-from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select
 
 from app.db.database import async_session_maker
@@ -63,7 +63,7 @@ class Scheduler:
         """Load and register all enabled schedules from database."""
         async with async_session_maker() as db:
             result = await db.execute(
-                select(Schedule).where(Schedule.enabled == True)  # noqa: E712
+                select(Schedule).where(Schedule.enabled.is_(True))
             )
             schedules = result.scalars().all()
 

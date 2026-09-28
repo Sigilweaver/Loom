@@ -5,7 +5,7 @@ Database connections store encrypted credentials.
 """
 
 import logging
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,11 +23,9 @@ from app.domain.connections import (
     ConnectionStore,
     ConnectionType,
     CreateConnectionInput,
-    DatabaseConfig,
     DatabaseType,
     DuplicateConnectionError,
     EncryptionKeyError,
-    FilesystemConfig,
     PathType,
     ResolvedDatabaseConnection,
     UpdateConnectionInput,
@@ -96,17 +94,19 @@ def _info_to_response(info: ConnectionInfo) -> ConnectionResponse:
     filesystem_config = None
 
     if info.database_config:
+        db_type = info.database_config.db_type
         database_config = DatabaseConfigResponse(
-            db_type=info.database_config.db_type.value if isinstance(info.database_config.db_type, DatabaseType) else info.database_config.db_type,
+            db_type=db_type.value if isinstance(db_type, DatabaseType) else db_type,
             host=info.database_config.host,
             port=info.database_config.port,
             database=info.database_config.database,
         )
 
     if info.filesystem_config:
+        path_type = info.filesystem_config.path_type
         filesystem_config = FilesystemConfigResponse(
             path=info.filesystem_config.path,
-            path_type=info.filesystem_config.path_type.value if isinstance(info.filesystem_config.path_type, PathType) else info.filesystem_config.path_type,
+            path_type=path_type.value if isinstance(path_type, PathType) else path_type,
         )
 
     return ConnectionResponse(
@@ -408,7 +408,10 @@ async def test_connection(
     if not isinstance(resolved, ResolvedDatabaseConnection):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only database connections can be tested directly. Filesystem connections require a Server for health checks.",
+            detail=(
+                "Only database connections can be tested directly. "
+                "Filesystem connections require a Server for health checks."
+            ),
         )
 
     return _test_connection_params(

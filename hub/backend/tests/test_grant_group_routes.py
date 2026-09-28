@@ -6,7 +6,7 @@ Tests the GrantGroup CRUD operations and assignments.
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import new_client, setup_database  # noqa: F401 - fixtures
+from tests.conftest import new_client
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ async def create_connection(
     client: AsyncClient, admin_token: str, name: str
 ) -> dict:
     """Helper: Create a connection and return its data.
-    
+
     Skips test if CONNECTION_ENCRYPTION_KEY is not configured (returns 503).
     """
     response = await client.post(

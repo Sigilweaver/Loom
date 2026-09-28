@@ -1,6 +1,5 @@
 """Tests for role definitions and permissions"""
 
-import pytest
 
 from app.domain.auth.roles import (
     Role,

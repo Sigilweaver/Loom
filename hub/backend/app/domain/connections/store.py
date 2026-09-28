@@ -9,7 +9,6 @@ The store dispatches create/update/resolve operations based on connection type.
 
 import json
 import logging
-from typing import Union
 from uuid import UUID
 
 from cryptography.fernet import Fernet, InvalidToken
