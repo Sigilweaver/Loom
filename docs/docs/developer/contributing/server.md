@@ -10,14 +10,14 @@ Conventions and patterns for Server development. These emerged from real problem
 
 ```
 server/app/
-├── api/                  # HTTP layer only
-│   ├── routes/           # Endpoint handlers
-│   └── models/           # Pydantic schemas
-├── domain/               # Business logic
-│   ├── tools/            # Tool implementations
-│   ├── execution/        # Workflow execution
-│   └── datasources/      # File handling
-└── utils/                # Shared utilities
+|-- api/                  # HTTP layer only
+|   |-- routes/           # Endpoint handlers
+|   `-- models/           # Pydantic schemas
+|-- domain/               # Business logic
+|   |-- tools/            # Tool implementations
+|   |-- execution/        # Workflow execution
+|   `-- datasources/      # File handling
+`-- utils/                # Shared utilities
 ```
 
 **Rule**: API routes should be thin. They validate input, call domain logic, and format output. No business logic in routes.

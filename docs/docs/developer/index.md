@@ -1,57 +1,51 @@
 ---
 sidebar_position: 1
+title: Developer Guide
+sidebar_label: Overview
 ---
 
 # Developer Guide
 
-## Who This Is For
+For people who want to run Loom from source, understand how it fits together or contribute a change.
 
-If you're reading this, you're probably:
-- A developer who wants to contribute tools, features, or fixes
-- Someone evaluating the codebase before deciding to contribute
-- Me, six months from now, trying to remember why I made certain decisions
+This guide assumes you are comfortable with Python or TypeScript and a terminal. You do not need to be an expert in React, FastAPI or Polars.
 
-This guide assumes you're comfortable with Python and/or TypeScript. You don't need to be an expert in React, FastAPI, or Polars - but you should know your way around a terminal and a debugger.
+## Where to start
 
-## Why Contribute?
+| Goal | Start here |
+| ---- | ---------- |
+| Set up a development environment | [Getting Started](./getting-started.md) |
+| Understand how the pieces fit | [Architecture Overview](./architecture/overview.md) |
+| Add a tool | [Adding Tools](./contributing/adding-tools.md) |
+| Add a file format | [Adding Data Formats](./contributing/adding-formats.md) |
+| Fix a bug or send a change | [Contributing Workflow](./contributing/workflow.md) |
+| Run the tests | [Testing Philosophy](./testing/philosophy.md) |
+| Build or release the app | [Packaging](./building/packaging.md) and [Releasing](./building/releasing.md) |
+| Call the API | [API Endpoints](./reference/api-endpoints.md) |
 
-A few honest reasons:
+## The codebase in one paragraph
 
-1. **You'll actually use it.** The best contributors are users who hit a limitation and fix it themselves.
+Loom is a monorepo. **Studio** (`studio/`) is a React app that runs in Electron, Tauri or a browser. **Server** (`server/`) is a FastAPI service that executes workflows with Polars. **Hub** (`hub/`) is a FastAPI and React platform, backed by PostgreSQL, for teams. Studio never touches your data. It sends workflow JSON to a Server and shows what comes back.
 
-2. **The codebase is approachable.** Domain-driven design means most changes are localized. Adding a tool doesn't require understanding the whole system.
+Python uses **uv**. JavaScript uses **Bun**. Both have lockfiles that CI enforces.
 
-3. **It's AGPL-3.0.** Your contributions remain open forever. No bait-and-switch to proprietary.
+## Why contribute
 
-4. **The maintainer (hi) is responsive.** I review PRs, answer questions, and value good-faith contributions.
-
-## Where to Start
-
-| Goal | Start Here |
-|------|------------|
-| Set up your dev environment | [Getting Started](./getting-started) |
-| Understand how things fit together | [Architecture Overview](./architecture/overview) |
-| Add a new tool | [Adding Tools](./contributing/adding-tools) |
-| Fix a bug | [Contributing Workflow](./contributing/workflow) |
-| Run the test suite | [Testing Philosophy](./testing/philosophy) |
-| Build a release | [Packaging](./building/packaging) |
+- **You will use it.** The best contributions come from users who hit a limit and fix it.
+- **Changes stay local.** Most features touch one tool, one config panel or one endpoint.
+- **It stays open.** The code is AGPL-3.0, and the [CLA](./contributing/cla.md) has legal safeguards for that.
+- **Reviews are public.** Ask questions in issues and discussions so the answers help others.
 
 ## Communication
 
-- **Bug reports**: [GitHub Issues](https://github.com/Sigilweaver/Loom/issues)
-- **Feature discussions**: [GitHub Discussions](https://github.com/Sigilweaver/Loom/discussions)
-- **Questions**: Open an issue or discussion. I prefer public channels so answers help others
+- **Bugs**: [GitHub Issues](https://github.com/Sigilweaver/Loom/issues)
+- **Ideas and questions**: [GitHub Discussions](https://github.com/Sigilweaver/Loom/discussions)
+- **Security problems**: see [SECURITY.md](https://github.com/Sigilweaver/Loom/blob/main/SECURITY.md). Do not open a public issue.
 
-## Guiding Principles
-
-These show up throughout the codebase and documentation:
+## Principles
 
 - **Ship, then polish.** Working software beats perfect plans.
-- **Test the bones, not the skin.** Core logic gets heavy testing; UI gets light testing.
-- **Explicit over magic.** Configuration and behavior should be predictable and traceable.
-- **Every feature has maintenance cost.** Say no to scope creep.
-- **Honest documentation.** If something's broken, say so. If a decision was a tradeoff, explain why.
-
----
-
-Ready to dive in? Start with [Getting Started](./getting-started).
+- **Test the bones.** Core logic gets heavy testing. UI gets lighter testing.
+- **Explicit over magic.** Behavior should be predictable and traceable.
+- **Every feature has a maintenance cost.** Saying no is part of the job.
+- **Honest documentation.** If something is broken, say so. If a decision was a trade-off, say why. See [Known Issues](./known-issues.md) and the [Architectural Decisions](./architecture/decisions.md).

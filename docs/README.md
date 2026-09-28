@@ -2,177 +2,123 @@
 
 [![CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 
-The official documentation site for Sigilweaver Loom, built with [Docusaurus](https://docusaurus.io/).
+The documentation site for Sigilweaver Loom, built with [Docusaurus](https://docusaurus.io/).
 
 **Live site**: [sigilweaver.app/loom/docs](https://sigilweaver.app/loom/docs)
 
 ## License
 
-This documentation is licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**.
-
-You are free to:
-- **Share** - Copy and redistribute the material in any medium or format
-- **Adapt** - Remix, transform, and build upon the material for any purpose, even commercially
-
-Under the following terms:
-- **Attribution** - You must give appropriate credit and indicate if changes were made
-- **ShareAlike** - If you remix or transform the material, you must distribute your contributions under the same license
-
-See [LICENSE](LICENSE.md) for the full text.
+The documentation is licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0). The software itself is AGPL-3.0. See [LICENSE.md](LICENSE.md) for the documentation license text.
 
 ## Structure
 
 ```
 docs/
-├── docs/
-│   ├── admin/                # Hub administration
-│   ├── developer/            # Developer documentation
-│   │   ├── architecture/     # Architecture decisions (ADRs)
-│   │   ├── building/         # Build guides
-│   │   ├── contributing/     # Contribution guides
-│   │   ├── reference/        # API reference
-│   │   └── testing/          # Testing guides
-│   ├── user/                 # End-user documentation
-│   │   ├── crash-courses/    # Coming from other tools
-│   │   ├── expressions/      # Expression language
-│   │   ├── interface/        # UI documentation
-│   │   └── tools/            # Tool reference
-│   └── intro.md              # Getting started
-├── src/                      # Docusaurus customizations
-├── static/                   # Static assets (images, etc.)
-├── docusaurus.config.ts      # Site configuration
-└── sidebars.ts               # Sidebar navigation
+|-- docs/
+|   |-- intro.md            # Landing page
+|   |-- roadmap.md
+|   |-- user/               # Studio user guide
+|   |   |-- interface/      # Canvas, settings, connections, AI, Hub
+|   |   |-- expressions/    # Polars expressions
+|   |   `-- tools/          # One page per tool
+|   |-- admin/              # Hub and Server administration
+|   `-- developer/          # Architecture, contributing, testing, building
+|-- src/css/                # Theme customizations
+|-- static/                 # Images and fonts
+|-- plugins/                # Local Docusaurus plugins
+|-- docusaurus.config.ts    # Site configuration
+`-- sidebars.ts             # Sidebar navigation (edit this when you add a page)
 ```
 
-## Development
+## Working on the docs
 
-### Prerequisites
-
-- [bun](https://bun.sh)
-
-### Installation
+You need [Bun](https://bun.sh) and the Node version pinned in the repository's `.nvmrc`.
 
 ```bash
 cd docs
-bun install
+bun install --frozen-lockfile
+bun run start        # dev server at http://localhost:25809
 ```
 
-### Local Development
+From the repository root, `./scripts/dev.py --docs` starts the same dev server.
+
+### Check your change
+
+CI runs exactly these two commands. Run them before you open a pull request:
 
 ```bash
-bun run start
+bun run typecheck
+bun run build:cloudflare    # fails on broken links
 ```
 
-This starts a local development server at `http://localhost:3000`. Most changes are reflected live without restarting.
+Also read the build output. Docusaurus prints broken anchors and broken markdown links as warnings.
 
-### Build
+## Writing style
 
-```bash
-bun run build
-```
-
-Generates static content into the `build/` directory. You can serve this locally with:
-
-```bash
-bun run serve
-```
-
-### Check for Broken Links
-
-```bash
-bun run build  # Build will fail on broken links
-```
-
-## Writing Documentation
-
-### File Format
-
-All documentation is written in Markdown with optional MDX (JSX in Markdown) support.
+- Write for the reader who wants to do something. Prefer short sentences and task-based headings.
+- Use plain ASCII punctuation: hyphens, straight quotes and three periods. Do not use em dashes, en dashes, smart quotes or emoji.
+- Use one name for each concept. Studio, Server and Hub are proper nouns. Say "workflow", "tool", "wire", "socket" and "connection". The palette names a tool shows in Studio (Read, Write, Schema, Calculate, Concatenate, Aggregate) come first, with the type name in parentheses on first use.
+- Do not name AI models or vendors' model versions. Provider names are fine.
+- Check every claim against the code: environment variables and defaults, ports, menu labels, endpoints and file paths.
+- Do not write "coming soon" pages. If a feature does not exist, leave it out or list it on the [roadmap](docs/roadmap.md).
+- Code blocks should run as written.
 
 ### Frontmatter
 
-Each page needs frontmatter:
-
 ```markdown
 ---
-title: Page Title
-description: Brief description for SEO
 sidebar_position: 1
+title: Page Title
+description: One sentence for search engines and link previews
 ---
+```
 
-# Page Title
+`title` is required for pages whose first heading is not a good sidebar label. Use `sidebar_label` for a shorter sidebar entry.
 
-Content goes here...
+### Links
+
+Link to other pages with relative file paths, and include the `.md` extension so the build can check them:
+
+```markdown
+See [Getting Started](./user/getting-started.md).
 ```
 
 ### Admonitions
 
-Use admonitions for callouts:
-
 ```markdown
+:::note
+Extra information.
+:::
+
 :::tip
-Helpful tip here
+A helpful hint.
+:::
+
+:::caution
+Something to be careful about.
 :::
 
 :::warning
-Something to be careful about
-:::
-
-:::danger
-Critical warning
+Something that can cause data loss or a security problem.
 :::
 ```
 
-### Code Blocks
+### Diagrams
 
-Specify the language for syntax highlighting:
+Mermaid diagrams work in fenced `mermaid` blocks.
 
-````markdown
-```python
-import polars as pl
-df = pl.read_csv("data.csv")
-```
-````
+### Adding a page
 
-### Internal Links
+1. Create the `.md` file under the right section.
+2. Add it to `sidebars.ts`. The sidebar is explicit, so an unlisted page is not reachable from navigation.
+3. Run the checks above.
 
-Use relative paths for internal links:
-
-```markdown
-See the [Getting Started](./intro.md) guide.
-```
+Do not move or rename a page that Studio links to. Studio's tool help links point at `user/tools/...`, `user/expressions/basics`, `user/data-types` and `user/interface/ai-assistant`.
 
 ## Deployment
 
-Documentation is automatically deployed to [sigilweaver.app/loom/docs](https://sigilweaver.app/loom/docs) when changes are pushed to the main branch.
-
-### Manual Deployment
-
-For manual deployment to GitHub Pages:
-
-```bash
-# Using SSH
-USE_SSH=true bun run deploy
-
-# Using HTTPS
-GIT_USER=<Your GitHub username> bun run deploy
-```
+CI builds the site (`.github/workflows/docs.yml`) but does not publish it. The site is served under `/loom/docs` on sigilweaver.app from the static build in `build/`, configured by `wrangler.jsonc`.
 
 ## Contributing
 
-We welcome documentation contributions! Please:
-
-1. Follow the existing style and tone
-2. Test locally before submitting
-3. Keep pages focused and scannable
-4. Include code examples where helpful
-
-For major changes, please open an issue first to discuss.
-
----
-
-<p align="center">
-  <a href="https://creativecommons.org/licenses/by-sa/4.0/">
-    <img src="https://licensebuttons.net/l/by-sa/4.0/88x31.png" alt="CC BY-SA 4.0" />
-  </a>
-</p>
+Documentation fixes are welcome. Open an issue first for large restructures. See the [Contributing Workflow](docs/developer/contributing/workflow.md).

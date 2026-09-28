@@ -18,14 +18,14 @@ Tools are the core building blocks of Sigilweaver Loom. Each tool:
 
 ```
 Studio                                Server
-─────────────────────────────────────────────────
-TOOL_DEFINITIONS     ──────────────►  ToolRegistry
+-------------------------------------------------
+TOOL_DEFINITIONS     -------------->  ToolRegistry
 (data/tools.ts)                       (domain/tools/registry.py)
-                                           │
-ToolDefinition       ──────────────►  BaseTool
+                                           |
+ToolDefinition       -------------->  BaseTool
 (UI/layout/sockets)                   (execute/schema/validate)
-                                           │
-ConfigPanel          ──────────────►  Implementation
+                                           |
+ConfigPanel          -------------->  Implementation
 (component)                           (filter.py, join.py, etc.)
 ```
 
@@ -40,7 +40,7 @@ interface ToolDefinition {
   type: string;           // Must match Server tool type
   name: string;           // Display name in palette
   icon: LucideIcon;       // Lucide React icon component
-  category: ToolCategory; // "inout" | "preparation" | "join" | "aggregate"
+  category: ToolCategory; // "connect" | "compute" | "reshape" | "combine"
   defaultConfig: ToolConfig;
   sockets: Socket[];
   docsUrl?: string;       // Link to documentation page
@@ -65,7 +65,7 @@ interface Socket {
   type: 'Filter',
   name: 'Filter',
   icon: Filter,
-  category: 'preparation',
+  category: 'compute',
   defaultConfig: {
     expression: '',
     mode: 'Basic',
@@ -77,7 +77,7 @@ interface Socket {
     { id: 'output-true', direction: 'output', type: 'T' },
     { id: 'output-false', direction: 'output', type: 'F' }
   ],
-  docsUrl: 'https://sigilweaver.app/docs/user/tools/preparation/filter',
+  docsUrl: 'https://sigilweaver.app/loom/docs/user/tools/preparation/filter',
 }
 ```
 
@@ -236,38 +236,38 @@ The `.swwf` workflow format includes these engine-related fields:
 
 ## Available Tools
 
-### In/Out
+### Connect
 
 | Type       | Description         | Sockets  |
 | ---------- | ------------------- | -------- |
-| **Input**  | Load data from file | `output` |
-| **Output** | Export data to file | `input`  |
+| **Input** (Read) | Load data from files or databases | `output` |
+| **Output** (Write) | Export data to files | `input`  |
 
-### Preparation
+### Compute
 
 | Type        | Description                   | Sockets                                    |
 | ----------- | ----------------------------- | ------------------------------------------ |
-| **Filter**  | Filter rows by expression     | `input` → `output-true`, `output-false`    |
-| **Select**  | Select/rename/reorder columns | `input` → `output`                         |
-| **Sort**    | Sort rows by columns          | `input` → `output`                         |
-| **Formula** | Add calculated column         | `input` → `output`                         |
-| **Sample**  | Sample subset of rows         | `input` → `output`                         |
-| **Unique**  | Deduplicate rows              | `input` → `output-unique`, `output-duplicate` |
+| **Filter**  | Filter rows by expression     | `input` -> `output-true`, `output-false`    |
+| **Select**  | Select/rename/reorder columns | `input` -> `output`                         |
+| **Sort**    | Sort rows by columns          | `input` -> `output`                         |
+| **Formula** | Add calculated column         | `input` -> `output`                         |
+| **Sample**  | Sample subset of rows         | `input` -> `output`                         |
+| **Unique**  | Deduplicate rows              | `input` -> `output-unique`, `output-duplicate` |
 
 ### Join
 
 | Type      | Description                        | Sockets                                                                     |
 | --------- | ---------------------------------- | --------------------------------------------------------------------------- |
-| **Union** | Combine multiple tables vertically | `input` (multiple) → `output`                                               |
-| **Join**  | Join two tables on keys            | `input-left`, `input-right` → `output-left`, `output-match`, `output-right` |
+| **Union** | Combine multiple tables vertically | `input` (multiple) -> `output`                                               |
+| **Join**  | Join two tables on keys            | `input-left`, `input-right` -> `output-left`, `output-match`, `output-right` |
 
 ### Aggregate
 
 | Type          | Description                       | Sockets            |
 | ------------- | --------------------------------- | ------------------ |
-| **Summarize** | Group by and aggregate            | `input` → `output` |
-| **Pivot**     | Reshape data (rows to columns)    | `input` → `output` |
-| **Unpivot**   | Reshape data (columns to rows)    | `input` → `output` |
+| **Summarize** | Group by and aggregate            | `input` -> `output` |
+| **Pivot**     | Reshape data (rows to columns)    | `input` -> `output` |
+| **Unpivot**   | Reshape data (columns to rows)    | `input` -> `output` |
 
 ---
 
@@ -279,10 +279,10 @@ Each tool has its own config shape. Here are the key ones:
 
 ```json
 {
+  "category": "file",
+  "type": "csv",
   "source": "/path/to/file.csv",
-  "delimiter": ",",
-  "hasHeader": true,
-  "encoding": "utf-8"
+  "csvMode": "scan"
 }
 ```
 
@@ -304,8 +304,8 @@ The `mode` can be `"Basic"` (UI-driven conditions) or `"Custom"` (raw Polars exp
 ```json
 {
   "columnConfigs": [
-    { "name": "id", "enabled": true, "alias": null },
-    { "name": "value", "enabled": true, "alias": "amount" }
+    { "name": "id", "selected": true },
+    { "name": "value", "selected": true, "rename": "amount", "targetType": "Float64" }
   ]
 }
 ```
@@ -315,8 +315,8 @@ The `mode` can be `"Basic"` (UI-driven conditions) or `"Custom"` (raw Polars exp
 ```json
 {
   "sortColumns": [
-    { "column": "created_at", "ascending": false },
-    { "column": "id", "ascending": true }
+    { "column": "created_at", "direction": "desc", "nullsFirst": false },
+    { "column": "id", "direction": "asc" }
   ]
 }
 ```
@@ -350,7 +350,7 @@ Modes: `ByName` (match by column name), `ByPosition` (match by column order).
 }
 ```
 
-Join types: `inner`, `left`, `right`, `outer`, `cross`.
+Join types: `inner`, `left`, `right`, `outer`. A Join with no keys is a cross join, limited by `SAFETY_MAX_CROSS_JOIN_ROWS`.
 
 ### Summarize
 
@@ -365,7 +365,7 @@ Join types: `inner`, `left`, `right`, `outer`, `cross`.
 }
 ```
 
-Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Var`.
+Operations: `Sum`, `Mean`, `Median`, `Min`, `Max`, `Std`, `Var`, `Count`, `CountDistinct`, `First`, `Last`, `Concat`.
 
 ### Pivot
 
@@ -378,7 +378,7 @@ Operations: `Sum`, `Mean`, `Min`, `Max`, `Count`, `First`, `Last`, `StdDev`, `Va
 }
 ```
 
-Aggregate functions: `first`, `sum`, `mean`, `min`, `max`, `count`, `last`, `len`.
+Aggregate functions: `first`, `last`, `sum`, `mean`, `median`, `min`, `max`, `len`.
 
 ### Unpivot
 
@@ -405,7 +405,7 @@ Reshapes wide data to long format: selected columns become rows.
 }
 ```
 
-Modes: `FirstN` (first N rows), `LastN` (last N rows), `Random` (random sample by count or percent).
+Modes: `FirstN`, `LastN`, `EveryN`, `Random`, `RandomPercent` and `FirstPercent`.
 
 ### Unique
 
@@ -416,7 +416,7 @@ Modes: `FirstN` (first N rows), `LastN` (last N rows), `Random` (random sample b
 }
 ```
 
-Modes: `First` (keep first occurrence), `Last` (keep last occurrence), `None` (drop all duplicates).
+Modes: `First` (the first occurrence is unique) and `Strict` (only values that appear exactly once are unique). Duplicates go to the `output-duplicate` socket.
 
 ---
 
@@ -428,7 +428,7 @@ See [Adding Tools](../contributing/adding-tools) for a complete guide. The key s
 2. Create config panel component in `studio/src/components/config/`
 3. Create implementation in `server/app/domain/tools/implementations/`
 4. Register with `@register_tool("YourTool")` decorator
-5. Import in `server/app/domain/tools/register.py`
+5. Export it from `implementations/__init__.py` and import it in `server/app/domain/tools/register.py`
 6. Add tests
 
 ---
@@ -436,9 +436,9 @@ See [Adding Tools](../contributing/adding-tools) for a complete guide. The key s
 ## Type Matching
 
 Socket types must match when connecting:
-- Standard output → Standard input: Always allowed
-- Typed socket → Same type: Allowed (e.g., "L" → "L")
-- Typed socket → Different type: Prevented by UI
+- Standard output -> Standard input: Always allowed
+- Typed socket -> Same type: Allowed (e.g., "L" -> "L")
+- Typed socket -> Different type: Prevented by UI
 
 The Studio enforces type compatibility during drag-and-drop connections.
 

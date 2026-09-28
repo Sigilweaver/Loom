@@ -16,19 +16,19 @@ Hub is the orchestration platform for Sigilweaver Loom deployments. It manages:
 
 ```
 hub/
-├── backend/              # FastAPI + PostgreSQL
-│   ├── app/
-│   │   ├── api/          # Routes and models
-│   │   ├── db/           # SQLAlchemy models + Alembic
-│   │   └── domain/       # Business logic
-│   └── tests/
-├── frontend/             # React + Vite
-│   └── src/
-│       ├── api/          # API client
-│       ├── components/   # Reusable components
-│       ├── pages/        # Route pages
-│       └── state/        # State management
-└── docker-compose.yml    # PostgreSQL
+|-- backend/              # FastAPI + PostgreSQL
+|   |-- app/
+|   |   |-- api/          # Routes and models
+|   |   |-- db/           # SQLAlchemy models + Alembic
+|   |   `-- domain/       # Business logic
+|   `-- tests/
+|-- frontend/             # React + Vite
+|   `-- src/
+|       |-- api/          # API client
+|       |-- components/   # Reusable components
+|       |-- pages/        # Route pages
+|       `-- state/        # State management
+`-- docker-compose.yml    # PostgreSQL
 ```
 
 ## Development Setup
