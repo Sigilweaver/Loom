@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Edge } from '@xyflow/react';
-import type { Tool, Wire } from '@domain/workflow/entities/workflow';
+import type { Wire } from '@domain/workflow/entities/workflow';
 import {
   INVALID_EDGE_CLASS,
   edgeTypeForStyle,
@@ -8,15 +8,6 @@ import {
   wireToEdge,
   wiresToEdges,
 } from '../wireEdges';
-
-const tool = (id: string): Tool => ({
-  id,
-  type: 'Dummy',
-  x: 0,
-  y: 0,
-  config: {},
-  sockets: [],
-});
 
 const wire = (from: string, to: string): Wire => ({
   from: { tool: from, socket: 'output' },
@@ -27,10 +18,9 @@ const pathOptionsOf = (edge: Edge) => (edge as Edge & { pathOptions?: unknown })
 
 describe('wireEdges', () => {
   it('maps wires to edges with handle ids and stable ids', () => {
-    const tools = [tool('A'), tool('B')];
     const wires = [wire('A', 'B')];
 
-    const [edge] = wiresToEdges(wires, tools, 'bezier');
+    const [edge] = wiresToEdges(wires, 'bezier');
 
     expect(edge).toBeDefined();
     expect(edge!.id).toBe(wireEdgeId(wires[0]!));
@@ -48,31 +38,28 @@ describe('wireEdges', () => {
   });
 
   it('does not bake theme colors into edge state', () => {
-    const tools = [tool('A'), tool('B')];
-    const [edge] = wiresToEdges([wire('A', 'B')], tools, 'bezier');
+    const [edge] = wiresToEdges([wire('A', 'B')], 'bezier');
     expect(edge!.style?.stroke).toBeUndefined();
     expect(edge!.className).toBeUndefined();
   });
 
   it('follows the edge style setting', () => {
-    const tools = [tool('A'), tool('B')];
     const wires = [wire('A', 'B')];
 
     expect(edgeTypeForStyle('bezier')).toBe('default');
     expect(edgeTypeForStyle('step')).toBe('step');
-    expect(wiresToEdges(wires, tools, 'bezier')[0]!.type).toBe('default');
-    expect(wiresToEdges(wires, tools, 'straight')[0]!.type).toBe('straight');
-    expect(pathOptionsOf(wiresToEdges(wires, tools, 'smoothstep')[0]!)).toEqual({
+    expect(wiresToEdges(wires, 'bezier')[0]!.type).toBe('default');
+    expect(wiresToEdges(wires, 'straight')[0]!.type).toBe('straight');
+    expect(pathOptionsOf(wiresToEdges(wires, 'smoothstep')[0]!)).toEqual({
       borderRadius: 20,
     });
-    expect(pathOptionsOf(wiresToEdges(wires, tools, 'step')[0]!)).toBeUndefined();
+    expect(pathOptionsOf(wiresToEdges(wires, 'step')[0]!)).toBeUndefined();
   });
 
   it('flags edges that close a cycle as invalid', () => {
-    const tools = [tool('A'), tool('B'), tool('C')];
     const wires = [wire('A', 'B'), wire('B', 'C'), wire('C', 'A')];
 
-    const edges = wiresToEdges(wires, tools, 'bezier');
+    const edges = wiresToEdges(wires, 'bezier');
 
     for (const edge of edges) {
       expect(edge.className).toBe(INVALID_EDGE_CLASS);
@@ -82,10 +69,9 @@ describe('wireEdges', () => {
   });
 
   it('leaves acyclic edges valid', () => {
-    const tools = [tool('A'), tool('B'), tool('C')];
     const wires = [wire('A', 'B'), wire('B', 'C')];
 
-    const edges = wiresToEdges(wires, tools, 'bezier');
+    const edges = wiresToEdges(wires, 'bezier');
 
     for (const edge of edges) {
       expect(edge.className).toBeUndefined();
@@ -95,13 +81,12 @@ describe('wireEdges', () => {
   });
 
   it('evaluates a single wire against the full wire list', () => {
-    const tools = [tool('A'), tool('B')];
     const wires = [wire('A', 'B'), wire('B', 'A')];
-    expect(wireToEdge(wires[0]!, tools, wires, 'bezier').className).toBe(INVALID_EDGE_CLASS);
-    expect(wireToEdge(wires[0]!, tools, [wires[0]!], 'bezier').className).toBeUndefined();
+    expect(wireToEdge(wires[0]!, wires, 'bezier').className).toBe(INVALID_EDGE_CLASS);
+    expect(wireToEdge(wires[0]!, [wires[0]!], 'bezier').className).toBeUndefined();
   });
 
   it('returns no edges for no wires', () => {
-    expect(wiresToEdges([], [tool('A')], 'bezier')).toEqual([]);
+    expect(wiresToEdges([], 'bezier')).toEqual([]);
   });
 });
