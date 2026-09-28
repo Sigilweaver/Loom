@@ -1,14 +1,26 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import clsx from "clsx";
 
 export interface PageProps {
   children: ReactNode;
+  /** "narrow" suits overview pages, "wide" tables and card grids. */
+  width?: "narrow" | "wide";
   className?: string;
 }
 
 /** Standard page container: consistent padding at every screen size. */
-export function Page({ children, className }: PageProps) {
-  return <div className={clsx("mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8", className)}>{children}</div>;
+export function Page({ children, width = "wide", className }: PageProps) {
+  return (
+    <div
+      className={clsx(
+        "mx-auto w-full p-4 sm:p-6 lg:p-8",
+        width === "narrow" ? "max-w-7xl" : "max-w-[1600px]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 export interface PageHeaderProps {
@@ -21,6 +33,10 @@ export interface PageHeaderProps {
 
 /** Page title (the page's single h1), optional description and actions. */
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
+  useEffect(() => {
+    document.title = `${title} - Loom Hub`;
+  }, [title]);
+
   return (
     <header
       className={clsx(

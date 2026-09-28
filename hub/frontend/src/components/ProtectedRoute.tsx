@@ -1,17 +1,25 @@
 /**
- * Protected route wrapper component
+ * Route guards.
  *
- * Redirects to login if user is not authenticated.
- * Optionally checks for minimum required role.
+ * - ProtectedRoute: signed-in users only; optionally a minimum role.
+ * - UserRoute: the regular-user area (admins, owners and auditors are sent to /admin).
+ * - RoleBasedRedirect: the "/" landing route.
+ *
+ * Each renders its children, or the matched child route when used as a layout route.
  */
 
-import { Navigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore, hasMinRole } from "@state/authStore";
 import type { UserRole } from "@state/authStore";
+import { isAdminRole } from "@components/layout/navigation";
+import { LoadingState } from "@components/ui";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
+interface GuardProps {
+  children?: ReactNode;
+}
+
+interface ProtectedRouteProps extends GuardProps {
   minRole?: UserRole;
 }
 
@@ -19,26 +27,39 @@ export function ProtectedRoute({ children, minRole }: ProtectedRouteProps) {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuthStore();
 
-  // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-sunken">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      <div className="flex min-h-dvh items-center justify-center bg-surface-sunken">
+        <LoadingState label="Loading..." />
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    // Save the attempted URL so we can redirect after login
+    // Remember where the user was going so login can send them back.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role if required
   if (minRole && !hasMinRole(minRole)) {
-    // User doesn't have required role - redirect to workflows
-    return <Navigate to="/workflows" replace />;
+    // Signed in, but not allowed here: send them to their own area.
+    return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <>{children ?? <Outlet />}</>;
+}
+
+export function UserRoute({ children }: GuardProps) {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (isAdminRole(user.role)) return <Navigate to="/admin" replace />;
+
+  return <>{children ?? <Outlet />}</>;
+}
+
+export function RoleBasedRedirect() {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={isAdminRole(user.role) ? "/admin" : "/home"} replace />;
 }

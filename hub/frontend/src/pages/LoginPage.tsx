@@ -1,264 +1,214 @@
 /**
- * Login page component
+ * Login page
  *
- * Handles both initial setup (first user registration) and login.
- * On first run (no users exist), shows registration form.
- * Otherwise, shows login form.
+ * Handles both first-run setup (no users yet: create the owner account) and
+ * regular sign-in. After signing in the user returns to the page they were
+ * trying to open, or to their home area.
  */
 
-import { useState, useEffect, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogIn, UserPlus, Loader2, AlertCircle } from "lucide-react";
-import { useAuthStore } from "@state/authStore";
-import { getAuthStatus, login, register } from "@api";
-import type { UserRole } from "@state/authStore";
+import { useState, useEffect, type FormEvent } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { LogIn, UserPlus } from "lucide-react";
+import { useAuthStore, type UserRole } from "@state/authStore";
+import { getAuthStatus, login, register, type LoginResponse } from "@api";
+import { errorMessage, fieldError } from "@utils/errors";
+import { Alert, Button, Card, Field, Input, LoadingState } from "@components/ui";
 
 type PageMode = "loading" | "login" | "setup";
 
+const MIN_PASSWORD_LENGTH = 8;
+
+/** Where to go after signing in: the page that required login, else the role-based home. */
+function destinationAfterLogin(state: unknown): string {
+  const from = (state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  if (from?.pathname && from.pathname !== "/login") return `${from.pathname}${from.search ?? ""}`;
+  return "/";
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, setAuth } = useAuthStore();
+  const location = useLocation();
+  const { isAuthenticated, sessionExpired, setAuth } = useAuthStore();
 
-  // Page state
   const [mode, setMode] = useState<PageMode>("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/workflows", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
-  // Check if this is first-time setup
-  useEffect(() => {
-    async function checkStatus() {
-      try {
-        const status = await getAuthStatus();
-        setMode(status.initialized ? "login" : "setup");
-      } catch {
-        // Default to login if we can't check status
-        setMode("login");
-      }
-    }
-    checkStatus();
+    document.title = "Sign in - Loom Hub";
   }, []);
 
-  const handleLogin = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
+  // First run: no users exist yet, so this instance still needs its owner account.
+  useEffect(() => {
+    let cancelled = false;
+    getAuthStatus()
+      .then((status) => !cancelled && setMode(status.initialized ? "login" : "setup"))
+      // If the status check fails, fall back to sign-in; login errors will explain the rest.
+      .catch(() => !cancelled && setMode("login"));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    try {
-      const response = await login({ username, password });
-      setAuth(response.access_token, {
-        id: response.user.id,
-        username: response.user.username,
-        role: response.user.role as UserRole,
-      });
-      navigate("/workflows", { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsSubmitting(false);
-    }
+  if (isAuthenticated) {
+    return <Navigate to={destinationAfterLogin(location.state)} replace />;
+  }
+
+  const finish = (response: LoginResponse) => {
+    setAuth(response.access_token, {
+      id: response.user.id,
+      username: response.user.username,
+      role: response.user.role as UserRole,
+    });
+    navigate(destinationAfterLogin(location.state), { replace: true });
   };
 
-  const handleSetup = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError(null);
+    setFieldErrors({});
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
+    const isSetup = mode === "setup";
+    if (isSetup) {
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        setFieldErrors({ password: `Must be at least ${MIN_PASSWORD_LENGTH} characters` });
+        return;
+      }
+      if (password !== confirmPassword) {
+        setFieldErrors({ confirm: "Passwords do not match" });
+        return;
+      }
     }
 
-    // Validate password length
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    setIsSubmitting(true);
-
+    setSubmitting(true);
     try {
-      const response = await register({ username, password });
-      setAuth(response.access_token, {
-        id: response.user.id,
-        username: response.user.username,
-        role: response.user.role as UserRole,
-      });
-      navigate("/workflows", { replace: true });
+      finish(isSetup ? await register({ username, password }) : await login({ username, password }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed");
+      const next: Record<string, string> = {};
+      for (const key of ["username", "password"]) {
+        const message = fieldError(err, key);
+        if (message) next[key] = message;
+      }
+      setFieldErrors(next);
+      if (Object.keys(next).length === 0) {
+        setError(errorMessage(err, isSetup ? "Setup failed" : "Login failed"));
+      }
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   if (mode === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-sunken">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      <div className="flex min-h-dvh items-center justify-center bg-surface-sunken">
+        <LoadingState />
       </div>
     );
   }
 
+  const isSetup = mode === "setup";
+  const TitleIcon = isSetup ? UserPlus : LogIn;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-sunken px-4">
+    <main className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4 py-8">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
+        <div className="mb-8 text-center">
+          <img src="/sigilweaver-logo.svg" alt="" className="mx-auto mb-3 h-12 w-12" />
           <h1 className="text-3xl font-bold text-ink">Loom Hub</h1>
           <p className="mt-2 text-ink-muted">
-            {mode === "setup"
-              ? "Create your admin account to get started"
-              : "Sign in to continue"}
+            {isSetup ? "Create the owner account to get started" : "Sign in to continue"}
           </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-surface-raised rounded-lg border border-line shadow-sm p-8">
-          {/* Title */}
-          <div className="flex items-center gap-3 mb-6">
-            {mode === "setup" ? (
-              <>
-                <div className="p-2 rounded-lg bg-brand-100">
-                  <UserPlus className="h-5 w-5 text-brand-600" />
-                </div>
-                <h2 className="text-xl font-semibold text-ink">
-                  Initial Setup
-                </h2>
-              </>
-            ) : (
-              <>
-                <div className="p-2 rounded-lg bg-brand-100">
-                  <LogIn className="h-5 w-5 text-brand-600" />
-                </div>
-                <h2 className="text-xl font-semibold text-ink">Sign In</h2>
-              </>
-            )}
-          </div>
+        <Card className="shadow-sm sm:p-8">
+          <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-ink">
+            <span className="rounded-lg bg-accent-soft p-2 text-accent-ink">
+              <TitleIcon className="h-5 w-5" />
+            </span>
+            {isSetup ? "Initial setup" : "Sign in"}
+          </h2>
 
-          {/* Error message */}
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
+          {sessionExpired && !error && (
+            <Alert tone="warning" className="mb-4">
+              Your session has expired. Please sign in again.
+            </Alert>
           )}
+          {error && <Alert className="mb-4">{error}</Alert>}
 
-          {/* Form */}
-          <form onSubmit={mode === "setup" ? handleSetup : handleLogin}>
-            {/* Username */}
-            <div className="mb-4">
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-ink-muted mb-1"
-              >
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="Username" error={fieldErrors.username}>
+              <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 minLength={3}
                 autoComplete="username"
                 autoFocus
-                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter username"
               />
-            </div>
+            </Field>
 
-            {/* Password */}
-            <div className="mb-4">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-ink-muted mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
+            <Field
+              label="Password"
+              error={fieldErrors.password}
+              hint={isSetup ? `At least ${MIN_PASSWORD_LENGTH} characters` : undefined}
+            >
+              <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={mode === "setup" ? 8 : 1}
-                autoComplete={mode === "setup" ? "new-password" : "current-password"}
-                className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                placeholder={mode === "setup" ? "Min 8 characters" : "Enter password"}
+                minLength={isSetup ? MIN_PASSWORD_LENGTH : 1}
+                autoComplete={isSetup ? "new-password" : "current-password"}
+                placeholder={isSetup ? `Min ${MIN_PASSWORD_LENGTH} characters` : "Enter password"}
               />
-            </div>
+            </Field>
 
-            {/* Confirm Password (setup only) */}
-            {mode === "setup" && (
-              <div className="mb-6">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-ink-muted mb-1"
-                >
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
+            {isSetup && (
+              <Field label="Confirm password" error={fieldErrors.confirm}>
+                <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={8}
                   autoComplete="new-password"
-                  className="w-full px-3 py-2 border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   placeholder="Confirm password"
                 />
-              </div>
+              </Field>
             )}
 
-            {/* Submit button */}
-            <button
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              variant="primary"
+              loading={submitting}
+              icon={<TitleIcon className="h-4 w-4" />}
+              className="h-10 w-full"
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {mode === "setup" ? "Creating account..." : "Signing in..."}
-                </>
-              ) : mode === "setup" ? (
-                <>
-                  <UserPlus className="h-4 w-4" />
-                  Create Admin Account
-                </>
-              ) : (
-                <>
-                  <LogIn className="h-4 w-4" />
-                  Sign In
-                </>
-              )}
-            </button>
+              {isSetup
+                ? submitting
+                  ? "Creating account..."
+                  : "Create owner account"
+                : submitting
+                  ? "Signing in..."
+                  : "Sign in"}
+            </Button>
           </form>
 
-          {/* Setup notice */}
-          {mode === "setup" && (
-            <p className="mt-4 text-xs text-ink-subtle text-center">
+          {isSetup && (
+            <p className="mt-4 text-center text-xs text-ink-subtle">
               This account will have full owner privileges.
             </p>
           )}
-        </div>
+        </Card>
 
-        {/* Footer */}
         <p className="mt-6 text-center text-sm text-ink-subtle">
           Loom Hub - Workflow Orchestration Platform
         </p>
       </div>
-    </div>
+    </main>
   );
 }
