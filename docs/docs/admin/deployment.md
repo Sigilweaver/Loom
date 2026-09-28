@@ -1,190 +1,239 @@
 ---
-sidebar_position: 1
-description: Deploy Sigilweaver Loom Server and Hub using Docker
+sidebar_position: 2
+title: Deployment Guide
+description: Deploy Sigilweaver Loom Hub, PostgreSQL and Servers with Docker Compose
 ---
 
 # Deployment Guide
 
-This guide covers how to deploy the Sigilweaver Loom server and hub components using Docker. This is suitable for both self-hosted environments and cloud deployments.
+Deploy Hub, PostgreSQL and a Server with Docker Compose. The compose files live in the [`docker/`](https://github.com/Sigilweaver/Loom/tree/main/docker) directory of the repository.
+
+:::caution Open beta
+Hub runs as a **single replica**. Executions and schedules live inside the Hub process. Read [Hub Open Beta](./hub-beta.md) before you plan for high availability.
+:::
+
+## What you get
+
+| Service      | Image                                          | Port  | Purpose                                      |
+| ------------ | ---------------------------------------------- | ----- | -------------------------------------------- |
+| **postgres** | `postgres:16`                                  | 5432 (internal) | Hub database                        |
+| **hub**      | `ghcr.io/sigilweaver/sigilweaver-loom-hub`     | 25802 | Web app, API, scheduler                      |
+| **server**   | `ghcr.io/sigilweaver/sigilweaver-loom-server`  | 25811 | Workflow execution engine                    |
+| **caddy** (optional) | `caddy:2`                              | 80, 443 | HTTPS reverse proxy (TLS overlay)          |
+
+Hub serves both the API (`/api/v1`) and the web app on port 25802. The containers run as a non-root user with read-only root filesystems. Images are built for amd64 only.
 
 ## Prerequisites
 
-- [Docker Engine](https://docs.docker.com/engine/install/) (v24.0+)
-- [Docker Compose](https://docs.docker.com/compose/install/) (v2.20+)
-- OpenSSL (for generating secrets)
+- Docker Engine and Docker Compose v2
+- OpenSSL, to generate secrets
+- A host that Studio users can reach on the ports you publish
 
-## Quick Start (Production)
+## Quick start
 
-To get Sigilweaver Loom up and running quickly, follow these steps:
-
-### 1. Clone the Repository or Download Docker Files
-
-You'll need the `docker-compose.yml` and related configuration files.
+### 1. Get the compose files
 
 ```bash
 git clone https://github.com/Sigilweaver/Loom.git
 cd Loom/docker
 ```
 
-### 2. Configure Environment Variables
+### 2. Generate secrets
 
-Copy the example environment file:
+Hub refuses to start without four secrets, and PostgreSQL needs a password. The compose file reads them from files in `.secrets/`.
+
+```bash
+mkdir -p .secrets
+chmod 700 .secrets
+
+openssl rand -hex 32 > .secrets/session_secret
+openssl rand -hex 32 > .secrets/secret_key
+openssl rand -hex 32 > .secrets/server_registration_secret
+openssl rand -hex 16 > .secrets/postgres_password
+
+# Fernet key that encrypts stored connection credentials
+openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' > .secrets/connection_encryption_key
+
+chmod 600 .secrets/*
+```
+
+| Secret file                  | Used for                                                           |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `session_secret`             | Signing Hub sessions                                               |
+| `secret_key`                 | Legacy signing key. Still required, and must not be empty          |
+| `connection_encryption_key`  | Encrypting connection credentials in the database                  |
+| `server_registration_secret` | Shared secret that Servers present when they register              |
+| `postgres_password`          | PostgreSQL password                                                |
+
+:::warning Back up the encryption key
+If you lose `connection_encryption_key`, every stored Hub connection becomes unrecoverable. Store a copy somewhere safe, apart from the database backups.
+:::
+
+### 3. Optional settings
+
+Copy the example file if you want to change ports, the image version or CORS origins. Secrets stay in `.secrets/`, so leave the secret lines in `.env` empty.
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` to set your domain and other configuration options.
+The variables that matter most:
 
-### 3. Generate Secrets
+| Variable        | Default                                        | Meaning                                                   |
+| --------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| `VERSION`       | `latest`                                       | Image tag to run                                          |
+| `HUB_PORT`      | `25802`                                        | Published Hub port                                        |
+| `SERVER_PORT`   | `25811`                                        | Published Server port                                     |
+| `CORS_ORIGINS`  | `["http://localhost:25803","http://localhost:25810"]` | Browser origins allowed to call Hub. A JSON array, not a comma list |
+| `LOG_LEVEL`     | `info`                                         | `debug`, `info`, `warning` or `error`                     |
 
-Sigilweaver Loom requires several secret keys for secure operation. Run the following commands to generate them:
+Set `CORS_ORIGINS` to the address people use to open Hub, for example `["https://loom.example.com"]`. An empty or malformed value stops Hub from starting.
+
+### 4. Start the stack
+
+Name the compose file explicitly. Plain `docker compose up` also loads `docker-compose.override.yml`, which is for local development and relaxes the security settings.
 
 ```bash
-mkdir -p .secrets
-
-# Session secret for web interface security
-openssl rand -hex 32 > .secrets/session_secret
-
-# Secret key for signing tokens
-openssl rand -hex 32 > .secrets/secret_key
-
-# Secret for registering new servers to the hub
-openssl rand -hex 32 > .secrets/server_registration_secret
-
-# Database password
-openssl rand -hex 16 > .secrets/postgres_password
-
-# Encryption key for database connections
-python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > .secrets/connection_encryption_key
+docker compose -f docker-compose.yml up -d
 ```
 
-:::warning Important
-All secrets **must** be changed from their defaults. In production (`ENVIRONMENT=production`), Hub will refuse to start if `SESSION_SECRET` or `SECRET_KEY` are still set to `CHANGE_ME_IN_PRODUCTION`. In development mode (the default), a warning is logged instead. If `SERVER_REGISTRATION_SECRET` is empty, Hub will log a warning - any server can register without authentication.
+Compose pulls the images. If a tag is not published for your `VERSION`, build them locally instead:
+
+```bash
+docker compose -f docker-compose.yml build
+docker compose -f docker-compose.yml up -d
+```
+
+### 5. Check it
+
+```bash
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml logs -f hub
+```
+
+Hub is healthy when `curl http://localhost:25802/api/v1/health` succeeds. The Server's health endpoint is `/api/health` on port 25811.
+
+### 6. Claim the Owner account
+
+Open Hub in a browser and register. **The first account registered becomes the Owner.** Do this immediately, before you publish Hub's address to anyone else. After that, only an Owner or Admin can create accounts.
+
+## Connect a Server
+
+Hub only sends work to Servers it knows about. There are two ways to add one.
+
+### Let the Server register itself
+
+A Server registers when these variables are set:
+
+| Variable                  | Value                                                                      |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `AUTH_MODE`               | `hub`                                                                      |
+| `HUB_URL`                 | Where the Server reaches Hub, for example `http://hub:25802`               |
+| `HUB_REGISTRATION_SECRET` | The contents of `server_registration_secret`                               |
+| `HUB_SERVER_TOKEN`        | A long random string you choose. It identifies this Server to Hub          |
+| `SERVER_NAME`             | Display name in Hub                                                        |
+| `PUBLIC_ENDPOINT_URL`     | The address Hub **and Studio users** use to reach this Server              |
+
+The Server then re-registers with Hub every 30 seconds, so it recovers if either side restarts.
+
+:::note The sample compose files do not set everything
+`docker-compose.yml` sets `AUTH_MODE`, `HUB_URL`, the registration secret and `SERVER_NAME` for the `server` service. It does not set `HUB_SERVER_TOKEN` or `PUBLIC_ENDPOINT_URL`. Without a token the Server does not register at all. Without a public endpoint it advertises `http://localhost:25811`, which neither Hub nor Studio can use. Add both variables to the `server` service, or register the Server by hand as described below.
 :::
 
-### 4. Build and Start
+`PUBLIC_ENDPOINT_URL` matters because Hub hands that address to Studio. It must work from your users' machines, not only from inside the Docker network.
 
-Build the containers and start the stack in detached mode:
+### Register a Server by hand
 
-```bash
-docker compose build
-docker compose up -d
-```
+1. Sign in as Owner or Admin.
+2. Open **Admin > Servers** and click **Register Server**.
+3. Enter a name and the Server's endpoint URL, for example `https://loom-server.example.com`.
+4. Save. Hub checks the Server's health immediately.
 
-### 5. Verify Deployment
+See [Server Management](./servers.md).
 
-Check the status of your containers:
+## Give the Server data
 
-```bash
-docker compose ps
-```
+Hub mode restricts a Server to the folders that Hub grants to each user, through **filesystem connections**. The compose file mounts a volume read-only at `/app/data/files` inside the Server container. To use your own data, bind-mount a host directory there, then create a filesystem connection in **Admin > Connections** that points at `/app/data/files` and grant it through a grant group.
 
-You can view logs with:
+Servers that read database data use **database connections** instead. See [Hub Connections](./connections.md).
 
-```bash
-docker compose logs -f
-```
+## Persistent data and backups
 
-## Architecture
+| Volume                             | Holds                            |
+| ---------------------------------- | -------------------------------- |
+| `sigilweaver_loom_postgres_data`   | The Hub database                 |
+| `sigilweaver_loom_hub_workflows`   | Uploaded workflow files          |
 
-The deployment consists of several services:
+Back up both, plus your `.secrets/` directory. Execution artifacts are written to `ARTIFACT_STORAGE_PATH` (default `./artifacts` inside the container). Because the Hub container's root filesystem is read-only, point that variable at a mounted volume if you want to keep artifacts. See [Hub Configuration](./hub-configuration.md).
 
-- **Hub**: The central orchestration platform (FastAPI + React).
-- **Server**: The execution engine (Python + Polars).
-- **Postgres**: Database for the Hub.
-- **Nginx** (Optional): Reverse proxy (you may use your own).
+## HTTPS with Caddy
 
-## HTTPS with a Reverse Proxy (Caddy)
+The base file serves plain HTTP. For anything reachable from the internet, put TLS in front. `docker-compose.tls.yml` adds a Caddy reverse proxy that gets and renews certificates automatically. Live execution updates (server-sent events) pass through without buffering.
 
-The base `docker-compose.yml` exposes the Hub over plain HTTP. For any
-internet-facing deployment, put a TLS-terminating reverse proxy in front. A
-ready-to-use Caddy overlay is provided in `docker/docker-compose.tls.yml`; it
-obtains and renews certificates automatically (Let's Encrypt / ZeroSSL).
+1. Point a DNS `A` or `AAAA` record, for example `loom.example.com`, at the host. Ports 80 and 443 must be reachable from the internet for the certificate challenge.
+2. Add to `.env`:
 
-### 1. Point DNS at the host
+   ```bash
+   CADDY_DOMAIN=loom.example.com
+   ACME_EMAIL=admin@example.com
+   CORS_ORIGINS=["https://loom.example.com"]
 
-Create an `A`/`AAAA` record (for example `loom.example.com`) that resolves to
-the public IP of the host. Ports `80` and `443` must be reachable from the
-internet for the ACME challenge.
+   # Keep the app ports on loopback so only Caddy faces the internet
+   HUB_PORT=127.0.0.1:25802
+   SERVER_PORT=127.0.0.1:25811
+   ```
 
-### 2. Configure the TLS variables
+   While testing, set `CADDY_ACME_CA=https://acme-staging-v02.api.letsencrypt.org/directory` to avoid rate limits.
 
-Add to your `.env`:
+3. Start both files:
 
-```bash
-CADDY_DOMAIN=loom.example.com
-ACME_EMAIL=admin@example.com
-CORS_ORIGINS=["https://loom.example.com"]
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+   ```
 
-# Keep the app ports on loopback so only Caddy is internet-facing.
-HUB_PORT=127.0.0.1:25802
-SERVER_PORT=127.0.0.1:25811
-```
-
-While testing, set `CADDY_ACME_CA=https://acme-staging-v02.api.letsencrypt.org/directory`
-to use Let's Encrypt staging and avoid hitting rate limits.
-
-### 3. Start with both compose files
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
-```
-
-Caddy reverse-proxies to the Hub over the internal Docker network. The live
-execution stream (Server-Sent Events) is forwarded without buffering, so
-real-time updates keep working through the proxy.
-
-:::tip
-`CORS_ORIGINS` must be a **JSON array** of origins (not a comma-separated
-list). An empty value will fail to parse and prevent the Hub from starting.
-:::
+If Studio users connect to the Server directly through Hub-issued endpoints, that Server needs its own HTTPS address too. Caddy in this overlay fronts Hub only.
 
 ## Remote Servers over Tailscale
 
-By default the Hub reaches Servers over the internal Docker network, which
-requires them to run on the same host (or an otherwise routable network). When
-a Server runs somewhere the Hub cannot reach directly - a home lab, on-prem
-box, or a separate VPC - join both ends to a [Tailscale](https://tailscale.com)
-tailnet and let the Hub reach the Server by its MagicDNS name.
-
-An example sidecar stack is provided in `docker/sidecar/`. It runs a Tailscale
-sidecar and shares its network namespace with the Server, then advertises the
-Server's MagicDNS name to the Hub via `PUBLIC_ENDPOINT_URL`:
+By default Hub reaches Servers over the Docker network. If a Server runs somewhere Hub cannot reach, such as a home lab or another network, join both to a [Tailscale](https://tailscale.com) tailnet. The stack in `docker/sidecar/` runs a Tailscale sidecar next to the Server and advertises its MagicDNS name through `PUBLIC_ENDPOINT_URL`.
 
 ```bash
 cd docker/sidecar
-cp .env.example .env   # set TS_AUTHKEY, TS_TAILNET, HUB_URL, and Hub credentials
+cp .env.example .env    # set TS_AUTHKEY, TS_HOSTNAME, TS_TAILNET, HUB_URL, HUB_REGISTRATION_SECRET, HUB_SERVER_TOKEN
 docker compose -f docker-compose.tailscale.yml up -d
 ```
 
-The key setting is `PUBLIC_ENDPOINT_URL`. A Server advertises the address the
-Hub should use to reach it for health polling and execution dispatch. Without
-it, the Server advertises its local bind address (`http://localhost:25811`),
-which the Hub on another host cannot reach. Set it to the Server's MagicDNS
-name, for example:
+Hub must be on the tailnet too. See `docker/sidecar/README.md` for the full walkthrough.
+
+## Use an external PostgreSQL
+
+1. Set the Hub's `DATABASE_URL` to `postgresql+asyncpg://user:password@host:5432/database`. The Hub image runs database migrations on start.
+2. Remove the `postgres` service and the Hub's `depends_on` entry for it from your copy of the compose file.
+
+## Add Server capacity
+
+Run another Server container with its own `HUB_SERVER_TOKEN`, `SERVER_NAME` and `PUBLIC_ENDPOINT_URL`. Hub identifies a Server by its token, so containers that share a token count as one Server. Do not use `docker compose --scale` for this.
+
+## Update
 
 ```bash
-PUBLIC_ENDPOINT_URL=http://loom-server.tailnet-name.ts.net:25811
-```
-
-See `docker/sidecar/README.md` for the full walkthrough, including how the Hub
-must also be on the tailnet.
-
-## Updates
-
-To update your deployment to the latest version:
-
-```bash
+cd Loom
 git pull
-docker compose build --pull
-docker compose up -d
+cd docker
+docker compose -f docker-compose.yml pull     # or: build --pull
+docker compose -f docker-compose.yml up -d
 ```
+
+Hub applies database migrations when it starts. Back up the database before you upgrade a beta deployment.
 
 ## Troubleshooting
 
-If containers fail to start, check the logs for specific error messages:
+**Hub exits at startup.** Read `docker compose logs hub`. The usual cause is a missing or empty secret. Hub also stops if `CORS_ORIGINS` is not valid JSON, or if the database is unreachable after 30 attempts.
 
-```bash
-docker compose logs service_name
-```
+**A Server never appears in Admin > Servers.** Check that it has `HUB_SERVER_TOKEN` and `HUB_URL`, that `HUB_REGISTRATION_SECRET` matches Hub's `server_registration_secret`, and that the Server's log shows a successful registration.
+
+**A Server shows Offline.** Hub cannot reach the endpoint it has on file. Open the endpoint's `/api/health` URL from the Hub container.
+
+**Studio cannot run workflows.** The endpoint Hub gives to Studio must be reachable from the user's machine. Set `PUBLIC_ENDPOINT_URL` accordingly.
+
+**Local development.** `docker compose -f hub/docker-compose.yml up --build` starts a throwaway stack with fixed, well-known secrets. Never use it for real data.
