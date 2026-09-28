@@ -384,7 +384,14 @@ export const ConfigText: React.FC<ConfigTextProps> = ({
     const candidate =
       normalized === "" && !emitEmptyString ? undefined : normalized;
 
-    if (candidate === lastCommittedRef.current) {
+    // An empty value is committed as undefined, so "" and undefined are the
+    // same state. Without this, merely mounting a field with an empty value
+    // would "change" the config and mark the workflow as modified.
+    const lastCommitted = lastCommittedRef.current;
+    if (
+      candidate === lastCommitted ||
+      (candidate === undefined && lastCommitted === "" && !emitEmptyString)
+    ) {
       return;
     }
 
