@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "Running tests for B2 upload scripts..."
+echo "Running tests for the release scripts..."
 echo ""
 
 python3 -m pytest tests/ \

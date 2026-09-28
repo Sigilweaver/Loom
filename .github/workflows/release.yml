@@ -1,3 +1,14 @@
+# Build Release
+#
+# Pushing a v* tag builds every installer and creates a DRAFT GitHub release.
+# Nothing is public until a maintainer reviews the draft and publishes it:
+#
+#   - Tags with a '-' suffix (v1.0.0-rc.1) are marked as pre-releases.
+#   - Publishing the draft triggers mirror-release.yml (Cloudflare R2 mirror and
+#     download manifests) and docker-build.yml (ghcr.io images). Both skip the
+#     "latest" pointers for pre-releases.
+#   - The tag must be a semver tag on main whose commit has a passing CI run.
+
 name: Build Release
 
 on:
@@ -18,20 +29,25 @@ concurrency:
 
 jobs:
   validate-tag-on-main:
-    name: Validate tag points to main
+    name: Validate tag
     runs-on: ubuntu-latest
+    # actions: read lets the CI gate query workflow runs for the tagged commit.
+    permissions:
+      contents: read
+      actions: read
     outputs:
       run: ${{ steps.gate.outputs.run }}
+      prerelease: ${{ steps.gate.outputs.prerelease }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      
+
       - name: Fetch main
         run: git fetch origin main --prune
-      
-      - name: Check tag commit is on main
+
+      - name: Check tag format and that the commit is on main
         id: gate
         shell: bash
         run: |
@@ -39,8 +55,24 @@ jobs:
           ref="${GITHUB_REF}"
           if [[ "${ref}" != refs/tags/* ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          tag="${GITHUB_REF_NAME}"
+          semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$'
+          if [[ ! "${tag}" =~ ${semver} ]]; then
+            echo "::error::Tag '${tag}' is not a semver release tag (vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-prerelease)."
+            exit 1
+          fi
+
+          # A '-' suffix marks a pre-release (v1.0.0-rc.1).
+          if [[ "${tag}" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
           commit=$(git rev-list -n 1 "${ref}")
           if git merge-base --is-ancestor "$commit" origin/main; then
             echo "Tag commit is contained in origin/main"
@@ -50,13 +82,23 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Require a passing CI run for the tagged commit
+        if: ${{ steps.gate.outputs.run == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit=$(git rev-list -n 1 "${GITHUB_REF}")
+          python3 .github/scripts/check_ci_status.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --sha "${commit}"
+
   build-server:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-server.yml
     secrets: inherit
-    with:
-      python-version: '3.13'
 
   build-studio-full:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
@@ -77,7 +119,7 @@ jobs:
     secrets: inherit
 
   publish-assets:
-    name: Publish to GitHub Release
+    name: Create draft GitHub Release
     runs-on: ubuntu-latest
     needs:
       - validate-tag-on-main
@@ -144,10 +186,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
-          
+          missing=()
+
           VERSION="${GITHUB_REF_NAME}"
-          
+
           # Check expected files exist
           expected=(
             "Sigilweaver-Loom-${VERSION}-x64.AppImage"
@@ -163,77 +205,72 @@ jobs:
             "Sigilweaver-Loom-Web-${VERSION}.zip"
             "SHA256SUMS.txt"
           )
-          
+
           echo "Validating release assets..."
           for asset in "${expected[@]}"; do
             if [ ! -f "release-assets/$asset" ]; then
-              echo "WARNING: Missing asset: $asset"
-              missing=1
+              echo "::warning::Missing asset: $asset"
+              missing+=("$asset")
             else
               echo "OK: Found $asset"
             fi
           done
-          
-          if [ $missing -eq 1 ]; then
-            echo ""
-            echo "WARNING: Some expected assets are missing."
-            echo "This may be expected (e.g., snap builds can be flaky)."
+
+          {
+            echo "## Release assets"
+            if [ ${#missing[@]} -eq 0 ]; then
+              echo "All expected assets are present."
+            else
+              echo "**Missing expected assets** (snap builds can be flaky; review before publishing):"
+              for asset in "${missing[@]}"; do
+                echo "- ${asset}"
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ${#missing[@]} -gt 0 ]; then
             echo ""
             echo "Available files:"
             ls -lh release-assets/
-            echo ""
-            echo "Continuing with available assets..."
+            echo "Continuing: the release is a draft, so a maintainer reviews the assets before publishing."
           else
-            echo ""
             echo "SUCCESS: All expected assets present!"
           fi
 
-      - name: Upload to GitHub Release
+      # The release is created as a DRAFT so a maintainer can review the assets
+      # and notes before anything is public. Publishing the draft (in the GitHub
+      # UI) is what triggers the R2 mirror (mirror-release.yml) and the Docker
+      # images (docker-build.yml). Tags with a '-' suffix are pre-releases.
+      - name: Create draft GitHub Release
+        id: release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*
           fail_on_unmatched_files: false
           generate_release_notes: true
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: ${{ needs.validate-tag-on-main.outputs.prerelease == 'true' }}
 
-      - name: Mirror assets and manifests to Cloudflare R2 (S3 API)
+      - name: Summarize draft release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_CDN_URL: ${{ secrets.R2_CDN_URL }}
-          GITHUB_SHA: ${{ github.sha }}
-        shell: bash
-        run: |
-          python3 .github/scripts/upload_to_r2.py \
-            "${{ github.ref_name }}" \
-            release-assets/
-
-      - name: Summary of uploaded assets
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        env:
-          R2_CDN_URL: ${{ secrets.R2_CDN_URL }}
+          RELEASE_URL: ${{ steps.release.outputs.url }}
+          PRERELEASE: ${{ needs.validate-tag-on-main.outputs.prerelease }}
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME}"
-          CDN="${R2_CDN_URL:-https://download.sigilweaver.app}"
-          echo "## R2 Upload Summary" >> "$GITHUB_STEP_SUMMARY"
-          if compgen -G "release-assets/*" > /dev/null; then
-            echo "Uploaded the following to ${CDN}/releases/loom/${VERSION}/:" >> "$GITHUB_STEP_SUMMARY"
-            for f in release-assets/*; do
-              [ -e "$f" ] || continue
-              base=$(basename "$f")
-              echo "- ${CDN}/releases/loom/${VERSION}/${base}" >> "$GITHUB_STEP_SUMMARY"
-            done
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Downloads manifest:** ${CDN}/releases/loom/${VERSION}/downloads.json" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Stable manifest:** ${CDN}/releases/loom/${VERSION}/manifest.json" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Releases index:** ${CDN}/releases/loom/index.json" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No release-assets present." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## Draft release created"
+            echo ""
+            echo "Review the assets and notes, then publish: ${RELEASE_URL}"
+            echo ""
+            if [ "${PRERELEASE}" = "true" ]; then
+              echo "This tag is a **pre-release**. Publishing it mirrors the assets to R2 under"
+              echo "its versioned path only and does not touch the stable index or the"
+              echo "\`latest\` Docker tag."
+            else
+              echo "Publishing this release mirrors it to R2, updates the stable index and"
+              echo "pushes the Docker images including the \`latest\` tag."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

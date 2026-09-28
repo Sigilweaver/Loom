@@ -1,12 +1,7 @@
 """Tests for manifest generation."""
 
-import sys
-from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from lib.manifest_builder import ManifestBuilder
+import pytest
+from lib.manifest_builder import ManifestBuilder, is_prerelease
 
 
 class TestManifestBuilder:
@@ -57,9 +52,9 @@ class TestManifestBuilder:
         assert asset["url"].startswith(base_url)
         assert f"/releases/loom/{version}/" in asset["url"]
         # URL should use the original versioned filename
-        assert "Sigilweaver-Loom-Web-v0.2.5-alpha.zip" in asset["url"]
+        assert "Sigilweaver-Loom-Web-v0.2.5.zip" in asset["url"]
         # fileName should also keep the original versioned name
-        assert asset["fileName"] == "Sigilweaver-Loom-Web-v0.2.5-alpha.zip"
+        assert asset["fileName"] == "Sigilweaver-Loom-Web-v0.2.5.zip"
 
     def test_downloads_manifest_structure(self, sample_assets_dir, version, base_url):
         builder = ManifestBuilder(sample_assets_dir, version, base_url)
@@ -175,3 +170,90 @@ class TestManifestBuilder:
         index = builder.update_releases_index(existing)
         versions = [r["version"] for r in index["releases"]]
         assert versions == ["v0.10.2", "v0.9.0", "v0.8.0"]
+
+
+class TestIsPrerelease:
+    """Tags with a '-' suffix are pre-releases; plain semver tags are stable."""
+
+    @pytest.mark.parametrize("tag", ["v0.13.0", "v1.0.0", "v10.20.30", "0.13.0"])
+    def test_stable(self, tag):
+        assert is_prerelease(tag) is False
+
+    @pytest.mark.parametrize(
+        "tag",
+        ["v1.0.0-rc.1", "v0.13.0-beta.2", "v0.2.5-alpha", "1.0.0-rc.1", "v2.0.0-0"],
+    )
+    def test_prerelease(self, tag):
+        assert is_prerelease(tag) is True
+
+
+class TestPrereleaseHandling:
+    """A pre-release must never become the stable download."""
+
+    def test_manifest_channel_is_stable_for_stable_tag(self, sample_assets_dir, base_url):
+        builder = ManifestBuilder(sample_assets_dir, "v0.13.0", base_url)
+        assert builder.prerelease is False
+        assert builder.build_stable_manifest("abc123")["channel"] == "stable"
+
+    def test_manifest_channel_is_prerelease_for_suffixed_tag(
+        self, sample_assets_dir, base_url
+    ):
+        builder = ManifestBuilder(sample_assets_dir, "v1.0.0-rc.1", base_url)
+        assert builder.prerelease is True
+        assert builder.build_stable_manifest("abc123")["channel"] == "prerelease"
+
+    def test_forced_prerelease_on_plain_tag(self, sample_assets_dir, base_url):
+        builder = ManifestBuilder(sample_assets_dir, "v0.13.0", base_url, prerelease=True)
+        assert builder.prerelease is True
+        assert builder.build_stable_manifest("abc123")["channel"] == "prerelease"
+
+    def test_update_index_rejects_prerelease(self, sample_assets_dir, base_url):
+        builder = ManifestBuilder(sample_assets_dir, "v1.0.0-rc.1", base_url)
+        with pytest.raises(ValueError, match="pre-release"):
+            builder.update_releases_index(None)
+
+    def test_update_index_rejects_forced_prerelease(self, sample_assets_dir, base_url):
+        builder = ManifestBuilder(sample_assets_dir, "v0.13.0", base_url, prerelease=True)
+        with pytest.raises(ValueError, match="pre-release"):
+            builder.update_releases_index(None)
+
+    def test_latest_is_newest_stable_when_index_holds_prereleases(
+        self, sample_assets_dir, base_url
+    ):
+        """Legacy prerelease entries must not be picked as 'latest'."""
+        builder = ManifestBuilder(sample_assets_dir, "v0.13.0", base_url)
+        existing = {
+            "schemaVersion": 1,
+            "generatedAt": "2025-01-01T00:00:00Z",
+            "latest": "v0.14.0-rc.1",
+            "releases": [
+                {
+                    "version": "v0.14.0-rc.1",
+                    "date": "2025-01-01T00:00:00Z",
+                    "manifestUrl": "https://example.com/rc",
+                },
+            ],
+        }
+
+        index = builder.update_releases_index(existing)
+        assert index["latest"] == "v0.13.0"
+        assert [r["version"] for r in index["releases"]] == ["v0.14.0-rc.1", "v0.13.0"]
+
+    def test_reuploading_older_stable_keeps_latest(self, sample_assets_dir, base_url):
+        builder = ManifestBuilder(sample_assets_dir, "v0.12.0", base_url)
+        existing = {
+            "schemaVersion": 1,
+            "generatedAt": "2025-01-01T00:00:00Z",
+            "latest": "v0.13.0",
+            "releases": [
+                {
+                    "version": "v0.13.0",
+                    "date": "2025-01-01T00:00:00Z",
+                    "manifestUrl": "https://example.com/13",
+                },
+            ],
+        }
+
+        index = builder.update_releases_index(existing)
+        assert index["latest"] == "v0.13.0"
+        assert [r["version"] for r in index["releases"]] == ["v0.13.0", "v0.12.0"]
