@@ -73,15 +73,6 @@ describe("workflowStore CRUD operations", () => {
         expect(tools).toContainEqual(tool2);
       });
 
-      it("should sync edges after adding a tool", () => {
-        const tool = createTestTool("tool_001");
-        useWorkflowStore.getState().addTool(tool);
-
-        // Edges should be synced (even if empty)
-        const edges = useWorkflowStore.getState().edges;
-        expect(edges).toBeDefined();
-        expect(Array.isArray(edges)).toBe(true);
-      });
     });
 
     describe("removeTool", () => {
@@ -95,7 +86,7 @@ describe("workflowStore CRUD operations", () => {
         expect(tools).toHaveLength(0);
       });
 
-      it("should remove inbound and outbound wires and their edges", () => {
+      it("should remove inbound and outbound wires", () => {
         const tool1 = createTestTool("tool_001");
         const tool2 = createTestToolWithSockets("tool_002");
         const tool3 = createTestToolWithSockets("tool_003");
@@ -110,18 +101,10 @@ describe("workflowStore CRUD operations", () => {
         useWorkflowStore.getState().addWire(outboundWire);
 
         expect(useWorkflowStore.getState().wires).toHaveLength(2);
-        expect(useWorkflowStore.getState().edges).toHaveLength(2);
 
         useWorkflowStore.getState().removeTool("tool_002");
 
         expect(useWorkflowStore.getState().wires).toHaveLength(0);
-        expect(useWorkflowStore.getState().edges).toHaveLength(0);
-        expect(useWorkflowStore.getState().edges).not.toContainEqual(
-          expect.objectContaining({ source: "tool_002" })
-        );
-        expect(useWorkflowStore.getState().edges).not.toContainEqual(
-          expect.objectContaining({ target: "tool_002" })
-        );
       });
 
       it("should clear selection if removing selected tool", () => {
@@ -312,21 +295,6 @@ describe("workflowStore CRUD operations", () => {
         expect(result2.error).toBe("Input already connected");
       });
 
-      it("should sync edges after adding wire", () => {
-        const tool1 = createTestTool("tool_001");
-        const tool2 = createTestToolWithSockets("tool_002");
-
-        useWorkflowStore.getState().addTool(tool1);
-        useWorkflowStore.getState().addTool(tool2);
-
-        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
-        useWorkflowStore.getState().addWire(wire);
-
-        const edges = useWorkflowStore.getState().edges;
-        expect(edges).toHaveLength(1);
-        expect(edges[0]?.source).toBe("tool_001");
-        expect(edges[0]?.target).toBe("tool_002");
-      });
     });
 
     describe("removeWire", () => {
@@ -347,22 +315,6 @@ describe("workflowStore CRUD operations", () => {
         expect(useWorkflowStore.getState().wires).toHaveLength(0);
       });
 
-      it("should sync edges after removing wire", () => {
-        const tool1 = createTestTool("tool_001");
-        const tool2 = createTestToolWithSockets("tool_002");
-
-        useWorkflowStore.getState().addTool(tool1);
-        useWorkflowStore.getState().addTool(tool2);
-
-        const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
-        useWorkflowStore.getState().addWire(wire);
-
-        expect(useWorkflowStore.getState().edges).toHaveLength(1);
-
-        useWorkflowStore.getState().removeWire(wire.from, wire.to);
-
-        expect(useWorkflowStore.getState().edges).toHaveLength(0);
-      });
     });
 
     describe("removeWiresByTool", () => {
@@ -445,7 +397,6 @@ describe("workflowStore CRUD operations", () => {
 
         expect(useWorkflowStore.getState().tools).toHaveLength(2);
         expect(useWorkflowStore.getState().wires).toHaveLength(1);
-        expect(useWorkflowStore.getState().edges).toHaveLength(1);
       });
     });
   });
@@ -462,7 +413,6 @@ describe("workflowStore CRUD operations", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(0);
         expect(state.wires).toHaveLength(0);
-        expect(state.edges).toHaveLength(0);
         expect(state.selectedTool).toBeNull();
         expect(state.workflowMeta.name).toBe("New Workflow");
       });
@@ -496,7 +446,6 @@ describe("workflowStore CRUD operations", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(2);
         expect(state.wires).toHaveLength(1);
-        expect(state.edges).toHaveLength(1);
         expect(state.workflowMeta.name).toBe("Loaded Workflow");
         expect(state.selectedTool).toBeNull();
       });
@@ -512,46 +461,8 @@ describe("workflowStore CRUD operations", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(0);
         expect(state.wires).toHaveLength(0);
-        expect(state.edges).toHaveLength(0);
         expect(state.selectedTool).toBeNull();
       });
-    });
-  });
-
-  describe("Edge synchronization", () => {
-    it("should automatically sync edges when wires change", () => {
-      const tool1 = createTestTool("tool_001");
-      const tool2 = createTestToolWithSockets("tool_002");
-
-      useWorkflowStore.getState().addTool(tool1);
-      useWorkflowStore.getState().addTool(tool2);
-
-      expect(useWorkflowStore.getState().edges).toHaveLength(0);
-
-      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
-      useWorkflowStore.getState().addWire(wire);
-
-      expect(useWorkflowStore.getState().edges).toHaveLength(1);
-    });
-
-    it("should create edges with correct properties", () => {
-      const tool1 = createTestTool("tool_001");
-      const tool2 = createTestToolWithSockets("tool_002");
-
-      useWorkflowStore.getState().addTool(tool1);
-      useWorkflowStore.getState().addTool(tool2);
-
-      const wire = createTestWire('tool_001', 'output', 'tool_002', 'input');
-      useWorkflowStore.getState().addWire(wire);
-
-      const edge = useWorkflowStore.getState().edges[0];
-      expect(edge).toBeDefined();
-      expect(edge!.source).toBe("tool_001");
-      expect(edge!.target).toBe("tool_002");
-      expect(edge!.sourceHandle).toBe("output-output");
-      expect(edge!.targetHandle).toBe("input-input");
-      expect(edge!.deletable).toBe(true);
-      expect(edge!.selectable).toBe(true);
     });
   });
 });

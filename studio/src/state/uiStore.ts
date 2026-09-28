@@ -4,7 +4,7 @@ import type { ProfileResponse } from "../api/backend";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
-type BottomPaneTab = "preview" | "logs" | "network" | "profile";
+type BottomPaneTab = "preview" | "logs" | "network" | "profile" | "problems";
 
 export interface PreviewState {
   toolId: string;

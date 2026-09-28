@@ -6,6 +6,9 @@
  */
 import { Tool, Wire } from '@domain/workflow/entities/workflow';
 
+/** Cycle detection only needs tool identity, not position or config. */
+type ToolRef = Pick<Tool, 'id'>;
+
 /**
  * Node visit states for DFS cycle detection.
  * - UNVISITED: Node has not been processed yet
@@ -28,7 +31,7 @@ const enum VisitState {
  * @param wires - All wire connections between tools
  * @returns true if a cycle exists, false if the graph is acyclic
  */
-export function detectCycles(tools: Tool[], wires: Wire[]): boolean {
+export function detectCycles(tools: ToolRef[], wires: Wire[]): boolean {
   // Build adjacency list: toolId -> list of tools it connects TO
   const adjacencyList = new Map<string, string[]>();
   for (const tool of tools) {
@@ -96,16 +99,16 @@ export function detectCycles(tools: Tool[], wires: Wire[]): boolean {
 /**
  * Check if adding a new wire would create a cycle.
  *
- * Used during wire creation to prevent users from creating invalid loops.
+ * Used during wire creation to prevent users from creating invalid loops, and
+ * to flag the wires that close a loop. Only the proposed wire is judged: a
+ * cycle elsewhere in the graph does not make an unrelated wire invalid.
  *
- * @param tools - All tools in the workflow
  * @param wires - Existing wire connections
  * @param newFromTool - Source tool ID for the proposed wire
  * @param newToTool - Target tool ID for the proposed wire
  * @returns true if the new wire would create a cycle
  */
 export function wouldCreateCycle(
-  tools: Tool[],
   wires: Wire[],
   newFromTool: string,
   newToTool: string
@@ -115,14 +118,25 @@ export function wouldCreateCycle(
     return true;
   }
 
-  // Simulate adding the wire and check for cycles
-  const tempWires: Wire[] = [
-    ...wires,
-    {
-      from: { tool: newFromTool, socket: 'output' },
-      to: { tool: newToTool, socket: 'input' },
-    },
-  ];
+  // The new wire closes a loop exactly when its target can already reach its source
+  const downstream = new Map<string, string[]>();
+  for (const wire of wires) {
+    const list = downstream.get(wire.from.tool);
+    if (list) list.push(wire.to.tool);
+    else downstream.set(wire.from.tool, [wire.to.tool]);
+  }
 
-  return detectCycles(tools, tempWires);
+  const seen = new Set<string>([newToTool]);
+  const stack = [newToTool];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    for (const next of downstream.get(current) ?? []) {
+      if (next === newFromTool) return true;
+      if (!seen.has(next)) {
+        seen.add(next);
+        stack.push(next);
+      }
+    }
+  }
+  return false;
 }

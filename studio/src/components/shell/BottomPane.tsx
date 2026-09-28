@@ -4,6 +4,8 @@ import DataTable from "@components/viewer/DataTable";
 import LogViewer from "@components/viewer/LogViewer";
 import RuntimeLogViewer from "@components/viewer/RuntimeLogViewer";
 import ProfileViewer from "@components/viewer/ProfileViewer";
+import ProblemsViewer from "@components/viewer/ProblemsViewer";
+import { useValidationStore, runWorkflowValidation } from "@state/validationStore";
 import SocketTabs from "@components/viewer/SocketTabs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 import { X } from "lucide-react";
@@ -19,6 +21,8 @@ const BottomPane = () => {
   } = useUIStore();
 
   const [isResizing, setIsResizing] = useState(false);
+  const problemCount = useValidationStore((s) => s.issues.length);
+  const problemsActive = useValidationStore((s) => s.active);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsResizing(true);
@@ -104,6 +108,9 @@ const BottomPane = () => {
             <TabsTrigger value="profile" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
               Data Profile
             </TabsTrigger>
+            <TabsTrigger value="problems" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
+              Problems{problemsActive && problemCount > 0 ? ` (${problemCount})` : ""}
+            </TabsTrigger>
             <TabsTrigger value="logs" className="px-3 py-1.5 rounded border-b-0 data-[state=active]:bg-theme-surface-panel data-[state=active]:border data-[state=active]:border-theme-border-primary">
               Workflow Logs
             </TabsTrigger>
@@ -136,6 +143,9 @@ const BottomPane = () => {
           </TabsContent>
           <TabsContent value="profile" className="flex-1 p-3 overflow-auto m-0">
             <ProfileViewer />
+          </TabsContent>
+          <TabsContent value="problems" className="flex-1 p-3 overflow-auto m-0">
+            <ProblemsViewer onValidate={runWorkflowValidation} />
           </TabsContent>
           <TabsContent value="logs" className="flex-1 p-3 overflow-auto m-0">
             <LogViewer />
