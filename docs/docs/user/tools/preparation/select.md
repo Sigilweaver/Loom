@@ -1,10 +1,17 @@
 ---
 sidebar_position: 2
+title: Schema (Select)
+sidebar_label: Schema
 ---
 
-# Select
+# Schema (Select)
 
 Choose, rename, reorder, and cast columns.
+
+| | |
+|---|---|
+| **Palette name** | Schema (category Compute) |
+| **Type name** | `Select` |
 
 ## Sockets
 
@@ -15,7 +22,7 @@ Choose, rename, reorder, and cast columns.
 
 ## Configuration
 
-The Select tool shows a table of all available columns with the following controls:
+The Schema tool shows a table of all available columns with the following controls:
 
 | Column | Description |
 |--------|-------------|
@@ -91,7 +98,7 @@ For String/Utf8 columns, enter a size limit to truncate values to that many char
 - **Empty configuration**: If no columns are configured, all columns pass through unchanged
 - **Duplicate names**: An error is shown if you rename two columns to the same name
 - **Cast failures**: If a value can't be cast to the target type, execution will fail
-- **Row count unchanged**: Select only affects columns, not rows
+- **Row count unchanged**: Schema only affects columns, not rows
 
 ## Related
 

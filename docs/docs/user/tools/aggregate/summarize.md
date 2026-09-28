@@ -1,10 +1,17 @@
 ---
 sidebar_position: 1
+title: Aggregate (Summarize)
+sidebar_label: Aggregate
 ---
 
-# Summarize
+# Aggregate (Summarize)
 
 Group data and calculate aggregations (sums, averages, counts, etc.).
+
+| | |
+|---|---|
+| **Palette name** | Aggregate (category Reshape) |
+| **Type name** | `Summarize` |
 
 ## Sockets
 
@@ -15,7 +22,7 @@ Group data and calculate aggregations (sums, averages, counts, etc.).
 
 ## Configuration
 
-The Summarize tool shows a table of all available columns. For each column, select an action:
+The Aggregate tool shows a table of all available columns. For each column, select an action:
 
 | Action | Description | Works On |
 |--------|-------------|----------|

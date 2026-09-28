@@ -6,6 +6,11 @@ sidebar_position: 2
 
 Reshape data from long format to wide format by turning unique values from one column into new columns.
 
+| | |
+|---|---|
+| **Palette name** | Pivot (category Reshape) |
+| **Type name** | `Pivot` |
+
 ## Sockets
 
 | Socket | Direction | Description |

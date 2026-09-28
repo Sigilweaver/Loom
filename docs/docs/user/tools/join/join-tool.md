@@ -6,6 +6,11 @@ sidebar_position: 2
 
 Combine two datasets horizontally based on matching key columns.
 
+| | |
+|---|---|
+| **Palette name** | Join (category Combine) |
+| **Type name** | `Join` |
+
 ## Sockets
 
 ### Inputs
