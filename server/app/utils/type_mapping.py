@@ -4,7 +4,7 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 
 # Mapping from Polars types to our API enum
 POLARS_TO_MODEL: dict[type, PolarsDataType] = {

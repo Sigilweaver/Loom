@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime
 
-from app.api.models.workflow import Tool, Workflow
 from app.domain.execution.graph import ExecutionGraph
+from app.domain.models.workflow import Tool, Workflow
 from app.domain.tools.registry import ToolRegistry
 
 

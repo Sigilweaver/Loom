@@ -9,11 +9,11 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import DataSchema
-from app.api.models.workflow import Tool, Workflow
 from app.config import settings
 from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
+from app.domain.models.common import DataSchema
+from app.domain.models.workflow import Tool, Workflow
 from app.domain.profiling.profiler import ColumnProfiler, ProfileMetrics
 from app.domain.tools.registry import ToolRegistry
 from app.utils.errors import (

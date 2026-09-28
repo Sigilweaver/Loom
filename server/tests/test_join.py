@@ -3,7 +3,7 @@
 import polars as pl
 import pytest
 
-from app.api.models.common import ColumnSchema, DataSchema
+from app.domain.models.common import ColumnSchema, DataSchema
 from app.domain.tools.implementations.join import JoinTool
 
 

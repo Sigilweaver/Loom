@@ -8,7 +8,7 @@ If these tests fail, it indicates a schema drift between
 frontend TypeScript types and backend Pydantic models.
 """
 
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 
 
 class TestMinimalWorkflowContract:

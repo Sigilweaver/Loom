@@ -15,10 +15,10 @@ Future: Add RBAC checks here (can this user access this connection?).
 
 import logging
 
-from app.api.models.workflow import Tool, Workflow
 from app.domain.connections.models import ResolvedConnection
 from app.domain.connections.store import ConnectionStore, get_connection_store
 from app.domain.connections.uri import build_connection_uri
+from app.domain.models.workflow import Tool, Workflow
 from app.utils.errors import ExecutionError
 
 logger = logging.getLogger(__name__)

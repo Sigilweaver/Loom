@@ -2,7 +2,7 @@
 
 from collections import defaultdict, deque
 
-from app.api.models.workflow import Socket, Tool, Workflow
+from app.domain.models.workflow import Socket, Tool, Workflow
 from app.utils.errors import ValidationError
 
 

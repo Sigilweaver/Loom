@@ -232,7 +232,7 @@ class TestSampleToolSchema:
     @pytest.mark.asyncio
     async def test_schema_preserved(self, sample_tool: SampleTool):
         """Test that sample preserves schema."""
-        from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+        from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 
         input_schema = DataSchema(
             columns=[

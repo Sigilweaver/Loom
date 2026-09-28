@@ -8,8 +8,8 @@ from typing import Any
 
 import sigilyx
 
-from app.api.models.common import ColumnSchema, DataPreview, DataSchema, PolarsDataType
 from app.domain.datasources.base import DataSource
+from app.domain.models.common import ColumnSchema, DataPreview, DataSchema, PolarsDataType
 from app.utils.errors import DataSourceError
 from app.utils.security import validate_file_path
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars

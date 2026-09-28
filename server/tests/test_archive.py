@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.api.models.workflow import Workflow, WorkflowMeta
+from app.domain.models.workflow import Workflow, WorkflowMeta
 from app.domain.workflow.archive import WorkflowArchive
 
 

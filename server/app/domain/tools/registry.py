@@ -2,7 +2,7 @@
 
 from typing import Callable, Type
 
-from app.api.models.workflow import DEFAULT_ENGINE
+from app.domain.models.workflow import DEFAULT_ENGINE
 from app.domain.tools.base import BaseTool
 from app.utils.errors import ToolError
 

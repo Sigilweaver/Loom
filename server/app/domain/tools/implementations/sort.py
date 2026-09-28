@@ -5,7 +5,7 @@ from typing import Any, Literal
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import SortColumn, SortOperation
 from app.domain.tools.registry import register_tool

@@ -7,8 +7,8 @@ wrong results because `BaseTool.validate_config` was never called.
 
 import pytest
 
-from app.api.models.workflow import Tool, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.models.workflow import Tool, Workflow, WorkflowMeta
 from app.domain.tools.implementations.sort import SortTool
 from app.utils.errors import ExecutionError
 

@@ -5,7 +5,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
