@@ -36,6 +36,7 @@ on:
       - "studio/tauri/Cargo.lock"
       - "studio/tauri/Cargo.toml"
       - ".github/workflows/audit.yml"
+  workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"
 
@@ -61,6 +62,7 @@ jobs:
       - run: cd hub/backend && uv export --no-dev --no-emit-project -o requirements.txt
       - run: cd hub/backend && uvx pip-audit --strict -r requirements.txt
 
+
   bun-audit-hub-frontend:
     name: bun audit (hub/frontend)
     runs-on: ubuntu-latest
@@ -68,28 +70,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: cd hub/frontend && bun install --frozen-lockfile
-      # Advisories tracked in Sigilweaver/Loom#3 - all in eslint's/vite's/vitest's
-      # own transitive chains, none shipped in the built bundle. Remove these
-      # --ignore flags once that migration lands.
-      #
-      # GHSA-mh99-v99m-4gvg (brace-expansion) is tracked in Sigilweaver/Loom#28 -
-      # a second, newer DoS advisory in the same eslint-8.x-owned
-      # minimatch -> brace-expansion chain as the Loom#3 entries above. The fix
-      # landed in brace-expansion 5.0.8, but minimatch (and eslint 8.x itself)
-      # still pin the pre-5.0.8 1.x/2.x majors, so no compatible bump exists yet.
-      - run: >
-          cd hub/frontend && bun audit --audit-level=high
-          --ignore=GHSA-23c5-xmqv-rm74
-          --ignore=GHSA-25h7-pfq9-p65f
-          --ignore=GHSA-3ppc-4f35-3m26
-          --ignore=GHSA-7r86-cg39-jmmj
-          --ignore=GHSA-96hv-2xvq-fx4p
-          --ignore=GHSA-c2c7-rcm5-vvqj
-          --ignore=GHSA-fx2h-pf6j-xcff
-          --ignore=GHSA-hmw2-7cc7-3qxx
-          --ignore=GHSA-mh99-v99m-4gvg
-          --ignore=GHSA-mw96-cpmx-2vgc
-          --ignore=GHSA-rf6f-7fwh-wjgh
+      # No advisories are ignored here. Keep it that way: fix with an in-range
+      # lockfile bump or an "overrides" entry in package.json instead.
+      - run: cd hub/frontend && bun audit --audit-level=high
 
   bun-audit-studio:
     name: bun audit (studio)
@@ -98,92 +81,22 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: cd studio && bun install --frozen-lockfile
-      # Advisories tracked in Sigilweaver/Loom#3 - electron-builder's own bundled
-      # deps plus eslint's/vite's/vitest's transitive chains, none shipped in the
-      # built app. Remove these --ignore flags once that migration lands.
+      # Transitive advisories are fixed via the "overrides" field in
+      # studio/package.json (nanoid, fast-uri, js-yaml, @xmldom/xmldom) and by
+      # keeping the minimatch/brace-expansion entries in bun.lock on patched
+      # releases. Do not add an --ignore for anything that has a fix.
       #
-      # The following are tracked in Sigilweaver/Loom#28:
-      # - GHSA-mh99-v99m-4gvg (brace-expansion) is a second, newer DoS advisory
-      #   in the same eslint-8.x-owned minimatch -> brace-expansion chain as the
-      #   Loom#3 entries above. The fix landed in brace-expansion 5.0.8, but
-      #   minimatch (and eslint 8.x itself) still pin the pre-5.0.8 1.x/2.x
-      #   majors, so no compatible bump exists yet.
-      # - GHSA-v9p9-hfj2-hcw8, GHSA-vrm6-8vpv-qv8q, GHSA-vxpw-j846-p89q (undici)
-      #   come from @ai-sdk/provider-utils, which pins undici at ^5.29.0 across
-      #   its whole 4.0.x line (the patched releases are 6.24.0/7.24.0). Moving
-      #   past this needs a major @ai-sdk/* bump, not just a lockfile refresh.
-      #
-      # Newly surfaced 2026-08-08, same eslint-8.x/electron-builder debt as
-      # Loom#3 (re-scoped there rather than filed separately):
-      # - GHSA-5p4m-2wfm-xmqj (js-yaml) and GHSA-7p8r-x3mc-p8w7 (fast-uri) are
-      #   both pulled in by eslint's own @eslint/eslintrc dependency chain
-      #   (and, for fast-uri, also by electron-builder's ajv chain); neither
-      #   has a compatible bump on eslint 8.x.
-      # - GHSA-rgw5-rvv9-x895 (brace-expansion) is a third DoS advisory in the
-      #   same minimatch -> brace-expansion chain as the Loom#3/#28 entries
-      #   above - still no compatible bump while eslint 8.x/electron-builder
-      #   pin the pre-fix minimatch majors.
-      # nanoid (GHSA-2v37-7h3g-55p8, postcss's dependency) is constrained to the
-      # patched ^3.3.18 via the "overrides" field in package.json instead of
-      # being ignored here, since a same-major patch bump was available. The
-      # advisory range was later widened to < 3.3.18, so this is a caret rather
-      # than the exact 3.3.17 pin it started as - an exact pin silently froze
-      # both frontends below the fix when the range moved.
-      #
-      # GHSA-jmr9-qjv8-65gv (extract-zip symlink path traversal) is tracked in
-      # Sigilweaver/Loom#148. It has no patched version at all - the advisory
-      # covers <= 2.0.1 and 2.0.1 is the latest release. It reaches us only via
-      # electron's install-time unpack of the prebuilt runtime archive, and is
-      # not shipped in the packaged app.
+      # The only ignores are two advisories against extract-zip, which has no
+      # patched release at all (the advisories cover <= 2.0.1 and 2.0.1 is the
+      # latest version). It is reached only through electron's install-time
+      # unpack of the prebuilt runtime archive (electron -> extract-zip), so it
+      # runs on developer and CI machines, never in the shipped app. Recent Electron
+      # majors replace it; remove both ignores when the Electron major is
+      # bumped. Tracked in Sigilweaver/Loom#148.
       - run: >
           cd studio && bun audit --audit-level=high
-          --ignore=GHSA-23c5-xmqv-rm74
-          --ignore=GHSA-25h7-pfq9-p65f
-          --ignore=GHSA-2v35-w6hq-6mfw
-          --ignore=GHSA-34x7-hfp2-rc4v
-          --ignore=GHSA-35jp-ww65-95wh
-          --ignore=GHSA-3g43-6gmg-66jw
-          --ignore=GHSA-3ppc-4f35-3m26
-          --ignore=GHSA-43fc-jf86-j433
-          --ignore=GHSA-5p4m-2wfm-xmqj
-          --ignore=GHSA-6chq-wfr3-2hj9
-          --ignore=GHSA-777c-7fjr-54vf
-          --ignore=GHSA-7h2j-956f-4vf2
-          --ignore=GHSA-7p8r-x3mc-p8w7
-          --ignore=GHSA-7r86-cg39-jmmj
-          --ignore=GHSA-83g3-92jg-28cx
-          --ignore=GHSA-8qq5-rm4j-mr97
-          --ignore=GHSA-96hv-2xvq-fx4p
-          --ignore=GHSA-9ppj-qmqm-q256
-          --ignore=GHSA-c2c7-rcm5-vvqj
-          --ignore=GHSA-f6ww-3ggp-fr8h
-          --ignore=GHSA-fx2h-pf6j-xcff
-          --ignore=GHSA-hfxv-24rg-xrqf
-          --ignore=GHSA-hmw2-7cc7-3qxx
-          --ignore=GHSA-j5f8-grm9-p9fc
-          --ignore=GHSA-j759-j44w-7fr8
           --ignore=GHSA-jmr9-qjv8-65gv
-          --ignore=GHSA-mh99-v99m-4gvg
-          --ignore=GHSA-mw96-cpmx-2vgc
-          --ignore=GHSA-p92q-9vqr-4j8v
-          --ignore=GHSA-p9ff-h696-f583
-          --ignore=GHSA-pf86-5x62-jrwf
-          --ignore=GHSA-ph9p-34f9-6g65
-          --ignore=GHSA-pmwg-cvhr-8vh7
-          --ignore=GHSA-q3j6-qgpj-74h6
-          --ignore=GHSA-q8qp-cvcw-x6jj
-          --ignore=GHSA-qffp-2rhf-9h96
-          --ignore=GHSA-r5fr-rjxr-66jc
-          --ignore=GHSA-r6q2-hw4h-h46w
-          --ignore=GHSA-rf6f-7fwh-wjgh
-          --ignore=GHSA-rgw5-rvv9-x895
-          --ignore=GHSA-v2wj-q39q-566r
-          --ignore=GHSA-v39h-62p7-jpjc
-          --ignore=GHSA-v9p9-hfj2-hcw8
-          --ignore=GHSA-vrm6-8vpv-qv8q
-          --ignore=GHSA-vxpw-j846-p89q
-          --ignore=GHSA-wh4c-j3r5-mjhp
-          --ignore=GHSA-x6wf-f3px-wcqx
+          --ignore=GHSA-7pqw-9j4j-h8q3
 
   cargo-audit:
     name: cargo audit (studio/tauri)
@@ -191,10 +104,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: taiki-e/install-action@cargo-audit
-      # RUSTSEC-2026-0194/0195 (quick-xml, via plist -> tauri-utils -> tauri) are
-      # tracked in Sigilweaver/Loom#3 - no independent fix without an upstream
-      # tauri/plist bump. Remove these --ignore flags once that lands.
-      - run: >
-          cd studio/tauri && cargo audit
-          --ignore RUSTSEC-2026-0194
-          --ignore RUSTSEC-2026-0195
+      # No advisories are ignored. Unmaintained/unsound warnings from the Tauri
+      # and GTK dependency trees are reported as warnings and do not fail the job.
+      - run: cd studio/tauri && cargo audit
