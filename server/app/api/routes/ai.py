@@ -75,20 +75,48 @@ _FORWARD_ALLOWLIST = frozenset(
 )
 
 
+_NAT64_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _embedded_ipv4(
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> ipaddress.IPv4Address | None:
+    """The IPv4 address an IPv6 address carries (IPv4-mapped, 6to4, NAT64), if any."""
+    if not isinstance(addr, ipaddress.IPv6Address):
+        return None
+    if addr.ipv4_mapped is not None:
+        return addr.ipv4_mapped
+    if addr.sixtofour is not None:
+        return addr.sixtofour
+    if addr in _NAT64_PREFIX:
+        return ipaddress.IPv4Address(int(addr) & 0xFFFFFFFF)
+    return None
+
+
 def _reject_if_unsafe(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> None:
-    """Raise if an IP falls in a range the proxy must never target."""
-    if (
-        addr.is_private
-        or addr.is_loopback
-        or addr.is_link_local
-        or addr.is_reserved
-        or addr.is_multicast
-        or addr.is_unspecified
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Upstream URL must not target private or internal networks",
-        )
+    """Raise if an IP falls in a range the proxy must never target.
+
+    Anything that is not a globally routable address is refused. That covers the
+    shared/CGNAT range (100.64.0.0/10, used by some cloud metadata services) which
+    is neither "private" nor "reserved" to the ipaddress module, and IPv6 forms that
+    wrap an internal IPv4 address.
+    """
+    embedded = _embedded_ipv4(addr)
+    candidates = [addr] if embedded is None else [addr, embedded]
+    for candidate in candidates:
+        if (
+            candidate.is_private
+            or candidate.is_loopback
+            or candidate.is_link_local
+            or candidate.is_reserved
+            or candidate.is_multicast
+            or candidate.is_unspecified
+            or not candidate.is_global
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Upstream URL must not target private or internal networks",
+            )
 
 
 def _validate_upstream_url(url: str) -> str:
