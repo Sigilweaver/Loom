@@ -23,6 +23,7 @@ from app.domain.executions.models import (
     TriggerType,
 )
 from app.domain.servers.client import ServerClient, ServerError
+from app.domain.servers.selection import NoOnlineServerError, select_online_server
 from app.domain.workflows.store import WorkflowFileStore
 
 logger = logging.getLogger(__name__)
@@ -78,8 +79,6 @@ class ExecutionService:
         """
         self.db = db
         self.file_store = file_store or WorkflowFileStore()
-        # Track server round-robin index
-        self._server_index = 0
 
     def _model_to_info(
         self,
@@ -169,20 +168,11 @@ class ExecutionService:
                 raise ServerNotFoundError(f"Server not found: {server_id}")
             return server
 
-        # Auto-select: get all online servers
-        result = await self.db.execute(
-            select(Server).where(Server.status == "online").order_by(Server.name)
-        )
-        servers = list(result.scalars().all())
-
-        if not servers:
-            raise NoAvailableServerError("No healthy servers available")
-
-        # Round-robin selection
-        server = servers[self._server_index % len(servers)]
-        self._server_index += 1
-
-        return server
+        # Auto-select: least-loaded online server (ties broken at random).
+        try:
+            return await select_online_server(self.db)
+        except NoOnlineServerError:
+            raise NoAvailableServerError("No healthy servers available") from None
 
     async def list_executions(
         self,
