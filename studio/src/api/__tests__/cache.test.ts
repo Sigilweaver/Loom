@@ -19,6 +19,8 @@ import {
   clearAllCaches,
   closeAllWorkflowCaches,
   getCacheStats,
+  cacheAllPreviews,
+  selectCacheablePreviews,
 } from '../cache';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
 
@@ -524,6 +526,61 @@ describe('cache', () => {
       closeAllWorkflowCaches([]);
 
       expect(getCacheStats().size).toBe(0);
+    });
+  });
+
+  describe('cacheAllPreviews', () => {
+    const schema = { columns: [] } as unknown;
+
+    it('stores entries under the same keys per-socket previews look up', async () => {
+      const workflow = createTestWorkflow();
+
+      await cacheAllPreviews(workflow, 50, {
+        input1: { outputs: { output: { data: [{ a: 1 }], data_schema: schema } } },
+        filter1: { outputs: { 'output-true': { data: [{ a: 2 }], data_schema: schema } } },
+      });
+
+      expect(getCacheStats().size).toBe(2);
+      expect(getCachedPreview('input1', workflow, 50, 'output')?.data).toEqual([{ a: 1 }]);
+      expect(getCachedPreview('filter1', workflow, 50, 'output-true')?.data).toEqual([{ a: 2 }]);
+      // A different limit is a different cache entry
+      expect(getCachedPreview('input1', workflow, 100, 'output')).toBeNull();
+    });
+
+    it('matches keys built by computeCacheKey exactly', async () => {
+      const workflow = createTestWorkflow();
+      await cacheAllPreviews(workflow, 25, {
+        filter1: { outputs: { 'output-true': { data: [], data_schema: schema } } },
+      });
+
+      cachePreview('filter1', workflow, 25, 'output-true', {
+        tool_id: 'filter1',
+        socket_id: 'output-true',
+        data: [{ replaced: true }],
+        data_schema: { columns: [] },
+      });
+
+      // Same key: the direct write replaced the bulk write instead of adding a second entry
+      expect(getCacheStats().size).toBe(1);
+      expect(computeCacheKey('filter1', workflow, 'preview', 25, 'output-true')).toContain('"limit":25');
+    });
+  });
+
+  describe('selectCacheablePreviews', () => {
+    it('drops sockets without data and tools without any cacheable socket', () => {
+      const result = selectCacheablePreviews({
+        a: { outputs: { output: { data: [{ x: 1 }], data_schema: { columns: [] } } } },
+        b: { outputs: { output: { data_schema: { columns: [] } } } },
+        c: {
+          outputs: {
+            'output-true': { data: [], data_schema: { columns: [] } },
+            'output-false': { data_schema: { columns: [] } },
+          },
+        },
+      });
+
+      expect(Object.keys(result)).toEqual(['a', 'c']);
+      expect(Object.keys(result.c!.outputs)).toEqual(['output-true']);
     });
   });
 });
