@@ -2,14 +2,14 @@
 //!
 //! This is the Rust backend for the Tauri build of Sigilweaver Loom Studio.
 //! It implements the same platform capabilities as the Electron version:
-//! - File operations (read, write, dialogs)
+//! - File operations (dialog-granted read/write, dialogs)
 //! - Settings persistence
-//! - Secure credential storage
+//! - Secure credential storage and the credential-injecting proxy
 //! - Backend process management
 
 mod commands;
 
-use commands::{backend, credentials, files, settings};
+use commands::{backend, credentials, files, proxy, settings};
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
@@ -24,7 +24,7 @@ fn check_bundled_server_config_matches_feature(config: &tauri::Config) {
         .bundle
         .external_bin
         .as_ref()
-        .is_some_and(|bins| bins.iter().any(|b| b == "binaries/server"));
+        .is_some_and(|bins| bins.iter().any(|b| b == backend::SIDECAR_CONFIG_ENTRY));
 
     if backend::HAS_BUNDLED_SERVER != sidecar_configured {
         eprintln!(
@@ -45,12 +45,15 @@ pub fn run() {
     check_bundled_server_config_matches_feature(context.config());
 
     let app = tauri::Builder::default()
+        // Dialogs, the store and the shell (sidecar) plugins are used from Rust
+        // only; the renderer is granted none of their commands (see
+        // capabilities/main.json). The opener plugin backs external links.
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .manage(backend::BackendManager::default())
+        .manage(files::FileGrants::default())
         .invoke_handler(tauri::generate_handler![
             // Settings commands
             settings::get_settings,
@@ -64,13 +67,15 @@ pub fn run() {
             credentials::get_session_token,
             credentials::is_encryption_available,
             credentials::list_connections,
-            credentials::list_connections_by_type,
             credentials::get_connection,
             credentials::create_connection,
             credentials::update_connection,
             credentials::delete_connection,
             credentials::resolve_connection,
+            credentials::connection_proxy_available,
             credentials::test_connection,
+            // Credential proxy
+            proxy::backend_request,
         ])
         .setup(|app| {
             // Initialize session token on app startup
