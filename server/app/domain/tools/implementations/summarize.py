@@ -143,11 +143,17 @@ class SummarizeTool(BaseTool):
         values for those columns (like SQL SELECT DISTINCT).
         """
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Summarize tool requires input on socket 'input'")
+            raise ToolError(
+                "Summarize tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Summarize tool does not support multiple inputs")
+            raise ToolError(
+                "Summarize tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         group_by_config = config.get("groupByColumns", [])
@@ -218,11 +224,17 @@ class SummarizeTool(BaseTool):
         Calculate output schema based on group by and aggregation configuration.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Summarize tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Summarize tool requires input schema on socket 'input'. Connect an upstream "
+                "tool to its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Summarize tool does not support multiple input schemas")
+            raise ToolError(
+                "Summarize tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
         group_by_config = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])

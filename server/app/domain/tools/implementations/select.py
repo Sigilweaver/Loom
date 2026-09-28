@@ -99,11 +99,17 @@ class SelectTool(BaseTool):
         - columnConfigs: list[dict] - column configurations
         """
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Select tool requires input on socket 'input'")
+            raise ToolError(
+                "Select tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Select tool does not support multiple inputs")
+            raise ToolError(
+                "Select tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         column_configs = config.get("columnConfigs", [])
@@ -143,11 +149,17 @@ class SelectTool(BaseTool):
         Calculate output schema based on column configuration.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Select tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Select tool requires input schema on socket 'input'. Connect an upstream tool "
+                "to its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Select tool does not support multiple input schemas")
+            raise ToolError(
+                "Select tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         column_configs = config.get("columnConfigs", [])

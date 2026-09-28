@@ -109,11 +109,16 @@ class PivotTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """Execute pivot operation."""
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Pivot tool requires input on socket 'input'")
+            raise ToolError(
+                "Pivot tool has no input connected. Connect an upstream tool to its 'input' socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Pivot tool does not support multiple inputs")
+            raise ToolError(
+                "Pivot tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         on = config.get("on", "")
@@ -162,11 +167,17 @@ class PivotTool(BaseTool):
         the index columns with a note that additional columns will be created.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Pivot tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Pivot tool requires input schema on socket 'input'. Connect an upstream tool to "
+                "its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Pivot tool does not support multiple input schemas")
+            raise ToolError(
+                "Pivot tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         index = config.get("index", [])

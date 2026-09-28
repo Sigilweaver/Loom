@@ -84,12 +84,17 @@ class InputTool(BaseTool):
         # Get source type
         source_type = config.get("type")
         if not source_type:
-            raise ToolError("Input tool config missing 'type' field")
+            raise ToolError(
+                "Input tool has no data source type. Choose a file format or database in the "
+                "Input tool settings."
+            )
 
         # Get source (file path or database URI)
         source = config.get("source")
         if not source:
-            raise ToolError("Input tool config missing 'source' field")
+            raise ToolError(
+                "Input tool has no source. Choose a file or connection in the Input tool settings."
+            )
 
         # Use LoaderFactory to get appropriate loader and load data
         loader = LoaderFactory.create(source_type)
@@ -109,14 +114,19 @@ class InputTool(BaseTool):
         """
         source_type = config.get("type")
         if not source_type:
-            raise ToolError("Input tool config missing 'type' field")
+            raise ToolError(
+                "Input tool has no data source type. Choose a file format or database in the "
+                "Input tool settings."
+            )
 
         # Use datasource factory to inspect
         datasource = DataSourceFactory.create(source_type)
         source_path = config.get("source")
 
         if not source_path:
-            raise ToolError("Input tool config missing 'source' field")
+            raise ToolError(
+                "Input tool has no source. Choose a file or connection in the Input tool settings."
+            )
 
         # Inspect to get schema
         schema = await datasource.inspect(source_path, config)
