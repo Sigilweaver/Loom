@@ -68,11 +68,17 @@ function getElectronPlugins(): PluginOption[] {
           build: {
             minify: false,
             outDir: "dist-electron",
+            // The package is "type": "module", so the plugin would emit the
+            // preload as an ES module, which Electron cannot run as a
+            // (sandboxed) preload script. Force CommonJS with a .cjs name;
+            // main.ts loads "preload.cjs".
+            lib: {
+              entry: "electron/preload.ts",
+              formats: ["cjs"],
+              fileName: () => "preload.cjs",
+            },
             rollupOptions: {
               external: ["electron"],
-              output: {
-                format: "cjs",
-              },
             },
           },
         },

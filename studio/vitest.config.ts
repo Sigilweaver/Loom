@@ -26,7 +26,11 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}", "src/**/__tests__/**/*.{ts,tsx}"],
+    include: [
+      "src/**/*.test.{ts,tsx}",
+      "src/**/__tests__/**/*.{ts,tsx}",
+      "electron/**/*.test.ts",
+    ],
     exclude: [
       "**/*.integration.test.{ts,tsx}", // Exclude integration tests by default
       "**/__tests__/**/*.integration.test.{ts,tsx}",
