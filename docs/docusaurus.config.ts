@@ -164,7 +164,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver Loom™ is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
+      copyright: `&copy; ${new Date().getFullYear()} Sigilweaver Holdings LLC. Sigilweaver Loom&trade; is a trademark of Sigilweaver Holdings LLC. Documentation licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC-BY-SA 4.0</a>. AGPL-3.0 licensed. Operated by Sigilweaver LLC.`,
     },
     prism: {
       theme: prismThemes.github,
