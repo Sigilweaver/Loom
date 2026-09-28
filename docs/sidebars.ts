@@ -1,7 +1,13 @@
 import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 /**
- * Sigilweaver Loom Documentation Sidebar
+ * Sigilweaver Loom documentation sidebar.
+ *
+ * Reading order:
+ *   users:       getting started -> concepts -> interface -> data -> tools
+ *                -> connections -> AI assistant -> Hub
+ *   admins:      deployment -> configuration -> Hub beta notes -> access model -> security
+ *   developers:  setup -> architecture -> contributing -> testing -> building -> reference
  */
 const sidebars: SidebarsConfig = {
   docsSidebar: [
@@ -9,14 +15,13 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'User Guide',
-      link: {
-        type: 'doc',
-        id: 'user/index',
-      },
+      link: { type: 'doc', id: 'user/index' },
       items: [
+        'user/getting-started',
+        'user/concepts',
         {
           type: 'category',
-          label: 'Interface',
+          label: 'Studio Interface',
           items: [
             'user/interface/canvas',
             'user/interface/tool-palette',
@@ -24,33 +29,28 @@ const sidebars: SidebarsConfig = {
             'user/interface/configuration-panel',
             'user/interface/data-preview',
             'user/interface/keyboard-shortcuts',
-            'user/interface/connections',
-            'user/interface/hub',
+            'user/interface/settings',
             'user/interface/caching',
-            'user/interface/ai-assistant',
           ],
         },
         {
           type: 'category',
-          label: 'Expressions',
+          label: 'Data and Expressions',
           items: [
+            'user/data-types',
             'user/expressions/basics',
             'user/expressions/syntax-rules',
             'user/expressions/common-operations',
           ],
         },
-        'user/data-types',
         {
           type: 'category',
-          label: 'Tools',
-          link: {
-            type: 'doc',
-            id: 'user/tools/index',
-          },
+          label: 'Tools Reference',
+          link: { type: 'doc', id: 'user/tools/index' },
           items: [
             {
               type: 'category',
-              label: 'Input/Output',
+              label: 'Connect',
               items: [
                 'user/tools/input-output/input',
                 'user/tools/input-output/output',
@@ -58,60 +58,80 @@ const sidebars: SidebarsConfig = {
             },
             {
               type: 'category',
-              label: 'Preparation',
+              label: 'Compute',
               items: [
                 'user/tools/preparation/filter',
                 'user/tools/preparation/select',
                 'user/tools/preparation/sort',
                 'user/tools/preparation/formula',
+                'user/tools/preparation/sample',
+                'user/tools/preparation/unique',
               ],
             },
             {
               type: 'category',
-              label: 'Join',
+              label: 'Reshape',
+              items: [
+                'user/tools/aggregate/summarize',
+                'user/tools/aggregate/pivot',
+                'user/tools/aggregate/unpivot',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Combine',
               items: [
                 'user/tools/join/union',
                 'user/tools/join/join-tool',
               ],
             },
-            {
-              type: 'category',
-              label: 'Aggregate',
-              items: [
-                'user/tools/aggregate/summarize',
-              ],
-            },
           ],
         },
-
+        {
+          type: 'doc',
+          id: 'user/interface/connections',
+          label: 'Managing Connections',
+        },
+        {
+          type: 'doc',
+          id: 'user/interface/ai-assistant',
+          label: 'AI Assistant',
+        },
+        {
+          type: 'doc',
+          id: 'user/interface/hub',
+          label: 'Using Hub',
+        },
       ],
     },
     {
       type: 'category',
       label: 'Administrator Guide',
-      link: {
-        type: 'doc',
-        id: 'admin/index',
-      },
+      link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/deployment',
-        'admin/roles',
-        'admin/users',
-        'admin/groups',
-        'admin/grant-groups',
+        'admin/server-configuration',
+        'admin/hub-configuration',
+        'admin/hub-beta',
+        {
+          type: 'category',
+          label: 'Access Control',
+          items: [
+            'admin/roles',
+            'admin/users',
+            'admin/groups',
+            'admin/grant-groups',
+          ],
+        },
         'admin/connections',
         'admin/servers',
-        'admin/server-configuration',
         'admin/security',
       ],
     },
     {
       type: 'category',
       label: 'Developer Guide',
-      link: {
-        type: 'doc',
-        id: 'developer/index',
-      },
+      link: { type: 'doc', id: 'developer/index' },
       items: [
         'developer/getting-started',
         {
@@ -131,13 +151,14 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Contributing',
           items: [
-            'developer/contributing/cla',
             'developer/contributing/workflow',
-            'developer/contributing/adding-tools',
+            'developer/contributing/cla',
+            'developer/contributing/code-style',
             'developer/contributing/studio',
             'developer/contributing/server',
             'developer/contributing/hub',
-            'developer/contributing/code-style',
+            'developer/contributing/adding-tools',
+            'developer/contributing/adding-formats',
           ],
         },
         {
@@ -152,7 +173,7 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'category',
-          label: 'Building',
+          label: 'Building and Releasing',
           items: [
             'developer/building/development',
             'developer/building/packaging',
