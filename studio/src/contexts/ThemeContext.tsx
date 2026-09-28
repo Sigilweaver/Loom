@@ -765,8 +765,9 @@ const applyThemeVariables = (theme: Theme) => {
     }
   }
 
-  // Global semantic warning color (for blocking indicators, etc.)
+  // Global semantic warning/error colors (blocking indicators, validation badges, etc.)
   root.style.setProperty("--color-warning", colors.palette.semantic.warning[500]);
+  root.style.setProperty("--color-error", colors.palette.semantic.error[500]);
 
   // Tool category colors (preserved for visual associations)
   root.style.setProperty("--color-tool-connect", colors.palette.tools.connect[500]);
