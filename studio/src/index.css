@@ -139,6 +139,15 @@ code {
   fill: var(--color-edge-animated-stroke-hover);
 }
 
+/* Edges that would form a cycle (see wireEdges.ts) */
+.react-flow__edge.edge-invalid .react-flow__edge-path {
+  stroke: var(--color-edge-invalid-stroke) !important;
+}
+
+.react-flow__edge.edge-invalid:hover .react-flow__edge-path {
+  stroke: var(--color-edge-invalid-stroke-hover) !important;
+}
+
 /* Custom scrollbar styles - Global sleek scrollbars */
 ::-webkit-scrollbar {
   width: 10px;
