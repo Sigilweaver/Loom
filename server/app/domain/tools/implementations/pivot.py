@@ -26,13 +26,6 @@ PIVOT_AGGREGATIONS = {
     "len": "Count",
 }
 
-# Aggregations that only work on numeric columns
-NUMERIC_ONLY_AGGREGATIONS = {"sum", "mean", "median"}
-
-# Aggregations that work on any type
-UNIVERSAL_AGGREGATIONS = {"first", "last", "min", "max", "len"}
-
-
 class PivotToolConfig(BaseModel):
     """Typed config for Pivot."""
 

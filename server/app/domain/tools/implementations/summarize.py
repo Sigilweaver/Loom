@@ -32,15 +32,6 @@ AGGREGATION_OPERATIONS = {
     "Concat": "str.concat",
 }
 
-# Aggregations that work on numeric columns only
-NUMERIC_ONLY_AGGREGATIONS = {"Sum", "Mean", "Median", "Std", "Var"}
-
-# Aggregations that work on string columns
-STRING_AGGREGATIONS = {"First", "Last", "Concat", "Count", "CountDistinct", "Min", "Max"}
-
-# Aggregations that work on any column type
-UNIVERSAL_AGGREGATIONS = {"Count", "CountDistinct", "First", "Last", "Min", "Max"}
-
 
 class SummarizeAggregationConfig(BaseModel):
     """Single aggregation. Typed config."""
@@ -61,24 +52,6 @@ class SummarizeToolConfig(BaseModel):
     groupByColumns: list[Any] = Field(default_factory=list)
     aggregations: list[SummarizeAggregationConfig] = Field(default_factory=list)
     includeNulls: bool = False
-
-
-def is_numeric_dtype(dtype: str) -> bool:
-    """Check if a dtype string represents a numeric type"""
-    numeric_types = {
-        "Int8",
-        "Int16",
-        "Int32",
-        "Int64",
-        "UInt8",
-        "UInt16",
-        "UInt32",
-        "UInt64",
-        "Float32",
-        "Float64",
-        "Decimal",
-    }
-    return dtype in numeric_types
 
 
 def get_result_dtype(operation: str, input_dtype: PolarsDataType) -> PolarsDataType:

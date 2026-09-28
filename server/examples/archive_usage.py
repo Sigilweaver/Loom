@@ -9,12 +9,19 @@ This script shows how to:
 4. Clean up old archives
 """
 
+import os
 from datetime import datetime, timedelta
 
 import requests
 
-# Backend URL (adjust if needed)
-BASE_URL = "http://localhost:25811/api"
+# Server URL (adjust if needed)
+BASE_URL = os.environ.get("SERVER_URL", "http://localhost:25811") + "/api"
+
+# When the server runs with AUTH_MODE=ephemeral or static, requests need its
+# session token. With AUTH_MODE=disabled no token is needed.
+session = requests.Session()
+if os.environ.get("SESSION_TOKEN"):
+    session.headers["Authorization"] = f"Bearer {os.environ['SESSION_TOKEN']}"
 
 
 def check_archive_status():
@@ -23,7 +30,7 @@ def check_archive_status():
     print("ARCHIVE STATUS")
     print("=" * 60)
 
-    response = requests.get(f"{BASE_URL}/archive/status")
+    response = session.get(f"{BASE_URL}/archive/status")
     status = response.json()
 
     print(f"Enabled: {status['enabled']}")
@@ -38,7 +45,7 @@ def list_recent_archives(limit=10):
     print(f"RECENT ARCHIVES (limit={limit})")
     print("=" * 60)
 
-    response = requests.get(f"{BASE_URL}/archive/list?limit={limit}")
+    response = session.get(f"{BASE_URL}/archive/list?limit={limit}")
     data = response.json()
 
     print(f"Total archives: {data['total']}")
@@ -70,7 +77,7 @@ def list_archives_by_date(start_date=None, end_date=None):
     if end_date:
         params["end_date"] = end_date.strftime("%Y-%m-%d")
 
-    response = requests.get(f"{BASE_URL}/archive/list", params=params)
+    response = session.get(f"{BASE_URL}/archive/list", params=params)
     data = response.json()
 
     print(f"Date range: {params.get('start_date', 'any')} to {params.get('end_date', 'any')}")
@@ -86,7 +93,7 @@ def get_archive_details(archive_path):
     print(f"ARCHIVE DETAILS: {archive_path}")
     print("=" * 60)
 
-    response = requests.get(f"{BASE_URL}/archive/detail/{archive_path}")
+    response = session.get(f"{BASE_URL}/archive/detail/{archive_path}")
     details = response.json()
 
     # Workflow info
@@ -131,7 +138,7 @@ def cleanup_old_archives(retention_days=30, dry_run=True):
     if dry_run:
         # List what would be deleted
         cutoff = datetime.now() - timedelta(days=retention_days)
-        response = requests.get(
+        response = session.get(
             f"{BASE_URL}/archive/list", params={"end_date": cutoff.strftime("%Y-%m-%d")}
         )
         data = response.json()
@@ -141,7 +148,7 @@ def cleanup_old_archives(retention_days=30, dry_run=True):
             print(f"  - {archive['path']} ({archive['workflow_name']})")
     else:
         # Actually delete
-        response = requests.post(
+        response = session.post(
             f"{BASE_URL}/archive/cleanup", json={"retention_days": retention_days}
         )
         result = response.json()
@@ -180,8 +187,8 @@ def main():
         print("=" * 60)
 
     except requests.exceptions.ConnectionError:
-        print("ERROR: Could not connect to backend server.")
-        print("Make sure the backend is running on http://localhost:25811")
+        print("ERROR: Could not connect to the server.")
+        print(f"Make sure it is running at {BASE_URL.removesuffix('/api')}")
     except Exception as e:
         print(f"ERROR: {e}")
 

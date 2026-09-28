@@ -258,14 +258,9 @@ class TestHeartbeatLoop:
 
 
 class TestCreateHeartbeatManager:
-    @pytest.fixture(autouse=True)
-    def _reset_global(self, monkeypatch):
-        monkeypatch.setattr(hb, "_heartbeat_manager", None)
-
     def test_none_outside_hub_mode(self, monkeypatch):
         monkeypatch.setattr(settings, "auth_mode", "disabled")
         assert create_heartbeat_manager() is None
-        assert hb.get_heartbeat_manager() is None
 
     def test_none_when_hub_not_configured(self, monkeypatch):
         monkeypatch.setattr(settings, "auth_mode", "hub")
@@ -283,7 +278,6 @@ class TestCreateHeartbeatManager:
         assert manager.server_name == "server-25811"
         # A bind-all address is not reachable by Hub; advertise localhost
         assert manager.endpoint_url == "http://localhost:25811"
-        assert hb.get_heartbeat_manager() is manager
 
     def test_explicit_host_is_advertised(self, monkeypatch):
         monkeypatch.setattr(settings, "auth_mode", "hub")

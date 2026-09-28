@@ -100,37 +100,6 @@ class ExecutionPlan:
 
         return levels
 
-    def get_ready_tools(self, completed: set[str]) -> list[str]:
-        """
-        Get tools that are ready to execute (all dependencies completed).
-
-        Used for dynamic parallel scheduling where tools are scheduled
-        as soon as their dependencies complete. This enables more aggressive
-        parallelism than level-based batching (get_execution_levels) by
-        starting tools immediately when their dependencies finish.
-
-        Note: Currently reserved for future use. The executor uses
-        get_execution_levels() for simpler level-based parallel execution.
-
-        Args:
-            completed: Set of tool IDs that have completed execution
-
-        Returns:
-            List of tool IDs ready to execute (not yet completed,
-            all dependencies satisfied)
-        """
-        ready = []
-        tools_in_plan = set(self.execution_order)
-
-        for tool_id in self.execution_order:
-            if tool_id in completed:
-                continue
-            deps = [d for d in self.get_dependencies(tool_id) if d in tools_in_plan]
-            if all(d in completed for d in deps):
-                ready.append(tool_id)
-
-        return ready
-
 
 class ExecutionPlanner:
     """

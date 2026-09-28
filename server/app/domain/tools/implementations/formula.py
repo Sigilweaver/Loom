@@ -195,14 +195,6 @@ class FormulaTool(BaseTool):
             for op in raw_ops
         ]
 
-    # Keep legacy helper for backward compat with tests
-    def _build_operation(self, config: dict[str, Any]) -> FormulaOperation:
-        """Build a single formula operation from config (legacy)."""
-        return FormulaOperation(
-            column_name=config.get("column_name", ""),
-            expr_str=config.get("expression", ""),
-        )
-
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
