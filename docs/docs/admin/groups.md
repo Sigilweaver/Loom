@@ -1,5 +1,6 @@
 ---
-sidebar_position: 4
+sidebar_position: 8
+title: User Groups
 ---
 
 # User Groups
@@ -11,7 +12,7 @@ User Groups organize users and control what resources they can access. A user se
 Hub uses a three-level permission hierarchy:
 
 ```
-Users → User Groups → Grant Groups → Connections
+Users -> User Groups -> Grant Groups -> Connections
 ```
 
 1. **Users** are added to **User Groups** (organizational structure)
@@ -52,32 +53,32 @@ When you assign a grant group, all members of the user group immediately gain ac
 
 ```
 Engineering (User Group)
-├── Members: alice, bob, charlie
-└── Grant Groups: Production DBs, Dev DBs
+|-- Members: alice, bob, charlie
+`-- Grant Groups: Production DBs, Dev DBs
 
 Analytics (User Group)  
-├── Members: diana, eve
-└── Grant Groups: Data Warehouse, Dev DBs
+|-- Members: diana, eve
+`-- Grant Groups: Data Warehouse, Dev DBs
 ```
 
 ### By Access Level
 
 ```
 Production Access (User Group)
-├── Members: alice, bob (senior engineers)
-└── Grant Groups: Production DBs
+|-- Members: alice, bob (senior engineers)
+`-- Grant Groups: Production DBs
 
 Development Only (User Group)
-├── Members: charlie, diana (junior devs)
-└── Grant Groups: Dev DBs
+|-- Members: charlie, diana (junior devs)
+`-- Grant Groups: Dev DBs
 ```
 
 ### By Project
 
 ```
 Project Alpha (User Group)
-├── Members: alice, diana, eve
-└── Grant Groups: Alpha DBs, Shared Resources
+|-- Members: alice, diana, eve
+`-- Grant Groups: Alpha DBs, Shared Resources
 ```
 
 ## Access Changes

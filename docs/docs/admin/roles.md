@@ -1,55 +1,65 @@
 ---
-sidebar_position: 2
+sidebar_position: 6
+title: Roles and Permissions
 ---
 
 # Roles and Permissions
 
-Hub has four roles with a strict separation between administration and operation.
+Hub has four roles. Administration and operation are kept apart on purpose.
 
-## Permission Matrix
+| Role        | Who                                                                       |
+| ----------- | ------------------------------------------------------------------------- |
+| **Owner**   | The first account registered on a fresh Hub. There is exactly one.        |
+| **Admin**   | Manages infrastructure and people. Assigned by the Owner.                 |
+| **Auditor** | Read-only access to everything, including the audit log.                  |
+| **User**    | Builds, runs and schedules workflows. The default role.                   |
 
-Read the table as: **C**reate, **R**ead, **U**pdate, **D**elete. A dash means no access.
+## Permission matrix
 
-| Resource | Owner | Admin | Auditor | User |
-|----------|-------|-------|---------|------|
-| Users | CRUD | CRUD | R | - |
-| Groups | CRUD | CRUD | R | R (own) |
-| Connections | CRUD | CRUD | R | R (own groups) |
-| Servers | CRUD | CRUD | R | R (own groups) |
-| Workflows | RD (all) | RD (all) | R | CRUD (own) |
-| Schedules | RD (all) | RD (all) | R | CRUD (own) |
-| Executions | R | R | R | CR (own) |
+**C**reate, **R**ead, **U**pdate, **D**elete. A dash means no access.
 
-**Key points:**
-- Admins can delete any workflow/schedule but cannot create or edit them
-- Users can only see workflows, schedules, and executions they created
-- Users can see their own group memberships
-- Users can see connections and servers assigned to groups they belong to
-- Only users with the User role can trigger executions
+| Resource         | Owner    | Admin    | Auditor | User               |
+| ---------------- | -------- | -------- | ------- | ------------------ |
+| Users            | CRUD     | CRUD (see below) | R | -                  |
+| User groups      | CRUD     | CRUD     | R       | R (own groups)     |
+| Grant groups     | CRUD     | CRUD     | R       | -                  |
+| Connections      | CRUD     | CRUD     | R       | R (granted ones)   |
+| Servers          | CRUD     | CRUD     | R       | R (via own groups) |
+| Workflows        | R, D (all) | R, D (all) | R     | CRUD (own)         |
+| Schedules        | R, D (all) | R, D (all) | R     | CRUD (own)         |
+| Executions       | R        | R        | R       | Create and read (own) |
+| Audit log        | R        | R        | R       | -                  |
 
-## Why Admins Cannot Run Workflows
+Key points:
 
-Administrators manage infrastructure. Users operate it. This separation provides:
+- Owners and Admins can delete any workflow or schedule but cannot create, edit or run them.
+- **Only the User role can start executions.** Owners, Admins and Auditors cannot.
+- Users see only the workflows, schedules and executions they created.
+- Auditors have read access to everything but cannot delete anything.
 
-- **Audit clarity** - Administrative actions are distinct from operational use
-- **Least privilege** - Admins don't need workflow execution to do their job
-- **Compliance** - Clear role boundaries for SOX, HIPAA, etc.
+## Who can manage whom
 
-If someone needs both capabilities, create two accounts.
+| Actor     | Can create, edit and delete                 | Can assign the roles           |
+| --------- | ------------------------------------------- | ------------------------------ |
+| **Owner** | Any other user                              | Admin, Auditor, User           |
+| **Admin** | Auditors and Users only                     | Auditor, User                  |
 
-## Group Membership
+Nobody can assign the Owner role, edit the Owner or delete the Owner. You cannot edit or delete your own account from the user list. Change your own name and password from the profile menu instead.
 
-Only users with the User role can be members of groups. Admin-level users (Owner, Admin, Auditor) cannot be added to groups because:
+## Why administrators cannot run workflows
 
-- Admins already see all resources regardless of group membership
-- Groups control resource access for regular users only
+Administrators manage infrastructure and users operate it. Keeping the roles apart gives you:
 
-## Server Selection
+- **Clear audit trails.** Administrative actions and operational use are different events.
+- **Least privilege.** An administrator does not need to run workflows to do the job.
+- **Clean role boundaries** for reviews and compliance.
 
-When creating schedules or triggering executions, users can optionally select a specific server from their available servers (those assigned to their groups). If no server is specified, Hub automatically selects an available server using round-robin load balancing.
+If someone needs both, give them two accounts.
 
-Admins assign servers to groups to control which user teams can access which compute resources. This enables:
+## Group membership
 
-- **Resource isolation** - Production servers for production teams
-- **Cost management** - High-performance servers for specific workloads
-- **Compliance** - Dedicated servers for sensitive data processing
+Only accounts with the **User** role can be members of user groups. Owners, Admins and Auditors already see every resource, and groups exist to control what Users can reach.
+
+## What decides who can use a Server
+
+Users see the Servers assigned to their groups. When a user or schedule does not name a Server, Hub chooses one automatically from the Servers that are online. The group assignment controls what appears in a user's list, not which Server Hub picks. See [Server Management](./servers.md).
