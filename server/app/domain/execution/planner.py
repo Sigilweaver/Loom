@@ -7,11 +7,12 @@ Separated from WorkflowExecutor to:
 3. Support execution plan caching
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterator
 
 from app.api.models.workflow import Tool, Workflow
 from app.domain.execution.graph import ExecutionGraph
+from app.utils.errors import ValidationError
 
 
 @dataclass(frozen=True)
@@ -49,22 +50,16 @@ class ExecutionPlan:
         """Get list of tool IDs this tool depends on."""
         return self.dependencies.get(tool_id, [])
 
-    def get_execution_order_up_to(self, target_tool_id: str) -> list[str]:
-        """
-        Get execution order up to and including target tool.
+    def without_tool(self, tool_id: str) -> "ExecutionPlan":
+        """Return a copy of this plan that does not execute ``tool_id``.
 
-        Args:
-            target_tool_id: Tool ID to stop at
-
-        Returns:
-            List of tool IDs in execution order up to target
+        Input mappings are kept so the removed tool's inputs can still be
+        looked up (used to describe a tool's inputs without running it).
         """
-        result = []
-        for tool_id in self.execution_order:
-            result.append(tool_id)
-            if tool_id == target_tool_id:
-                break
-        return result
+        return replace(
+            self,
+            execution_order=tuple(t for t in self.execution_order if t != tool_id),
+        )
 
     def get_execution_levels(self) -> list[list[str]]:
         """
@@ -165,25 +160,27 @@ class ExecutionPlanner:
 
         Args:
             target_tool_id: Optional tool ID to create partial plan for.
-                            If provided, plan only includes tools needed to execute target.
+                            If provided, the plan contains only the target and its
+                            transitive upstream dependencies, in execution order.
+                            Unrelated branches of the workflow are not included.
 
         Returns:
             Immutable ExecutionPlan with execution order and input mappings
+
+        Raises:
+            ValidationError: If target_tool_id is not a tool in the workflow, or the
+                workflow contains a cycle.
         """
         # Get full execution order
         full_order = self._graph.execution_order()
 
-        # Filter to target if specified
-        if target_tool_id:
-            # Find index of target
-            try:
-                target_index = full_order.index(target_tool_id)
-                execution_order = full_order[: target_index + 1]
-            except ValueError:
-                # Target not found, return full order
-                execution_order = full_order
-        else:
+        if target_tool_id is None:
             execution_order = full_order
+        else:
+            if target_tool_id not in self._graph.dependencies:
+                raise ValidationError(f"Tool {target_tool_id} not found in workflow")
+            needed = self._graph.ancestors(target_tool_id) | {target_tool_id}
+            execution_order = [tool_id for tool_id in full_order if tool_id in needed]
 
         # Build tool map
         tool_map = {tool.id: tool for tool in self.workflow.tools}
