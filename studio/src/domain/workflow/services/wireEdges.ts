@@ -8,7 +8,7 @@
  * `edge-invalid` class.
  */
 import type { Edge } from '@xyflow/react';
-import type { Tool, Wire } from '@domain/workflow/entities/workflow';
+import type { Wire } from '@domain/workflow/entities/workflow';
 import { wouldCreateCycle } from '@domain/workflow/services/loopDetection';
 import type { AppSettings } from '../../../types/settings';
 
@@ -39,12 +39,11 @@ function isSameWire(a: Wire, b: Wire): boolean {
 /** Build a single edge for a wire. `wires` is the complete wire list. */
 export function wireToEdge(
   wire: Wire,
-  tools: Pick<Tool, 'id'>[],
   wires: Wire[],
   edgeStyle: EdgeStyle
 ): Edge {
   const otherWires = wires.filter((w) => !isSameWire(w, wire));
-  const isInvalid = wouldCreateCycle(tools, otherWires, wire.from.tool, wire.to.tool);
+  const isInvalid = wouldCreateCycle(otherWires, wire.from.tool, wire.to.tool);
 
   return {
     id: wireEdgeId(wire),
@@ -71,8 +70,7 @@ export function wireToEdge(
 /** Build the edge list for a whole workflow. */
 export function wiresToEdges(
   wires: Wire[],
-  tools: Pick<Tool, 'id'>[],
   edgeStyle: EdgeStyle
 ): Edge[] {
-  return wires.map((wire) => wireToEdge(wire, tools, wires, edgeStyle));
+  return wires.map((wire) => wireToEdge(wire, wires, edgeStyle));
 }
