@@ -10,8 +10,8 @@ Separated from WorkflowExecutor to:
 from dataclasses import dataclass, replace
 from typing import Iterator
 
-from app.api.models.workflow import Tool, Workflow
 from app.domain.execution.graph import ExecutionGraph
+from app.domain.models.workflow import Tool, Workflow
 from app.utils.errors import ValidationError
 
 

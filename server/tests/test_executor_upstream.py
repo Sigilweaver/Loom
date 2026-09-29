@@ -14,9 +14,9 @@ from typing import Any
 import polars as pl
 import pytest
 
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution import executor as executor_mod
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.utils.errors import ExecutionError, ExecutionTimeoutError, ValidationError
 
 

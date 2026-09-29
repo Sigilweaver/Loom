@@ -3,7 +3,7 @@
 import polars as pl
 import pytest
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.implementations.pivot import PIVOT_AGGREGATIONS, PivotTool
 from app.domain.tools.sockets import CommonSockets
 

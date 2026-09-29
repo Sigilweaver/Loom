@@ -6,6 +6,9 @@ from fastapi.responses import JSONResponse
 from app.utils.errors import (
     ExecutionError,
     ExecutionTimeoutError,
+    FileAccessDeniedError,
+    FileAccessError,
+    FileNotFoundAccessError,
     ToolConfigError,
     ToolError,
     ValidationError,
@@ -22,6 +25,17 @@ async def tool_config_error_handler(request: Request, exc: Exception) -> JSONRes
 
 async def tool_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=400, content={"detail": f"Tool error: {exc}"})
+
+
+async def file_access_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Map path-validation failures to the status codes clients already rely on."""
+    if isinstance(exc, FileAccessDeniedError):
+        status_code = 403
+    elif isinstance(exc, FileNotFoundAccessError):
+        status_code = 404
+    else:
+        status_code = 400
+    return JSONResponse(status_code=status_code, content={"detail": str(exc)})
 
 
 async def execution_error_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -44,4 +58,5 @@ WORKFLOW_EXCEPTION_HANDLERS = {
     ToolConfigError: tool_config_error_handler,
     ToolError: tool_error_handler,
     ExecutionError: execution_error_handler,
+    FileAccessError: file_access_error_handler,
 }

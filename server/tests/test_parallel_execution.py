@@ -6,9 +6,9 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from app.api.models.common import ColumnSchema, DataSchema
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.models.common import ColumnSchema, DataSchema
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import ToolRegistry
 

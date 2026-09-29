@@ -10,7 +10,6 @@ from unittest.mock import Mock, patch
 import polars as pl
 import pytest
 
-from app.api.models.common import PolarsDataType
 from app.domain.datasources.database import (
     DatabaseDataSource,
     MsSQLDataSource,
@@ -21,6 +20,7 @@ from app.domain.datasources.database import (
     _schema_introspection_query,
 )
 from app.domain.datasources.factory import DataSourceFactory
+from app.domain.models.common import PolarsDataType
 from app.domain.tools.loaders.database import DatabaseLoader
 from app.domain.tools.loaders.factory import LoaderFactory
 from app.utils.errors import DataSourceError, ToolError
@@ -906,7 +906,8 @@ class TestDatabaseIntegration:
         """Test a workflow that loads from database and applies filter"""
         import uuid
 
-        from app.api.models.workflow import (
+        from app.domain.execution.executor import WorkflowExecutor
+        from app.domain.models.workflow import (
             Socket,
             Tool,
             Wire,
@@ -914,7 +915,6 @@ class TestDatabaseIntegration:
             Workflow,
             WorkflowMeta,
         )
-        from app.domain.execution.executor import WorkflowExecutor
 
         # Mock database returning sample data
         sample_data = pl.DataFrame(
@@ -999,8 +999,8 @@ class TestDatabaseIntegration:
     @patch("app.domain.tools.loaders.database.pl.read_database_uri")
     async def test_database_schema_inspection_without_execution(self, mock_read_db):
         """Test that schema can be inspected without full query execution"""
-        from app.api.models.workflow import Socket, Tool, Workflow, WorkflowMeta
         from app.domain.execution.executor import WorkflowExecutor
+        from app.domain.models.workflow import Socket, Tool, Workflow, WorkflowMeta
 
         # Mock for schema inspection (LIMIT 0)
         empty_df = pl.DataFrame(

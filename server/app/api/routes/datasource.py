@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter, HTTPException
 
-from app.api.models.common import DataPreview
 from app.api.models.datasource import (
     DatabaseColumnInfo,
     DatabaseSchemaRequest,
@@ -15,7 +14,8 @@ from app.api.models.datasource import (
 )
 from app.domain.datasources.database import DatabaseDataSource
 from app.domain.datasources.factory import DataSourceFactory
-from app.utils.errors import DataSourceError
+from app.domain.models.common import DataPreview
+from app.utils.errors import DataSourceError, FileAccessError
 
 router = APIRouter(prefix="/datasource", tags=["datasource"])
 
@@ -51,6 +51,9 @@ async def inspect_datasource(request: InspectRequest) -> InspectResponse:
 
     except DataSourceError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except FileAccessError:
+        # Mapped to 400/403/404 by the application exception handler
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inspection failed: {str(e)}")
 
@@ -90,6 +93,9 @@ async def preview_datasource(request: PreviewRequest) -> DataPreview:
 
     except DataSourceError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except FileAccessError:
+        # Mapped to 400/403/404 by the application exception handler
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
 

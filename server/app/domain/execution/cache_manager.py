@@ -13,10 +13,10 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.workflow import Tool
 from app.config import settings
 from app.domain.execution.cache import BlockingToolCache
 from app.domain.execution.planner import ExecutionPlan
+from app.domain.models.workflow import Tool
 from app.domain.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)

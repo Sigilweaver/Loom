@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.api.models.common import DataSchema
 from app.api.models.execution import ValidationResult
+from app.domain.models.common import DataSchema
 
 
 class InspectRequest(BaseModel):

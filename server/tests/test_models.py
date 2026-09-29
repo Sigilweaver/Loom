@@ -1,6 +1,6 @@
 """Basic test for API models"""
 
-from app.api.models.workflow import Socket, Wire, Workflow
+from app.domain.models.workflow import Socket, Wire, Workflow
 
 
 def test_workflow_model():

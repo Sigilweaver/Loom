@@ -128,7 +128,7 @@ def test_failed_workflow_creates_archive_with_error(client, temp_archive_for_int
     )
 
     # Should return error
-    assert response.status_code in [400, 500]
+    assert response.status_code in [400, 404, 500]
 
     # Verify archive was still created
     archive = WorkflowArchive(temp_archive_for_integration)

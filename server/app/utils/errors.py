@@ -64,6 +64,28 @@ class ExecutionTimeoutError(SafetyLimitExceededError):
     pass
 
 
+class FileAccessError(LoomError):
+    """A file path was rejected before any I/O happened (malformed, not a file, or unusable).
+
+    Raised by path validation in the domain layer. The API layer maps it to an
+    HTTP response (400), and the subclasses below to 404 and 403.
+    """
+
+    pass
+
+
+class FileNotFoundAccessError(FileAccessError):
+    """The requested file does not exist."""
+
+    pass
+
+
+class FileAccessDeniedError(FileAccessError):
+    """The path is outside the granted/allowed locations, or is read-only for a write."""
+
+    pass
+
+
 class ConfigurationError(LoomError):
     """Error in configuration"""
 

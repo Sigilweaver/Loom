@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from app.api.models.workflow import Workflow
+from app.domain.models.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 

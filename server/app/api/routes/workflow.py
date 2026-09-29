@@ -8,13 +8,13 @@ from typing import Annotated, Any, Generator
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from app.api.models.workflow import Workflow
 from app.config import settings
 from app.domain.connections.resolver import ConnectionResolver, get_connection_resolver
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.hub import AuthorizationResult, get_hub_client
+from app.domain.models.workflow import Workflow
 from app.domain.workflow.code_generator import PythonCodeGenerator
-from app.utils.errors import ExecutionError, ToolError, ValidationError
+from app.utils.errors import ExecutionError, FileAccessError, ToolError, ValidationError
 from app.utils.security import FilePathGrant, allowed_paths_context
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def _map_unexpected_errors() -> Generator[None, None, None]:
     """Map unexpected workflow errors while deferring known errors to the application."""
     try:
         yield
-    except (ValidationError, ToolError, ExecutionError):
+    except (ValidationError, ToolError, ExecutionError, FileAccessError):
         raise
     except Exception as exc:
         raise _raise_unexpected(exc)

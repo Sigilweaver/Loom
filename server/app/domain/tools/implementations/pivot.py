@@ -5,8 +5,8 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import ColumnSchema, DataSchema
 from app.domain.execution.safety import check_pivot_safety, raise_if_unsafe
+from app.domain.models.common import ColumnSchema, DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import PivotOperation
 from app.domain.tools.registry import register_tool

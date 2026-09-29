@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.utils.errors import ValidationError
 
 

@@ -11,8 +11,8 @@ is operating in Hub mode. It verifies that:
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
 
+from app.utils.errors import FileAccessDeniedError, FileAccessError, FileNotFoundAccessError
 from app.utils.security import (
     FilePathGrant,
     allowed_paths_context,
@@ -49,15 +49,15 @@ class TestFilePathValidationWithoutContext:
 
     def test_nonexistent_file_fails(self, tmp_path: Path):
         """A nonexistent file should raise 404."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(FileNotFoundAccessError):
             validate_file_path(str(tmp_path / "nonexistent.csv"))
-        assert exc_info.value.status_code == 404
 
     def test_directory_fails(self, tmp_path: Path):
         """A directory path should raise 400."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(FileAccessError) as exc_info:
             validate_file_path(str(tmp_path))
-        assert exc_info.value.status_code == 400
+        # Plain 400: neither "missing" (404) nor "denied" (403)
+        assert type(exc_info.value) is FileAccessError
 
 
 class TestFilePathValidationWithContext:
@@ -79,10 +79,9 @@ class TestFilePathValidationWithContext:
         grants = [FilePathGrant(path=str(sample_csv_file.parent), read_only=False)]
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError) as exc_info:
                 validate_file_path(str(another_csv_file))
-            assert exc_info.value.status_code == 403
-            assert "not allowed" in str(exc_info.value.detail).lower()
+            assert "not allowed" in str(exc_info.value).lower()
         finally:
             allowed_paths_context.reset(token)
 
@@ -91,10 +90,9 @@ class TestFilePathValidationWithContext:
         grants: list[FilePathGrant] = []
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError) as exc_info:
                 validate_file_path(str(sample_csv_file))
-            assert exc_info.value.status_code == 403
-            assert "no file paths granted" in str(exc_info.value.detail).lower()
+            assert "no file paths granted" in str(exc_info.value).lower()
         finally:
             allowed_paths_context.reset(token)
 
@@ -151,10 +149,9 @@ class TestFilePathValidationForWrite:
         grants = [FilePathGrant(path=str(tmp_path / "readonly"), read_only=True)]
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError) as exc_info:
                 validate_file_path_for_write(str(write_dest))
-            assert exc_info.value.status_code == 403
-            assert "read-only" in str(exc_info.value.detail).lower()
+            assert "read-only" in str(exc_info.value).lower()
         finally:
             allowed_paths_context.reset(token)
 
@@ -164,10 +161,9 @@ class TestFilePathValidationForWrite:
         grants = [FilePathGrant(path=str(tmp_path / "authorized"), read_only=False)]
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError) as exc_info:
                 validate_file_path_for_write(str(write_dest))
-            assert exc_info.value.status_code == 403
-            assert "not allowed" in str(exc_info.value.detail).lower()
+            assert "not allowed" in str(exc_info.value).lower()
         finally:
             allowed_paths_context.reset(token)
 
@@ -177,9 +173,8 @@ class TestFilePathValidationForWrite:
         grants: list[FilePathGrant] = []
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError):
                 validate_file_path_for_write(str(write_dest))
-            assert exc_info.value.status_code == 403
         finally:
             allowed_paths_context.reset(token)
 
@@ -210,9 +205,8 @@ class TestPathTraversalPrevention:
         grants = [FilePathGrant(path=str(granted_dir), read_only=False)]
         token = allowed_paths_context.set(grants)
         try:
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(FileAccessDeniedError):
                 validate_file_path(traversal_path)
-            assert exc_info.value.status_code == 403
         finally:
             allowed_paths_context.reset(token)
 
@@ -285,9 +279,8 @@ class TestFileAccessMode:
         )
 
         assert sec.validate_file_path(str(inside)) == inside.resolve()
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(FileAccessDeniedError):
             sec.validate_file_path(str(outside))
-        assert exc_info.value.status_code == 403
 
     def test_hub_mode_without_context_denies(self, sample_csv_file: Path, monkeypatch):
         """In hub mode, file access requires a per-request grant; missing
@@ -295,9 +288,8 @@ class TestFileAccessMode:
         from app.utils import security as sec
 
         monkeypatch.setattr(sec.settings, "file_access_mode", "hub", raising=False)
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(FileAccessDeniedError):
             sec.validate_file_path(str(sample_csv_file))
-        assert exc_info.value.status_code == 403
 
     def test_open_mode_allows(self, sample_csv_file: Path, monkeypatch):
         from app.utils import security as sec

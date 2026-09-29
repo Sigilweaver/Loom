@@ -12,17 +12,17 @@ from typing import Any
 
 import polars as pl
 
-from app.api.models.common import (
-    ColumnSchema,
-    DataPreview,
-    DataSchema,
-    PolarsDataType,
-)
 from app.domain.connections.query_policy import (
     ReadOnlyQueryError,
     validate_readonly_query,
 )
 from app.domain.datasources.base import DataSource
+from app.domain.models.common import (
+    ColumnSchema,
+    DataPreview,
+    DataSchema,
+    PolarsDataType,
+)
 from app.utils.errors import DataSourceError
 
 
