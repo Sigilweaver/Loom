@@ -1,270 +1,132 @@
 ---
 sidebar_position: 1
+title: Development Workflow
 ---
 
 # Development Workflow
 
-Daily patterns for working on Sigilweaver Loom.
+Daily patterns for working on Sigilweaver Loom. Set up your environment first with [Getting Started](../getting-started.md).
 
-## Starting Development
-
-The recommended approach:
+## The loop
 
 ```bash
-# From repo root
-./scripts/dev.py
+./scripts/dev.py          # start what you need, with hot reload
+# edit code
+./scripts/test.py         # smart mode: checks only the components you changed
+./scripts/test.py --full  # everything CI runs, before you open a PR
 ```
 
-This starts both backend and frontend in development mode with hot reload.
+Flags for both scripts are in `scripts/README.md`.
 
-### Manual Approach
+## Development modes
 
-If you need more control:
+| Mode | Command | Use it for |
+| ---- | ------- | ---------- |
+| Studio in the browser | `NO_ELECTRON=1 bun run dev` in `studio/` | Fast UI iteration and easy debugging |
+| Studio in Electron | `bun run dev:electron` in `studio/` | Desktop-only features: native dialogs, credential storage |
+| Studio in Tauri | `bun run dev:tauri` in `studio/` | The Tauri shell |
+| Server only | `AUTH_MODE=disabled uv run uvicorn app.main:app --reload` in `server/` | API work. Swagger UI is at http://localhost:25811/docs |
+| Hub | `./scripts/dev.py --hub` | Hub backend and frontend |
+
+The Vite dev server reloads on `.ts`, `.tsx` and `.css` changes. Uvicorn reloads on `.py` changes. Changes to `studio/electron/main.ts` need an Electron restart, because hot reload only covers the renderer.
+
+## Common tasks
+
+### Add a tool
+
+1. Implement it in `server/app/domain/tools/implementations/`.
+2. Export it from `implementations/__init__.py` and import it in `register.py`.
+3. Add its definition to `studio/src/data/tools.ts` and its config component to `studio/src/data/toolConfigComponents.tsx`.
+4. Add tests, then a page under `docs/docs/user/tools/`.
+
+See [Adding Tools](../contributing/adding-tools.md) for the full walk-through, and [Adding Data Formats](../contributing/adding-formats.md) for new file types.
+
+### Debug the Server
+
+Run it in the foreground with `LOG_LEVEL=debug` and read the terminal. Use the Swagger UI to call endpoints. To drop into a debugger, add `breakpoint()` and run Uvicorn without `--reload`.
+
+The execution engine also writes an archive of each run under `ARCHIVE_PATH` (by default `.working/server/archives` at the repository root when you start the Server from `server/`). It records the workflow, tool order, timings and errors. See [Server Configuration](../../admin/server-configuration.md).
+
+### Debug Studio
+
+- React DevTools for components.
+- The browser network tab, or Studio's own **Network Logs** tab, for Server calls.
+- Zustand DevTools or a temporary `console.log(useWorkflowStore.getState())` to inspect state.
+
+### Lint, type-check and format
+
+The zero-warning policy is enforced in CI, so run these before you push.
 
 ```bash
-# Terminal 1: Backend (using uv)
-cd server
-uv run uvicorn app.main:app --reload --port 25811
-# Runs at http://localhost:25811
+# Server and Hub backend
+cd server            # or hub/backend
+uv run ruff check app
+uv run ruff format app
+uv run mypy app
 
-# Terminal 2: Frontend (Vite)
-cd studio
-bun run dev
-# Runs at http://localhost:25810
-
-# Terminal 3: Electron (optional)
-cd studio
-bun run dev:electron
-# Opens desktop window
+# Studio and Hub frontend
+cd studio            # or hub/frontend
+bun run lint
+bun run type-check
+bun run verify       # Studio: type-check, tests and lint together
 ```
 
-## Development Modes
+`./scripts/test.py --repo` also lints the `scripts/` directory with ruff.
 
-### Browser Development
-
-For pure frontend work, just use the Vite dev server:
+### Run one test
 
 ```bash
-bun run dev
-```
-
-Open http://localhost:25810 in your browser. Faster iteration than Electron, easier to debug.
-
-### Electron Development
-
-For testing desktop-specific features:
-
-```bash
-bun run dev       # Start Vite first
-bun run dev:electron  # Then Electron
-```
-
-The Electron window loads from the Vite dev server, so you still get hot reload.
-
-### Backend Only
-
-For API development:
-
-```bash
-cd server
-uv run uvicorn app.main:app --reload
-```
-
-Test with curl or the Swagger UI at http://localhost:25811/docs.
-
-## File Watching
-
-Both servers watch for changes:
-
-- **Backend**: uvicorn reloads on `.py` file changes
-- **Studio**: Vite reloads on `.ts/.tsx/.css` file changes
-
-No manual restart needed for most changes.
-
-## Common Tasks
-
-### Adding a Tool
-
-1. Create `server/app/domain/tools/implementations/my_tool.py`
-2. Add import to `server/app/domain/tools/implementations/__init__.py`
-3. Add definition to `studio/src/data/tools.ts`
-4. Create config panel in `studio/src/components/config/<category>/MyToolConfiguration.tsx`
-5. Test with `./scripts/test.py`
-
-See [Adding Tools](../contributing/adding-tools) for details.
-
-### Debugging Server
-
-```python
-# Add breakpoints in code
-import pdb; pdb.set_trace()
-
-# Or use structured logging
-import structlog
-logger = structlog.get_logger(__name__)
-logger.debug("Value", value=value)
-```
-
-View logs in the terminal where uvicorn is running.
-
-### Debugging Studio
-
-- React DevTools for component inspection
-- Browser DevTools for network and console
-- Zustand DevTools for state inspection (if installed)
-
-```typescript
-// Console debugging
-console.log('Value:', value);
-
-// Zustand state inspection
-console.log(useWorkflowStore.getState());
-```
-
-### Running Tests
-
-```bash
-# All tests (from repo root)
-./scripts/test.py
-
-# Server only
-cd server && uv run pytest tests/
-
-# Studio only  
-cd studio && bun run test
-
-# Specific test file
 cd server && uv run pytest tests/test_filter.py -v
 cd studio && bun run test FilterConfig
-
-# Watch mode (Studio)
 cd studio && bun run test:watch
 ```
 
-### Linting and Formatting
-
-```bash
-# Server
-cd server
-ruff format app/
-ruff check --fix app/
-mypy app/
-
-# Studio
-cd studio
-bun run lint:fix
-bun run type-check
-```
-
-Run these before committing.
-
-### Building a Release
+### Build a desktop app
 
 ```bash
 ./scripts/build.py
 ```
 
-Outputs to `studio/dist/`. See [Packaging](./packaging) for details.
+See [Packaging](./packaging.md).
 
-## Project-Specific Quirks
+## Project quirks
 
-### Server Virtual Environment
+### Python environments
 
-Use `uv` to run Server commands:
+Always go through uv: `uv run pytest`, `uv run uvicorn ...`. Each of `server/` and `hub/backend/` has its own `pyproject.toml` and `uv.lock`.
 
-```bash
-cd server
-uv run pytest tests/
-uv run uvicorn app.main:app --reload
-```
+### Studio path aliases
 
-### Frontend Path Aliases
-
-The frontend uses `@/` as an alias for `src/`:
+Studio imports use path aliases from `tsconfig.json`, not `@/`:
 
 ```typescript
-import { useWorkflowStore } from '@/state/workflowStore';
-// Same as: import from '../../state/workflowStore'
+import { useWorkflowStore } from '@state/workflowStore';
+import { getToolDefinition } from '@data/tools';
+import { previewTool, executeWorkflow } from '@api';   // Hub-aware; do not import @api/backend directly
 ```
 
-### Electron Main Process
+The aliases are `@api`, `@components`, `@contexts`, `@data`, `@domain`, `@hooks`, `@platform`, `@state` and `@utils`.
 
-Changes to `electron/main.ts` require restarting Electron. Hot reload only works for the renderer process.
+### Workflow files
 
-### Workflow Files
+`.swwf` files are JSON. Inspect one with any editor, or `jq . my_workflow.swwf`.
 
-Workflow files (`.swwf`) are JSON. You can inspect them with any text editor:
+### Platform code
 
-```bash
-cat my_workflow.swwf | jq .
-```
+Anything that differs between Electron, Tauri and the browser lives behind the adapter in `studio/src/platform/`. Do not call `window.electronAPI` from components.
 
-## Recommended Editor Setup
+## Editor setup
 
-### VS Code Extensions
-
-- ESLint
-- Prettier
-- Python
-- Pylance
-- Tailwind CSS IntelliSense
-
-### Settings
-
-```json
-{
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-  "python.formatting.provider": "none",
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
-  }
-}
-```
+Useful VS Code extensions: ESLint, Prettier, Python, Pylance, Ruff and Tailwind CSS IntelliSense. Format Python with Ruff, not Black.
 
 ## Troubleshooting
 
-### Backend won't start
+**Server will not start.** `uv --version`, then `cd server && uv sync --all-extras`.
 
-```bash
-# Check Python version
-python --version  # Needs 3.11+
+**Studio will not start.** `bun --version`, then `rm -rf node_modules && bun install`.
 
-# Check uv is installed
-uv --version
-
-# Reinstall dependencies
-cd server && uv sync --all-extras
-```
-
-### Frontend won't start
-
-```bash
-# Check bun version
-bun --version
-
-# Clear cache and reinstall
-rm -rf node_modules
-bun install
-```
-
-### Tests failing mysteriously
-
-```bash
-# Backend: check for stale .pyc files
-find . -type f -name "*.pyc" -delete
-find . -type d -name "__pycache__" -delete
-
-# Frontend: clear Vitest cache
-rm -rf node_modules/.vitest
-```
-
-### Electron shows blank window
-
-The Vite dev server must be running first. Start `bun run dev`, wait for "ready in XXms", then run `bun run dev:electron`.
+**Odd test failures.** Clear stale bytecode with `find . -name __pycache__ -prune -exec rm -rf {} +`, and clear the Vitest cache with `rm -rf node_modules/.vitest`.
 
 ---
 
-Next: [Packaging](./packaging) for building distributable releases.
+Next: [Packaging](./packaging.md).

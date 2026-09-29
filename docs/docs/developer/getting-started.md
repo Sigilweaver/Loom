@@ -1,232 +1,190 @@
 ---
 sidebar_position: 2
+title: Getting Started
 ---
 
 # Getting Started
 
+Set up a development environment and run Studio, Server and Hub from source.
+
 ## Prerequisites
 
-You'll need:
-- **Python 3.11+** (for the backend)
-- **[bun](https://bun.sh)** (for the frontend)
-- **Node.js 22** (the pinned toolchain baseline; minimum 20.19). The repo ships `.nvmrc` and `.node-version`, so `nvm use` / `fnm use` will select it automatically.
-- **Git** (obviously)
+| Tool | Version | Used for |
+| ---- | ------- | -------- |
+| [uv](https://docs.astral.sh/uv/) | current | Python environments for Server and Hub |
+| Python | 3.11 or newer (the repo pins 3.13 in `server/.python-version`; uv fetches it for you) | Server and Hub backend |
+| [Bun](https://bun.sh) | current | JavaScript dependencies and scripts for Studio, Hub frontend and docs |
+| Node.js | 22 (pinned in `.nvmrc` and `.node-version`; 20.19 is the minimum) | Toolchain that Vite, Electron and Docusaurus run on |
+| Git | any | |
+| Docker | optional | PostgreSQL for Hub development, and the Docker stacks |
 
-## Platform Notes
+The repo uses **Bun** for JavaScript and **uv** for Python. Do not use npm, pnpm or pip in the repository. They will not respect the lockfiles (`bun.lock`, `uv.lock`).
 
-| Platform    | Development         | Notes                                 |
-| ----------- | ------------------- | -------------------------------------- |
-| **Linux**   | Primary             | Most heavily tested                   |
-| **Windows** | WSL2 recommended    | Native Windows dev tooling is painful |
-| **macOS**   | Should work         | Needs testing before v1.0             |
+Install uv and select the pinned Node version:
 
-I develop on Arch Linux. The venv + package-lock approach means everything should work on any platform, but I can only verify what I actually run.
-
-## Quick Setup
-
-### Prerequisites
-
-- **Python 3.11+** with [uv](https://github.com/astral-sh/uv) package manager
-- **[bun](https://bun.sh)** (for the frontend)
-- **Node.js 22** (pinned via `.nvmrc` / `.node-version`; minimum 20.19)
-- **Git**
-
-Install uv if you don't have it:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+nvm use        # or: fnm use
 ```
 
-### Linux
+### Platform notes
+
+| Platform | Status |
+| -------- | ------ |
+| **Linux** | Primary development platform. Most tested. |
+| **macOS** | Should work. Less tested. |
+| **Windows** | Use WSL2. Native Windows development is not a supported path. |
+
+If you must use native Windows, use PowerShell, run `git config --global core.autocrlf input`, and let `pathlib` and Node's `path` handle separators.
+
+## Get the code
 
 ```bash
-# Clone the repository
 git clone https://github.com/Sigilweaver/Loom.git
 cd Loom
-
-# Backend setup (uses uv, not pip)
-cd server
-uv sync --all-extras
-
-# Frontend setup
-cd ../studio
-bun install
 ```
 
-### Windows (WSL2)
-
-Native Windows development is possible but frustrating. I recommend WSL2:
+## Run everything
 
 ```bash
-# In WSL2 (Ubuntu)
-sudo apt update && sudo apt install python3 git build-essential
-curl -LsSf https://astral.sh/uv/install.sh | sh
-curl -fsSL https://bun.sh/install | bash
-
-# Then follow Linux instructions above
-```
-
-If you must use native Windows:
-- Use PowerShell, not cmd
-- Watch for CRLF line endings (configure Git: `git config --global core.autocrlf input`)
-- Paths use backslashes. Let Node's `path` module and Python's `pathlib` handle it
-
-### macOS
-
-```bash
-# Install dependencies
-brew install python node git
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Then follow Linux instructions above
-```
-
-## Running Development Servers
-
-The recommended approach:
-
-```bash
-# From repo root - starts both backend and frontend
 ./scripts/dev.py
 ```
 
-Or manually:
+The script installs missing dependencies, starts PostgreSQL through Docker if Hub needs it, applies Hub migrations, and starts every service:
+
+| Service | URL |
+| ------- | --- |
+| Studio (Vite) | http://localhost:25810 |
+| Server | http://localhost:25811 |
+| Hub backend | http://localhost:25802 (API docs at `/docs`) |
+| Hub frontend | http://localhost:25803 |
+| PostgreSQL | localhost:25801 |
+| Docs (with `--docs`) | http://localhost:25809 |
+
+Pick what to run:
 
 ```bash
-# Terminal 1: Backend (using uv)
-cd server
-uv run uvicorn app.main:app --reload --port 25811
-# Runs at http://localhost:25811
-
-# Terminal 2: Frontend
-cd studio
-bun run dev
-# Runs at http://localhost:25810
-
-# Terminal 3: Electron (optional, for desktop app testing)
-cd studio
-bun run dev:electron
+./scripts/dev.py --server            # Server only
+./scripts/dev.py --studio            # Studio only, in the browser
+./scripts/dev.py --hub               # Hub backend and frontend
+./scripts/dev.py --docs              # Documentation site
+./scripts/dev.py --studio-electron   # everything, plus the Electron desktop app
+./scripts/dev.py --studio-tauri      # everything, plus the Tauri desktop app
+./scripts/dev.py --install           # install dependencies, then exit
 ```
 
-The frontend dev server proxies API calls to the backend, so you need both running.
+Studio in the browser proxies API calls to the Server, so both need to be running. See [Development Workflow](./building/development.md) for the daily loop.
 
-## Hub Development
+### Hub needs its secrets
 
-Hub is the orchestration platform for managing workflows across multiple servers. It lives at the top level in `hub/`.
-
-### Hub Setup
+Hub refuses to start without four secrets. The dev script does not create them. Once:
 
 ```bash
-# From hub/ directory
+cp hub/backend/.env.example hub/backend/.env
+```
 
-# Start PostgreSQL (required for Hub)
-docker compose up -d
+Then either fill in `SESSION_SECRET`, `SECRET_KEY`, `CONNECTION_ENCRYPTION_KEY` and `SERVER_REGISTRATION_SECRET`, or add this line to make Hub invent throwaway values on each start:
 
-# Backend setup
-cd backend
+```bash
+ALLOW_INSECURE_DEFAULTS=true
+```
+
+Open http://localhost:25803 and register. The first account becomes the Owner. See [Hub Configuration](../admin/hub-configuration.md) for how to generate real values.
+
+## Run the pieces by hand
+
+If you want more control than `dev.py` gives you:
+
+```bash
+# Server
+cd server
 uv sync --all-extras
-uv run alembic upgrade head  # Run database migrations
+AUTH_MODE=disabled uv run uvicorn app.main:app --reload --port 25811
 
-# Frontend setup
+# Studio (second terminal)
+cd studio
+bun install
+NO_ELECTRON=1 bun run dev   # browser only, http://localhost:25810
+bun run dev:electron        # Vite plus an Electron window
+bun run dev:tauri           # Vite plus a Tauri window (needs the Rust toolchain)
+```
+
+Plain `bun run dev` also opens an Electron window when a display is available. Set `NO_ELECTRON=1` to stay in the browser.
+
+`AUTH_MODE=disabled` lets you call the Server API without a token. The default is `ephemeral`, which requires a bearer token that the Server prints once at startup.
+
+```bash
+# Hub (needs PostgreSQL on port 25801 and hub/backend/.env)
+docker compose -f hub/docker-compose.yml up -d postgres
+cd hub/backend
+uv sync --all-extras
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload --port 25802
+
 cd ../frontend
 bun install
-
-# Start Hub dev servers
-cd ..
-./scripts/dev.py
+bun run dev                 # http://localhost:25803
 ```
 
-Hub will be available at:
-- Frontend: http://localhost:25803
-- Backend API: http://localhost:25802
-- API Docs: http://localhost:25802/docs
-
-## Verifying Your Setup
-
-### Backend Health Check
+## Check that it works
 
 ```bash
 curl http://localhost:25811/api/health/
-# Should return: {"status":"healthy","version":"0.0.0-dev","message":"Sigilweaver Loom Backend is running"}
+# {"status":"healthy","version":"0.0.0-dev", ...}
 ```
 
-### Frontend
+Open http://localhost:25810 and you should see the Studio canvas. Drag a **Read** tool onto it.
 
-Electron should have started, but you can also open http://localhost:25810 in your browser. You should see the Sigilweaver Loom canvas.
-
-### Run Tests
+## Run the tests
 
 ```bash
-# All tests (from repo root)
-./scripts/test.py
+./scripts/test.py            # smart mode: only components you changed
+./scripts/test.py --full     # everything, as CI does
+```
 
-# Or individually
-cd server && uv run pytest tests/
+Or one component at a time:
+
+```bash
+cd server && uv run pytest
 cd studio && bun run test
+cd hub/backend && uv run pytest
+cd hub/frontend && bun run test
 ```
 
-If tests pass, you're ready to contribute.
+See [Testing Philosophy](./testing/philosophy.md).
 
-## Daily Workflow
-
-```bash
-# Start development (from repo root)
-./scripts/dev.py
-
-# Run tests before committing
-./scripts/test.py
-
-# Build a release (when needed)
-./scripts/build.py
-```
-
-## Project Structure Overview
+## Repository layout
 
 ```
-loom/
-├── server/            # Python (FastAPI + Polars)
-│   ├── app/          # Application code
-│   │   ├── api/      # REST endpoints
-│   │   └── domain/   # Business logic, tools
-│   └── tests/        # pytest suite
-├── studio/            # TypeScript (React + Electron)
-│   ├── src/          # React application
-│   ├── electron/     # Electron main process
-│   └── tests/        # Vitest suite
-├── hub/               # Hub orchestration platform
-│   ├── backend/      # FastAPI + PostgreSQL
-│   ├── frontend/     # React admin UI
-│   └── scripts/      # Hub dev scripts
-├── scripts/          # Build and dev utilities
-└── docs/             # Project documentation
+Loom/
+|-- server/        Python: FastAPI + Polars (Server)
+|   |-- app/       api/, domain/, middleware/, utils/
+|   `-- tests/
+|-- studio/        TypeScript: React + Vite, Electron and Tauri shells
+|   |-- src/       components/, state/, domain/, api/, platform/, ai/, data/
+|   |-- electron/  Electron main and preload
+|   `-- tauri/     Tauri (Rust) shell
+|-- hub/           Hub
+|   |-- backend/   FastAPI + PostgreSQL + Alembic
+|   |-- frontend/  React admin and user app
+|   `-- scripts/   Hub-only dev helpers
+|-- docker/        Compose files for production deployment
+|-- scripts/       dev.py, test.py, build.py and friends
+`-- docs/          This documentation site
 ```
 
-For deeper understanding, see [Architecture Overview](./architecture/overview).
+Read the [Architecture Overview](./architecture/overview.md) next.
 
 ## Troubleshooting
 
-### "Module not found" in Server
+**Module not found in Server.** Run `uv sync --all-extras` in `server/`.
 
-Make sure you've run `uv sync`:
-```bash
-cd server && uv sync --all-extras
-```
+**Studio cannot reach the Server.** Confirm the Server answers on port 25811. In Studio, open **Settings > Execution** and check the Server URL.
 
-### Studio can't reach Server
+**Hub exits with "refuses to start".** A required secret is empty. See above.
 
-Check that the Server is actually running on port 25811. The Vite dev server proxies `/api/*` requests.
+**Hub cannot connect to PostgreSQL.** Start it with `docker compose -f hub/docker-compose.yml up -d postgres` and check that port 25801 is free.
 
-### Electron window is blank
+**Electron window is blank.** Check the terminal that runs Vite for build errors. The window loads from the Vite dev server.
 
-The Electron app needs the Vite dev server running first. Start `bun run dev`, wait for it to be ready, then run `bun run dev:electron`.
-
-### Tests fail on Windows
-
-Check line endings. Run:
-```bash
-git config --global core.autocrlf input
-git checkout -- .
-```
-
----
-
-Next: [Architecture Overview](./architecture/overview) to understand how the pieces fit together.
+**Tests fail on Windows.** Fix line endings: `git config --global core.autocrlf input`, then `git checkout -- .`.
