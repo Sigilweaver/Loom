@@ -1,6 +1,7 @@
 import { useEffect, forwardRef, useImperativeHandle, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 import { useUIStore } from "@state/uiStore";
+import { runWorkflowValidation } from "@state/validationStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useWorkflowFiles } from "@hooks/useWorkflowFiles";
 import { useWorkflowRunner } from "@hooks/useWorkflowRunner";
@@ -22,6 +23,7 @@ export interface HeaderRef {
   handleToggleWorkflowViewer: () => void;
   handlePreviewWorkflow: () => void;
   handleRunWorkflow: () => void;
+  handleValidateWorkflow: () => void;
 }
 
 // Full class strings are spelled out so Tailwind can see them.
@@ -60,7 +62,6 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const setBypassCache = useUIStore((s) => s.setBypassCache);
-  const showNotification = useUIStore((s) => s.showNotification);
 
   const {
     handleNewWorkflow,
@@ -80,6 +81,9 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
   } = useWorkflowRunner();
 
   const handleToggleWorkflowViewer = () => setLeftPaneTab("workflow");
+  const handleValidateWorkflow = () => {
+    runWorkflowValidation();
+  };
 
   const handlers = {
     handleNewWorkflow,
@@ -90,6 +94,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     handleToggleWorkflowViewer,
     handlePreviewWorkflow,
     handleRunWorkflow,
+    handleValidateWorkflow,
   };
 
   // Native menu callbacks are registered once, but the handlers close over
@@ -105,6 +110,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     handleToggleWorkflowViewer: () => latestHandlers.current.handleToggleWorkflowViewer(),
     handlePreviewWorkflow: () => latestHandlers.current.handlePreviewWorkflow(),
     handleRunWorkflow: () => latestHandlers.current.handleRunWorkflow(),
+    handleValidateWorkflow: () => latestHandlers.current.handleValidateWorkflow(),
   }), []);
 
   // Listen for menu actions from the platform (native menus on desktop)
@@ -130,7 +136,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
           void h.handleRunWorkflow();
           break;
         case "validate-workflow":
-          showNotification("Workflow validation is not available yet", "info");
+          h.handleValidateWorkflow();
           break;
         case "show-workflow-viewer":
         case "toggle-workflow-viewer":
@@ -141,7 +147,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
           break;
       }
     });
-  }, [setLeftPaneTab, showNotification]);
+  }, [setLeftPaneTab]);
 
   return (
     <header className="border-b shadow-lg bg-theme-header-bg border-theme-border-primary">
@@ -192,6 +198,15 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
             </button>
 
             <div className="w-px h-6 mx-1 opacity-50 bg-theme-header-divider"></div>
+
+            <button
+              onClick={handleValidateWorkflow}
+              className={`${EXPORT_BUTTON} flex items-center gap-1.5`}
+              title="Check the workflow for problems before running it"
+            >
+              <ShieldCheck className="w-4 h-4" aria-hidden="true" />
+              Validate
+            </button>
 
             {/* Preview All with dropdown */}
             <div className="flex">
