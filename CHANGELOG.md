@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
@@ -66,6 +67,7 @@ and documentation checked against the code.
 
 - Completed B2-to-R2 migration scripts, `convert-tags.sh`, `generate-downloads-manifest.py`, `cleanup-r2-staging.py` and the orphaned `scripts/lint_repo.py` (#140)
 - Dead server modules and helpers; unused platform-layer APIs (`listByType`, `isDesktop`, `isBrowser`, `nativeMenus`, `backendManagement`) and the Tauri `list_connections_by_type` command
+- Unused Studio desktop-menu plumbing (`platform.menu`, `MenuOperations`) and a duplicated canvas style block
 - Hub frontend `window.confirm`/`alert` usage, hand-rolled popups and unused barrel files
 
 ## [v0.12.0] - 2026-06-06
