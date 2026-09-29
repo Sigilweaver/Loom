@@ -1,137 +1,87 @@
 ---
-sidebar_position: 7
+sidebar_position: 10
+title: Performance and Caching
 ---
 
-# Performance & Caching
+# Performance and Caching
 
-Sigilweaver Loom uses intelligent caching to keep your workflow responsive, especially when working with large datasets.
+Loom keeps previews fast by caching the results of expensive steps. This page explains what is cached, when a cache is used and how to refresh it.
 
-## How Caching Works
+## What the Server caches
 
-When you're building a workflow, Sigilweaver Loom remembers the results of expensive operations. If you edit a tool, only the changed parts of your workflow need to re-run.
+Most tools stream data, so they need no cache. Some operations must read all their input first ("blocking" operations). The Server saves their results to disk as Parquet files.
 
-### What Gets Cached
+| Cached                                   | Why                                                     |
+| ---------------------------------------- | ------------------------------------------------------- |
+| **Sort**                                 | Must see every row to fix the order.                    |
+| **Aggregate** (`Summarize`)              | Must see every row in a group.                          |
+| **Join**                                 | Must compare both sides.                                |
+| **Unique**                               | Must track values across all rows.                      |
+| **Pivot**                                | Must scan all rows to find the new column names.        |
+| **Sample**, in some modes                | Last N, Random, Random Percent and First Percent need a full scan. |
+| **Read**, for databases                  | Avoids running the same query again.                    |
 
-These operations are automatically cached because they need to process all your data before producing results:
+Not cached: Read for files (Polars scans them lazily), Filter, Schema, Calculate, Concatenate, Unpivot, and Sample in First N or Every N mode.
 
-| Operation | Why It's Cached |
-|-----------|-----------------|
-| **Sort** | Must scan all rows to determine the final order |
-| **Summarize** | Must see all rows in each group to calculate totals |
-| **Join** | Must compare both datasets to find matches || **Unique** | Must track seen values across all rows |
-| **Pivot** | Must scan all rows to determine column headers |
-| **Sample** (some modes) | Last N, Random, Random Percent, and First Percent require full scan || **Database Input** | Avoids repeated queries to your database server |
+Studio marks blocking tools with a warning triangle. Its list can differ slightly from the Server's list above, which is what actually decides what is cached.
 
-### What Doesn't Get Cached
+## When a cache is used
 
-Streaming operations like **Filter**, **Select**, **Formula**, **Union**, and **Unpivot** don't need caching - they can process data row-by-row without seeing everything first. **Sample** in First N or Every N mode is also streaming.
+Each cached result is stored under a fingerprint of the tool's settings and its upstream tools' fingerprints. If you change a tool, its fingerprint and every downstream fingerprint change, so those results are recomputed. Anything upstream that did not change keeps its cache.
 
-## Example: Editing Downstream
-
-Consider this workflow:
-
-```
-CSV Input → Sort by Date → Filter → Select Columns → Output
-```
-
-**Scenario 1: You edit the Filter**
-
-1. CSV Input: [SKIP] No re-read needed (Polars streams from disk)
-2. Sort: [CACHE HIT] The sort result is reused
-3. Filter: [RE-RUN] Re-runs with your new filter condition
-4. Select: [RE-RUN] Re-runs (downstream of changed tool)
-5. Output: [RE-RUN] Re-runs
-
-**Result**: The expensive Sort operation is skipped entirely.
-
-**Scenario 2: You edit the Sort**
-
-1. CSV Input: [SKIP] No re-read needed
-2. Sort: [RE-RUN] Re-runs with your new sort order
-3. Filter: [RE-RUN] Re-runs (receives new sort output)
-4. Select: [RE-RUN] Re-runs
-5. Output: [RE-RUN] Re-runs
-
-**Result**: Since Sort changed, everything downstream re-runs, and the new Sort result is cached for next time.
-
-## When to Force a Refresh
-
-Sometimes you need to bypass the cache:
-
-- **Database data changed**: Your source data was updated externally
-- **Debugging issues**: You want to ensure you're seeing fresh results
-
-### How to Refresh
-
-When previewing a tool, use the **Refresh** option to clear the cache and re-execute the entire upstream chain. This is available in the preview panel for tools connected to database inputs.
-
-:::note
-Refreshing clears the cache for the entire workflow, not just one tool. This ensures consistency when upstream data has changed.
+:::caution Changes on disk are not detected
+The fingerprint does not include the contents of your source files or database. If a file or table changes outside Loom, cached results stay in use until you refresh (see below).
 :::
 
-## Performance Tips
-
-### 1. Filter and Select Before Expensive Operations
-
-Always reduce your data volume BEFORE sorting, joining, or summarizing:
+### Example
 
 ```
-SLOWER:  Input → Sort → Filter
-FASTER:  Input → Filter → Sort
+Read CSV -> Sort -> Filter -> Schema -> Write
 ```
 
-This is the single most important optimization - expensive operations work on less data.
+- **Edit the Filter.** Sort still has a valid cache and is skipped. Filter, Schema and Write run again.
+- **Edit the Sort.** Sort changes, so everything after it runs again. The new Sort result is cached.
+- **Edit the CSV file on disk.** Nothing notices. Sort keeps serving its old result until you refresh.
 
-### 2. Minimize Data in Joins
+## Refreshing
 
-Filter both sides of a join before joining:
+Use the arrow next to **Preview All** in the header:
 
-```
-SLOWER:  Large Dataset A → Join → Large Dataset B
-FASTER:  Large Dataset A → Filter → Join → Large Dataset B → Filter
-```
+- **Bypass Cache** makes previews ignore cached results while it is checked. The button label changes to `Preview All*`.
+- **Clear Backend Cache** deletes the Server's cached files for this workflow.
 
-### 3. Consider the Development vs. Production Trade-off
+Do this when a database changed, or when you suspect a stale result. Studio also keeps its own short-lived cache of previews. Changing a tool or a wire clears the affected entries, and closing a workflow clears them all.
 
-When building workflows, there's a trade-off to consider:
+## Where cache files live
 
-**Filtering early** (before expensive operations):
-- Better runtime performance - expensive operations process less data
-- Ideal for production workflows that run repeatedly
-- May cause more cache misses during development when editing upstream filters
+Cache files are on the machine that runs the Server. With the bundled Server, that is your own machine, in the app's data directory. With a remote Server or Hub, they are on that Server.
 
-**Filtering later** (after expensive operations):
-- Slower runtime - expensive operations process more data
-- Better cache reuse when iterating on downstream tools during development
-- Less efficient for production use
+The Server removes cache files when:
 
-Both approaches have merits depending on your use case. The cache is transparent - it works regardless of your workflow structure.
+- you close the workflow in Studio (default),
+- a file is older than the retention period (7 days by default),
+- the cache exceeds its size limit (20 GB by default), oldest files first,
+- you clear the cache.
 
-## Cache Location
+Administrators can change these limits. See [Server Configuration](../../admin/server-configuration.md#cache).
 
-Cached data is stored locally on your machine in the application's cache directory. Cache files are automatically cleaned up when:
+## Performance tips
 
-- You close a workflow
-- You modify upstream tools (invalidating stale caches)
-- The application starts (cleaning orphaned files)
+1. **Reduce data before expensive steps.** Filter and select before you sort, join or aggregate.
 
-:::info Privacy
-Cache files never leave your machine. They're stored as Parquet files (a compressed columnar format) in your local application data directory.
-:::
+   ```
+   Slower:  Read -> Sort -> Filter
+   Faster:  Read -> Filter -> Sort
+   ```
+
+2. **Filter both sides of a join first.** A join on large inputs is expensive.
+3. **Choose formats deliberately.** Parquet and Arrow IPC read faster than CSV. Excel, Avro, ODS, YXDB, QVD and standard JSON load entirely into memory.
+4. **Expect a trade-off while developing.** Filtering early makes runs faster. Filtering late means fewer cache misses while you edit upstream tools.
 
 ## Troubleshooting
 
-### "My preview seems stale"
+**The preview looks stale.** Choose **Bypass Cache** or **Clear Backend Cache**, then preview again.
 
-Use the Refresh option in the preview panel to force re-execution. This is especially useful after:
-- Modifying source files externally
-- Database schema changes
-- Reconnecting to a database
+**Editing is still slow.** The cache helps only when you edit downstream of a cached step. Editing a tool upstream of a Sort or Join recomputes it.
 
-### "Execution is slow even with caching"
-
-Check if you're editing a tool that's upstream of expensive operations. The cache can only help when you're editing *downstream* of cached results.
-
-### "Disk space is growing"
-
-Each workflow maintains its own cache. If you're working with very large datasets, caches can consume significant disk space. Closing workflows you're not actively using will clean up their caches.
+**Disk space is growing.** Each open workflow has its own cache. Close workflows you are not using, or clear the cache.
