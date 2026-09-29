@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
@@ -232,7 +232,16 @@ application.add_middleware(
 
 # Rate limiting
 application.state.limiter = limiter
-application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+async def _handle_rate_limit_exceeded(request: Request, exc: Exception) -> Response:
+    """Return the 429 response (with Retry-After) for an exceeded rate limit."""
+    if not isinstance(exc, RateLimitExceeded):
+        raise exc
+    return _rate_limit_exceeded_handler(request, exc)
+
+
+application.add_exception_handler(RateLimitExceeded, _handle_rate_limit_exceeded)
 application.add_middleware(SlowAPIMiddleware)
 
 # Include API v1 routes

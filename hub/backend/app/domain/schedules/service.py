@@ -61,8 +61,8 @@ class ScheduleService:
             count_query = count_query.where(Schedule.workflow_id == workflow_id)
 
         if enabled_only:
-            query = query.where(Schedule.enabled == True)  # noqa: E712
-            count_query = count_query.where(Schedule.enabled == True)  # noqa: E712
+            query = query.where(Schedule.enabled.is_(True))
+            count_query = count_query.where(Schedule.enabled.is_(True))
 
         if created_by:
             query = query.where(Schedule.created_by == created_by)

@@ -222,7 +222,7 @@ async def authorize(
                         credentials[conn_id] = AuthorizeCredentials(
                             type="database",
                             read_only=resolved.read_only,
-                            db_type=resolved.db_type.value if hasattr(resolved.db_type, 'value') else resolved.db_type,
+                            db_type=resolved.db_type.value,
                             host=resolved.host,
                             port=resolved.port,
                             database=resolved.database,
@@ -234,7 +234,7 @@ async def authorize(
                             type="filesystem",
                             read_only=resolved.read_only,
                             path=resolved.path,
-                            path_type=resolved.path_type.value if hasattr(resolved.path_type, 'value') else resolved.path_type,
+                            path_type=resolved.path_type.value,
                         )
         except EncryptionKeyError as e:
             logger.error(f"Connection store not available: {e}")
@@ -275,7 +275,10 @@ async def _get_user_accessible_connections(user_id: UUID, db: AsyncSession) -> s
     """Get connection IDs accessible to a user via grant groups."""
     result = await db.execute(
         select(GrantGroupConnection.connection_id)
-        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id)
+        .join(
+            UserGroupGrantGroup,
+            UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id,
+        )
         .join(UserGroup, UserGroup.group_id == UserGroupGrantGroup.user_group_id)
         .where(UserGroup.user_id == user_id)
         .distinct()
@@ -283,13 +286,18 @@ async def _get_user_accessible_connections(user_id: UUID, db: AsyncSession) -> s
     return {str(row[0]) for row in result.fetchall()}
 
 
-async def _get_user_file_paths_for_authorize(user_id: UUID, db: AsyncSession) -> list[AuthorizeFilePath]:
+async def _get_user_file_paths_for_authorize(
+    user_id: UUID, db: AsyncSession
+) -> list[AuthorizeFilePath]:
     """Get filesystem paths accessible to user via grant groups."""
     result = await db.execute(
         select(Connection, ConnectionFilesystem)
         .join(ConnectionFilesystem, Connection.id == ConnectionFilesystem.connection_id)
         .join(GrantGroupConnection, GrantGroupConnection.connection_id == Connection.id)
-        .join(UserGroupGrantGroup, UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id)
+        .join(
+            UserGroupGrantGroup,
+            UserGroupGrantGroup.grant_group_id == GrantGroupConnection.grant_group_id,
+        )
         .join(UserGroup, UserGroup.group_id == UserGroupGrantGroup.user_group_id)
         .where(UserGroup.user_id == user_id)
         .where(Connection.type == "filesystem")

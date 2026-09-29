@@ -676,11 +676,11 @@ def run_hub_backend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
             error="Virtual environment not found"
         )
 
+    # The hub backend declares the same zero-ignore ruff policy as the server
+    # (pyproject: ignore = []) and the baseline is clean, so lint is enforced
+    # unconditionally: any finding fails the build, in CI and locally.
     cmd = [str(python_path), "-m", "ruff", "check", "app/", "tests/"]
-    if not strict:
-        cmd.append("--exit-zero")
-
-    return run_command(cmd, hub_backend_dir, "Hub Backend Lint", fail_on_error=strict)
+    return run_command(cmd, hub_backend_dir, "Hub Backend Lint", fail_on_error=True)
 
 
 def run_hub_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckResult:
@@ -700,7 +700,9 @@ def run_hub_backend_typecheck(repo_root: Path, strict: bool = False) -> CheckRes
 
     cmd = [str(python_path), "-m", "mypy", "app/"]
 
-    return run_command(cmd, hub_backend_dir, "Hub Backend Types", fail_on_error=strict)
+    # mypy runs in strict mode (pyproject) and the baseline is clean, so type
+    # errors fail the build unconditionally, in CI and locally.
+    return run_command(cmd, hub_backend_dir, "Hub Backend Types", fail_on_error=True)
 
 
 def run_hub_backend_tests(

@@ -7,6 +7,7 @@ Per roles.md:
 """
 
 import pytest
+
 from tests.conftest import new_client
 from tests.test_connections import database_connection_payload
 
@@ -16,7 +17,7 @@ async def assign_connection_to_group_via_grant_group(
 ) -> str:
     """
     Helper: Assign a connection to a user group via a grant group.
-    
+
     Creates a grant group, adds the connection to it, and assigns the
     grant group to the user group. Returns the grant group ID.
     """
@@ -28,21 +29,21 @@ async def assign_connection_to_group_via_grant_group(
     )
     assert grant_group_response.status_code == 201
     grant_group_id = grant_group_response.json()["id"]
-    
+
     # Add connection to grant group
     add_conn_response = await client.post(
         f"/api/v1/grant-groups/{grant_group_id}/connections/{connection_id}",
         headers=admin_headers,
     )
     assert add_conn_response.status_code == 201
-    
+
     # Assign grant group to user group
     assign_response = await client.post(
         f"/api/v1/groups/{group_id}/grant-groups/{grant_group_id}",
         headers=admin_headers,
     )
     assert assign_response.status_code == 201
-    
+
     return grant_group_id
 
 

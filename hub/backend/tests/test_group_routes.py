@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import new_client, setup_database  # noqa: F401 - fixtures
+from tests.conftest import new_client
 
 
 @pytest.fixture

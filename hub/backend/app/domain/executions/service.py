@@ -5,6 +5,7 @@ and managing execution history.
 """
 
 import asyncio
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -379,11 +380,9 @@ class ExecutionService:
                     )
                     return
 
-                # Parse workflow JSON for token generation
-                import json
-
+                # Fail fast on a corrupt workflow file before contacting the server.
                 try:
-                    workflow_json = json.loads(workflow_content.decode("utf-8"))
+                    json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
                     await self._fail_execution(
                         db,
