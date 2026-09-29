@@ -17,6 +17,7 @@
   --color-surface: var(--c-raised);
   --color-surface-raised: var(--c-raised);
   --color-surface-hover: var(--c-hover);
+  --color-field: var(--c-field);
 
   --color-ink: var(--c-ink);
   --color-ink-muted: var(--c-ink-muted);
@@ -25,6 +26,25 @@
 
   --color-line: var(--c-line);
   --color-line-strong: var(--c-line-strong);
+
+  /* Accent and status tones. Each has a soft background, a readable ink color
+   * and a border, and every theme redefines them so badges and alerts stay
+   * legible on light and dark surfaces alike. */
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-ink: var(--c-accent-ink);
+  --color-accent-line: var(--c-accent-line);
+  --color-success-soft: var(--c-success-soft);
+  --color-success-ink: var(--c-success-ink);
+  --color-success-line: var(--c-success-line);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-danger-ink: var(--c-danger-ink);
+  --color-danger-line: var(--c-danger-line);
+  --color-warning-soft: var(--c-warning-soft);
+  --color-warning-ink: var(--c-warning-ink);
+  --color-warning-line: var(--c-warning-line);
+  --color-info-soft: var(--c-info-soft);
+  --color-info-ink: var(--c-info-ink);
+  --color-info-line: var(--c-info-line);
 
   /* Sigilweaver brand colors - violet identity matching the Studio's
    * "Sigilweaver Signature" theme (accent #8b5cf6 / a78bfa family).
@@ -62,6 +82,23 @@
   --c-ink-faint: #9ca3af;
   --c-line: #e5e7eb;
   --c-line-strong: #d1d5db;
+  --c-field: #ffffff;
+  --c-focus: #7c3aed;
+  --c-accent-soft: #f5f3ff;
+  --c-accent-ink: #6d28d9;
+  --c-accent-line: #ddd6fe;
+  --c-success-soft: #ecfdf5;
+  --c-success-ink: #047857;
+  --c-success-line: #a7f3d0;
+  --c-danger-soft: #fef2f2;
+  --c-danger-ink: #b91c1c;
+  --c-danger-line: #fecaca;
+  --c-warning-soft: #fffbeb;
+  --c-warning-ink: #b45309;
+  --c-warning-line: #fde68a;
+  --c-info-soft: #eff6ff;
+  --c-info-ink: #1d4ed8;
+  --c-info-line: #bfdbfe;
   --rdp-day-hover: #f3f4f6;
 }
 
@@ -76,6 +113,23 @@
   --c-ink-faint: #64748b;
   --c-line: #283040;
   --c-line-strong: #3a4458;
+  --c-field: #0d1219;
+  --c-focus: #a78bfa;
+  --c-accent-soft: rgba(139, 92, 246, 0.18);
+  --c-accent-ink: #c4b5fd;
+  --c-accent-line: rgba(139, 92, 246, 0.4);
+  --c-success-soft: rgba(34, 197, 94, 0.14);
+  --c-success-ink: #4ade80;
+  --c-success-line: rgba(34, 197, 94, 0.35);
+  --c-danger-soft: rgba(239, 68, 68, 0.14);
+  --c-danger-ink: #f87171;
+  --c-danger-line: rgba(239, 68, 68, 0.38);
+  --c-warning-soft: rgba(245, 158, 11, 0.14);
+  --c-warning-ink: #fbbf24;
+  --c-warning-line: rgba(245, 158, 11, 0.35);
+  --c-info-soft: rgba(59, 130, 246, 0.15);
+  --c-info-ink: #60a5fa;
+  --c-info-line: rgba(59, 130, 246, 0.38);
   --rdp-day-hover: #1c232e;
 }
 
@@ -90,10 +144,34 @@
   --c-ink-faint: #7c6ba0;
   --c-line: #332a4d;
   --c-line-strong: #45396b;
+  --c-field: #100c1b;
+  --c-focus: #a78bfa;
+  --c-accent-soft: rgba(139, 92, 246, 0.18);
+  --c-accent-ink: #c4b5fd;
+  --c-accent-line: rgba(139, 92, 246, 0.4);
+  --c-success-soft: rgba(34, 197, 94, 0.14);
+  --c-success-ink: #4ade80;
+  --c-success-line: rgba(34, 197, 94, 0.35);
+  --c-danger-soft: rgba(239, 68, 68, 0.14);
+  --c-danger-ink: #f87171;
+  --c-danger-line: rgba(239, 68, 68, 0.38);
+  --c-warning-soft: rgba(245, 158, 11, 0.14);
+  --c-warning-ink: #fbbf24;
+  --c-warning-line: rgba(245, 158, 11, 0.35);
+  --c-info-soft: rgba(59, 130, 246, 0.15);
+  --c-info-ink: #60a5fa;
+  --c-info-line: rgba(59, 130, 246, 0.38);
   --rdp-day-hover: #281f42;
 }
 
+/* One consistent, visible keyboard focus indicator for every control. */
+:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
 body {
+  -webkit-font-smoothing: antialiased;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   background-color: var(--c-bg);

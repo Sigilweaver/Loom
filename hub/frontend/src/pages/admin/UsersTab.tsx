@@ -18,7 +18,7 @@ import {
   Edit,
 } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
-import { createUser, updateUser, deleteUser, listUsers, type CreateUserResponse } from "@api/client";
+import { createUser, updateUser, deleteUser, listUsers, type CreateUserResponse } from "@api";
 import type { UserRole } from "@state/authStore";
 
 interface UserInfo {

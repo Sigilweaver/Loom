@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { listAuditEvents, verifyAuditChain } from "./client";
+import { listAuditEvents, verifyAuditChain } from "./audit";
 
 vi.mock("@state/authStore", () => ({
+    expireSession: () => {},
     getAuthToken: () => "test-token",
 }));
 

@@ -21,6 +21,7 @@
       "@/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
       "@pages/*": ["./src/pages/*"],
+      "@api": ["./src/api/index.ts"],
       "@api/*": ["./src/api/*"],
       "@state/*": ["./src/state/*"],
       "@hooks/*": ["./src/hooks/*"],

@@ -23,7 +23,7 @@ import {
   refreshServer,
   testServerConnection,
   type ServerResponse,
-} from "@api/client";
+} from "@api";
 
 type ServerStatus = "online" | "offline" | "unknown";
 
