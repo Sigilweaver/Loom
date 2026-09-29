@@ -111,3 +111,5 @@ class AuditChainVerifyResponse(BaseModel):
     first_event_id: str | None
     last_event_id: str | None
     error: str | None = None
+    legacy_events: int = 0
+    warning: str | None = None

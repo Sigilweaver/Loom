@@ -117,4 +117,6 @@ async def verify_audit_chain(
         first_event_id=result.get("first_event_id"),
         last_event_id=result.get("last_event_id"),
         error=result.get("error"),
+        legacy_events=result.get("legacy_events", 0),
+        warning=result.get("warning"),
     )
