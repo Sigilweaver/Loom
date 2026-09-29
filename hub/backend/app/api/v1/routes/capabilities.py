@@ -28,6 +28,7 @@ from app.db.database import get_db
 from app.db.models import Server
 from app.domain.audit import AuditService
 from app.domain.capabilities import CapabilityIssuer, get_issuer
+from app.domain.servers.selection import NoOnlineServerError, select_online_server
 from app.middleware.rate_limit import _user_or_ip
 from app.middleware.rate_limit import limiter as _rl
 
@@ -74,21 +75,14 @@ async def _select_healthy_server(
             )
         return server
 
-    # Auto-select: find an online server (ordered by name for consistency)
-    result = await db.execute(
-        select(Server)
-        .where(Server.status == "online")
-        .order_by(Server.name)
-    )
-    servers = result.scalars().all()
-
-    if not servers:
+    # Auto-select: least-loaded online server, ties broken at random.
+    try:
+        return await select_online_server(db)
+    except NoOnlineServerError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No healthy servers available",
-        )
-
-    return servers[0]
+        ) from None
 
 
 # =============================================================================
