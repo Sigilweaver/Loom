@@ -230,6 +230,12 @@ class HubClient:
         except httpx.ConnectError as e:
             logger.error(f"Failed to connect to Hub: {e}")
             return AuthorizationResult(authorized=False, error=f"Cannot reach Hub: {e}")
+        except KeyError as e:
+            logger.error(f"Hub authorization response is missing field {e}")
+            return AuthorizationResult(
+                authorized=False,
+                error=f"Hub returned an incomplete authorization response (missing {e})",
+            )
         except Exception as e:
             logger.exception(f"Unexpected error during Hub authorization: {e}")
             return AuthorizationResult(authorized=False, error=f"Hub authorization error: {e}")
