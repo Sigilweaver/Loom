@@ -1,11 +1,10 @@
-import { useEffect, forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { ChevronDown, ShieldCheck } from "lucide-react";
 import { useUIStore } from "@state/uiStore";
 import { runWorkflowValidation } from "@state/validationStore";
 import { useWorkflowStore } from "@state/workflowStore";
 import { useWorkflowFiles } from "@hooks/useWorkflowFiles";
 import { useWorkflowRunner } from "@hooks/useWorkflowRunner";
-import { platform } from "@platform";
 import SigilWeaverLogo from "./SigilWeaverLogo";
 import {
   DropdownMenu,
@@ -65,7 +64,6 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const {
     handleNewWorkflow,
-    handleOpenWorkflowFromPath,
     handleImportWorkflow,
     handleSaveWorkflow,
     handleSaveAsWorkflow,
@@ -87,7 +85,6 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const handlers = {
     handleNewWorkflow,
-    handleOpenWorkflowFromPath,
     handleImportWorkflow,
     handleSaveWorkflow,
     handleSaveAsWorkflow,
@@ -97,7 +94,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     handleValidateWorkflow,
   };
 
-  // Native menu callbacks are registered once, but the handlers close over
+  // The imperative handle is created once, but the handlers close over
   // per-render state (active tab, workflow name, preview settings). Route the
   // callbacks through a ref so they always run the latest handlers.
   const latestHandlers = useRef(handlers);
@@ -112,42 +109,6 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
     handleRunWorkflow: () => latestHandlers.current.handleRunWorkflow(),
     handleValidateWorkflow: () => latestHandlers.current.handleValidateWorkflow(),
   }), []);
-
-  // Listen for menu actions from the platform (native menus on desktop)
-  useEffect(() => {
-    return platform.menu.onMenuAction((action, data) => {
-      const h = latestHandlers.current;
-      switch (action) {
-        case "new-workflow":
-          h.handleNewWorkflow();
-          break;
-        case "open-workflow":
-          if (data) {
-            // Data is the file path from the menu dialog
-            void h.handleOpenWorkflowFromPath(data as string);
-          } else {
-            void h.handleImportWorkflow();
-          }
-          break;
-        case "save-workflow":
-          void h.handleSaveWorkflow();
-          break;
-        case "run-workflow":
-          void h.handleRunWorkflow();
-          break;
-        case "validate-workflow":
-          h.handleValidateWorkflow();
-          break;
-        case "show-workflow-viewer":
-        case "toggle-workflow-viewer":
-          setLeftPaneTab("workflow");
-          break;
-        case "hide-workflow-viewer":
-          setLeftPaneTab("tools");
-          break;
-      }
-    });
-  }, [setLeftPaneTab]);
 
   return (
     <header className="border-b shadow-lg bg-theme-header-bg border-theme-border-primary">

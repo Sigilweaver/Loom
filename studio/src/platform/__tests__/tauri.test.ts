@@ -182,10 +182,3 @@ describe('tauri adapter: initialize', () => {
     expect(tauri.capabilities.credentialProxy).toBe(false);
   });
 });
-
-describe('tauri adapter: menu', () => {
-  it('registers no listener', async () => {
-    const tauri = await loadAdapter();
-    expect(tauri.menu.onMenuAction(() => {})).toBeUndefined();
-  });
-});

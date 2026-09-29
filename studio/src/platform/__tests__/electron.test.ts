@@ -187,9 +187,3 @@ describe('electron adapter: initialize', () => {
     });
   });
 });
-
-describe('electron adapter: menu', () => {
-  it('registers no listener (no shell emits menu events)', () => {
-    expect(electronPlatform.menu.onMenuAction(() => {})).toBeUndefined();
-  });
-});

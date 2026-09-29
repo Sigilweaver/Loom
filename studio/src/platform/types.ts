@@ -172,29 +172,6 @@ export interface CredentialOperations {
 }
 
 // =============================================================================
-// Menu Operations
-// =============================================================================
-
-export type MenuAction =
-  | 'new-workflow'
-  | 'open-workflow'
-  | 'save-workflow'
-  | 'run-workflow'
-  | 'validate-workflow'
-  | 'show-workflow-viewer'
-  | 'hide-workflow-viewer'
-  | 'toggle-workflow-viewer';
-
-export interface MenuOperations {
-  /**
-   * Register a callback for menu actions.
-   * @param callback Function called when a menu action is triggered
-   * @returns Cleanup function to unregister the callback
-   */
-  onMenuAction(callback: (action: MenuAction, data?: unknown) => void): (() => void) | undefined;
-}
-
-// =============================================================================
 // Platform Capabilities
 // =============================================================================
 
@@ -235,9 +212,6 @@ export interface PlatformAdapter {
 
   /** Secure credential storage */
   readonly credentials: CredentialOperations;
-
-  /** Menu system */
-  readonly menu: MenuOperations;
 
   /**
    * Initialize the platform adapter.

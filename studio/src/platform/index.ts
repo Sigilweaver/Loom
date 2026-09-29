@@ -33,11 +33,9 @@ export type {
   SettingsOperations,
   AuthOperations,
   CredentialOperations,
-  MenuOperations,
   FileFilter,
   OpenDialogOptions,
   SaveDialogOptions,
-  MenuAction,
 } from './types';
 
 /**

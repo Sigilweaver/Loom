@@ -18,7 +18,6 @@ import { mergeWithDefaults } from '../types/settings';
 import {
   createAuthOps,
   loadSettingsFromLocalStorage,
-  noopMenuOps,
   responseFromProxy,
   saveSettingsToLocalStorage,
   toProxyRequest,
@@ -178,7 +177,6 @@ export const electronPlatform: PlatformAdapter = {
   settings: electronSettingsOps,
   auth: electronAuthOps,
   credentials: electronCredentialOps,
-  menu: noopMenuOps,
 
   async initialize(): Promise<void> {
     // Pre-fetch session token during initialization
