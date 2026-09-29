@@ -1,189 +1,153 @@
 ---
 sidebar_position: 1
+title: Architecture Overview
 ---
 
 # Architecture Overview
 
-Sigilweaver Loom is a desktop application with a clear separation between frontend (UI) and backend (data processing). Understanding this split is key to navigating the codebase.
+Loom has a clear split between the UI, which never touches your data, and a service that does all the data processing. Understanding this split is the key to navigating the code.
 
-## The Big Picture
+## The big picture
 
 ```mermaid
-flowchart TB
-    subgraph Electron["Electron Shell"]
-        subgraph Frontend["React Frontend"]
-            Canvas["Canvas<br/>(Xyflow)"]
-            State["State<br/>(Zustand)"]
-            Config["Config Panels<br/>(React)"]
-        end
-        
-        Frontend -->|HTTP| Backend
-        
-        subgraph Backend["Python Backend"]
-            FastAPI["FastAPI<br/>Routes"]
-            Registry["Tool<br/>Registry"]
-            Polars["Polars<br/>Execution"]
-        end
+flowchart LR
+    subgraph Client["Studio (React)"]
+        Canvas["Canvas<br/>(Xyflow)"]
+        State["State<br/>(Zustand)"]
+        Config["Config panels"]
     end
+
+    subgraph Engine["Server (FastAPI)"]
+        Routes["API routes"]
+        Registry["Tool registry"]
+        Polars["Polars<br/>(lazy)"]
+    end
+
+    Hub["Hub<br/>(optional)"]
+
+    Client -->|"HTTP: workflow JSON"| Engine
+    Client -.->|"login, tokens, connections"| Hub
+    Hub -.->|"authorize, credentials"| Engine
 ```
 
-## Monorepo Structure
+Studio runs in an Electron or Tauri shell, or in a plain browser. The Full desktop builds bundle a Server and start it for you. Otherwise Studio talks to a Server you run. In Hub mode, Studio first gets a short-lived token from Hub. See [Component Relationships](./component-relationships.md).
 
-Everything lives in one repository. This isn't arbitrary. It solves real problems.
+## Monorepo structure
+
+Everything lives in one repository, so a change to the workflow format, the Server that runs it, the Studio that edits it, the Hub that stores it and the docs that describe it can land in one commit.
 
 ```
-server/                   # Python: FastAPI + Polars (Server)
-├── app/
-│   │   ├── api/          # REST endpoints
-│   │   │   ├── routes/   # Route handlers
-│   │   │   └── models/   # Pydantic request/response schemas
-│   │   ├── domain/       # Business logic
-│   │   │   ├── tools/    # Tool implementations (Select, Filter, etc.)
-│   │   │   ├── workflow/ # Execution engine
-│   │   │   └── datasources/  # CSV, Parquet handlers
-│   │   └── utils/        # Shared utilities
-└── tests/                # pytest suite
+server/                     Python: FastAPI + Polars
+|-- app/
+|   |-- api/                routes/ (HTTP handlers), models/ (Pydantic schemas)
+|   |-- domain/
+|   |   |-- tools/          implementations/, loaders/, registry, sockets
+|   |   |-- execution/      planner, executor, cache manager, safety limits
+|   |   |-- datasources/    inspect and preview per format
+|   |   |-- connections/    credential store, URI building, query policy
+|   |   |-- hub/            Hub client and heartbeat
+|   |   |-- workflow/       Python code generator, archive
+|   |   `-- registry.py     the single list of readable formats
+|   |-- middleware/         auth, audit, rate limiting
+|   `-- utils/
+`-- tests/
 
-studio/                   # TypeScript: React + Electron (Studio)
-├── src/
-│   │   ├── components/   # React components
-│   │   ├── state/        # Zustand stores
-│   │   ├── domain/       # Pure TS business logic
-│   │   ├── api/          # Server client
-│   │   ├── data/         # Tool definitions
-│   │   └── types/        # TypeScript interfaces
-├── electron/             # Main process
-└── tests/                # Vitest suite
+studio/                     TypeScript: React + Vite
+|-- src/
+|   |-- components/         canvas/, config/, shell/, viewer/, ai/, ...
+|   |-- state/              Zustand stores
+|   |-- domain/             pure workflow logic and data source descriptors
+|   |-- api/                Server and Hub clients
+|   |-- platform/           Electron, Tauri and web adapters
+|   |-- ai/                 AI agent, tools and prompts
+|   |-- data/               tool definitions and config schemas
+|   `-- themes/
+|-- electron/               Electron main and preload
+`-- tauri/                  Tauri (Rust) shell
 
-hub/                      # Hub orchestration platform
-├── backend/              # Python: FastAPI + PostgreSQL
-│   ├── app/
-│   │   ├── api/          # REST endpoints
-│   │   ├── db/           # Models & migrations
-│   │   └── domain/       # Business logic
-│   └── tests/
-└── frontend/             # TypeScript: React + Vite
-    └── src/
-        ├── pages/        # Page components
-        └── api/          # API client
+hub/
+|-- backend/                FastAPI + SQLAlchemy + Alembic (PostgreSQL)
+`-- frontend/               React (Vite) admin and user app
 
-scripts/                  # Build and dev utilities
-docs/                     # Project documentation
+docker/                     Production compose files
+scripts/                    dev, test and build scripts
+docs/                       This site
 ```
 
-## Why This Architecture?
+## Responsibilities
 
-### Separation of Concerns
+**Studio** handles what the user sees and touches: the canvas, tool configuration, undo history, tabs and settings. It saves and loads `.swwf` workflow files. It works with schemas and small previews. It never loads a dataset.
 
-The frontend handles:
-- Visual workflow representation (canvas, tools, wires)
-- User interaction (drag-drop, selection, configuration)
-- State management (undo/redo, tabs, settings)
-- Workflow serialization (save/load `.swwf` files)
+**Server** handles everything data-related: reading files and databases, running tools, propagating schemas, producing previews and profiles, and writing output.
 
-The backend handles:
-- Data loading and type inference
-- Tool execution (actual transformations)
-- Schema propagation (what columns exist after each step)
-- Preview data generation
+**Hub** handles people and policy: accounts, roles, shared connections, workflow storage, schedules and the audit log.
 
-This split means the frontend never touches actual data. It works with schemas and metadata, keeping the UI responsive regardless of dataset size.
+Keeping data work out of the UI makes Studio responsive at any data size, and it means the same Server can be driven by Studio, Hub or a script.
 
-### Communication Pattern
+## Communication
 
-The frontend and backend talk over HTTP:
+Studio and Server talk over HTTP with workflow JSON. Typical calls:
 
-1. **User adds a data source** → Frontend sends path to backend → Backend returns schema (column names, types)
-2. **User configures a tool** → Frontend sends workflow JSON to backend → Backend returns output schema
-3. **User requests preview** → Frontend sends workflow + tool ID → Backend executes upstream tools, returns sample rows
-4. **User runs workflow** → Frontend sends complete workflow → Backend executes everything, writes output
+| User action | Request | Result |
+| ----------- | ------- | ------ |
+| Configure a tool | `POST /api/workflow/tool/metadata` | Upstream columns and types for dropdowns |
+| Connect or change a tool | `POST /api/workflow/tool/schema` | The tool's output schema, without running it |
+| Click a socket | `POST /api/workflow/tool/execute` | Sample rows for that socket |
+| Preview All | `POST /api/workflow/preview_all` | Sample rows for every tool |
+| Run | `POST /api/workflow/execute` | Runs the workflow, including Write tools |
+| Profile a socket | `POST /api/workflow/tool/profile` | Column statistics over the full data |
+| Open the code viewer | `POST /api/workflow/preview_code` | Generated Polars code |
 
-All requests are synchronous from the user's perspective. They click, something happens. Under the hood, Polars' lazy evaluation means we only compute what's actually needed.
+See [API Endpoints](../reference/api-endpoints.md) for the full list.
 
-## Frontend Architecture
+## Studio at a glance
 
-See [Frontend Architecture](./frontend) for details. Key points:
+See [Studio Architecture](./frontend.md).
 
-- **React** for UI components
-- **Zustand** for state management (workflow, history, UI, tabs)
-- **Xyflow** for the visual canvas (nodes and edges)
-- **Vite** for development and bundling
-- **Electron** for desktop packaging
+- **React 18** components, **Zustand** stores, **Xyflow** canvas, **Vite**, **Tailwind**.
+- Stores split by concern: `workflowStore`, `historyStore`, `tabStore`, `uiStore`, `settingsStore`, `executionStore`, `connectionStore`, `clipboardStore`, `runtimeLogStore`, `aiStore` and `autoConnectPreviewStore`.
+- A platform adapter isolates Electron, Tauri and browser differences.
 
-State is split across multiple Zustand stores:
-- `workflowStore`: Tools, wires, selection
-- `historyStore`: Undo/redo stack
-- `tabStore`: Multi-tab workflows
-- `uiStore`: UI preferences (minimap, snap-to-grid)
-- `settingsStore`: Persisted settings
-- `executionStore`: Execution state and progress
-- `connectionStore`: Database connections
-- `clipboardStore`: Copy/paste operations
-- `runtimeLogStore`: Runtime log messages
-- `aiStore`: AI assistant state management
-- `autoConnectPreviewStore`: Auto-connection preview state
+## Server at a glance
 
-## Backend Architecture
+See [Server Architecture](./backend.md).
 
-See [Backend Architecture](./backend) for details. Key points:
+- **FastAPI** for the API, **Pydantic** for schemas, **Polars** for data.
+- A decorator-based **tool registry**. Each tool declares `execute`, `get_output_schema` and `validate_config`.
+- The executor is built from a **planner** (dependency order), a **cache manager** (lineage hashes and disk cache) and the **executor** itself (sequential or parallel).
 
-- **FastAPI** for REST API
-- **Polars** for dataframe operations (lazy evaluation)
-- **Pydantic** for request/response validation
-- **Tool Registry** pattern for extensibility
-
-The execution engine is decomposed into focused components:
-
-| Component | Purpose |
-|-----------|---------|
-| **ExecutionPlanner** | Creates immutable execution plans with topological sort |
-| **CacheManager** | Handles lineage hashes and caching decisions |
-| **WorkflowExecutor** | Orchestrates tool execution (sequential or parallel) |
-
-The tool system uses a decorator-based registry:
 ```python
 @register_tool("Filter")
 class FilterTool(BaseTool):
-    engine = "core/polars"  # Default engine
+    engine = "core/polars"   # the default, inherited from BaseTool
 
     async def execute(self, config, inputs):
-        # Transformation logic
+        ...
 ```
 
-Each tool declares its execution engine. The executor resolves the engine per-tool using the precedence chain: `tool.engine` > `meta.defaultEngine` > `DEFAULT_ENGINE`.
+Each tool's engine is resolved with the precedence `tool.engine`, then `meta.defaultEngine`, then `DEFAULT_ENGINE`. Only `core/polars` exists today.
 
-Socket IDs are defined as constants in both frontend and backend to prevent mismatches:
-```python
-# Backend: app/domain/tools/sockets.py
-class CommonSockets:
-    INPUT = "input"
-    OUTPUT = "output"
-```
+Socket IDs (`input`, `output`, `output-true` and so on) are constants in both `server/app/domain/tools/sockets.py` and `studio/src/domain/workflow/constants/socketIds.ts`, and tests check that they match.
 
-This makes adding new tools straightforward. Implement the interface, register it, done.
+## Data flow example
 
-## Data Flow Example
+A user connects a Read tool (`Input`) to a Filter tool:
 
-Here's what happens when a user connects an Input tool to a Filter tool:
+1. The Read tool is configured with `data.csv`.
+2. Studio calls `POST /api/workflow/tool/schema` with the workflow. The Server inspects the file and returns the columns and types.
+3. Studio fills the Filter's column dropdown from that schema.
+4. The user configures the filter: `age > 30`.
+5. Studio asks for the Filter's output schema again. It has the same columns, and the row count is unknown until it runs.
+6. The user clicks the Filter's `T` socket. Studio calls `POST /api/workflow/tool/execute`.
+7. The Server builds a lazy query for Read then Filter, limits it to the preview row count, collects it and returns the rows.
+8. Studio shows them in the Data Preview tab.
 
-1. **Input tool configured** with `data.csv`
-2. Frontend calls `POST /api/workflow/tool/schema` with workflow JSON
-3. Backend loads CSV, infers schema, returns `{columns: [{name: "age", type: "Int64"}, ...]}`
-4. Frontend stores schema, shows columns in Filter config dropdown
-5. **User configures Filter**: `pl.col('age') > 30`
-6. Frontend calls `POST /api/workflow/tool/schema` again with updated workflow
-7. Backend computes Filter's output schema (same columns, different row count unknown until execution)
-8. **User clicks Preview**
-9. Frontend calls `POST /api/workflow/tool/execute` with workflow + Filter tool ID
-10. Backend executes Input → Filter lazily, collects 100 rows, returns preview data
-11. Frontend displays preview in data grid
+Because Polars is lazy, step 7 reads only as much of the file as it needs.
 
-All of this happens in milliseconds for reasonable-sized data because Polars is lazy. It only reads enough of the CSV to return the preview.
+## Design decisions
 
-## Key Design Decisions
-
-For the rationale behind major architectural choices, see [Architectural Decisions](./decisions).
+For the reasoning behind the major choices, see [Architectural Decisions](./decisions.md).
 
 ---
 
-Next: [Frontend Architecture](./frontend) or [Backend Architecture](./backend) for deeper dives.
+Next: [Studio Architecture](./frontend.md) or [Server Architecture](./backend.md).
