@@ -43,26 +43,26 @@ uv run pytest -s
 
 ```
 server/tests/
-├── conftest.py              # Shared fixtures
-├── fixtures/
-│   └── sample.csv           # Test data files
-├── test_execution.py        # Execution engine tests
-├── test_planner.py          # ExecutionPlanner tests
-├── test_cache_manager.py    # CacheManager tests
-├── test_parallel_execution.py # Parallel execution tests
-├── test_type_contracts.py   # Studio/Server contract tests
-├── test_cache.py            # BlockingToolCache tests
-├── test_formula.py          # Formula tool tests
-├── test_filter.py           # Filter tool tests
-├── test_select.py           # Select tool tests
-├── test_join.py             # Join tool tests
-├── test_output.py           # Output tool tests
-├── test_parquet.py          # Parquet datasource tests
-├── test_datasources.py      # Datasource factory tests
-├── test_database.py         # Database datasource tests
-├── test_connections.py      # Connection store tests
-├── test_integration.py      # End-to-end workflow tests
-└── test_models.py           # Pydantic model tests
+|-- conftest.py              # Shared fixtures
+|-- fixtures/
+|   `-- sample.csv           # Test data files
+|-- test_execution.py        # Execution engine tests
+|-- test_planner.py          # ExecutionPlanner tests
+|-- test_cache_manager.py    # CacheManager tests
+|-- test_parallel_execution.py # Parallel execution tests
+|-- test_type_contracts.py   # Studio/Server contract tests
+|-- test_cache.py            # BlockingToolCache tests
+|-- test_formula.py          # Formula tool tests
+|-- test_filter.py           # Filter tool tests
+|-- test_select.py           # Select tool tests
+|-- test_join.py             # Join tool tests
+|-- test_output.py           # Output tool tests
+|-- test_parquet.py          # Parquet datasource tests
+|-- test_datasources.py      # Datasource factory tests
+|-- test_database.py         # Database datasource tests
+|-- test_connections.py      # Connection store tests
+|-- test_integration.py      # End-to-end workflow tests
+`-- test_models.py           # Pydantic model tests
 ```
 
 ## Fixtures
