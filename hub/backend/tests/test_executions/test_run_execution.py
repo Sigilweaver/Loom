@@ -10,6 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from app.config import settings
+from app.db.models import Execution
 from app.domain.auth.tokens import InMemoryTokenStore
 from app.domain.capabilities import CapabilityIssuer
 from app.domain.executions.service import ExecutionService
@@ -184,6 +185,28 @@ class TestCapabilityTokenIssuance:
         row = await db_helpers.reload_execution(execution.id)
         assert row.status == "failed"
         assert row.error_message == "boom"
+
+    @pytest.mark.asyncio
+    async def test_cancelled_execution_is_not_overwritten(
+        self, runner_env, fake_client
+    ):
+        await create_user_direct("runner", "user")
+        workflow, server, execution = await _setup("runner")
+
+        async def cancel_then_finish(self, workflow_content: bytes) -> object:
+            async with TestSessionLocal() as db:
+                row = await db.get(Execution, execution.id)
+                assert row is not None
+                row.status = "cancelled"
+                await db.commit()
+            return {"duration": 1.0}
+
+        with patch.object(FakeServerClient, "execute", cancel_then_finish):
+            await _run(execution, workflow, server)
+
+        row = await db_helpers.reload_execution(execution.id)
+        assert row.status == "cancelled"
+        assert row.success is None
 
 
 class TestAuthorizeWithNonUserPrincipal:
