@@ -9,18 +9,17 @@ import {
 } from "react";
 import clsx from "clsx";
 
-const control =
-  "w-full rounded-lg border bg-field px-3 text-sm text-ink placeholder:text-ink-faint transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-60";
+/** Border, background and focus ring shared by every form control. */
+export function fieldSurface(invalid?: boolean): string {
+  return clsx(
+    "rounded-lg border bg-field text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-60",
+    invalid ? "border-red-500 focus:border-red-500" : "border-line-strong focus:border-brand-500"
+  );
+}
 
 /** Class names shared by every text-like form control. */
 export function controlClasses(invalid?: boolean, className?: string): string {
-  return clsx(
-    control,
-    invalid
-      ? "border-red-500 focus:border-red-500"
-      : "border-line-strong focus:border-brand-500",
-    className
-  );
+  return clsx(fieldSurface(invalid), "w-full px-3 text-sm placeholder:text-ink-faint", className);
 }
 
 export interface InputProps extends ComponentPropsWithRef<"input"> {

@@ -1,6 +1,6 @@
 export { Button, IconButton, buttonClasses } from "./Button";
 export type { ButtonProps, ButtonVariant, IconButtonProps } from "./Button";
-export { Field, Input, Textarea, Select, Checkbox, controlClasses } from "./Field";
+export { Field, Input, Textarea, Select, Checkbox, controlClasses, fieldSurface } from "./Field";
 export { Card, CardHeader } from "./Card";
 export { Badge, toneClasses } from "./Badge";
 export type { Tone } from "./Badge";
