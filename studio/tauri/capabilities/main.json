@@ -1,31 +1,12 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
     "identifier": "main-capability",
-    "description": "Main window capability set",
+    "description": "Least-privilege capability for the main window. The renderer only calls the app's own commands (files, settings, credentials, proxy), which are not gated by plugin permissions; dialogs, the store and the server sidecar are driven from Rust. The one plugin command it needs is the opener, which the link handler uses to open http(s), mailto and tel links.",
     "windows": [
         "main"
     ],
     "permissions": [
-        "core:default",
-        "core:event:default",
-        "core:window:default",
-        "core:window:allow-close",
-        "core:window:allow-minimize",
-        "core:window:allow-maximize",
-        "core:window:allow-set-title",
-        "dialog:default",
-        "dialog:allow-open",
-        "dialog:allow-save",
-        "dialog:allow-message",
-        "dialog:allow-ask",
-        "dialog:allow-confirm",
-        "fs:default",
-        "fs:allow-read-text-file",
-        "fs:allow-write-text-file",
-        "fs:allow-exists",
-        "shell:default",
-        "shell:allow-open",
-        "opener:default",
-        "store:default"
+        "opener:allow-open-url",
+        "opener:allow-default-urls"
     ]
 }

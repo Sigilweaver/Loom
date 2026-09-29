@@ -35,12 +35,24 @@ use crate::commands::{credentials, settings};
 
 /// Port the bundled server listens on. Must match the server default and the
 /// Electron shell's `BACKEND_PORT`.
-const BACKEND_PORT: u16 = 25811;
+pub(crate) const BACKEND_PORT: u16 = 25811;
 
-/// Sidecar program name, as declared under `externalBin` in
-/// `tauri.conf.full.json`. `Shell::sidecar` resolves this relative to the app
-/// binary directory.
-const SIDECAR_NAME: &str = "binaries/server";
+/// The `externalBin` entry in `tauri.conf.full.json` (the source path, without
+/// the target-triple suffix). Used to verify the compiled config matches the
+/// `bundled-server` feature.
+pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/server";
+
+/// Program name passed to `Shell::sidecar`. The bundler copies the
+/// `externalBin` file next to the app executable under its bare file name
+/// (`server`, or `server.exe` on Windows) and `Shell::sidecar` resolves the
+/// name relative to that executable's directory, so this is the file name and
+/// NOT the `binaries/` config path. Passing the config path looked for
+/// `<app dir>/binaries/server`, which does not exist in an installed bundle.
+const SIDECAR_NAME: &str = "server";
+
+/// How long to wait for the server to exit after a polite termination request
+/// before killing it outright.
+const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
 
 /// Readiness poll cadence: 30 attempts, 500ms apart (15s total), matching the
 /// Electron shell's health-check loop.
@@ -56,6 +68,9 @@ pub(crate) const HAS_BUNDLED_SERVER: bool = cfg!(feature = "bundled-server");
 #[derive(Default)]
 pub struct BackendManager {
     child: Mutex<Option<CommandChild>>,
+    /// True only while a server this shell launched is up and healthy. Gates
+    /// the credential proxy and the legacy plaintext `resolve_connection`.
+    owned: AtomicBool,
 }
 
 impl BackendManager {
@@ -71,6 +86,15 @@ impl BackendManager {
     fn take(&self) -> Option<CommandChild> {
         let mut guard = self.child.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         guard.take()
+    }
+
+    fn set_owned(&self, owned: bool) {
+        self.owned.store(owned, Ordering::SeqCst);
+    }
+
+    /// Whether this shell launched the running server (Full build).
+    pub fn is_owned(&self) -> bool {
+        self.owned.load(Ordering::SeqCst)
     }
 }
 
@@ -112,6 +136,16 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     let data_dir = server_data_dir(app)?;
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| format!("Failed to create server data directory: {e}"))?;
+
+    // Something already answering on the port (an orphaned server from a
+    // crashed session, or another program) would make the readiness probe
+    // fail with an opaque timeout. Say what is wrong instead.
+    if port_in_use().await {
+        return Err(format!(
+            "Port {BACKEND_PORT} is already in use. Close any other Sigilweaver Loom \
+             instance or server using it and try again."
+        ));
+    }
 
     // A Full build should always have this binary; if it's missing (e.g. a
     // packaging mistake), degrade the same way Electron's `getBackendPath`
@@ -157,7 +191,9 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
                     // Drop the stored child: it's already gone, and leaving it
                     // registered risks a later `stop_backend` killing a PID the
                     // OS has since recycled for something else.
-                    app_for_reader.state::<BackendManager>().take();
+                    let manager = app_for_reader.state::<BackendManager>();
+                    manager.set_owned(false);
+                    manager.take();
                 }
                 CommandEvent::Terminated(payload) => {
                     println!(
@@ -165,7 +201,9 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
                         payload.code, payload.signal
                     );
                     terminated_reader.store(true, Ordering::SeqCst);
-                    app_for_reader.state::<BackendManager>().take();
+                    let manager = app_for_reader.state::<BackendManager>();
+                    manager.set_owned(false);
+                    manager.take();
                 }
                 _ => {}
             }
@@ -183,6 +221,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
             return Err("Server process exited before becoming ready".to_string());
         }
         if health_ok(&token).await {
+            app.state::<BackendManager>().set_owned(true);
             println!("[Backend] Health check passed on attempt {attempt}");
             return Ok(());
         }
@@ -199,23 +238,71 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
 /// out of the manager, so a second call (e.g. `Exit` after `ExitRequested`) is
 /// a no-op.
 ///
-/// Note: `CommandChild::kill` sends SIGKILL on Unix (via `shared_child`), which
-/// is more aggressive than Electron's plain SIGTERM. This is a deliberate
-/// choice: orphaning the Python server is the worst failure mode for this
-/// feature, and a hung server currently blocks nothing on shutdown, so the
-/// stronger signal trades graceful teardown for a guarantee that the process is
-/// gone.
+/// The bundled server is a PyInstaller one-file executable: a small bootloader
+/// process that extracts and runs the real Python process as its child.
+/// Killing only the bootloader (`CommandChild::kill` sends SIGKILL / calls
+/// TerminateProcess on it alone) orphans the child, which keeps port 25811
+/// bound and blocks the next launch. So the whole tree is asked to stop first:
+/// SIGTERM on Unix (the bootloader forwards it and waits for the child) and
+/// `taskkill /T` on Windows. Only if it is still alive after a grace period is
+/// it killed outright.
 pub fn stop_backend(app: &AppHandle) {
-    match app.state::<BackendManager>().take() {
+    let manager = app.state::<BackendManager>();
+    manager.set_owned(false);
+    match manager.take() {
         Some(child) => {
             let pid = child.pid();
-            match child.kill() {
-                Ok(()) => println!("[Backend] Stop signal sent to server (pid: {pid})"),
-                Err(e) => eprintln!("[Backend] Failed to stop server (pid: {pid}): {e}"),
+            terminate_process_tree(pid);
+            if process_alive(pid) {
+                eprintln!("[Backend] Server (pid: {pid}) ignored the stop request, killing it");
+                if let Err(e) = child.kill() {
+                    eprintln!("[Backend] Failed to kill server (pid: {pid}): {e}");
+                }
+            } else {
+                println!("[Backend] Server stopped (pid: {pid})");
             }
         }
         None => println!("[Backend] No backend process to stop"),
     }
+}
+
+/// Ask a process and its children to exit, then wait up to [`SHUTDOWN_GRACE`].
+#[cfg(unix)]
+fn terminate_process_tree(pid: u32) {
+    let _ = std::process::Command::new("kill")
+        .args(["-TERM", &pid.to_string()])
+        .status();
+    let deadline = std::time::Instant::now() + SHUTDOWN_GRACE;
+    while process_alive(pid) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
+#[cfg(windows)]
+fn terminate_process_tree(pid: u32) {
+    use std::os::windows::process::CommandExt;
+    // CREATE_NO_WINDOW: do not flash a console for taskkill.
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let _ = std::process::Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .status();
+}
+
+#[cfg(unix)]
+fn process_alive(pid: u32) -> bool {
+    std::process::Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+#[cfg(windows)]
+fn process_alive(_pid: u32) -> bool {
+    // `taskkill /F` is synchronous, so the tree is gone once it returns.
+    false
 }
 
 /// Resolve the writable data directory for the server's working files.
@@ -251,6 +338,11 @@ fn build_env(token: &str, data_dir: &Path) -> HashMap<String, String> {
         path_str(data_dir.join("connections.json")),
     );
     env
+}
+
+/// Whether something is already accepting connections on the server port.
+async fn port_in_use() -> bool {
+    TcpStream::connect(("127.0.0.1", BACKEND_PORT)).await.is_ok()
 }
 
 /// Log a line emitted by the server, routing obvious error output to stderr.
