@@ -187,11 +187,23 @@ async def authorize(
         )
 
     user_id = token_data.user_id
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        logger.warning(
+            "Token from server %s carries a non-user principal %r",
+            server.server_name,
+            user_id,
+        )
+        return AuthorizeResponse(
+            authorized=False,
+            error="Token was not issued for a Hub user",
+        )
 
     # 2. Validate connection access for execute/preview
     if request.request_type in ("execute", "preview") and request.connection_ids:
         # Check user has access to all requested connections
-        accessible = await _get_user_accessible_connections(UUID(user_id), db)
+        accessible = await _get_user_accessible_connections(user_uuid, db)
         unauthorized = [c for c in request.connection_ids if c not in accessible]
 
         if unauthorized:
@@ -240,7 +252,7 @@ async def authorize(
             logger.error(f"Connection store not available: {e}")
 
     # 4. Get user's file path grants
-    file_paths = await _get_user_file_paths_for_authorize(UUID(user_id), db)
+    file_paths = await _get_user_file_paths_for_authorize(user_uuid, db)
 
     # 5. Log audit event
     audit_service = AuditService(db)
