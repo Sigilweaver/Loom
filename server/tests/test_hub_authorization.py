@@ -339,3 +339,100 @@ class TestServerAllowlistFencesHubGrants:
 
         monkeypatch.setattr(settings, "allowed_file_paths", [])
         assert sec.active_server_allowlist() is None
+
+
+class TestHubGrantsEnforcedThroughTheRoutes:
+    """End to end: the grants Hub returns decide which files a workflow may read."""
+
+    @staticmethod
+    def _workflow(source: str) -> dict:
+        return {
+            "meta": {
+                "name": "hub",
+                "description": "",
+                "author": "t",
+                "workflowId": "hub-e2e",
+                "created": "2025-01-01",
+            },
+            "tools": [
+                {
+                    "id": "in1",
+                    "type": "Input",
+                    "x": 0,
+                    "y": 0,
+                    "config": {
+                        "category": "file",
+                        "type": "csv",
+                        "source": source,
+                        "csvMode": "scan",
+                    },
+                    "sockets": [{"id": "output", "direction": "output"}],
+                }
+            ],
+            "wires": [],
+        }
+
+    @pytest.fixture
+    def hub_env(self, monkeypatch, tmp_path):
+        import polars as pl
+
+        granted = tmp_path / "granted"
+        granted.mkdir()
+        other = tmp_path / "other"
+        other.mkdir()
+        for folder in (granted, other):
+            pl.DataFrame({"a": [1, 2]}).write_csv(folder / "d.csv")
+
+        hub = FakeHub(
+            AuthorizationResult(
+                authorized=True,
+                file_paths=[FilePathGrant(path=str(granted), read_only=True)],
+            )
+        )
+        monkeypatch.setattr(settings, "auth_mode", "hub")
+        monkeypatch.setattr(settings, "file_access_mode", "auto", raising=False)
+        monkeypatch.setattr(settings, "restrict_file_access", False)
+        monkeypatch.setattr(settings, "allowed_file_paths", [])
+        monkeypatch.setattr(workflow_routes, "get_hub_client", lambda: hub)
+        return {"hub": hub, "granted": granted / "d.csv", "other": other / "d.csv"}
+
+    @pytest.fixture
+    def client(self):
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        return TestClient(app)
+
+    def test_file_inside_grant_executes(self, client, hub_env):
+        response = client.post(
+            "/api/workflow/execute",
+            json={"workflow": self._workflow(str(hub_env["granted"]))},
+            headers={"Authorization": "Bearer one-time"},
+        )
+        assert response.status_code == 200
+        assert response.json()["outputs"]["output"]["row_count"] == 2
+
+    def test_file_outside_grant_is_403(self, client, hub_env):
+        response = client.post(
+            "/api/workflow/execute",
+            json={"workflow": self._workflow(str(hub_env["other"]))},
+            headers={"Authorization": "Bearer one-time"},
+        )
+        assert response.status_code == 403
+        assert "granted paths" in response.json()["detail"]
+
+    def test_missing_token_is_401_and_nothing_runs(self, client, hub_env):
+        response = client.post(
+            "/api/workflow/execute", json={"workflow": self._workflow(str(hub_env["granted"]))}
+        )
+        assert response.status_code == 401
+        assert hub_env["hub"].calls == []
+
+    def test_grants_do_not_leak_into_the_next_request(self, client, hub_env):
+        client.post(
+            "/api/workflow/execute",
+            json={"workflow": self._workflow(str(hub_env["granted"]))},
+            headers={"Authorization": "Bearer one-time"},
+        )
+        assert sec.allowed_paths_context.get() is None
