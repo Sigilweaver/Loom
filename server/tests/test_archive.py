@@ -124,28 +124,6 @@ class TestWorkflowArchive:
             assert saved_log["execution_time_ms"] == 1234.56
             assert "timestamp" in saved_log  # Auto-added
 
-    def test_update_execution_log(self, temp_archive_dir, sample_workflow):
-        """Test updating execution log"""
-        archive = WorkflowArchive(temp_archive_dir)
-        archive_dir = archive.create_archive(sample_workflow)
-
-        # Initial log
-        initial_log = {"status": "started", "tool_count": 2}
-        archive.save_execution_log(archive_dir, initial_log)
-
-        # Update log
-        updates = {"status": "completed", "execution_time_ms": 500.0}
-        archive.update_execution_log(archive_dir, updates)
-
-        # Verify merged content
-        log_file = archive_dir / "execution_log.json"
-        with open(log_file, "r") as f:
-            saved_log = json.load(f)
-            assert saved_log["status"] == "completed"
-            assert saved_log["tool_count"] == 2  # Preserved from initial
-            assert saved_log["execution_time_ms"] == 500.0
-            assert "last_updated" in saved_log
-
     def test_list_archives_empty(self, temp_archive_dir):
         """Test listing archives when none exist"""
         archive = WorkflowArchive(temp_archive_dir)

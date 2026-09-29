@@ -171,10 +171,6 @@ class HeartbeatManager:
             self._registered = False
 
 
-# Global instance
-_heartbeat_manager: HeartbeatManager | None = None
-
-
 def create_heartbeat_manager(
     server_name: str | None = None,
     endpoint_url: str | None = None,
@@ -188,8 +184,6 @@ def create_heartbeat_manager(
     Returns:
         HeartbeatManager instance, or None if not in hub mode.
     """
-    global _heartbeat_manager
-
     if settings.auth_mode != "hub":
         return None
 
@@ -206,14 +200,4 @@ def create_heartbeat_manager(
         host = "localhost" if settings.host in ("0.0.0.0", "127.0.0.1") else settings.host
         endpoint_url = f"http://{host}:{settings.port}"
 
-    _heartbeat_manager = HeartbeatManager(
-        server_name=server_name,
-        endpoint_url=endpoint_url,
-    )
-
-    return _heartbeat_manager
-
-
-def get_heartbeat_manager() -> HeartbeatManager | None:
-    """Get the global heartbeat manager instance."""
-    return _heartbeat_manager
+    return HeartbeatManager(server_name=server_name, endpoint_url=endpoint_url)

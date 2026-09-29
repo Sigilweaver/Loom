@@ -71,18 +71,13 @@ class UnionTool(BaseTool):
         mode = config.get("mode", "ByName")
 
         if mode == "ByName":
-            # Union of all columns
-            # Use a dict to track unique columns by name
-            # If type conflict, what happens? Polars diagonal concat usually upcasts.
-            # For schema prediction, we might just take the first one or try to merge.
-            # Let's merge all unique columns.
-
+            # Union of all columns, keyed by name. When inputs disagree on a column's
+            # type the first input's type is reported (Polars upcasts at execution).
             merged_columns = {}
             for schema in schemas:
                 for col in schema.columns:
                     if col.name not in merged_columns:
                         merged_columns[col.name] = col
-                    # TODO: Handle type merging if needed
 
             return {UnionSockets.OUTPUT: DataSchema(columns=list(merged_columns.values()))}
 

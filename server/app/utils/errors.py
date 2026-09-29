@@ -84,9 +84,3 @@ class FileAccessDeniedError(FileAccessError):
     """The path is outside the granted/allowed locations, or is read-only for a write."""
 
     pass
-
-
-class ConfigurationError(LoomError):
-    """Error in configuration"""
-
-    pass

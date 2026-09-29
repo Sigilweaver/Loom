@@ -108,37 +108,6 @@ class WorkflowArchive:
 
         logger.info(f"Saved execution log to: {log_file}")
 
-    def update_execution_log(
-        self,
-        archive_dir: Path,
-        updates: dict[str, Any],
-    ) -> None:
-        """
-        Update existing execution log with additional data.
-
-        Args:
-            archive_dir: Archive directory path
-            updates: Dictionary of fields to update/add
-        """
-        log_file = archive_dir / "execution_log.json"
-
-        # Read existing log
-        if log_file.exists():
-            with open(log_file, "r") as f:
-                log_data = json.load(f)
-        else:
-            log_data = {}
-
-        # Merge updates
-        log_data.update(updates)
-        log_data["last_updated"] = datetime.now().isoformat()
-
-        # Write back
-        with open(log_file, "w") as f:
-            json.dump(log_data, f, indent=2, default=str)
-
-        logger.debug(f"Updated execution log: {log_file}")
-
     def list_archives(
         self,
         start_date: datetime | None = None,

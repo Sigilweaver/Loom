@@ -26,10 +26,8 @@ from app.domain.models.common import (
 from app.utils.errors import DataSourceError
 
 
-# DDL/DML statements that must not be executed through the data source.
-# Only SELECT queries are permitted.
 def _validate_readonly_query(query: str) -> None:
-    """Backward-compatible adapter for the shared connection policy."""
+    """Reject anything but a SELECT (shared connection policy), as a DataSourceError."""
     try:
         validate_readonly_query(query)
     except ReadOnlyQueryError as e:
