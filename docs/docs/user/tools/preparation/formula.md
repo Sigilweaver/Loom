@@ -1,10 +1,17 @@
 ---
 sidebar_position: 4
+title: Calculate (Formula)
+sidebar_label: Calculate
 ---
 
-# Formula
+# Calculate (Formula)
 
 Create or replace calculated columns using visual operation builders or Polars expressions.
+
+| | |
+|---|---|
+| **Palette name** | Calculate (category Compute) |
+| **Type name** | `Formula` |
 
 ## Sockets
 
@@ -15,7 +22,7 @@ Create or replace calculated columns using visual operation builders or Polars e
 
 ## Configuration
 
-Each Formula tool can contain **multiple operations** - add as many as you need in a single node. Operations run sequentially, so later operations can reference columns created by earlier ones.
+Each Calculate tool can contain **multiple operations** - add as many as you need in a single node. Operations run sequentially, so later operations can reference columns created by earlier ones.
 
 Each operation has two modes:
 
@@ -53,7 +60,7 @@ An expression preview at the bottom shows the generated Polars code.
 
 ### Multiple Operations
 
-A single Formula node can hold multiple operations:
+A single Calculate tool can hold multiple operations:
 
 - Click **Add Operation** to add more
 - **Drag and drop** to reorder
@@ -165,8 +172,8 @@ pl.col("primary").fill_null(pl.col("fallback"))
 - **Column naming**: If you create a column with the same name as an existing column, it replaces that column
 - **Expression must be valid**: Invalid expressions show an error in configuration
 - **Output type**: The formula determines the output column's data type automatically
-- **Operation chaining**: Operations within a Formula node run sequentially - operation 2 can reference a column created by operation 1
-- **Mode mixing**: Each operation in a multi-operation Formula can independently use Basic or Custom mode
+- **Operation chaining**: Operations within a Calculate tool run sequentially - operation 2 can reference a column created by operation 1
+- **Mode mixing**: Each operation in a multi-operation Calculate tool can independently use Basic or Custom mode
 
 ## Related
 
