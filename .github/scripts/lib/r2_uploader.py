@@ -133,7 +133,7 @@ class R2Uploader:
 
     def download_json(self, key: str) -> Optional[Dict]:
         """
-        Download and parse JSON file from B2.
+        Download and parse a JSON file from R2.
 
         Args:
             key: S3 key to download

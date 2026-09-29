@@ -37,6 +37,18 @@ def _version_sort_key(version: str) -> tuple:
     return parts + (pre_release,)
 
 
+def is_prerelease(version: str) -> bool:
+    """
+    Return True when a release tag is a pre-release (e.g. 'v1.0.0-rc.1').
+
+    A tag is a pre-release when it carries a semver pre-release suffix, i.e.
+    anything after a '-' following the leading 'v'. This mirrors the rule in
+    the release workflow, which marks the GitHub release as a pre-release for
+    the same tags. Pre-releases must never become the 'latest' stable release.
+    """
+    return "-" in version.lstrip("v")
+
+
 def strip_version_from_filename(filename: str) -> str:
     """
     Strip version string from filename.
@@ -65,7 +77,13 @@ def strip_version_from_filename(filename: str) -> str:
 class ManifestBuilder:
     """Builds release manifest JSON files."""
 
-    def __init__(self, assets_dir: Path, version: str, base_url: str):
+    def __init__(
+        self,
+        assets_dir: Path,
+        version: str,
+        base_url: str,
+        prerelease: bool = False,
+    ):
         """
         Initialize manifest builder.
 
@@ -73,10 +91,13 @@ class ManifestBuilder:
             assets_dir: Directory containing release assets
             version: Release version (e.g., 'v0.2.5-alpha')
             base_url: Base URL for asset downloads (e.g., 'https://bucket.endpoint.com')
+            prerelease: Force pre-release handling. A version with a pre-release
+                suffix (see is_prerelease) is always treated as a pre-release.
         """
         self.assets_dir = Path(assets_dir)
         self.version = version
         self.base_url = base_url.rstrip("/")
+        self.prerelease = prerelease or is_prerelease(version)
         # Path prefix for all assets in this release
         self.path_prefix = f"releases/loom/{version}"
 
@@ -106,7 +127,7 @@ class ManifestBuilder:
 
         return {
             "schemaVersion": 1,
-            "channel": "stable",
+            "channel": "prerelease" if self.prerelease else "stable",
             "version": self.version,
             "date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "commit": commit_sha,
@@ -199,21 +220,30 @@ class ManifestBuilder:
         """
         Update releases/index.json with new release.
 
+        The index is what the website and update checks read to find the
+        latest stable download, so a pre-release must never be added to it.
+        ``latest`` always points at the highest stable version in the index,
+        so re-uploading an older release cannot roll it back.
+
         Args:
             existing_index: Existing index.json content or None
 
         Returns:
             Updated index dictionary
+
+        Raises:
+            ValueError: if this builder's version is a pre-release
         """
+        if self.prerelease:
+            raise ValueError(
+                f"{self.version} is a pre-release and must not be added to the "
+                "releases index"
+            )
+
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
         if existing_index is None:
-            existing_index = {
-                "schemaVersion": 1,
-                "generatedAt": datetime.now(timezone.utc)
-                .isoformat()
-                .replace("+00:00", "Z"),
-                "latest": self.version,
-                "releases": [],
-            }
+            existing_index = {"releases": []}
 
         # Remove any existing entry for this version
         releases = [
@@ -226,7 +256,7 @@ class ManifestBuilder:
         releases.append(
             {
                 "version": self.version,
-                "date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "date": now,
                 "manifestUrl": f"{self.base_url}/releases/loom/{self.version}/manifest.json",
             }
         )
@@ -234,11 +264,16 @@ class ManifestBuilder:
         # Sort by version (newest first) using numeric semver comparison
         releases.sort(key=lambda r: _version_sort_key(r["version"]), reverse=True)
 
+        # The newest stable entry is "latest". Stable is always present (this
+        # release), so the fallback is never used.
+        latest = next(
+            (r["version"] for r in releases if not is_prerelease(r["version"])),
+            self.version,
+        )
+
         return {
             "schemaVersion": 1,
-            "generatedAt": datetime.now(timezone.utc)
-            .isoformat()
-            .replace("+00:00", "Z"),
-            "latest": self.version,
+            "generatedAt": now,
+            "latest": latest,
             "releases": releases,
         }

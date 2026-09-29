@@ -18,22 +18,27 @@ ARG VCS_REF
 # =============================================================================
 # Stage 1: Build frontend
 # =============================================================================
-FROM node:20.18-slim AS frontend-builder
+FROM node:22-slim AS frontend-builder
+
+# hub/frontend is managed with Bun (bun.lock is the only lockfile), so install
+# with Bun and build with Node. The Bun binary is copied from the official image,
+# pinned by digest so an upstream retag cannot silently change the toolchain.
+COPY --from=oven/bun:1.3.11-slim@sha256:478281fdd196871c7e51ba6a820b7803a8ae97042ec86cdbc2e1c6b6626442d9 /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /build
 
 # Copy frontend package files
-COPY hub/frontend/package*.json ./
+COPY hub/frontend/package.json hub/frontend/bun.lock ./
 
-# Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts
+# Install dependencies from the lockfile with cache mount
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile --ignore-scripts
 
 # Copy frontend source
 COPY hub/frontend/ ./
 
 # Build production bundle
-RUN npm run build
+RUN bun run build
 
 # =============================================================================
 # Stage 2: Build backend dependencies

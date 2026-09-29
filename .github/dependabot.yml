@@ -71,6 +71,39 @@ updates:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
 
+  # Base images for the published Hub and Server containers (hub/Dockerfile,
+  # server/Dockerfile). Digest-pinned COPY --from images are updated too.
+  - package-ecosystem: "docker"
+    directory: "/hub"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    ignore:
+      # The Python and Node lines are chosen deliberately (see .python-version
+      # and .node-version); bump them by hand, take patch updates automatically.
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "node"
+        update-types:
+          - "version-update:semver-major"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "docker"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    ignore:
+      # The Python and Node lines are chosen deliberately (see .python-version
+      # and .node-version); bump them by hand, take patch updates automatically.
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
