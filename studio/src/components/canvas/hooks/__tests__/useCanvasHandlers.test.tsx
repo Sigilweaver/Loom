@@ -7,6 +7,7 @@ import type { Socket, Tool } from "@domain/workflow/entities/workflow";
 
 // Mock getToolDefinition
 vi.mock("@data/tools", () => ({
+  DEFAULT_FAVORITE_TOOLS: ["Input", "Output"],
   getToolDefinition: vi.fn(() => ({
     sockets: [
       { id: "output", direction: "output", type: "dataframe" },
