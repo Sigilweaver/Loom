@@ -29,7 +29,7 @@ import {
   type WorkflowMetadata,
   type ScheduleResponse,
   type ExecutionResponse,
-} from "@api/client";
+} from "@api";
 
 const PAGE_SIZE = 10;
 

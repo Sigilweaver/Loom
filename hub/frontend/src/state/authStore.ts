@@ -25,6 +25,8 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True after the Hub rejected our token (expired or revoked session). */
+  sessionExpired: boolean;
 
   // Actions
   setAuth: (token: string, user: AuthUser) => void;
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: true, // Start loading until we check stored auth
+      sessionExpired: false,
 
       // Actions
       setAuth: (token, user) =>
@@ -48,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
           isLoading: false,
+          sessionExpired: false,
         }),
 
       clearAuth: () =>
@@ -56,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          sessionExpired: false,
         }),
 
       setLoading: (loading) => set({ isLoading: loading }),
@@ -84,6 +89,23 @@ export const useAuthStore = create<AuthState>()(
  */
 export function getAuthToken(): string | null {
   return useAuthStore.getState().token;
+}
+
+/**
+ * End the local session because the Hub rejected our token (HTTP 401).
+ * Route guards react to the store change and send the user to the login page,
+ * which explains why. Does nothing when nobody is signed in.
+ */
+export function expireSession(): void {
+  const { token } = useAuthStore.getState();
+  if (!token) return;
+  useAuthStore.setState({
+    token: null,
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    sessionExpired: true,
+  });
 }
 
 /**

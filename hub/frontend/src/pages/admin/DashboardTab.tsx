@@ -40,7 +40,7 @@ import {
   getHealth,
   type ServerResponse,
   type ExecutionResponse,
-} from "@api/client";
+} from "@api";
 
 interface SystemStats {
   // Counts

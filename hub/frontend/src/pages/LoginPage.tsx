@@ -10,7 +10,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn, UserPlus, Loader2, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@state/authStore";
-import { getAuthStatus, login, register } from "@api/client";
+import { getAuthStatus, login, register } from "@api";
 import type { UserRole } from "@state/authStore";
 
 type PageMode = "loading" | "login" | "setup";
