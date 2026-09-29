@@ -11,6 +11,7 @@ import { forwardRef, useCallback } from "react";
 import WorkflowNode from "@components/workflow/WorkflowNode";
 import AutoConnectPreviewEdge from "./AutoConnectPreviewEdge";
 import { CanvasControls } from "./CanvasControls";
+import { EmptyCanvasHint } from "./EmptyCanvasHint";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import { CanvasMenus } from "./CanvasMenus";
 import { CanvasMinimap } from "./CanvasMinimap";
@@ -288,7 +289,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         snap={snap}
         screenToFlowPosition={screenToFlowPosition}
       >
-        <div className="flex-1 h-full min-h-0">
+        <div className="relative flex-1 h-full min-h-0">
+          <EmptyCanvasHint toolCount={tools.length} />
           <CanvasSurface
             nodes={flowNodes}
             edges={flowEdges}
