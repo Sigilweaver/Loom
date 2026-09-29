@@ -890,8 +890,9 @@ def run_docs_suite(repo_root: Path) -> SuiteResult:
 
 
 def run_scripts_lint(repo_root: Path) -> CheckResult:
-    """Run ruff over the repo's own build/dev/test tooling in scripts/.
+    """Run ruff over the repo's own build/dev/test tooling.
 
+    Covers scripts/ and the release automation in .github/scripts/.
     scripts/ruff.toml mirrors the zero-ignore policy the server and hub
     backends declare, so the tooling that enforces that policy is held to it
     too. Uses the server venv's ruff, which is the same binary the server
@@ -911,8 +912,30 @@ def run_scripts_lint(repo_root: Path) -> CheckResult:
 
     # The baseline is clean and scripts/ruff.toml sets ignore = [], so this is
     # enforced unconditionally: any finding fails the build, in CI and locally.
-    cmd = [str(python_path), "-m", "ruff", "check", "scripts/"]
+    cmd = [
+        str(python_path), "-m", "ruff", "check",
+        "--config", "scripts/ruff.toml",
+        "scripts/", ".github/scripts/",
+    ]
     return run_command(cmd, repo_root, "Scripts Lint", fail_on_error=True)
+
+
+def run_release_scripts_tests(repo_root: Path) -> CheckResult:
+    """Run the pytest suite for the release automation in .github/scripts/.
+
+    These scripts build the R2 manifests and gate releases, so a regression
+    there is only otherwise noticed on a real release. Runs through uv with a
+    throwaway environment (pytest plus boto3, which the uploader imports), so
+    it does not depend on any component venv.
+    """
+    print_subheader("Release Scripts Tests (pytest)")
+
+    cmd = [
+        "uv", "run", "--no-project",
+        "--with", "pytest", "--with", "boto3",
+        "python", "-m", "pytest", ".github/scripts/tests", "-q",
+    ]
+    return run_command(cmd, repo_root, "Release Scripts Tests", fail_on_error=True)
 
 
 def run_repo_suite(repo_root: Path) -> SuiteResult:
@@ -932,6 +955,7 @@ def run_repo_suite(repo_root: Path) -> SuiteResult:
         return suite
 
     suite.checks.append(run_scripts_lint(repo_root))
+    suite.checks.append(run_release_scripts_tests(repo_root))
 
     return suite
 
@@ -1167,7 +1191,7 @@ Examples:
     parser.add_argument(
         "--repo",
         action="store_true",
-        help="Run repo tooling checks (ruff over scripts/)"
+        help="Run repo tooling checks (ruff and release-script tests)"
     )
     parser.add_argument(
         "--integration",
@@ -1259,7 +1283,7 @@ Examples:
             run_studio = changed_components.studio
             run_hub = changed_components.hub
             run_docs = changed_components.docs
-            run_repo = changed_components.scripts
+            run_repo = changed_components.scripts or changed_components.workflows
             # Run integration tests if server changed
             run_integration = changed_components.server
 
@@ -1300,7 +1324,7 @@ Examples:
         if run_docs:
             print(f"  {Colors.BLUE}Docs{Colors.RESET}: build")
         if run_repo:
-            print(f"  {Colors.BLUE}Repo{Colors.RESET}: scripts lint")
+            print(f"  {Colors.BLUE}Repo{Colors.RESET}: scripts lint + release script tests")
         if run_integration:
             print(f"  {Colors.BLUE}Integration{Colors.RESET}: server health tests")
         if not any([run_server, run_studio, run_hub, run_docs, run_repo, run_integration]):
