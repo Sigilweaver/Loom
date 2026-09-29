@@ -5,6 +5,7 @@ and managing execution history.
 """
 
 import asyncio
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -13,7 +14,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Execution, Server, Workflow
+from app.db.models import Execution, Schedule, Server, User, Workflow
 from app.domain.executions.broker import execution_broker
 from app.domain.executions.models import (
     ExecutionInfo,
@@ -379,11 +380,9 @@ class ExecutionService:
                     )
                     return
 
-                # Parse workflow JSON for token generation
-                import json
-
+                # Fail fast on a corrupt workflow file before contacting the server.
                 try:
-                    workflow_json = json.loads(workflow_content.decode("utf-8"))
+                    json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
                     await self._fail_execution(
                         db,
@@ -394,19 +393,46 @@ class ExecutionService:
                     )
                     return
 
-                # Generate server token for execution
+                # Run as the user who triggered the execution (or, for a
+                # schedule, the user who created it) so the Server's
+                # /internal/authorize check applies that user's grants.
+                run_as = await self._resolve_run_as_user_id(db, execution_id)
+                if run_as is None:
+                    await self._fail_execution(
+                        db,
+                        execution_id,
+                        "Cannot start execution: the user it runs as no longer exists.",
+                        workflow_name,
+                        server.name,
+                    )
+                    return
+
+                # Issue a single-use capability token for this execution. There
+                # is deliberately no fallback to the server's long-lived shared
+                # secret: if issuance fails the execution fails, rather than
+                # silently running with a credential that skips per-user
+                # authorization.
                 try:
                     issuer = get_issuer()
                     server_token = await issuer.issue_token(
-                        user_id="hub-system",  # Hub-triggered executions use system user
+                        user_id=str(run_as),
                         server=server,
                     )
-                    auth_token: str | None = server_token.token
-                except Exception as e:
-                    logger.warning(
-                        "Failed to issue server token, using server auth_token: %s", e
+                except Exception:
+                    logger.exception(
+                        "Failed to issue capability token for execution %s on server %s",
+                        execution_id,
+                        server.name,
                     )
-                    auth_token = server.auth_token
+                    await self._fail_execution(
+                        db,
+                        execution_id,
+                        f"Could not issue an authorization token for server "
+                        f"'{server.name}'; the execution was not sent to the server.",
+                        workflow_name,
+                        server.name,
+                    )
+                    return
 
                 # Update to running
                 result = await db.execute(
@@ -427,7 +453,7 @@ class ExecutionService:
                 )
 
                 # Execute on server with the issued token
-                client = ServerClient(server.endpoint_url, auth_token)
+                client = ServerClient(server.endpoint_url, server_token.token)
                 exec_result = await client.execute(workflow_content)
 
                 # Update with result
@@ -490,6 +516,34 @@ class ExecutionService:
                 await self._fail_execution(
                     db, execution_id, str(e), workflow_name, server.name
                 )
+
+    async def _resolve_run_as_user_id(
+        self, db: AsyncSession, execution_id: UUID
+    ) -> UUID | None:
+        """Find the user an execution runs as.
+
+        Manual executions run as the user who triggered them. Scheduled
+        executions run as the user who created the schedule. Returns None if
+        that user no longer exists.
+        """
+        result = await db.execute(
+            select(Execution.trigger_type, Execution.triggered_by, Schedule.created_by)
+            .outerjoin(Schedule, Schedule.id == Execution.schedule_id)
+            .where(Execution.id == execution_id)
+        )
+        row = result.first()
+        if row is None:
+            return None
+        trigger_type, triggered_by, schedule_creator = row
+        if trigger_type == TriggerType.SCHEDULED.value:
+            username = schedule_creator
+        else:
+            username = triggered_by
+        if not username:
+            return None
+        user_id = await db.execute(select(User.id).where(User.username == username))
+        found: UUID | None = user_id.scalar_one_or_none()
+        return found
 
     async def _fail_execution(
         self,

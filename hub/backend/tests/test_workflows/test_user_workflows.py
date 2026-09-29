@@ -83,7 +83,7 @@ class TestUserWorkflowCRUD:
                 },
                 data={"folder_path": "/", "tags": ""},
             )
-            user_workflow_id = user_upload.json()["id"]
+            assert user_upload.status_code == 201
 
             # User lists workflows - sees only their own
             response = await client.get("/api/v1/workflows", headers=user_headers)

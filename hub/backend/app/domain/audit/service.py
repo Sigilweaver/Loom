@@ -18,6 +18,11 @@ from app.db.models import AuditEvent
 logger = logging.getLogger(__name__)
 
 
+def _short(digest: str | None) -> str:
+    """Abbreviate a hash for error messages."""
+    return f"{digest[:16]}..." if digest else "None"
+
+
 class AuditService:
     """Service for creating and querying audit events.
 
@@ -196,8 +201,8 @@ class AuditService:
                     "first_event_id": str(events[0].id),
                     "last_event_id": str(event.id),
                     "error": f"Chain broken at event {event.id}: "
-                    f"expected previous_hash {expected_previous[:16] if expected_previous else 'None'}..., "
-                    f"got {event.previous_hash[:16] if event.previous_hash else 'None'}...",
+                    f"expected previous_hash {_short(expected_previous)}, "
+                    f"got {_short(event.previous_hash)}",
                 }
 
             # Verify event's own hash

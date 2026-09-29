@@ -14,8 +14,8 @@ Revises: 002
 Create Date: 2026-01-03
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "003"
@@ -67,7 +67,8 @@ def upgrade() -> None:
     # === Step 4: Migrate existing connection data ===
     # Copy db-specific fields to connection_databases
     op.execute("""
-        INSERT INTO connection_databases (connection_id, db_type, host, port, database, encrypted_credentials)
+        INSERT INTO connection_databases
+            (connection_id, db_type, host, port, database, encrypted_credentials)
         SELECT id, type, host, port, database, encrypted_credentials
         FROM connections
     """)
@@ -88,8 +89,10 @@ def upgrade() -> None:
     # === Step 6: Migrate file_paths to connections ===
     # Insert file_paths as connections with type='filesystem'
     op.execute("""
-        INSERT INTO connections (id, name, type, description, read_only, status, created_by, created_at, updated_at)
-        SELECT id, name, 'filesystem', description, read_only, 'unknown', created_by, created_at, updated_at
+        INSERT INTO connections
+            (id, name, type, description, read_only, status, created_by, created_at, updated_at)
+        SELECT id, name, 'filesystem', description, read_only, 'unknown',
+               created_by, created_at, updated_at
         FROM file_paths
     """)
 
@@ -102,7 +105,8 @@ def upgrade() -> None:
 
     # Migrate grant_group_file_paths to grant_group_connections
     op.execute("""
-        INSERT INTO grant_group_connections (grant_group_id, connection_id, assigned_at, assigned_by)
+        INSERT INTO grant_group_connections
+            (grant_group_id, connection_id, assigned_at, assigned_by)
         SELECT grant_group_id, file_path_id, assigned_at, assigned_by
         FROM grant_group_file_paths
         ON CONFLICT DO NOTHING
@@ -167,8 +171,10 @@ def downgrade() -> None:
 
     # Migrate filesystem connections back to file_paths
     op.execute("""
-        INSERT INTO file_paths (id, name, path, path_type, description, read_only, created_by, created_at, updated_at)
-        SELECT c.id, c.name, cf.path, cf.path_type, c.description, c.read_only, c.created_by, c.created_at, c.updated_at
+        INSERT INTO file_paths
+            (id, name, path, path_type, description, read_only, created_by, created_at, updated_at)
+        SELECT c.id, c.name, cf.path, cf.path_type, c.description, c.read_only,
+               c.created_by, c.created_at, c.updated_at
         FROM connections c
         JOIN connection_filesystems cf ON c.id = cf.connection_id
         WHERE c.type = 'filesystem'
@@ -195,7 +201,7 @@ def downgrade() -> None:
     # Migrate database connections back to flat structure
     op.execute("""
         UPDATE connections c
-        SET 
+        SET
             type = cd.db_type,
             host = cd.host,
             port = cd.port,

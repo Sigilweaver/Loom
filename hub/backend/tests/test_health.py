@@ -14,7 +14,7 @@ async def test_health_endpoint():
         base_url="http://test"
     ) as client:
         response = await client.get("/api/v1/health")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -29,7 +29,7 @@ async def test_root_endpoint():
         base_url="http://test"
     ) as client:
         response = await client.get("/")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "Sigilweaver Loom Hub"

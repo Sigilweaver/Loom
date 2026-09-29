@@ -20,7 +20,6 @@ from app.db.database import get_db
 from app.db.models import (
     GrantGroup,
     Group,
-    User,
     UserGroup,
     UserGroupGrantGroup,
 )
