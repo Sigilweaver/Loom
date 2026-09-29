@@ -134,9 +134,11 @@ export default function ToolPalette() {
       </div>
       
       {CATEGORIES.map((category) => {
-        const tools = category.id === 'favorites' 
+        // Each tool appears once: favorites are listed only in the Favorites
+        // section and are omitted from their regular category.
+        const tools = category.id === 'favorites'
           ? getToolsByCategory(category.id, favoriteTools)
-          : getToolsByCategory(category.id);
+          : getToolsByCategory(category.id).filter((tool) => !favoriteTools.includes(tool.type));
         
         const categoryColor = getCategoryColor(category.id);
         const isCollapsed = collapsedCategories.includes(category.id);
@@ -167,8 +169,8 @@ export default function ToolPalette() {
                 {tools.length === 0 ? (
                   <div className="py-2 text-xs italic text-theme-text-tertiary">
                     {category.id === 'favorites' 
-                      ? 'Click the star on any tool to add it here.' 
-                      : 'No tools in this category.'}
+                      ? 'Click the star on any tool to add it here.'
+                      : 'All tools in this category are in Favorites.'}
                   </div>
                 ) : (
                   <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))' }}>
