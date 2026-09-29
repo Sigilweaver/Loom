@@ -11,7 +11,7 @@ import type {
   FileOperations,
   CredentialOperations,
 } from './types';
-import { createAuthOps, createLocalSettingsOps, noopMenuOps } from './shared';
+import { createAuthOps, createLocalSettingsOps } from './shared';
 
 // =============================================================================
 // File Operations Implementation (Browser)
@@ -111,7 +111,6 @@ export const webPlatform: PlatformAdapter = {
   settings: createLocalSettingsOps(),
   auth: webAuthOps,
   credentials: webCredentialOps,
-  menu: noopMenuOps,
 
   async initialize(): Promise<void> {
     // Pre-fetch session token

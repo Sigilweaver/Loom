@@ -6,7 +6,6 @@ import {
   createAuthOps,
   createLocalSettingsOps,
   loadSettingsFromLocalStorage,
-  noopMenuOps,
   responseFromProxy,
   safeLocalStorage,
   toProxyRequest,
@@ -169,11 +168,5 @@ describe('toProxyRequest', () => {
 
   it('rejects bodies that are not strings', () => {
     expect(() => toProxyRequest('http://x/api', { method: 'POST', body: new Blob(['x']) })).toThrow(/string/);
-  });
-});
-
-describe('noopMenuOps', () => {
-  it('never registers a listener', () => {
-    expect(noopMenuOps.onMenuAction(() => {})).toBeUndefined();
   });
 });

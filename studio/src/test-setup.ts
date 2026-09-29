@@ -63,10 +63,6 @@ export const mockPlatformFiles = {
   showSaveDialog: vi.fn().mockResolvedValue(null),
 };
 
-export const mockPlatformMenu = {
-  onMenuAction: vi.fn().mockReturnValue(() => {}),
-};
-
 export const mockPlatform = {
   name: 'electron' as 'electron' | 'web' | 'tauri',
   capabilities: mockPlatformCapabilities,
@@ -75,7 +71,6 @@ export const mockPlatform = {
   settings: mockPlatformSettings,
   auth: mockPlatformAuth,
   files: mockPlatformFiles,
-  menu: mockPlatformMenu,
 };
 
 // Mock the @platform module

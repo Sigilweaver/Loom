@@ -24,7 +24,6 @@ import type {
 } from '../types/connections';
 import {
   createAuthOps,
-  noopMenuOps,
   responseFromProxy,
   toProxyRequest,
   type ProxyResponsePayload,
@@ -190,7 +189,6 @@ export const tauriPlatform: PlatformAdapter = {
   settings: tauriSettingsOps,
   auth: tauriAuthOps,
   credentials: tauriCredentialOps,
-  menu: noopMenuOps,
 
   async initialize(): Promise<void> {
     await initTauriApi();

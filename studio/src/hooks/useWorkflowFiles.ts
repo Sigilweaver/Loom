@@ -76,19 +76,6 @@ export function useWorkflowFiles() {
     createTab("Untitled Workflow");
   }, [createTab]);
 
-  const handleOpenWorkflowFromPath = useCallback(
-    async (filePath: string) => {
-      try {
-        const content = await platform.files.readFile(filePath);
-        openWorkflowContent(content, "opened", filePath);
-      } catch (error) {
-        logger.error("Error opening workflow:", error);
-        showNotification("Failed to open workflow. Please check the file format.", "error");
-      }
-    },
-    [openWorkflowContent, showNotification]
-  );
-
   const handleImportWorkflow = useCallback(async () => {
     if (hasNativeDialogs()) {
       try {
@@ -190,7 +177,6 @@ export function useWorkflowFiles() {
 
   return {
     handleNewWorkflow,
-    handleOpenWorkflowFromPath,
     handleImportWorkflow,
     handleSaveWorkflow,
     handleSaveAsWorkflow,

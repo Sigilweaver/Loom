@@ -9,7 +9,7 @@
 
 import type { AppSettings } from '../types/settings';
 import { DEFAULT_SETTINGS, mergeWithDefaults } from '../types/settings';
-import type { AuthOperations, MenuOperations, SettingsOperations } from './types';
+import type { AuthOperations, SettingsOperations } from './types';
 
 export const SETTINGS_KEY = 'application-settings';
 export const TOKEN_KEY = 'api-token';
@@ -113,16 +113,6 @@ export function createAuthOps(options: AuthOptions): AuthOperations {
     },
   };
 }
-
-/**
- * No shell currently emits native menu events (the Electron menu bar is
- * removed and Tauri has no native menu), so every adapter shares this no-op.
- */
-export const noopMenuOps: MenuOperations = {
-  onMenuAction(): (() => void) | undefined {
-    return undefined;
-  },
-};
 
 /** Wire format returned by a shell's credential proxy. */
 export interface ProxyResponsePayload {
