@@ -70,6 +70,10 @@ class TestGuardDatabaseUri:
         with pytest.raises(FileAccessDeniedError):
             guard_database_uri(_uri(outside_db))
 
+    def test_single_slash_scheme_rejected(self, allowed_dir: Path, outside_db: Path) -> None:
+        with pytest.raises(FileAccessDeniedError):
+            guard_database_uri(f"sqlite:{outside_db.as_posix()}")
+
     def test_percent_encoded_traversal_rejected(
         self, allowed_dir: Path, outside_db: Path
     ) -> None:

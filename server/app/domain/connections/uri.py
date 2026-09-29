@@ -6,11 +6,16 @@ from app.domain.connections.models import DatabaseType, ResolvedConnection
 from app.utils.security import validate_file_path
 
 _SQLITE_SCHEME = "sqlite://"
+_SQLITE_SCHEME_PREFIX = "sqlite:"
 
 
 def is_sqlite_uri(uri: str) -> bool:
-    """True when the URI names a SQLite database (scheme match is case-insensitive)."""
-    return uri.strip().lower().startswith(_SQLITE_SCHEME)
+    """True when the URI names a SQLite database (scheme match is case-insensitive).
+
+    Matches any ``sqlite:`` scheme, not only ``sqlite://``, so forms such as
+    ``sqlite:/path/to.db`` cannot skip path validation.
+    """
+    return uri.strip().lower().startswith(_SQLITE_SCHEME_PREFIX)
 
 
 def sqlite_path_from_uri(uri: str) -> str:
@@ -19,7 +24,11 @@ def sqlite_path_from_uri(uri: str) -> str:
     Strips the scheme, drops any ``?query`` or ``#fragment`` and percent-decodes
     the remainder exactly once (connectorx decodes the path the same way).
     """
-    rest = uri.strip()[len(_SQLITE_SCHEME) :]
+    stripped = uri.strip()
+    if stripped.lower().startswith(_SQLITE_SCHEME):
+        rest = stripped[len(_SQLITE_SCHEME) :]
+    else:
+        rest = stripped[len(_SQLITE_SCHEME_PREFIX) :]
     rest = rest.split("?", 1)[0].split("#", 1)[0]
     return unquote(rest)
 
