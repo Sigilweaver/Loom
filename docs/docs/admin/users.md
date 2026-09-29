@@ -1,39 +1,49 @@
 ---
-sidebar_position: 3
+sidebar_position: 7
+title: User Management
 ---
 
 # User Management
 
-Manage user accounts from **Admin > Users**. Requires Owner or Admin role.
+Manage accounts from **Admin > Users**. You need the Owner or Admin role.
 
-## Creating Users
+## Create a user
 
 Click **Create User** and fill in:
 
-- **Username** - Must be unique
-- **Password** - Minimum 8 characters
-- **Role** - See [Roles and Permissions](./roles)
+- **Username**: 3 to 255 characters, unique.
+- **Password**: 8 to 128 characters.
+- **Role**: see [Roles and Permissions](./roles.md). New accounts default to User.
 
-## Editing Users
+Hub has no self-service sign-up. After the first account, only an Owner or Admin can create accounts.
 
-Click the edit icon to change username, password, or role.
+## Edit a user
 
-:::warning Role Changes
-Changing a user from User to Admin/Auditor removes their access to the user area (workflows, schedules, executions they created). The data is preserved but they cannot access it. Consider creating a separate admin account instead.
+Click the edit icon to change the username, password or role.
+
+:::warning Role changes
+Changing a User to an Admin or Auditor removes their access to the user area (workflows, schedules and executions they created). The data stays in Hub, but they can no longer open it. Consider giving the person a second account instead.
 :::
 
-## Deleting Users
+Admins can manage Auditors and Users. Only the Owner can manage Admins.
+
+## Delete a user
 
 Click the delete icon and confirm. When a user is deleted:
 
-- Workflows, schedules, and executions remain in the database
-- Group memberships are removed
-- The Owner account cannot be deleted
+- Their sessions end and their group memberships are removed.
+- Their workflows, schedules and executions stay in the database.
 
-## The Owner Account
+You cannot delete the Owner or your own account.
 
-The first user to register becomes Owner. This account:
+## The Owner account
 
-- Cannot be deleted
-- Cannot have its role changed
-- Has full administrative access
+The first account registered on a fresh Hub is the Owner. It cannot be deleted and its role cannot change. Its password can be changed by the Owner from the profile menu.
+
+Register the Owner account right after the first start, before other people can reach Hub.
+
+## Your own account
+
+Every user can change their own username and password from the profile menu in the web app. It asks for the current password.
+
+There is no password reset by email. If someone forgets a password, an Owner or Admin sets a new one.
