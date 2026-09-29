@@ -1,87 +1,74 @@
 ---
-sidebar_position: 8
+sidebar_position: 9
+title: Using Hub
 ---
 
 # Using Hub
 
-Hub is Sigilweaver Loom's orchestration platform for teams. When connected to Hub, you get access to shared database connections, centralized workflow storage, and scheduled execution.
+Hub is the optional team platform. This page explains what you do with it as a Studio user. Administrators should read the [Administrator Guide](../../admin/index.md).
 
-## Connecting to Hub
-
-1. Open **Settings** from the header bar
-2. Go to the **Hub** tab
-3. Enter your Hub URL (provided by your administrator)
-4. Enter your username and password
-5. Click **Connect**
-
-Once connected, Hub features become available throughout Studio.
-
-## Hub Connections
-
-When connected to Hub, you'll see **Hub connections** in addition to your local client connections. These are database connections managed by your administrator.
-
-**Hub connections are different from client connections:**
-
-| | Client Connections | Hub Connections |
-|---|---|---|
-| Created by | You | Administrator |
-| Credentials visible | Yes (you entered them) | No (hidden from you) |
-| Available on | This machine only | Any machine connected to Hub |
-| Managed in | Studio Settings | Hub admin panel |
-
-You can use Hub connections in your workflows just like client connections - select them from the connection dropdown in database tools. The difference is you never see the actual credentials.
-
-:::tip Why Hub Connections?
-Hub connections let you query production databases without knowing the password. Your administrator controls who has access through group membership. If you leave the team, they remove you from the group and you lose access - no password rotation needed.
+:::note Open beta
+Hub is in open beta. See [Hub Open Beta](../../admin/hub-beta.md) for the current limitations.
 :::
 
-## Workflow Storage
+## What you use Hub for
 
-Hub provides centralized workflow storage:
+| You want to...                                 | Where                                   |
+| ---------------------------------------------- | --------------------------------------- |
+| Query a database without knowing its password  | Studio, with a Hub connection           |
+| Run workflows on a shared Server               | Studio in Hub mode, or the Hub web app  |
+| Keep workflows in one shared place             | The Hub web app                         |
+| Run a workflow on a schedule                   | The Hub web app                         |
+| See what ran and whether it worked             | The Hub web app                         |
 
-- **Upload workflows** to Hub for backup and sharing
-- **Download workflows** from Hub to your local machine
-- **Share with team** - Anyone with Hub access can see uploaded workflows
+Studio connects to Hub for connections and for running workflows. Storing, sharing and scheduling workflows happens in the Hub web app.
 
-### Uploading a Workflow
+## Connect Studio to Hub
 
-1. Save your workflow locally
-2. Click **Upload to Hub** in the workflow menu
-3. Choose a folder and add tags (optional)
-4. Click **Upload**
+1. Open the **Settings** tab and expand **Execution**.
+2. Set **Execution Mode** to **Hub**.
+3. Enter the **Hub URL** your administrator gave you.
+4. Click **Login to Hub** and sign in with your Hub username and password.
+5. Optionally turn on **Remember login** to stay signed in between sessions.
 
-### Downloading a Workflow
+The status box shows **Connected as** your username when it works.
 
-1. Open the **Hub Workflows** panel
-2. Browse or search for the workflow
-3. Click to download and open
+## What changes in Hub mode
 
-## Scheduled Execution
+- **Hub connections** appear under **Settings > Connections** and in the connection list of database Read tools, marked `[Hub]`. You can use them but not see their credentials.
+- **Previews and runs** go through Hub. For each request, Studio asks Hub for a short-lived token, sends the request to a Server that Hub picked, and the Server asks Hub for the credentials it needs. You never handle the credentials.
+- **File browsing** with the **Remote** button shows only the folders your administrator granted you.
+- Your **local connections** still work.
 
-Hub can run your workflows on a schedule without Studio open:
+Hub mode needs a Server that Hub can reach and that is online. If Hub reports that no healthy server is available, ask your administrator.
 
-1. Upload your workflow to Hub
-2. Create a schedule in the Hub interface (or ask your administrator)
-3. Hub runs the workflow at the specified times
-4. View execution history and results in Hub
+## The Hub web app
 
-:::note Schedules
-Schedule management may be done through the Hub web interface or by your administrator, depending on your organization's setup.
+Open your Hub URL in a browser and sign in. Users see four pages.
+
+| Page            | What it does                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| **Home**        | Your recent workflows and executions.                                                       |
+| **Workflows**   | Upload `.swwf` files, organize them in folders with tags, download them, and click **Run Now**. |
+| **Executions**  | History of your runs. Filter by status, cancel a queued or running execution, and read the error of a failed one. Status updates live. |
+| **Schedules**   | Run a workflow every few minutes, hourly, daily, weekly or monthly. You can also enter a cron expression. |
+
+To share a workflow, save it in Studio, then upload the `.swwf` file on the **Workflows** page.
+
+Administrators and auditors use a separate admin area of the same app. See [Roles and Permissions](../../admin/roles.md).
+
+:::caution Runs started from Hub
+A run started with **Run Now** or by a schedule is made by a Hub system identity, not by you. That identity has no connection grants, so workflows that need Hub-managed database connections do not run this way today. File-based workflows are fine, provided the Server can read the files.
 :::
 
-## What Happens When Hub is Unavailable
+## If Hub is unavailable
 
-If Hub goes offline or you lose network connection:
+- Local work is not affected. You can still open, edit and save workflows.
+- In Hub mode, previews and runs stop until Hub is back. Switch **Execution Mode** to **Bundled** or **External** to keep working against a Server without Hub.
+- Hub connections are unavailable until you reconnect.
 
-- **Client connections** continue to work normally
-- **Hub connections** become unavailable until reconnected
-- **Local workflows** are unaffected
-- **Uploaded workflows** are stored on Hub and inaccessible until reconnected
+## More help
 
-Your local work is never blocked by Hub availability.
-
-## For More Information
-
-- Ask your administrator for your Hub URL and credentials
-- See the [Administrator Guide](/admin/) for details on how Hub is configured
-- See [Managing Connections](./connections) for details on connection types
+- Ask your administrator for your Hub URL and login.
+- [Managing Connections](./connections.md)
+- [Administrator Guide](../../admin/index.md)
