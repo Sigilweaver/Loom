@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReactFlow, Background, BackgroundVariant, ConnectionLineType, PanOnScrollMode, type Node, type Edge, type NodeChange, type EdgeChange, type OnConnect, type OnEdgesDelete, type OnNodesDelete, type NodeTypes, type Viewport } from '@xyflow/react';
 import { useSettingsStore } from '../../state/settingsStore';
+import { edgeTypeForStyle } from '@domain/workflow/services/wireEdges';
 import CanvasComments from './CanvasComments';
 
 interface Props {
@@ -46,8 +47,7 @@ const getConnectionLineType = (style: string): ConnectionLineType => {
 export const CanvasSurface: React.FC<Props> = ({ nodes, edges, snapToGrid, snapGrid, nodeTypes, children, onSelectionChange, ...handlers }) => {
   const edgeStyle = useSettingsStore((s) => s.ui.edgeStyle);
   const connectionLineType = getConnectionLineType(edgeStyle);
-  // Map settings value to xyflow edge type: bezier -> 'default', others map 1:1
-  const edgeType = edgeStyle === 'bezier' ? 'default' : edgeStyle;
+  const edgeType = edgeTypeForStyle(edgeStyle);
 
   return (
     <ReactFlow

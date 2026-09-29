@@ -27,7 +27,6 @@ describe("clipboardStore", () => {
     useWorkflowStore.setState({
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: {
         name: "Test Workflow",
         description: "Test",

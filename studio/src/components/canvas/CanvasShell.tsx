@@ -1,5 +1,4 @@
 import { useClipboardStore } from "@state/clipboardStore";
-import { useWorkflowStore } from "@state/workflowStore";
 import {
   useEdgesState,
   useNodesState,
@@ -45,6 +44,7 @@ import { useCanvasWheelHandler } from "./hooks/useCanvasWheelHandler";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
 import { useNodeResync } from "./hooks/useNodeResync";
+import { useWorkflowEdges } from "./hooks/useWorkflowEdges";
 import { useSnapToGrid } from "./hooks/useSnapToGrid";
 
 export type { CanvasRef };
@@ -79,8 +79,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     handleCommitTransaction,
   } = useCanvasHandlers();
 
-  // Get edges from workflow store
-  const edges = useWorkflowStore((s) => s.edges);
+  // Edges are derived from wires at render time (see useWorkflowEdges)
+  const edges = useWorkflowEdges();
 
   // === Build React Flow nodes from tools ===
   const nodes = useCanvasNodes({ tools, onToolMove: handleToolMove });

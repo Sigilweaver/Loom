@@ -6,6 +6,9 @@
  */
 import { Tool, Wire } from '@domain/workflow/entities/workflow';
 
+/** Cycle detection only needs tool identity, not position or config. */
+type ToolRef = Pick<Tool, 'id'>;
+
 /**
  * Node visit states for DFS cycle detection.
  * - UNVISITED: Node has not been processed yet
@@ -28,7 +31,7 @@ const enum VisitState {
  * @param wires - All wire connections between tools
  * @returns true if a cycle exists, false if the graph is acyclic
  */
-export function detectCycles(tools: Tool[], wires: Wire[]): boolean {
+export function detectCycles(tools: ToolRef[], wires: Wire[]): boolean {
   // Build adjacency list: toolId -> list of tools it connects TO
   const adjacencyList = new Map<string, string[]>();
   for (const tool of tools) {
@@ -105,7 +108,7 @@ export function detectCycles(tools: Tool[], wires: Wire[]): boolean {
  * @returns true if the new wire would create a cycle
  */
 export function wouldCreateCycle(
-  tools: Tool[],
+  tools: ToolRef[],
   wires: Wire[],
   newFromTool: string,
   newToTool: string
