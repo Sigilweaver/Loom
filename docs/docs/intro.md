@@ -51,7 +51,7 @@ Which one do you need?
 
 ## License
 
-Sigilweaver Loom is licensed under the [AGPL-3.0](https://github.com/Sigilweaver/Loom/blob/main/LICENSE.md). There are no paid tiers and no feature gates.
+The software is licensed under the [AGPL-3.0](https://github.com/Sigilweaver/Loom/blob/main/LICENSE.md). There are no paid tiers and no feature gates. This documentation is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
 - **Website**: [sigilweaver.app](https://sigilweaver.app)
 - **Downloads**: [sigilweaver.app/loom/downloads](https://sigilweaver.app/loom/downloads)
