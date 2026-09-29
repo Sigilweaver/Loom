@@ -621,7 +621,7 @@ def run_studio_tests(repo_root: Path, coverage: bool = False) -> CheckResult:
 
     studio_dir = repo_root / "studio"
 
-    cmd = ["bun", "run", "test:coverage" if coverage else "test:unit"]
+    cmd = ["bun", "run", "test:coverage" if coverage else "test"]
 
     result = run_command(cmd, studio_dir, "Studio Tests", fail_on_error=True)
 
