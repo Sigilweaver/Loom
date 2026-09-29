@@ -219,6 +219,22 @@ def client(setup_database):
     return new_client()
 
 
+@pytest.fixture
+def token_issuer():
+    """A CapabilityIssuer on an in-memory token store, wired into the app.
+
+    The lifespan (which normally initialises the issuer) does not run under
+    ASGITransport, so routes depending on ``get_issuer`` need this override.
+    """
+    from app.domain.auth.tokens import InMemoryTokenStore
+    from app.domain.capabilities import CapabilityIssuer, get_issuer
+
+    issuer = CapabilityIssuer(InMemoryTokenStore(), settings)
+    app.dependency_overrides[get_issuer] = lambda: issuer
+    yield issuer
+    app.dependency_overrides.pop(get_issuer, None)
+
+
 # =============================================================================
 # Direct User Creation Helpers (bypasses HTTP, ~10x faster)
 # =============================================================================
