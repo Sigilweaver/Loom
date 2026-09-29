@@ -42,6 +42,7 @@ and documentation checked against the code.
 - **Hub mobile layout** was unusable at phone widths
 - **Electron preload** never loaded (built as an ES module), so the desktop bridge was unavailable
 - **Tauri** was detected as the web build, dropped newer settings on save, looked for the bundled server at the wrong sidecar path, and orphaned the server process on exit (#105)
+- **Studio canvas** Backspace did not delete selected tools (typo in the key binding)
 - **Studio** marked a workflow modified just by selecting a Read or Write tool; desktop menu actions used stale workflow state; expression editors hung when the code editor could not load offline
 - **Hub Docker image** build failed (`npm ci` without a lockfile; now uses Bun)
 - **File search** rescanned symlink cycles; browse and execute now share one allowlist rule
