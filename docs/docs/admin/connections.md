@@ -31,7 +31,7 @@ Open **Admin > Connections** and click **Create Connection**.
 
 1. Choose the type, **Database** or **Filesystem**.
 2. Enter a name and an optional description.
-3. Fill in the details. For a database: type, host, port, database name, username and password. For SQLite, the database name is the file path. For a filesystem: the path and whether it is a local or UNC path.
+3. Fill in the details. For a database: type, host, port, database name, username and password. For SQLite, the database name is the file path, and it must be allowed by the Server's file access rules or your file grants. For a filesystem: the path and whether it is a local or UNC path.
 4. Turn on **Read only** if users should not write through this connection.
 5. Use **Test Connection** to check it, then save.
 

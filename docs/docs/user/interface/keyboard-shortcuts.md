@@ -42,7 +42,7 @@ Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Shortcuts do not fire while 
 | `Ctrl+X`                   | Cut selected tools            |
 | `Ctrl+V`                   | Paste                         |
 | `Ctrl+A`                   | Select all tools              |
-| `Delete`                   | Delete the selected tools or wire |
+| `Delete`, `Backspace`      | Delete the selected tools or wire |
 | `Escape`                   | Clear the selection           |
 
 ## Moving tools

@@ -76,7 +76,7 @@ Some items that earlier versions of this page listed as future work are in place
 | Area   | Feature                                                                                       |
 | ------ | --------------------------------------------------------------------------------------------- |
 | Hub    | Audit log browser with hash-chain verification (Admin > Audit Log)                            |
-| Hub    | Workflow revision history with diff and rollback (API only, no UI yet)                        |
+| Hub    | Workflow version history in the web app: list, diff, download and restore                     |
 | Hub    | Execution artifacts: outputs stored as CSV and downloadable through the API (API only, no UI) |
 | Hub    | Live execution updates over server-sent events                                                |
 | Hub    | Web-based management of servers, connections, users, groups and grant groups                  |

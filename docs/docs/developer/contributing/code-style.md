@@ -107,7 +107,7 @@ from fastapi import APIRouter
 
 # Local
 from app.domain.tools.base import BaseTool
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 ```
 
 Ruff sorts these automatically.

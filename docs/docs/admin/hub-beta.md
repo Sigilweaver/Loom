@@ -32,19 +32,18 @@ What that means in practice:
 
 For long-running work, keep workflows short, or run them from Studio in External or Hub mode, where Studio holds the connection.
 
-## Server selection is simple
+## Server selection
 
-When a user or a schedule does not name a Server, Hub picks an online Server. The selection is not load-aware. In practice it is the first online Server by name. Pin a Server explicitly for a schedule if it matters.
+When a user or a schedule does not name a Server, Hub picks an online Server. Hub picks the least-loaded one, meaning the Server with the fewest queued or running executions. Ties are broken at random. Pin a Server explicitly for a schedule if a specific one matters.
 
-## Runs started by Hub use a system identity
+## Who a Hub run belongs to
 
-A run started with **Run Now** or by a schedule is made by a Hub system identity, not by the user who clicked. That identity has no connection grants. Workflows that read from Hub-managed database connections therefore do not run this way today. Workflows that read files the Server can reach are fine. Runs that a user starts from Studio in Hub mode use the user's own grants.
+A run started with **Run Now** runs as the user who clicked. A scheduled run runs as the user who created the schedule. Either way, the run uses that user's own connection and file grants, so workflows that read from Hub-managed database connections work.
 
 ## Some features exist only in the API
 
 These work, but have no screen in the web app yet:
 
-- Workflow **revision history**, with diff and rollback
 - Execution **artifacts**: outputs stored by Hub as CSV and downloadable per execution
 - Execution logs, code, plans and connection records for auditors (`/api/v1/executions/{id}/...`)
 

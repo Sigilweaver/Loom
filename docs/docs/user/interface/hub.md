@@ -49,7 +49,7 @@ Open your Hub URL in a browser and sign in. Users see four pages.
 | Page            | What it does                                                                                |
 | --------------- | ------------------------------------------------------------------------------------------- |
 | **Home**        | Your recent workflows and executions.                                                       |
-| **Workflows**   | Upload `.swwf` files, organize them in folders with tags, download them, and click **Run Now**. |
+| **Workflows**   | Upload `.swwf` files, organize them in folders with tags, download them, and click **Run Now**. Open **Version history** on a workflow to list its versions, see a diff, download one or restore it. |
 | **Executions**  | History of your runs. Filter by status, cancel a queued or running execution, and read the error of a failed one. Status updates live. |
 | **Schedules**   | Run a workflow every few minutes, hourly, daily, weekly or monthly. You can also enter a cron expression. |
 
@@ -57,8 +57,8 @@ To share a workflow, save it in Studio, then upload the `.swwf` file on the **Wo
 
 Administrators and auditors use a separate admin area of the same app. See [Roles and Permissions](../../admin/roles.md).
 
-:::caution Runs started from Hub
-A run started with **Run Now** or by a schedule is made by a Hub system identity, not by you. That identity has no connection grants, so workflows that need Hub-managed database connections do not run this way today. File-based workflows are fine, provided the Server can read the files.
+:::note Who a run belongs to
+A run started with **Run Now** runs as you. A scheduled run runs as the person who created the schedule. Each uses that person's own connection and file grants.
 :::
 
 ## If Hub is unavailable

@@ -212,7 +212,7 @@ The execution engine has been decomposed into several components, each with dedi
 ```python
 import pytest
 from app.domain.execution.planner import ExecutionPlanner, ExecutionPlan
-from app.api.models.workflow import Workflow
+from app.domain.models.workflow import Workflow
 
 
 def test_execution_plan_immutable():
@@ -338,7 +338,7 @@ async def test_parallel_execution_respects_dependencies():
 import pytest
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.execution.graph import ExecutionGraph
-from app.api.models.workflow import Workflow
+from app.domain.models.workflow import Workflow
 
 
 def test_execution_order():

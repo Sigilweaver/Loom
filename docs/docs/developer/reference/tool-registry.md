@@ -96,7 +96,7 @@ All tools inherit from `BaseTool`:
 from abc import ABC, abstractmethod
 import polars as pl
 
-from app.api.models.workflow import DEFAULT_ENGINE
+from app.domain.models.workflow import DEFAULT_ENGINE
 
 class BaseTool(ABC):
     engine: str = DEFAULT_ENGINE  # "core/polars"
