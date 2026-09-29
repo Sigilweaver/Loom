@@ -95,11 +95,16 @@ class SortTool(BaseTool):
         Execute sort operation.
         """
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Sort tool requires input on socket 'input'")
+            raise ToolError(
+                "Sort tool has no input connected. Connect an upstream tool to its 'input' socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Sort tool does not support multiple inputs")
+            raise ToolError(
+                "Sort tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         # Resolve column names case-insensitively against actual schema
@@ -132,11 +137,17 @@ class SortTool(BaseTool):
         Sort preserves the input schema exactly.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Sort tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Sort tool requires input schema on socket 'input'. Connect an upstream tool to "
+                "its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Sort tool does not support multiple input schemas")
+            raise ToolError(
+                "Sort tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         # Sort doesn't change the schema, just the row order
