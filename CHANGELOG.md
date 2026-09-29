@@ -33,6 +33,8 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
+- **Hub server registration** - Registering a server without a token overwrote another tokenless server's record
 - **Partial executions** no longer run unrelated workflow branches; an unknown target returns 400 (#84)
 - **Workflow routes** returned 500 for deliberate 400/401 responses
 - **Connection resolution** dropped workflow `version` and `engines`
