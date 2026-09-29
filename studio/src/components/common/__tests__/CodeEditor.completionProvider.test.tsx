@@ -240,6 +240,7 @@ vi.mock('@monaco-editor/react', () => ({
     }
     return <div data-testid="monaco-editor-mock" />;
   },
+  loader: { init: () => new Promise(() => {}) },
 }));
 
 describe('CodeEditor Completion Provider', () => {
