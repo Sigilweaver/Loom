@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.domain.hub.client import AuthorizationResult, FilePathGrant, get_hub_client
+from app.utils.security import active_server_allowlist, is_path_in_allowlist
 
 logger = logging.getLogger(__name__)
 
@@ -170,19 +171,11 @@ def _is_path_allowed(path: Path, grants: list[FilePathGrant]) -> tuple[bool, boo
     Returns:
         Tuple of (allowed, read_only). If not allowed, read_only is True.
     """
-    # Server-level restriction: optional admin guard (independent of Hub grants)
-    if settings.restrict_file_access and settings.allowed_file_paths:
-        admin_allowed = False
-        for allowed_path_str in settings.allowed_file_paths:
-            allowed_path = Path(allowed_path_str).resolve()
-            try:
-                path.relative_to(allowed_path)
-                admin_allowed = True
-                break
-            except ValueError:
-                continue
-        if not admin_allowed:
-            return False, True
+    # Server-level restriction: optional admin guard (independent of Hub grants).
+    # Same rule as execution-time path validation so browsing and running agree.
+    server_allowlist = active_server_allowlist()
+    if server_allowlist is not None and not is_path_in_allowlist(path, server_allowlist):
+        return False, True
 
     for grant in grants:
         grant_path = Path(grant.path).resolve()
@@ -460,13 +453,21 @@ def _walk_data_files(
     """Recursively collect data files under *root* that are within grants.
 
     Returns list of (resolved_path, mtime_ts) tuples.
-    Skips hidden directories (starting with `.`).
+    Skips hidden directories (starting with `.`) and directories already visited
+    through another path (symlink cycles).
     """
     results: list[tuple[Path, float]] = []
+    # Resolved directories already walked. Symlinks are followed (when their target
+    # is still granted), so without this a link back to an ancestor is re-scanned
+    # at every depth, and several links multiply the work exponentially.
+    visited: set[Path] = set()
 
     def _recurse(directory: Path, depth: int = 0) -> None:
         if depth > 20 or len(results) >= max_files:
             return
+        if directory in visited:
+            return
+        visited.add(directory)
         try:
             for item in sorted(directory.iterdir(), key=lambda p: p.name.lower()):
                 if len(results) >= max_files:
