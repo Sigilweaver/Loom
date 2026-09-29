@@ -229,6 +229,11 @@ class Execution(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Refreshed by the runner while it waits on the Server; used to detect
+    # runs orphaned by a Hub restart.
+    heartbeat_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Results
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)

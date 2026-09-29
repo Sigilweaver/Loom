@@ -7,13 +7,14 @@ and managing execution history.
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db.models import Execution, Schedule, Server, User, Workflow
 from app.domain.executions.broker import execution_broker
 from app.domain.executions.models import (
@@ -27,6 +28,59 @@ from app.domain.servers.selection import NoOnlineServerError, select_online_serv
 from app.domain.workflows.store import WorkflowFileStore
 
 logger = logging.getLogger(__name__)
+
+# Seconds between heartbeat refreshes while a run is in progress.
+HEARTBEAT_INTERVAL_SECONDS = 15
+
+INTERRUPTED_MESSAGE = (
+    "Interrupted: the Hub stopped while this run was in progress; "
+    "outcome on the Server is unknown."
+)
+
+_ACTIVE_STATUSES = (ExecutionStatus.QUEUED.value, ExecutionStatus.RUNNING.value)
+
+# Strong references to runner tasks so they are not garbage-collected mid-run.
+_run_tasks: set["asyncio.Task[None]"] = set()
+
+
+async def sweep_stale_executions() -> int:
+    """Fail queued/running executions whose runner has stopped heartbeating.
+
+    A single conditional UPDATE, so it is safe to run on several replicas at
+    once. Returns the number of executions marked failed.
+    """
+    from app.db.database import async_session_maker
+
+    now = datetime.now(UTC)
+    cutoff = now - timedelta(seconds=settings.execution_stale_seconds)
+    last_seen = func.coalesce(
+        Execution.heartbeat_at, Execution.started_at, Execution.queued_at
+    )
+    async with async_session_maker() as db:
+        result = await db.execute(
+            update(Execution)
+            .where(Execution.status.in_(_ACTIVE_STATUSES), last_seen < cutoff)
+            .values(
+                status=ExecutionStatus.FAILED.value,
+                success=False,
+                error_message=INTERRUPTED_MESSAGE,
+                completed_at=now,
+            )
+            .returning(Execution.id)
+        )
+        count = len(result.all())
+        await db.commit()
+    if count:
+        logger.warning("Marked %d stale execution(s) as failed", count)
+    return count
+
+
+async def cancel_run_tasks() -> None:
+    """Cancel in-flight runner tasks (called on shutdown)."""
+    tasks = list(_run_tasks)
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class ExecutionServiceError(Exception):
@@ -335,11 +389,33 @@ class ExecutionService:
         await self._publish_execution_event(execution, workflow.name, server.name)
 
         # Start async execution (fire and forget)
-        asyncio.create_task(
+        task = asyncio.create_task(
             self._run_execution(execution.id, workflow.id, workflow.name, server)
         )
+        _run_tasks.add(task)
+        task.add_done_callback(_run_tasks.discard)
 
         return self._model_to_info(execution, workflow.name, server.name)
+
+    async def _heartbeat_loop(self, execution_id: UUID) -> None:
+        """Refresh heartbeat_at while the run is queued/running."""
+        from app.db.database import async_session_maker
+
+        while True:
+            try:
+                async with async_session_maker() as db:
+                    await db.execute(
+                        update(Execution)
+                        .where(
+                            Execution.id == execution_id,
+                            Execution.status.in_(_ACTIVE_STATUSES),
+                        )
+                        .values(heartbeat_at=datetime.now(UTC))
+                    )
+                    await db.commit()
+            except Exception:
+                logger.exception("Heartbeat failed for execution %s", execution_id)
+            await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
     async def _run_execution(
         self,
@@ -348,7 +424,24 @@ class ExecutionService:
         workflow_name: str,
         server: Server,
     ) -> None:
-        """Run execution on server (background task).
+        """Run execution on server (background task) with a heartbeat."""
+        heartbeat = asyncio.create_task(self._heartbeat_loop(execution_id))
+        try:
+            await self._run_execution_body(
+                execution_id, workflow_id, workflow_name, server
+            )
+        finally:
+            heartbeat.cancel()
+            await asyncio.gather(heartbeat, return_exceptions=True)
+
+    async def _run_execution_body(
+        self,
+        execution_id: UUID,
+        workflow_id: UUID,
+        workflow_name: str,
+        server: Server,
+    ) -> None:
+        """Run execution on server.
 
         Updates execution status as it progresses.
         """
@@ -435,6 +528,7 @@ class ExecutionService:
 
                 execution.status = ExecutionStatus.RUNNING.value
                 execution.started_at = datetime.now(UTC)
+                execution.heartbeat_at = execution.started_at
                 await db.commit()
 
                 # Announce the running transition.
@@ -446,12 +540,25 @@ class ExecutionService:
                 client = ServerClient(server.endpoint_url, server_token.token)
                 exec_result = await client.execute(workflow_content)
 
-                # Update with result
+                # Update with result. Lock the row and re-read it so a
+                # cancellation (or sweep) that landed meanwhile is not
+                # overwritten by the runner's final status.
                 result = await db.execute(
-                    select(Execution).where(Execution.id == execution_id)
+                    select(Execution)
+                    .where(Execution.id == execution_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
                 execution = result.scalar_one_or_none()
                 if not execution:
+                    return
+                if execution.status not in _ACTIVE_STATUSES:
+                    await db.rollback()
+                    logger.info(
+                        "Execution %s already %s; discarding runner result",
+                        execution_id,
+                        execution.status,
+                    )
                     return
 
                 now = datetime.now(UTC)
@@ -544,9 +651,16 @@ class ExecutionService:
         server_name: str,
     ) -> None:
         """Mark an execution as failed."""
-        result = await db.execute(select(Execution).where(Execution.id == execution_id))
+        result = await db.execute(
+            select(Execution)
+            .where(Execution.id == execution_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         execution = result.scalar_one_or_none()
-        if execution:
+        if execution and execution.status not in _ACTIVE_STATUSES:
+            await db.rollback()
+        elif execution:
             execution.status = ExecutionStatus.FAILED.value
             execution.success = False
             execution.error_message = error_message
