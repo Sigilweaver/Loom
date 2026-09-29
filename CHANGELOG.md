@@ -54,6 +54,7 @@ and documentation checked against the code.
 - **Connection credentials** - In Full desktop builds, database credentials no longer reach the renderer (#89, partial)
 - **Capability tokens** - Hub no longer falls back to a server's shared secret when token issuance fails (#81); `/internal/authorize` denies tokens not issued for a Hub user
 - **AI proxy** - SSRF guard blocks CGNAT (100.64.0.0/10) and IPv6-embedded internal addresses
+- **SQLite path bypass** - `sqlite://` database URIs are now validated against the server file allowlist and Hub file grants in the loader, datasource routes, connection test and connection create/update; previously a workflow could read any SQLite file on the server, and missing paths were created
 - **File access** - Permission is checked before existence; with `RESTRICT_FILE_ACCESS=true` the server allowlist is enforced at execution as well as browsing
 - **Dependencies** - anyio 4.15.1 (CVE-2026-63374, CVE-2026-64847, CVE-2026-63349), polars 1.43.2, js-yaml and other Studio advisories, quick-xml 0.41; the Audit workflow is green
 - **Lint policy** - Zero-ignore ruff and mypy policy is now enforced for the Hub backend (#142)
