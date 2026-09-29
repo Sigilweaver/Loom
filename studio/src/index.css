@@ -34,6 +34,15 @@ code {
   z-index: 30;
 }
 
+/* React Flow node/attribution overrides */
+.react-flow__node.dragging {
+  opacity: 0.8 !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
 /* React Flow selection (marquee) rectangle: hidden by default; shown only while dragging */
 .react-flow__selection {
   border: none !important;
