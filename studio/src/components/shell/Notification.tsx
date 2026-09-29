@@ -51,7 +51,7 @@ export default function Notification() {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 max-w-md">
+    <div className="fixed bottom-4 right-4 z-50 max-w-md">
       <style>{`
         @keyframes slide-in {
           from {
