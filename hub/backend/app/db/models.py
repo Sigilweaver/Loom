@@ -587,8 +587,10 @@ class ServerGroup(Base):
 class AuditEvent(Base):
     """Immutable audit log entry.
 
-    Append-only - no updates or deletes permitted (enforced by database trigger).
-    Hash-chained for tamper evidence.
+    Append-only by convention: the application never updates or deletes rows,
+    but the database does not enforce this (there is no trigger). Tampering is
+    detected, not prevented, via the hash chain (see ``AuditService.verify_chain``).
+    ``hash_version`` 1 rows predate a reproducible hash and cannot be verified.
     """
 
     __tablename__ = "audit_events"
@@ -636,6 +638,8 @@ class AuditEvent(Base):
     # Integrity
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # 1 = legacy (unverifiable content hash), 2 = reproducible from stored columns.
+    hash_version: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
 
     # Timeline queries fetch newest-first.
     __table_args__ = (Index("idx_audit_events_timestamp", "timestamp"),)

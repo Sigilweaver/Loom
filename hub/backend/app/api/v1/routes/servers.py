@@ -182,7 +182,8 @@ async def register_server(
 ) -> ServerResponse:
     """Register a new server or update existing one (idempotent).
 
-    If a server with the same auth_token already exists, updates it.
+    If a server with the same (non-empty) auth_token already exists, updates it.
+    Registrations without a token always create a new server.
     This allows servers to re-register after restarts, even if their
     endpoint URL changes (e.g., different port).
 
@@ -218,9 +219,12 @@ async def register_server(
     # Normalize endpoint URL
     endpoint_url = request.endpoint_url.rstrip("/")
 
-    # Check for existing server with same auth_token (identity is by token, not endpoint)
-    existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
-    server = existing.scalar_one_or_none()
+    # Identity is by token, not endpoint. A missing/empty token identifies nothing,
+    # so it must never match (and overwrite) another server that also has no token.
+    server = None
+    if request.auth_token:
+        existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
+        server = existing.scalar_one_or_none()
 
     if server:
         # Update existing server (endpoint may have changed)
