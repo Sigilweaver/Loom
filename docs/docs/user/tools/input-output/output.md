@@ -1,10 +1,17 @@
 ---
 sidebar_position: 2
+title: Write (Output)
+sidebar_label: Write
 ---
 
-# Output
+# Write (Output)
 
 Save data from your workflow to files.
+
+| | |
+|---|---|
+| **Palette name** | Write (category Connect) |
+| **Type name** | `Output` |
 
 ## Sockets
 
@@ -12,7 +19,7 @@ Save data from your workflow to files.
 |--------|-----------|-------------|
 | `input` | Input | Data to save |
 
-The Output tool has no output sockets - it's a terminal node in the workflow.
+The Write tool has no output sockets. It ends a branch of the workflow.
 
 ## Supported Formats
 
@@ -203,7 +210,7 @@ YXDB only supports eager writing (data is collected before writing).
 
 ## Configuration
 
-1. Add an Output tool to the canvas
+1. Add a Write tool to the canvas
 2. Connect an input wire from an upstream tool
 3. Select the output format (CSV, Excel, Parquet, IPC/Arrow, JSON/NDJSON, Avro, or YXDB)
 4. Choose the destination path
@@ -213,28 +220,28 @@ YXDB only supports eager writing (data is collected before writing).
 
 ### Saving to CSV
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "CSV" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.csv`)
 4. Adjust options like separator or header as needed
 
 ### Saving to Parquet
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "Parquet" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.parquet`)
 4. Choose compression (zstd recommended for balance of speed and size)
 
 ### Saving to IPC/Arrow
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "IPC / Arrow" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.arrow`)
 4. Choose compression if needed (uncompressed is fastest, zstd for smaller files)
 
 ### Saving to Excel
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "Excel" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.xlsx`)
 4. Optionally configure worksheet name, table styling, and formatting options
@@ -242,14 +249,14 @@ YXDB only supports eager writing (data is collected before writing).
 
 ### Saving to Avro
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "Avro" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.avro`)
 4. Choose compression (uncompressed for speed, snappy or deflate for smaller files)
 
 ### Saving to JSON
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "JSON" as the output format
 3. Enter the destination file path:
    - Use `.json` for standard JSON (array of objects)
@@ -258,7 +265,7 @@ YXDB only supports eager writing (data is collected before writing).
 
 ### Saving to YXDB
 
-1. Wire data into the Output tool
+1. Wire data into the Write tool
 2. Select "YXDB" as the output format
 3. Enter the destination file path (e.g., `/path/to/output.yxdb`)
 
@@ -272,4 +279,4 @@ YXDB only supports eager writing (data is collected before writing).
 - **YXDB files** are supported via [SigilYX](https://github.com/Sigilweaver/SigilYX)
 - **NDJSON** (`.jsonl`, `.ndjson`) supports streaming sink unlike standard `.json` files
 - **Overwriting**: Existing files at the destination path will be overwritten
-- **Execution**: Output tools only write files when the workflow is executed (not during preview)
+- **When it writes**: Write tools run when you click **Run** or **Preview All**. Previewing a single socket runs only the tools upstream of it, so it does not write files

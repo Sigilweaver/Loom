@@ -1,11 +1,12 @@
 ---
 sidebar_position: 1
+title: Expression Basics
 ---
 
 # Expression Basics
 
 :::info Most users won't need this page
-The **Filter** and **Formula** tools both have **visual builders** (Basic mode) that let you create conditions and calculations entirely through dropdowns - no coding required. This page covers the **Custom mode** expression syntax for users who need more advanced logic.
+The **Filter** and **Calculate** tools both have **visual builders** (Basic mode) that let you create conditions and calculations entirely through dropdowns - no coding required. This page covers the **Custom mode** expression syntax for users who need more advanced logic.
 :::
 
 Sigilweaver Loom uses [Polars expressions](https://docs.pola.rs/user-guide/expressions/) for filtering data and creating calculated columns. Don't worry if you've never written code - **the editor guides you with autocomplete**.
@@ -19,29 +20,29 @@ The expression editor has full autocomplete support. Press **Tab** at any point 
 Type `pl.col("` and press **Tab** to see all columns from your input data:
 
 ```python
-pl.col("  # Press Tab → see your columns
+pl.col("  # Press Tab to see your columns
 ```
 
-Start typing to filter: `pl.col("win` → Tab → `pl.col("Winning Numbers")`
+Start typing to filter: `pl.col("win` then Tab gives `pl.col("Winning Numbers")`
 
 ### Finding Methods
 
 After a column reference, type `.` and press **Tab** to see available methods. The suggestions are **context-aware** based on data type:
 
 ```python
-pl.col("email").       # Tab → .str.contains(), .str.to_lowercase(), etc.
-pl.col("created_at").  # Tab → .dt.year(), .dt.month(), etc.
-pl.col("price").       # Tab → .round(), .abs(), .clip(), etc.
+pl.col("email").       # Tab shows .str.contains(), .str.to_lowercase(), etc.
+pl.col("created_at").  # Tab shows .dt.year(), .dt.month(), etc.
+pl.col("price").       # Tab shows .round(), .abs(), .clip(), etc.
 ```
 
-Type a few letters to narrow down: `.str.con` → Tab → `.str.contains()`
+Type a few letters to narrow down: `.str.con` then Tab gives `.str.contains()`
 
 ### Complete Example
 
 Building an expression to check if a name contains "Mrs":
 
-1. Type `pl.col("Na` → Tab → `pl.col("Name")`
-2. Type `.str.con` → Tab → `.str.contains("")`
+1. Type `pl.col("Na` and press Tab to get `pl.col("Name")`
+2. Type `.str.con` and press Tab to get `.str.contains("")`
 3. Type `Mrs` inside the quotes
 
 **Result**: `pl.col("Name").str.contains("Mrs")`
@@ -83,7 +84,7 @@ pl.lit(True)           # Boolean literal
 You **must** use `pl.lit()` when assigning or returning a constant value:
 
 ```python
-# In Formula tool - assign a constant to a new column
+# In a Calculate tool - assign a constant to a new column
 pl.lit("Complete")
 
 # In conditional returns (.then and .otherwise)

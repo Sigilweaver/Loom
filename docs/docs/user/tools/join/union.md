@@ -1,10 +1,17 @@
 ---
 sidebar_position: 1
+title: Concatenate (Union)
+sidebar_label: Concatenate
 ---
 
-# Union
+# Concatenate (Union)
 
 Combine multiple datasets vertically (stack rows).
+
+| | |
+|---|---|
+| **Palette name** | Concatenate (category Combine) |
+| **Type name** | `Union` |
 
 ## Sockets
 
@@ -76,9 +83,9 @@ Output (By Position):
 
 ## Usage
 
-1. Add a Union tool to the canvas
+1. Add a Concatenate tool to the canvas
 2. Connect multiple upstream tools to the input socket
-3. Select the union mode (By Name or By Position)
+3. Select the mode (By Name or By Position)
 4. Connect the output to downstream tools
 
 ## Examples
@@ -87,8 +94,8 @@ Output (By Position):
 
 If you have separate files for each month with identical columns:
 
-1. Add multiple Input tools (one per file)
-2. Connect all to a Union tool
+1. Add multiple Read tools (one per file)
+2. Connect all of them to a Concatenate tool
 3. Use "By Name" mode
 
 ### Combining Files with Different Column Names
@@ -96,7 +103,7 @@ If you have separate files for each month with identical columns:
 If files have different column names but the same meaning:
 
 1. Use "By Position" mode, OR
-2. Use Select tools to rename columns before Union, then use "By Name"
+2. Use Schema tools to rename columns before the Concatenate tool, then use "By Name"
 
 ## Notes
 

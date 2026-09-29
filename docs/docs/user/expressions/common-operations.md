@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+title: Common Operations
 ---
 
 # Common Operations
@@ -92,7 +93,7 @@ pl.col("date_str").str.to_date()
 pl.col("datetime_str").str.to_datetime()
 ```
 
-See [Data Types](../data-types) for the full list of available types.
+See [Data Types](../data-types.md) for the full list of available types.
 
 ## Date and Time Operations
 
@@ -141,22 +142,26 @@ pl.col("value").exp()
 
 ## Conditional Logic
 
-Use `when/then/otherwise` for if-else logic:
+Use `pl.when().then().otherwise()` for if-else logic. Wrap multi-line expressions in parentheses:
 
 ```python
 # Simple condition
-pl.when(pl.col("age") >= 18)
-  .then(pl.lit("Adult"))
-  .otherwise(pl.lit("Minor"))
+(
+    pl.when(pl.col("age") >= 18)
+    .then(pl.lit("Adult"))
+    .otherwise(pl.lit("Minor"))
+)
 
 # Multiple conditions (chained)
-pl.when(pl.col("score") >= 90)
-  .then(pl.lit("A"))
-  .when(pl.col("score") >= 80)
-  .then(pl.lit("B"))
-  .when(pl.col("score") >= 70)
-  .then(pl.lit("C"))
-  .otherwise(pl.lit("F"))
+(
+    pl.when(pl.col("score") >= 90)
+    .then(pl.lit("A"))
+    .when(pl.col("score") >= 80)
+    .then(pl.lit("B"))
+    .when(pl.col("score") >= 70)
+    .then(pl.lit("C"))
+    .otherwise(pl.lit("F"))
+)
 ```
 
 :::tip

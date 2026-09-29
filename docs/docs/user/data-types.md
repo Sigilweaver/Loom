@@ -72,22 +72,25 @@ Both types are interchangeable. Use them for any text data.
 
 When loading data, Sigilweaver Loom infers types automatically:
 
-- **CSV files**: Types are inferred by sampling rows
-- **Parquet files**: Types are stored in the file metadata
+- **CSV, JSON and Excel files**: Types are inferred by sampling rows. The sample size is an option on the Read tool.
+- **Parquet, Arrow IPC and Avro files**: Types are stored in the file.
+- **Databases**: Types come from the query result.
 
-You can override inferred types using the **Select** tool's type casting feature.
+You can override inferred types with the **Schema** tool's type casting.
 
 ## Casting Types
 
-Use the Select tool or Formula expressions to convert between types:
+Use the Schema tool or Calculate expressions to convert between types:
 
-### In Select Tool
+### In the Schema Tool
 
-1. Open the Select tool configuration
+1. Open the Schema tool configuration
 2. Find the column you want to cast
 3. Select the target type from the dropdown
 
-### In Formula Expressions
+The Schema tool can cast to every type on this page except `Decimal`, `List` and `Struct`. Use a Calculate tool to produce those.
+
+### In Calculate Expressions
 
 ```python
 # Cast to integer
@@ -105,12 +108,12 @@ pl.col("date_str").str.to_date()
 
 ## Type Compatibility
 
-When joining or unioning data, column types should match:
+When joining or concatenating data, column types should match:
 
 | Operation | Requirement |
 |-----------|-------------|
 | Join keys | Should be same type (e.g., both Int64) |
-| Union | Columns are upcast if types differ |
+| Concatenate | Columns are upcast if types differ |
 
 ### Automatic Upcasting
 
