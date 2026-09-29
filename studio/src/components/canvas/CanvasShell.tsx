@@ -289,18 +289,6 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         screenToFlowPosition={screenToFlowPosition}
       >
         <div className="flex-1 h-full min-h-0">
-          <style>{`
-  /* keep React Flow default selected styles visible */
-  .react-flow__node.dragging{opacity:.8!important}
-  .react-flow__attribution{display:none!important}
-  /* Edge color states override */
-  .react-flow__edge .react-flow__edge-path{stroke:var(--color-edge-default-stroke)!important}
-  .react-flow__edge:hover .react-flow__edge-path,.react-flow__edge .react-flow__edge-path:hover{stroke:var(--color-edge-default-stroke-hover)!important}
-  .react-flow__edge.selected .react-flow__edge-path{stroke:var(--color-edge-selected-stroke)!important}
-  .react-flow__edge.selected:hover .react-flow__edge-path,.react-flow__edge.selected .react-flow__edge-path:hover{stroke:var(--color-edge-selected-stroke-hover)!important}
-  .react-flow__edge.animated .react-flow__edge-path{stroke:var(--color-edge-animated-stroke)!important}
-  .react-flow__edge.animated:hover .react-flow__edge-path,.react-flow__edge.animated .react-flow__edge-path:hover{stroke:var(--color-edge-animated-stroke-hover)!important}
-  `}</style>
           <CanvasSurface
             nodes={flowNodes}
             edges={flowEdges}
