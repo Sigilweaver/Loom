@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # delete transaction short on large/long-lived deployments.
     session_cleanup_batch_size: int = 1000
 
+    # Queued/running executions with no heartbeat for this many seconds are
+    # marked failed (the Hub that ran them is assumed to have stopped).
+    execution_stale_seconds: int = 120
+
     # Workflow storage
     workflow_storage_path: str = "./workflows"
 
