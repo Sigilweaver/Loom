@@ -6,17 +6,16 @@
 
 **The visual data pipeline platform you always wished existed.**
 
-Free and open source. No compromises.
+Free and open source.
 
 [Website](https://sigilweaver.app) | [Downloads](https://sigilweaver.app/loom/downloads) | [Documentation](https://sigilweaver.app/docs)
 
 ---
 
-> **Pre-release software.** Loom (currently v0.12.0) has not yet had a
+> **Pre-release software.** Loom (currently v0.13.0) has not yet had a
 > stable v1.0 release. Dependency updates and a vulnerability-scanning CI
 > gate now run automatically on every change, but expect breaking changes
-> and rougher edges than the "production grade" language below implies
-> until v1.0 ships.
+> and rougher edges than the goals described below imply until v1.0 ships.
 
 ## What is Sigilweaver Loom?
 
