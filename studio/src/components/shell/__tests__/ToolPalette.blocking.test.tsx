@@ -16,10 +16,9 @@ describe("ToolPalette blocking indicators", () => {
 
     render(<ToolPalette />);
 
-    // 5 blocking tools (Sort, Join, Aggregate, Pivot, Unpivot) across categories,
-    // plus duplicates for any that also appear in favorites (Sort, Join, Aggregate).
+    // 5 blocking tools (Sort, Join, Aggregate, Pivot, Unpivot); each appears once.
     const blockingIcons = screen.getAllByLabelText("Blocking operation");
-    expect(blockingIcons.length).toBeGreaterThanOrEqual(5);
+    expect(blockingIcons.length).toBe(5);
   });
 
   it("hides blocking indicators when showBlockingIndicators is false", () => {
@@ -41,7 +40,6 @@ describe("ToolPalette blocking indicators", () => {
     render(<ToolPalette />);
 
     // Sort is a blocking tool - its labels should include the blocking explanation.
-    // Multiple matches expected (favorites + category section).
     const sortLabels = screen.getAllByTitle("Sort (blocking operation - breaks lazy evaluation)");
     expect(sortLabels.length).toBeGreaterThanOrEqual(1);
   });
@@ -54,7 +52,6 @@ describe("ToolPalette blocking indicators", () => {
     render(<ToolPalette />);
 
     // Sort labels should just show the name, not the blocking explanation.
-    // Multiple matches expected (favorites + category section).
     const sortLabels = screen.getAllByTitle("Sort");
     expect(sortLabels.length).toBeGreaterThanOrEqual(1);
 
