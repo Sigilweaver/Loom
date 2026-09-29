@@ -263,7 +263,7 @@ Query data from SQLite database files.
 | Query | (required) | SQL query to execute |
 
 :::note No connection needed
-SQLite is file-based, so you pick the file directly instead of creating a connection. The file must be readable from where the Server runs.
+SQLite is file-based, so you pick the file directly instead of creating a connection. The file must be readable from where the Server runs, and its path is checked against the Server's file access rules (and your Hub file grants) like any other file input.
 :::
 
 ### SQL Server

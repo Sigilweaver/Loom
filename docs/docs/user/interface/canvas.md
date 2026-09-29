@@ -63,7 +63,7 @@ Select a tool, open the Actions menu (right-click the tool, or use the Actions b
 
 ## Deleting
 
-Press `Delete` to remove the selected tools. Wires attached to a deleted tool are removed too. To remove a single wire, select it and press `Delete`, or right-click it and choose **Delete**.
+Press `Delete` or `Backspace` to remove the selected tools. Wires attached to a deleted tool are removed too. To remove a single wire, select it and press `Delete` or `Backspace`, or right-click it and choose **Delete**.
 
 ## Context menus
 

@@ -111,11 +111,11 @@ Details of the current implementation:
 - **Server tokens** are random opaque IDs kept in a token store (memory by default, PostgreSQL optionally). A token records the user and the Server it is for. It is single-use and expires after `SERVER_TOKEN_TTL_SECONDS` (300 by default).
 - Studio asks for a fresh token for **each request**, because each one is consumed when the Server authorizes it.
 - The Server authenticates to Hub's internal endpoint with its own `HUB_SERVER_TOKEN`, which is the identity Hub registered for it.
-- Hub picks the Server. With no preference it chooses an online Server (the first by name).
+- Hub picks the Server. With no preference it chooses the least-loaded online Server (fewest queued or running executions, ties random).
 - Hub logs `capability.token_issued` and `authorize.*` events in its hash-chained audit log.
 - The Server registers with Hub, and re-registers every 30 seconds, when `HUB_URL` and `HUB_SERVER_TOKEN` are set. See [Server Management](../../admin/servers.md).
 
-Hub can also run workflows itself, for schedules and for the **Run Now** button in its web app. It calls `POST /api/workflow/execute` on a Server directly, as a Hub system identity. See [Hub Architecture](./hub.md) and [Hub Open Beta](../../admin/hub-beta.md).
+Hub can also run workflows itself, for schedules and for the **Run Now** button in its web app. It calls `POST /api/workflow/execute` on a Server directly, as the triggering user (manual runs) or the schedule creator (scheduled runs). See [Hub Architecture](./hub.md) and [Hub Open Beta](../../admin/hub-beta.md).
 
 Studio's settings for this mode:
 

@@ -48,7 +48,7 @@ Hub checks each Server every 30 seconds (`SERVER_POLL_INTERVAL_SECONDS`). A sing
 
 ## How Hub picks a Server
 
-When a run does not name a Server, Hub chooses among the Servers that are Online. The choice is simple and not load-aware. In practice it is the first online Server by name. A user or schedule can name a specific Server. See [Hub Open Beta](./hub-beta.md).
+When a run does not name a Server, Hub chooses among the Servers that are Online. Hub picks the least-loaded one: the Server with the fewest queued or running executions. Ties are broken at random. A user or schedule can name a specific Server. See [Hub Open Beta](./hub-beta.md).
 
 ## Server groups
 

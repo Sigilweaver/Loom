@@ -129,7 +129,7 @@ import app.domain.tools.register as _register  # noqa: F401
 
 ### Expression handling
 
-Filter and Calculate accept Polars expression strings. `utils/expression.py` parses them with `ast` and rejects anything outside a list of allowed node types (calls, attributes, operators, literals and a few others), any name other than `pl`, `True`, `False` and `None`, and dunder attribute or name access. Only then does it evaluate the expression. This validation reduces risk, but it is not a sandbox. Treat workflow files as code. See the [Security Model](../../admin/security.md).
+Filter and Calculate accept Polars expression strings. `utils/expression.py` is an allowlist sandbox. It parses the string with `ast` and rejects anything outside a list of allowed node types, any name other than `pl`, `True`, `False` and `None`, dunder access, and format specifiers in f-strings. Only names in `PL_ALLOWED_NAMES` are reachable as `pl.<name>`, and methods must come from an allowed set, so file and network I/O, `pl.selectors`, `pl.Series` and `pl.sql_expr` are rejected. The expression is then evaluated against a restricted `pl` namespace, not the real module. Attribute access on non-Polars values is blocked at run time, and literal repeat, power and `%` formatting are bounded. This is defense in depth, not a substitute for trust in the workflow author. Treat workflow files as code. See the [Security Model](../../admin/security.md).
 
 ## Execution engine
 

@@ -32,7 +32,7 @@ import polars as pl
 
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 
 
 @register_tool("MyTool")
@@ -188,7 +188,7 @@ except pl.ColumnNotFoundError as e:
 
 ```python
 from fastapi import APIRouter, HTTPException
-from app.api.models.workflow import WorkflowRequest
+from app.domain.models.workflow import WorkflowRequest
 from app.domain.execution.executor import WorkflowExecutor
 
 router = APIRouter()

@@ -137,6 +137,8 @@ pl.col("status") == "it's done"      # Or use double quotes outside
 
 An expression must be a single Polars expression that starts from `pl`. Loom checks it before running it and rejects imports, lambdas, comprehensions and names other than `pl`, `True`, `False` and `None`. The editor reports the reason.
 
+Expressions also run in a restricted sandbox. Anything that reads or writes files or reaches the network is blocked, and so are `pl.selectors`, `pl.Series` and `pl.sql_expr`. Use the tool's own settings instead, for example a Read tool for files or Select for column choice.
+
 ## Common Errors and Fixes
 
 ### `TypeError: unsupported operand type(s)`

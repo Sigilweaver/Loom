@@ -17,6 +17,8 @@ Do any of these:
 
 Studio runs the workflow up to that socket and shows the first rows. This does not write files. The number of rows comes from **Settings > Execution > Preview Rows** (default 100). The Server also enforces its own limit, `MAX_PREVIEW_ROWS` (default 10,000).
 
+**Validate** in the header checks the workflow without running it. Unconnected inputs, loops and missing required settings appear in the **Problems** tab of this pane. Validation is advisory and never blocks Run.
+
 **Preview All** in the header runs the entire workflow and loads a preview for every tool at once. Because it runs every tool, it also runs Write tools.
 
 ## Tabs

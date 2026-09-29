@@ -171,7 +171,7 @@ Database credentials never enter the file. A database Read tool stores a connect
 
 **Tauri** (`tauri/`): a Rust shell with commands for files, settings, credentials and, in Full builds, the Server sidecar.
 
-Both are reached only through the platform adapter.
+Both only read or write files the user picked in a native open or save dialog in the current session, so a compromised renderer cannot reach other paths (`electron/fileAccess.ts`, `tauri/src/commands/files.rs`). Both are reached only through the platform adapter.
 
 ## AI assistant
 

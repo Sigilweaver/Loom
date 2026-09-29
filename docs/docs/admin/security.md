@@ -82,11 +82,11 @@ Every API endpoint checks the caller's role. See [Roles and Permissions](./roles
 
 ## File access
 
-A Server decides which files workflows may touch. In Hub mode, the Server allows only the paths that Hub grants to the requesting user through filesystem connections. Outside Hub mode, the Server's `FILE_ACCESS_MODE` decides. `open` means no restriction. See [Server Configuration](./server-configuration.md#file-access). Set `allowlist` or `hub` on any shared Server.
+A Server decides which files workflows may touch. In Hub mode, the Server allows only the paths that Hub grants to the requesting user through filesystem connections. Outside Hub mode, the Server's `FILE_ACCESS_MODE` decides. `open` means no restriction. See [Server Configuration](./server-configuration.md#file-access). Set `allowlist` or `hub` on any shared Server. SQLite database paths (`sqlite://`) go through the same checks as file inputs, including Hub file grants. The desktop apps (Electron and Tauri) only read or write files you picked in a native open or save dialog in the current session.
 
 ## Expressions and code
 
-Filter and Calculate accept Polars expressions. Loom parses each expression and rejects anything that is not plain Polars expression syntax before it evaluates it. Do not treat that check as a sandbox. **Treat a workflow file like a script**: open workflows from people you trust, and remember that a workflow runs with the permissions of the Server process.
+Filter and Calculate accept Polars expressions. Loom runs each expression in an allowlist sandbox. It sees only a restricted `pl` namespace, and file and network I/O, callables and format-string tricks are blocked. This lowers the risk, but it is not a guarantee. **Treat a workflow file like a script**: open workflows from people you trust, and remember that a workflow runs with the permissions of the Server process.
 
 ## AI proxy
 
