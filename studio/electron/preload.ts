@@ -1,14 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  onMenuAction: (callback: (action: string, data?: any) => void) => {
-    const handler = (_event: any, action: any, data: any) => callback(action, data);
-    ipcRenderer.on('menu-action', handler);
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener('menu-action', handler);
-    };
-  },
   saveFile: async (content: string, filename: string) => {
     return ipcRenderer.invoke('save-file', content, filename)
   },
@@ -38,9 +30,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listConnections: async () => {
     return ipcRenderer.invoke('connection:list')
   },
-  listConnectionsByType: async (type: string) => {
-    return ipcRenderer.invoke('connection:listByType', type)
-  },
   getConnection: async (id: string) => {
     return ipcRenderer.invoke('connection:get', id)
   },
@@ -53,8 +42,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteConnection: async (id: string) => {
     return ipcRenderer.invoke('connection:delete', id)
   },
+  // Legacy plaintext resolution; refused by the main process while the
+  // bundled server runs (see connectionProxyAvailable / backendRequest).
   resolveConnection: async (id: string) => {
     return ipcRenderer.invoke('connection:resolve', id)
+  },
+  // True when the main process can inject credentials into requests to the
+  // bundled server, so the renderer never handles plaintext.
+  connectionProxyAvailable: async () => {
+    return ipcRenderer.invoke('connection:proxyAvailable')
+  },
+  // Forward a request carrying loom-connection:// references to the bundled
+  // server. The main process substitutes credentials and redacts responses.
+  backendRequest: async (request: {
+    url: string
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }) => {
+    return ipcRenderer.invoke('backend:request', request)
   },
   testConnection: async (id: string) => {
     return ipcRenderer.invoke('connection:test', id)

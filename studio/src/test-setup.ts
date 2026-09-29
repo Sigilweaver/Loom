@@ -15,19 +15,18 @@ import { DEFAULT_SETTINGS, mergeWithDefaults } from './types/settings';
 export const mockPlatformCapabilities = {
   secureStorage: true,
   nativeDialogs: true,
-  nativeMenus: true,
-  autoUpdate: true,
+  credentialProxy: false,
 };
 
 export const mockPlatformCredentials = {
   isAvailable: vi.fn().mockResolvedValue(true),
   list: vi.fn().mockResolvedValue([]),
-  listByType: vi.fn().mockResolvedValue([]),
   get: vi.fn().mockResolvedValue(null),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn().mockResolvedValue(undefined),
   resolve: vi.fn().mockResolvedValue(null),
+  fetch: vi.fn(),
   test: vi.fn().mockResolvedValue({ success: true, message: 'OK' }),
 };
 
@@ -83,8 +82,6 @@ export const mockPlatform = {
 vi.mock('@platform', () => ({
   platform: mockPlatform,
   initializePlatform: vi.fn().mockResolvedValue(undefined),
-  isDesktop: vi.fn(() => mockPlatform.name === 'electron' || mockPlatform.name === 'tauri'),
-  isBrowser: vi.fn(() => mockPlatform.name === 'web'),
   hasSecureStorage: vi.fn(() => mockPlatformCapabilities.secureStorage),
   hasNativeDialogs: vi.fn(() => mockPlatformCapabilities.nativeDialogs),
 }));
