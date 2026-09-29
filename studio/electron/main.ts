@@ -1,12 +1,34 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell, safeStorage } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  session,
+  shell,
+  safeStorage,
+  type IpcMainInvokeEvent,
+} from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { userInfo } from "node:os";
 import Store from "electron-store";
+import {
+  BACKEND_PORT,
+  hasConnectionRefs,
+  proxyBackendRequest,
+  type ProxyRequest,
+} from "./backendProxy";
+import { FileGrants, readGrantedFile, writeGrantedFile } from "./fileAccess";
+import { isAppUrl, isSafeExternalUrl, PRODUCTION_CSP } from "./security";
+import {
+  buildConnectionUri,
+  secretsFor,
+  type ResolvedRef,
+} from "../src/platform/connectionUri";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,30 +83,61 @@ const connectionStore = new Store<{ connections: Record<string, StoredConnection
 });
 
 /**
+ * Whether the OS can protect credentials at rest. On Linux, Electron falls
+ * back to a hard-coded key ("basic_text") when no keyring is available, which
+ * offers no real protection, so that case is treated as unavailable.
+ */
+function isEncryptionUsable(): boolean {
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  if (
+    process.platform === 'linux' &&
+    typeof safeStorage.getSelectedStorageBackend === 'function' &&
+    safeStorage.getSelectedStorageBackend() === 'basic_text'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Encrypt credentials using Electron's safeStorage
  * Uses OS-level encryption (Keychain on macOS, DPAPI on Windows, Secret Service on Linux)
  */
 function encryptCredentials(credentials: ConnectionCredentials): string {
-  if (!safeStorage.isEncryptionAvailable()) {
-    console.warn('[Connections] Encryption not available, using base64 encoding only');
-    // Fallback: just base64 encode (not secure, but allows testing)
-    return Buffer.from(JSON.stringify(credentials)).toString('base64');
+  if (!isEncryptionUsable()) {
+    // Never store recoverable plaintext.
+    throw new Error(
+      'Secure credential storage is not available on this system (no OS keychain or keyring found)'
+    );
   }
   const encrypted = safeStorage.encryptString(JSON.stringify(credentials));
   return encrypted.toString('base64');
 }
 
 /**
- * Decrypt credentials using Electron's safeStorage
+ * Decrypt credentials using Electron's safeStorage. Entries written by older
+ * versions on systems without any encryption were plain base64 and are still
+ * readable so users can re-enter them; nothing new is written that way.
  */
 function decryptCredentials(encryptedBase64: string): ConnectionCredentials {
   if (!safeStorage.isEncryptionAvailable()) {
-    // Fallback: just base64 decode
     return JSON.parse(Buffer.from(encryptedBase64, 'base64').toString('utf8'));
   }
   const encrypted = Buffer.from(encryptedBase64, 'base64');
   const decrypted = safeStorage.decryptString(encrypted);
   return JSON.parse(decrypted);
+}
+
+/**
+ * Look up a connection by id. Ids arrive from the renderer, so only own
+ * properties count ("__proto__" and friends must not resolve to anything).
+ */
+function lookupConnection(
+  connections: Record<string, StoredConnection>,
+  id: unknown
+): StoredConnection | undefined {
+  if (typeof id !== 'string') return undefined;
+  return Object.prototype.hasOwnProperty.call(connections, id) ? connections[id] : undefined;
 }
 
 /**
@@ -110,7 +163,9 @@ function toConnectionInfo(stored: StoredConnection) {
 
 // Backend process management
 let backendProcess: ChildProcess | null = null;
-const BACKEND_PORT = 25811;
+// True only while a server this shell launched is running. Gates the
+// credential proxy and the legacy plaintext resolve (see connection IPC).
+let backendOwned = false;
 
 // Ephemeral session token for backend authentication
 // Generated fresh on each app launch, passed to backend via env var
@@ -120,6 +175,65 @@ let sessionToken: string | null = null;
 const packagePath = join(__dirname, "../package.json");
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const version = packageJson.version;
+
+// What counts as "the app" for navigation and IPC sender checks.
+const appUrlPolicy = { isDev, distDir: join(__dirname, "../dist") };
+
+// Paths the user picked in native dialogs this session (see fileAccess.ts).
+const fileGrants = new FileGrants();
+
+/** Hand a link to the OS browser, but only if it is a plain web/mail link. */
+function openExternalSafely(url: string): void {
+  if (!isSafeExternalUrl(url)) {
+    console.warn(`[Security] Blocked external URL with disallowed scheme`);
+    return;
+  }
+  void shell.openExternal(url);
+}
+
+/**
+ * Reject IPC from anything but the app's own top-level frame. Defence in
+ * depth: navigation is already restricted, but privileged handlers must not
+ * trust a sender just because it reached the channel.
+ */
+function assertTrustedSender(event: IpcMainInvokeEvent): void {
+  const frame = event.senderFrame;
+  if (!frame || frame !== event.sender.mainFrame || !isAppUrl(frame.url, appUrlPolicy)) {
+    throw new Error("Untrusted IPC sender");
+  }
+}
+
+/** ipcMain.handle with the sender check applied to every channel. */
+function handle<Args extends unknown[], Result>(
+  channel: string,
+  listener: (event: IpcMainInvokeEvent, ...args: Args) => Result | Promise<Result>
+): void {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedSender(event);
+    return listener(event, ...(args as Args));
+  });
+}
+
+/** Deny every renderer permission request except clipboard writes. */
+function hardenSession(): void {
+  const ses = session.defaultSession;
+  const allowed = new Set(["clipboard-sanitized-write"]);
+  ses.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(allowed.has(permission));
+  });
+  ses.setPermissionCheckHandler((_webContents, permission) => allowed.has(permission));
+
+  if (!isDev) {
+    ses.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Content-Security-Policy": [PRODUCTION_CSP],
+        },
+      });
+    });
+  }
+}
 
 /**
  * Get the path to the server executable
@@ -265,6 +379,7 @@ async function startBackend(): Promise<void> {
     proc.on("exit", (code: number | null, signal: string | null) => {
       console.log(`[Backend] Process exited (code: ${code}, signal: ${signal})`);
       backendProcess = null;
+      backendOwned = false;
       if (!settled) {
         settled = true;
         clearInterval(checkInterval);
@@ -293,6 +408,7 @@ async function startBackend(): Promise<void> {
           if (!settled) {
             settled = true;
             clearInterval(checkInterval);
+            backendOwned = true;
             console.log(`[Backend] Health check passed on attempt ${attempts}`);
             resolve();
           }
@@ -319,6 +435,7 @@ function stopBackend(): void {
     console.log(`[Backend] Stopping server (pid: ${backendProcess.pid ?? "unknown"})...`);
     backendProcess.kill();
     backendProcess = null;
+    backendOwned = false;
     console.log("[Backend] Stop signal sent");
   } else {
     console.log("[Backend] No backend process to stop");
@@ -339,9 +456,17 @@ function createWindow(): void {
     title: windowTitle,
     icon: iconPath,
     webPreferences: {
-      preload: join(__dirname, "../dist-electron/preload.js"),
+      preload: join(__dirname, "../dist-electron/preload.cjs"),
+      // Least privilege for the renderer: no Node, isolated world, OS sandbox.
+      // The preload only needs contextBridge and ipcRenderer, which are
+      // available to sandboxed preloads.
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: false,
+      spellcheck: false,
     },
   });
 
@@ -377,21 +502,25 @@ function createWindow(): void {
     mainWindow.setTitle(windowTitle);
   });
 
-  // Open external links in default browser instead of Electron
+  // Never open new Electron windows. Web links go to the default browser;
+  // anything else (file:, custom protocol handlers) is dropped.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    openExternalSafely(url);
     return { action: 'deny' };
   });
 
-  // Handle navigation to external URLs
+  // The window may only ever show the app itself.
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    // Allow navigation within the app (dev server or local files)
-    if (url.startsWith('http://localhost:25810') || url.startsWith('file://')) {
+    if (isAppUrl(url, appUrlPolicy)) {
       return;
     }
-    // Open external URLs in default browser
     event.preventDefault();
-    shell.openExternal(url);
+    openExternalSafely(url);
+  });
+
+  // Embedding <webview> or attaching foreign content is never needed.
+  mainWindow.webContents.on('will-attach-webview', (event) => {
+    event.preventDefault();
   });
 
   // Remove system menu bar
@@ -406,6 +535,8 @@ app.whenReady().then(async () => {
   console.log(`[Main] Dev mode: ${isDev}`);
 
   try {
+    hardenSession();
+
     // Start backend first
     await startBackend();
 
@@ -438,7 +569,7 @@ app.on("before-quit", () => {
 });
 
 // Settings IPC handlers
-ipcMain.handle('get-settings', async () => {
+handle('get-settings', async () => {
   const settings = store.get('settings', DEFAULT_SETTINGS);
 
   // If author is still a default value, use OS username instead
@@ -450,12 +581,15 @@ ipcMain.handle('get-settings', async () => {
   return settings;
 });
 
-ipcMain.handle('set-settings', async (_event, settings) => {
+handle('set-settings', async (_event, settings: unknown) => {
+  if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+    throw new Error('Settings must be an object');
+  }
   store.set('settings', settings);
 });
 
 // Session token IPC handler - provides ephemeral auth token to renderer
-ipcMain.handle('get-session-token', async () => {
+handle('get-session-token', async () => {
   return sessionToken;
 });
 
@@ -464,33 +598,25 @@ ipcMain.handle('get-session-token', async () => {
 // =============================================================================
 
 // Check if encryption is available
-ipcMain.handle('connection:isEncryptionAvailable', async () => {
-  return safeStorage.isEncryptionAvailable();
+handle('connection:isEncryptionAvailable', async () => {
+  return isEncryptionUsable();
 });
 
 // List all connections (without credentials)
-ipcMain.handle('connection:list', async () => {
+handle('connection:list', async () => {
   const connections = connectionStore.get('connections', {});
   return Object.values(connections).map(toConnectionInfo);
 });
 
-// List connections by type
-ipcMain.handle('connection:listByType', async (_event, type: string) => {
-  const connections = connectionStore.get('connections', {});
-  return Object.values(connections)
-    .filter(c => c.type === type)
-    .map(toConnectionInfo);
-});
-
 // Get a single connection by ID (without credentials)
-ipcMain.handle('connection:get', async (_event, id: string) => {
+handle('connection:get', async (_event, id: string) => {
   const connections = connectionStore.get('connections', {});
-  const connection = connections[id];
+  const connection = lookupConnection(connections, id);
   return connection ? toConnectionInfo(connection) : null;
 });
 
 // Create a new connection
-ipcMain.handle('connection:create', async (_event, input: {
+handle('connection:create', async (_event, input: {
   name: string;
   type: 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
   host: string;
@@ -533,7 +659,7 @@ ipcMain.handle('connection:create', async (_event, input: {
 });
 
 // Update an existing connection
-ipcMain.handle('connection:update', async (_event, id: string, input: {
+handle('connection:update', async (_event, id: string, input: {
   name?: string;
   host?: string;
   port?: number;
@@ -542,7 +668,7 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
   password?: string;
 }) => {
   const connections = connectionStore.get('connections', {});
-  const existing = connections[id];
+  const existing = lookupConnection(connections, id);
 
   if (!existing) {
     throw new Error(`Connection ${id} not found`);
@@ -582,9 +708,9 @@ ipcMain.handle('connection:update', async (_event, id: string, input: {
 });
 
 // Delete a connection
-ipcMain.handle('connection:delete', async (_event, id: string) => {
+handle('connection:delete', async (_event, id: string) => {
   const connections = connectionStore.get('connections', {});
-  const existing = connections[id];
+  const existing = lookupConnection(connections, id);
 
   if (!existing) {
     throw new Error(`Connection ${id} not found`);
@@ -596,20 +722,64 @@ ipcMain.handle('connection:delete', async (_event, id: string) => {
   console.log(`[Connections] Deleted connection: ${existing.name} (${id})`);
 });
 
-// Resolve connection with decrypted credentials (for backend requests)
-ipcMain.handle('connection:resolve', async (_event, id: string) => {
-  console.log(`[Connections] Resolving connection: ${id}`);
-  const connections = connectionStore.get('connections', {});
-  const connection = connections[id];
+/**
+ * Resolve a stored connection to its URI (with credentials) plus the secrets
+ * to scrub from responses. Main-process only: this never crosses IPC.
+ */
+function resolveConnectionRef(id: string): ResolvedRef | null {
+  const stored = lookupConnection(connectionStore.get('connections', {}), id);
+  if (!stored) return null;
+  const credentials = decryptCredentials(stored.encryptedCredentials);
+  const resolved = {
+    type: stored.type,
+    host: stored.host,
+    port: stored.port,
+    database: stored.database,
+    username: credentials.username,
+    password: credentials.password,
+  };
+  return { uri: buildConnectionUri(resolved), secrets: secretsFor(resolved) };
+}
 
+// Whether requests carrying connection references can be proxied by this
+// process. True only while the bundled server (launched by this process) is
+// running; the renderer then never needs plaintext credentials.
+handle('connection:proxyAvailable', async () => {
+  return backendOwned && sessionToken !== null;
+});
+
+// Forward a request to the bundled server, swapping connection references for
+// real connection URIs and redacting credentials from the response.
+handle('backend:request', async (_event, request: ProxyRequest) => {
+  if (!backendOwned || !sessionToken) {
+    throw new Error('Connection proxy is not available: the bundled server is not running');
+  }
+  if (!hasConnectionRefs(request?.body)) {
+    // Nothing to inject; the renderer should have used plain fetch.
+    throw new Error('Request carries no connection references');
+  }
+  return proxyBackendRequest(request, {
+    token: sessionToken,
+    resolve: resolveConnectionRef,
+  });
+});
+
+// Legacy: resolve a connection to plaintext credentials for the renderer.
+// Only permitted when this process does not own the server (Client build,
+// dev, or a remote server), because then the renderer must build the request
+// itself. With a bundled server the proxy above is used and this is refused.
+handle('connection:resolve', async (_event, id: string) => {
+  if (backendOwned) {
+    throw new Error(
+      'Credentials are not available to the renderer while the bundled server is running'
+    );
+  }
+  const connection = lookupConnection(connectionStore.get('connections', {}), id);
   if (!connection) {
-    console.log(`[Connections] Connection not found: ${id}`);
     return null;
   }
 
   const credentials = decryptCredentials(connection.encryptedCredentials);
-  console.log(`[Connections] Resolved connection: ${connection.name}`);
-
   return {
     ...toConnectionInfo(connection),
     username: credentials.username,
@@ -618,9 +788,9 @@ ipcMain.handle('connection:resolve', async (_event, id: string) => {
 });
 
 // Test a connection
-ipcMain.handle('connection:test', async (_event, id: string) => {
+handle('connection:test', async (_event, id: string) => {
   const connections = connectionStore.get('connections', {});
-  const connection = connections[id];
+  const connection = lookupConnection(connections, id);
 
   if (!connection) {
     return { success: false, message: 'Connection not found' };
@@ -638,86 +808,106 @@ ipcMain.handle('connection:test', async (_event, id: string) => {
 // END CONNECTION IPC HANDLERS
 // =============================================================================
 
-// IPC handlers
-ipcMain.handle(
-  "save-file",
-  async (_event, content: string, filename: string) => {
-    try {
-      await writeFile(filename, content, "utf8");
-      return filename;
-    } catch (error) {
-      console.error("Error saving file:", error);
-      return null;
-    }
-  }
-);
+// =============================================================================
+// FILE IPC HANDLERS
+//
+// The renderer can only read or write paths the user chose in a native dialog
+// during this session (see fileAccess.ts). Dialogs are the only way to obtain
+// such a path; there is no channel that accepts an arbitrary path directly.
+// =============================================================================
 
-ipcMain.handle("read-file", async (_event, filePath: string) => {
-  try {
-    const content = await readFile(filePath, "utf8");
-    return content;
-  } catch (error) {
-    console.error("Error reading file:", error);
-    throw error;
-  }
-});
+interface FileFilterInput {
+  name: string;
+  extensions: string[];
+}
 
-ipcMain.handle("show-save-dialog", async (event, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
-  // Get the window that sent this IPC message
+interface DialogInput {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  message?: string;
+  filters?: FileFilterInput[];
+}
+
+/** Keep only well-formed filters from renderer input. */
+function sanitizeFilters(filters: unknown): FileFilterInput[] | undefined {
+  if (!Array.isArray(filters)) return undefined;
+  const clean = filters.filter(
+    (f): f is FileFilterInput =>
+      typeof f?.name === "string" &&
+      Array.isArray(f.extensions) &&
+      f.extensions.every((e: unknown) => typeof e === "string")
+  );
+  return clean.length > 0 ? clean : undefined;
+}
+
+/** Copy only the dialog fields we support; never spread renderer input. */
+function pickDialogOptions(options: DialogInput | undefined) {
+  const picked: Electron.SaveDialogOptions & Electron.OpenDialogOptions = {};
+  if (typeof options?.title === "string") picked.title = options.title;
+  if (typeof options?.defaultPath === "string") picked.defaultPath = options.defaultPath;
+  if (typeof options?.buttonLabel === "string") picked.buttonLabel = options.buttonLabel;
+  if (typeof options?.message === "string") picked.message = options.message;
+  return { picked, filters: sanitizeFilters(options?.filters) };
+}
+
+/** Restore and focus the window that asked for a dialog. */
+function focusSenderWindow(event: IpcMainInvokeEvent): BrowserWindow {
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
-
   if (!parentWindow) {
-    console.error("Could not determine parent window from IPC sender");
-    return null;
+    throw new Error("Could not determine parent window from IPC sender");
   }
-
   if (parentWindow.isMinimized()) {
     parentWindow.restore();
   }
-
-  // Simple approach: just ensure window is visible and focused
   parentWindow.show();
   parentWindow.focus();
+  return parentWindow;
+}
+
+handle("save-file", async (_event, content: string, filename: string) => {
+  // Errors propagate to the renderer so a failed save is never reported as
+  // success.
+  return writeGrantedFile(fileGrants, filename, content);
+});
+
+handle("read-file", async (_event, filePath: string) => {
+  return readGrantedFile(fileGrants, filePath);
+});
+
+handle("show-save-dialog", async (event, options?: DialogInput) => {
+  const parentWindow = focusSenderWindow(event);
+  const { picked, filters } = pickDialogOptions(options);
 
   const result = await dialog.showSaveDialog(parentWindow, {
-    ...(options?.defaultPath ? { defaultPath: options.defaultPath } : {}),
-    filters: options?.filters || [
+    ...picked,
+    filters: filters ?? [
       { name: "Workflow Files", extensions: ["swwf"] },
       { name: "All Files", extensions: ["*"] },
     ],
   });
 
-  return result.canceled ? null : result.filePath;
+  if (result.canceled || !result.filePath) return null;
+  await fileGrants.grant(result.filePath);
+  return result.filePath;
 });
 
-ipcMain.handle("show-open-dialog", async (event, options?: any) => {
-  // Get the window that sent this IPC message
-  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+handle("show-open-dialog", async (event, options?: DialogInput) => {
+  const parentWindow = focusSenderWindow(event);
+  const { picked, filters } = pickDialogOptions(options);
 
-  if (!parentWindow) {
-    console.error("Could not determine parent window from IPC sender");
-    return null;
-  }
-
-  if (parentWindow.isMinimized()) {
-    parentWindow.restore();
-  }
-
-  // Simple approach: just ensure window is visible and focused
-  parentWindow.show();
-  parentWindow.focus();
-
-  const dialogOptions = {
-    properties: ["openFile"] as const,
-    filters: [
+  const result = await dialog.showOpenDialog(parentWindow, {
+    ...picked,
+    properties: ["openFile"],
+    filters: filters ?? [
       { name: "CSV Files", extensions: ["csv"] },
       { name: "Text Files", extensions: ["txt"] },
       { name: "All Files", extensions: ["*"] },
     ],
-    ...options,
-  };
+  });
 
-  const result = await dialog.showOpenDialog(parentWindow, dialogOptions);
-
-  return result.canceled ? null : result.filePaths[0];
+  const chosen = result.canceled ? undefined : result.filePaths[0];
+  if (!chosen) return null;
+  await fileGrants.grant(chosen);
+  return chosen;
 });
