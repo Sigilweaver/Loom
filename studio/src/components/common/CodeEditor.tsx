@@ -1,4 +1,4 @@
-import { Editor, OnMount } from '@monaco-editor/react';
+import { Editor, loader, OnMount } from '@monaco-editor/react';
 import { editor, languages, Position, IRange } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { useRef, useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const monacoRef = useRef<typeof Monaco | null>(null);
   const completionDisposableRef = useRef<Monaco.IDisposable | null>(null);
   const [monacoReady, setMonacoReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const { currentTheme } = useTheme();
 
   // Map app themes to Monaco themes
@@ -116,6 +117,19 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
     // Autocomplete registration is handled in useEffect below
   };
+
+  // The editor is fetched from a CDN on first use. When that fails (offline,
+  // blocked network) fall back to a plain text box instead of a permanent
+  // "Loading..." placeholder.
+  useEffect(() => {
+    let cancelled = false;
+    loader.init().catch(() => {
+      if (!cancelled) setLoadFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Re-register completion provider when columns or functions change
   useEffect(() => {
@@ -477,6 +491,27 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       }
     };
   }, [columns, language, monacoReady, polarsFunctions]);
+
+  if (loadFailed) {
+    return (
+      <div className="monaco-editor-wrapper">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          spellCheck={false}
+          aria-label="Expression"
+          style={{ height }}
+          className="w-full p-2 font-mono text-sm border rounded resize-y bg-theme-surface-elevated text-theme-text-primary border-theme-border-primary focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
+        />
+        <p className="mt-1 text-xs text-theme-text-tertiary">
+          The code editor could not be loaded (it needs a network connection the first time), so
+          this is a plain text box. Syntax highlighting and autocomplete are unavailable.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="monaco-editor-wrapper">

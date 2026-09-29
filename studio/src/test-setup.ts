@@ -251,6 +251,7 @@ vi.mock('@monaco-editor/react', () => ({
       })
     );
   }),
+  loader: { init: vi.fn(() => new Promise(() => {})) },
   OnMount: vi.fn(),
 }));
 
