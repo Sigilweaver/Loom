@@ -63,7 +63,6 @@ describe("TabStore", () => {
     useWorkflowStore.setState({
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: {
         name: "New Workflow",
         description: "",

@@ -1,4 +1,3 @@
-import type { Edge } from "@xyflow/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type {
   Tool,
@@ -19,7 +18,6 @@ describe("WorkflowStore", () => {
     useWorkflowStore.setState({
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: {
         name: "New Workflow",
         description: "A new workflow",
@@ -37,7 +35,6 @@ describe("WorkflowStore", () => {
 
       expect(state.tools).toEqual([]);
       expect(state.wires).toEqual([]);
-      expect(state.edges).toEqual([]);
       expect(state.selectedTool).toBeNull();
       expect(state.workflowMeta).toEqual({
         name: "New Workflow",
@@ -106,17 +103,7 @@ describe("WorkflowStore", () => {
       expect(state.workflowMeta).toEqual(meta);
     });
 
-    test("resets edges and selectedTool when loading workflow", () => {
-      const oldEdges: Edge[] = [
-        {
-          id: "edge1",
-          source: "tool1",
-          target: "tool2",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
+    test("resets selectedTool when loading workflow", () => {
       const selectedTool: Tool = {
         id: "selected",
         type: "Test",
@@ -127,7 +114,7 @@ describe("WorkflowStore", () => {
       };
 
       // Set initial state
-      useWorkflowStore.setState({ edges: oldEdges, selectedTool });
+      useWorkflowStore.setState({ selectedTool });
 
       const tools: Tool[] = [
         {
@@ -154,7 +141,6 @@ describe("WorkflowStore", () => {
       expect(state.tools).toEqual(tools);
       expect(state.wires).toEqual([]);
       expect(state.workflowMeta).toEqual(meta);
-      expect(state.edges).toEqual([]); // Reset (synced from empty wires)
       expect(state.selectedTool).toBeNull(); // Reset
     });
 
@@ -173,127 +159,6 @@ describe("WorkflowStore", () => {
       expect(state.tools).toEqual([]);
       expect(state.wires).toEqual([]);
       expect(state.workflowMeta).toEqual(meta);
-    });
-  });
-
-  describe("setEdges", () => {
-    test("sets edges from React Flow", () => {
-      const edges: Edge[] = [
-        {
-          id: "e1",
-          source: "tool1",
-          target: "tool2",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-        {
-          id: "e2",
-          source: "tool2",
-          target: "tool3",
-          sourceHandle: "2",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.getState().setEdges(edges);
-
-      const state = useWorkflowStore.getState();
-      expect(state.edges).toEqual(edges);
-    });
-
-    test("replaces existing edges", () => {
-      const initialEdges: Edge[] = [
-        {
-          id: "initial",
-          source: "a",
-          target: "b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
-      const newEdges: Edge[] = [
-        {
-          id: "new1",
-          source: "x",
-          target: "y",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-        {
-          id: "new2",
-          source: "y",
-          target: "z",
-          sourceHandle: "2",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.setState({ edges: initialEdges });
-      useWorkflowStore.getState().setEdges(newEdges);
-
-      const state = useWorkflowStore.getState();
-      expect(state.edges).toEqual(newEdges);
-      expect(state.edges).not.toContain(initialEdges[0]);
-    });
-
-    test("handles empty edges array", () => {
-      const initialEdges: Edge[] = [
-        {
-          id: "will-be-removed",
-          source: "a",
-          target: "b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.setState({ edges: initialEdges });
-      useWorkflowStore.getState().setEdges([]);
-
-      const state = useWorkflowStore.getState();
-      expect(state.edges).toEqual([]);
-    });
-
-    test("preserves other state when setting edges", () => {
-      const tools: Tool[] = [
-        {
-          id: "preserved-tool",
-          type: "Test",
-          x: 100,
-          y: 100,
-          config: {},
-          sockets: [],
-        },
-      ];
-
-      const selectedTool: Tool = {
-        id: "selected-tool",
-        type: "Selected",
-        x: 200,
-        y: 200,
-        config: {},
-        sockets: [],
-      };
-
-      useWorkflowStore.setState({ tools, selectedTool });
-
-      const edges: Edge[] = [
-        {
-          id: "new-edge",
-          source: "a",
-          target: "b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.getState().setEdges(edges);
-
-      const state = useWorkflowStore.getState();
-      expect(state.edges).toEqual(edges);
-      expect(state.tools).toEqual(tools); // Preserved
-      expect(state.selectedTool).toEqual(selectedTool); // Preserved
     });
   });
 
@@ -370,17 +235,7 @@ describe("WorkflowStore", () => {
         },
       ];
 
-      const edges: Edge[] = [
-        {
-          id: "existing-edge",
-          source: "a",
-          target: "b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.setState({ tools, edges });
+      useWorkflowStore.setState({ tools });
 
       const selectedTool: Tool = {
         id: "new-selection",
@@ -396,7 +251,6 @@ describe("WorkflowStore", () => {
       const state = useWorkflowStore.getState();
       expect(state.selectedTool).toEqual(selectedTool);
       expect(state.tools).toEqual(tools); // Preserved
-      expect(state.edges).toEqual(edges); // Preserved
     });
   });
 
@@ -658,16 +512,6 @@ describe("WorkflowStore", () => {
         sockets: [],
       };
 
-      const edges: Edge[] = [
-        {
-          id: "preserved-edge",
-          source: "a",
-          target: "b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
       const wires: Wire[] = [
         { from: { tool: "a", socket: 'output' }, to: { tool: "b", socket: 'input' } },
       ];
@@ -675,7 +519,6 @@ describe("WorkflowStore", () => {
       useWorkflowStore.setState({
         tools: [tool],
         selectedTool,
-        edges,
         wires,
       });
 
@@ -687,7 +530,6 @@ describe("WorkflowStore", () => {
       expect(state.tools[0]?.x).toBe(500);
       expect(state.tools[0]?.y).toBe(600);
       expect(state.selectedTool).toEqual(selectedTool); // Preserved
-      expect(state.edges).toEqual(edges); // Preserved
       expect(state.wires).toEqual(wires); // Preserved
     });
   });
@@ -718,28 +560,15 @@ describe("WorkflowStore", () => {
 
       useWorkflowStore.getState().loadWorkflow(tools, wires, meta);
 
-      // Step 2: Set edges
-      const edges: Edge[] = [
-        {
-          id: "integration-edge",
-          source: "integration-tool",
-          target: "other",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
-      useWorkflowStore.getState().setEdges(edges);
-
-      // Step 3: Select the tool
+      // Step 2: Select the tool
       useWorkflowStore.getState().setSelectedTool(tools[0]!);
 
-      // Step 4: Update metadata
+      // Step 3: Update metadata
       useWorkflowStore
         .getState()
         .updateWorkflowMeta({ name: "Updated Integration Test" });
 
-      // Step 5: Update tool position
+      // Step 4: Update tool position
       useWorkflowStore
         .getState()
         .updateToolPositionLocal("integration-tool", 300, 400);
@@ -750,7 +579,6 @@ describe("WorkflowStore", () => {
       expect(state.tools[0]?.x).toBe(300);
       expect(state.tools[0]?.y).toBe(400);
       expect(state.tools[0]?.id).toBe("integration-tool");
-      expect(state.edges).toEqual(edges);
       expect(state.selectedTool?.id).toBe("integration-tool");
       expect(state.workflowMeta.name).toBe("Updated Integration Test");
       expect(state.workflowMeta.workflowId).toBe("integration-id");
@@ -788,16 +616,6 @@ describe("WorkflowStore", () => {
         },
       ];
 
-      const complexEdges: Edge[] = [
-        {
-          id: "complex-edge",
-          source: "tool-a",
-          target: "tool-b",
-          sourceHandle: "1",
-          targetHandle: "1",
-        },
-      ];
-
       // Load the complex state
       useWorkflowStore.getState().loadWorkflow(complexTools, complexWires, {
         name: "Complex Workflow",
@@ -806,8 +624,6 @@ describe("WorkflowStore", () => {
         workflowId: "complex-id",
         created: "2025-09-01T12:00:00.000Z",
       });
-
-      useWorkflowStore.getState().setEdges(complexEdges);
 
       // Perform various operations
       useWorkflowStore.getState().setSelectedTool(complexTools[1]!);
@@ -823,7 +639,6 @@ describe("WorkflowStore", () => {
       expect(state.tools.find((t) => t.id === "tool-a")?.y).toBe(50);
       expect(state.tools.find((t) => t.id === "tool-b")?.x).toBe(200); // Unchanged
       expect(state.wires).toEqual(complexWires);
-      expect(state.edges).toEqual(complexEdges);
       expect(state.selectedTool?.id).toBe("tool-b");
       expect(state.workflowMeta.description).toBe(
         "Updated complex description"
@@ -927,7 +742,6 @@ describe("WorkflowStore", () => {
         expect(state.tools).toHaveLength(2);
         expect(state.wires).toHaveLength(1);
         expect(state.workflowMeta.name).toBe("Test");
-        // syncEdges is called automatically
       });
     });
 
@@ -1177,7 +991,7 @@ describe("WorkflowStore", () => {
         expect(state.tools[0]?.id).toBe("tool2");
       });
 
-      test("should sync edges after loading workflow", () => {
+      test("should load wires together with tools", () => {
         const tools: Tool[] = [
           {
             id: "tool1",
@@ -1217,7 +1031,6 @@ describe("WorkflowStore", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(2);
         expect(state.wires).toHaveLength(1);
-        // syncEdges is called automatically
       });
     });
 
@@ -1254,7 +1067,6 @@ describe("WorkflowStore", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(2);
         expect(state.wires).toHaveLength(1);
-        // syncEdges is called automatically
       });
 
       test("should handle empty arrays", () => {
@@ -1265,7 +1077,7 @@ describe("WorkflowStore", () => {
         expect(state.wires).toHaveLength(0);
       });
 
-      test("should sync edges after batch operation", () => {
+      test("should add tools and wires to existing state in a batch", () => {
         // Add initial tool
         const initialTool: Tool = {
           id: "initial",
@@ -1279,7 +1091,6 @@ describe("WorkflowStore", () => {
         useWorkflowStore.setState({
           tools: [initialTool],
           wires: [],
-          edges: [],
         });
 
         // Batch add new tools and wires
@@ -1317,7 +1128,6 @@ describe("WorkflowStore", () => {
         const state = useWorkflowStore.getState();
         expect(state.tools).toHaveLength(3); // initial + 2 new
         expect(state.wires).toHaveLength(1);
-        // syncEdges is called automatically
       });
     });
 
@@ -1350,22 +1160,6 @@ describe("WorkflowStore", () => {
         const wires = useWorkflowStore.getState().wires;
         expect(wires).toHaveLength(1);
         expect(wires[0]?.from.tool).toBe("tool1");
-      });
-
-      test("should access edges via getState", () => {
-        const edge: Edge = {
-          id: "edge1",
-          source: "tool1",
-          target: "tool2",
-          sourceHandle: "output-1",
-          targetHandle: "input-1",
-        };
-
-        useWorkflowStore.setState({ edges: [edge] });
-
-        const edges = useWorkflowStore.getState().edges;
-        expect(edges).toHaveLength(1);
-        expect(edges[0]?.id).toBe("edge1");
       });
 
       test("should access workflowMeta via getState", () => {

@@ -4,7 +4,10 @@ import { Tool, ToolDefinition, Socket } from '@domain/workflow/entities/workflow
 import { useSocketPreview } from '@hooks/useSocketPreview';
 import { useSocketProfile } from '@hooks/useSocketProfile';
 import { useSettingsStore } from '@state/settingsStore';
+import { useValidationStore } from '@state/validationStore';
 import { AlertTriangle } from 'lucide-react';
+
+const NO_ISSUES: never[] = [];
 
 interface SocketContextMenu {
   x: number;
@@ -27,6 +30,8 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
   const { profileSocket } = useSocketProfile();
   const showBlockingIndicators = useSettingsStore((s) => s.ui.showBlockingIndicators);
   const [contextMenu, setContextMenu] = useState<SocketContextMenu | null>(null);
+  const issues = useValidationStore((s) => s.issuesByTool[tool.id]) ?? NO_ISSUES;
+  const hasError = issues.some((issue) => issue.severity === 'error');
 
   // Close context menu when clicking outside
   useEffect(() => {
@@ -197,7 +202,7 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
               right: '-2px',
               fontSize: '5px',
               fontWeight: 'bold',
-              color: 'var(--color-error-accent)',
+              color: 'var(--color-error)',
               background: 'var(--color-socket-input-border)',
               borderRadius: '50%',
               width: '7px',
@@ -217,6 +222,31 @@ export default function WorkflowNode({ data }: WorkflowNodeProps) {
       <div className="flex items-center justify-center h-full">
         <definition.icon className="w-6 h-6" style={{ color: categoryColor }} />
       </div>
+
+      {/* Validation badge (shown after the user runs "Validate workflow") */}
+      {issues.length > 0 && (
+        <div
+          role="img"
+          aria-label={issues.map((issue) => issue.message).join(' ')}
+          title={issues.map((issue) => issue.message).join('\n')}
+          className="absolute flex items-center justify-center rounded-full pointer-events-auto"
+          style={{
+            top: '-8px',
+            left: '-8px',
+            width: '16px',
+            height: '16px',
+            fontSize: '10px',
+            fontWeight: 700,
+            lineHeight: 1,
+            color: 'var(--color-text-inverse)',
+            background: hasError ? 'var(--color-error)' : 'var(--color-warning)',
+            boxShadow: '0 0 0 2px var(--color-surface-canvas)',
+            zIndex: 2,
+          }}
+        >
+          !
+        </div>
+      )}
 
       {/* Blocking indicator */}
       {definition.blocking && showBlockingIndicators && (

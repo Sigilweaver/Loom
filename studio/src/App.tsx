@@ -20,8 +20,12 @@ import { useAIStore } from "@state/aiStore";
 import { closeAllWorkflowCaches } from "./api/cache";
 import { initHubClient, hasHubClient } from "./api/hub";
 import { triggerHubConnectionsRefresh } from "./hooks/useAllConnections";
+import { useValidationSync } from "./hooks/useValidationSync";
 
 function App() {
+  // Keep validation results current while they are shown
+  useValidationSync();
+
   const loadSettings = useSettingsStore(s => s.loadSettings);
   const loadConnections = useConnectionStore(s => s.loadConnections);
   const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);

@@ -84,7 +84,6 @@ describe("Store Integration Tests", () => {
     useWorkflowStore.setState({
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: {
         name: "",
         description: "",
@@ -453,7 +452,6 @@ describe("Store Integration Tests", () => {
       useWorkflowStore.setState({
         tools: [],
         wires: [],
-        edges: [],
         workflowMeta: {
           name: "",
           description: "",

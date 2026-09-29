@@ -118,6 +118,103 @@ export function getUpstreamToolIds(
 }
 
 /**
+ * Pre-computed lookups for building many cache keys for one workflow.
+ *
+ * Normalizing the workflow and indexing its wires is the expensive part of
+ * key computation, so bulk operations (like caching a whole "Preview All"
+ * response) build this once instead of once per key.
+ */
+interface CacheKeyContext {
+  workflowId: string;
+  tools: Map<string, NormalizedTool>;
+  wires: NormalizedWorkflow['wires'];
+  incoming: Map<string, string[]>;
+}
+
+function createCacheKeyContext(workflow: WorkflowJSON): CacheKeyContext {
+  const normalized = normalizeWorkflow(workflow);
+  const incoming = new Map<string, string[]>();
+  for (const wire of normalized.wires) {
+    const list = incoming.get(wire.to.tool);
+    if (list) list.push(wire.from.tool);
+    else incoming.set(wire.to.tool, [wire.from.tool]);
+  }
+  return {
+    workflowId: workflow.meta.workflowId,
+    tools: new Map(normalized.tools.map((t) => [t.id, t])),
+    wires: normalized.wires,
+    incoming,
+  };
+}
+
+function upstreamIdsFromContext(ctx: CacheKeyContext, toolId: string): Set<string> {
+  const visited = new Set<string>();
+  const stack = [toolId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    for (const upstreamId of ctx.incoming.get(current) ?? []) {
+      if (!visited.has(upstreamId)) {
+        visited.add(upstreamId);
+        stack.push(upstreamId);
+      }
+    }
+  }
+  return visited;
+}
+
+function buildCacheKey(
+  ctx: CacheKeyContext,
+  toolId: string,
+  cacheType: 'schema' | 'preview' | 'metadata',
+  previewLimit?: number,
+  socketId?: string
+): string {
+  const targetTool = ctx.tools.get(toolId);
+  if (!targetTool) {
+    return `${cacheType}:${toolId}:invalid`;
+  }
+
+  const upstreamIds = upstreamIdsFromContext(ctx, toolId);
+
+  // Upstream tools sorted by ID for a deterministic key
+  const upstreamTools = [...upstreamIds]
+    .map((id) => ctx.tools.get(id))
+    .filter((t): t is NormalizedTool => t !== undefined)
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  // Relevant wires (connecting to target or its upstream)
+  const relevantToolIds = new Set([toolId, ...upstreamIds]);
+  const relevantWires = ctx.wires
+    .filter((w) => relevantToolIds.has(w.to.tool))
+    .sort((a, b) => {
+      const keyA = `${a.from.tool}:${a.from.socket}->${a.to.tool}:${a.to.socket}`;
+      const keyB = `${b.from.tool}:${b.from.socket}->${b.to.tool}:${b.to.socket}`;
+      return keyA.localeCompare(keyB);
+    });
+
+  const keyData = {
+    workflowId: ctx.workflowId, // Namespace by workflow
+    type: cacheType,
+    target: {
+      id: targetTool.id,
+      type: targetTool.type,
+      config: targetTool.config,
+    },
+    upstream: upstreamTools.map((t) => ({
+      id: t.id,
+      type: t.type,
+      config: t.config,
+    })),
+    wires: relevantWires,
+    ...(previewLimit !== undefined && { limit: previewLimit }),
+    ...(socketId !== undefined && { socketId }),
+  };
+
+  // JSON stringification doubles as a cheap, collision-free hash
+  return JSON.stringify(keyData);
+}
+
+/**
  * Compute a cache key for a tool based on its config and all upstream dependencies
  */
 export function computeCacheKey(
@@ -127,54 +224,7 @@ export function computeCacheKey(
   previewLimit?: number,
   socketId?: string
 ): string {
-  const normalized = normalizeWorkflow(workflow);
-  
-  // Get the target tool
-  const targetTool = normalized.tools.find(t => t.id === toolId);
-  if (!targetTool) {
-    return `${cacheType}:${toolId}:invalid`;
-  }
-  
-  // Get all upstream tool IDs
-  const upstreamIds = getUpstreamToolIds(toolId, workflow.wires);
-  
-  // Get upstream tools sorted by ID for deterministic key
-  const upstreamTools = normalized.tools
-    .filter(t => upstreamIds.has(t.id))
-    .sort((a, b) => a.id.localeCompare(b.id));
-  
-  // Get relevant wires (connecting to target or its upstream)
-  const relevantToolIds = new Set([toolId, ...upstreamIds]);
-  const relevantWires = normalized.wires
-    .filter(w => relevantToolIds.has(w.to.tool))
-    .sort((a, b) => {
-      const keyA = `${a.from.tool}:${a.from.socket}->${a.to.tool}:${a.to.socket}`;
-      const keyB = `${b.from.tool}:${b.from.socket}->${b.to.tool}:${b.to.socket}`;
-      return keyA.localeCompare(keyB);
-    });
-  
-  // Build cache key components
-  const keyData = {
-    workflowId: workflow.meta.workflowId, // Namespace by workflow
-    type: cacheType,
-    target: {
-      id: targetTool.id,
-      type: targetTool.type,
-      config: targetTool.config,
-    },
-    upstream: upstreamTools.map(t => ({
-      id: t.id,
-      type: t.type,
-      config: t.config,
-    })),
-    wires: relevantWires,
-    ...(previewLimit !== undefined && { limit: previewLimit }),
-    ...(socketId !== undefined && { socketId }),
-  };
-  
-  // Use JSON stringification for simple hashing
-  // This is fast enough for our use case
-  return JSON.stringify(keyData);
+  return buildCacheKey(createCacheKeyContext(workflow), toolId, cacheType, previewLimit, socketId);
 }
 
 /**
@@ -251,18 +301,61 @@ export function cachePreview(
   cache.set(key, { type: 'preview', data, limit });
 }
 
+/** Shape of one tool's previews as stored by cacheAllPreviews. */
+export type AllPreviews = Record<
+  string,
+  { outputs: Record<string, { data: unknown[]; data_schema: unknown }> }
+>;
+
+/**
+ * Reduce a "Preview All" response to the entries worth caching (sockets that
+ * actually carry data).
+ */
+export function selectCacheablePreviews(
+  tools: Record<string, { outputs: Record<string, { data?: unknown[] | undefined; data_schema?: unknown }> }>
+): AllPreviews {
+  const result: AllPreviews = {};
+  for (const [toolId, toolData] of Object.entries(tools)) {
+    const outputs: AllPreviews[string]['outputs'] = {};
+    for (const [socketId, socketData] of Object.entries(toolData.outputs)) {
+      if (socketData.data !== undefined) {
+        outputs[socketId] = { data: socketData.data, data_schema: socketData.data_schema };
+      }
+    }
+    if (Object.keys(outputs).length > 0) {
+      result[toolId] = { outputs };
+    }
+  }
+  return result;
+}
+
+/** Longest stretch of synchronous work before handing control back to the UI. */
+const CACHE_SLICE_BUDGET_MS = 12;
+
+function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 /**
  * Cache all previews from a "Preview All" response
  * This populates the same cache used by individual preview requests.
- * 
+ *
  * preview_all returns multi-socket format, so we cache each socket separately.
+ *
+ * Building a key serializes the tool and its whole upstream, which adds up on
+ * large workflows. The work is therefore sliced: the workflow is normalized
+ * once, and control returns to the event loop whenever a slice exceeds a small
+ * time budget so typing, scrolling and canvas interaction stay responsive.
  */
-export function cacheAllPreviews(
+export async function cacheAllPreviews(
   workflow: WorkflowJSON,
   limit: number,
-  allPreviews: Record<string, { outputs: Record<string, { data: unknown[]; data_schema: unknown }> }>
-): void {
+  allPreviews: AllPreviews
+): Promise<void> {
+  const ctx = createCacheKeyContext(workflow);
   let cachedCount = 0;
+  let sliceStart = performance.now();
+
   for (const [toolId, toolData] of Object.entries(allPreviews)) {
     // Cache each socket's data separately
     for (const [socketId, socketData] of Object.entries(toolData.outputs)) {
@@ -273,8 +366,14 @@ export function cacheAllPreviews(
         data: socketData.data as Record<string, unknown>[],
         data_schema: socketData.data_schema as DataSchema,
       } satisfies ExecuteResponse;
-      cachePreview(toolId, workflow, limit, socketId, executeResponse);
+      const key = buildCacheKey(ctx, toolId, 'preview', limit, socketId);
+      cache.set(key, { type: 'preview', data: executeResponse, limit });
       cachedCount++;
+
+      if (performance.now() - sliceStart > CACHE_SLICE_BUDGET_MS) {
+        await yieldToMain();
+        sliceStart = performance.now();
+      }
     }
   }
   logger.debug(`Cached ${cachedCount} socket previews across ${Object.keys(allPreviews).length} tools`);

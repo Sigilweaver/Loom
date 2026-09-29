@@ -182,10 +182,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const newUI = { ...state.ui, edgeStyle };
     set({ ui: newUI });
     await saveToStorage(buildSettings(get()));
-    
-    // Trigger edge resync to apply new style
-    const { useWorkflowStore } = await import('./workflowStore');
-    useWorkflowStore.getState().syncEdges();
   },
 
   updateAutoConnect: async (autoConnect) => {
