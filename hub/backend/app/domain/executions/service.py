@@ -517,13 +517,27 @@ class ExecutionService:
                     )
                     return
 
-                # Update to running
+                # Re-read under a lock before starting. Cancellation or the
+                # stale sweep may have made this execution terminal while
+                # the workflow and capability token were being prepared.
                 result = await db.execute(
-                    select(Execution).where(Execution.id == execution_id)
+                    select(Execution)
+                    .where(Execution.id == execution_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
                 execution = result.scalar_one_or_none()
                 if not execution:
                     logger.error("Execution %s not found", execution_id)
+                    return
+
+                if execution.status != ExecutionStatus.QUEUED.value:
+                    logger.info(
+                        "Execution %s already %s; discarding start request",
+                        execution_id,
+                        execution.status,
+                    )
+                    await db.rollback()
                     return
 
                 execution.status = ExecutionStatus.RUNNING.value
@@ -686,7 +700,10 @@ class ExecutionService:
             ExecutionServiceError: If execution cannot be cancelled.
         """
         result = await self.db.execute(
-            select(Execution).where(Execution.id == execution_id)
+            select(Execution)
+            .where(Execution.id == execution_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         execution = result.scalar_one_or_none()
 
@@ -697,8 +714,10 @@ class ExecutionService:
             ExecutionStatus.QUEUED.value,
             ExecutionStatus.RUNNING.value,
         ):
+            status = execution.status
+            await self.db.rollback()
             raise ExecutionServiceError(
-                f"Cannot cancel execution in status: {execution.status}"
+                f"Cannot cancel execution in status: {status}"
             )
 
         # Mark as cancelled

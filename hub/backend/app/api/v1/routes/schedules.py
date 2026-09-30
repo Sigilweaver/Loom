@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
@@ -54,10 +54,10 @@ class ScheduleCreate(BaseModel):
     """Request to create a schedule."""
 
     workflow_id: UUID
-    cron_expression: str  # e.g., "0 6 * * *" (6 AM daily)
-    timezone: str = "UTC"
+    cron_expression: str = Field(min_length=1)
+    timezone: str = Field(default="UTC", min_length=1)
     start_at: str | None = None  # ISO datetime - don't trigger before this
-    target_server_id: UUID | None = None  # None = round-robin
+    target_server_id: UUID | None = None  # None = least-loaded online server
     enabled: bool = True
     description: str | None = None
 
@@ -65,8 +65,8 @@ class ScheduleCreate(BaseModel):
 class ScheduleUpdate(BaseModel):
     """Request to update a schedule."""
 
-    cron_expression: str | None = None
-    timezone: str | None = None
+    cron_expression: str | None = Field(default=None, min_length=1)
+    timezone: str | None = Field(default=None, min_length=1)
     start_at: str | None = None  # ISO datetime
     target_server_id: UUID | None = None
     enabled: bool | None = None

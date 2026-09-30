@@ -13,7 +13,7 @@ from app.config import settings
 from app.db.models import Execution
 from app.domain.auth.tokens import InMemoryTokenStore
 from app.domain.capabilities import CapabilityIssuer
-from app.domain.executions.service import ExecutionService
+from app.domain.executions.service import ExecutionService, ExecutionServiceError
 from app.domain.servers.client import ServerError
 from app.domain.workflows.store import WorkflowFileStore
 from tests import db_helpers
@@ -207,6 +207,47 @@ class TestCapabilityTokenIssuance:
         row = await db_helpers.reload_execution(execution.id)
         assert row.status == "cancelled"
         assert row.success is None
+
+
+class TestExecutionTransitions:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("status", ["cancelled", "failed", "completed"])
+    async def test_terminal_execution_is_not_started(self, runner_env, fake_client, status):
+        await create_user_direct("runner", "user")
+        workflow, server, execution = await _setup("runner")
+        async with TestSessionLocal() as db:
+            row = await db.get(Execution, execution.id)
+            assert row is not None
+            row.status = status
+            await db.commit()
+
+        await _run(execution, workflow, server)
+
+        assert fake_client.instances == []
+        assert (await db_helpers.reload_execution(execution.id)).status == status
+
+    @pytest.mark.asyncio
+    async def test_cancel_reloads_status_changed_in_another_session(
+        self, setup_database, temp_storage
+    ):
+        _, _, execution = await _setup()
+        async with TestSessionLocal() as cancel_db:
+            cached = await cancel_db.get(Execution, execution.id)
+            assert cached is not None
+            assert cached.status == "queued"
+
+            async with TestSessionLocal() as finish_db:
+                finished = await finish_db.get(Execution, execution.id)
+                assert finished is not None
+                finished.status = "completed"
+                finished.success = True
+                await finish_db.commit()
+
+            service = ExecutionService(cancel_db)
+            with pytest.raises(ExecutionServiceError, match="status: completed"):
+                await service.cancel_execution(execution.id)
+
+        assert (await db_helpers.reload_execution(execution.id)).status == "completed"
 
 
 class TestAuthorizeWithNonUserPrincipal:
