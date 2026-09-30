@@ -80,10 +80,59 @@ describe('wireEdges', () => {
     }
   });
 
+  it('marks both cyclic groups while leaving their connecting bridge and tails valid', () => {
+    const wires = [
+      wire('input', 'A'), wire('A', 'B'), wire('B', 'A'),
+      wire('B', 'C'), wire('C', 'D'), wire('D', 'C'),
+      wire('D', 'output'), wire('unrelated', 'sink'),
+    ];
+
+    const edges = wiresToEdges(wires, 'bezier');
+
+    expect(edges.map((edge) => edge.animated)).toEqual([
+      false, true, true, false, true, true, false, false,
+    ]);
+  });
+
+  it('handles self-loops and parallel socket wires without flagging their neighbors', () => {
+    const parallel = wire('A', 'B');
+    parallel.from.socket = 'other-output';
+    const wires = [
+      wire('A', 'B'), parallel, wire('B', 'A'),
+      wire('B', 'self'), wire('self', 'self'), wire('self', 'output'),
+    ];
+
+    expect(wiresToEdges(wires, 'bezier').map((edge) => edge.animated)).toEqual([
+      true, true, true, false, true, false,
+    ]);
+  });
+
+  it('does not mistake shared downstream paths for cycles', () => {
+    const wires = [
+      wire('A', 'B'), wire('A', 'C'), wire('B', 'D'), wire('C', 'D'),
+      wire('B', 'C'), wire('D', 'output'),
+    ];
+
+    expect(wiresToEdges(wires, 'bezier').every((edge) => !edge.animated)).toBe(true);
+  });
+
+  it('derives edges for a deep imported graph and then identifies its complete cycle', () => {
+    const wires = Array.from({ length: 12_000 }, (_, index) => wire(`${index}`, `${index + 1}`));
+    expect(wiresToEdges(wires, 'bezier').every((edge) => !edge.animated)).toBe(true);
+
+    wires.push(wire('12000', '0'));
+    expect(wiresToEdges(wires, 'bezier').every((edge) => edge.animated)).toBe(true);
+  });
+
   it('evaluates a single wire against the full wire list', () => {
     const wires = [wire('A', 'B'), wire('B', 'A')];
     expect(wireToEdge(wires[0]!, wires, 'bezier').className).toBe(INVALID_EDGE_CLASS);
     expect(wireToEdge(wires[0]!, [wires[0]!], 'bezier').className).toBeUndefined();
+  });
+
+  it('flags a proposed wire before it is inserted into the workflow', () => {
+    const proposed = wire('B', 'A');
+    expect(wireToEdge(proposed, [wire('A', 'B')], 'bezier').className).toBe(INVALID_EDGE_CLASS);
   });
 
   it('returns no edges for no wires', () => {

@@ -10,7 +10,6 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { createLogger } from "@utils/logger";
-import { useSettingsStore } from "./settingsStore";
 import { invalidateTool, invalidateWireChange } from "../api/cache";
 
 /**
@@ -62,19 +61,11 @@ interface WorkflowState {
 }
 
 const createDefaultMeta = (): WorkflowMeta => {
-  // Use persistent author from settings store if available
-  const getAuthor = () => {
-    try {
-      return useSettingsStore.getState().author || 'User';
-    } catch {
-      return 'User';
-    }
-  };
-
   return {
     name: "New Workflow",
     description: "A new workflow",
-    author: getAuthor(),
+    // Tab creation supplies the persistent author; this store only holds data.
+    author: 'User',
     workflowId: uuidv4(),
     created: new Date().toISOString(),
     defaultEngine: DEFAULT_ENGINE,

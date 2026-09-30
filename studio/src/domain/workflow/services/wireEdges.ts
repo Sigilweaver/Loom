@@ -9,7 +9,6 @@
  */
 import type { Edge } from '@xyflow/react';
 import type { Wire } from '@domain/workflow/entities/workflow';
-import { wouldCreateCycle } from '@domain/workflow/services/loopDetection';
 import type { AppSettings } from '../../../types/settings';
 
 export type EdgeStyle = AppSettings['ui']['edgeStyle'];
@@ -27,13 +26,65 @@ export function edgeTypeForStyle(style: EdgeStyle): string {
   return style === 'bezier' ? 'default' : style;
 }
 
-function isSameWire(a: Wire, b: Wire): boolean {
-  return (
-    a.from.tool === b.from.tool &&
-    a.from.socket === b.from.socket &&
-    a.to.tool === b.to.tool &&
-    a.to.socket === b.to.socket
-  );
+/** Find all edges within strongly connected components in O(V + E).
+ *
+ * Iterative Kosaraju traversals avoid overflowing the call stack on large
+ * imported workflows. An edge belongs to a cycle exactly when its endpoints
+ * share a component (including a self-loop). Bridges into or out of a cyclic
+ * component remain valid.
+ */
+function cyclicWires(wires: Wire[]): Set<Wire> {
+  const downstream = new Map<string, string[]>();
+  const upstream = new Map<string, string[]>();
+  for (const { from, to } of wires) {
+    if (!downstream.has(from.tool)) downstream.set(from.tool, []);
+    if (!downstream.has(to.tool)) downstream.set(to.tool, []);
+    if (!upstream.has(from.tool)) upstream.set(from.tool, []);
+    if (!upstream.has(to.tool)) upstream.set(to.tool, []);
+    downstream.get(from.tool)!.push(to.tool);
+    upstream.get(to.tool)!.push(from.tool);
+  }
+
+  const seen = new Set<string>();
+  const finishOrder: string[] = [];
+  for (const start of downstream.keys()) {
+    if (seen.has(start)) continue;
+    seen.add(start);
+    const stack = [{ node: start, next: 0 }];
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]!;
+      const neighbors = downstream.get(frame.node)!;
+      if (frame.next === neighbors.length) {
+        finishOrder.push(frame.node);
+        stack.pop();
+        continue;
+      }
+      const neighbor = neighbors[frame.next++]!;
+      if (!seen.has(neighbor)) {
+        seen.add(neighbor);
+        stack.push({ node: neighbor, next: 0 });
+      }
+    }
+  }
+
+  const components = new Map<string, number>();
+  for (let index = finishOrder.length - 1; index >= 0; index--) {
+    const start = finishOrder[index]!;
+    if (components.has(start)) continue;
+    components.set(start, index);
+    const stack = [start];
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      for (const neighbor of upstream.get(node)!) {
+        if (!components.has(neighbor)) {
+          components.set(neighbor, index);
+          stack.push(neighbor);
+        }
+      }
+    }
+  }
+
+  return new Set(wires.filter(({ from, to }) => components.get(from.tool) === components.get(to.tool)));
 }
 
 /** Build a single edge for a wire. `wires` is the complete wire list. */
@@ -42,9 +93,12 @@ export function wireToEdge(
   wires: Wire[],
   edgeStyle: EdgeStyle
 ): Edge {
-  const otherWires = wires.filter((w) => !isSameWire(w, wire));
-  const isInvalid = wouldCreateCycle(otherWires, wire.from.tool, wire.to.tool);
+  // Include a proposed wire even when the caller has not inserted it yet.
+  const graphWires = wires.includes(wire) ? wires : [...wires, wire];
+  return renderWireEdge(wire, edgeStyle, cyclicWires(graphWires).has(wire));
+}
 
+function renderWireEdge(wire: Wire, edgeStyle: EdgeStyle, isInvalid: boolean): Edge {
   return {
     id: wireEdgeId(wire),
     source: wire.from.tool,
@@ -72,5 +126,6 @@ export function wiresToEdges(
   wires: Wire[],
   edgeStyle: EdgeStyle
 ): Edge[] {
-  return wires.map((wire) => wireToEdge(wire, wires, edgeStyle));
+  const invalidWires = cyclicWires(wires);
+  return wires.map((wire) => renderWireEdge(wire, edgeStyle, invalidWires.has(wire)));
 }
