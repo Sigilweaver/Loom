@@ -59,6 +59,7 @@ and documentation checked against the code.
 
 ### Security
 
+- **Hub capability authorization** - Browse requests enforce connection grants before resolving credentials, matching execute and preview. In-memory tokens expire at the deadline, matching PostgreSQL. HTTP regressions cover issuer failure, server identity, expiry, replay, grant revocation and credential scope (#110)
 - **JavaScript dependency audits** - Patch brace-expansion, Axios, Joi and Undici advisories; upgrade Electron to 41.10.6 for popup sandbox, protocol CORS and webview worker restrictions
 - **Server session tokens** - Automatically generated authentication tokens remain available to subprocesses through the environment and are no longer disclosed in logs
 - **Expression sandbox** - Polars expressions run against an allowlisted namespace that blocks file and network access, callables, format-string tricks and memory-exhaustion literals (#74). Expressions using `pl.selectors`, `pl.Series` or `pl.sql_expr` now error

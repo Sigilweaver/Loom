@@ -117,7 +117,7 @@ class InMemoryTokenStore(TokenStore):
                     token[:8], data.server_id[:8], server_id[:8],
                 )
                 return None
-            if datetime.now(UTC) > data.expires_at:
+            if datetime.now(UTC) >= data.expires_at:
                 logger.warning("Token %s... expired", token[:8])
                 del self._tokens[token]
                 return None

@@ -200,8 +200,9 @@ async def authorize(
             error="Token was not issued for a Hub user",
         )
 
-    # 2. Validate connection access for execute/preview
-    if request.request_type in ("execute", "preview") and request.connection_ids:
+    # 2. Validate every requested connection before resolving credentials.
+    # Browse requests must not bypass the same grants as execute/preview.
+    if request.connection_ids:
         # Check user has access to all requested connections
         accessible = await _get_user_accessible_connections(user_uuid, db)
         unauthorized = [c for c in request.connection_ids if c not in accessible]
@@ -321,4 +322,3 @@ async def _get_user_file_paths_for_authorize(
         AuthorizeFilePath(path=fs.path, read_only=conn.read_only)
         for conn, fs in rows
     ]
-
