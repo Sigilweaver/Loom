@@ -279,4 +279,4 @@ YXDB only supports eager writing (data is collected before writing).
 - **YXDB files** are supported via [SigilYX](https://github.com/Sigilweaver/SigilYX)
 - **NDJSON** (`.jsonl`, `.ndjson`) supports streaming sink unlike standard `.json` files
 - **Overwriting**: Existing files at the destination path will be overwritten
-- **When it writes**: Write tools run when you click **Run** or **Preview All**. Previewing a single socket runs only the tools upstream of it, so it does not write files
+- **When it writes**: Write tools run when you click **Run**. Preview All, socket previews, schema inspection and profiling skip Write tools and do not write files

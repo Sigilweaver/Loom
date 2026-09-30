@@ -66,7 +66,7 @@ Click the tool's output socket (the small circle on its right edge). The bottom 
 Click **Run** in the header, or press `F5`. Studio executes the whole workflow and the Write tool creates the file. Progress and errors appear in the **Workflow Logs** tab.
 
 :::caution Preview and Run are different
-Clicking a socket previews that one wire. Studio runs only the tools upstream of it and shows sample rows, so it does not write files. **Run** and **Preview All** execute every tool in the workflow, including Write tools, so both can create or overwrite output files. **Run** needs at least one Write tool.
+Clicking a socket previews that one wire. **Preview All** evaluates the workflow for previews. Both skip Write tools and do not create or overwrite output files. **Run** executes Write tools and needs at least one Write tool.
 :::
 
 ### 5. Save your work

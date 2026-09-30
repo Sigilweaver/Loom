@@ -82,6 +82,14 @@ With `memory`, tokens are lost when Hub restarts and cannot be shared between Hu
 | `SERVER_OFFLINE_THRESHOLD`      | `3`     | Consecutive failed checks before a Server is marked Offline                |
 | `SERVER_BACKOFF_MAX_SECONDS`    | `60`    | Upper limit on the retry delay for a failing Server                        |
 
+## Execution recovery
+
+| Variable | Default | Meaning |
+| -------- | ------- | ------- |
+| `EXECUTION_STALE_SECONDS` | `120` | Mark queued/running records failed when their last heartbeat is older than this many seconds |
+
+Runners refresh their heartbeat every 15 seconds. Recovery runs at startup and every 60 seconds. It records an interrupted run with unknown Server outcome; it does not resume or retry that execution. Apply migration `009_execution_heartbeat` before upgrading Hub.
+
 ## Storage
 
 | Variable                | Default         | Meaning                                                    |

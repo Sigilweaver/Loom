@@ -9,26 +9,26 @@ Hub is in open beta. It works, it has tests, and teams can use it. It also has k
 
 ## Run one Hub
 
-Hub is designed to run as a **single process**. Several parts of it live in memory:
+Run Hub as a **single process**. Scheduled occurrences are coordinated through PostgreSQL, but live updates and the default token store still live in memory:
 
 | Part                     | What lives in the Hub process                                                          | Effect with more than one replica                              |
 | ------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Scheduler**            | An in-process scheduler loads every enabled schedule from the database at startup.     | Each replica fires every schedule, so runs happen more than once. |
+| **Scheduler**            | Each process polls persisted next occurrences once per second and claims a due schedule under a row lock. | Competing dispatchers create at most one execution per claimed occurrence. |
 | **Live updates**         | Execution status events pass through an in-memory broker.                              | A browser sees only events from the replica it is connected to.  |
 | **Server tokens**        | By default, issued tokens are kept in memory (`TOKEN_STORE_BACKEND=memory`).           | A token issued by one replica is unknown to the others.       |
 
-`TOKEN_STORE_BACKEND=postgres` removes the last problem. The other two remain, so do not run several Hub replicas yet.
+`TOKEN_STORE_BACKEND=postgres` shares tokens between processes. Live updates still need a shared broker before several Hub replicas are supported. Schedule edits are read from the database; a replacement process can dispatch an overdue occurrence. Missed cron intervals are coalesced into one attempt rather than replayed individually. Schedules use five cron fields: minute, hour, day, month and weekday. Weekday 0 or 7 means Sunday and 1 means Monday; symbolic days, lists, ranges and steps are supported. Invalid cron expressions and timezones are rejected on create and update. When upgrading from the older weekday mapping, edit and save weekly schedules to recalculate any already-persisted next occurrence.
 
-## Executions are not durable
+## Execution recovery has limits
 
 When a user clicks **Run Now** or a schedule fires, Hub records an execution and then runs it as a background task inside the Hub process. The task makes one HTTP request to the Server and waits for the answer.
 
 What that means in practice:
 
-- **A Hub restart loses in-flight work.** Hub does not reconcile executions at startup. An execution that was queued or running when Hub stopped stays in that state.
+- **A Hub restart interrupts its runner.** Execution records survive in PostgreSQL. A sweep at startup and every 60 seconds marks queued or running records failed when their last heartbeat is older than `EXECUTION_STALE_SECONDS` (120 seconds by default). Runners refresh that heartbeat every 15 seconds. The failure message says the outcome on the Server is unknown; Hub does not resume the run.
 - **There is a time limit.** Hub waits for a Server's answer for ten times `SERVER_TIMEOUT_SECONDS`, which is 100 seconds by default. A longer workflow is marked failed in Hub with "Execution timeout". The Server may still finish it.
 - **Cancel is bookkeeping.** **Cancel** marks the execution as cancelled in Hub. It does not stop the work on the Server.
-- **There is no retry.** A failed scheduled run waits for the next scheduled time.
+- **Executions are not retried.** Once an execution record is committed, a failed run waits for the next scheduled occurrence. An attempt that fails before the execution and occurrence claim commit is retried on a later scheduler poll.
 
 For long-running work, keep workflows short, or run them from Studio in External or Hub mode, where Studio holds the connection.
 

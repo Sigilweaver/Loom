@@ -98,7 +98,7 @@ Workflows are saved as `.swwf` files:
 ## For Developers
 
 For architecture details, state management patterns, and how to add new tools, see:
-- [Developer Documentation](https://sigilweaver.app/docs/developer/contributing/frontend)
+- [Developer Documentation](https://sigilweaver.app/loom/docs/developer/contributing/studio)
 - [CONTRIBUTING.md](CONTRIBUTING.md) (quick reference)
 
 ## License

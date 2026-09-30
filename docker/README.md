@@ -183,25 +183,16 @@ The `docker-compose.override.yml` file disables secrets for local development.
 | -------------- | --------------- | ---------------------------------------------- |
 | `VERSION`      | `latest`        | Image version tag                              |
 | `HUB_PORT`     | `25802`         | Hub external port                              |
-| `ENVIRONMENT`  | `development`   | `production` enforces secret validation at startup |
+| `ENVIRONMENT`  | `development`   | Retained setting; startup secret checks apply in every environment |
 | `LOG_LEVEL`    | `info`          | Logging level                                  |
 | `LOG_FORMAT`   | `json`          | Log format (text/json)                         |
 | `CORS_ORIGINS` | -               | Allowed CORS origins                           |
 | `DATABASE_URL` | -               | External PostgreSQL URL                        |
 | `SERVER_NAME`  | auto            | Server display name in Hub                     |
 
-## Scaling Servers
+## Adding Servers
 
-```bash
-# Scale to 3 server instances
-docker compose up -d --scale server=3
-
-# Check running instances
-docker compose ps
-
-# View logs from all servers
-docker compose logs -f server
-```
+Run each Server with its own `HUB_SERVER_TOKEN`, `SERVER_NAME` and `PUBLIC_ENDPOINT_URL`, and configure `HUB_URL` and `HUB_REGISTRATION_SECRET`. Hub identifies a Server by its token; scaling a service that shares one token makes the instances overwrite one registration. Follow the [Deployment Guide](https://sigilweaver.app/loom/docs/admin/deployment#add-server-capacity) and create separately configured Server services instead of using `docker compose --scale`.
 
 ## Using External PostgreSQL
 
@@ -318,7 +309,7 @@ SCAN=1 ./docker/build.sh
 - **Resource limits** - Memory constraints prevent runaway containers
 - **Health checks** - Automatic restart on failure
 - **Init process** - Proper signal handling via tini
-- **Startup validation** - In production mode (`ENVIRONMENT=production`), Hub rejects default/insecure secrets; in development mode, a warning is logged instead
+- **Startup validation** - Hub refuses to start when any required secret is unset, regardless of `ENVIRONMENT`. `ALLOW_INSECURE_DEFAULTS=1` generates ephemeral development secrets and must remain disabled in production
 - **Cryptographic entropy** - Dev secrets generated with `/dev/urandom`, not timestamps
 
 ## Production Checklist
@@ -326,9 +317,9 @@ SCAN=1 ./docker/build.sh
 - [ ] All secrets generated and stored in `.secrets/` directory
 - [ ] `.secrets/` directory has `chmod 700` permissions
 - [ ] Secret files have `chmod 600` permissions
-- [ ] `ENVIRONMENT=production` is set (enforces secret validation at startup)
+- [ ] `ALLOW_INSECURE_DEFAULTS` is disabled and every required secret is explicitly configured
 - [ ] `SESSION_SECRET` and `SECRET_KEY` are NOT the default `CHANGE_ME_IN_PRODUCTION`
-- [ ] `SERVER_REGISTRATION_SECRET` is set (empty = open server registration)
+- [ ] `SERVER_REGISTRATION_SECRET` is set (Hub refuses to start when it is empty)
 - [ ] Using production compose: `docker compose -f docker-compose.yml up -d`
 - [ ] `CORS_ORIGINS` set to your domain(s)
 - [ ] `LOG_FORMAT=json` for log aggregation

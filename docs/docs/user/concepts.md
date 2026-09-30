@@ -71,7 +71,7 @@ You can turn the triangles off in **Settings > Appearance**.
 | --------------- | ------------------------------------------ | -------------------------------------------------------------------- |
 | **Preview**     | Click a socket                             | Runs the tools upstream of that socket and shows the first rows.     |
 | **Profile**     | Right-click a socket, then Profile Data    | Computes column statistics and data-quality checks over the full data. |
-| **Preview All** | Header button or `Ctrl+P`                  | Runs the whole workflow and caches a preview for every tool.         |
+| **Preview All** | Header button or `Ctrl+P`                  | Evaluates the workflow for previews, skipping Write tools.         |
 | **Run**         | Header button or `F5`                      | Runs the whole workflow, including Write tools.                      |
 
 ## Expressions

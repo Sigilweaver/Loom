@@ -34,16 +34,22 @@ and documentation checked against the code.
 
 ### Fixed
 
-- **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. A finished run no longer overwrites a cancellation. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
+- **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
+- **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
 - **Hub server registration** - Registering a server without a token overwrote another tokenless server's record
+- **Preview and inspection** - Preview All, socket previews, schema inspection and profiling skip Output writers; Run still writes configured outputs
+- **Workflow validation errors** - Invalid tool configuration, invalid graphs and empty workflows return HTTP 400
+- **Studio tool configuration** - Input, Output and Sample validation uses their serialized keys; Unique is marked blocking and Unpivot streaming
 - **Partial executions** no longer run unrelated workflow branches; an unknown target returns 400 (#84)
 - **Workflow routes** returned 500 for deliberate 400/401 responses
 - **Connection resolution** dropped workflow `version` and `engines`
 - **Hub-triggered executions** failed at `/internal/authorize` with a 500
+- **Hub cron weekdays** - Standard Sunday 0/7 and Monday 1, symbolic weekdays, lists, ranges and steps now map correctly to APScheduler. Create and update validate the same cron syntax and timezone
 - **Hub schedules** at midnight or on Sundays were mis-parsed; clearing schedule fields did not clear them; the dashboard's active schedule count included inactive ones
 - **Hub workflow folder filter** matched lookalike paths; half-typed tags were dropped on submit
 - **Hub mobile layout** was unusable at phone widths
+- **Electron packaging configuration** - Signing publisher names now use `win.signtoolOptions`, matching the electron-builder 26 schema
 - **Electron preload** never loaded (built as an ES module), so the desktop bridge was unavailable
 - **Tauri** was detected as the web build, dropped newer settings on save, looked for the bundled server at the wrong sidecar path, and orphaned the server process on exit (#105)
 - **Studio canvas** Backspace did not delete selected tools (typo in the key binding)
@@ -53,8 +59,10 @@ and documentation checked against the code.
 
 ### Security
 
+- **Server session tokens** - Automatically generated authentication tokens remain available to subprocesses through the environment and are no longer disclosed in logs
 - **Expression sandbox** - Polars expressions run against an allowlisted namespace that blocks file and network access, callables, format-string tricks and memory-exhaustion literals (#74). Expressions using `pl.selectors`, `pl.Series` or `pl.sql_expr` now error
 - **Desktop file access** - Electron and Tauri only read or write paths chosen in a native open/save dialog (#75, #106)
+- **Desktop credential errors** - Studio logs a generic credential-resolution failure without logging the raw native exception
 - **Desktop hardening** - Electron window sandboxed with CSP, navigation and external-URL limits and IPC sender checks; Tauri capabilities reduced to opening URLs; credentials are no longer stored as base64 when no OS keychain is available
 - **Connection credentials** - In Full desktop builds, database credentials no longer reach the renderer (#89, partial)
 - **Capability tokens** - Hub no longer falls back to a server's shared secret when token issuance fails (#81); `/internal/authorize` denies tokens not issued for a Hub user

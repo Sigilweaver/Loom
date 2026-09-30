@@ -9,7 +9,7 @@ description: Deploy Sigilweaver Loom Hub, PostgreSQL and Servers with Docker Com
 Deploy Hub, PostgreSQL and a Server with Docker Compose. The compose files live in the [`docker/`](https://github.com/Sigilweaver/Loom/tree/main/docker) directory of the repository.
 
 :::caution Open beta
-Hub runs as a **single replica**. Executions and schedules live inside the Hub process. Read [Hub Open Beta](./hub-beta.md) before you plan for high availability.
+Hub runs as a **single replica**. Execution records and schedule claims are persisted in PostgreSQL, while execution runners and live updates run inside the Hub process. Read [Hub Open Beta](./hub-beta.md) before you plan for high availability.
 :::
 
 ## What you get

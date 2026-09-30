@@ -141,13 +141,14 @@ Everything below runs inside the Hub process, started in the app's lifespan hook
 | ---- | ---- |
 | Server health poller | Checks every Server each `SERVER_POLL_INTERVAL_SECONDS`, with backoff and an offline threshold |
 | Connection health poller | Tests every connection about hourly |
-| Scheduler | Loads enabled schedules from the database and fires them from APScheduler |
+| Scheduler | APScheduler polls due database occurrences every second; a schedule row lock serializes occurrence advancement and execution insertion |
 | Session cleanup | Deletes expired sessions in batches |
 | Token store cleanup | Drops expired in-memory tokens |
-| Execution tasks | One `asyncio` task per execution, started by `ExecutionService.trigger_execution` |
+| Execution tasks | One `asyncio` task per execution, started by `ExecutionService.trigger_execution`; heartbeat every 15 seconds |
+| Execution recovery | Startup and 60-second sweeps mark stale queued/running records failed; runners are cancelled on shutdown |
 | Event broker | In-memory fan-out of execution events to Server-Sent Events clients |
 
-Because these are in-process, Hub runs as one replica, and executions do not survive a restart. That is the biggest architectural limit of the beta. A durable design would move execution and scheduling to a job queue.
+Execution records and next schedule occurrences survive in PostgreSQL. A dispatcher locks a due schedule with `FOR UPDATE SKIP LOCKED`, uses the database clock, and advances its next occurrence in the same transaction that inserts the execution. A failed uncommitted claim can be retried by another process; overdue intervals are coalesced into one attempt. This prevents duplicate schedule dispatch, but does not make the execution runner durable: a restarted Hub marks stale records failed and cannot resume their Server requests. The in-memory event broker and default token store still require one Hub replica.
 
 ## Frontend
 
@@ -163,7 +164,7 @@ The Hub frontend is a Vite React app served by the backend in production (`STATI
 | Connections | `pages/admin/ConnectionsTab.tsx` |
 | Settings | `pages/admin/SettingsPage.tsx` (a placeholder) |
 
-`api/client.ts` holds one typed function per endpoint. `state/authStore.ts` keeps the session. There are three themes (Sigilweaver, Dark and Light) driven by semantic CSS variables.
+`api/client.ts` re-exports typed endpoint functions from resource modules in `api/`. `state/authStore.ts` keeps the session. There are three themes (Sigilweaver, Dark and Light) driven by semantic CSS variables.
 
 ## Testing
 

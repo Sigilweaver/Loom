@@ -150,7 +150,7 @@ Filter and Calculate accept Polars expression strings. `utils/expression.py` is 
 | `preview_all_tools(workflow, preview_limit, force_refresh)` | `POST /api/workflow/preview_all` |
 | `get_tool_schema`, `get_tool_metadata`, `profile_columns` | schema, metadata and profile endpoints |
 
-`execute_workflow` runs every tool in the plan, including Output tools, so both **Run** and **Preview All** write files. The single-tool path runs only the tool's upstream chain.
+`execute_workflow` runs every tool in the plan, including Output tools, for **Run**. Preview All, single-tool previews, schema inspection and profiling evaluate the necessary plan with Output writers disabled. Preview and inspection cannot create or overwrite output files.
 
 ### Execution flow
 

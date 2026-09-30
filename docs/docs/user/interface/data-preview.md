@@ -19,7 +19,7 @@ Studio runs the workflow up to that socket and shows the first rows. This does n
 
 **Validate** in the header checks the workflow without running it. Unconnected inputs, loops and missing required settings appear in the **Problems** tab of this pane. Validation is advisory and never blocks Run.
 
-**Preview All** in the header runs the entire workflow and loads a preview for every tool at once. Because it runs every tool, it also runs Write tools.
+**Preview All** in the header evaluates the workflow and loads previews for its tools at once. It skips Write tools, so it does not create or overwrite output files. Use **Run** to write outputs.
 
 ## Tabs
 

@@ -146,7 +146,7 @@ Tips:
 ## For Developers
 
 For architecture details, API documentation, and development setup, see:
-- [Developer Documentation](https://sigilweaver.app/docs/developer/contributing/hub)
+- [Developer Documentation](https://sigilweaver.app/loom/docs/developer/contributing/hub)
 - [CONTRIBUTING.md](CONTRIBUTING.md) (quick reference)
 
 ## License

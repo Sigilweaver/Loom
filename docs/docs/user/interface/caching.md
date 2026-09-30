@@ -23,7 +23,7 @@ Most tools stream data, so they need no cache. Some operations must read all the
 
 Not cached: Read for files (Polars scans them lazily), Filter, Schema, Calculate, Concatenate, Unpivot, and Sample in First N or Every N mode.
 
-Studio marks blocking tools with a warning triangle. Its list can differ slightly from the Server's list above, which is what actually decides what is cached.
+Studio marks blocking tools with a warning triangle. The Server decides what is cached; Sample and Read caching also depend on their configuration.
 
 ## When a cache is used
 
@@ -39,7 +39,7 @@ The fingerprint does not include the contents of your source files or database. 
 Read CSV -> Sort -> Filter -> Schema -> Write
 ```
 
-- **Edit the Filter.** Sort still has a valid cache and is skipped. Filter, Schema and Write run again.
+- **Edit the Filter.** Sort still has a valid cache and is skipped. Filter and Schema are recomputed for previews; Write runs only when you choose Run.
 - **Edit the Sort.** Sort changes, so everything after it runs again. The new Sort result is cached.
 - **Edit the CSV file on disk.** Nothing notices. Sort keeps serving its old result until you refresh.
 

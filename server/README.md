@@ -261,7 +261,7 @@ Connection credentials stay on Server and are never transmitted to Hub or Studio
 ## For Developers
 
 For architecture details, development setup, and how to add new tools, see:
-- [Developer Documentation](https://sigilweaver.app/docs/developer/contributing/backend)
+- [Developer Documentation](https://sigilweaver.app/loom/docs/developer/contributing/server)
 - [CONTRIBUTING.md](CONTRIBUTING.md) (quick reference)
 
 ## License

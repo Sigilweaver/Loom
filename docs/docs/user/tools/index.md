@@ -78,7 +78,7 @@ Every tool has sockets. Inputs are on the left and outputs are on the right. Som
 
 ### Blocking tools
 
-Sort, Join, Aggregate, Pivot and Unpivot show a warning triangle in Studio. Blocking operations must read all their input before they produce output. The Server caches these results. See [Performance and Caching](../interface/caching.md).
+Sort, Join, Aggregate, Pivot and Unique show a warning triangle in Studio. Unpivot streams its input. Blocking operations must read all their input before they produce output. The Server caches these results. See [Performance and Caching](../interface/caching.md).
 
 ### Configuration
 
