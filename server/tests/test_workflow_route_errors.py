@@ -60,6 +60,24 @@ def test_unknown_target_tool_is_400(client):
     assert "ghost" in response.json()["detail"]
 
 
+@pytest.mark.parametrize("path", ["/api/workflow/execute", "/api/workflow/preview_all"])
+@pytest.mark.parametrize("failure", ["config", "wire", "empty"])
+def test_workflow_validation_failure_is_400(client, path, failure):
+    workflow = _workflow()
+    if failure == "config":
+        workflow["tools"][0]["config"] = {"category": "file", "type": "csv"}
+    elif failure == "wire":
+        workflow["wires"] = [
+            {"from": {"tool": "in1", "socket": "missing"},
+             "to": {"tool": "ghost", "socket": "input"}}
+        ]
+    else:
+        workflow["tools"] = []
+    response = client.post(path, json={"workflow": workflow})
+    assert response.status_code == 400
+    assert "Validation error" in response.json()["detail"]
+
+
 @pytest.mark.parametrize(
     ("path", "extra"),
     [

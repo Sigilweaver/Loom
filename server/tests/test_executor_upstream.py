@@ -17,7 +17,7 @@ import pytest
 from app.domain.execution import executor as executor_mod
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
-from app.utils.errors import ExecutionError, ExecutionTimeoutError, ValidationError
+from app.utils.errors import ExecutionTimeoutError, ValidationError
 
 
 def _csv(tmp_path: Path, name: str) -> str:
@@ -150,7 +150,7 @@ class TestPartialExecutionSkipsUnrelatedBranches:
         assert sorted(exe.ran) == ["filter1", "input1"]
 
         # The same config still fails when its branch is part of the run.
-        with pytest.raises(ExecutionError, match="validation failed"):
+        with pytest.raises(ValidationError, match="validation failed"):
             await WorkflowExecutor().execute_workflow(workflow)
 
     async def test_unknown_target_is_a_validation_error(self, tmp_path):

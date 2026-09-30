@@ -530,7 +530,7 @@ async def preview_all_tools(
     resolver: ConnectionResolver = Depends(get_connection_resolver),
 ) -> dict[str, Any]:
     """
-    Execute workflow and return preview data for ALL tools.
+    Return preview data for all tools without executing Output writers.
 
     This is more efficient than calling /tool/execute multiple times
     because upstream tools are only executed once. Useful for loading

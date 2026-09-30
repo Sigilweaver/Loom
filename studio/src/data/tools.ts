@@ -134,6 +134,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'Unique',
     icon: Fingerprint,
     category: 'compute',
+    blocking: true,
     defaultConfig: {
       columns: [],
       mode: 'First',
@@ -229,7 +230,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'Unpivot',
     icon: CornerLeftUp,
     category: 'reshape',
-    blocking: true,
     defaultConfig: {
       on: [],
       index: [],

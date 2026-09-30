@@ -72,7 +72,7 @@ def validate_auth_config() -> None:
 
     - ``disabled``: log a prominent WARNING; server accepts all requests.
     - ``ephemeral``: if no session_token configured, auto-generate one and
-      log it once so local launchers (Electron, dev) can pick it up via env.
+      expose it to subprocesses through the environment without logging it.
     - ``static``: require a non-empty session_token; refuse to boot otherwise.
     - ``hub``: require hub_url; refuse to boot otherwise.
 
@@ -92,12 +92,11 @@ def validate_auth_config() -> None:
         if not settings.session_token:
             token = secrets.token_urlsafe(32)
             settings.session_token = token
-            # Expose to subprocesses (e.g. workers) and to operators reading env.
+            # Expose to subprocesses (e.g. workers) without disclosing it in logs.
             os.environ["SESSION_TOKEN"] = token
             logger.warning(
                 "AUTH_MODE=ephemeral: generated session token (set SESSION_TOKEN "
-                "explicitly to suppress this message): %s",
-                token,
+                "explicitly to suppress this message).",
             )
         return
 

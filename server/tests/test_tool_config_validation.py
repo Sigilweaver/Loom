@@ -10,7 +10,7 @@ import pytest
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.models.workflow import Tool, Workflow, WorkflowMeta
 from app.domain.tools.implementations.sort import SortTool
-from app.utils.errors import ExecutionError
+from app.utils.errors import ValidationError
 
 
 def _meta() -> WorkflowMeta:
@@ -82,6 +82,6 @@ class TestExecutorEnforcesConfig:
                   config={"sortColumns": [{"column": "amount", "order": "descending"}]},
                   sockets=[])]
         )
-        with pytest.raises(ExecutionError) as exc:
+        with pytest.raises(ValidationError) as exc:
             await WorkflowExecutor().execute_workflow(wf)
         assert "validation failed" in str(exc.value).lower()

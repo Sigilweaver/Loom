@@ -164,8 +164,9 @@ export async function resolveWorkflowConnections(
         const resolved = await platform.credentials.resolve(connectionId);
         logger.debug('Resolved:', resolved ? 'success' : 'null');
         return { toolId: tool.id, uri: resolved ? buildConnectionUri(resolved) : null };
-      } catch (error) {
-        logger.error(`Failed to resolve connection ${connectionId}:`, error);
+      } catch {
+        // Native/driver errors can contain connection URIs and passwords.
+        logger.error(`Failed to resolve connection ${connectionId}`);
         return { toolId: tool.id, uri: null };
       }
     })

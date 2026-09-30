@@ -50,43 +50,53 @@ const INPUT_SCHEMA: ToolConfigSchema = {
     category: {
       description: 'Source category',
       type: 'enum',
-      enum: ['file', 'connection'] as const,
+      enum: ['file', 'database'] as const,
       required: true,
     },
     type: {
-      description: 'File format type (when category is "file")',
+      description: 'File format or database driver type',
       type: 'enum',
-      enum: ['csv', 'parquet', 'xlsx', 'json', 'yxdb', 'qvd'] as const,
+      enum: ['csv', 'parquet', 'excel', 'json', 'ipc', 'avro', 'ods', 'yxdb', 'qvd', 'postgresql', 'mysql', 'mssql', 'sqlite'] as const,
     },
     source: {
-      description: 'File path or connection identifier',
+      description: 'File path or database URI. Omit for a saved database connectionId.',
       type: 'string',
-      required: true,
     },
-    hasHeader: {
+    has_header: {
       description: 'Whether the first row is a header (CSV/Excel)',
       type: 'boolean',
       default: true,
     },
-    delimiter: {
+    separator: {
       description: 'Column delimiter character (CSV only)',
       type: 'string',
       default: ',',
     },
-    sheet: {
-      description: 'Sheet name or index (Excel only)',
+    sheet_name: {
+      description: 'Sheet name (Excel/ODS only; alternative to sheet_id)',
       type: 'string',
     },
+    sheet_id: {
+      description: 'Sheet index (Excel/ODS only; alternative to sheet_name)',
+      type: 'number',
+      default: 1,
+    },
+    owner: {
+      description: 'Owner of a saved database connection',
+      type: 'enum',
+      enum: ['client', 'hub', 'server'] as const,
+      default: 'client',
+    },
     connectionId: {
-      description: 'Database connection ID (when category is "connection")',
+      description: 'Database connection ID (when category is "database")',
       type: 'string',
     },
     query: {
-      description: 'SQL query (when category is "connection")',
+      description: 'SQL query (when category is "database")',
       type: 'string',
     },
     table: {
-      description: 'Table name (when category is "connection")',
+      description: 'Table name (when category is "database")',
       type: 'string',
     },
   },
@@ -99,19 +109,19 @@ const OUTPUT_SCHEMA: ToolConfigSchema = {
     type: {
       description: 'Output file format',
       type: 'enum',
-      enum: ['csv', 'parquet', 'xlsx', 'json'] as const,
+      enum: ['csv', 'parquet', 'excel', 'json', 'ipc', 'avro', 'yxdb'] as const,
     },
-    path: {
+    destination: {
       description: 'Output file path',
       type: 'string',
       required: true,
     },
-    delimiter: {
+    separator: {
       description: 'Column delimiter (CSV only)',
       type: 'string',
       default: ',',
     },
-    includeHeader: {
+    include_header: {
       description: 'Include header row (CSV only)',
       type: 'boolean',
       default: true,
@@ -236,27 +246,27 @@ const SAMPLE_SCHEMA: ToolConfigSchema = {
     mode: {
       description: 'Sampling mode',
       type: 'enum',
-      enum: ['FirstN', 'LastN', 'Random', 'Percent', 'Offset'] as const,
+      enum: ['FirstN', 'LastN', 'EveryN', 'Random', 'RandomPercent', 'FirstPercent'] as const,
       default: 'FirstN',
       required: true,
     },
     n: {
-      description: 'Number of rows (for FirstN, LastN, Random)',
+      description: 'Number of rows (FirstN, LastN, Random) or interval (EveryN)',
       type: 'number',
       default: 100,
     },
     percent: {
-      description: 'Percentage of rows (for Percent mode)',
+      description: 'Percentage of rows (RandomPercent or FirstPercent)',
       type: 'number',
       default: 10.0,
     },
     offset: {
-      description: 'Row offset to start from (for Offset mode)',
+      description: 'Starting row offset (EveryN)',
       type: 'number',
       default: 0,
     },
     seed: {
-      description: 'Random seed for reproducibility (Random/Percent modes)',
+      description: 'Random seed for reproducibility (Random/RandomPercent modes)',
       type: 'number',
       default: null as unknown as undefined,
     },

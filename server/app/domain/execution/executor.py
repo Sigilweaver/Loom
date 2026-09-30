@@ -52,6 +52,8 @@ class WorkflowExecutor:
         target_tool_id: str | None = None,
         preview_limit: int | None = None,
         force_refresh: bool = False,
+        *,
+        preview_only: bool = False,
     ) -> dict[str, Any]:
         """
         Execute entire workflow or up to a specific tool.
@@ -61,6 +63,7 @@ class WorkflowExecutor:
             target_tool_id: Optional tool ID to stop at
             preview_limit: Optional row limit for preview results
             force_refresh: If True, clears cache before execution
+            preview_only: Skip Output tools so previews cannot write destinations.
 
         Returns:
             Dict with execution results, schemas, and metrics
@@ -89,6 +92,15 @@ class WorkflowExecutor:
                 return self._handle_validation_failure(execution_log, validation_errors, start_time)
 
             plan = planner.create_plan(target_tool_id)
+            if not plan.execution_order:
+                raise ValidationError("Workflow contains no tools")
+            final_tool_id = target_tool_id or plan.execution_order[-1]
+            skipped_outputs = [
+                tool_id for tool_id in plan
+                if preview_only and plan.get_tool(tool_id).type.rsplit("::", 1)[-1] == "Output"
+            ]
+            if preview_only:
+                plan = self._without_outputs(plan)
             validation_errors = await self._validate_tool_configs(
                 workflow, tool_ids=plan.execution_order
             )
@@ -101,9 +113,11 @@ class WorkflowExecutor:
             tool_logs, cache_hits = await self._run_plan(plan, cache_mgr)
             execution_log["tool_executions"] = tool_logs
             execution_log["cache_hits"] = cache_hits
+            execution_log["skipped_outputs"] = skipped_outputs
+            for tool_id in skipped_outputs:
+                self.results[tool_id] = {}
 
             # Format results
-            final_tool_id = target_tool_id or list(plan.execution_order)[-1]
             result = self._format_results(final_tool_id, preview_limit)
 
             execution_log["status"] = "completed"
@@ -154,6 +168,7 @@ class WorkflowExecutor:
             target_tool_id=tool_id,
             preview_limit=preview_limit,
             force_refresh=force_refresh,
+            preview_only=True,
         )
 
         socket_key = str(socket_id)
@@ -175,9 +190,10 @@ class WorkflowExecutor:
         preview_limit: int = 100,
         force_refresh: bool = False,
     ) -> dict[str, Any]:
-        """Execute entire workflow and return preview data for ALL tools."""
+        """Return tool previews without executing Output writers."""
         await self.execute_workflow(
-            workflow, preview_limit=preview_limit, force_refresh=force_refresh
+            workflow, preview_limit=preview_limit, force_refresh=force_refresh,
+            preview_only=True,
         )
 
         all_results = {}
@@ -212,7 +228,15 @@ class WorkflowExecutor:
         self._default_engine = workflow.meta.default_engine
         plan = ExecutionPlanner(workflow).create_plan(tool_id)
         to_run = plan if include_target else plan.without_tool(tool_id)
-        await self._run_plan(to_run, CacheManager(workflow.meta.workflow_id))
+        await self._run_plan(self._without_outputs(to_run), CacheManager(workflow.meta.workflow_id))
+        return plan
+
+    @staticmethod
+    def _without_outputs(plan: ExecutionPlan) -> ExecutionPlan:
+        """Exclude file writers from every preview/schema/profile execution path."""
+        for tool_id in plan.execution_order:
+            if plan.get_tool(tool_id).type.rsplit("::", 1)[-1] == "Output":
+                plan = plan.without_tool(tool_id)
         return plan
 
     async def get_tool_schema(
@@ -704,7 +728,7 @@ class WorkflowExecutor:
         execution_log["error"] = error_msg
         execution_log["validation_errors"] = validation_errors
         self._save_execution_log(execution_log, start_time)
-        raise ExecutionError(error_msg)
+        raise ValidationError(error_msg)
 
     def _save_execution_log(self, log_data: dict[str, Any], start_time: float) -> None:
         """Save execution log to archive."""
