@@ -79,12 +79,18 @@ impl BackendManager {
         // elsewhere while holding this mutex doesn't invalidate the child
         // handle itself, and silently skipping registration here would leave
         // the sidecar unkillable on shutdown.
-        let mut guard = self.child.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut guard = self
+            .child
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         *guard = Some(child);
     }
 
     fn take(&self) -> Option<CommandChild> {
-        let mut guard = self.child.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut guard = self
+            .child
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         guard.take()
     }
 
@@ -106,9 +112,7 @@ impl BackendManager {
 pub async fn start_backend(app: &AppHandle) -> Result<(), String> {
     // DEV: never auto-spawn; the developer starts the server manually.
     if tauri::is_dev() {
-        println!(
-            "[Backend] Dev mode - start the server manually (./scripts/dev.py --server)"
-        );
+        println!("[Backend] Dev mode - start the server manually (./scripts/dev.py --server)");
         return Ok(());
     }
 
@@ -130,8 +134,8 @@ pub async fn start_backend(app: &AppHandle) -> Result<(), String> {
 
 /// Spawn the sidecar with the server environment and wait until it is healthy.
 async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
-    let token = credentials::session_token()
-        .ok_or_else(|| "Session token not initialized".to_string())?;
+    let token =
+        credentials::session_token().ok_or_else(|| "Session token not initialized".to_string())?;
 
     let data_dir = server_data_dir(app)?;
     std::fs::create_dir_all(&data_dir)
@@ -225,9 +229,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
             println!("[Backend] Health check passed on attempt {attempt}");
             return Ok(());
         }
-        println!(
-            "[Backend] Health check attempt {attempt}/{HEALTH_MAX_ATTEMPTS} not ready yet"
-        );
+        println!("[Backend] Health check attempt {attempt}/{HEALTH_MAX_ATTEMPTS} not ready yet");
     }
 
     let timeout_secs = HEALTH_MAX_ATTEMPTS as u64 * HEALTH_INTERVAL.as_millis() as u64 / 1000;
@@ -330,7 +332,10 @@ fn build_env(token: &str, data_dir: &Path) -> HashMap<String, String> {
     env.insert("AUTH_MODE".to_string(), "ephemeral".to_string());
     env.insert("SESSION_TOKEN".to_string(), token.to_string());
     // Redirect server working paths to a writable location.
-    env.insert("ARCHIVE_PATH".to_string(), path_str(data_dir.join("archives")));
+    env.insert(
+        "ARCHIVE_PATH".to_string(),
+        path_str(data_dir.join("archives")),
+    );
     env.insert("AUDIT_PATH".to_string(), path_str(data_dir.join("audit")));
     env.insert("CACHE_PATH".to_string(), path_str(data_dir.join("cache")));
     env.insert(
@@ -342,7 +347,9 @@ fn build_env(token: &str, data_dir: &Path) -> HashMap<String, String> {
 
 /// Whether something is already accepting connections on the server port.
 async fn port_in_use() -> bool {
-    TcpStream::connect(("127.0.0.1", BACKEND_PORT)).await.is_ok()
+    TcpStream::connect(("127.0.0.1", BACKEND_PORT))
+        .await
+        .is_ok()
 }
 
 /// Log a line emitted by the server, routing obvious error output to stderr.
@@ -434,7 +441,10 @@ mod tests {
     fn build_env_sets_expected_keys() {
         let env = build_env("tok-123", Path::new("/data"));
         assert_eq!(env.get("AUTH_MODE").map(String::as_str), Some("ephemeral"));
-        assert_eq!(env.get("SESSION_TOKEN").map(String::as_str), Some("tok-123"));
+        assert_eq!(
+            env.get("SESSION_TOKEN").map(String::as_str),
+            Some("tok-123")
+        );
         assert!(env.get("ARCHIVE_PATH").unwrap().ends_with("archives"));
         assert!(env
             .get("CONNECTION_STORE_PATH")

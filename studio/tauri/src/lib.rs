@@ -32,8 +32,16 @@ fn check_bundled_server_config_matches_feature(config: &tauri::Config) {
              but the compiled config {} the sidecar in `externalBin`. Build both \
              together (`--features bundled-server -c tauri/tauri.conf.full.json`) \
              or neither.",
-            if backend::HAS_BUNDLED_SERVER { "enabled" } else { "disabled" },
-            if sidecar_configured { "includes" } else { "does not include" },
+            if backend::HAS_BUNDLED_SERVER {
+                "enabled"
+            } else {
+                "disabled"
+            },
+            if sidecar_configured {
+                "includes"
+            } else {
+                "does not include"
+            },
         );
         std::process::exit(1);
     }
@@ -101,9 +109,7 @@ pub fn run() {
                         let dialog_handle = handle.clone();
                         handle
                             .dialog()
-                            .message(format!(
-                                "Failed to start the backend server.\n\n{e}"
-                            ))
+                            .message(format!("Failed to start the backend server.\n\n{e}"))
                             .kind(MessageDialogKind::Error)
                             .title("Startup Error")
                             .show(move |_| dialog_handle.exit(1));

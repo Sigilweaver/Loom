@@ -120,7 +120,11 @@ fn secrets_for(c: &ResolvedConnection) -> Vec<String> {
         let json_escaped = serde_json::to_string(&c.password)
             .map(|s| s[1..s.len() - 1].to_string())
             .unwrap_or_default();
-        for candidate in [c.password.clone(), encode_uri_component(&c.password), json_escaped] {
+        for candidate in [
+            c.password.clone(),
+            encode_uri_component(&c.password),
+            json_escaped,
+        ] {
             if candidate.chars().count() >= 4 && !out.contains(&candidate) {
                 out.push(candidate);
             }
@@ -183,7 +187,11 @@ fn swap_source(holder: &mut Value, resolve: Resolver, swapped: &mut Swapped) -> 
 }
 
 /// Replace `config.source` of every database Input tool under `container.tools`.
-fn swap_tools(container: &mut Value, resolve: Resolver, swapped: &mut Swapped) -> Result<(), String> {
+fn swap_tools(
+    container: &mut Value,
+    resolve: Resolver,
+    swapped: &mut Swapped,
+) -> Result<(), String> {
     let Some(tools) = container.get_mut("tools").and_then(Value::as_array_mut) else {
         return Ok(());
     };
@@ -467,8 +475,13 @@ async fn forward(
         .into_iter()
         .filter(|(name, _)| {
             // The body is re-materialised as text, so transport headers are stale.
-            !["content-length", "content-encoding", "transfer-encoding", "connection"]
-                .contains(&name.to_ascii_lowercase().as_str())
+            ![
+                "content-length",
+                "content-encoding",
+                "transfer-encoding",
+                "connection",
+            ]
+            .contains(&name.to_ascii_lowercase().as_str())
         })
         .map(|(name, value)| (name, redact(&value, secrets)))
         .collect();
@@ -578,7 +591,10 @@ mod tests {
     fn encodes_like_encode_uri_component() {
         assert_eq!(encode_uri_component("p@ss/w:rd"), "p%40ss%2Fw%3Ard");
         assert_eq!(encode_uri_component("lo om"), "lo%20om");
-        assert_eq!(encode_uri_component("a-b_c.d!e~f*g'h(i)"), "a-b_c.d!e~f*g'h(i)");
+        assert_eq!(
+            encode_uri_component("a-b_c.d!e~f*g'h(i)"),
+            "a-b_c.d!e~f*g'h(i)"
+        );
         assert_eq!(encode_uri_component("\u{e9}"), "%C3%A9");
     }
 
@@ -607,7 +623,10 @@ mod tests {
 
     #[test]
     fn parses_only_whole_string_references() {
-        assert_eq!(parse_ref(&Value::from("loom-connection://abc-123")), Some("abc-123"));
+        assert_eq!(
+            parse_ref(&Value::from("loom-connection://abc-123")),
+            Some("abc-123")
+        );
         assert_eq!(parse_ref(&Value::from("loom-connection://")), None);
         assert_eq!(parse_ref(&Value::from("loom-connection://a/b")), None);
         assert_eq!(parse_ref(&Value::from("x loom-connection://abc")), None);
@@ -649,7 +668,12 @@ mod tests {
             "tools": [ { "id": "t1", "type": "Input", "config": { "category": "database", "source": "loom-connection://conn-1" } } ]
         })
         .to_string();
-        assert_eq!(substitute_refs(&body, &mut |id| resolver(id)).unwrap().replaced, 1);
+        assert_eq!(
+            substitute_refs(&body, &mut |id| resolver(id))
+                .unwrap()
+                .replaced,
+            1
+        );
     }
 
     #[test]
@@ -660,7 +684,10 @@ mod tests {
         assert_eq!(out.body, body);
 
         let text = "not json loom-connection://conn-1";
-        assert_eq!(substitute_refs(text, &mut |id| resolver(id)).unwrap().body, text);
+        assert_eq!(
+            substitute_refs(text, &mut |id| resolver(id)).unwrap().body,
+            text
+        );
     }
 
     #[test]
@@ -699,7 +726,10 @@ mod tests {
     #[test]
     fn validates_the_forwarding_target() {
         let ok = format!("http://localhost:{BACKEND_PORT}/api/workflow/execute?x=1");
-        assert_eq!(backend_target(&ok).as_deref(), Some("/api/workflow/execute?x=1"));
+        assert_eq!(
+            backend_target(&ok).as_deref(),
+            Some("/api/workflow/execute?x=1")
+        );
         assert_eq!(
             backend_target(&format!("http://127.0.0.1:{BACKEND_PORT}/api/x#frag")).as_deref(),
             Some("/api/x")
@@ -731,13 +761,15 @@ mod tests {
 
     #[test]
     fn parses_content_length_and_chunked_responses() {
-        let plain = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nhelloEXTRA";
+        let plain =
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nhelloEXTRA";
         let parsed = parse_response(plain).unwrap();
         assert_eq!(parsed.status, 200);
         assert_eq!(parsed.status_text, "OK");
         assert_eq!(parsed.body, b"hello");
 
-        let chunked = b"HTTP/1.1 400 Bad Request\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n0\r\n\r\n";
+        let chunked =
+            b"HTTP/1.1 400 Bad Request\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n0\r\n\r\n";
         let parsed = parse_response(chunked).unwrap();
         assert_eq!(parsed.status, 400);
         assert_eq!(parsed.body, b"abc");
@@ -797,7 +829,9 @@ mod tests {
             )])),
             body: None,
         };
-        let secrets: Vec<String> = std::iter::once(uri.clone()).chain(secrets_for(&pg())).collect();
+        let secrets: Vec<String> = std::iter::once(uri.clone())
+            .chain(secrets_for(&pg()))
+            .collect();
         let out = forward(
             &addr,
             "shell-token",
@@ -816,7 +850,10 @@ mod tests {
         assert!(out.body.contains("[redacted]"));
         let debug = out.headers.iter().find(|(k, _)| k == "X-Debug").unwrap();
         assert_eq!(debug.1, "[redacted]");
-        assert!(out.headers.iter().all(|(k, _)| !k.eq_ignore_ascii_case("content-length")));
+        assert!(out
+            .headers
+            .iter()
+            .all(|(k, _)| !k.eq_ignore_ascii_case("content-length")));
 
         let received = String::from_utf8(server.await.unwrap()).unwrap();
         assert!(received.starts_with("POST /api/datasource/schema HTTP/1.1\r\n"));

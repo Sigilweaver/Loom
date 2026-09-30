@@ -125,8 +125,10 @@ impl FileGrants {
         if allowed {
             Ok(canonical)
         } else {
-            Err("Access denied: the file was not selected through an open or save dialog"
-                .to_string())
+            Err(
+                "Access denied: the file was not selected through an open or save dialog"
+                    .to_string(),
+            )
         }
     }
 }
@@ -283,11 +285,8 @@ mod tests {
     impl Scratch {
         fn new() -> Self {
             let n = COUNTER.fetch_add(1, Ordering::SeqCst);
-            let dir = std::env::temp_dir().join(format!(
-                "loom-grants-{}-{}",
-                std::process::id(),
-                n
-            ));
+            let dir =
+                std::env::temp_dir().join(format!("loom-grants-{}-{}", std::process::id(), n));
             std::fs::create_dir_all(&dir).unwrap();
             Scratch(std::fs::canonicalize(dir).unwrap())
         }
@@ -330,7 +329,9 @@ mod tests {
 
         // A new file, as returned by a save dialog.
         grants.grant(&file).await.unwrap();
-        write_granted(&grants, &file, "{\"ok\":true}").await.unwrap();
+        write_granted(&grants, &file, "{\"ok\":true}")
+            .await
+            .unwrap();
         assert_eq!(read_granted(&grants, &file).await.unwrap(), "{\"ok\":true}");
     }
 

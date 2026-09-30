@@ -148,7 +148,11 @@ mod tests {
     fn auto_start_defaults_to_true_and_honours_the_setting() {
         assert!(auto_start_from(&Map::new()));
         assert!(auto_start_from(&object(json!({ "backend": {} }))));
-        assert!(auto_start_from(&object(json!({ "backend": { "autoStart": true } }))));
-        assert!(!auto_start_from(&object(json!({ "backend": { "autoStart": false } }))));
+        assert!(auto_start_from(&object(
+            json!({ "backend": { "autoStart": true } })
+        )));
+        assert!(!auto_start_from(&object(
+            json!({ "backend": { "autoStart": false } })
+        )));
     }
 }

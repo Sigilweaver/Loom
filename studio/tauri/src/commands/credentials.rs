@@ -6,13 +6,13 @@
 //! (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)
 //! via the `keyring` crate. Passwords are never written to disk in cleartext.
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::commands::backend::BackendManager;
 
@@ -259,7 +259,10 @@ fn load_connections(app: &AppHandle) -> Result<HashMap<String, StoredConnection>
     Ok(connections)
 }
 
-fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnection>) -> Result<(), String> {
+fn save_connections(
+    app: &AppHandle,
+    connections: &HashMap<String, StoredConnection>,
+) -> Result<(), String> {
     let store = app
         .store(CONNECTIONS_STORE)
         .map_err(|e| format!("Failed to open connections store: {}", e))?;
@@ -268,7 +271,9 @@ fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnect
         .map_err(|e| format!("Failed to serialize connections: {}", e))?;
 
     store.set("connections", value);
-    store.save().map_err(|e| format!("Failed to save connections: {}", e))?;
+    store
+        .save()
+        .map_err(|e| format!("Failed to save connections: {}", e))?;
 
     Ok(())
 }
@@ -297,8 +302,14 @@ pub async fn create_connection(
 
     // Check for duplicate names
     let name_lower = input.name.to_lowercase();
-    if connections.values().any(|c| c.name.to_lowercase() == name_lower) {
-        return Err(format!("A connection named '{}' already exists", input.name));
+    if connections
+        .values()
+        .any(|c| c.name.to_lowercase() == name_lower)
+    {
+        return Err(format!(
+            "A connection named '{}' already exists",
+            input.name
+        ));
     }
 
     let id = Uuid::new_v4().to_string();
@@ -397,16 +408,25 @@ pub async fn delete_connection(app: AppHandle, id: String) -> Result<(), String>
     // Remove the secret from the OS keychain (best-effort; the metadata is
     // already gone so a stale secret is harmless but undesirable).
     if let Err(e) = delete_password(&id) {
-        eprintln!("[Credentials] Failed to remove keychain secret for {}: {}", id, e);
+        eprintln!(
+            "[Credentials] Failed to remove keychain secret for {}: {}",
+            id, e
+        );
     }
 
-    println!("[Credentials] Deleted connection: {} ({})", connection.name, id);
+    println!(
+        "[Credentials] Deleted connection: {} ({})",
+        connection.name, id
+    );
     Ok(())
 }
 
 /// Load a connection with its password from the keychain. Rust-side only:
 /// used by the credential proxy, never returned over IPC.
-pub(crate) fn load_resolved(app: &AppHandle, id: &str) -> Result<Option<ResolvedConnection>, String> {
+pub(crate) fn load_resolved(
+    app: &AppHandle,
+    id: &str,
+) -> Result<Option<ResolvedConnection>, String> {
     let connections = load_connections(app)?;
     match connections.get(id) {
         Some(c) => {
