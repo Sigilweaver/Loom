@@ -43,26 +43,26 @@ uv run pytest -s
 
 ```
 server/tests/
-├── conftest.py              # Shared fixtures
-├── fixtures/
-│   └── sample.csv           # Test data files
-├── test_execution.py        # Execution engine tests
-├── test_planner.py          # ExecutionPlanner tests
-├── test_cache_manager.py    # CacheManager tests
-├── test_parallel_execution.py # Parallel execution tests
-├── test_type_contracts.py   # Studio/Server contract tests
-├── test_cache.py            # BlockingToolCache tests
-├── test_formula.py          # Formula tool tests
-├── test_filter.py           # Filter tool tests
-├── test_select.py           # Select tool tests
-├── test_join.py             # Join tool tests
-├── test_output.py           # Output tool tests
-├── test_parquet.py          # Parquet datasource tests
-├── test_datasources.py      # Datasource factory tests
-├── test_database.py         # Database datasource tests
-├── test_connections.py      # Connection store tests
-├── test_integration.py      # End-to-end workflow tests
-└── test_models.py           # Pydantic model tests
+|-- conftest.py              # Shared fixtures
+|-- fixtures/
+|   `-- sample.csv           # Test data files
+|-- test_execution.py        # Execution engine tests
+|-- test_planner.py          # ExecutionPlanner tests
+|-- test_cache_manager.py    # CacheManager tests
+|-- test_parallel_execution.py # Parallel execution tests
+|-- test_type_contracts.py   # Studio/Server contract tests
+|-- test_cache.py            # BlockingToolCache tests
+|-- test_formula.py          # Formula tool tests
+|-- test_filter.py           # Filter tool tests
+|-- test_select.py           # Select tool tests
+|-- test_join.py             # Join tool tests
+|-- test_output.py           # Output tool tests
+|-- test_parquet.py          # Parquet datasource tests
+|-- test_datasources.py      # Datasource factory tests
+|-- test_database.py         # Database datasource tests
+|-- test_connections.py      # Connection store tests
+|-- test_integration.py      # End-to-end workflow tests
+`-- test_models.py           # Pydantic model tests
 ```
 
 ## Fixtures
@@ -212,7 +212,7 @@ The execution engine has been decomposed into several components, each with dedi
 ```python
 import pytest
 from app.domain.execution.planner import ExecutionPlanner, ExecutionPlan
-from app.api.models.workflow import Workflow
+from app.domain.models.workflow import Workflow
 
 
 def test_execution_plan_immutable():
@@ -338,7 +338,7 @@ async def test_parallel_execution_respects_dependencies():
 import pytest
 from app.domain.execution.executor import WorkflowExecutor
 from app.domain.execution.graph import ExecutionGraph
-from app.api.models.workflow import Workflow
+from app.domain.models.workflow import Workflow
 
 
 def test_execution_order():

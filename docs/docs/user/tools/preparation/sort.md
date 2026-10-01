@@ -6,6 +6,11 @@ sidebar_position: 3
 
 Order rows by one or more column values.
 
+| | |
+|---|---|
+| **Palette name** | Sort (category Compute) |
+| **Type name** | `Sort` |
+
 ## Sockets
 
 | Socket | Direction | Description |

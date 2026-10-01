@@ -1,89 +1,65 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
+title: Server Architecture
 ---
 
 # Server Architecture
 
-The Server is a Python service that handles all data processing. It loads files, executes tool transformations, and returns results to the Studio. The Studio never touches actual data. It works with schemas and previews.
+The Server is a Python service that does all of Loom's data processing. It reads files and databases, runs tools, and returns schemas, previews and results to Studio. Studio never sees a full dataset.
 
-## Technology Stack
+## Technology stack
 
 | Layer | Technology | Why |
-|-------|------------|-----|
-| Framework | FastAPI | Async, fast, great DX, OpenAPI docs |
-| Data | Polars | Lazy evaluation, blazing performance |
-| Validation | Pydantic | Type-safe request/response models |
-| Packaging | PyInstaller | Single-file executable distribution |
+| ----- | ---------- | --- |
+| Framework | FastAPI | Async, typed, generates OpenAPI docs |
+| Data | Polars | Lazy evaluation and speed |
+| Validation | Pydantic v2 | Typed request, response and tool config models |
+| Database reads | connectorx via `pl.read_database_uri` | Fast reads from PostgreSQL, MySQL, SQLite and SQL Server |
+| Packaging | PyInstaller | Single-binary distribution for desktop builds |
 
-## Directory Structure
+## Directory structure
 
 ```
 server/app/
-├── main.py              # FastAPI entrypoint
-├── config.py            # Settings and configuration
-│
-├── api/                 # HTTP layer
-│   ├── router.py        # Route aggregation
-│   ├── routes/          # Endpoint handlers
-│   │   ├── health.py    # Health check
-│   │   ├── workflow.py  # Workflow execution, schema, preview
-│   │   ├── datasource.py   # Data source inspection
-│   │   ├── connections.py  # Connection CRUD
-│   │   ├── archive.py      # Execution archive
-│   │   ├── cache.py        # Cache management
-│   │   ├── files.py        # File browsing
-│   │   └── polars.py       # Polars introspection
-│   └── models/          # Pydantic schemas
-│       ├── workflow.py  # Workflow, Tool, Wire
-│       ├── common.py    # DataSchema, DataPreview
-│       └── connections.py  # Connection request/response
-│
-├── domain/              # Business logic
-│   ├── tools/           # Tool implementations
-│   │   ├── base.py      # BaseTool ABC
-│   │   ├── registry.py  # Tool registry + decorator
-│   │   ├── register.py  # Imports all tools
-│   │   ├── sockets.py   # Socket ID constants (shared with Studio)
-│   │   └── implementations/
-│   │       ├── input.py
-│   │       ├── filter.py
-│   │       ├── select.py
-│   │       └── ...
-│   ├── execution/       # Workflow execution
-│   │   ├── executor.py  # Main executor (orchestration)
-│   │   ├── planner.py   # ExecutionPlanner + ExecutionPlan
-│   │   ├── cache_manager.py  # CacheManager (lineage + caching)
-│   │   ├── graph.py     # Dependency resolution
-│   │   └── cache.py     # BlockingToolCache (disk storage)
-│   ├── workflow/        # Workflow utilities
-│   │   └── archive.py   # Audit archiving
-│   ├── datasources/     # File type handlers
-│   │   ├── factory.py   # Datasource factory
-│   │   ├── csv.py       # CSV loader
-│   │   ├── database.py  # Database query loader
-│   │   └── parquet.py   # Parquet loader
-│   └── connections/     # Credential management
-│       ├── models.py    # Connection data models
-│       └── store.py     # Encrypted credential store
-│
-├── middleware/          # Request middleware
-│   └── audit.py         # Audit logging
-│
-└── utils/               # Shared utilities
-    ├── errors.py        # Custom exceptions
-    └── type_mapping.py  # Polars ↔ JSON type conversion
+|-- main.py                  FastAPI app, startup checks, middleware
+|-- config.py                Settings (environment variables)
+|-- api/
+|   |-- router.py            Aggregates the routers below under /api
+|   |-- routes/              health, workflow, datasource, connections, files,
+|   |                        cache, archive, polars, ai
+|   |-- models/              Pydantic request and response models
+|   `-- exception_handlers.py
+|-- domain/
+|   |-- registry.py          The single list of readable file formats and databases
+|   |-- tools/
+|   |   |-- base.py          BaseTool
+|   |   |-- registry.py      ToolRegistry and @register_tool
+|   |   |-- register.py      Imports every tool so the decorators run
+|   |   |-- sockets.py       Socket ID constants (mirrored in Studio)
+|   |   |-- implementations/ One file per tool (13 tools)
+|   |   |-- loaders/         Execution-time readers for each format
+|   |   |-- expr_builder.py  Shared Polars expression builders
+|   |   `-- columns.py
+|   |-- datasources/         Inspect and preview support for each format
+|   |-- execution/           executor, planner, graph, cache, cache_manager, safety
+|   |-- connections/         store, resolver, URI builder, read-only query policy
+|   |-- hub/                 Hub client and registration heartbeat
+|   |-- profiling/           Column profiling
+|   `-- workflow/            Python code generator, execution archive
+|-- middleware/              auth, audit, rate_limit
+`-- utils/                   errors, expression parsing, security, logging, type mapping
 ```
 
-## Tool System
+## Tool system
 
-The heart of the Server. Every transformation (Filter, Select, Join, etc.) is a Tool.
+Every transformation is a **tool**: a class registered under a type name.
 
-### Socket ID Constants
+### Socket constants
 
-Tool inputs and outputs use named "sockets" to connect together. To prevent mismatches between Studio and Server, socket IDs are defined as constants in both layers:
+Sockets connect tools. Their IDs are constants on both sides:
 
-**Server** (`app/domain/tools/sockets.py`):
 ```python
+# server/app/domain/tools/sockets.py
 class CommonSockets:
     INPUT = "input"
     OUTPUT = "output"
@@ -101,477 +77,143 @@ class JoinSockets:
     OUTPUT_RIGHT = "output-right"
 ```
 
-**Studio** (`src/domain/workflow/constants/socketIds.ts`):
-```typescript
-export const CommonSockets = {
-  INPUT: "input",
-  OUTPUT: "output",
-} as const;
+`studio/src/domain/workflow/constants/socketIds.ts` mirrors them. Contract tests on both sides fail if they drift.
 
-export const FilterSockets = {
-  INPUT: "input",
-  OUTPUT_TRUE: "output-true",
-  OUTPUT_FALSE: "output-false",
-} as const;
-```
-
-These constants are validated by type contract tests that ensure Studio and Server stay in sync.
-
-### BaseTool Interface
-
-All tools inherit from `BaseTool`:
+### BaseTool
 
 ```python
-from app.api.models.workflow import DEFAULT_ENGINE
-
 class BaseTool(ABC):
-    engine: str = DEFAULT_ENGINE  # "core/polars" by default
+    engine: str = DEFAULT_ENGINE          # "core/polars"
 
     @abstractmethod
-    async def execute(
-        self, 
-        config: dict[str, Any], 
-        inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
-    ) -> dict[str, pl.LazyFrame]:
-        """Execute tool logic. Returns LazyFrames."""
-        pass
-    
+    async def execute(self, config, inputs) -> dict[str, pl.LazyFrame]: ...
+
     @abstractmethod
-    async def get_output_schema(
-        self, 
-        config: dict[str, Any], 
-        input_schemas: dict[str, DataSchema | list[DataSchema]]
-    ) -> dict[str, DataSchema]:
-        """Return schema without execution (for UI dropdowns)."""
-        pass
-    
-    async def validate_config(self, config: dict[str, Any]) -> list[str]:
-        """Validate configuration. Return error messages."""
-        return []
+    async def get_output_schema(self, config, input_schemas) -> dict[str, DataSchema]: ...
+
+    async def validate_config(self, config) -> list[str]: ...   # defaults to the config model
+
+    @classmethod
+    def config_model(cls) -> type[BaseModel] | None: ...       # typed config, if any
+
+    def is_blocking(self, config=None) -> bool: ...            # needs all rows before output
+    def should_cache(self, config) -> bool: ...                # defaults to is_blocking()
+    def cache_keys(self, config) -> dict: ...                  # config fields that affect output
+    def to_python_code(self, tool_id, config, input_vars): ... # code generation
 ```
 
-Key design decisions:
+Design rules:
 
-1. **Async by default**: All methods are async, even if they don't need it. Consistency matters.
-2. **LazyFrame in, LazyFrame out**: Keep execution lazy. Never call `.collect()` unless you must.
-3. **Socket-based I/O**: Tools can have multiple inputs/outputs. The dict key is the socket ID.
-4. **Schema without execution**: `get_output_schema` lets the UI know what columns will exist without running the pipeline.
+1. **Async everywhere.** Consistency beats saving a few keystrokes.
+2. **LazyFrame in, LazyFrame out.** Do not call `.collect()` in a tool unless you must. The executor materializes results.
+3. **Sockets carry data.** The dict key is the socket ID. Inputs may be a list when the socket accepts many wires.
+4. **Schema without execution.** `get_output_schema` lets Studio fill dropdowns without running the workflow.
+5. **Typed configs.** Tools declare a Pydantic model through `config_model()`. `GET /api/workflow/tool/{type}/schema` returns its JSON schema.
 
-### Tool Registry
-
-Tools self-register using a decorator:
+### The registry
 
 ```python
 # server/app/domain/tools/implementations/filter.py
-from app.domain.tools.registry import register_tool
-
-@register_tool("Filter")  # This string must match Studio tool type
+@register_tool("Filter")            # must match the type name in Studio
 class FilterTool(BaseTool):
-    async def execute(self, config, inputs):
-        lf = inputs["input"]
-        expression = config.get("expression", "")
-        # ... filter logic
-        return {"output-true": true_result, "output-false": false_result}
+    ...
 ```
 
-The registry is a simple class-level dict:
+`ToolRegistry` maps a type name to a class. `register` also stores an engine-qualified key such as `core/polars::Filter`. `ToolRegistry.get(type, engine=...)` tries the qualified key first.
+
+`register.py` imports every tool class, which runs the decorators. `main.py` imports `register.py` for that side effect, so every tool is registered before the first request:
 
 ```python
-class ToolRegistry:
-    _tools: dict[str, Type[BaseTool]] = {}
-    
-    @classmethod
-    def register(cls, tool_type: str, tool_class: Type[BaseTool]):
-        cls._tools[tool_type] = tool_class
-        # Also registers under engine-qualified key:
-        # e.g., "core/polars::Filter"
-    
-    @classmethod
-    def get(cls, tool_type: str, engine: str | None = None) -> BaseTool:
-        # Tries "{engine}::{tool_type}" first, then plain "{tool_type}"
-        return cls._tools[tool_type]()
+import app.domain.tools.register as _register  # noqa: F401
 ```
 
-All tool implementations are imported in `register.py`, which triggers the decorators:
+### Expression handling
 
-```python
-# server/app/domain/tools/register.py
-from app.domain.tools.implementations import (
-    input,
-    output,
-    filter,
-    select,
-    sort,
-    formula,
-    sample,
-    unique,
-    join,
-    union,
-    summarize,
-    pivot,
-    unpivot,
-)
-```
+Filter and Calculate accept Polars expression strings. `utils/expression.py` is an allowlist sandbox. It parses the string with `ast` and rejects anything outside a list of allowed node types, any name other than `pl`, `True`, `False` and `None`, dunder access, and format specifiers in f-strings. Only names in `PL_ALLOWED_NAMES` are reachable as `pl.<name>`, and methods must come from an allowed set, so file and network I/O, `pl.selectors`, `pl.Series` and `pl.sql_expr` are rejected. The expression is then evaluated against a restricted `pl` namespace, not the real module. Attribute access on non-Polars values is blocked at run time, and literal repeat, power and `%` formatting are bounded. This is defense in depth, not a substitute for trust in the workflow author. Treat workflow files as code. See the [Security Model](../../admin/security.md).
 
-And `register.py` is imported in `main.py`:
-
-```python
-# server/app/main.py
-import app.domain.tools.register  # noqa: F401
-```
-
-This ensures all tools are registered before any API request.
-
-### Expression Security
-
-Tools like Filter and Formula accept user-written Polars expressions. These are evaluated via Python's `eval()` with a restricted namespace, but the primary security boundary is **AST validation** (`app/utils/expression.py`):
-
-1. The expression string is parsed with `ast.parse(expression, mode="eval")`
-2. Every AST node is checked against an allowlist of safe types (calls, attributes, comparisons, literals, etc.)
-3. Only `pl`, `True`, `False`, and `None` are permitted as name nodes
-4. Double-underscore (`__`) attribute access is blocked to prevent sandbox escapes
-5. Lambda expressions and comprehensions are rejected
-
-This runs **before** `eval()`, so malformed or malicious expressions never reach the interpreter.
-
-## Execution Engine
-
-The execution engine orchestrates workflow execution. It has been decomposed into three focused components:
+## Execution engine
 
 | Component | File | Responsibility |
-|-----------|------|----------------|
-| **ExecutionPlanner** | `planner.py` | Builds execution plans, topological sort |
-| **CacheManager** | `cache_manager.py` | Lineage hashes, cache decisions |
-| **WorkflowExecutor** | `executor.py` | Orchestrates execution, tool invocation |
+| --------- | ---- | -------------- |
+| `ExecutionPlanner` | `execution/planner.py` | Validates the graph and builds an immutable `ExecutionPlan` (dependency order, levels for parallel runs) |
+| `CacheManager` | `execution/cache_manager.py` | Lineage hashes and cache decisions |
+| `BlockingToolCache` | `execution/cache.py` | Parquet files on disk |
+| `WorkflowExecutor` | `execution/executor.py` | Runs the plan, tool by tool or level by level |
+| Safety checks | `execution/safety.py` | Limits on pivot width, cross joins and unpivot size |
 
-### ExecutionPlanner
+### Executor entry points
 
-The `ExecutionPlanner` creates an immutable `ExecutionPlan` that determines what needs to execute and in what order:
+| Method | Used by |
+| ------ | ------- |
+| `execute_workflow(workflow, target_tool_id, preview_limit, force_refresh)` | `POST /api/workflow/execute` |
+| `execute_single_tool(workflow, tool_id, socket_id, preview_limit, force_refresh)` | `POST /api/workflow/tool/execute` |
+| `preview_all_tools(workflow, preview_limit, force_refresh)` | `POST /api/workflow/preview_all` |
+| `get_tool_schema`, `get_tool_metadata`, `profile_columns` | schema, metadata and profile endpoints |
 
-```python
-from app.domain.execution.planner import ExecutionPlanner
+`execute_workflow` runs every tool in the plan, including Output tools, for **Run**. Preview All, single-tool previews, schema inspection and profiling evaluate the necessary plan with Output writers disabled. Preview and inspection cannot create or overwrite output files.
 
-planner = ExecutionPlanner(workflow)
-plan = planner.create_plan(target_tool_id="output-1")
+### Execution flow
 
-# Iterate over tool IDs in execution order
-for tool_id in plan:
-    tool = plan.get_tool(tool_id)
-    inputs = plan.get_inputs(tool_id)
-    dependencies = plan.get_dependencies(tool_id)
-```
+1. Build the plan and validate the graph and each tool's config.
+2. Create a `CacheManager` for the workflow. With `force_refresh` it clears the cache first.
+3. Run the plan under `MAX_EXECUTION_TIME_SECONDS`, sequentially or in parallel (`EXECUTION_MODE`, default `parallel`, up to `MAX_PARALLEL_TOOLS` at once). Parallel mode runs tools of the same level together.
+4. For each tool: resolve its engine, compute its lineage hash, return the cached result if the tool should be cached and a hit exists, otherwise execute it, store it in the cache if needed and record the hash.
+5. Collect the target tool's outputs, limited to the preview size, and write an archive entry if archiving is on.
 
-The `ExecutionPlan` is immutable (uses frozen dataclass with tuples) and provides:
-- `execution_order`: Topological sort of tool IDs
-- `get_tool(tool_id)`: Access tool by ID
-- `get_inputs(tool_id)`: Input socket mappings
-- `get_dependencies(tool_id)`: Upstream tool IDs
-- `get_execution_levels()`: Groups for parallel execution
+Recording the hash for every tool, even non-cached ones, matters. Downstream hashes include upstream hashes. See [Backend Caching](./caching.md).
 
-### CacheManager
+### Errors
 
-The `CacheManager` handles all caching decisions and lineage tracking:
+`utils/errors.py` defines a small hierarchy under `LoomError`: `ValidationError`, `DataSourceError`, `ToolError` (with `ToolConfigError` and `ToolRuntimeError`), and `ExecutionError` (with `SafetyLimitExceededError` and `ExecutionTimeoutError`). Exception handlers in `api/exception_handlers.py` map them to HTTP responses. Unexpected errors get an error ID that is logged and returned, so a user report can be matched to a log line.
 
-```python
-from app.domain.execution.cache_manager import CacheManager
+## Formats and data sources
 
-cache_mgr = CacheManager(workflow_id, force_refresh=False)
+`domain/registry.py` is the single source of truth for what Loom can read. A `FormatDescriptor` has the type name, its extensions, a data source class and a flag for a custom loader. Two factories derive everything from it:
 
-# Compute lineage hash (includes upstream state)
-lineage_hash = cache_mgr.compute_lineage_hash(tool, plan)
+- `DataSourceFactory` (`datasources/`): inspection and preview.
+- `LoaderFactory` (`tools/loaders/`): execution. Most formats use `GenericLoader` with a `LoaderSpec`. JSON, QVD and YXDB use custom loaders. Databases use `DatabaseLoader`.
 
-# Check for cached outputs
-cached = cache_mgr.check_cache(tool, lineage_hash)
-if cached:
-    # Use cached outputs
-    pass
-else:
-    # Execute tool, then cache
-    outputs = await tool_impl.execute(...)
-    outputs = cache_mgr.store_in_cache(tool, lineage_hash, outputs)
+`tests/test_reader_parity.py` fails if the two disagree. See [Adding Data Formats](../contributing/adding-formats.md).
 
-# Always record hash (even for non-cached tools)
-cache_mgr.record_lineage_hash(tool.id, lineage_hash)
-```
+Readable formats: Avro, CSV (`.csv`, `.tsv`, `.tab`, `.txt`), Excel (`.xlsx`, `.xls`, `.xlsb`), Arrow IPC, JSON and NDJSON, ODS, Parquet, QVD and YXDB. Databases: PostgreSQL, MySQL, SQLite and SQL Server.
 
-Key responsibilities:
-- **Lineage hash computation**: Deterministic hash including tool config and all upstream hashes
-- **Cache decisions**: Determines if a tool should be cached based on `should_cache()`
-- **Cache operations**: Check hits, store results, clear cache
-- **Hash tracking**: Records hashes for all tools (required for downstream hash computation)
+## Connections and credentials
 
-### Parallel Execution
+There are three owners of connection credentials (see [Component Relationships](./component-relationships.md#connection-ownership)). On the Server:
 
-The executor supports optional parallel execution of independent tools:
+- **Client** connections arrive inside the request as resolved URIs.
+- **Hub** connections are resolved at request time through `domain/hub/client.py`, which calls Hub's `/internal/authorize`.
+- **Server** connections live in `ConnectionStore`, an encrypted JSON file (Fernet, key from `CONNECTION_ENCRYPTION_KEY`). This path is deprecated.
 
-```python
-# In config.py
-execution_mode: str = "sequential"  # or "parallel"
-max_parallel_tools: int = 4
-```
+`ConnectionResolver` fills in the URIs before a workflow runs. `query_policy.py` rejects SQL that contains write or DDL keywords after stripping comments. It is defense in depth, not a SQL parser, so credentials should still be read-only.
 
-When `execution_mode="parallel"`, the executor uses `get_execution_levels()` to identify tools that can run concurrently:
+## Middleware
 
-```mermaid
-flowchart LR
-    A --> B
-    A --> C
-    B --> D
-    C --> D
-    
-    subgraph "Level 0"
-        A
-    end
-    subgraph "Level 1 (parallel)"
-        B
-        C
-    end
-    subgraph "Level 2"
-        D
-    end
-```
+Requests pass through, outermost first: rate limiting, audit logging, CORS, authentication.
 
-Tools within a level have no dependencies on each other and execute concurrently using `asyncio.gather()` with semaphore limiting.
+- `AuthMiddleware` checks a bearer token for `ephemeral` and `static` modes. In `hub` mode, workflow and file routes authorize each request with Hub.
+- `AuditMiddleware` writes one log line per request to a daily file.
+- Rate limiting applies to workflow routes when `RATE_LIMIT_ENABLED` is on.
 
-### Execution Graph
+## Startup checks
 
-Before executing, we build a dependency graph:
+`main.py` refuses to start when the configuration is unsafe or inconsistent: `AUTH_MODE=static` without a token, `hub` without `HUB_URL`, or contradictory file-access settings. `AUTH_MODE=disabled` and `FILE_ACCESS_MODE=open` log warnings. In `hub` mode with a `HUB_SERVER_TOKEN`, a heartbeat task registers the Server with Hub and repeats every 30 seconds. See [Server Configuration](../../admin/server-configuration.md).
+
+## Polars laziness
 
 ```python
-class ExecutionGraph:
-    def __init__(self, workflow: Workflow):
-        self.workflow = workflow
-        self.dependencies = self._build_dependencies()
-    
-    def get_execution_order(self, target_tool_id: str = None) -> list[str]:
-        """Topological sort of dependencies."""
-        # Returns tool IDs in order they should execute
+lf = pl.scan_csv("huge.csv")           # returns immediately
+lf = lf.filter(pl.col("age") > 30)     # builds a plan
+lf = lf.select(["name", "age"])
+rows = lf.head(100).collect()          # reads only what it needs
 ```
 
-This handles:
-- Determining which tools need to run for a given target
-- Detecting cycles (which should be caught by Studio, but we verify)
-- Computing dependency depth for parallel execution
-
-### Execution Flow
-
-1. Create `ExecutionPlanner` and build `ExecutionPlan`
-2. Initialize `CacheManager` for the workflow
-3. Determine execution mode (sequential or parallel)
-4. For each tool (or level of tools):
-   - Resolve engine via `workflow.get_engine_for_tool(tool)` (precedence: `tool.engine` > `meta.defaultEngine` > `DEFAULT_ENGINE`)
-   - Look up tool implementation via `ToolRegistry.get(tool.type, engine=engine)`
-   - Compute lineage hash via `CacheManager`
-   - Check cache for blocking tools
-   - If cache hit: use cached output, skip execution
-   - If cache miss: execute tool, cache if blocking
-   - Record lineage hash (always)
-   - Store outputs for downstream tools
-5. Collect results for target tool (preview or output)
-
-See [Caching System](./caching.md) for details on how blocking tool outputs are cached.
-
-```python
-async def execute_workflow(
-    self,
-    workflow: Workflow,
-    target_tool_id: str | None = None,
-    preview_limit: int | None = None,
-) -> dict[str, Any]:
-    planner = ExecutionPlanner(workflow)
-    plan = planner.create_plan(target_tool_id)
-    cache_mgr = CacheManager(workflow.meta.workflow_id)
-    
-    for tool_id in plan:
-        tool = plan.get_tool(tool_id)
-        inputs = self._gather_inputs(tool_id)
-        outputs = await self._execute_tool_with_cache(tool, inputs, cache_mgr, plan)
-        self.results[tool_id] = outputs
-    
-    # Collect and return target results
-    return self._collect_results(target_tool_id, preview_limit)
-```
-
-## API Endpoints
-
-### Health Check
-
-```
-GET /api/health/
-```
-
-Returns service status. Used by Studio to verify Server is running.
-
-### Schema
-
-```
-POST /api/workflow/tool/schema
-{
-  "tool_id": "abc123",
-  "workflow": { ... }
-}
-```
-
-Returns output schema for a tool without executing. Used to populate column dropdowns in tool configuration.
-
-### Preview / Execute Tool
-
-```
-POST /api/workflow/tool/execute
-{
-  "tool_id": "abc123", 
-  "workflow": { ... },
-  "preview_limit": 100
-}
-```
-
-Executes workflow up to target tool, returns sample rows. This is where `.collect()` happens.
-
-### Execute Workflow
-
-```
-POST /api/workflow/execute
-{
-  "workflow": { ... }
-}
-```
-
-Full workflow execution. Output tools write files, execution metrics returned.
-
-## Polars Lazy Evaluation
-
-This is why Sigilweaver Loom can handle large datasets efficiently.
-
-**Bad** (eager evaluation):
-```python
-df = pl.read_csv("huge.csv")  # Loads entire file into memory
-df = df.filter(pl.col("age") > 30)  # Creates new DataFrame
-df = df.select(["name", "age"])  # Creates another DataFrame
-```
-
-**Good** (lazy evaluation):
-```python
-lf = pl.scan_csv("huge.csv")  # Returns immediately, nothing loaded
-lf = lf.filter(pl.col("age") > 30)  # Builds query plan
-lf = lf.select(["name", "age"])  # Adds to query plan
-result = lf.head(100).collect()  # NOW it reads file, only what's needed
-```
-
-Tools operate on LazyFrames. We only `.collect()` when:
-- Returning preview data
-- Writing output files
-- Schema inference requires it (some cases)
-
-## Datasources
-
-The `datasources/` module handles file loading:
-
-```python
-class DatasourceFactory:
-    @staticmethod
-    def create(path: str) -> Datasource:
-        ext = Path(path).suffix.lower()
-        # Supports: CSV, TSV, Excel, Parquet, JSON, Avro, IPC/Arrow,
-        #           ODS, YXDB, QVD, and database connections (PostgreSQL,
-        #           MySQL, SQLite, MSSQL)
-        if ext in [".csv", ".tsv", ".tab", ".txt"]:
-            return CSVDatasource(path)
-        elif ext in [".parquet", ".pq"]:
-            return ParquetDatasource(path)
-        elif ext in [".xlsx", ".xls", ".xlsb"]:
-            return ExcelDatasource(path)
-        # ... etc
-        raise ValueError(f"Unsupported file type: {ext}")
-```
-
-Each datasource implements:
-- `scan()` → LazyFrame (lazy load)
-- `infer_schema()` → DataSchema (column names and types)
-
-## Connections
-
-The `connections/` module manages secure database credential storage.
-
-### Connection Ownership
-
-Connections have two ownership modes:
-
-| Owner | Storage | Access |
-|-------|---------|--------|
-| `client` | Electron safeStorage (OS keychain) | Single user, single machine |
-| `server` | Fernet-encrypted JSON on server | All users with server access |
-
-The Studio handles client connections; the Server handles server connections.
-
-### ConnectionStore
-
-Server connections are managed by `ConnectionStore`:
-
-```python
-class ConnectionStore:
-    def __init__(self, storage_path: Path, encryption_key: str):
-        self._fernet = Fernet(encryption_key.encode())
-        self._connections: dict[str, StoredConnection] = {}
-        
-    def create_connection(self, input: CreateConnectionInput) -> ConnectionInfo:
-        # Encrypt credentials before storage
-        encrypted = self._encrypt_credentials(input.username, input.password)
-        # ... store connection
-        
-    def resolve_connection(self, connection_id: str) -> ResolvedConnection:
-        # Decrypt credentials for execution only
-        # WARNING: Returns sensitive data - internal use only
-```
-
-Key security properties:
-- **Encryption at rest**: Credentials encrypted with Fernet (AES-128-CBC + HMAC)
-- **Opaque to users**: API never returns credentials, only connection metadata
-- **Decryption only during execution**: `resolve_connection()` is called only when building connection URIs
-
-### Executor Integration
-
-During workflow execution, the executor resolves server connections:
-
-```python
-async def execute_workflow(self, workflow: Workflow, ...):
-    # For each database Input tool with owner="server"
-    if tool.config.get("owner") == "server":
-        connection_id = tool.config.get("connectionId")
-        resolved = connection_store.resolve_connection(connection_id)
-        uri = build_uri(resolved)
-        # Pass URI to DatabaseDataSource
-```
-
-This ensures credentials never leave the server - they're resolved just-in-time during execution.
-
-## Error Handling
-
-Custom exceptions in `utils/errors.py`:
-
-```python
-class ToolError(Exception):
-    """Error in tool execution"""
-
-class ExecutionError(Exception):
-    """Error in workflow execution"""
-
-class ValidationError(Exception):
-    """Invalid configuration or workflow"""
-```
-
-These bubble up through the API layer and get converted to appropriate HTTP responses.
+The Server collects only when it returns preview rows, writes output, profiles data or needs an eager result for a blocking step such as a cached Sort.
 
 ## Testing
 
-Server tests focus on:
-
-1. **Tool execution**: Each tool has tests verifying transformations
-2. **Schema propagation**: Verify output schemas are computed correctly
-3. **Execution order**: Graph building and topological sort
-4. **Edge cases**: Missing inputs, invalid config, type mismatches
-
-See [Server Testing](../testing/backend) for details.
+Server tests cover tool execution, schema propagation, plan ordering and caching, config validation, format readers, the API, and security controls. See [Server Testing](../testing/backend.md).
 
 ---
 
-Next: [Architectural Decisions](./decisions) or [Adding Tools](../contributing/adding-tools).
+Next: [Hub Architecture](./hub.md) or [Adding Tools](../contributing/adding-tools.md).

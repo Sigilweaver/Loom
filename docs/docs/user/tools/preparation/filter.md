@@ -6,6 +6,11 @@ sidebar_position: 1
 
 Split data into rows that match or don't match a condition.
 
+| | |
+|---|---|
+| **Palette name** | Filter (category Compute) |
+| **Type name** | `Filter` |
+
 ## Sockets
 
 | Socket | Direction | Description |

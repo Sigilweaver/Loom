@@ -12,19 +12,19 @@ Conventions and patterns for Studio development. These aren't arbitrary rules. T
 
 ```
 components/
-├── Canvas.tsx                  # Top-level canvas wrapper
-├── ToolPalette.tsx             # Tool library sidebar
-├── ConfigurationPanel.tsx      # Selected tool config
-├── FilterConfiguration.tsx     # Per-tool config components
-├── SelectConfiguration.tsx     # (named *Configuration.tsx)
-├── FormulaConfiguration.tsx
-├── primitives/                 # Reusable config UI primitives
-│   ├── ConfigText.tsx
-│   ├── ConfigSelect.tsx
-│   └── ConfigNumber.tsx
-└── ui/                         # Shared UI primitives
-    ├── Button.tsx
-    └── Input.tsx
+|-- Canvas.tsx                  # Top-level canvas wrapper
+|-- ToolPalette.tsx             # Tool library sidebar
+|-- ConfigurationPanel.tsx      # Selected tool config
+|-- FilterConfiguration.tsx     # Per-tool config components
+|-- SelectConfiguration.tsx     # (named *Configuration.tsx)
+|-- FormulaConfiguration.tsx
+|-- primitives/                 # Reusable config UI primitives
+|   |-- ConfigText.tsx
+|   |-- ConfigSelect.tsx
+|   `-- ConfigNumber.tsx
+`-- ui/                         # Shared UI primitives
+    |-- Button.tsx
+    `-- Input.tsx
 ```
 
 One component per file. Name the file after the component.

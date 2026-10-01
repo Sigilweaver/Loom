@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
-from app.domain.auth.roles import get_role_level, Role
+from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.executions import (
     ExecutionInfo,
@@ -54,10 +54,10 @@ class ScheduleCreate(BaseModel):
     """Request to create a schedule."""
 
     workflow_id: UUID
-    cron_expression: str  # e.g., "0 6 * * *" (6 AM daily)
-    timezone: str = "UTC"
+    cron_expression: str = Field(min_length=1)
+    timezone: str = Field(default="UTC", min_length=1)
     start_at: str | None = None  # ISO datetime - don't trigger before this
-    target_server_id: UUID | None = None  # None = round-robin
+    target_server_id: UUID | None = None  # None = least-loaded online server
     enabled: bool = True
     description: str | None = None
 
@@ -65,8 +65,8 @@ class ScheduleCreate(BaseModel):
 class ScheduleUpdate(BaseModel):
     """Request to update a schedule."""
 
-    cron_expression: str | None = None
-    timezone: str | None = None
+    cron_expression: str | None = Field(default=None, min_length=1)
+    timezone: str | None = Field(default=None, min_length=1)
     start_at: str | None = None  # ISO datetime
     target_server_id: UUID | None = None
     enabled: bool | None = None
@@ -286,11 +286,11 @@ async def update_schedule(
     try:
         # Only include fields that were actually provided in the request
         request_data = request.model_dump(exclude_unset=True)
-        
+
         # Parse start_at if provided
         if "start_at" in request_data:
             request_data["start_at"] = _parse_iso_datetime(request_data["start_at"])
-        
+
         input = UpdateScheduleInput(**request_data)
         schedule = await service.update_schedule(schedule_id, input)
     except ServerNotFoundError as e:

@@ -278,6 +278,33 @@ class TestSSRFProtection:
         )
         assert resp.status_code == 400
 
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "100.100.100.200",  # CGNAT range, Alibaba Cloud metadata
+            "100.64.0.1",
+            "[::ffff:127.0.0.1]",  # IPv4-mapped loopback
+            "[::ffff:169.254.169.254]",
+            "[64:ff9b::7f00:1]",  # NAT64-embedded 127.0.0.1
+            "[2002:7f00:1::]",  # 6to4-embedded 127.0.0.1
+            "[fd00::1]",
+            "[::1]",
+            "0.0.0.0",
+        ],
+    )
+    def test_blocks_non_global_addresses(self, client, host):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions"
+            f"?base_url=http://{host}:8080",
+            json={},
+        )
+        assert resp.status_code == 400, host
+
+    def test_allows_public_ip_literal(self):
+        from app.api.routes.ai import _validate_upstream_url
+
+        assert _validate_upstream_url("https://8.8.8.8") == "8.8.8.8"
+
     def test_allows_known_providers(self, client):
         """Known providers (openai, anthropic, etc.) are not blocked."""
         # This will fail with 502 (can't connect) not 400 (blocked)

@@ -6,8 +6,8 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel
 
-from app.api.models.common import DataSchema
-from app.api.models.workflow import DEFAULT_ENGINE
+from app.domain.models.common import DataSchema
+from app.domain.models.workflow import DEFAULT_ENGINE
 
 
 class BaseTool(ABC):

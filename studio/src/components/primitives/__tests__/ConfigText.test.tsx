@@ -5,6 +5,24 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigText } from "../ConfigText";
 
 describe("ConfigText", () => {
+  it("does not report a change just for mounting with an empty value", async () => {
+    const handleChange = vi.fn();
+
+    render(
+      <ConfigText
+        value=""
+        onChange={handleChange}
+        configKey="columns"
+        label="Columns"
+      />
+    );
+
+    // Give any mount-time effects a chance to run
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
   it("normalizes and emits trimmed values when valid", async () => {
     const handleChange = vi.fn();
 

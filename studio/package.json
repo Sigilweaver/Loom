@@ -11,7 +11,10 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "overrides": {
-    "nanoid": "^3.3.18"
+    "nanoid": "^3.3.18",
+    "fast-uri": "^3.1.8",
+    "js-yaml": "^4.3.2",
+    "@xmldom/xmldom": "^0.8.15"
   },
   "homepage": "./",
   "engines": {
@@ -125,7 +128,7 @@
     "@vitest/coverage-istanbul": "^4.0.18",
     "autoprefixer": "^10.4.16",
     "cross-env": "^10.1.0",
-    "electron": "^39.8.10",
+    "electron": "^41.10.6",
     "electron-builder": "^26.0.12",
     "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -201,7 +204,9 @@
           ]
         }
       ],
-      "publisherName": "Sigilweaver Development Team",
+      "signtoolOptions": {
+        "publisherName": "Sigilweaver Development Team"
+      },
       "verifyUpdateCodeSignature": false
     },
     "mac": {

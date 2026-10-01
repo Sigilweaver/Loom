@@ -40,7 +40,9 @@ class JsonLoader(FileLoader):
         """Load JSON file, detecting format from extension"""
         source = config.get("source")
         if not source:
-            raise ToolError("JSON config missing 'source' field")
+            raise ToolError(
+                "JSON input has no source. Choose a file in the Input tool settings."
+            )
 
         # Security: Validate file path against allowed paths (Hub mode enforcement)
         # Note: GenericLoader also validates, but we validate early for clear error messages

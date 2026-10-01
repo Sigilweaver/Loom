@@ -1,30 +1,27 @@
-"""APScheduler integration for workflow scheduling.
-
-Manages a background scheduler that triggers workflow executions
-based on cron expressions.
-"""
+"""Poll persisted cron occurrences and claim them transactionally."""
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
-from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
-from sqlalchemy import select
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy import func, or_, select
 
 from app.db.database import async_session_maker
 from app.db.models import Schedule
 from app.domain.executions.models import TriggerExecutionInput, TriggerType
 from app.domain.executions.service import ExecutionService
+from app.domain.schedules.cron import cron_trigger
 
 logger = logging.getLogger(__name__)
 
 
 class Scheduler:
-    """Wrapper around APScheduler for workflow scheduling.
+    """Dispatch due occurrences using PostgreSQL row locks and its clock.
 
-    Manages cron-based job scheduling for workflow executions.
-    Jobs are persisted in the database and reloaded on startup.
+    Advancing next_trigger_at and inserting the execution share a transaction.
+    Every process polls the database, so another process can take over without
+    a leader lease or rebuilding a replica-local set of cron jobs.
     """
 
     def __init__(self) -> None:
@@ -33,26 +30,26 @@ class Scheduler:
 
     @property
     def is_running(self) -> bool:
-        """Check if scheduler is running."""
         return self._running and self._scheduler is not None
 
     async def start(self) -> None:
-        """Start the scheduler and load existing jobs."""
         if self._running:
-            logger.warning("Scheduler already running")
             return
-
         self._scheduler = AsyncIOScheduler()
+        self._scheduler.add_job(
+            self._load_schedules,
+            "interval",
+            seconds=1,
+            id="dispatch-schedules",
+            max_instances=1,
+            coalesce=True,
+        )
         self._scheduler.start()
         self._running = True
-
-        # Load existing schedules from database
         await self._load_schedules()
-
         logger.info("Scheduler started")
 
     async def stop(self) -> None:
-        """Stop the scheduler."""
         if self._scheduler:
             self._scheduler.shutdown(wait=False)
             self._scheduler = None
@@ -60,174 +57,80 @@ class Scheduler:
         logger.info("Scheduler stopped")
 
     async def _load_schedules(self) -> None:
-        """Load and register all enabled schedules from database."""
+        """Discover new and overdue schedules, including edits on other replicas."""
         async with async_session_maker() as db:
             result = await db.execute(
-                select(Schedule).where(Schedule.enabled == True)  # noqa: E712
+                select(Schedule.id).where(
+                    Schedule.enabled.is_(True),
+                    or_(
+                        Schedule.next_trigger_at.is_(None),
+                        Schedule.next_trigger_at <= func.clock_timestamp(),
+                    ),
+                )
             )
-            schedules = result.scalars().all()
+            schedule_ids = result.scalars().all()
+        for schedule_id in schedule_ids:
+            await self._execute_schedule(schedule_id)
 
-            for schedule in schedules:
-                self._register_job(schedule)
-
-            logger.info("Loaded %d schedules", len(schedules))
-
-    def _register_job(self, schedule: Schedule) -> None:
-        """Register a schedule as an APScheduler job."""
-        if not self._scheduler:
-            return
-
-        job_id = str(schedule.id)
-
-        # Remove existing job if present
-        existing = self._scheduler.get_job(job_id)
-        if existing:
-            self._scheduler.remove_job(job_id)
-
-        if not schedule.enabled:
-            return
-
-        try:
-            # Parse cron expression (5 fields: minute hour day month day_of_week)
-            parts = schedule.cron_expression.split()
-            if len(parts) != 5:
-                raise ValueError(f"Expected 5 fields, got {len(parts)}")
-
-            trigger = CronTrigger(
-                minute=parts[0],
-                hour=parts[1],
-                day=parts[2],
-                month=parts[3],
-                day_of_week=parts[4],
-                timezone=schedule.timezone,
-                start_date=schedule.start_at,
-            )
-        except ValueError as e:
-            logger.error(
-                "Invalid cron expression for schedule %s: %s",
-                schedule.id,
-                e,
-            )
-            return
-
-        self._scheduler.add_job(
-            self._execute_schedule,
-            trigger=trigger,
-            id=job_id,
-            args=[schedule.id, schedule.workflow_id, schedule.target_server_id],
-            name=f"schedule-{schedule.id}",
-            replace_existing=True,
-        )
-
-        logger.debug("Registered schedule job: %s", job_id)
-
-    async def _execute_schedule(
-        self,
-        schedule_id: UUID,
-        workflow_id: UUID,
-        target_server_id: UUID | None,
-    ) -> None:
-        """Execute a scheduled workflow (called by APScheduler)."""
-        logger.info("Executing schedule %s", schedule_id)
-
+    async def _execute_schedule(self, schedule_id: UUID) -> None:
+        """Claim a due occurrence; skip rows another dispatcher already owns."""
         async with async_session_maker() as db:
-            # Update last_triggered_at
             result = await db.execute(
-                select(Schedule).where(Schedule.id == schedule_id)
+                select(Schedule)
+                .where(Schedule.id == schedule_id)
+                .with_for_update(skip_locked=True)
             )
             schedule = result.scalar_one_or_none()
-
-            if not schedule:
-                logger.error("Schedule %s not found", schedule_id)
+            if schedule is None or not schedule.enabled:
                 return
-
-            if not schedule.enabled:
-                logger.info("Schedule %s is disabled, skipping", schedule_id)
-                return
-
-            schedule.last_triggered_at = datetime.now(UTC)
-
-            # Update next_trigger_at from APScheduler
-            if self._scheduler:
-                job = self._scheduler.get_job(str(schedule_id))
-                if job and job.next_run_time:
-                    schedule.next_trigger_at = job.next_run_time
-                else:
-                    schedule.next_trigger_at = None
-
-            # Trigger execution
-            service = ExecutionService(db)
+            now = (await db.execute(select(func.clock_timestamp()))).scalar_one()
             try:
-                input = TriggerExecutionInput(
-                    workflow_id=workflow_id,
-                    server_id=target_server_id,
+                trigger = cron_trigger(
+                    schedule.cron_expression, schedule.timezone, schedule.start_at
                 )
-                await service.trigger_execution(
-                    input=input,
+            except ValueError:
+                logger.exception("Invalid cron configuration for schedule %s", schedule_id)
+                return
+            if schedule.next_trigger_at is None:
+                # Legacy schedules initialize once. Existing overdue occurrences
+                # remain due across restart and are coalesced into one attempt.
+                schedule.next_trigger_at = trigger.get_next_fire_time(None, now)
+                await db.commit()
+                return
+            if schedule.next_trigger_at > now:
+                return
+            schedule.last_triggered_at = now
+            schedule.next_trigger_at = trigger.get_next_fire_time(now, now)
+            try:
+                await ExecutionService(db).trigger_execution(
+                    input=TriggerExecutionInput(
+                        workflow_id=schedule.workflow_id,
+                        server_id=schedule.target_server_id,
+                    ),
                     triggered_by="scheduler",
                     trigger_type=TriggerType.SCHEDULED,
                     schedule_id=schedule_id,
                 )
-            except Exception as e:
-                logger.error(
-                    "Failed to trigger execution for schedule %s: %s",
-                    schedule_id,
-                    e,
-                )
+                await db.commit()
+            except Exception:
+                # Roll back an uncommitted claim so a later poll can retry.
+                # If execution insertion committed before task startup failed,
+                # the occurrence stays claimed and the stale-run sweep handles it.
+                await db.rollback()
+                logger.exception("Failed to trigger schedule %s", schedule_id)
 
-            await db.commit()
-
-    def add_schedule(self, schedule: Schedule) -> None:
-        """Add or update a schedule job."""
-        self._register_job(schedule)
-
-        # Update next trigger time
-        if self._scheduler and schedule.enabled:
-            job = self._scheduler.get_job(str(schedule.id))
-            if job and job.next_run_time:
-                schedule.next_trigger_at = job.next_run_time
-
-    def remove_schedule(self, schedule_id: UUID) -> None:
-        """Remove a schedule job."""
-        if self._scheduler:
-            job_id = str(schedule_id)
-            existing = self._scheduler.get_job(job_id)
-            if existing:
-                self._scheduler.remove_job(job_id)
-                logger.debug("Removed schedule job: %s", job_id)
-
-    def get_next_run_time(self, schedule_id: UUID) -> datetime | None:
-        """Get the next scheduled run time for a schedule."""
-        if not self._scheduler:
-            return None
-
-        job = self._scheduler.get_job(str(schedule_id))
-        if job:
-            next_time: datetime | None = job.next_run_time
-            return next_time
-        return None
-
-    def pause_schedule(self, schedule_id: UUID) -> None:
-        """Pause a schedule."""
-        if self._scheduler:
-            job = self._scheduler.get_job(str(schedule_id))
-            if job:
-                self._scheduler.pause_job(str(schedule_id))
-
-    def resume_schedule(self, schedule_id: UUID) -> None:
-        """Resume a paused schedule."""
-        if self._scheduler:
-            job = self._scheduler.get_job(str(schedule_id))
-            if job:
-                self._scheduler.resume_job(str(schedule_id))
+    def add_schedule(self, schedule: Schedule, now: datetime) -> None:
+        """Persist the next occurrence when configuration changes, even stopped."""
+        trigger = cron_trigger(schedule.cron_expression, schedule.timezone, schedule.start_at)
+        schedule.next_trigger_at = (
+            trigger.get_next_fire_time(None, now) if schedule.enabled else None
+        )
 
 
-# Global scheduler instance
 _scheduler: Scheduler | None = None
 
 
 def get_scheduler() -> Scheduler:
-    """Get the global scheduler instance."""
     global _scheduler
     if _scheduler is None:
         _scheduler = Scheduler()

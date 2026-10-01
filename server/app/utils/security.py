@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from fastapi import HTTPException
-
 from app.config import settings
+from app.utils.errors import FileAccessDeniedError, FileAccessError, FileNotFoundAccessError
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,12 @@ def resolve_file_access_mode() -> FileAccessMode:
     ``restrict_file_access``/``allowed_file_paths`` pair.
     """
     explicit = getattr(settings, "file_access_mode", "auto") or "auto"
-    if explicit in ("open", "allowlist", "hub"):
-        return explicit  # type: ignore[return-value]
+    if explicit == "open":
+        return "open"
+    if explicit == "allowlist":
+        return "allowlist"
+    if explicit == "hub":
+        return "hub"
 
     # auto
     if getattr(settings, "auth_mode", "") == "hub":
@@ -47,6 +50,21 @@ def resolve_file_access_mode() -> FileAccessMode:
     if settings.restrict_file_access and settings.allowed_file_paths:
         return "allowlist"
     return "open"
+
+
+def active_server_allowlist() -> list[str] | None:
+    """The server-level path allowlist that currently applies, or None.
+
+    Applies in ``allowlist`` mode, and also whenever the legacy
+    ``restrict_file_access`` flag is set together with ``allowed_file_paths``
+    (so a Hub deployment can still fence Hub grants inside an admin allowlist).
+    Path validation and the file browser both use this so they cannot disagree.
+    """
+    if resolve_file_access_mode() == "allowlist" or (
+        settings.restrict_file_access and settings.allowed_file_paths
+    ):
+        return list(settings.allowed_file_paths)
+    return None
 
 
 def validate_file_access_config() -> None:
@@ -72,9 +90,7 @@ def validate_file_access_config() -> None:
         raise SystemExit(2)
 
     if explicit == "hub" and getattr(settings, "auth_mode", "") != "hub":
-        logger.error(
-            "FILE_ACCESS_MODE=hub requires AUTH_MODE=hub. Refusing to start."
-        )
+        logger.error("FILE_ACCESS_MODE=hub requires AUTH_MODE=hub. Refusing to start.")
         raise SystemExit(2)
 
     if explicit == "auto" and settings.restrict_file_access and not settings.allowed_file_paths:
@@ -102,10 +118,10 @@ def validate_file_path(file_path: str) -> Path:
     """
     Validate file path for security (read operations).
 
-    Checks:
+    Checks, in order:
+    - Mode-dispatched access check (open|allowlist|hub) and per-request grants
     - File exists
     - Is a file (not directory)
-    - Mode-dispatched access check (open|allowlist|hub)
 
     Args:
         file_path: Path to validate
@@ -114,20 +130,14 @@ def validate_file_path(file_path: str) -> Path:
         Resolved Path object
 
     Raises:
-        HTTPException: If validation fails
+        FileAccessError: If the path is invalid or not a file.
+        FileNotFoundAccessError: If the file does not exist (read validation).
+        FileAccessDeniedError: If the path is not permitted.
     """
     try:
         path = Path(file_path).resolve()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid file path: {str(e)}")
-
-    # Check if file exists
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-
-    # Check if it's a file
-    if not path.is_file():
-        raise HTTPException(status_code=400, detail=f"Not a file: {file_path}")
+        raise FileAccessError(f"Invalid file path: {str(e)}") from e
 
     mode = resolve_file_access_mode()
 
@@ -136,31 +146,29 @@ def validate_file_path(file_path: str) -> Path:
     context_grants = allowed_paths_context.get()
     if context_grants is not None:
         if not context_grants:
-            raise HTTPException(
-                status_code=403,
-                detail="File access denied: no file paths granted",
-            )
+            raise FileAccessDeniedError("File access denied: no file paths granted")
         grant_paths = [g.path for g in context_grants]
-        if not _is_path_in_allowlist(path, grant_paths):
-            raise HTTPException(
-                status_code=403,
-                detail="File path not allowed. Must be within granted paths.",
-            )
+        if not is_path_in_allowlist(path, grant_paths):
+            raise FileAccessDeniedError("File path not allowed. Must be within granted paths.")
         # Hub grants satisfied; still apply server-level allowlist if configured.
 
-    if mode == "allowlist":
-        if not _is_path_in_allowlist(path, settings.allowed_file_paths):
-            raise HTTPException(
-                status_code=403,
-                detail=f"File path not allowed. Must be within: {settings.allowed_file_paths}",
+    server_allowlist = active_server_allowlist()
+    if server_allowlist is not None:
+        if not is_path_in_allowlist(path, server_allowlist):
+            raise FileAccessDeniedError(
+                f"File path not allowed. Must be within: {server_allowlist}"
             )
-    elif mode == "hub" and context_grants is None:
+    if mode == "hub" and context_grants is None:
         # Hub mode without per-request grants is a misconfiguration. Deny
         # rather than silently allowing.
-        raise HTTPException(
-            status_code=403,
-            detail="File access requires a Hub-issued grant.",
-        )
+        raise FileAccessDeniedError("File access requires a Hub-issued grant.")
+
+    # Existence is checked only after the path is known to be permitted, so a
+    # caller cannot probe for files outside their grants (404 vs 403).
+    if not path.exists():
+        raise FileNotFoundAccessError(f"File not found: {file_path}")
+    if not path.is_file():
+        raise FileAccessError(f"Not a file: {file_path}")
 
     return path
 
@@ -172,7 +180,6 @@ def validate_file_path_for_write(file_path: str) -> Path:
     Similar to validate_file_path but:
     - Does NOT require file to exist (creating new file)
     - Checks read_only flag on grants
-    - Validates the parent directory exists or can be created
 
     Args:
         file_path: Path to validate for writing
@@ -181,12 +188,13 @@ def validate_file_path_for_write(file_path: str) -> Path:
         Resolved Path object
 
     Raises:
-        HTTPException: If validation fails
+        FileAccessError: If the path is malformed.
+        FileAccessDeniedError: If the path is not permitted or is read-only.
     """
     try:
         path = Path(file_path).resolve()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid file path: {str(e)}")
+        raise FileAccessError(f"Invalid file path: {str(e)}") from e
 
     mode = resolve_file_access_mode()
 
@@ -194,10 +202,7 @@ def validate_file_path_for_write(file_path: str) -> Path:
     context_grants = allowed_paths_context.get()
     if context_grants is not None:
         if not context_grants:
-            raise HTTPException(
-                status_code=403,
-                detail="File access denied: no file paths granted",
-            )
+            raise FileAccessDeniedError("File access denied: no file paths granted")
 
         # Find the grant that matches this path
         matching_grant: FilePathGrant | None = None
@@ -211,33 +216,24 @@ def validate_file_path_for_write(file_path: str) -> Path:
                 continue
 
         if not matching_grant:
-            raise HTTPException(
-                status_code=403,
-                detail="File path not allowed. Must be within granted paths.",
-            )
+            raise FileAccessDeniedError("File path not allowed. Must be within granted paths.")
 
         if matching_grant.read_only:
-            raise HTTPException(
-                status_code=403,
-                detail="Cannot write to read-only path.",
-            )
+            raise FileAccessDeniedError("Cannot write to read-only path.")
 
-    if mode == "allowlist":
-        if not _is_path_in_allowlist(path, settings.allowed_file_paths):
-            raise HTTPException(
-                status_code=403,
-                detail=f"File path not allowed. Must be within: {settings.allowed_file_paths}",
+    server_allowlist = active_server_allowlist()
+    if server_allowlist is not None:
+        if not is_path_in_allowlist(path, server_allowlist):
+            raise FileAccessDeniedError(
+                f"File path not allowed. Must be within: {server_allowlist}"
             )
-    elif mode == "hub" and context_grants is None:
-        raise HTTPException(
-            status_code=403,
-            detail="File access requires a Hub-issued grant.",
-        )
+    if mode == "hub" and context_grants is None:
+        raise FileAccessDeniedError("File access requires a Hub-issued grant.")
 
     return path
 
 
-def _is_path_in_allowlist(path: Path, allowed_paths: list[str]) -> bool:
+def is_path_in_allowlist(path: Path, allowed_paths: list[str]) -> bool:
     """Check if a resolved path is within any of the allowed paths."""
     for allowed_path_str in allowed_paths:
         allowed_path = Path(allowed_path_str).resolve()

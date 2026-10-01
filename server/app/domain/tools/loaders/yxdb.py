@@ -27,7 +27,9 @@ class YxdbLoader(FileLoader):
         """Load a YXDB file and return a LazyFrame."""
         source = config.get("source")
         if not source:
-            raise ToolError("YXDB config missing 'source' field")
+            raise ToolError(
+                "YXDB input has no source. Choose a file in the Input tool settings."
+            )
 
         # Security: Validate file path against allowed paths
         validate_file_path(source)

@@ -37,7 +37,7 @@ import {
   type ConnectionStatus,
   type CreateDatabaseConnectionRequest,
   type CreateFilesystemConnectionRequest,
-} from "@api/client";
+} from "@api";
 
 const CONNECTION_TYPES: { value: ConnectionType; label: string; icon: typeof Database }[] = [
   { value: "database", label: "Database", icon: Database },

@@ -35,6 +35,30 @@ describe('connectionResolver', () => {
   });
 
   describe('resolveWorkflowConnections', () => {
+    it('does not log credentials from a native resolution error', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        mockPlatformCredentials.resolve.mockRejectedValueOnce(
+          new Error('postgresql://alice:secret-password@localhost/db'),
+        );
+        const workflow: WorkflowJSON = {
+          version: '1.0',
+          meta: { name: 'Test', description: '', author: '', workflowId: 'test', created: '2025-08-01' },
+          tools: [{
+            id: 'db1', type: 'Input', x: 0, y: 0, sockets: [],
+            config: { category: 'database', type: 'postgresql', connectionId: 'conn-1', owner: 'client' },
+          }],
+          wires: [],
+        };
+        await resolveWorkflowConnections(workflow);
+        expect(spy).toHaveBeenCalled();
+        expect(JSON.stringify(spy.mock.calls)).not.toContain('secret-password');
+        expect(spy.mock.calls.flat()).not.toContainEqual(expect.any(Error));
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
     it('should return workflow unchanged when no database tools present', async () => {
       const workflow: WorkflowJSON = {
         version: '1.0',

@@ -26,7 +26,9 @@ class GenericLoader(FileLoader):
         """Load file using the spec configuration"""
         source = config.get("source")
         if not source:
-            raise ToolError(f"{self.spec.name} config missing 'source' field")
+            raise ToolError(
+                f"{self.spec.name} input has no source. Choose a file in the Input tool settings."
+            )
 
         # Security: Validate file path against allowed paths (Hub mode enforcement)
         validate_file_path(source)

@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 
-from app.api.models.workflow import Socket, Tool
 from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan
+from app.domain.models.workflow import Socket, Tool
 
 
 @pytest.fixture

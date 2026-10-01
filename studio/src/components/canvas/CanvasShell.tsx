@@ -1,5 +1,4 @@
 import { useClipboardStore } from "@state/clipboardStore";
-import { useWorkflowStore } from "@state/workflowStore";
 import {
   useEdgesState,
   useNodesState,
@@ -12,6 +11,7 @@ import { forwardRef, useCallback } from "react";
 import WorkflowNode from "@components/workflow/WorkflowNode";
 import AutoConnectPreviewEdge from "./AutoConnectPreviewEdge";
 import { CanvasControls } from "./CanvasControls";
+import { EmptyCanvasHint } from "./EmptyCanvasHint";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import { CanvasMenus } from "./CanvasMenus";
 import { CanvasMinimap } from "./CanvasMinimap";
@@ -45,6 +45,7 @@ import { useCanvasWheelHandler } from "./hooks/useCanvasWheelHandler";
 import { useMinimapStyle } from "./hooks/useMinimapStyle";
 import { useNodeColor } from "./hooks/useNodeColor";
 import { useNodeResync } from "./hooks/useNodeResync";
+import { useWorkflowEdges } from "./hooks/useWorkflowEdges";
 import { useSnapToGrid } from "./hooks/useSnapToGrid";
 
 export type { CanvasRef };
@@ -79,8 +80,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     handleCommitTransaction,
   } = useCanvasHandlers();
 
-  // Get edges from workflow store
-  const edges = useWorkflowStore((s) => s.edges);
+  // Edges are derived from wires at render time (see useWorkflowEdges)
+  const edges = useWorkflowEdges();
 
   // === Build React Flow nodes from tools ===
   const nodes = useCanvasNodes({ tools, onToolMove: handleToolMove });
@@ -288,19 +289,8 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
         snap={snap}
         screenToFlowPosition={screenToFlowPosition}
       >
-        <div className="flex-1 h-full min-h-0">
-          <style>{`
-  /* keep React Flow default selected styles visible */
-  .react-flow__node.dragging{opacity:.8!important}
-  .react-flow__attribution{display:none!important}
-  /* Edge color states override */
-  .react-flow__edge .react-flow__edge-path{stroke:var(--color-edge-default-stroke)!important}
-  .react-flow__edge:hover .react-flow__edge-path,.react-flow__edge .react-flow__edge-path:hover{stroke:var(--color-edge-default-stroke-hover)!important}
-  .react-flow__edge.selected .react-flow__edge-path{stroke:var(--color-edge-selected-stroke)!important}
-  .react-flow__edge.selected:hover .react-flow__edge-path,.react-flow__edge.selected .react-flow__edge-path:hover{stroke:var(--color-edge-selected-stroke-hover)!important}
-  .react-flow__edge.animated .react-flow__edge-path{stroke:var(--color-edge-animated-stroke)!important}
-  .react-flow__edge.animated:hover .react-flow__edge-path,.react-flow__edge.animated .react-flow__edge-path:hover{stroke:var(--color-edge-animated-stroke-hover)!important}
-  `}</style>
+        <div className="relative flex-1 h-full min-h-0">
+          <EmptyCanvasHint toolCount={tools.length} />
           <CanvasSurface
             nodes={flowNodes}
             edges={flowEdges}

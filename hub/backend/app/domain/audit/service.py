@@ -6,16 +6,30 @@ Provides immutable, hash-chained audit trail for compliance.
 import hashlib
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AuditEvent
 
 logger = logging.getLogger(__name__)
+
+# Rows written before the hash was reproducible (see #110) carry version 1.
+# Their content hash cannot be recomputed, so they are reported as legacy.
+HASH_VERSION_LEGACY = 1
+HASH_VERSION_CURRENT = 2
+
+# Fixed key for the transaction-scoped advisory lock that serializes writers
+# to the audit chain ("AUDT" in ASCII).
+_AUDIT_CHAIN_LOCK_KEY = 0x41554454
+
+
+def _short(digest: str | None) -> str:
+    """Abbreviate a hash for error messages."""
+    return f"{digest[:16]}..." if digest else "None"
 
 
 class AuditService:
@@ -69,11 +83,18 @@ class AuditService:
         Returns:
             The created AuditEvent.
         """
-        # Get previous hash for chain
-        previous_hash = await self._get_previous_hash()
+        # Serialize previous-hash read + insert so concurrent writers cannot
+        # fork the chain, then assign id and timestamp BEFORE hashing so the
+        # hash can be reproduced from the stored columns at verify time.
+        previous_hash, previous_ts = await self._lock_and_get_tail()
+        timestamp = datetime.now(UTC)
+        if previous_ts is not None and timestamp <= previous_ts:
+            # Keep (timestamp, id) ordering aligned with chain order.
+            timestamp = previous_ts + timedelta(microseconds=1)
 
-        # Create event (without hash initially)
         event = AuditEvent(
+            id=uuid4(),
+            timestamp=timestamp,
             event_type=event_type,
             execution_id=execution_id,
             workflow_id=workflow_id,
@@ -87,10 +108,10 @@ class AuditService:
             server_id=server_id,
             details=details or {},
             previous_hash=previous_hash,
+            hash_version=HASH_VERSION_CURRENT,
             event_hash="",  # Will be computed
         )
 
-        # Compute hash
         event.event_hash = self._compute_hash(event, previous_hash)
 
         # Save
@@ -117,9 +138,11 @@ class AuditService:
         Returns:
             SHA-256 hex digest.
         """
-        timestamp_str = (
-            event.timestamp.isoformat() if event.timestamp else datetime.now(UTC).isoformat()
-        )
+        ts = event.timestamp
+        if ts.tzinfo is None:
+            # SQLite drops tzinfo on read; timestamps are always written as UTC.
+            ts = ts.replace(tzinfo=UTC)
+        timestamp_str = ts.astimezone(UTC).isoformat()
         canonical = json.dumps(
             {
                 "id": str(event.id),
@@ -131,6 +154,10 @@ class AuditService:
                 "actor_type": event.actor_type,
                 "actor_id": str(event.actor_id) if event.actor_id else None,
                 "actor_identity": event.actor_identity,
+                "auth_method": event.auth_method,
+                "client_ip": event.client_ip,
+                "user_agent": event.user_agent,
+                "server_id": str(event.server_id) if event.server_id else None,
                 "details": event.details,
                 "previous_hash": previous_hash,
             },
@@ -138,43 +165,73 @@ class AuditService:
         )
         return hashlib.sha256(canonical.encode()).hexdigest()
 
-    async def _get_previous_hash(self) -> str | None:
-        """Get hash of most recent audit event.
+    async def _lock_and_get_tail(self) -> tuple[str | None, datetime | None]:
+        """Serialize chain writers and return the current chain tail.
+
+        On PostgreSQL this takes a transaction-scoped advisory lock, released
+        at commit/rollback, so the previous-hash read and the insert that
+        follows cannot interleave with another writer. SQLite serializes
+        writes on its own, so no lock is taken there.
 
         Returns:
-            The event_hash of the most recent event, or None if no events exist.
+            (event_hash, timestamp) of the most recent event, or (None, None)
+            if no events exist.
         """
+        bind = self.db.get_bind()
+        if bind.dialect.name == "postgresql":
+            await self.db.execute(
+                text("SELECT pg_advisory_xact_lock(:key)"), {"key": _AUDIT_CHAIN_LOCK_KEY}
+            )
         result = await self.db.execute(
-            select(AuditEvent.event_hash)
+            select(AuditEvent.event_hash, AuditEvent.timestamp)
             .order_by(desc(AuditEvent.timestamp), desc(AuditEvent.id))
             .limit(1)
         )
         row = result.first()
-        return row[0] if row else None
+        if row is None:
+            return None, None
+        ts = row[1]
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        return row[0], ts
 
     async def verify_chain(self, limit: int = 1000) -> dict[str, Any]:
         """Verify hash chain integrity for recent events.
 
-        Checks that each event's hash correctly includes the previous
-        event's hash, detecting any tampering.
+        For events with hash_version >= 2, checks that the stored hash matches
+        the event's content and that previous_hash equals the preceding
+        event's stored hash (detecting edits and deleted or reordered events).
+        Legacy (version 1) events were hashed before id and timestamp were
+        assigned, so neither their content hash nor their linkage can be
+        verified; they are counted in ``legacy_events`` and are not reported
+        as tampering.
 
         Args:
             limit: Maximum number of events to verify.
 
         Returns:
             Dict with verification results:
-            - valid: True if chain is intact
-            - events_checked: Number of events verified
+            - valid: True if no tampering was detected
+            - events_checked: Number of events examined
             - first_event_id: ID of oldest event checked
             - last_event_id: ID of newest event checked
+            - legacy_events: Number of examined events that are unverifiable (legacy)
+            - warning: Note about legacy events, if any
             - error: Error message if invalid
         """
+        # Fetch one extra (oldest) row as a linkage anchor for the window.
         result = await self.db.execute(
             select(AuditEvent)
             .order_by(desc(AuditEvent.timestamp), desc(AuditEvent.id))
-            .limit(limit)
+            .limit(limit + 1)
         )
-        events = list(result.scalars().all())
+        rows = list(result.scalars().all())
+        rows.reverse()  # oldest to newest
+
+        anchor: AuditEvent | None = None
+        if len(rows) > limit:
+            anchor = rows.pop(0)
+        events = rows
 
         if not events:
             return {
@@ -182,42 +239,61 @@ class AuditService:
                 "events_checked": 0,
                 "first_event_id": None,
                 "last_event_id": None,
+                "legacy_events": 0,
             }
 
-        # Reverse to check from oldest to newest
-        events.reverse()
-
+        legacy = 0
         for i, event in enumerate(events):
-            expected_previous = events[i - 1].event_hash if i > 0 else event.previous_hash
-            if event.previous_hash != expected_previous:
-                return {
-                    "valid": False,
-                    "events_checked": i,
-                    "first_event_id": str(events[0].id),
-                    "last_event_id": str(event.id),
-                    "error": f"Chain broken at event {event.id}: "
-                    f"expected previous_hash {expected_previous[:16] if expected_previous else 'None'}..., "
-                    f"got {event.previous_hash[:16] if event.previous_hash else 'None'}...",
-                }
+            if event.hash_version < HASH_VERSION_CURRENT:
+                legacy += 1
+                continue
 
-            # Verify event's own hash
+            predecessor = events[i - 1] if i > 0 else anchor
+            if predecessor is not None and event.previous_hash != predecessor.event_hash:
+                return self._failure(
+                    events,
+                    i,
+                    legacy,
+                    f"Chain broken at event {event.id}: "
+                    f"expected previous_hash {_short(predecessor.event_hash)}, "
+                    f"got {_short(event.previous_hash)}",
+                )
+
             computed = self._compute_hash(event, event.previous_hash)
             if computed != event.event_hash:
-                return {
-                    "valid": False,
-                    "events_checked": i,
-                    "first_event_id": str(events[0].id),
-                    "last_event_id": str(event.id),
-                    "error": f"Hash mismatch at event {event.id}: "
+                return self._failure(
+                    events,
+                    i,
+                    legacy,
+                    f"Hash mismatch at event {event.id}: "
                     f"stored {event.event_hash[:16]}..., "
                     f"computed {computed[:16]}...",
-                }
+                )
 
-        return {
+        response: dict[str, Any] = {
             "valid": True,
             "events_checked": len(events),
             "first_event_id": str(events[0].id),
             "last_event_id": str(events[-1].id),
+            "legacy_events": legacy,
+        }
+        if legacy:
+            response["warning"] = (
+                f"{legacy} event(s) are unverifiable (legacy): written before "
+                "the hash chain was reproducible"
+            )
+        return response
+
+    @staticmethod
+    def _failure(events: list[AuditEvent], index: int, legacy: int, error: str) -> dict[str, Any]:
+        """Build a verification failure result for the event at ``index``."""
+        return {
+            "valid": False,
+            "events_checked": index,
+            "first_event_id": str(events[0].id),
+            "last_event_id": str(events[index].id),
+            "legacy_events": legacy,
+            "error": error,
         }
 
     async def list_events(

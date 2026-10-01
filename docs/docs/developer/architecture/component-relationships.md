@@ -1,301 +1,162 @@
-# Component Relationships
-
-This document outlines how Sigilweaver Loom's three main components-**Studio**, **Server**, and **Hub**-interact across different deployment scenarios.
-
-## Component Overview
-
-| Component  | Purpose                                | Tech Stack                       | Default Port |
-| ---------- | -------------------------------------- | -------------------------------- | ------------ |
-| **Studio** | Visual workflow designer (desktop app) | React, Xyflow, Electron or Tauri | 25810        |
-| **Server** | Workflow execution engine              | Python, FastAPI, Polars          | 25811        |
-| **Hub**    | Multi-user orchestration platform      | FastAPI + React                  | 25802/25803  |
-
-## Execution Modes
-
-Studio supports three execution modes, configured in **Settings > Connection**:
-
-| Mode       | Description                            | Use Case                 |
-| ---------- | -------------------------------------- | ------------------------ |
-| `bundled`  | Server runs inside desktop shell       | Single user, desktop     |
-| `external` | Direct connection to standalone Server | Development, self-hosted |
-| `hub`      | Hub mediates all Server communication  | Teams, multi-server      |
-
+---
+sidebar_position: 2
+title: Component Relationships
 ---
 
-## Mode 1: Bundled Server (Desktop)
+# Component Relationships
 
-**Scenario**: Single user running the full desktop application.
+How **Studio**, **Server** and **Hub** interact in each deployment mode.
+
+## Components
+
+| Component | Purpose | Stack | Default port |
+| --------- | ------- | ----- | ------------ |
+| **Studio** | Visual workflow designer | React, Xyflow, Vite; Electron, Tauri or browser | 25810 (dev server) |
+| **Server** | Workflow execution engine | Python, FastAPI, Polars | 25811 |
+| **Hub** | Team orchestration platform | FastAPI, React, PostgreSQL | 25802 (API and web app), 25803 (dev frontend) |
+
+Ports follow a `258xx` pattern. PostgreSQL uses 25801 in development, and the docs dev server uses 25809.
+
+## Execution modes
+
+Studio's **Settings > Execution** chooses one of three modes (`executionMode` in the settings):
+
+| Mode | Meaning | Use case |
+| ---- | ------- | -------- |
+| `bundled` | The desktop shell runs a Server that ships inside the app | One person, one machine |
+| `external` | Studio talks directly to a Server you run | Development, self-hosted |
+| `hub` | Studio gets a token from Hub, then talks to a Server that Hub picks | Teams |
+
+## Mode 1: Bundled Server
 
 ```mermaid
 flowchart TB
-    subgraph Shell["Desktop Shell (Electron)"]
-        Studio["Studio (React)<br/>localhost:25810"]
+    subgraph Shell["Desktop shell (Electron or Tauri, Full build)"]
+        Studio["Studio"]
         Server["Bundled Server<br/>(PyInstaller binary)"]
     end
-
-    Studio -->|"HTTP (localhost:25811)"| Server
+    Studio -->|"HTTP localhost:25811"| Server
 ```
 
-:::info Desktop Shell Options
-Sigilweaver Loom Studio supports two desktop shells:
-- **Electron** (Full build): Bundles the Server executable and manages its lifecycle
-- **Tauri** (Client build): Lightweight shell that connects to an external Server
+Both desktop shells come in a **Full** variant that bundles the Server and a **Client** variant that does not. Electron ships the Server binary as an extra resource. Tauri ships it as a sidecar. The Tauri Full build is selected at compile time by the `bundled-server` Cargo feature. The [Packaging](../building/packaging.md) page has the build details.
 
-The bundled server mode is only available with Electron. Tauri builds operate in `external` mode.
-:::
+How it works:
 
-### How It Works
+1. On launch, the shell starts the Server and injects a random session token (`AUTH_MODE=ephemeral`, `SESSION_TOKEN=<token>`) plus writable data paths.
+2. The shell waits for `/api/health/`.
+3. Studio sends workflows to `http://localhost:25811` with the token.
+4. On exit, the shell stops the Server.
 
-1. **Startup**: Desktop shell spawns the bundled Server executable
-2. **Authentication**: Ephemeral token generated per session
-3. **Execution**: Studio sends workflows directly to localhost:25811
-4. **Shutdown**: Server terminates when Studio closes
-
-### Key Characteristics
-
-- **Self-contained**: No external dependencies
-- **Ephemeral auth**: Random UUID token generated each launch
-- **Auto-start**: Controlled by `backend.autoStart` setting
-- **Credentials local**: Database connections stored in OS secure storage (Keychain, DPAPI, Secret Service)
-
-### Configuration
+Studio's defaults for this mode:
 
 ```typescript
-// Studio settings (default for bundled)
-{
-  executionMode: 'bundled',
-  backend: {
-    url: 'http://localhost:25811',
-    autoStart: true
-  }
-}
+{ executionMode: 'bundled', backend: { url: 'http://localhost:25811', autoStart: true, previewRows: 100 } }
 ```
 
-```bash
-# Server environment (set by desktop shell)
-AUTH_MODE=ephemeral
-SESSION_TOKEN=<generated-uuid>
-```
+Client connections are stored in the operating system's credential store: Electron `safeStorage` or the Tauri `keyring` crate.
 
----
-
-## Mode 2: External Server (Direct Connection)
-
-**Scenario**: Developer running Server separately, or connecting to a remote Server.
+## Mode 2: External Server
 
 ```mermaid
 flowchart LR
-    Studio["Studio<br/>(Desktop or Web)<br/>localhost:25810"] -->|HTTP| Server["Server<br/>(Standalone)<br/>server.example.com"]
+    Studio["Studio<br/>(desktop or browser)"] -->|HTTP| Server["Server<br/>(standalone)"]
 ```
 
-### How It Works
+The user sets the Server URL in Studio. The Server's `AUTH_MODE` decides what Studio must present:
 
-1. **User configures**: Server URL in Studio settings
-2. **Direct connection**: Studio calls Server API directly
-3. **Auth options**: Token-based or disabled (development)
-4. **Credentials**: Managed on Server via `connections.json`
+| `AUTH_MODE` | Studio needs |
+| ----------- | ------------ |
+| `disabled` | Nothing. Development only. |
+| `static` | The token that the Server has in `SESSION_TOKEN` |
+| `ephemeral` | The token the Server generated at startup (or that `SESSION_TOKEN` sets) |
 
-### Key Characteristics
+Configuration of the Server side is in [Server Configuration](../../admin/server-configuration.md).
 
-- **Flexible deployment**: Server can run anywhere (local, VM, cloud)
-- **Direct API access**: No intermediary
-- **Manual credential management**: Server admin manages `connections.json`
-- **Multiple auth modes**: `disabled`, `static` (env token), or `ephemeral`
-
-### Configuration
-
-```typescript
-// Studio settings
-{
-  executionMode: 'external',
-  backend: {
-    url: 'https://server.example.com',
-    autoStart: false  // Irrelevant for external
-  }
-}
-```
-
-```bash
-# Server environment options
-
-# Development (no auth)
-AUTH_MODE=disabled
-
-# Static token (shared secret)
-AUTH_MODE=static
-SESSION_TOKEN=your-shared-secret
-
-# Ephemeral (for automated deployment)
-AUTH_MODE=ephemeral
-SESSION_TOKEN=<generated-at-deploy>
-```
-
----
-
-## Mode 3: Hub-Mediated
-
-**Scenario**: Team environment with centralized access control and multiple servers.
+## Mode 3: Hub
 
 ```mermaid
 flowchart TB
-    Studio["Studio<br/>(User's Desktop)"]
-    Hub["Hub<br/>(Orchestrator)"]
-    Server["Server<br/>(Production)"]
+    Studio["Studio"]
+    Hub["Hub"]
+    Server["Server"]
 
-    Studio -->|"1. Login<br/>2. Request Server Token"| Hub
-    Hub -->|"3. Issue Server Token<br/>4. Return server_endpoint + token"| Studio
-    Studio -->|"5. Execute workflow<br/>Authorization: Bearer token"| Server
-    Server -->|"6. /internal/authorize<br/>(validate token, return credentials)"| Hub
+    Studio -->|"1. Log in, ask for a Server token"| Hub
+    Hub -->|"2. Token and Server address"| Studio
+    Studio -->|"3. Workflow request with the token"| Server
+    Server -->|"4. POST /api/v1/internal/authorize"| Hub
+    Hub -->|"5. Credentials and file grants"| Server
 ```
-
-### Authentication Flow
 
 ```mermaid
 sequenceDiagram
-    participant U as User (Studio)
+    participant U as Studio
     participant H as Hub
     participant S as Server
 
-    U->>H: POST /auth/login (username, password)
+    U->>H: POST /api/v1/auth/login
     H->>U: Session token
-
-    U->>H: POST /capabilities/token
-    H->>H: Validate session, check permissions
-    H->>U: Server token + server_endpoint
-
-    U->>S: POST /workflow/execute (workflow + Bearer token)
-    S->>H: POST /internal/authorize (server_token)
-    H->>H: Validate (one-time use), resolve credentials
-    H->>S: Authorized + credentials
-    S->>S: Execute with credentials
-    S->>U: Results
+    U->>H: POST /api/v1/capabilities/token
+    H->>H: Pick an online Server, issue an opaque token
+    H->>U: Token and Server endpoint
+    U->>S: POST /api/workflow/... (Bearer token)
+    S->>H: POST /api/v1/internal/authorize (token, request type, connection IDs)
+    H->>H: Consume the token, check grants, resolve credentials
+    H->>S: Authorized, credentials, file paths
+    S->>S: Execute with those credentials
+    S->>U: Result
 ```
 
-### Key Characteristics
+Details of the current implementation:
 
-- **Centralized auth**: Users authenticate with Hub, not Server
-- **RBAC**: Role-based access control (Owner, Admin, Auditor, User)
-- **Credential isolation**: Credentials never leave Hub → Server path
-- **Multi-server**: Hub routes to multiple Servers (dev, staging, prod)
-- **One-time tokens**: Server tokens are consumed on authorize
-- **Audit trail**: All operations logged in Hub
+- **Server tokens** are random opaque IDs kept in a token store (memory by default, PostgreSQL optionally). A token records the user and the Server it is for. It is single-use and expires after `SERVER_TOKEN_TTL_SECONDS` (300 by default).
+- Studio asks for a fresh token for **each request**, because each one is consumed when the Server authorizes it.
+- The Server authenticates to Hub's internal endpoint with its own `HUB_SERVER_TOKEN`, which is the identity Hub registered for it.
+- Hub picks the Server. With no preference it chooses the least-loaded online Server (fewest queued or running executions, ties random).
+- Hub logs `capability.token_issued` and `authorize.*` events in its hash-chained audit log.
+- The Server registers with Hub, and re-registers every 30 seconds, when `HUB_URL` and `HUB_SERVER_TOKEN` are set. See [Server Management](../../admin/servers.md).
 
-### Server Token Flow
+Hub can also run workflows itself, for schedules and for the **Run Now** button in its web app. It calls `POST /api/workflow/execute` on a Server directly, as the triggering user (manual runs) or the schedule creator (scheduled runs). See [Hub Architecture](./hub.md) and [Hub Open Beta](../../admin/hub-beta.md).
 
-1. **Studio → Hub**: Request token (user must be logged in)
-2. **Hub**: Validates session, picks healthy server, issues token
-3. **Hub → Studio**: Returns opaque token + server endpoint
-4. **Studio → Server**: Sends request with token in Authorization header
-5. **Server → Hub**: Calls `/internal/authorize` with token
-6. **Hub**: Validates token, checks permissions, returns credentials
-7. **Hub → Server**: Credentials for hub-owned connections
-8. **Server**: Executes workflow with resolved credentials
-
-### Configuration
+Studio's settings for this mode:
 
 ```typescript
-// Studio settings
-{
-  executionMode: 'hub',
-  hub: {
-    url: 'https://hub.example.com',
-    rememberLogin: true,
-    sessionToken: '<persisted-if-remember>'
-  }
-}
+{ executionMode: 'hub', hub: { url: 'https://hub.example.com', rememberLogin: true, sessionToken: '...' } }
 ```
 
-```bash
-# Server environment (Hub-connected)
-AUTH_MODE=hub
-HUB_URL=https://hub.example.com
-HUB_SERVER_TOKEN=<token-from-hub-registration>
-HUB_REGISTRATION_SECRET=<shared-secret>
-```
+## Connection ownership
 
-```bash
-# Hub environment
-DATABASE_URL=postgresql://...
-SECRET_KEY=<jwt-secret>
-SERVER_REGISTRATION_SECRET=<shared-secret>
-```
-
----
-
-## Connection Ownership
-
-Connections (database credentials, file paths) can be owned by different components:
-
-| Owner      | Location                     | Managed By             | Visible To                      |
-| ---------- | ---------------------------- | ---------------------- | ------------------------------- |
-| **Client** | OS secure storage            | User (Studio settings) | This Studio instance only       |
-| **Server** | `connections.json` on Server | Server admin           | All Studio users of that Server |
-| **Hub**    | Hub database (encrypted)     | Hub admin              | Users with granted access       |
-
-### In Hub Mode
+| Owner | Stored in | Managed by | Notes |
+| ----- | --------- | ---------- | ----- |
+| **client** | The OS credential store on the user's machine | The user, in Studio | Credentials are sent to the Server with each request that needs them |
+| **hub** | Hub's database, encrypted | Hub administrators | The Server fetches credentials from Hub at request time |
+| **server** | `connections.json` on the Server | A Server administrator | Deprecated. Prefer Hub connections |
 
 ```mermaid
 flowchart LR
-    subgraph Studio
-        A[Client Connections]
-    end
-
-    subgraph Server
-        B[Server Connections]
-    end
-
-    subgraph Hub
-        C[Hub Connections]
-    end
-
-    A -->|Direct to Server| Server
-    B -->|Local lookup| Server
-    C -->|Credentials via /authorize| Server
+    A["Client connections<br/>(Studio)"] -->|"URI in the request"| S["Server"]
+    C["Hub connections<br/>(Hub)"] -->|"/internal/authorize"| S
+    B["Server connections<br/>(deprecated)"] -->|"local lookup"| S
 ```
 
-- **Client connections**: Sent with each request (encrypted in transit)
-- **Server connections**: Looked up locally by ID
-- **Hub connections**: Server calls Hub to get credentials just-in-time
+## Security by mode
 
----
+| Aspect | Bundled | External | Hub |
+| ------ | ------- | -------- | --- |
+| Authentication | Per-launch token | Static token, per-launch token or none | Hub session, then single-use Server token |
+| Credential storage | OS credential store | OS credential store (client) | Hub database (encrypted) |
+| Access control | Single user | None beyond the token | Roles, groups and grants |
+| Audit | Server request log | Server request log | Hub audit log plus Server request log |
 
-## Port Scheme
+## When to use each mode
 
-All Sigilweaver Loom ports follow the `258xx` pattern (founding date: 2025-08-01):
+| Mode | Best for |
+| ---- | -------- |
+| Bundled | Individuals, desktop work, offline work |
+| External | Developers, a single shared Server |
+| Hub | Teams, several environments, shared credentials |
 
-| Port  | Component    | Notes           |
-| ----- | ------------ | --------------- |
-| 25802 | Hub Backend  | API server      |
-| 25803 | Hub Frontend | Web UI (dev)    |
-| 25810 | Studio       | Vite dev server |
-| 25811 | Server       | Default backend |
-
----
-
-## Security Model by Mode
-
-| Aspect                 | Bundled                 | External             | Hub                        |
-| ---------------------- | ----------------------- | -------------------- | -------------------------- |
-| **Auth Type**          | Ephemeral (per-session) | Static/Disabled      | Session + Server tokens    |
-| **Token Lifetime**     | App lifetime            | Permanent            | Configurable (e.g., 5 min) |
-| **Credential Storage** | OS secure storage       | Server filesystem    | Hub database (encrypted)   |
-| **Access Control**     | Single user             | Manual               | RBAC                       |
-| **Audit**              | Local only              | Server-side optional | Hub-centralized            |
-
----
-
-## When to Use Each Mode
-
-| Mode         | Best For                                              |
-| ------------ | ----------------------------------------------------- |
-| **Bundled**  | Individual users, desktop workflows, offline work     |
-| **External** | Developers testing, simple single-server deployments  |
-| **Hub**      | Teams, multiple environments, compliance requirements |
-
----
-
-## See Also
+## See also
 
 - [Server Configuration](../../admin/server-configuration.md)
-- [Architecture Overview](./overview.md)
 - [Hub Architecture](./hub.md)
+- [Security Model](../../admin/security.md)

@@ -134,6 +134,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'Unique',
     icon: Fingerprint,
     category: 'compute',
+    blocking: true,
     defaultConfig: {
       columns: [],
       mode: 'First',
@@ -229,7 +230,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'Unpivot',
     icon: CornerLeftUp,
     category: 'reshape',
-    blocking: true,
     defaultConfig: {
       on: [],
       index: [],
@@ -246,11 +246,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 
 export const EXPRESSION_DOCS_URL = `${DOCS_BASE_URL}/expressions/basics`;
 
-// Default favorite tools (used as initial set)
+// Default favorite tools (single source of truth; used as the initial set)
 export const DEFAULT_FAVORITE_TOOLS = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
-
-// Legacy export for backwards compatibility
-export const FAVORITES_TOOLS = DEFAULT_FAVORITE_TOOLS;
 
 export const getToolsByCategory = (category: string, favoriteTools?: string[]) => {
   if (category === 'favorites') {

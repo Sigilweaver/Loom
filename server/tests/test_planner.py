@@ -2,8 +2,9 @@
 
 import pytest
 
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
+from app.utils.errors import ValidationError
 
 
 def make_workflow_meta() -> WorkflowMeta:
@@ -98,19 +99,21 @@ class TestExecutionPlan:
         assert plan.get_dependencies("B") == ["A"]
         assert plan.get_dependencies("A") == []
 
-    def test_get_execution_order_up_to(self):
-        """Test get_execution_order_up_to returns correct subset."""
+    def test_without_tool(self):
+        """without_tool drops a tool from the run order but keeps input mappings."""
         plan = ExecutionPlan(
             workflow_id="test",
-            execution_order=("A", "B", "C", "D"),
-            tool_inputs={},
+            execution_order=("A", "B", "C"),
+            tool_inputs={"C": {"input": [("B", "output")]}},
             tool_map={},
-            dependencies={},
+            dependencies={"B": ["A"], "C": ["B"]},
         )
 
-        assert plan.get_execution_order_up_to("B") == ["A", "B"]
-        assert plan.get_execution_order_up_to("D") == ["A", "B", "C", "D"]
-        assert plan.get_execution_order_up_to("A") == ["A"]
+        trimmed = plan.without_tool("C")
+
+        assert list(trimmed) == ["A", "B"]
+        assert trimmed.get_inputs("C") == {"input": [("B", "output")]}
+        assert list(plan) == ["A", "B", "C"]  # original untouched
 
     def test_is_immutable(self):
         """Test that ExecutionPlan is frozen (immutable)."""
@@ -350,7 +353,7 @@ class TestExecutionPlanner:
         assert set(order) == {"A", "B", "C", "D"}
 
     def test_target_not_in_workflow(self):
-        """Test that invalid target falls back to full order."""
+        """An unknown target is a client error, not a silent full-workflow run."""
         workflow = Workflow(
             meta=make_workflow_meta(),
             tools=[
@@ -366,10 +369,88 @@ class TestExecutionPlanner:
         )
 
         planner = ExecutionPlanner(workflow)
-        plan = planner.create_plan(target_tool_id="NONEXISTENT")
+        with pytest.raises(ValidationError, match="NONEXISTENT"):
+            planner.create_plan(target_tool_id="NONEXISTENT")
 
-        # Should return full order when target not found
-        assert list(plan) == ["A", "B"]
+    def test_partial_plan_excludes_unrelated_branches(self):
+        """Regression for #84: a target's plan holds only its ancestors."""
+        # A -> B -> D
+        # C -> E          (independent branch, listed between the others)
+        # A -> F          (sibling branch off A)
+        workflow = Workflow(
+            meta=make_workflow_meta(),
+            tools=[make_tool(t, "Filter") for t in ["A", "C", "B", "E", "F", "D"]],
+            wires=[
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="B", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="B", socket="output"),
+                    to=WireEndpoint(tool="D", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="C", socket="output"),
+                    to=WireEndpoint(tool="E", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="F", socket="input"),
+                ),
+            ],
+        )
+
+        plan = ExecutionPlanner(workflow).create_plan(target_tool_id="D")
+
+        assert list(plan) == ["A", "B", "D"]
+        assert set(plan.tool_inputs) == {"A", "B", "D"}
+
+    def test_partial_plan_includes_all_transitive_ancestors(self):
+        """Diamond shape: both parents and the root are planned, nothing else."""
+        workflow = Workflow(
+            meta=make_workflow_meta(),
+            tools=[make_tool(t, "Filter") for t in ["A", "B", "C", "D", "X"]],
+            wires=[
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="B", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="C", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="B", socket="output"),
+                    to=WireEndpoint(tool="D", socket="input"),
+                ),
+                Wire(
+                    from_=WireEndpoint(tool="C", socket="output"),
+                    to=WireEndpoint(tool="D", socket="input"),
+                ),
+            ],
+        )
+
+        plan = ExecutionPlanner(workflow).create_plan(target_tool_id="D")
+
+        assert plan.execution_order[0] == "A"
+        assert plan.execution_order[-1] == "D"
+        assert set(plan) == {"A", "B", "C", "D"}
+
+    def test_partial_plan_for_root_tool_is_just_that_tool(self):
+        workflow = Workflow(
+            meta=make_workflow_meta(),
+            tools=[make_tool(t, "Filter") for t in ["A", "B"]],
+            wires=[
+                Wire(
+                    from_=WireEndpoint(tool="A", socket="output"),
+                    to=WireEndpoint(tool="B", socket="input"),
+                ),
+            ],
+        )
+
+        plan = ExecutionPlanner(workflow).create_plan(target_tool_id="A")
+
+        assert list(plan) == ["A"]
 
 
 class TestExecutionLevels:
@@ -476,93 +557,3 @@ class TestExecutionLevels:
         levels = plan.get_execution_levels()
 
         assert levels == [["A"]]
-
-
-class TestReadyTools:
-    """Tests for dynamic ready tool computation."""
-
-    def test_initial_state_roots_ready(self):
-        """Test roots are ready with no completions."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B", "C"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": ["A"], "C": ["B"]},
-        )
-
-        ready = plan.get_ready_tools(completed=set())
-
-        assert ready == ["A"]
-
-    def test_dependencies_satisfied(self):
-        """Test tool becomes ready when dependencies complete."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B", "C"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": ["A"], "C": ["B"]},
-        )
-
-        ready = plan.get_ready_tools(completed={"A"})
-
-        assert ready == ["B"]
-
-    def test_multiple_ready(self):
-        """Test multiple tools can be ready at once."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B", "C"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": ["A"], "C": ["A"]},
-        )
-
-        ready = plan.get_ready_tools(completed={"A"})
-
-        assert set(ready) == {"B", "C"}
-
-    def test_partial_dependencies(self):
-        """Test tool not ready if only some deps complete."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B", "C", "D"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": [], "C": [], "D": ["A", "B", "C"]},
-        )
-
-        # Only A and B complete, D still needs C
-        ready = plan.get_ready_tools(completed={"A", "B"})
-
-        assert "D" not in ready
-        assert "C" in ready
-
-    def test_all_complete_none_ready(self):
-        """Test nothing ready when all tools complete."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": ["A"]},
-        )
-
-        ready = plan.get_ready_tools(completed={"A", "B"})
-
-        assert ready == []
-
-    def test_independent_roots_both_ready(self):
-        """Test independent root nodes are all ready."""
-        plan = ExecutionPlan(
-            workflow_id="test",
-            execution_order=("A", "B", "C"),
-            tool_inputs={},
-            tool_map={},
-            dependencies={"A": [], "B": [], "C": ["A", "B"]},
-        )
-
-        ready = plan.get_ready_tools(completed=set())
-
-        assert set(ready) == {"A", "B"}

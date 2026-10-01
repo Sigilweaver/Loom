@@ -1,430 +1,287 @@
 /**
- * Audit tab for admin panel
- *
- * Lets auditors browse and filter the tamper-evident audit log and run a
- * hash-chain integrity verification. Consumes /audit/events and /audit/verify.
+ * Audit log: browse and filter the tamper-evident event log and verify its
+ * hash chain. Consumes /audit/events and /audit/verify.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, type FormEvent } from "react";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { listAuditEvents, verifyAuditChain, type AuditEventResponse } from "@api";
+import { errorMessage } from "@utils/errors";
+import { formatDateTime, pluralize } from "@utils/format";
 import {
-    ShieldCheck,
-    ShieldAlert,
-    Loader2,
-    AlertCircle,
-    RefreshCw,
-    Filter,
-    ChevronLeft,
-    ChevronRight,
-    ChevronDown,
-    ChevronRight as ChevronRightSmall,
-    User,
-    Hash,
-} from "lucide-react";
-import {
-    listAuditEvents,
-    verifyAuditChain,
-    type AuditEventResponse,
-    type AuditChainVerifyResponse,
-} from "@api/client";
+  Alert,
+  Button,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  Input,
+  LoadingState,
+  Page,
+  PageHeader,
+  Pagination,
+  TBody,
+  THead,
+  Table,
+  Td,
+  Th,
+  Tr,
+} from "@components/ui";
 
 const PAGE_SIZE = 25;
 
-function formatTimestamp(isoString: string): string {
-    return new Date(isoString).toLocaleString();
+interface Filters {
+  eventType: string;
+  fromDate: string;
+  toDate: string;
 }
+
+const NO_FILTERS: Filters = { eventType: "", fromDate: "", toDate: "" };
 
 function shortHash(hash: string | null): string {
-    if (!hash) return "-";
-    return hash.length > 12 ? `${hash.slice(0, 12)}...` : hash;
+  if (!hash) return "-";
+  return hash.length > 12 ? `${hash.slice(0, 12)}...` : hash;
 }
 
-function VerifyBanner({ result }: { result: AuditChainVerifyResponse }) {
-    if (result.valid) {
-        return (
-            <div className="flex items-start gap-3 p-4 border border-green-200 rounded-lg bg-green-50">
-                <ShieldCheck className="flex-shrink-0 w-5 h-5 text-green-600 mt-0.5" />
-                <div className="text-sm text-green-800">
-                    <p className="font-medium">Hash chain verified</p>
-                    <p className="text-green-700">
-                        {result.events_checked} event{result.events_checked === 1 ? "" : "s"} checked. No
-                        tampering detected.
-                    </p>
-                </div>
-            </div>
-        );
-    }
+function Detail({ label, value, mono = false }: { label: string; value: string | null; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium tracking-wider text-ink-subtle uppercase">{label}</dt>
+      <dd className={`text-sm break-all text-ink ${mono ? "font-mono" : ""}`}>{value || "-"}</dd>
+    </div>
+  );
+}
 
-    return (
-        <div className="flex items-start gap-3 p-4 border border-red-200 rounded-lg bg-red-50">
-            <ShieldAlert className="flex-shrink-0 w-5 h-5 text-red-600 mt-0.5" />
-            <div className="text-sm text-red-800">
-                <p className="font-medium">Hash chain verification failed</p>
-                <p className="text-red-700">
-                    {result.error || "The audit chain is inconsistent."} ({result.events_checked} event
-                    {result.events_checked === 1 ? "" : "s"} checked.)
-                </p>
-            </div>
-        </div>
-    );
+/** Show an event's free-form details as labelled values instead of a JSON dump. */
+function EventDetails({ details }: { details: Record<string, unknown> }) {
+  const entries = Object.entries(details);
+  if (entries.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <h4 className="mb-1 text-xs font-medium tracking-wider text-ink-subtle uppercase">Details</h4>
+      <dl className="grid grid-cols-1 gap-2 rounded-lg border border-line bg-surface-raised p-3 sm:grid-cols-2">
+        {entries.map(([key, value]) => (
+          <Detail
+            key={key}
+            label={key.replace(/_/g, " ")}
+            value={typeof value === "object" && value !== null ? JSON.stringify(value) : String(value)}
+            mono={typeof value === "object"}
+          />
+        ))}
+      </dl>
+    </div>
+  );
 }
 
 function AuditRow({ event }: { event: AuditEventResponse }) {
-    const [expanded, setExpanded] = useState(false);
-    const hasDetails = event.details && Object.keys(event.details).length > 0;
+  const [expanded, setExpanded] = useState(false);
 
-    return (
-        <>
-            <tr className="hover:bg-surface-sunken">
-                <td className="px-4 py-3 align-top">
-                    <button
-                        onClick={() => setExpanded((e) => !e)}
-                        className="text-ink-faint hover:text-ink-muted"
-                        aria-label={expanded ? "Collapse details" : "Expand details"}
-                    >
-                        {expanded ? (
-                            <ChevronDown className="w-4 h-4" />
-                        ) : (
-                            <ChevronRightSmall className="w-4 h-4" />
-                        )}
-                    </button>
-                </td>
-                <td className="px-4 py-3 text-sm text-ink-muted whitespace-nowrap align-top">
-                    {formatTimestamp(event.timestamp)}
-                </td>
-                <td className="px-4 py-3 align-top">
-                    <code className="px-2 py-0.5 text-xs bg-surface-hover rounded text-ink">
-                        {event.event_type}
-                    </code>
-                </td>
-                <td className="px-4 py-3 align-top">
-                    <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-ink-faint" />
-                        <div>
-                            <p className="text-sm text-ink">{event.actor_identity}</p>
-                            <p className="text-xs text-ink-subtle">{event.actor_type}</p>
-                        </div>
-                    </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-ink-subtle whitespace-nowrap align-top">
-                    {event.client_ip || "-"}
-                </td>
-                <td className="px-4 py-3 align-top">
-                    <div className="flex items-center gap-1.5 text-ink-subtle">
-                        <Hash className="w-3.5 h-3.5" />
-                        <code className="text-xs">{shortHash(event.event_hash)}</code>
-                    </div>
-                </td>
-            </tr>
-            {expanded && (
-                <tr className="bg-surface-sunken">
-                    <td />
-                    <td colSpan={5} className="px-4 py-3">
-                        <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <DetailField label="Event ID" value={event.id} mono />
-                            <DetailField label="Auth method" value={event.auth_method} />
-                            <DetailField label="Execution ID" value={event.execution_id} mono />
-                            <DetailField label="Workflow ID" value={event.workflow_id} mono />
-                            <DetailField label="Schedule ID" value={event.schedule_id} mono />
-                            <DetailField label="Server ID" value={event.server_id} mono />
-                            <DetailField label="Event hash" value={event.event_hash} mono />
-                            <DetailField label="Previous hash" value={event.previous_hash} mono />
-                            <DetailField label="User agent" value={event.user_agent} />
-                        </dl>
-                        {hasDetails && (
-                            <div className="mt-3">
-                                <p className="mb-1 text-xs font-medium tracking-wider text-ink-subtle uppercase">
-                                    Details
-                                </p>
-                                <pre className="p-3 overflow-x-auto text-xs bg-surface-raised border border-line rounded">
-                                    {JSON.stringify(event.details, null, 2)}
-                                </pre>
-                            </div>
-                        )}
-                    </td>
-                </tr>
-            )}
-        </>
-    );
-}
-
-function DetailField({
-    label,
-    value,
-    mono = false,
-}: {
-    label: string;
-    value: string | null;
-    mono?: boolean;
-}) {
-    return (
-        <div>
-            <dt className="text-xs font-medium tracking-wider text-ink-subtle uppercase">{label}</dt>
-            <dd className={`text-sm text-ink break-all ${mono ? "font-mono" : ""}`}>
-                {value || "-"}
-            </dd>
-        </div>
-    );
+  return (
+    <Fragment>
+      <Tr>
+        <Td className="w-10 align-top">
+          <IconButton
+            label={expanded ? "Hide event details" : "Show event details"}
+            aria-expanded={expanded}
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </IconButton>
+        </Td>
+        <Td className="align-top whitespace-nowrap">{formatDateTime(event.timestamp)}</Td>
+        <Td className="align-top">
+          <code className="rounded bg-surface-hover px-2 py-0.5 font-mono text-xs text-ink">{event.event_type}</code>
+        </Td>
+        <Td className="align-top">
+          <p className="text-ink">{event.actor_identity}</p>
+          <p className="text-xs text-ink-subtle">{event.actor_type}</p>
+        </Td>
+        <Td className="hidden align-top whitespace-nowrap md:table-cell">{event.client_ip || "-"}</Td>
+        <Td className="hidden align-top lg:table-cell">
+          <code className="font-mono text-xs" title={event.event_hash}>
+            {shortHash(event.event_hash)}
+          </code>
+        </Td>
+      </Tr>
+      {expanded && (
+        <tr className="bg-surface-sunken">
+          <td />
+          <td colSpan={5} className="px-4 py-3">
+            <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Detail label="Event ID" value={event.id} mono />
+              <Detail label="Auth method" value={event.auth_method} />
+              <Detail label="Execution ID" value={event.execution_id} mono />
+              <Detail label="Workflow ID" value={event.workflow_id} mono />
+              <Detail label="Schedule ID" value={event.schedule_id} mono />
+              <Detail label="Server ID" value={event.server_id} mono />
+              <Detail label="Event hash" value={event.event_hash} mono />
+              <Detail label="Previous hash" value={event.previous_hash} mono />
+              <Detail label="User agent" value={event.user_agent} />
+            </dl>
+            <EventDetails details={event.details ?? {}} />
+          </td>
+        </tr>
+      )}
+    </Fragment>
+  );
 }
 
 export function AuditTab() {
-    const [events, setEvents] = useState<AuditEventResponse[]>([]);
-    const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  // Form values, applied on submit so typing does not refetch on every keystroke.
+  const [draft, setDraft] = useState<Filters>(NO_FILTERS);
+  const [applied, setApplied] = useState<Filters>(NO_FILTERS);
 
-    // Filters
-    const [eventType, setEventType] = useState("");
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
-    // Applied filters (committed on submit so typing does not refetch each keystroke)
-    const [appliedFilters, setAppliedFilters] = useState<{
-        eventType: string;
-        fromDate: string;
-        toDate: string;
-    }>({ eventType: "", fromDate: "", toDate: "" });
+  const events = useQuery({
+    queryKey: ["admin", "audit", applied, page],
+    queryFn: () =>
+      listAuditEvents({
+        event_type: applied.eventType || undefined,
+        from_date: applied.fromDate ? new Date(applied.fromDate).toISOString() : undefined,
+        to_date: applied.toDate ? new Date(applied.toDate).toISOString() : undefined,
+        page: page + 1,
+        page_size: PAGE_SIZE,
+      }),
+    placeholderData: keepPreviousData,
+  });
 
-    // Chain verification
-    const [verifyResult, setVerifyResult] = useState<AuditChainVerifyResponse | null>(null);
-    const [verifying, setVerifying] = useState(false);
-    const [verifyError, setVerifyError] = useState<string | null>(null);
+  const verify = useMutation({ mutationFn: () => verifyAuditChain() });
 
-    const fetchData = useCallback(
-        async (isRefresh = false) => {
-            if (isRefresh) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
-            setError(null);
+  const applyFilters = (event: FormEvent) => {
+    event.preventDefault();
+    setPage(0);
+    setApplied(draft);
+  };
 
-            try {
-                const res = await listAuditEvents({
-                    event_type: appliedFilters.eventType || undefined,
-                    from_date: appliedFilters.fromDate
-                        ? new Date(appliedFilters.fromDate).toISOString()
-                        : undefined,
-                    to_date: appliedFilters.toDate
-                        ? new Date(appliedFilters.toDate).toISOString()
-                        : undefined,
-                    page: page + 1,
-                    page_size: PAGE_SIZE,
-                });
-                setEvents(res.events);
-                setTotal(res.total);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load audit events");
-            } finally {
-                setLoading(false);
-                setRefreshing(false);
-            }
-        },
-        [appliedFilters, page]
-    );
+  const clearFilters = () => {
+    setDraft(NO_FILTERS);
+    setApplied(NO_FILTERS);
+    setPage(0);
+  };
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+  const rows = events.data?.events ?? [];
+  const result = verify.data;
 
-    const applyFilters = (e: React.FormEvent) => {
-        e.preventDefault();
-        setPage(0);
-        setAppliedFilters({ eventType, fromDate, toDate });
-    };
-
-    const clearFilters = () => {
-        setEventType("");
-        setFromDate("");
-        setToDate("");
-        setPage(0);
-        setAppliedFilters({ eventType: "", fromDate: "", toDate: "" });
-    };
-
-    const runVerify = async () => {
-        setVerifying(true);
-        setVerifyError(null);
-        setVerifyResult(null);
-        try {
-            const result = await verifyAuditChain();
-            setVerifyResult(result);
-        } catch (err) {
-            setVerifyError(err instanceof Error ? err.message : "Failed to verify audit chain");
-        } finally {
-            setVerifying(false);
-        }
-    };
-
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-semibold text-ink">Audit Log</h2>
-                    <p className="text-sm text-ink-subtle">
-                        Tamper-evident record of security-relevant events.
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => fetchData(true)}
-                        disabled={refreshing}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink disabled:opacity-50"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                        Refresh
-                    </button>
-                    <button
-                        onClick={runVerify}
-                        disabled={verifying}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
-                    >
-                        {verifying ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <ShieldCheck className="w-4 h-4" />
-                        )}
-                        Verify chain
-                    </button>
-                </div>
-            </div>
-
-            {/* Verify result / error */}
-            {verifyError && (
-                <div className="flex items-center gap-3 p-4 border border-red-200 rounded-lg bg-red-50">
-                    <AlertCircle className="flex-shrink-0 w-5 h-5 text-red-500" />
-                    <p className="text-sm text-red-700">{verifyError}</p>
-                </div>
-            )}
-            {verifyResult && <VerifyBanner result={verifyResult} />}
-
-            {/* Filters */}
-            <form
-                onSubmit={applyFilters}
-                className="flex flex-wrap items-end gap-3 p-4 bg-surface-raised border border-line rounded-lg"
+  return (
+    <Page>
+      <PageHeader
+        title="Audit log"
+        description="Tamper-evident record of security-relevant events."
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              icon={<RefreshCw className={`h-4 w-4 ${events.isFetching ? "animate-spin" : ""}`} />}
+              onClick={() => void events.refetch()}
+              disabled={events.isFetching}
             >
-                <div className="flex flex-col gap-1">
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-ink-subtle">
-                        <Filter className="w-3.5 h-3.5" />
-                        Event type
-                    </label>
-                    <input
-                        type="text"
-                        value={eventType}
-                        onChange={(e) => setEventType(e.target.value)}
-                        placeholder="e.g. execution.requested"
-                        className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-ink-subtle">From</label>
-                    <input
-                        type="datetime-local"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-ink-subtle">To</label>
-                    <input
-                        type="datetime-local"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        className="border border-line-strong rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                    />
-                </div>
-                <button
-                    type="submit"
-                    className="px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-gray-800 hover:bg-gray-900"
-                >
-                    Apply
-                </button>
-                <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink"
-                >
-                    Clear
-                </button>
-            </form>
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              icon={<ShieldCheck className="h-4 w-4" />}
+              loading={verify.isPending}
+              onClick={() => verify.mutate()}
+            >
+              Verify chain
+            </Button>
+          </>
+        }
+      />
 
-            {/* Error */}
-            {error && (
-                <div className="flex items-center gap-3 p-4 border border-red-200 rounded-lg bg-red-50">
-                    <AlertCircle className="flex-shrink-0 w-5 h-5 text-red-500" />
-                    <p className="text-sm text-red-700">{error}</p>
-                </div>
-            )}
+      {verify.isError && (
+        <Alert className="mb-4" onDismiss={() => verify.reset()}>
+          {errorMessage(verify.error, "Failed to verify the audit chain")}
+        </Alert>
+      )}
+      {result &&
+        (result.valid ? (
+          <Alert tone="success" className="mb-4" title="Hash chain verified" onDismiss={() => verify.reset()}>
+            {pluralize(result.events_checked, "event")} checked. No tampering detected.
+          </Alert>
+        ) : (
+          <Alert className="mb-4" title="Hash chain verification failed" onDismiss={() => verify.reset()}>
+            {result.error || "The audit chain is inconsistent."} ({pluralize(result.events_checked, "event")} checked.)
+          </Alert>
+        ))}
 
-            {/* Table */}
-            {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-                </div>
-            ) : events.length === 0 ? (
-                <div className="p-8 text-center bg-surface-raised border border-line rounded-lg">
-                    <ShieldCheck className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
-                    <p className="text-ink-subtle">No audit events found</p>
-                </div>
-            ) : (
-                <div className="overflow-hidden bg-surface-raised border border-line rounded-lg">
-                    <table className="min-w-full divide-y divide-line">
-                        <thead className="bg-surface-sunken">
-                            <tr>
-                                <th className="w-8 px-4 py-3" />
-                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
-                                    Timestamp
-                                </th>
-                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
-                                    Event
-                                </th>
-                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
-                                    Actor
-                                </th>
-                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
-                                    Client IP
-                                </th>
-                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-ink-subtle uppercase">
-                                    Hash
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-surface-raised divide-y divide-line">
-                            {events.map((event) => (
-                                <AuditRow key={event.id} event={event} />
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Pagination */}
-            {!loading && totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-line">
-                    <p className="text-sm text-ink-subtle">
-                        Page {page + 1} of {totalPages} ({total} events)
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setPage((p) => Math.max(0, p - 1))}
-                            disabled={page === 0}
-                            className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                            disabled={page >= totalPages - 1}
-                            className="p-2 border border-line rounded hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
+      <form
+        onSubmit={applyFilters}
+        aria-label="Filter audit events"
+        className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface-raised p-4"
+      >
+        <Field label="Event type" className="w-full sm:w-64">
+          <Input
+            value={draft.eventType}
+            onChange={(e) => setDraft({ ...draft, eventType: e.target.value })}
+            placeholder="e.g. execution.requested"
+          />
+        </Field>
+        <Field label="From" className="w-full sm:w-auto">
+          <Input
+            type="datetime-local"
+            value={draft.fromDate}
+            onChange={(e) => setDraft({ ...draft, fromDate: e.target.value })}
+          />
+        </Field>
+        <Field label="To" className="w-full sm:w-auto">
+          <Input
+            type="datetime-local"
+            value={draft.toDate}
+            onChange={(e) => setDraft({ ...draft, toDate: e.target.value })}
+          />
+        </Field>
+        <div className="flex gap-2">
+          <Button type="submit" variant="primary">
+            Apply
+          </Button>
+          <Button variant="ghost" onClick={clearFilters}>
+            Clear
+          </Button>
         </div>
-    );
+      </form>
+
+      {events.isPending ? (
+        <LoadingState label="Loading audit events..." />
+      ) : events.isError && !events.data ? (
+        <ErrorState title="Could not load audit events" message={errorMessage(events.error)} onRetry={() => void events.refetch()} />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={ShieldCheck}
+          title="No audit events found"
+          description={
+            applied.eventType || applied.fromDate || applied.toDate
+              ? "Try widening the filters."
+              : "Security events, such as a server requesting access for a run, appear here as they happen."
+          }
+          className="rounded-xl border border-line bg-surface-raised"
+        />
+      ) : (
+        <>
+          <Table>
+            <THead>
+              <tr>
+                <Th className="w-10">
+                  <span className="sr-only">Details</span>
+                </Th>
+                <Th>Time</Th>
+                <Th>Event</Th>
+                <Th>Actor</Th>
+                <Th className="hidden md:table-cell">Client IP</Th>
+                <Th className="hidden lg:table-cell">Hash</Th>
+              </tr>
+            </THead>
+            <TBody>
+              {rows.map((event) => (
+                <AuditRow key={event.id} event={event} />
+              ))}
+            </TBody>
+          </Table>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={events.data?.total ?? 0} onPageChange={setPage} noun="events" />
+        </>
+      )}
+    </Page>
+  );
 }

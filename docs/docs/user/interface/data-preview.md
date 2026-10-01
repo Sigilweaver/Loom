@@ -1,58 +1,63 @@
 ---
 sidebar_position: 5
+title: Data Preview
 ---
 
 # Data Preview
 
-The data preview panel at the bottom of the workspace lets you inspect data at any point in your workflow.
+The bottom pane lets you look at your data at any wire. It opens when you preview a socket, and you can close it with the `x` in its header.
 
-## Opening the Panel
+## Previewing a socket
 
-The bottom panel can be toggled and has three tabs:
+Do any of these:
 
-- **Data Preview**: View data from selected tool outputs
-- **Logs**: View execution logs
-- **Network**: View API request/response activity
+- Click a socket on a tool.
+- Right-click a socket and choose **Preview Data**.
+- Select a tool and click one of the socket buttons in the pane's left column.
 
-## Previewing Data
+Studio runs the workflow up to that socket and shows the first rows. This does not write files. The number of rows comes from **Settings > Execution > Preview Rows** (default 100). The Server also enforces its own limit, `MAX_PREVIEW_ROWS` (default 10,000).
 
-### Selecting an Output Socket
+**Validate** in the header checks the workflow without running it. Unconnected inputs, loops and missing required settings appear in the **Problems** tab of this pane. Validation is advisory and never blocks Run.
 
-When a tool is selected, the left sidebar shows available output sockets:
+**Preview All** in the header evaluates the workflow and loads previews for its tools at once. It skips Write tools, so it does not create or overwrite output files. Use **Run** to write outputs.
 
-1. Select a tool on the canvas
-2. Click on an output socket tab in the sidebar (e.g., `output`, `T`, `F`)
-3. Click "Preview" or wait for automatic preview
+## Tabs
 
-### Data Table
+| Tab                | Shows                                                       |
+| ------------------ | ----------------------------------------------------------- |
+| **Data Preview**   | A table of the sampled rows and their column types.         |
+| **Data Profile**   | Per-column statistics and data-quality checks.              |
+| **Workflow Logs**  | Messages from the last run: progress, timings and errors.   |
+| **Network Logs**   | Requests Studio made to the Server.                         |
 
-The preview shows data in a scrollable table:
+### Socket buttons
 
-- **Columns**: Show column names and inferred types
-- **Rows**: First N rows of the dataset (limited for performance)
-- **Scrolling**: Horizontal and vertical scrolling for large datasets
+Data Preview and Data Profile have a column of buttons for the selected tool. **Inputs** lists connected input sockets and **Outputs** lists every output. Tools with several outputs use these labels:
 
-### Limitations
+| Tool   | Output buttons                                        |
+| ------ | ----------------------------------------------------- |
+| Filter | True, False                                           |
+| Unique | U (unique rows), D (duplicate rows)                   |
+| Join   | Left Out, Join Out, Right Out                         |
+| Others | Output                                                |
 
-- Preview fetches a **limited sample** of rows (typically 100-1000)
-- Large datasets are not fully loaded into memory
-- Some operations may require executing upstream tools first
+## Working with the table
 
-## Socket Tabs
+- Click a column header to sort the sample ascending, then descending, then clear. This sorts only what you see, not the workflow.
+- Drag to select cells. Arrow keys move the selection, and `Shift` with a click or arrow key extends it. Click a header to select a column. `Ctrl+A` selects everything and `Esc` clears the selection.
+- `Ctrl+C` copies the selection with headers. `Ctrl+Shift+C` copies without headers. With nothing selected, the **Copy All** buttons copy the whole sample. Copies are tab-separated, so they paste into a spreadsheet.
+- Double-click a cell to copy its value. Long values are shortened in the table.
 
-For tools with multiple outputs (like Filter with T/F or Join with L/J/R), tabs let you switch between outputs:
+## Data Profile
 
-| Tool | Output Tabs |
-|------|-------------|
-| Filter | `T` (matching rows), `F` (non-matching rows) |
-| Join | `L` (unmatched left), `J` (matched), `R` (unmatched right) |
-| Unique | `U` (unique rows), `D` (duplicate rows) |
-| Other tools | Single `output` tab |
+Profile a socket by right-clicking it and choosing **Profile Data**. The Server computes statistics over the **full** data, not the preview sample, so it can take time on large inputs.
 
-## Resizing the Panel
+For each column the profile shows counts of OK, blank, issue and null values. It also shows, depending on the type, the most frequent values, smallest and largest values, aggregate statistics, and issue details such as leading or trailing whitespace, line breaks and non-ASCII characters.
 
-Drag the top edge of the panel to resize it vertically. The panel remembers your preferred height.
+## Refreshing stale data
 
-## Closing the Panel
+Studio reuses earlier previews while the workflow is unchanged. If a source changed outside Loom, open the arrow next to **Preview All** and choose **Bypass Cache** or **Clear Backend Cache**. See [Performance and Caching](./caching.md).
 
-Click the `×` button in the panel header to close it.
+## Resizing
+
+Drag the top edge of the pane to change its height.

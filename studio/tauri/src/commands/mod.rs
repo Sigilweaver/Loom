@@ -5,4 +5,5 @@
 pub mod backend;
 pub mod credentials;
 pub mod files;
+pub mod proxy;
 pub mod settings;

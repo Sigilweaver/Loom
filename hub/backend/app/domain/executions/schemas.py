@@ -4,8 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field  # noqa: I001
-
+from pydantic import BaseModel, Field
 
 # =============================================================================
 # Execution Report Schemas (Server -> Hub)
@@ -112,3 +111,5 @@ class AuditChainVerifyResponse(BaseModel):
     first_event_id: str | None
     last_event_id: str | None
     error: str | None = None
+    legacy_events: int = 0
+    warning: str | None = None

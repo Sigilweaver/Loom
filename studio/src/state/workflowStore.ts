@@ -5,15 +5,11 @@ import {
   Wire,
   WorkflowMeta,
 } from "@domain/workflow/entities/workflow";
-import { wouldCreateCycle } from "@domain/workflow/services/loopDetection";
-import { getThemeColor } from "@utils/themeColors";
-import { Edge } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { createLogger } from "@utils/logger";
-import { useSettingsStore } from "./settingsStore";
 import { invalidateTool, invalidateWireChange } from "../api/cache";
 
 /**
@@ -24,16 +20,14 @@ interface WorkflowState {
   // State
   tools: Tool[];
   wires: Wire[];
-  edges: Edge[];
   workflowMeta: WorkflowMeta;
   selectedTool: Tool | null;
 
-  // Legacy actions (kept for backward compatibility during migration)
-  setEdges: (edges: Edge[]) => void;
+  // Selection and local (non-history) updates
   setSelectedTool: (tool: Tool | null) => void;
   updateToolPositionLocal: (toolId: string, x: number, y: number) => void;
 
-  // NEW: Tool CRUD operations
+  // Tool CRUD operations
   addTool: (tool: Tool) => void;
   removeTool: (toolId: string) => void;
   updateTool: (toolId: string, updates: Partial<Omit<Tool, "id">>) => void;
@@ -44,100 +38,37 @@ interface WorkflowState {
     updates: Array<{ id: string; x: number; y: number }>
   ) => void;
 
-  // NEW: Wire CRUD operations
+  // Wire CRUD operations
   addWire: (wire: Wire) => { success: boolean; error?: string | undefined };
   removeWire: (from: Wire["from"], to: Wire["to"]) => void;
   removeWiresByTool: (toolId: string) => void;
 
-  // NEW: Batch operations
+  // Batch operations
   batchAddToolsAndWires: (tools: Tool[], wires: Wire[]) => void;
 
-  // NEW: Metadata operations
+  // Metadata operations
   updateWorkflowMeta: (
     meta: Partial<Pick<WorkflowMeta, "name" | "description" | "author">>
   ) => void;
 
-  // NEW: Lifecycle operations
+  // Lifecycle operations
   newWorkflow: (meta?: Partial<WorkflowMeta>) => void;
   loadWorkflow: (tools: Tool[], wires: Wire[], meta: WorkflowMeta) => void;
   clear: () => void;
 
-  // NEW: Validation
+  // Validation
   validateWire: (wire: Wire) => { valid: boolean; error?: string };
-
-  // NEW: Edge synchronization
-  syncEdges: () => void;
 }
 
 const createDefaultMeta = (): WorkflowMeta => {
-  // Use persistent author from settings store if available
-  const getAuthor = () => {
-    try {
-      return useSettingsStore.getState().author || 'User';
-    } catch {
-      return 'User';
-    }
-  };
-
   return {
     name: "New Workflow",
     description: "A new workflow",
-    author: getAuthor(),
+    // Tab creation supplies the persistent author; this store only holds data.
+    author: 'User',
     workflowId: uuidv4(),
     created: new Date().toISOString(),
     defaultEngine: DEFAULT_ENGINE,
-  };
-};
-
-// Helper to create edge from wire
-const createEdgeFromWire = (wire: Wire, tools: Tool[], wires: Wire[]): Edge => {
-  // Get edge style from settings
-  // Map settings value to xyflow edge type: bezier -> 'default', others map 1:1
-  const edgeStyle = useSettingsStore.getState().ui.edgeStyle;
-  const edgeType = edgeStyle === 'bezier' ? 'default' : edgeStyle;
-  
-  // For smoothstep, use increased border radius for smoother corners
-  const pathOptions = edgeStyle === 'smoothstep' ? { borderRadius: 20 } : undefined;
-
-  const existingWires = wires.filter(
-    (w) =>
-      !(
-        w.from.tool === wire.from.tool &&
-        w.from.socket === wire.from.socket &&
-        w.to.tool === wire.to.tool &&
-        w.to.socket === wire.to.socket
-      )
-  );
-
-  const wouldLoop = wouldCreateCycle(
-    tools,
-    existingWires,
-    wire.from.tool,
-    wire.to.tool
-  );
-  const strokeColor = wouldLoop
-    ? getThemeColor("--color-edge-invalid-stroke")
-    : getThemeColor("--color-edge-default-stroke");
-
-  return {
-    id: `${encodeURIComponent(wire.from.tool)}_${wire.from.socket}_${encodeURIComponent(wire.to.tool)}_${wire.to.socket}`,
-    source: wire.from.tool,
-    target: wire.to.tool,
-    sourceHandle: `output-${wire.from.socket}`,
-    targetHandle: `input-${wire.to.socket}`,
-    type: edgeType,
-    ...(pathOptions && { pathOptions }),
-    style: {
-      stroke: strokeColor,
-      strokeWidth: 2,
-      strokeDasharray: wouldLoop ? "5,5" : undefined,
-      cursor: "pointer",
-    },
-    data: { isError: wouldLoop, errorType: wouldLoop ? "cycle" : undefined },
-    deletable: true,
-    selectable: true,
-    focusable: true,
-    animated: wouldLoop,
   };
 };
 
@@ -149,16 +80,10 @@ export const useWorkflowStore = create<WorkflowState>()(
       // Initial state
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: createDefaultMeta(),
       selectedTool: null,
 
-      // Legacy actions (kept for backward compatibility)
-      setEdges: (edges) =>
-        set((state) => {
-          state.edges = edges;
-        }),
-
+      // Selection and local (non-history) updates
       setSelectedTool: (selectedTool) =>
         set((state) => {
           state.selectedTool = selectedTool;
@@ -173,12 +98,11 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
         }),
 
-      // NEW: Tool CRUD operations
+      // Tool CRUD operations
       addTool: (tool) => {
         set((state) => {
           state.tools.push(tool);
         });
-        get().syncEdges();
       },
 
       removeTool: (toolId) => {
@@ -191,7 +115,6 @@ export const useWorkflowStore = create<WorkflowState>()(
             state.selectedTool = null;
           }
         });
-        get().syncEdges();
       },
 
       updateTool: (toolId, updates) =>
@@ -255,7 +178,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           });
         }),
 
-      // NEW: Wire CRUD operations
+      // Wire CRUD operations
       addWire: (wire) => {
         const validation = get().validateWire(wire);
         if (!validation.valid) {
@@ -269,8 +192,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         // Invalidate cache for affected tool and downstream in this workflow
         const workflowId = get().workflowMeta.workflowId;
         invalidateWireChange(wire.to.tool, get().wires, workflowId);
-        
-        get().syncEdges();
+
         return { success: true };
       },
 
@@ -301,8 +223,6 @@ export const useWorkflowStore = create<WorkflowState>()(
           const workflowId = get().workflowMeta.workflowId;
           invalidateWireChange(wireToRemove.to.tool, get().wires, workflowId);
         }
-        
-        get().syncEdges();
       },
 
       removeWiresByTool: (toolId) => {
@@ -311,33 +231,30 @@ export const useWorkflowStore = create<WorkflowState>()(
             (w) => w.from.tool !== toolId && w.to.tool !== toolId
           );
         });
-        get().syncEdges();
       },
 
-      // NEW: Batch operations
+      // Batch operations
       batchAddToolsAndWires: (tools, wires) => {
         set((state) => {
           state.tools.push(...tools);
           state.wires.push(...wires);
         });
-        get().syncEdges();
       },
 
-      // NEW: Metadata operations
+      // Metadata operations
       updateWorkflowMeta: (meta) =>
         set((state) => {
           logger.debug("Updating workflow metadata:", meta.name || '(name unchanged)');
           Object.assign(state.workflowMeta, meta);
         }),
 
-      // NEW: Lifecycle operations
+      // Lifecycle operations
       newWorkflow: (meta) => {
         set((state) => {
           state.tools = [];
           state.wires = [];
           state.workflowMeta = { ...createDefaultMeta(), ...meta };
           state.selectedTool = null;
-          state.edges = [];
         });
       },
 
@@ -349,7 +266,6 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.workflowMeta = meta;
           state.selectedTool = null;
         });
-        get().syncEdges();
       },
 
       clear: () =>
@@ -357,10 +273,9 @@ export const useWorkflowStore = create<WorkflowState>()(
           state.tools = [];
           state.wires = [];
           state.selectedTool = null;
-          state.edges = [];
         }),
 
-      // NEW: Validation
+      // Validation
       validateWire: (wire) => {
         const { tools, wires } = get();
 
@@ -410,15 +325,6 @@ export const useWorkflowStore = create<WorkflowState>()(
 
         return { valid: true };
       },
-
-      // NEW: Edge synchronization
-      syncEdges: () =>
-        set((state) => {
-          const { tools, wires } = get();
-          state.edges = wires.map((wire) =>
-            createEdgeFromWire(wire, tools, wires)
-          );
-        }),
     }))
   )
 );
@@ -426,7 +332,6 @@ export const useWorkflowStore = create<WorkflowState>()(
 // Selector hooks for optimized subscriptions
 export const useTools = () => useWorkflowStore((state) => state.tools);
 export const useWires = () => useWorkflowStore((state) => state.wires);
-export const useEdges = () => useWorkflowStore((state) => state.edges);
 export const useWorkflowMeta = () =>
   useWorkflowStore((state) => state.workflowMeta);
 export const useSelectedTool = () =>

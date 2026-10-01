@@ -8,6 +8,7 @@ import hashlib
 import tempfile
 
 import pytest
+
 from app.domain.artifacts.service import serialize_rows_to_csv
 from app.domain.artifacts.store import (
     ArtifactCorruptedError,

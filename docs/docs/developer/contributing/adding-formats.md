@@ -24,7 +24,7 @@ factories derive their type lists, extension map, and loaders from
 | Studio | `domain/dataSources/<fmt>Input.ts` | Front-end data-source descriptor |
 | Studio | `components/config/inout/<Fmt>Configuration.tsx` | Config panel UI |
 | Studio | `components/config/inout/DataSourceSelector.tsx` | Picker entry |
-| Studio | `components/LeftPane.tsx` | Wiring the config panel |
+| Studio | `components/config/inout/SourceConfigurationPanel.tsx` | Wiring the config panel |
 | Studio | `data/toolConfigSchemas.ts` | Config schema/enum |
 | Studio | `ai/prompts/system.ts` | Tell the agent the format exists |
 
@@ -98,7 +98,7 @@ Mirror the format on the front end. Use the QVD files as templates:
    label, options).
 2. `components/config/inout/<Fmt>Configuration.tsx` - the options panel.
 3. `components/config/inout/DataSourceSelector.tsx` - add the picker entry.
-4. `components/LeftPane.tsx` - render the configuration panel for the type.
+4. `components/config/inout/SourceConfigurationPanel.tsx` - render the configuration panel for the type.
 5. `data/toolConfigSchemas.ts` - add the config schema / enum value.
 6. `ai/prompts/system.ts` - mention the format so the agent can suggest it.
 
@@ -119,5 +119,5 @@ for the pattern):
 - [ ] `FormatDescriptor` added to `FILE_FORMATS` in `domain/registry.py`
 - [ ] Loader: `LoaderSpec` **or** custom loader bound in `LoaderFactory._LOADER_CLASSES` (with `special_loader=True`)
 - [ ] `tests/test_reader_parity.py` passes
-- [ ] Studio descriptor, config panel, selector, LeftPane, schema, AI prompt
+- [ ] Studio descriptor, config panel, selector, SourceConfigurationPanel, schema, AI prompt
 - [ ] Docs and CHANGELOG updated

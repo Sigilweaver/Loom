@@ -3,11 +3,6 @@ name: Build Server
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      python-version:
-        required: false
-        type: string
-        default: "3.13"
 
 jobs:
   build-server:

@@ -37,37 +37,37 @@ bun run test:integration
 
 ```
 studio/src/
-├── __tests__/
-│   └── type-contracts.test.ts      # Studio/Server contract tests
-├── domain/
-│   └── workflow/
-│       └── services/
-│           └── __tests__/
-│               ├── WorkflowSerializer.test.ts
-│               └── loopDetection.test.ts
-├── state/
-│   └── __tests__/
-│       ├── workflowStore.test.ts
-│       ├── historyStore.test.ts
-│       └── store-integration.test.ts
-├── hooks/
-│   └── __tests__/
-│       └── useToolConfiguration.test.ts
-├── utils/
-│   └── __tests__/
-│       ├── id.test.ts
-│       └── alignDistribute.test.ts
-├── components/
-│   ├── __tests__/
-│   │   ├── FilterConfiguration.test.tsx
-│   │   └── FormulaConfiguration.test.tsx
-│   └── primitives/
-│       └── __tests__/
-│           ├── ConfigText.test.tsx
-│           └── ConfigSelect.test.tsx
-└── api/
-    └── __tests__/
-        └── backend.test.ts
+|-- __tests__/
+|   `-- type-contracts.test.ts      # Studio/Server contract tests
+|-- domain/
+|   `-- workflow/
+|       `-- services/
+|           `-- __tests__/
+|               |-- WorkflowSerializer.test.ts
+|               `-- loopDetection.test.ts
+|-- state/
+|   `-- __tests__/
+|       |-- workflowStore.test.ts
+|       |-- historyStore.test.ts
+|       `-- store-integration.test.ts
+|-- hooks/
+|   `-- __tests__/
+|       `-- useToolConfiguration.test.ts
+|-- utils/
+|   `-- __tests__/
+|       |-- id.test.ts
+|       `-- alignDistribute.test.ts
+|-- components/
+|   |-- __tests__/
+|   |   |-- FilterConfiguration.test.tsx
+|   |   `-- FormulaConfiguration.test.tsx
+|   `-- primitives/
+|       `-- __tests__/
+|           |-- ConfigText.test.tsx
+|           `-- ConfigSelect.test.tsx
+`-- api/
+    `-- __tests__/
+        `-- backend.test.ts
 ```
 
 Tests live next to what they test, in `__tests__` directories.

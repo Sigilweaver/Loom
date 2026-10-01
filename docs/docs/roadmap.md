@@ -1,131 +1,96 @@
 ---
 sidebar_position: 10
+title: Roadmap
 ---
 
 # Roadmap
 
-Strategic direction and planned features for the Sigilweaver Loom platform.
+Where Sigilweaver Loom stands today and what stands between it and a 1.0 release.
 
----
+This page does not promise dates. Items move as the project learns what matters. The [CHANGELOG](https://github.com/Sigilweaver/Loom/blob/main/CHANGELOG.md) is the record of what has shipped.
 
-## Current Status
+## Where things stand
 
-> **Pre-release software.** Sigilweaver Loom has not yet had a stable v1.0
-> release. This page previously said v1.0 had shipped; that was written
-> ahead of a launch target that slipped and was never corrected. Expect
-> breaking changes and rougher edges than the status table below implies
-> until v1.0 actually ships.
+Loom is **pre-1.0**. There has been no stable release yet, so expect breaking changes between versions and some rough edges. The 0.13 line is meant to be a solid base: consistent tooling, security hardening, honest documentation and a repeatable release process. Feature work builds on it.
 
-The core platform is feature-complete for most data transformation workflows, and development is focused on closing the remaining gaps to a stable v1.0.
+| Component         | Status     | Notes                                                                                      |
+| ----------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| Studio            | Beta       | 13 tools, tabs, undo/redo, themes, data preview and profiling, optional AI assistant.      |
+| Server            | Beta       | Lazy Polars execution, disk caching of blocking tools, Python code export, Hub integration. |
+| Desktop apps      | Beta       | Releases ship Electron builds in a Full (bundled Server) and a Client variant, plus a web build. Tauri builds exist but are not part of the release yet. Windows builds are code signed. macOS builds are not notarized and target x64. |
+| Docker deployment | Beta       | Compose files for Hub, Server and PostgreSQL with secret handling. Images are amd64 only.  |
+| Hub               | Open beta  | Users, roles, groups, shared connections, scheduling, audit log. See [Hub Open Beta](./admin/hub-beta.md) for the current limitations. |
 
-The primary, fully-supported way to use Sigilweaver Loom is the **desktop app with its bundled server** - no external infrastructure required. **Hub** and a standalone **Server** are entirely optional, for teams that want centralized storage, scheduling, and multi-user orchestration. Hub is currently in **open beta**.
+Beta here means the features work and are tested, but file formats, configuration keys and APIs may still change, and there are known gaps.
 
-### What Works Today
+## The path to 1.0
 
-| Component         | Status           | Notes                                       |
-| ----------------- | ---------------- | ------------------------------------------- |
-| Studio            | Production-ready | All core tools, theming, keyboard shortcuts |
-| Server            | Production-ready | Lazy execution, caching, Python export      |
-| Desktop Apps      | Production-ready | Bundled server, Electron and Tauri builds for all platforms |
-| Docker Deployment | Production-ready | Compose templates with secret management    |
-| Hub (optional)    | Open beta        | Multi-user orchestration, RBAC, scheduling  |
+Loom reaches 1.0 when these are true:
 
----
+1. **Stable contracts.** The `.swwf` workflow format, the Server API and the Hub `/api/v1` API have compatibility rules, and breaking changes come with a documented migration.
+2. **A security posture we can state plainly.** Expression evaluation, file access, connection credentials and Hub tokens have been reviewed, and the [Security Model](./admin/security.md) describes exactly what is and is not guaranteed.
+3. **Hub is dependable for teams.** Executions and schedules survive restarts, and Hub can run more than one replica.
+4. **Releases are boring.** Every platform build is produced by CI, checksummed and installable without workarounds.
+5. **The docs match the code.** Every tool, setting and environment variable is documented and checked before each release.
 
-## Near-Term Focus (Q1-Q2 2026)
+## Focus areas
+
+These are directions, roughly grouped. They are not ordered and not scheduled.
 
 ### Studio
 
-| Feature            | Description                                  | Priority |
-| ------------------ | -------------------------------------------- | -------- |
-| Theme Editor       | GUI for creating and modifying themes        | Medium   |
-| Workflow Templates | Pre-built workflow patterns for common tasks | Medium   |
-| Tool Search        | Quick-find for tools by name or function     | Low      |
+- Theme editor (a GUI for creating and editing themes)
+- Workflow templates for common tasks
+- Tool search in the palette
+- Incremental preview for very large datasets
+- UI for Hub features that exist only in the API today, such as workflow revisions and execution artifacts
 
 ### Server
 
-| Feature                    | Description                                    | Priority |
-| -------------------------- | ---------------------------------------------- | -------- |
-| Additional Connectors      | Native support for more databases and APIs     | High     |
-| New Tools: Fuzzy Join      | Approximate string matching for joins          | Medium   |
-| New Tools: Network Cluster | Graph-based clustering and community detection | Medium   |
-| New Tools: Python          | Execute arbitrary Python code in workflows     | Medium   |
-| Streaming Preview          | Incremental preview for large datasets         | Medium   |
+- More native database connectors
+- More tools. Ideas include fuzzy join, network clustering and a Python code tool. None of these has been designed yet.
+- Cloud storage sources (S3, GCS, Azure Blob)
+- Native ARM64 builds
 
-### Hub (optional, open beta)
+### Hub
 
-| Feature              | Description                                          | Priority |
-| -------------------- | --------------------------------------------------- | -------- |
-| Auditor Experience   | UI for browsing the audit log and verifying its hash chain | High     |
-| Execution Artifacts  | Store and retrieve workflow outputs from Hub        | High     |
-| Workflow Versioning  | Internal revision history with diff and rollback    | High     |
-| GUI Configuration    | Web-based server and connection management          | High     |
-| Per-User API Tokens  | Scoped tokens for automation                        | Medium   |
-| Execution Dashboard  | Real-time monitoring of running workflows           | Medium   |
-| Demo Instance        | Public read-only Hub for evaluation                 | Medium   |
+Hub is in open beta. The gaps that matter most:
 
-#### Deferred to v1.x
+- Durable execution runners. Records survive in PostgreSQL and stale runs are marked failed after restart, but Hub does not resume or retry the Server request.
+- Supported multi-replica deployment. Schedule dispatch already uses transactional database claims; live execution events still need a shared broker, and the default in-memory token store must be replaced.
+- A working Settings page in the admin area (it is a placeholder today)
+- Per-user API tokens for automation
+- OIDC and single sign-on
+- Notifications (email and webhooks) for execution status
 
-These were previously listed as near-term but are intentionally deferred so the
-roadmap reflects what is actually shipping:
+### Platform and release
 
-| Feature           | Description                                          | Notes                                    |
-| ----------------- | --------------------------------------------------- | ---------------------------------------- |
-| OIDC / SSO        | Single sign-on via external identity providers      | Scoping in progress; API tokens land first |
-| Git Remote Sync   | Sync Hub workflow revisions to an external Git remote | Builds on internal versioning           |
-| Notifications     | Email and webhook alerts for execution status       | Under consideration; not yet committed   |
+- Notarized macOS builds
+- Helm charts and a Kubernetes deployment guide
+- Broader testing on macOS and on Linux with X11
 
----
+## Already shipped
 
-## Medium-Term Focus (Q3-Q4 2026)
+Some items that earlier versions of this page listed as future work are in place:
 
-### Platform
+| Area   | Feature                                                                                       |
+| ------ | --------------------------------------------------------------------------------------------- |
+| Hub    | Audit log browser with hash-chain verification (Admin > Audit Log)                            |
+| Hub    | Workflow version history in the web app: list, diff, download and restore                     |
+| Hub    | Execution artifacts: outputs stored as CSV and downloadable through the API (API only, no UI) |
+| Hub    | Live execution updates over server-sent events                                                |
+| Hub    | Web-based management of servers, connections, users, groups and grant groups                  |
+| Studio | AI assistant with several model providers                                                    |
+| Studio | Data profiling and Python code export                                                         |
 
-| Feature             | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| Kubernetes Operator | Native CRDs for deploying Sigilweaver Loom at scale   |
-| Helm Charts         | Standardized deployment templates for Kubernetes |
-| ARM64 Builds        | Native support for Apple Silicon and ARM servers |
+## Long-term principles
 
-### Ecosystem
+- **Local first, cloud capable.** Loom runs wherever your data lives, including air-gapped networks.
+- **Code as truth.** A visual workflow can be exported as readable Polars code, so nothing is locked in.
+- **Open.** The whole suite is AGPL-3.0, with no paid tiers.
 
-| Feature           | Description                                  |
-| ----------------- | -------------------------------------------- |
-| API Connectors    | REST/GraphQL tool for fetching external data |
-| Cloud Storage     | Native S3, GCS, and Azure Blob support       |
-| Streaming Sources | Kafka and Redpanda connectors                |
+## Influence the roadmap
 
-### Intelligence
-
-| Feature            | Description                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| AI-Assisted Design | Natural language to workflow generation (optional, off by default, user-configured) |
-| Smart Suggestions  | Context-aware tool recommendations (optional, off by default, user-configured)      |
-| Data Quality Rules | Built-in validation and anomaly detection                                           |
-
----
-
-## Long-Term Vision
-
-### Local-First, Cloud-Capable
-Sigilweaver Loom is designed to run wherever your data lives. We will continue to prioritize on-premise and air-gapped deployment scenarios alongside cloud offerings.
-
-### Code as Truth
-Every visual workflow compiles to readable, executable Python. This transparency ensures auditability and eliminates vendor lock-in.
-
-### Open Ecosystem and Licensing
-The entire Sigilweaver Loom suite is **free for all users** under the AGPL-3.0 license. There are no paid tiers, premium features, or usage limits. The core platform will always remain open source.
-
----
-
-## How to Influence the Roadmap
-
-1. **GitHub Issues**: Feature requests and bug reports shape our priorities.
-2. **Community Discussions**: Participate in design discussions for major features.
-3. **Pull Requests**: Direct contributions are the fastest path to new features.
-
----
-
-## Version History
-
-For a detailed record of completed work, see `CHANGELOG.md` in the repository root.
+- Open or upvote a [GitHub issue](https://github.com/Sigilweaver/Loom/issues).
+- Join a [discussion](https://github.com/Sigilweaver/Loom/discussions) about a larger change before you build it.
+- Send a pull request. See the [Contributing Workflow](./developer/contributing/workflow.md).

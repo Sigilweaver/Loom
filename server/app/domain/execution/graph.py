@@ -2,7 +2,7 @@
 
 from collections import defaultdict, deque
 
-from app.api.models.workflow import Socket, Tool, Workflow
+from app.domain.models.workflow import Socket, Tool, Workflow
 from app.utils.errors import ValidationError
 
 
@@ -77,6 +77,22 @@ class ExecutionGraph:
             raise ValidationError("Workflow contains a cycle. Cannot determine execution order.")
 
         return result
+
+    def ancestors(self, tool_id: str) -> set[str]:
+        """Return the IDs of every tool that transitively feeds ``tool_id``.
+
+        The tool itself is not included. Tools that merely share a downstream
+        consumer with ``tool_id`` (sibling branches) are not ancestors.
+        """
+        seen: set[str] = set()
+        stack = list(self.dependencies.get(tool_id, []))
+        while stack:
+            current = stack.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            stack.extend(self.dependencies.get(current, []))
+        return seen
 
     def get_tool_inputs(self, tool_id: str) -> dict[str, list[tuple[str, str]]]:
         """

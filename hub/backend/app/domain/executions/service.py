@@ -5,15 +5,17 @@ and managing execution history.
 """
 
 import asyncio
+import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Execution, Server, Workflow
+from app.config import settings
+from app.db.models import Execution, Schedule, Server, User, Workflow
 from app.domain.executions.broker import execution_broker
 from app.domain.executions.models import (
     ExecutionInfo,
@@ -22,9 +24,63 @@ from app.domain.executions.models import (
     TriggerType,
 )
 from app.domain.servers.client import ServerClient, ServerError
+from app.domain.servers.selection import NoOnlineServerError, select_online_server
 from app.domain.workflows.store import WorkflowFileStore
 
 logger = logging.getLogger(__name__)
+
+# Seconds between heartbeat refreshes while a run is in progress.
+HEARTBEAT_INTERVAL_SECONDS = 15
+
+INTERRUPTED_MESSAGE = (
+    "Interrupted: the Hub stopped while this run was in progress; "
+    "outcome on the Server is unknown."
+)
+
+_ACTIVE_STATUSES = (ExecutionStatus.QUEUED.value, ExecutionStatus.RUNNING.value)
+
+# Strong references to runner tasks so they are not garbage-collected mid-run.
+_run_tasks: set["asyncio.Task[None]"] = set()
+
+
+async def sweep_stale_executions() -> int:
+    """Fail queued/running executions whose runner has stopped heartbeating.
+
+    A single conditional UPDATE, so it is safe to run on several replicas at
+    once. Returns the number of executions marked failed.
+    """
+    from app.db.database import async_session_maker
+
+    now = datetime.now(UTC)
+    cutoff = now - timedelta(seconds=settings.execution_stale_seconds)
+    last_seen = func.coalesce(
+        Execution.heartbeat_at, Execution.started_at, Execution.queued_at
+    )
+    async with async_session_maker() as db:
+        result = await db.execute(
+            update(Execution)
+            .where(Execution.status.in_(_ACTIVE_STATUSES), last_seen < cutoff)
+            .values(
+                status=ExecutionStatus.FAILED.value,
+                success=False,
+                error_message=INTERRUPTED_MESSAGE,
+                completed_at=now,
+            )
+            .returning(Execution.id)
+        )
+        count = len(result.all())
+        await db.commit()
+    if count:
+        logger.warning("Marked %d stale execution(s) as failed", count)
+    return count
+
+
+async def cancel_run_tasks() -> None:
+    """Cancel in-flight runner tasks (called on shutdown)."""
+    tasks = list(_run_tasks)
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class ExecutionServiceError(Exception):
@@ -77,8 +133,6 @@ class ExecutionService:
         """
         self.db = db
         self.file_store = file_store or WorkflowFileStore()
-        # Track server round-robin index
-        self._server_index = 0
 
     def _model_to_info(
         self,
@@ -168,20 +222,11 @@ class ExecutionService:
                 raise ServerNotFoundError(f"Server not found: {server_id}")
             return server
 
-        # Auto-select: get all online servers
-        result = await self.db.execute(
-            select(Server).where(Server.status == "online").order_by(Server.name)
-        )
-        servers = list(result.scalars().all())
-
-        if not servers:
-            raise NoAvailableServerError("No healthy servers available")
-
-        # Round-robin selection
-        server = servers[self._server_index % len(servers)]
-        self._server_index += 1
-
-        return server
+        # Auto-select: least-loaded online server (ties broken at random).
+        try:
+            return await select_online_server(self.db)
+        except NoOnlineServerError:
+            raise NoAvailableServerError("No healthy servers available") from None
 
     async def list_executions(
         self,
@@ -344,11 +389,33 @@ class ExecutionService:
         await self._publish_execution_event(execution, workflow.name, server.name)
 
         # Start async execution (fire and forget)
-        asyncio.create_task(
+        task = asyncio.create_task(
             self._run_execution(execution.id, workflow.id, workflow.name, server)
         )
+        _run_tasks.add(task)
+        task.add_done_callback(_run_tasks.discard)
 
         return self._model_to_info(execution, workflow.name, server.name)
+
+    async def _heartbeat_loop(self, execution_id: UUID) -> None:
+        """Refresh heartbeat_at while the run is queued/running."""
+        from app.db.database import async_session_maker
+
+        while True:
+            try:
+                async with async_session_maker() as db:
+                    await db.execute(
+                        update(Execution)
+                        .where(
+                            Execution.id == execution_id,
+                            Execution.status.in_(_ACTIVE_STATUSES),
+                        )
+                        .values(heartbeat_at=datetime.now(UTC))
+                    )
+                    await db.commit()
+            except Exception:
+                logger.exception("Heartbeat failed for execution %s", execution_id)
+            await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
     async def _run_execution(
         self,
@@ -357,7 +424,24 @@ class ExecutionService:
         workflow_name: str,
         server: Server,
     ) -> None:
-        """Run execution on server (background task).
+        """Run execution on server (background task) with a heartbeat."""
+        heartbeat = asyncio.create_task(self._heartbeat_loop(execution_id))
+        try:
+            await self._run_execution_body(
+                execution_id, workflow_id, workflow_name, server
+            )
+        finally:
+            heartbeat.cancel()
+            await asyncio.gather(heartbeat, return_exceptions=True)
+
+    async def _run_execution_body(
+        self,
+        execution_id: UUID,
+        workflow_id: UUID,
+        workflow_name: str,
+        server: Server,
+    ) -> None:
+        """Run execution on server.
 
         Updates execution status as it progresses.
         """
@@ -379,11 +463,9 @@ class ExecutionService:
                     )
                     return
 
-                # Parse workflow JSON for token generation
-                import json
-
+                # Fail fast on a corrupt workflow file before contacting the server.
                 try:
-                    workflow_json = json.loads(workflow_content.decode("utf-8"))
+                    json.loads(workflow_content.decode("utf-8"))
                 except json.JSONDecodeError as e:
                     await self._fail_execution(
                         db,
@@ -394,31 +476,73 @@ class ExecutionService:
                     )
                     return
 
-                # Generate server token for execution
+                # Run as the user who triggered the execution (or, for a
+                # schedule, the user who created it) so the Server's
+                # /internal/authorize check applies that user's grants.
+                run_as = await self._resolve_run_as_user_id(db, execution_id)
+                if run_as is None:
+                    await self._fail_execution(
+                        db,
+                        execution_id,
+                        "Cannot start execution: the user it runs as no longer exists.",
+                        workflow_name,
+                        server.name,
+                    )
+                    return
+
+                # Issue a single-use capability token for this execution. There
+                # is deliberately no fallback to the server's long-lived shared
+                # secret: if issuance fails the execution fails, rather than
+                # silently running with a credential that skips per-user
+                # authorization.
                 try:
                     issuer = get_issuer()
                     server_token = await issuer.issue_token(
-                        user_id="hub-system",  # Hub-triggered executions use system user
+                        user_id=str(run_as),
                         server=server,
                     )
-                    auth_token: str | None = server_token.token
-                except Exception as e:
-                    logger.warning(
-                        "Failed to issue server token, using server auth_token: %s", e
+                except Exception:
+                    logger.exception(
+                        "Failed to issue capability token for execution %s on server %s",
+                        execution_id,
+                        server.name,
                     )
-                    auth_token = server.auth_token
+                    await self._fail_execution(
+                        db,
+                        execution_id,
+                        f"Could not issue an authorization token for server "
+                        f"'{server.name}'; the execution was not sent to the server.",
+                        workflow_name,
+                        server.name,
+                    )
+                    return
 
-                # Update to running
+                # Re-read under a lock before starting. Cancellation or the
+                # stale sweep may have made this execution terminal while
+                # the workflow and capability token were being prepared.
                 result = await db.execute(
-                    select(Execution).where(Execution.id == execution_id)
+                    select(Execution)
+                    .where(Execution.id == execution_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
                 execution = result.scalar_one_or_none()
                 if not execution:
                     logger.error("Execution %s not found", execution_id)
                     return
 
+                if execution.status != ExecutionStatus.QUEUED.value:
+                    logger.info(
+                        "Execution %s already %s; discarding start request",
+                        execution_id,
+                        execution.status,
+                    )
+                    await db.rollback()
+                    return
+
                 execution.status = ExecutionStatus.RUNNING.value
                 execution.started_at = datetime.now(UTC)
+                execution.heartbeat_at = execution.started_at
                 await db.commit()
 
                 # Announce the running transition.
@@ -427,15 +551,28 @@ class ExecutionService:
                 )
 
                 # Execute on server with the issued token
-                client = ServerClient(server.endpoint_url, auth_token)
+                client = ServerClient(server.endpoint_url, server_token.token)
                 exec_result = await client.execute(workflow_content)
 
-                # Update with result
+                # Update with result. Lock the row and re-read it so a
+                # cancellation (or sweep) that landed meanwhile is not
+                # overwritten by the runner's final status.
                 result = await db.execute(
-                    select(Execution).where(Execution.id == execution_id)
+                    select(Execution)
+                    .where(Execution.id == execution_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
                 execution = result.scalar_one_or_none()
                 if not execution:
+                    return
+                if execution.status not in _ACTIVE_STATUSES:
+                    await db.rollback()
+                    logger.info(
+                        "Execution %s already %s; discarding runner result",
+                        execution_id,
+                        execution.status,
+                    )
                     return
 
                 now = datetime.now(UTC)
@@ -491,6 +628,34 @@ class ExecutionService:
                     db, execution_id, str(e), workflow_name, server.name
                 )
 
+    async def _resolve_run_as_user_id(
+        self, db: AsyncSession, execution_id: UUID
+    ) -> UUID | None:
+        """Find the user an execution runs as.
+
+        Manual executions run as the user who triggered them. Scheduled
+        executions run as the user who created the schedule. Returns None if
+        that user no longer exists.
+        """
+        result = await db.execute(
+            select(Execution.trigger_type, Execution.triggered_by, Schedule.created_by)
+            .outerjoin(Schedule, Schedule.id == Execution.schedule_id)
+            .where(Execution.id == execution_id)
+        )
+        row = result.first()
+        if row is None:
+            return None
+        trigger_type, triggered_by, schedule_creator = row
+        if trigger_type == TriggerType.SCHEDULED.value:
+            username = schedule_creator
+        else:
+            username = triggered_by
+        if not username:
+            return None
+        user_id = await db.execute(select(User.id).where(User.username == username))
+        found: UUID | None = user_id.scalar_one_or_none()
+        return found
+
     async def _fail_execution(
         self,
         db: AsyncSession,
@@ -500,9 +665,16 @@ class ExecutionService:
         server_name: str,
     ) -> None:
         """Mark an execution as failed."""
-        result = await db.execute(select(Execution).where(Execution.id == execution_id))
+        result = await db.execute(
+            select(Execution)
+            .where(Execution.id == execution_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         execution = result.scalar_one_or_none()
-        if execution:
+        if execution and execution.status not in _ACTIVE_STATUSES:
+            await db.rollback()
+        elif execution:
             execution.status = ExecutionStatus.FAILED.value
             execution.success = False
             execution.error_message = error_message
@@ -528,7 +700,10 @@ class ExecutionService:
             ExecutionServiceError: If execution cannot be cancelled.
         """
         result = await self.db.execute(
-            select(Execution).where(Execution.id == execution_id)
+            select(Execution)
+            .where(Execution.id == execution_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         execution = result.scalar_one_or_none()
 
@@ -539,8 +714,10 @@ class ExecutionService:
             ExecutionStatus.QUEUED.value,
             ExecutionStatus.RUNNING.value,
         ):
+            status = execution.status
+            await self.db.rollback()
             raise ExecutionServiceError(
-                f"Cannot cancel execution in status: {execution.status}"
+                f"Cannot cancel execution in status: {status}"
             )
 
         # Mark as cancelled

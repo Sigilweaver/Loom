@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
@@ -23,6 +23,7 @@ from app.domain.auth.sessions import SessionManager
 from app.domain.auth.tokens import init_token_store
 from app.domain.capabilities import init_issuer
 from app.domain.connections.health_poller import connection_health_poller
+from app.domain.executions.service import cancel_run_tasks, sweep_stale_executions
 from app.domain.schedules.scheduler import get_scheduler
 from app.domain.servers.health_poller import health_poller
 from app.middleware.rate_limit import limiter
@@ -160,6 +161,26 @@ async def _session_cleanup_loop() -> None:
             logger.exception("Session cleanup database error")
 
 
+EXECUTION_SWEEP_INTERVAL_SECONDS = 60
+
+
+async def _execution_sweep_loop() -> None:
+    """Fail executions orphaned by a Hub restart or crash (now, then every 60s)."""
+    import asyncio
+
+    while True:
+        try:
+            await sweep_stale_executions()
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Execution sweep error")
+        try:
+            await asyncio.sleep(EXECUTION_SWEEP_INTERVAL_SECONDS)
+        except asyncio.CancelledError:
+            break
+
+
 _INSECURE_DEFAULT = "CHANGE_ME_IN_PRODUCTION"
 
 
@@ -188,6 +209,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Start session cleanup background task
     session_cleanup_task = asyncio.create_task(_session_cleanup_loop())
 
+    # Sweep executions left running by a previous Hub (runs once immediately,
+    # then periodically).
+    execution_sweep_task = asyncio.create_task(_execution_sweep_loop())
+
     yield
 
     logger.info("Sigilweaver Loom Hub shutting down...")
@@ -198,6 +223,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await session_cleanup_task
     except asyncio.CancelledError:
         pass
+
+    # Stop execution sweep and in-flight runner tasks
+    execution_sweep_task.cancel()
+    try:
+        await execution_sweep_task
+    except asyncio.CancelledError:
+        pass
+    await cancel_run_tasks()
 
     # Stop token store cleanup
     await token_store.stop()
@@ -232,7 +265,16 @@ application.add_middleware(
 
 # Rate limiting
 application.state.limiter = limiter
-application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+async def _handle_rate_limit_exceeded(request: Request, exc: Exception) -> Response:
+    """Return the 429 response (with Retry-After) for an exceeded rate limit."""
+    if not isinstance(exc, RateLimitExceeded):
+        raise exc
+    return _rate_limit_exceeded_handler(request, exc)
+
+
+application.add_exception_handler(RateLimitExceeded, _handle_rate_limit_exceeded)
 application.add_middleware(SlowAPIMiddleware)
 
 # Include API v1 routes

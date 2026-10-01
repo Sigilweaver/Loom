@@ -61,8 +61,8 @@ class ScheduleService:
             count_query = count_query.where(Schedule.workflow_id == workflow_id)
 
         if enabled_only:
-            query = query.where(Schedule.enabled == True)  # noqa: E712
-            count_query = count_query.where(Schedule.enabled == True)  # noqa: E712
+            query = query.where(Schedule.enabled.is_(True))
+            count_query = count_query.where(Schedule.enabled.is_(True))
 
         if created_by:
             query = query.where(Schedule.created_by == created_by)
@@ -144,12 +144,8 @@ class ScheduleService:
         self.db.add(schedule)
         await self.db.flush()
 
-        # Register with scheduler
-        scheduler = get_scheduler()
-        if scheduler.is_running:
-            scheduler.add_schedule(schedule)
-            # Get next trigger time from scheduler
-            schedule.next_trigger_at = scheduler.get_next_run_time(schedule.id)
+        now = (await self.db.execute(select(func.clock_timestamp()))).scalar_one()
+        get_scheduler().add_schedule(schedule, now)
 
         await self.db.commit()
 
@@ -168,7 +164,10 @@ class ScheduleService:
             ServerNotFoundError: If new server not found.
         """
         result = await self.db.execute(
-            select(Schedule).where(Schedule.id == schedule_id)
+            select(Schedule)
+            .where(Schedule.id == schedule_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         schedule = result.scalar_one_or_none()
 
@@ -194,11 +193,8 @@ class ScheduleService:
 
         schedule.updated_at = datetime.now(UTC)
 
-        # Update scheduler job
-        scheduler = get_scheduler()
-        if scheduler.is_running:
-            scheduler.add_schedule(schedule)
-            schedule.next_trigger_at = scheduler.get_next_run_time(schedule.id)
+        now = (await self.db.execute(select(func.clock_timestamp()))).scalar_one()
+        get_scheduler().add_schedule(schedule, now)
 
         await self.db.commit()
 
@@ -212,17 +208,15 @@ class ScheduleService:
             ScheduleNotFoundError: If schedule not found.
         """
         result = await self.db.execute(
-            select(Schedule).where(Schedule.id == schedule_id)
+            select(Schedule)
+            .where(Schedule.id == schedule_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         schedule = result.scalar_one_or_none()
 
         if not schedule:
             raise ScheduleNotFoundError(f"Schedule {schedule_id} not found")
-
-        # Remove from scheduler
-        scheduler = get_scheduler()
-        if scheduler.is_running:
-            scheduler.remove_schedule(schedule_id)
 
         await self.db.delete(schedule)
         await self.db.commit()
@@ -238,7 +232,10 @@ class ScheduleService:
             ScheduleNotFoundError: If schedule not found.
         """
         result = await self.db.execute(
-            select(Schedule).where(Schedule.id == schedule_id)
+            select(Schedule)
+            .where(Schedule.id == schedule_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         schedule = result.scalar_one_or_none()
 
@@ -248,15 +245,8 @@ class ScheduleService:
         schedule.enabled = enabled
         schedule.updated_at = datetime.now(UTC)
 
-        # Update scheduler job
-        scheduler = get_scheduler()
-        if scheduler.is_running:
-            if enabled:
-                scheduler.add_schedule(schedule)
-                schedule.next_trigger_at = scheduler.get_next_run_time(schedule.id)
-            else:
-                scheduler.remove_schedule(schedule_id)
-                schedule.next_trigger_at = None
+        now = (await self.db.execute(select(func.clock_timestamp()))).scalar_one()
+        get_scheduler().add_schedule(schedule, now)
 
         await self.db.commit()
 

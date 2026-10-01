@@ -7,6 +7,7 @@
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import { platform } from '@platform';
+import { backendFetch } from './backendFetch';
 import { getRuntimeLogActions, type RequestContext } from '../state/runtimeLogStore';
 import { createLogger } from '../utils/logger';
 
@@ -154,7 +155,7 @@ async function apiRequest<T>(
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await backendFetch(url, {
       ...options,
       headers: {
         ...headers,
@@ -448,6 +449,8 @@ export interface ProfileResponse {
   socket_id: string;
   row_count: number;
   column_count: number;
+  sampled?: boolean;
+  sample_limit?: number;
   columns: Record<string, ColumnProfile>;
 }
 
@@ -761,7 +764,7 @@ async function serverRequest<T>(
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await backendFetch(url, {
       ...options,
       headers: {
         ...headers,

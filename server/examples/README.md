@@ -1,6 +1,6 @@
-# Backend Examples
+# Server Examples
 
-This directory contains example scripts demonstrating how to use the Sigilweaver backend API.
+This directory contains example scripts demonstrating how to use the Sigilweaver Server API.
 
 ## Archive Usage Example
 
@@ -8,23 +8,24 @@ This directory contains example scripts demonstrating how to use the Sigilweaver
 
 ### Requirements
 
-```bash
-pip install requests
-```
+The script needs `requests`, which is not a dependency of the server. The command
+below pulls it in for the run without changing the project.
 
 ### Usage
 
-1. Start the backend server:
+1. Start the server (from the `server/` directory). Archiving is on by
+   default (`ARCHIVE_ENABLED=true`). Either disable auth for local use or note the
+   session token the server prints at startup:
 ```bash
-cd backend
-source .venv/bin/activate
-uvicorn app.main:app --reload
+cd server
+AUTH_MODE=disabled ARCHIVE_ENABLED=true PORT=25811 ./run.sh
 ```
 
-2. In another terminal, run the example:
+2. In another terminal, run the example (set `SESSION_TOKEN` if auth is enabled,
+   and `SERVER_URL` if the server is not on `http://localhost:25811`):
 ```bash
-cd backend
-python examples/archive_usage.py
+cd server
+uv run --with requests python examples/archive_usage.py
 ```
 
 ### What it demonstrates

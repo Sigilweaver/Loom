@@ -5,7 +5,7 @@ from typing import Any, Literal
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UniqueOperation
 from app.domain.tools.registry import register_tool
@@ -90,11 +90,17 @@ class UniqueTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """Execute unique operation, splitting into unique and duplicate outputs."""
         if UniqueSockets.INPUT not in inputs:
-            raise ToolError("Unique tool requires input on socket 'input'")
+            raise ToolError(
+                "Unique tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[UniqueSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Unique tool does not support multiple inputs")
+            raise ToolError(
+                "Unique tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         # Resolve column name casing against actual schema
@@ -122,11 +128,17 @@ class UniqueTool(BaseTool):
         Unique doesn't change schema, just splits rows.
         """
         if UniqueSockets.INPUT not in input_schemas:
-            raise ToolError("Unique tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Unique tool requires input schema on socket 'input'. Connect an upstream tool "
+                "to its 'input' socket."
+            )
 
         input_data = input_schemas[UniqueSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Unique tool does not support multiple input schemas")
+            raise ToolError(
+                "Unique tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         return {

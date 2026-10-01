@@ -130,25 +130,6 @@ class Filter(ExprNode):
         return normalize_expression(self.expr_str)
 
 
-@dataclass
-class WithColumns(ExprNode):
-    """Add/replace column with expression."""
-
-    expr_str: str  # Raw Polars expression string
-    alias: str
-
-    def to_polars(self) -> pl.Expr:
-        from app.utils.expression import parse_polars_expression
-
-        return parse_polars_expression(self.expr_str).alias(self.alias)
-
-    def to_code(self) -> str:
-        from app.utils.expression import normalize_expression
-
-        escaped = self.alias.replace("\\", "\\\\").replace('"', '\\"')
-        return f'{normalize_expression(self.expr_str)}.alias("{escaped}")'
-
-
 # Higher-level operation builders
 
 

@@ -91,6 +91,30 @@ class TestCacheAPIRoutes:
             data = response.json()
             assert data["status"] == "cache_disabled"
 
+    def test_legacy_workflow_cache_clear_path_matches_cache_clear(self, client, temp_cache_dir):
+        """/api/workflow/cache/clear (used by existing Studio builds) shares the implementation."""
+        import polars as pl
+
+        from app.domain.execution.cache import BlockingToolCache
+
+        with patch("app.api.routes.cache.settings") as mock_settings:
+            mock_settings.cache_enabled = True
+            mock_settings.cache_path = str(temp_cache_dir)
+            cache = BlockingToolCache(temp_cache_dir, "legacy-path")
+            cache.put("tool-1", "output", "key", pl.LazyFrame({"a": [1]}))
+
+            response = client.post("/api/workflow/cache/clear", json={"workflow_id": "legacy-path"})
+
+            assert response.status_code == 200
+            assert response.json() == {"status": "cleared", "workflow_id": "legacy-path"}
+            assert not cache.exists("tool-1", "output", "key")
+
+    def test_legacy_workflow_cache_clear_when_disabled(self, client):
+        with patch("app.api.routes.cache.settings") as mock_settings:
+            mock_settings.cache_enabled = False
+            response = client.post("/api/workflow/cache/clear", json={"workflow_id": "w"})
+        assert response.json() == {"status": "cache_disabled", "workflow_id": "w"}
+
     def test_close_workflow_cache_clears_when_enabled(self, client, temp_cache_dir):
         """Test close endpoint clears cache when setting is enabled."""
         import polars as pl

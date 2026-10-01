@@ -1,10 +1,17 @@
 ---
 sidebar_position: 1
+title: Read (Input)
+sidebar_label: Read
 ---
 
-# Input
+# Read (Input)
 
 Load data from files or databases into your workflow.
+
+| | |
+|---|---|
+| **Palette name** | Read (category Connect) |
+| **Type name** | `Input` |
 
 ## Sockets
 
@@ -16,7 +23,7 @@ Load data from files or databases into your workflow.
 
 ### CSV
 
-Comma-separated values and other delimited text files.
+Comma-separated values and other delimited text files (`.csv`, `.tsv`, `.tab`, `.txt`).
 
 **Reading Modes:**
 
@@ -173,7 +180,7 @@ OpenDocument Spreadsheet (.ods) files from LibreOffice and OpenOffice. Similar t
 
 **Reading Mode:**
 
-ODS files only support eager reading (the entire file is loaded into memory). Polars does not support lazy scanning or writing for ODS format - it is input-only.
+ODS files only support eager reading (the entire file is loaded into memory). Polars does not support lazy scanning or writing for ODS format - it is read-only.
 
 **ODS Options:**
 
@@ -196,19 +203,19 @@ ODS is ideal when:
 - Sharing data between open source office suites
 - Compatibility with government or academic systems using open formats
 
-**Note:** ODS is input-only - use Excel Output or convert to CSV/Parquet for saving data.
+**Note:** ODS is read-only. Use the Write tool with Excel, CSV or Parquet to save data.
 :::
 
 ### PostgreSQL
 
 Query data directly from PostgreSQL databases.
 
-**Connection Modes:**
+**Connections:**
 
-| Mode | Description | Best For |
+| Kind | Credentials | Best for |
 |------|-------------|----------|
-| **Client Connection** | Credentials stored on your local machine via Electron's secure storage | Personal databases, development |
-| **Server Connection** | Credentials managed by server administrator | Shared databases, team environments |
+| **Local (client) connection** | Stored on your machine in the operating system's credential store | Personal databases, development |
+| **Hub connection** | Managed by a Hub administrator and never shown to you | Shared databases, team environments |
 
 **PostgreSQL Options:**
 
@@ -219,14 +226,12 @@ Query data directly from PostgreSQL databases.
 
 **Setting Up Connections:**
 
-Connections are managed in **Settings > Connections**. See [Managing Connections](../../interface/connections) for details on creating and using database connections.
+Connections are managed in **Settings > Connections**. See [Managing Connections](../../interface/connections.md) for details on creating and using database connections.
 
 :::tip Security
-Credentials are never stored in workflow files. Whether using client or server connections:
-- **Client connections**: Only a connection ID is stored in the workflow
-- **Server connections**: The connection ID references server-managed credentials that are completely opaque to users
+Credentials are never stored in workflow files. The workflow keeps only a connection ID. When you export Python code or view the workflow JSON, credentials are stripped or replaced by placeholders.
 
-When you export Python code or view workflow JSON, credentials are stripped or represented only as references.
+Queries that contain write or DDL keywords (`INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE` and similar) are rejected. Treat that as a safety net and give the database user read-only permissions.
 :::
 
 :::note Lazy Evaluation
@@ -244,7 +249,7 @@ Query data directly from MySQL databases.
 | Connection | (required) | Select a configured database connection |
 | Query | (required) | SQL query to execute |
 
-Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections) for details.
+Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections.md) for details.
 
 ### SQLite
 
@@ -254,25 +259,25 @@ Query data from SQLite database files.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| Connection | (required) | Select a configured database connection |
+| Database file | (required) | Path to a `.db`, `.sqlite`, `.sqlite3` or `.db3` file |
 | Query | (required) | SQL query to execute |
 
-:::note SQLite Connections
-SQLite connections point to a `.db` or `.sqlite` file on disk rather than a remote server. The file must be accessible from where Sigilweaver Loom Server is running.
+:::note No connection needed
+SQLite is file-based, so you pick the file directly instead of creating a connection. The file must be readable from where the Server runs, and its path is checked against the Server's file access rules (and your Hub file grants) like any other file input.
 :::
 
-### MSSQL
+### SQL Server
 
-Query data from Microsoft SQL Server databases.
+Query data from Microsoft SQL Server databases. The type name is `mssql`.
 
-**MSSQL Options:**
+**SQL Server Options:**
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | Connection | (required) | Select a configured database connection |
 | Query | (required) | SQL query to execute |
 
-Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections) for details.
+Connection setup and security are the same as PostgreSQL. See [Managing Connections](../../interface/connections.md) for details.
 
 ### JSON
 
@@ -346,19 +351,19 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 
 ## Configuration
 
-1. Add an Input tool to the canvas
+1. Add a Read tool to the canvas
 2. Select the data source type:
    - **File sources**: CSV, Excel, Parquet, IPC/Arrow, Avro, ODS, JSON/NDJSON, YXDB, or QVD
-   - **Database sources**: PostgreSQL, MySQL, SQLite, or MSSQL
-3. For file sources, choose the file using the file picker
-4. For database sources, select a connection and write a SQL query
+   - **Database sources**: PostgreSQL, MySQL, SQLite, or SQL Server
+3. For file sources, choose the file with **Browse** (or **Remote** to browse the Server in External and Hub modes), or type the full path
+4. For PostgreSQL, MySQL and SQL Server, select a connection and write a SQL query. For SQLite, pick the file and write a query
 5. Configure format-specific options as needed
 
 ## Examples
 
 ### Loading a CSV
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "CSV" as the data source
 3. Click "Browse" and select your file
 4. Adjust separator if not comma-delimited
@@ -366,7 +371,7 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 
 ### Loading an Excel File
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "Excel" as the data source
 3. Click "Browse" and select your .xlsx, .xls, or .xlsb file
 4. Select the sheet to read (by number or name)
@@ -374,21 +379,21 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 
 ### Loading a Parquet
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "Parquet" as the data source
 3. Click "Browse" and select your file
 4. Wire the output to downstream tools
 
 ### Loading an IPC/Arrow File
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "IPC / Arrow" as the data source
 3. Click "Browse" and select your .arrow, .ipc, or .feather file
 4. Wire the output to downstream tools
 
 ### Loading an Avro File
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "Avro" as the data source
 3. Click "Browse" and select your .avro file
 4. Optionally limit rows with "Max Rows" option
@@ -396,7 +401,7 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 
 ### Loading an ODS File
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "ODS" as the data source
 3. Click "Browse" and select your .ods file
 4. Select the sheet to read (by number or name)
@@ -405,10 +410,10 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 
 ### Querying a PostgreSQL Database
 
-1. Drag Input tool to canvas
+1. Drag a Read tool onto the canvas
 2. Select "Database" as the data source category
 3. Select "PostgreSQL" as the database type
-4. Choose an existing connection or create one via Settings > Connections
+4. Choose an existing connection or create one in Settings > Connections
 5. Enter your SQL query
 6. Wire the output to downstream tools
 
@@ -420,8 +425,8 @@ QVD is the native storage format produced by QlikView and Qlik Sense. Values are
 - **NDJSON** (`.jsonl`, `.ndjson`) supports lazy scanning unlike standard `.json` files
 - **YXDB** is read using SigilYX's Rust core for high performance
 - **Avro** is best for interoperability with big data ecosystems (Hadoop, Kafka, Spark)
-- **ODS** is read-only in Sigilweaver Loom (Polars limitation) - use Excel Output or convert to other formats for saving
-- **All database types** (PostgreSQL, MySQL, SQLite, MSSQL) use the connectorx engine for high-performance reads
-- **Database credentials** are never stored in workflow files - only connection IDs are saved
-- **Schema inference** may not always be accurate - use Select to cast types if needed
+- **ODS** and **QVD** are read-only in Loom. Use a Write tool with Excel, CSV or another format to save
+- **All database types** (PostgreSQL, MySQL, SQLite, SQL Server) use the connectorx engine for high-performance reads
+- **Database credentials** are never stored in workflow files. Only connection IDs are saved
+- **Schema inference** may not always be accurate. Use the Schema tool to cast types if needed
 - **File paths** must be accessible from where Sigilweaver Loom is running

@@ -4,10 +4,12 @@
 
 | Version      | Supported |
 | ------------ | --------- |
-| v1.0.x       | Yes       |
-| < v1.0       | No        |
+| Latest 0.x release (until v1.0) | Yes |
+| Older 0.x releases              | No  |
 
-Only the latest release receives security updates.
+Loom has not reached v1.0 yet. Until it does, only the latest 0.x release
+receives security updates. Once v1.0 ships, the latest v1.x release will be
+supported.
 
 ## Reporting a Vulnerability
 

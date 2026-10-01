@@ -5,6 +5,13 @@
  * This ensures credentials are only passed to the backend at execution time,
  * never stored in workflow files.
  *
+ * Where the desktop shell owns the server (`capabilities.credentialProxy`),
+ * client connections are NOT resolved here: the workflow carries a
+ * `loom-connection://<id>` reference and `backendFetch` sends it through the
+ * shell, which injects the credentials. Plaintext credentials then never
+ * reach the renderer. Otherwise (Client build, dev, remote server) the
+ * credentials are resolved here as before.
+ *
  * Connection ownership:
  * - owner='client': Credentials stored locally, resolved here before sending to backend
  * - owner='hub': Credentials stored on Hub, resolved by Server during execution via Hub validation
@@ -15,45 +22,22 @@ import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerialize
 import type { Tool } from '../domain/workflow/entities/workflow';
 import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
 import { platform, hasSecureStorage } from '@platform';
+import { buildConnectionUri, connectionRef } from '../platform/connectionUri';
+import { useSettingsStore } from '../state/settingsStore';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ConnectionResolver');
 
 /**
- * Builds a connection URI from a resolved connection.
- *
- * URI formats by database type:
- * - PostgreSQL: postgresql://user:password@host:port/database
- * - MySQL: mysql://user:password@host:port/database
- * - SQLite: sqlite:///path/to/database.db (no credentials)
- * - SQL Server: mssql://user:password@host:port/database?encrypt=true&trust_server_certificate=true
- *
- * @param connection - The resolved connection with credentials
- * @returns Connection URI string
+ * Whether client connections should be sent as references for the shell to
+ * expand. Not possible in Hub mode: those requests go to a remote server the
+ * shell does not own, so it cannot (and must not) inject credentials there.
  */
-function buildConnectionUri(connection: ResolvedConnection): string {
-  // URL encode the password and username in case they contain special characters
-  const encodedPassword = encodeURIComponent(connection.password);
-  const encodedUsername = encodeURIComponent(connection.username);
-
-  switch (connection.type) {
-    case 'sqlite': {
-      // SQLite uses file path, no credentials needed
-      // The 'database' field contains the file path
-      const encodedPath = encodeURIComponent(connection.database).replace(/%2F/g, '/');
-      return `sqlite://${encodedPath}`;
-    }
-
-    case 'mssql':
-      // SQL Server requires specific parameters for secure connections
-      // encrypt=true: Use TLS encryption
-      // trust_server_certificate=true: Accept self-signed certs (common in dev)
-      return `mssql://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}?encrypt=true&trust_server_certificate=true`;
-
-    default:
-      // PostgreSQL and MySQL use standard format
-      return `${connection.type}://${encodedUsername}:${encodedPassword}@${connection.host}:${connection.port}/${connection.database}`;
-  }
+function shouldProxyCredentials(): boolean {
+  return (
+    platform.capabilities.credentialProxy === true &&
+    useSettingsStore.getState().executionMode !== 'hub'
+  );
 }
 
 /**
@@ -74,6 +58,14 @@ export async function resolveConnectionUri(
     throw new Error(
       'Database connections require the desktop app with secure storage.'
     );
+  }
+
+  if (shouldProxyCredentials()) {
+    const info = await platform.credentials.get(connectionId);
+    if (!info) {
+      throw new Error(`Connection not found: "${connectionId}"`);
+    }
+    return { uri: connectionRef(connectionId), type: info.type };
   }
 
   const resolved = await platform.credentials.resolve(connectionId);
@@ -149,27 +141,41 @@ export async function resolveWorkflowConnections(
     throw new Error('Client database connections require the desktop app. Please run Sigilweaver Loom as a desktop application to use client-managed database features.');
   }
 
+  const proxied = shouldProxyCredentials();
+  if (clientTools.length > 0 && platform.capabilities.credentialProxy && !proxied) {
+    // The shell refuses to hand credentials to the renderer and cannot inject
+    // them into requests for a remote server.
+    throw new Error('Client-owned database connections cannot be used when executing through Hub. Use a Hub-managed connection instead.');
+  }
+
   // Resolve client-owned connections
   const resolutions = await Promise.all(
     clientTools.map(async (tool: Tool) => {
       const connectionId = tool.config?.connectionId as string;
       logger.debug('Resolving client connection:', connectionId);
       try {
+        if (proxied) {
+          // Only confirm the connection exists; the shell injects the
+          // credentials when the request is sent (see backendFetch).
+          const info = await platform.credentials.get(connectionId);
+          logger.debug('Reference:', info ? 'success' : 'null');
+          return { toolId: tool.id, uri: info ? connectionRef(connectionId) : null };
+        }
         const resolved = await platform.credentials.resolve(connectionId);
         logger.debug('Resolved:', resolved ? 'success' : 'null');
-        return { toolId: tool.id, resolved };
-      } catch (error) {
-        logger.error(`Failed to resolve connection ${connectionId}:`, error);
-        return { toolId: tool.id, resolved: null };
+        return { toolId: tool.id, uri: resolved ? buildConnectionUri(resolved) : null };
+      } catch {
+        // Native/driver errors can contain connection URIs and passwords.
+        logger.error(`Failed to resolve connection ${connectionId}`);
+        return { toolId: tool.id, uri: null };
       }
     })
   );
 
   // Create a map of tool ID to resolved URI (for client connections only)
   const resolutionMap = new Map<string, string>();
-  for (const { toolId, resolved } of resolutions) {
-    if (resolved) {
-      const uri = buildConnectionUri(resolved);
+  for (const { toolId, uri } of resolutions) {
+    if (uri) {
       resolutionMap.set(toolId, uri);
     }
   }

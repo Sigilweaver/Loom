@@ -19,6 +19,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.db.utils import rows_affected
+
 logger = logging.getLogger(__name__)
 
 
@@ -113,7 +117,7 @@ class InMemoryTokenStore(TokenStore):
                     token[:8], data.server_id[:8], server_id[:8],
                 )
                 return None
-            if datetime.now(UTC) > data.expires_at:
+            if datetime.now(UTC) >= data.expires_at:
                 logger.warning("Token %s... expired", token[:8])
                 del self._tokens[token]
                 return None
@@ -169,7 +173,9 @@ class PostgresTokenStore(TokenStore):
     by a periodic background task.
     """
 
-    def __init__(self, session_factory=None) -> None:
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession] | None = None
+    ) -> None:
         # Lazy default so unit tests with the in-memory backend never need
         # the DB engine.
         if session_factory is None:
@@ -197,6 +203,7 @@ class PostgresTokenStore(TokenStore):
         self, user_id: str, server_id: str, ttl_seconds: int = 300
     ) -> str:
         from sqlalchemy import insert
+
         from app.db.models import ServerToken
 
         token = str(uuid4())
@@ -273,8 +280,9 @@ class PostgresTokenStore(TokenStore):
                 )
             )
             await session.commit()
-            if result.rowcount:
-                logger.debug("Reaped %d server_tokens rows", result.rowcount)
+            reaped = rows_affected(result)
+            if reaped:
+                logger.debug("Reaped %d server_tokens rows", reaped)
 
 
 # Module-level singleton

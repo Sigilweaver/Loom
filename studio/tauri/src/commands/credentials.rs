@@ -6,13 +6,15 @@
 //! (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)
 //! via the `keyring` crate. Passwords are never written to disk in cleartext.
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
-use chrono::Utc;
+
+use crate::commands::backend::BackendManager;
 
 const CONNECTIONS_STORE: &str = "connections.json";
 
@@ -206,12 +208,24 @@ pub fn session_token() -> Option<String> {
     SESSION_TOKEN.lock().ok().and_then(|s| s.clone())
 }
 
-/// Check if secure credential storage is available
+/// Check if secure credential storage is available.
+///
+/// Passwords live in the OS-native credential store (Keychain / Credential
+/// Manager / Secret Service) via the keyring crate. On Linux without a running
+/// Secret Service (no desktop keyring) that store does not exist, so probe it
+/// instead of assuming: a lookup of a never-used entry answers "no entry" when
+/// the store works and fails otherwise.
 #[tauri::command]
 pub async fn is_encryption_available() -> Result<bool, String> {
-    // Passwords are stored in the OS-native credential store (Keychain /
-    // Credential Manager / Secret Service) via the keyring crate.
-    Ok(true)
+    let available = tauri::async_runtime::spawn_blocking(|| {
+        matches!(
+            keyring_entry("__availability_probe__").map(|e| e.get_password()),
+            Ok(Ok(_)) | Ok(Err(keyring::Error::NoEntry))
+        )
+    })
+    .await
+    .unwrap_or(false);
+    Ok(available)
 }
 
 fn load_connections(app: &AppHandle) -> Result<HashMap<String, StoredConnection>, String> {
@@ -245,7 +259,10 @@ fn load_connections(app: &AppHandle) -> Result<HashMap<String, StoredConnection>
     Ok(connections)
 }
 
-fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnection>) -> Result<(), String> {
+fn save_connections(
+    app: &AppHandle,
+    connections: &HashMap<String, StoredConnection>,
+) -> Result<(), String> {
     let store = app
         .store(CONNECTIONS_STORE)
         .map_err(|e| format!("Failed to open connections store: {}", e))?;
@@ -254,7 +271,9 @@ fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnect
         .map_err(|e| format!("Failed to serialize connections: {}", e))?;
 
     store.set("connections", value);
-    store.save().map_err(|e| format!("Failed to save connections: {}", e))?;
+    store
+        .save()
+        .map_err(|e| format!("Failed to save connections: {}", e))?;
 
     Ok(())
 }
@@ -264,20 +283,6 @@ fn save_connections(app: &AppHandle, connections: &HashMap<String, StoredConnect
 pub async fn list_connections(app: AppHandle) -> Result<Vec<ConnectionInfo>, String> {
     let connections = load_connections(&app)?;
     Ok(connections.values().map(|c| c.to_info()).collect())
-}
-
-/// List connections by database type
-#[tauri::command]
-pub async fn list_connections_by_type(
-    app: AppHandle,
-    db_type: DatabaseType,
-) -> Result<Vec<ConnectionInfo>, String> {
-    let connections = load_connections(&app)?;
-    Ok(connections
-        .values()
-        .filter(|c| c.db_type == db_type)
-        .map(|c| c.to_info())
-        .collect())
 }
 
 /// Get a single connection by ID
@@ -297,8 +302,14 @@ pub async fn create_connection(
 
     // Check for duplicate names
     let name_lower = input.name.to_lowercase();
-    if connections.values().any(|c| c.name.to_lowercase() == name_lower) {
-        return Err(format!("A connection named '{}' already exists", input.name));
+    if connections
+        .values()
+        .any(|c| c.name.to_lowercase() == name_lower)
+    {
+        return Err(format!(
+            "A connection named '{}' already exists",
+            input.name
+        ));
     }
 
     let id = Uuid::new_v4().to_string();
@@ -397,27 +408,63 @@ pub async fn delete_connection(app: AppHandle, id: String) -> Result<(), String>
     // Remove the secret from the OS keychain (best-effort; the metadata is
     // already gone so a stale secret is harmless but undesirable).
     if let Err(e) = delete_password(&id) {
-        eprintln!("[Credentials] Failed to remove keychain secret for {}: {}", id, e);
+        eprintln!(
+            "[Credentials] Failed to remove keychain secret for {}: {}",
+            id, e
+        );
     }
 
-    println!("[Credentials] Deleted connection: {} ({})", connection.name, id);
+    println!(
+        "[Credentials] Deleted connection: {} ({})",
+        connection.name, id
+    );
     Ok(())
 }
 
-/// Resolve a connection with decrypted credentials
+/// Load a connection with its password from the keychain. Rust-side only:
+/// used by the credential proxy, never returned over IPC.
+pub(crate) fn load_resolved(
+    app: &AppHandle,
+    id: &str,
+) -> Result<Option<ResolvedConnection>, String> {
+    let connections = load_connections(app)?;
+    match connections.get(id) {
+        Some(c) => {
+            let password = get_password(id)?.unwrap_or_default();
+            Ok(Some(c.to_resolved(password)))
+        }
+        None => Ok(None),
+    }
+}
+
+/// Whether requests carrying connection references can be proxied by the
+/// shell. True only while the bundled server (launched by this process) runs;
+/// the renderer then never needs plaintext credentials.
+#[tauri::command]
+pub async fn connection_proxy_available(
+    backend: State<'_, BackendManager>,
+) -> Result<bool, String> {
+    Ok(backend.is_owned() && session_token().is_some())
+}
+
+/// Legacy: resolve a connection to plaintext credentials for the renderer.
+///
+/// Only permitted when this process does not own the server (Client build,
+/// development, or a remote server), because then the renderer must build the
+/// request itself. While the bundled server runs, the proxy
+/// (`backend_request`) is used and this is refused.
 #[tauri::command]
 pub async fn resolve_connection(
     app: AppHandle,
     id: String,
 ) -> Result<Option<ResolvedConnection>, String> {
-    let connections = load_connections(&app)?;
-    match connections.get(&id) {
-        Some(c) => {
-            let password = get_password(&id)?.unwrap_or_default();
-            Ok(Some(c.to_resolved(password)))
-        }
-        None => Ok(None),
+    if app.state::<BackendManager>().is_owned() {
+        return Err(
+            "Credentials are not available to the renderer while the bundled server is running"
+                .to_string(),
+        );
     }
+    load_resolved(&app, &id)
 }
 
 /// Test a connection

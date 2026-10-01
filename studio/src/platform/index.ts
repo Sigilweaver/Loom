@@ -33,35 +33,37 @@ export type {
   SettingsOperations,
   AuthOperations,
   CredentialOperations,
-  MenuOperations,
   FileFilter,
   OpenDialogOptions,
   SaveDialogOptions,
-  MenuAction,
 } from './types';
 
 /**
  * Detect which platform we're running on.
  */
-function detectPlatform(): PlatformName {
-  // Check for Tauri (must check before Electron as both may have window object)
-  if (typeof window !== 'undefined' && '__TAURI__' in window) {
+export function detectPlatform(): PlatformName {
+  if (typeof window === 'undefined') {
+    return 'web';
+  }
+
+  // Tauri always defines __TAURI_INTERNALS__ (the bridge behind invoke).
+  // __TAURI__ only exists with withGlobalTauri, which is off in tauri.conf,
+  // so checking it alone would misdetect Tauri as the web build.
+  if ('__TAURI_INTERNALS__' in window || '__TAURI__' in window) {
     return 'tauri';
   }
 
-  // Check for Electron
-  if (typeof window !== 'undefined' && window.electronAPI) {
+  if (window.electronAPI) {
     return 'electron';
   }
 
-  // Default to web
   return 'web';
 }
 
 /**
  * Get the platform adapter for the detected platform.
  */
-function getPlatformAdapter(name: PlatformName): PlatformAdapter {
+export function getPlatformAdapter(name: PlatformName): PlatformAdapter {
   switch (name) {
     case 'electron':
       return electronPlatform;
@@ -90,20 +92,6 @@ export async function initializePlatform(): Promise<void> {
   await platform.initialize();
   console.info(`[Platform] Initialized: ${platform.name}`);
   console.info(`[Platform] Capabilities:`, platform.capabilities);
-}
-
-/**
- * Check if running in desktop mode (Electron or Tauri).
- */
-export function isDesktop(): boolean {
-  return platform.name === 'electron' || platform.name === 'tauri';
-}
-
-/**
- * Check if running in browser mode.
- */
-export function isBrowser(): boolean {
-  return platform.name === 'web';
 }
 
 /**

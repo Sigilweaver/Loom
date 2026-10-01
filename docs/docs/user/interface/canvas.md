@@ -1,92 +1,83 @@
 ---
 sidebar_position: 1
+title: Canvas
 ---
 
 # Canvas
 
-The canvas is the main workspace where you build and visualize your data transformation workflow.
+The canvas is the workspace where you place tools and wire them together.
 
-## Overview
+## Workflow tabs
 
-The canvas displays your workflow as a graph of connected tools. Each tool is represented as a node, and connections between tools are shown as wires.
+Each workflow opens in its own tab above the canvas. Tabs keep separate undo history, selection and viewport.
 
-## Navigation
+| Action      | How                                  |
+| ----------- | ------------------------------------ |
+| New tab     | `+` button or `Ctrl+T`               |
+| Close tab   | `x` on the tab or `Ctrl+W`           |
+| Next tab    | `Ctrl+Tab`                           |
+| Previous tab | `Ctrl+Shift+Tab`                    |
 
-### Panning
+A dot on a tab means the workflow has unsaved changes. See [Keyboard Shortcuts](./keyboard-shortcuts.md).
 
-- **Mouse**: Click and drag on empty canvas space
-- **Trackpad**: Two-finger scroll
+## Navigating
 
-### Zooming
+- **Pan**: scroll with the mouse wheel or drag two fingers on a trackpad.
+- **Zoom**: hold `Ctrl` while scrolling, or pinch on a trackpad.
+- **Controls**: the buttons in a corner of the canvas (bottom-right by default) hold zoom in, zoom out and fit view, plus toggles for the minimap and snap-to-grid and an Actions menu.
+- **Minimap**: shows the whole workflow. Toggle it from the controls. Right-click the minimap button to move it to another corner.
 
-- **Mouse wheel**: Scroll up/down to zoom in/out
-- **Trackpad**: Pinch to zoom
-- **Controls**: Use the zoom buttons in the bottom-left corner
+## Adding tools
 
-### Fit to View
+You can add a tool in three ways.
 
-Click the "Fit View" button in the canvas controls to automatically zoom and pan to show all tools in the current workflow.
+1. Drag it from the **Tools** tab in the left pane onto the canvas. See [Tool Palette](./tool-palette.md).
+2. Right-click empty canvas and choose a tool from the menu. The tool appears where you clicked.
+3. Drag a wire from a socket and release it on empty canvas. The menu lists tools that can accept that wire.
 
-## Selecting Tools
+With **auto-connect** on (the default), a tool you drop is wired to the nearest compatible tool. A preview line shows the connection before you release. Turn it off in **Settings > Behavior**.
 
-### Single Selection
+## Selecting
 
-Click on a tool to select it. The selected tool:
+- Click a tool to select it. Its configuration opens in the left pane.
+- Drag on empty canvas to draw a selection box.
+- `Ctrl` or `Cmd` plus click adds or removes a tool from the selection.
+- `Ctrl+A` selects all tools.
+- `Escape` or a click on empty canvas clears the selection.
 
-- Shows a highlighted border
-- Opens its configuration in the left panel
-- Can be moved, copied, or deleted
+## Moving tools
 
-### Multi-Selection
+Drag a tool to move it. Selected tools move together.
 
-- **Click + Drag**: Draw a selection box around multiple tools
-- **Ctrl/Cmd + Click**: Add or remove individual tools from selection
-- **Ctrl/Cmd + A**: Select all tools
+Arrow keys move the selection by one grid step (20 px). `Shift` plus an arrow key moves five steps.
 
-### Deselecting
+Tools snap to a 20 px grid while **snap to grid** is on. Toggle it from the canvas controls or in **Settings > Appearance**.
 
-- **Escape**: Deselect all tools
-- **Click on empty canvas**: Deselect all tools
+### Auto layout
 
-## Moving Tools
+Select a tool, open the Actions menu (right-click the tool, or use the Actions button in the controls) and choose **Auto Layout**. Loom rearranges the whole workflow in layers that follow the data flow. Alignment and spacing are set in **Settings > Auto Layout**. You can undo the result.
 
-### Drag and Drop
+## Copy, cut and paste
 
-Click and drag a tool to move it. When multiple tools are selected, all selected tools move together.
+`Ctrl+C`, `Ctrl+X` and `Ctrl+V` copy, cut and paste the selected tools with the wires between them. Paste places the copy at the mouse pointer. You can paste into another tab.
 
-### Arrow Keys
+## Deleting
 
-Use arrow keys to nudge selected tools:
+Press `Delete` or `Backspace` to remove the selected tools. Wires attached to a deleted tool are removed too. To remove a single wire, select it and press `Delete` or `Backspace`, or right-click it and choose **Delete**.
 
-- **Arrow keys**: Move by 10 pixels
-- **Shift + Arrow keys**: Move by 1 pixel (fine adjustment)
+## Context menus
 
-### Alignment
+| Right-click on | Menu                                                                      |
+| -------------- | ------------------------------------------------------------------------- |
+| Empty canvas   | Add a tool at that point.                                                 |
+| A tool         | Copy, Cut, Paste, Delete, Auto Layout.                                    |
+| A wire         | Delete, and Change input or output to move the wire to another socket.    |
+| A socket       | Preview Data or Profile Data. See [Data Preview](./data-preview.md).      |
 
-When multiple tools are selected, right-click to access alignment options:
+## Comments
 
-- **Align Horizontally**: Align centers horizontally
-- **Align Vertically**: Align centers vertically
-- **Distribute Horizontally**: Space tools evenly left-to-right
-- **Distribute Vertically**: Space tools evenly top-to-bottom
+Every tool can carry a short comment that appears under it on the canvas. Loom generates a comment from the tool's configuration. You can replace it, clear it or reset it to the generated text. Edit the comment at the top of the configuration pane. Show, hide and size comments in **Settings > Comments**.
 
-## Adding Tools
+## Undo and redo
 
-1. Find the tool you want in the [Tool Palette](./tool-palette)
-2. Drag the tool from the palette onto the canvas
-3. Drop it where you want it placed
-
-The tool appears at the drop location, ready to be configured and connected.
-
-## Deleting Tools
-
-- **Delete/Backspace**: Delete selected tool(s)
-- All wires connected to deleted tools are automatically removed
-
-## Context Menu
-
-Right-click on a tool or empty canvas to access contextual actions.
-
-## Grid and Snapping
-
-Tools snap to an invisible grid when dragged, helping you create aligned, organized workflows.
+`Ctrl+Z` undoes and `Ctrl+Shift+Z` (or `Ctrl+Y`) redoes. History is kept per tab.

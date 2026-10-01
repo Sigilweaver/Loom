@@ -1,79 +1,40 @@
 ---
 sidebar_position: 2
+title: Tool Palette
 ---
 
 # Tool Palette
 
-The tool palette is the horizontal bar at the top of the workspace where you find and add tools to your workflow.
+The tool palette lists every tool you can add to a workflow. It lives in the **Tools** tab of the left pane.
 
 ## Categories
 
-Tools are organized into categories, displayed as tabs:
+Tools are grouped into collapsible categories. Click a category header to collapse or expand it. The number in parentheses is how many tools it holds.
 
-| Tab | Icon | Description |
-|-----|------|-------------|
-| **Favorites** | `Star` | Quick access to commonly used tools |
-| **In/Out** | `Folder` | Data input and output tools |
-| **Preparation** | `Wrench` | Data cleaning and transformation tools |
-| **Join** | `Link` | Tools for combining datasets |
-| **Aggregate** | `BarChart3` | Summarization and grouping tools |
+| Category      | Tools                                          | Purpose                              |
+| ------------- | ---------------------------------------------- | ------------------------------------ |
+| **Favorites** | Your starred tools                             | Quick access                         |
+| **Connect**   | Read, Write                                    | Load and save data                   |
+| **Compute**   | Filter, Schema, Sort, Calculate, Sample, Unique | Clean and transform rows and columns |
+| **Reshape**   | Aggregate, Pivot, Unpivot                      | Summarize and change table shape     |
+| **Combine**   | Concatenate, Join                              | Merge datasets                       |
 
-Click a tab to see the tools in that category.
+The palette uses the tool's short name. Each tool's type name (for example `Input` for Read) is on its [reference page](../tools/index.md).
 
-## Available Tools
+## Favorites
 
-### Favorites
+Hover over a tool and click the star to add or remove it from **Favorites**. New installs start with Read, Write, Filter, Schema, Sort, Calculate, Concatenate, Join and Aggregate starred.
 
-The most commonly used tools for quick access:
+## Adding a tool
 
-- Input, Output, Filter, Select, Sort, Formula, Union, Join, Summarize
+Drag a tool from the palette and drop it on the canvas. On a touch screen, press, drag past a few pixels and release over the canvas.
 
-### In/Out
+The tool arrives with default settings. Select it to configure it. See [Configuration Panel](./configuration-panel.md).
 
-| Tool | Icon | Purpose |
-|------|------|---------|
-| **Input** | `FolderOpen` | Load data from files or databases |
-| **Output** | `Save` | Save data to files |
+## Blocking indicators
 
-### Preparation
+A small warning triangle on a tool means it is a **blocking** operation: it has to read all of its input before it can produce output. The Server caches these results. See [Performance and Caching](./caching.md). You can hide the triangles in **Settings > Appearance**.
 
-| Tool | Icon | Purpose |
-|------|------|---------|
-| **Filter** | `Search` | Split data based on a condition |
-| **Select** | `CircleCheck` | Choose, rename, reorder, and cast columns |
-| **Sort** | `Hash` | Order rows by column values |
-| **Formula** | `Calculator` | Create or replace calculated columns |
-| **Sample** | `Dices` | Take a subset of rows |
-| **Unique** | `KeyRound` | Remove duplicate rows |
+## Tool colors
 
-### Join
-
-| Tool | Icon | Purpose |
-|------|------|---------|
-| **Union** | `Link` | Stack datasets vertically |
-| **Join** | `Handshake` | Combine datasets horizontally on key columns |
-
-### Aggregate
-
-| Tool | Icon | Purpose |
-|------|------|---------|
-| **Summarize** | `BarChart3` | Group data and calculate aggregations |
-| **Pivot** | `RefreshCw` | Reshape data from long to wide format |
-| **Unpivot** | `Ruler` | Reshape data from wide to long format |
-
-## Adding Tools to Canvas
-
-1. Navigate to the category containing the tool you need
-2. Click and drag the tool from the palette
-3. Drop it onto the canvas at the desired location
-
-The tool is added with default configuration and is ready to be wired and configured.
-
-## Tool Colors
-
-Each tool category has a distinct border color to help you identify tools at a glance:
-
-- **In/Out**: Green
-- **Preparation**: Blue
-- **Join**: Purple
-- **Aggregate**: Orange
+Each category has its own border color. The exact colors depend on your theme.

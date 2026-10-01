@@ -4,8 +4,8 @@ import asyncio
 
 import pytest
 
-from app.api.models.workflow import Socket, Tool, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.models.workflow import Socket, Tool, Workflow, WorkflowMeta
 from app.utils.errors import ExecutionTimeoutError
 
 

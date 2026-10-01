@@ -27,7 +27,9 @@ class QvdLoader(FileLoader):
         """Load a QVD file and return a LazyFrame."""
         source = config.get("source")
         if not source:
-            raise ToolError("QVD config missing 'source' field")
+            raise ToolError(
+                "QVD input has no source. Choose a file in the Input tool settings."
+            )
 
         # Security: Validate file path against allowed paths
         validate_file_path(source)

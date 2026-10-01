@@ -182,7 +182,8 @@ async def register_server(
 ) -> ServerResponse:
     """Register a new server or update existing one (idempotent).
 
-    If a server with the same auth_token already exists, updates it.
+    If a server with the same (non-empty) auth_token already exists, updates it.
+    Registrations without a token always create a new server.
     This allows servers to re-register after restarts, even if their
     endpoint URL changes (e.g., different port).
 
@@ -195,9 +196,13 @@ async def register_server(
       this endpoint unauthenticated whenever the secret was unset.
     """
     admin_level = get_role_level(Role.ADMIN)
-    is_admin_session = current_user is not None and get_role_level(current_user.role) <= admin_level
+    admin_user = (
+        current_user
+        if current_user is not None and get_role_level(current_user.role) <= admin_level
+        else None
+    )
 
-    if not is_admin_session:
+    if admin_user is None:
         if not settings.server_registration_secret or not x_registration_secret:
             logger.warning("Server registration attempt without admin session or secret")
             raise HTTPException(
@@ -214,9 +219,12 @@ async def register_server(
     # Normalize endpoint URL
     endpoint_url = request.endpoint_url.rstrip("/")
 
-    # Check for existing server with same auth_token (identity is by token, not endpoint)
-    existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
-    server = existing.scalar_one_or_none()
+    # Identity is by token, not endpoint. A missing/empty token identifies nothing,
+    # so it must never match (and overwrite) another server that also has no token.
+    server = None
+    if request.auth_token:
+        existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
+        server = existing.scalar_one_or_none()
 
     if server:
         # Update existing server (endpoint may have changed)
@@ -231,7 +239,7 @@ async def register_server(
             endpoint_url=endpoint_url,
             auth_token=request.auth_token,
             status="unknown",
-            created_by=current_user.username if is_admin_session else "system",
+            created_by=admin_user.username if admin_user is not None else "system",
         )
         db.add(server)
         logger.info("Registered new server: %s (%s)", server.name, server.endpoint_url)

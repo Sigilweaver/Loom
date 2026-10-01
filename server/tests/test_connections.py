@@ -609,7 +609,7 @@ class TestConnectionResolver:
     @pytest.fixture
     def sample_workflow(self):
         """Create a sample workflow for testing."""
-        from app.api.models.workflow import (
+        from app.domain.models.workflow import (
             Tool,
             Wire,
             WireEndpoint,
@@ -664,7 +664,7 @@ class TestConnectionResolver:
 
     def test_resolve_server_connection(self, resolver, store, sample_workflow):
         """Should resolve server-owned database connection."""
-        from app.api.models.workflow import Tool
+        from app.domain.models.workflow import Tool
 
         # Create a server connection
         conn = store.create_connection(
@@ -706,9 +706,51 @@ class TestConnectionResolver:
         assert "source" in resolved_db_tool.config
         assert resolved_db_tool.config["source"] == "postgresql://user:secret@localhost:5432/testdb"
 
+    def test_resolve_keeps_engines_and_version(self, resolver, store, sample_workflow):
+        """Resolving connections must not drop workflow fields other than the tools."""
+        from app.domain.models.workflow import EngineConfig, Tool
+
+        conn = store.create_connection(
+            CreateConnectionInput(
+                name="Test DB",
+                type=DatabaseType.POSTGRESQL,
+                host="localhost",
+                port=5432,
+                database="testdb",
+                username="user",
+                password="secret",
+            )
+        )
+        sample_workflow.tools.append(
+            Tool(
+                id="db_input",
+                type="Input",
+                x=0,
+                y=0,
+                config={
+                    "category": "database",
+                    "type": "postgresql",
+                    "connectionId": conn.id,
+                    "owner": "server",
+                    "query": "SELECT 1",
+                },
+                sockets=[],
+            )
+        )
+        sample_workflow.version = "2.5"
+        sample_workflow.engines = {"dbt/core": EngineConfig(project_path="/dbt")}
+
+        result = resolver.resolve_workflow_connections(sample_workflow)
+
+        assert "source" in next(t for t in result.tools if t.id == "db_input").config
+        assert result.version == "2.5"
+        assert result.engines is not None
+        assert result.engines["dbt/core"].model_dump() == {"project_path": "/dbt"}
+        assert result.meta == sample_workflow.meta
+
     def test_resolve_preserves_client_connection_with_source(self, resolver, sample_workflow):
         """Should not modify client connections that already have source."""
-        from app.api.models.workflow import Tool
+        from app.domain.models.workflow import Tool
 
         # Add a client database tool with source already resolved
         client_tool = Tool(
@@ -742,7 +784,7 @@ class TestConnectionResolver:
 
     def test_resolve_fails_for_missing_server_connection(self, resolver, sample_workflow):
         """Should raise error when server connection doesn't exist."""
-        from app.api.models.workflow import Tool
+        from app.domain.models.workflow import Tool
         from app.utils.errors import ExecutionError
 
         # Add a database tool with non-existent connection
@@ -768,7 +810,7 @@ class TestConnectionResolver:
 
     def test_validate_client_connection_without_source_fails(self, resolver, sample_workflow):
         """Should raise error when client connection is missing source URI."""
-        from app.api.models.workflow import Tool
+        from app.domain.models.workflow import Tool
         from app.utils.errors import ExecutionError
 
         # Add a client database tool WITHOUT source (not resolved)
@@ -796,7 +838,7 @@ class TestConnectionResolver:
 
     def test_resolve_multiple_server_connections(self, resolver, store, sample_workflow):
         """Should resolve multiple server connections in one workflow."""
-        from app.api.models.workflow import Tool
+        from app.domain.models.workflow import Tool
 
         # Create two server connections
         conn1 = store.create_connection(

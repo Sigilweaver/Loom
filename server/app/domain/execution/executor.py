@@ -3,19 +3,26 @@
 import asyncio
 import logging
 import time
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 
-from app.api.models.common import DataSchema
-from app.api.models.workflow import Tool, Workflow
 from app.config import settings
 from app.domain.execution.cache_manager import CacheManager
 from app.domain.execution.planner import ExecutionPlan, ExecutionPlanner
+from app.domain.models.common import DataSchema
+from app.domain.models.workflow import Tool, Workflow
 from app.domain.profiling.profiler import ColumnProfiler, ProfileMetrics
 from app.domain.tools.registry import ToolRegistry
-from app.utils.errors import ExecutionError, ExecutionTimeoutError, ToolError, ToolRuntimeError
+from app.utils.errors import (
+    ExecutionError,
+    ExecutionTimeoutError,
+    ToolError,
+    ToolRuntimeError,
+    ValidationError,
+)
 from app.utils.type_mapping import dataframe_to_dict_list, schema_from_polars
 
 logger = logging.getLogger(__name__)
@@ -45,6 +52,8 @@ class WorkflowExecutor:
         target_tool_id: str | None = None,
         preview_limit: int | None = None,
         force_refresh: bool = False,
+        *,
+        preview_only: bool = False,
     ) -> dict[str, Any]:
         """
         Execute entire workflow or up to a specific tool.
@@ -54,6 +63,7 @@ class WorkflowExecutor:
             target_tool_id: Optional tool ID to stop at
             preview_limit: Optional row limit for preview results
             force_refresh: If True, clears cache before execution
+            preview_only: Skip Output tools so previews cannot write destinations.
 
         Returns:
             Dict with execution results, schemas, and metrics
@@ -73,50 +83,42 @@ class WorkflowExecutor:
             execution_log["cache_cleared"] = True
 
         try:
-            # Create execution plan
+            # Structural validation covers the whole graph; per-tool config
+            # validation then covers only the tools that will actually run, so an
+            # unrelated broken branch cannot block a partial execution.
             planner = ExecutionPlanner(workflow)
             validation_errors = planner.validate()
-            # Structural validation (above) covers the graph; this enforces each
-            # tool's own config contract, which otherwise never runs on the
-            # execution path (see _validate_tool_configs).
-            validation_errors.extend(await self._validate_tool_configs(workflow))
             if validation_errors:
                 return self._handle_validation_failure(execution_log, validation_errors, start_time)
 
             plan = planner.create_plan(target_tool_id)
+            if not plan.execution_order:
+                raise ValidationError("Workflow contains no tools")
+            final_tool_id = target_tool_id or plan.execution_order[-1]
+            skipped_outputs = [
+                tool_id for tool_id in plan
+                if preview_only and plan.get_tool(tool_id).type.rsplit("::", 1)[-1] == "Output"
+            ]
+            if preview_only:
+                plan = self._without_outputs(plan)
+            validation_errors = await self._validate_tool_configs(
+                workflow, tool_ids=plan.execution_order
+            )
+            if validation_errors:
+                return self._handle_validation_failure(execution_log, validation_errors, start_time)
+
             execution_log["execution_order"] = list(plan.execution_order)
             execution_log["tool_count"] = len(plan)
 
-            # Execute tools under a hard wall-clock budget. Timeout is honored
-            # at await boundaries; long-running synchronous Polars collects
-            # inside asyncio.to_thread cannot be cancelled mid-flight and may
-            # therefore overrun the budget by up to one collect duration.
-            timeout_s = settings.max_execution_time_seconds
-            # Defensively skip enforcement when the setting is not a positive
-            # number (e.g. tests patching settings with a MagicMock, or an
-            # explicit 0/None disabling the budget).
-            if (
-                isinstance(timeout_s, (int, float))
-                and not isinstance(timeout_s, bool)
-                and timeout_s > 0
-            ):
-                try:
-                    async with asyncio.timeout(timeout_s):
-                        tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
-                except TimeoutError as exc:
-                    execution_log["status"] = "timed_out"
-                    execution_log["timeout_seconds"] = timeout_s
-                    self._save_execution_log(execution_log, start_time)
-                    raise ExecutionTimeoutError(
-                        f"Workflow execution exceeded {timeout_s}s budget"
-                    ) from exc
-            else:
-                tool_logs, cache_hits = await self._execute_plan(plan, cache_mgr)
+            tool_logs, cache_hits = await self._run_plan(plan, cache_mgr)
             execution_log["tool_executions"] = tool_logs
             execution_log["cache_hits"] = cache_hits
+            execution_log["skipped_outputs"] = skipped_outputs
+            async with self._results_lock:
+                for tool_id in skipped_outputs:
+                    self.results[tool_id] = {}
 
             # Format results
-            final_tool_id = target_tool_id or list(plan.execution_order)[-1]
             result = self._format_results(final_tool_id, preview_limit)
 
             execution_log["status"] = "completed"
@@ -137,7 +139,11 @@ class WorkflowExecutor:
                 import uuid as _uuid
 
                 error_id = _uuid.uuid4().hex
-            execution_log["status"] = "failed"
+            if isinstance(e, ExecutionTimeoutError):
+                execution_log["status"] = "timed_out"
+                execution_log["timeout_seconds"] = settings.max_execution_time_seconds
+            else:
+                execution_log["status"] = "failed"
             execution_log["error"] = str(e)
             execution_log["error_type"] = type(e).__name__
             execution_log["error_id"] = error_id
@@ -163,6 +169,7 @@ class WorkflowExecutor:
             target_tool_id=tool_id,
             preview_limit=preview_limit,
             force_refresh=force_refresh,
+            preview_only=True,
         )
 
         socket_key = str(socket_id)
@@ -184,9 +191,10 @@ class WorkflowExecutor:
         preview_limit: int = 100,
         force_refresh: bool = False,
     ) -> dict[str, Any]:
-        """Execute entire workflow and return preview data for ALL tools."""
+        """Return tool previews without executing Output writers."""
         await self.execute_workflow(
-            workflow, preview_limit=preview_limit, force_refresh=force_refresh
+            workflow, preview_limit=preview_limit, force_refresh=force_refresh,
+            preview_only=True,
         )
 
         all_results = {}
@@ -203,6 +211,35 @@ class WorkflowExecutor:
 
         return {"tools": all_results}
 
+    async def _run_upstream(
+        self,
+        workflow: Workflow,
+        tool_id: str,
+        include_target: bool = False,
+    ) -> ExecutionPlan:
+        """Execute what feeds ``tool_id`` (and optionally the tool itself).
+
+        Shared by the schema, metadata and profile paths so they run under the
+        same execution budget, parallelism and result locking as a full
+        workflow run. Only the target's ancestors run; unrelated branches are
+        skipped.
+
+        Returns the plan including the target, so callers can read its inputs.
+        """
+        self._default_engine = workflow.meta.default_engine
+        plan = ExecutionPlanner(workflow).create_plan(tool_id)
+        to_run = plan if include_target else plan.without_tool(tool_id)
+        await self._run_plan(self._without_outputs(to_run), CacheManager(workflow.meta.workflow_id))
+        return plan
+
+    @staticmethod
+    def _without_outputs(plan: ExecutionPlan) -> ExecutionPlan:
+        """Exclude file writers from every preview/schema/profile execution path."""
+        for tool_id in plan.execution_order:
+            if plan.get_tool(tool_id).type.rsplit("::", 1)[-1] == "Output":
+                plan = plan.without_tool(tool_id)
+        return plan
+
     async def get_tool_schema(
         self,
         workflow: Workflow,
@@ -215,17 +252,7 @@ class WorkflowExecutor:
         tool_impl = ToolRegistry.get(tool.type, engine=engine)
 
         # Execute upstream tools to get input schemas
-        cache_mgr = CacheManager(workflow.meta.workflow_id)
-        planner = ExecutionPlanner(workflow)
-        plan = planner.create_plan(tool_id)
-        execution_order = list(plan.execution_order)
-
-        target_index = execution_order.index(tool_id)
-        for upstream_tool_id in execution_order[:target_index]:
-            upstream_tool = plan.get_tool(upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, plan)
-            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs, plan, cache_mgr)
-            self.results[upstream_tool_id] = outputs
+        plan = await self._run_upstream(workflow, tool_id)
 
         # Get input schemas for target tool
         input_schemas = self._build_input_schemas(tool_id, plan)
@@ -248,17 +275,7 @@ class WorkflowExecutor:
         socket_id: str | None = None,
     ) -> dict[str, Any]:
         """Get metadata for a tool for autocomplete suggestions."""
-        cache_mgr = CacheManager(workflow.meta.workflow_id)
-        planner = ExecutionPlanner(workflow)
-        plan = planner.create_plan(tool_id)
-        execution_order = list(plan.execution_order)
-
-        target_index = execution_order.index(tool_id)
-        for upstream_tool_id in execution_order[:target_index]:
-            upstream_tool = plan.get_tool(upstream_tool_id)
-            inputs = self._gather_inputs(upstream_tool_id, plan)
-            outputs, _ = await self._execute_tool_with_cache(upstream_tool, inputs, plan, cache_mgr)
-            self.results[upstream_tool_id] = outputs
+        plan = await self._run_upstream(workflow, tool_id)
 
         # Get input schemas grouped by socket
         tool_inputs = plan.get_inputs(tool_id)
@@ -302,8 +319,8 @@ class WorkflowExecutor:
         """
         Profile columns for data quality and statistics.
 
-        Executes the tool and collects the full dataset from the specified
-        output socket to compute profile statistics.
+        Executes the tool and profiles at most max_profile_rows from its
+        output socket. The response identifies when statistics are sampled.
 
         Note: The frontend always sends output socket IDs. For input sockets,
         the frontend traces back to the upstream tool's output socket before
@@ -319,18 +336,29 @@ class WorkflowExecutor:
         Returns:
             Dictionary with column profiles and metadata
         """
-        cache_mgr = CacheManager(workflow.meta.workflow_id)
-        planner = ExecutionPlanner(workflow)
-        plan = planner.create_plan(tool_id)
-        execution_order = list(plan.execution_order)
+        timeout_s = settings.max_execution_time_seconds
+        budget = (
+            float(timeout_s)
+            if isinstance(timeout_s, (int, float))
+            and not isinstance(timeout_s, bool) and timeout_s > 0
+            else None
+        )
+        try:
+            async with asyncio.timeout(budget):
+                return await self._profile_columns(workflow, tool_id, socket_id, columns, metrics)
+        except TimeoutError as exc:
+            raise ExecutionTimeoutError(f"Column profiling exceeded {timeout_s}s budget") from exc
 
-        # Execute all tools up to and including the target
-        target_index = execution_order.index(tool_id)
-        for exec_tool_id in execution_order[: target_index + 1]:
-            exec_tool = plan.get_tool(exec_tool_id)
-            inputs = self._gather_inputs(exec_tool_id, plan)
-            outputs, _ = await self._execute_tool_with_cache(exec_tool, inputs, plan, cache_mgr)
-            self.results[exec_tool_id] = outputs
+    async def _profile_columns(
+        self,
+        workflow: Workflow,
+        tool_id: str,
+        socket_id: str,
+        columns: list[str] | None,
+        metrics: list[str] | None,
+    ) -> dict[str, Any]:
+        # Execute the target and everything upstream of it.
+        await self._run_upstream(workflow, tool_id, include_target=True)
 
         # Get the LazyFrame from the tool's output socket
         if tool_id not in self.results:
@@ -343,10 +371,6 @@ class WorkflowExecutor:
 
         lf = self.results[tool_id][socket_id]
 
-        # Collect the full dataset for profiling
-        df = lf.collect()
-        row_count = len(df)
-
         # Parse metrics if provided
         parsed_metrics: list[ProfileMetrics] | None = None
         if metrics:
@@ -357,30 +381,67 @@ class WorkflowExecutor:
                 except ValueError:
                     logger.warning(f"Unknown profile metric: {m}")
 
-        # Create profiler and compute profiles
-        profiler = ColumnProfiler(metrics=parsed_metrics)
-        column_profiles = profiler.profile_columns(df, columns)
+        def collect_profile() -> dict[str, Any]:
+            # One extra row detects truncation without counting the whole source.
+            # Keep collection and statistics off the event loop so the request's
+            # budget also covers this work. Running Polars work cannot be killed
+            # mid-operation after the await is cancelled.
+            limit = settings.max_profile_rows
+            collected = lf.head(limit + 1).collect()
+            sampled = len(collected) > limit
+            df = collected.head(limit)
+            profiler = ColumnProfiler(metrics=parsed_metrics)
+            return {
+                "tool_id": tool_id,
+                "socket_id": socket_id,
+                "row_count": len(df),
+                "column_count": len(df.columns),
+                "sampled": sampled,
+                "sample_limit": limit,
+                "columns": profiler.profile_columns(df, columns),
+            }
 
-        return {
-            "tool_id": tool_id,
-            "socket_id": socket_id,
-            "row_count": row_count,
-            "column_count": len(df.columns),
-            "columns": column_profiles,
-        }
+        return await asyncio.to_thread(collect_profile)
 
     # --- Private methods ---
+
+    async def _run_plan(
+        self,
+        plan: ExecutionPlan,
+        cache_mgr: CacheManager,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """
+        Execute all tools in the plan under the wall-clock budget.
+
+        The single entry point for running tools: sequential or parallel mode
+        is chosen from settings.execution_mode, and every path shares the same
+        timeout. Timeout is honored at await boundaries; long-running
+        synchronous Polars collects inside asyncio.to_thread cannot be
+        cancelled mid-flight and may therefore overrun the budget by up to one
+        collect duration.
+
+        Raises:
+            ExecutionTimeoutError: If the budget is exceeded.
+        """
+        timeout_s = settings.max_execution_time_seconds
+        # Defensively skip enforcement when the setting is not a positive
+        # number (e.g. tests patching settings with a MagicMock, or an
+        # explicit 0/None disabling the budget).
+        if not isinstance(timeout_s, (int, float)) or isinstance(timeout_s, bool) or timeout_s <= 0:
+            return await self._execute_plan(plan, cache_mgr)
+
+        try:
+            async with asyncio.timeout(timeout_s):
+                return await self._execute_plan(plan, cache_mgr)
+        except TimeoutError as exc:
+            raise ExecutionTimeoutError(f"Workflow execution exceeded {timeout_s}s budget") from exc
 
     async def _execute_plan(
         self,
         plan: ExecutionPlan,
         cache_mgr: CacheManager,
     ) -> tuple[list[dict[str, Any]], int]:
-        """
-        Execute all tools in the plan.
-
-        Uses either sequential or parallel execution based on settings.execution_mode.
-        """
+        """Run the plan level by level; levels are serial when not in parallel mode."""
         if settings.execution_mode == "parallel":
             return await self._execute_plan_parallel(plan, cache_mgr)
         return await self._execute_plan_sequential(plan, cache_mgr)
@@ -391,28 +452,14 @@ class WorkflowExecutor:
         cache_mgr: CacheManager,
     ) -> tuple[list[dict[str, Any]], int]:
         """Execute all tools sequentially in dependency order."""
-        tool_logs = []
+        tool_logs: list[dict[str, Any]] = []
         cache_hits = 0
 
         for tool_id in plan:
-            tool_start = time.time()
-            tool = plan.get_tool(tool_id)
-            inputs = self._gather_inputs(tool_id, plan)
-            outputs, from_cache = await self._execute_tool_with_cache(tool, inputs, plan, cache_mgr)
-
-            self.results[tool_id] = outputs
-            if from_cache:
+            entry = await self._execute_single_tool_tracked(tool_id, plan, cache_mgr)
+            tool_logs.append(entry)
+            if entry["from_cache"]:
                 cache_hits += 1
-
-            tool_logs.append(
-                {
-                    "tool_id": tool_id,
-                    "tool_type": tool.type,
-                    "execution_time_ms": (time.time() - tool_start) * 1000,
-                    "status": "success",
-                    "from_cache": from_cache,
-                }
-            )
 
         return tool_logs, cache_hits
 
@@ -632,7 +679,7 @@ class WorkflowExecutor:
         for tool in workflow.tools:
             if tool.id == tool_id:
                 return tool
-        raise ExecutionError(f"Tool {tool_id} not found in workflow")
+        raise ValidationError(f"Tool {tool_id} not found in workflow")
 
     def _create_execution_log(
         self,
@@ -665,7 +712,9 @@ class WorkflowExecutor:
             logger.error("Failed to create workflow archive: %s", e, exc_info=True)
             self.archive_dir = None
 
-    async def _validate_tool_configs(self, workflow: Workflow) -> list[str]:
+    async def _validate_tool_configs(
+        self, workflow: Workflow, tool_ids: Collection[str] | None = None
+    ) -> list[str]:
         """Run each tool's own config validation before execution begins.
 
         `BaseTool.validate_config` (and per-tool overrides such as
@@ -675,11 +724,16 @@ class WorkflowExecutor:
         with silently-wrong results instead of failing. This enforces the same
         contract published at `GET /api/workflow/tool/{type}/schema`.
 
+        When ``tool_ids`` is given only those tools are checked: a partial run
+        must not fail because of an unrelated branch.
+
         Returns a flat list of `"<tool_id> (<type>): <message>"` errors; empty
-        when every tool config is valid.
+        when every checked tool config is valid.
         """
         errors: list[str] = []
         for tool in workflow.tools:
+            if tool_ids is not None and tool.id not in tool_ids:
+                continue
             engine = workflow.get_engine_for_tool(tool)
             try:
                 tool_impl = ToolRegistry.get(tool.type, engine=engine)
@@ -702,7 +756,7 @@ class WorkflowExecutor:
         execution_log["error"] = error_msg
         execution_log["validation_errors"] = validation_errors
         self._save_execution_log(execution_log, start_time)
-        raise ExecutionError(error_msg)
+        raise ValidationError(error_msg)
 
     def _save_execution_log(self, log_data: dict[str, Any], start_time: float) -> None:
         """Save execution log to archive."""

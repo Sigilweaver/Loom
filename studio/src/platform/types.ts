@@ -2,7 +2,7 @@
  * Platform Abstraction Types
  * 
  * Platform-agnostic interfaces for native functionality.
- * Implementations exist for Electron, Tauri (future), and Web (limited).
+ * Implementations exist for Electron, Tauri, and Web (limited).
  */
 
 import type { AppSettings } from '../types/settings';
@@ -12,7 +12,6 @@ import type {
   UpdateConnectionInput,
   ResolvedConnection,
   ConnectionTestResult,
-  DatabaseType,
 } from '../types/connections';
 
 // =============================================================================
@@ -43,15 +42,20 @@ export interface SaveDialogOptions {
 
 export interface FileOperations {
   /**
-   * Read a file from the filesystem.
-   * @param filePath Absolute path to the file
+   * Read a text file.
+   *
+   * Desktop shells only honour paths the user chose in a native open or save
+   * dialog during this session (returned by showOpenDialog/showSaveDialog);
+   * any other path is rejected.
+   * @param filePath Absolute path returned by a dialog
    * @returns File contents as a string
    */
   readFile(filePath: string): Promise<string>;
 
   /**
-   * Write content to a file.
-   * @param filePath Absolute path to the file
+   * Write text to a file. Subject to the same dialog-granted path rule as
+   * readFile. Rejects if the write fails.
+   * @param filePath Absolute path returned by a dialog
    * @param content Content to write
    */
   writeFile(filePath: string, content: string): Promise<void>;
@@ -122,11 +126,6 @@ export interface CredentialOperations {
   list(): Promise<ConnectionInfo[]>;
 
   /**
-   * List connections filtered by database type.
-   */
-  listByType(type: DatabaseType): Promise<ConnectionInfo[]>;
-
-  /**
    * Get a single connection by ID (without credentials).
    */
   get(id: string): Promise<ConnectionInfo | null>;
@@ -148,37 +147,28 @@ export interface CredentialOperations {
 
   /**
    * Resolve a connection with decrypted credentials.
-   * Only call this when actually needed for database operations.
+   *
+   * @deprecated Hands plaintext credentials to the renderer. It is refused by
+   * the desktop shell whenever `capabilities.credentialProxy` is true; in that
+   * case put `connectionRef(id)` in the request body and send it with
+   * `credentials.fetch` (or `backendFetch` from `@api`) so the shell injects
+   * the credentials. It remains only for setups where the shell does not own
+   * the server (Client build, development, remote server).
    */
   resolve(id: string): Promise<ResolvedConnection | null>;
+
+  /**
+   * HTTP request to the bundled server in which `loom-connection://<id>`
+   * references are replaced by the shell with real connection URIs, so
+   * credentials never enter the renderer. Credentials echoed back in the
+   * response are redacted. Rejects unless `capabilities.credentialProxy`.
+   */
+  fetch(url: string, init?: RequestInit): Promise<Response>;
 
   /**
    * Test a connection by attempting to connect.
    */
   test(id: string): Promise<ConnectionTestResult>;
-}
-
-// =============================================================================
-// Menu Operations
-// =============================================================================
-
-export type MenuAction =
-  | 'new-workflow'
-  | 'open-workflow'
-  | 'save-workflow'
-  | 'run-workflow'
-  | 'validate-workflow'
-  | 'show-workflow-viewer'
-  | 'hide-workflow-viewer'
-  | 'toggle-workflow-viewer';
-
-export interface MenuOperations {
-  /**
-   * Register a callback for menu actions.
-   * @param callback Function called when a menu action is triggered
-   * @returns Cleanup function to unregister the callback
-   */
-  onMenuAction(callback: (action: MenuAction, data?: unknown) => void): (() => void) | undefined;
 }
 
 // =============================================================================
@@ -190,10 +180,12 @@ export interface PlatformCapabilities {
   secureStorage: boolean;
   /** Whether native file dialogs are available */
   nativeDialogs: boolean;
-  /** Whether the platform can manage the backend process */
-  backendManagement: boolean;
-  /** Whether native menus are available */
-  nativeMenus: boolean;
+  /**
+   * Whether the shell owns the server process and can inject stored
+   * credentials into requests to it (see CredentialOperations.fetch). When
+   * true, the renderer must not (and cannot) resolve plaintext credentials.
+   */
+  credentialProxy: boolean;
 }
 
 // =============================================================================
@@ -220,9 +212,6 @@ export interface PlatformAdapter {
 
   /** Secure credential storage */
   readonly credentials: CredentialOperations;
-
-  /** Menu system */
-  readonly menu: MenuOperations;
 
   /**
    * Initialize the platform adapter.

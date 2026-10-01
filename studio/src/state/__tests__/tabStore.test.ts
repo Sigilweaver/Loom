@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTabStore } from "../tabStore";
 import { useWorkflowStore } from "../workflowStore";
 import { useHistoryStore } from "../historyStore";
+import { useSettingsStore } from "../settingsStore";
 import { useUIStore, PreviewState } from "../uiStore";
 import { Tool, WorkflowMeta } from "../../domain/workflow/entities/workflow";
 
@@ -63,7 +64,6 @@ describe("TabStore", () => {
     useWorkflowStore.setState({
       tools: [],
       wires: [],
-      edges: [],
       workflowMeta: {
         name: "New Workflow",
         description: "",
@@ -94,6 +94,24 @@ describe("TabStore", () => {
   });
 
   describe("createTab", () => {
+    it("preserves the configured author when creating and switching workflow tabs", () => {
+      const originalAuthor = useSettingsStore.getState().author;
+      try {
+        useSettingsStore.setState({ author: "Configured Author" });
+        const first = useTabStore.getState().createTab("First");
+        expect(useWorkflowStore.getState().workflowMeta.author).toBe("Configured Author");
+
+        useSettingsStore.setState({ author: "Updated Author" });
+        useTabStore.getState().createTab("Second");
+        expect(useWorkflowStore.getState().workflowMeta.author).toBe("Updated Author");
+
+        useTabStore.getState().switchTab(first);
+        expect(useWorkflowStore.getState().workflowMeta.author).toBe("Configured Author");
+      } finally {
+        useSettingsStore.setState({ author: originalAuthor });
+      }
+    });
+
     it("creates a new tab with default name", () => {
       const tabId = useTabStore.getState().createTab();
 

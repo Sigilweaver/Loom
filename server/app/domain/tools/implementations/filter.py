@@ -5,7 +5,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, Field
 
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FilterOperation
 from app.domain.tools.registry import register_tool
@@ -52,11 +52,17 @@ class FilterTool(BaseTool):
         - expression: Polars expression string (e.g., "pl.col('amount') > 100")
         """
         if FilterSockets.INPUT not in inputs:
-            raise ToolError("Filter tool requires input on socket 'input'")
+            raise ToolError(
+                "Filter tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[FilterSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Filter tool does not support multiple inputs")
+            raise ToolError(
+                "Filter tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         # Resolve column name casing in the expression against actual schema
@@ -84,11 +90,17 @@ class FilterTool(BaseTool):
         Filter doesn't change schema, just removes rows.
         """
         if FilterSockets.INPUT not in input_schemas:
-            raise ToolError("Filter tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Filter tool requires input schema on socket 'input'. Connect an upstream tool "
+                "to its 'input' socket."
+            )
 
         input_data = input_schemas[FilterSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Filter tool does not support multiple input schemas")
+            raise ToolError(
+                "Filter tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         return {

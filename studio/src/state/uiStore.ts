@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import type { ToolCategory } from "../domain/workflow/entities/workflow";
 import type { ProfileResponse } from "../api/backend";
+import { DEFAULT_FAVORITE_TOOLS } from "../data/tools";
 
 type NotificationType = "error" | "warning" | "success" | "info";
 
-type BottomPaneTab = "preview" | "logs" | "network" | "profile";
+type BottomPaneTab = "preview" | "logs" | "network" | "profile" | "problems";
 
 export interface PreviewState {
   toolId: string;
@@ -102,9 +103,6 @@ const loadSnapToGrid = (): boolean => {
   return saved !== null ? saved === "true" : true; // Default: ON
 };
 
-// Default favorite tools (used when no saved favorites exist)
-const DEFAULT_FAVORITES = ['Input', 'Output', 'Filter', 'Select', 'Sort', 'Formula', 'Union', 'Join', 'Summarize'];
-
 // Load persisted favorites (defaults to curated list)
 const loadFavoriteTools = (): string[] => {
   const saved = localStorage.getItem("favorite-tools");
@@ -112,10 +110,10 @@ const loadFavoriteTools = (): string[] => {
     try {
       return JSON.parse(saved);
     } catch {
-      return DEFAULT_FAVORITES;
+      return DEFAULT_FAVORITE_TOOLS;
     }
   }
-  return DEFAULT_FAVORITES;
+  return DEFAULT_FAVORITE_TOOLS;
 };
 
 // Load persisted collapsed categories (default: none collapsed)

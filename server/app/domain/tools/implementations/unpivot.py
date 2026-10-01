@@ -5,8 +5,8 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.execution.safety import check_unpivot_safety, raise_if_unsafe
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UnpivotOperation
 from app.domain.tools.registry import register_tool
@@ -92,11 +92,17 @@ class UnpivotTool(BaseTool):
     ) -> dict[str, pl.LazyFrame]:
         """Execute unpivot operation."""
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Unpivot tool requires input on socket 'input'")
+            raise ToolError(
+                "Unpivot tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Unpivot tool does not support multiple inputs")
+            raise ToolError(
+                "Unpivot tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         on = config.get("on", [])
@@ -141,11 +147,17 @@ class UnpivotTool(BaseTool):
         - A value column (type depends on unpivoted columns)
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Unpivot tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Unpivot tool requires input schema on socket 'input'. Connect an upstream tool "
+                "to its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Unpivot tool does not support multiple input schemas")
+            raise ToolError(
+                "Unpivot tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         index = config.get("index", [])

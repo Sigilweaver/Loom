@@ -3,8 +3,8 @@
 import polars as pl
 import pytest
 
-from app.api.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 from app.domain.execution.executor import WorkflowExecutor
+from app.domain.models.workflow import Socket, Tool, Wire, WireEndpoint, Workflow, WorkflowMeta
 
 
 @pytest.fixture

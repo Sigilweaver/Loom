@@ -14,7 +14,7 @@ import polars as pl
 import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import FormulaOperation
 from app.domain.tools.registry import register_tool
@@ -195,14 +195,6 @@ class FormulaTool(BaseTool):
             for op in raw_ops
         ]
 
-    # Keep legacy helper for backward compat with tests
-    def _build_operation(self, config: dict[str, Any]) -> FormulaOperation:
-        """Build a single formula operation from config (legacy)."""
-        return FormulaOperation(
-            column_name=config.get("column_name", ""),
-            expr_str=config.get("expression", ""),
-        )
-
     async def execute(
         self, config: dict[str, Any], inputs: dict[str, pl.LazyFrame | list[pl.LazyFrame]]
     ) -> dict[str, pl.LazyFrame]:
@@ -213,11 +205,17 @@ class FormulaTool(BaseTool):
         created by operation N-1.
         """
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Formula tool requires input on socket 'input'")
+            raise ToolError(
+                "Formula tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Formula tool does not support multiple inputs")
+            raise ToolError(
+                "Formula tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         ops = self._build_operations(config)
@@ -253,11 +251,17 @@ class FormulaTool(BaseTool):
         accurate output dtypes rather than defaulting to STRING.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Formula tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Formula tool requires input schema on socket 'input'. Connect an upstream tool "
+                "to its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Formula tool does not support multiple input schemas")
+            raise ToolError(
+                "Formula tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
 
         ops = _normalize_operations(config)

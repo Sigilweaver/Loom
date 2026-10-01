@@ -15,19 +15,18 @@ import { DEFAULT_SETTINGS, mergeWithDefaults } from './types/settings';
 export const mockPlatformCapabilities = {
   secureStorage: true,
   nativeDialogs: true,
-  nativeMenus: true,
-  autoUpdate: true,
+  credentialProxy: false,
 };
 
 export const mockPlatformCredentials = {
   isAvailable: vi.fn().mockResolvedValue(true),
   list: vi.fn().mockResolvedValue([]),
-  listByType: vi.fn().mockResolvedValue([]),
   get: vi.fn().mockResolvedValue(null),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn().mockResolvedValue(undefined),
   resolve: vi.fn().mockResolvedValue(null),
+  fetch: vi.fn(),
   test: vi.fn().mockResolvedValue({ success: true, message: 'OK' }),
 };
 
@@ -64,10 +63,6 @@ export const mockPlatformFiles = {
   showSaveDialog: vi.fn().mockResolvedValue(null),
 };
 
-export const mockPlatformMenu = {
-  onMenuAction: vi.fn().mockReturnValue(() => {}),
-};
-
 export const mockPlatform = {
   name: 'electron' as 'electron' | 'web' | 'tauri',
   capabilities: mockPlatformCapabilities,
@@ -76,15 +71,12 @@ export const mockPlatform = {
   settings: mockPlatformSettings,
   auth: mockPlatformAuth,
   files: mockPlatformFiles,
-  menu: mockPlatformMenu,
 };
 
 // Mock the @platform module
 vi.mock('@platform', () => ({
   platform: mockPlatform,
   initializePlatform: vi.fn().mockResolvedValue(undefined),
-  isDesktop: vi.fn(() => mockPlatform.name === 'electron' || mockPlatform.name === 'tauri'),
-  isBrowser: vi.fn(() => mockPlatform.name === 'web'),
   hasSecureStorage: vi.fn(() => mockPlatformCapabilities.secureStorage),
   hasNativeDialogs: vi.fn(() => mockPlatformCapabilities.nativeDialogs),
 }));
@@ -251,6 +243,7 @@ vi.mock('@monaco-editor/react', () => ({
       })
     );
   }),
+  loader: { init: vi.fn(() => new Promise(() => {})) },
   OnMount: vi.fn(),
 }));
 
@@ -270,7 +263,8 @@ vi.mock('lucide-react', () => {
     'Wrench', 'BarChart3', 'Settings', 'FlaskRound', 'AlertTriangle',
     'Fingerprint', 'CornerRightDown', 'CornerLeftUp', 'ChevronDown',
     'ChevronRight', 'ChevronUp', 'LayoutGrid', 'X', 'Check', 'Minus', 'Circle',
-    'Trash2', 'Plus', 'Loader2', 'MessageSquare', 'Copy', 'GripVertical'
+    'Trash2', 'Plus', 'Loader2', 'MessageSquare', 'Copy', 'GripVertical',
+    'AlertCircle', 'CheckCircle2', 'ShieldCheck'
   ];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

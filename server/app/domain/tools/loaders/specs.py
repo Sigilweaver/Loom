@@ -212,14 +212,3 @@ LOADER_SPECS: dict[str, LoaderSpec] = {
         },
     ),
 }
-
-
-def get_spec(source_type: str) -> LoaderSpec:
-    """Get loader spec by type, raising error if not found"""
-    from app.utils.errors import ToolError
-
-    spec = LOADER_SPECS.get(source_type.lower())
-    if not spec:
-        available = ", ".join(sorted(LOADER_SPECS.keys()))
-        raise ToolError(f"Unsupported data source type: {source_type}. Available: {available}")
-    return spec

@@ -3,19 +3,18 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-
-from app.config import settings as _rl_settings
-from app.middleware.rate_limit import limiter as _rl
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, get_optional_user
+from app.config import settings as _rl_settings
 from app.db.database import get_db
 from app.db.models import User
 from app.domain.auth.password import hash_password, verify_password
 from app.domain.auth.roles import Role
 from app.domain.auth.sessions import SessionInfo, SessionManager
+from app.middleware.rate_limit import limiter as _rl
 
 router = APIRouter(prefix="/auth")
 

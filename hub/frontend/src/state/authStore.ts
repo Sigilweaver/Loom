@@ -25,6 +25,8 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True after the Hub rejected our token (expired or revoked session). */
+  sessionExpired: boolean;
 
   // Actions
   setAuth: (token: string, user: AuthUser) => void;
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: true, // Start loading until we check stored auth
+      sessionExpired: false,
 
       // Actions
       setAuth: (token, user) =>
@@ -48,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
           isLoading: false,
+          sessionExpired: false,
         }),
 
       clearAuth: () =>
@@ -56,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          sessionExpired: false,
         }),
 
       setLoading: (loading) => set({ isLoading: loading }),
@@ -87,19 +92,41 @@ export function getAuthToken(): string | null {
 }
 
 /**
- * Check if the current user has at least the specified role level
- * Role hierarchy: owner > admin > auditor > user
+ * End the local session because the Hub rejected our token (HTTP 401).
+ * Route guards react to the store change and send the user to the login page,
+ * which explains why. Does nothing when nobody is signed in.
  */
+export function expireSession(): void {
+  const { token } = useAuthStore.getState();
+  if (!token) return;
+  useAuthStore.setState({
+    token: null,
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    sessionExpired: true,
+  });
+}
+
+/** Lower number = more privileged. Role hierarchy: owner > admin > auditor > user. */
+const ROLE_LEVEL: Record<UserRole, number> = {
+  owner: 0,
+  admin: 1,
+  auditor: 2,
+  user: 3,
+};
+
+/** Does this role have at least the privileges of `required`? */
+export function roleAtLeast(role: UserRole | undefined, required: UserRole): boolean {
+  return role !== undefined && ROLE_LEVEL[role] <= ROLE_LEVEL[required];
+}
+
+/** Check whether the signed-in user has at least the given role (non-reactive; for route guards). */
 export function hasMinRole(requiredRole: UserRole): boolean {
-  const { user } = useAuthStore.getState();
-  if (!user) return false;
+  return roleAtLeast(useAuthStore.getState().user?.role, requiredRole);
+}
 
-  const roleLevel: Record<UserRole, number> = {
-    owner: 0,
-    admin: 1,
-    auditor: 2,
-    user: 3,
-  };
-
-  return roleLevel[user.role] <= roleLevel[requiredRole];
+/** Reactive version of `hasMinRole`, for hiding controls the user is not allowed to use. */
+export function useHasMinRole(requiredRole: UserRole): boolean {
+  return useAuthStore((state) => roleAtLeast(state.user?.role, requiredRole));
 }

@@ -396,10 +396,12 @@ const ProfileViewer = () => {
         <div className="flex items-center gap-3 text-xs text-theme-text-secondary">
           <span>
             <strong>{profile.row_count.toLocaleString()}</strong> rows
+            {profile.sampled ? ' sampled' : ''}
           </span>
           <span>
             <strong>{profile.column_count}</strong> columns
           </span>
+          {profile.sampled && <span>Statistics cover the first rows only.</span>}
         </div>
         {/* Quality legend */}
         <div className="flex items-center gap-3 text-xs text-theme-text-tertiary">

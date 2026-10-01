@@ -1,15 +1,17 @@
 /**
- * DateTimePicker component using Radix Popover and react-day-picker
+ * DateTimePicker built on Radix Popover and react-day-picker.
  *
- * Provides a combined date and time picker with proper timezone handling.
- * Values are stored as ISO strings in UTC.
+ * A combined date and time picker. Values are ISO strings (UTC); the picker
+ * shows and edits them in the viewer's local time zone.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { DayPicker } from "react-day-picker";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, X } from "lucide-react";
+import clsx from "clsx";
+import { Button, IconButton, Input } from "@components/ui";
 import "react-day-picker/style.css";
 
 interface DateTimePickerProps {
@@ -19,202 +21,122 @@ interface DateTimePickerProps {
   onChange: (value: string) => void;
   /** Placeholder text when no value */
   placeholder?: string;
-  /** Additional class names for the trigger button */
   className?: string;
   /** Whether to allow clearing the value */
   clearable?: boolean;
+  id?: string;
 }
 
-/**
- * Convert ISO UTC string to local Date for display
- */
-function isoToLocalDate(iso: string): Date | undefined {
+function parseValue(iso: string): Date | undefined {
   if (!iso) return undefined;
-  try {
-    return parseISO(iso);
-  } catch {
-    return undefined;
-  }
+  const date = parseISO(iso);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/**
- * Convert local date + time to ISO UTC string
- */
-function localToIso(date: Date, hours: number, minutes: number): string {
-  const d = new Date(date);
-  d.setHours(hours, minutes, 0, 0);
-  return d.toISOString();
+function withTime(date: Date, hours: number, minutes: number): string {
+  const next = new Date(date);
+  next.setHours(hours, minutes, 0, 0);
+  return next.toISOString();
 }
 
-/**
- * Extract hours and minutes from a Date
- */
-function getTimeFromDate(date: Date | undefined): { hours: number; minutes: number } {
-  if (!date) return { hours: 0, minutes: 0 };
-  return {
-    hours: date.getHours(),
-    minutes: date.getMinutes(),
-  };
-}
+const clamp = (value: number, max: number) => Math.max(0, Math.min(max, value || 0));
+const pad = (value: number) => value.toString().padStart(2, "0");
 
 export function DateTimePicker({
   value,
   onChange,
   placeholder = "Select date and time",
-  className = "",
+  className,
   clearable = true,
+  id,
 }: DateTimePickerProps) {
   const [open, setOpen] = useState(false);
-  
-  // Parse initial value
-  const initialDate = isoToLocalDate(value);
-  const initialTime = getTimeFromDate(initialDate);
-  
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
-  const [hours, setHours] = useState(initialTime.hours);
-  const [minutes, setMinutes] = useState(initialTime.minutes);
 
-  // Sync internal state when value prop changes
-  useEffect(() => {
-    const date = isoToLocalDate(value);
-    const time = getTimeFromDate(date);
-    setSelectedDate(date);
-    setHours(time.hours);
-    setMinutes(time.minutes);
-  }, [value]);
+  const date = parseValue(value);
+  const hours = date?.getHours() ?? 0;
+  const minutes = date?.getMinutes() ?? 0;
 
-  // Update parent when date or time changes
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    if (date) {
-      onChange(localToIso(date, hours, minutes));
-    }
-  };
-
-  const handleTimeChange = (newHours: number, newMinutes: number) => {
-    setHours(newHours);
-    setMinutes(newMinutes);
-    if (selectedDate) {
-      onChange(localToIso(selectedDate, newHours, newMinutes));
-    }
-  };
-
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedDate(undefined);
-    setHours(0);
-    setMinutes(0);
-    onChange("");
-  };
-
-  // Format display value
-  const displayValue = selectedDate
-    ? format(selectedDate, "MMM d, yyyy") + " at " + 
-      `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
-    : "";
+  const display = date ? `${format(date, "MMM d, yyyy")} at ${pad(hours)}:${pad(minutes)}` : "";
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className={`
-            w-full px-3 py-2 text-left border border-line-strong rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-            bg-surface-raised flex items-center gap-2
-            ${!displayValue ? "text-ink-faint" : "text-ink"}
-            ${className}
-          `}
-        >
-          <Calendar className="flex-shrink-0 w-4 h-4 text-ink-faint" />
-          <span className="flex-1 truncate">
-            {displayValue || placeholder}
-          </span>
-          {clearable && displayValue && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="p-0.5 hover:bg-surface-hover rounded"
-            >
-              <X className="w-4 h-4 text-ink-faint hover:text-ink-muted" />
-            </button>
-          )}
-        </button>
-      </Popover.Trigger>
+    <div className={clsx("relative", className)}>
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger asChild>
+          <button
+            id={id}
+            type="button"
+            className={clsx(
+              "flex h-9 w-full items-center gap-2 rounded-lg border border-line-strong bg-field px-3 text-left text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40",
+              display ? "text-ink" : "text-ink-faint",
+              clearable && display && "pr-10"
+            )}
+          >
+            <Calendar className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden="true" />
+            <span className="flex-1 truncate">{display || placeholder}</span>
+          </button>
+        </Popover.Trigger>
 
-      <Popover.Portal>
-        <Popover.Content
-          className="z-50 p-4 bg-surface-raised border border-line rounded-lg shadow-lg"
-          sideOffset={4}
-          align="start"
-        >
-          <DayPicker
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleDateSelect}
-            className="rdp-custom"
-          />
+        <Popover.Portal>
+          <Popover.Content
+            className="z-[70] rounded-lg border border-line bg-surface-raised p-4 text-ink shadow-lg"
+            sideOffset={4}
+            align="start"
+          >
+            <DayPicker
+              mode="single"
+              selected={date}
+              onSelect={(selected) => selected && onChange(withTime(selected, hours, minutes))}
+              className="rdp-custom"
+            />
 
-          {/* Time picker */}
-          <div className="pt-3 mt-3 border-t border-line">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-ink-faint" />
-              <span className="text-sm text-ink-muted">Time:</span>
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={hours.toString().padStart(2, "0")}
-                  onChange={(e) => {
-                    const val = Math.max(0, Math.min(23, parseInt(e.target.value) || 0));
-                    handleTimeChange(val, minutes);
-                  }}
-                  className="w-12 px-2 py-1 text-center border border-line-strong rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <span className="text-ink-muted">:</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={59}
-                  value={minutes.toString().padStart(2, "0")}
-                  onChange={(e) => {
-                    const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
-                    handleTimeChange(hours, val);
-                  }}
-                  className="w-12 px-2 py-1 text-center border border-line-strong rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
+            <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+              <Clock className="h-4 w-4 text-ink-faint" aria-hidden="true" />
+              <span className="text-sm text-ink-muted">Time</span>
+              <Input
+                type="number"
+                aria-label="Hour"
+                min={0}
+                max={23}
+                value={pad(hours)}
+                disabled={!date}
+                onChange={(e) => date && onChange(withTime(date, clamp(parseInt(e.target.value, 10), 23), minutes))}
+                className="w-16 text-center"
+              />
+              <span className="text-ink-muted">:</span>
+              <Input
+                type="number"
+                aria-label="Minute"
+                min={0}
+                max={59}
+                value={pad(minutes)}
+                disabled={!date}
+                onChange={(e) => date && onChange(withTime(date, hours, clamp(parseInt(e.target.value, 10), 59)))}
+                className="w-16 text-center"
+              />
             </div>
-          </div>
 
-          {/* Quick actions */}
-          <div className="flex items-center justify-between mt-3">
-            <button
-              type="button"
-              onClick={() => {
-                const now = new Date();
-                setSelectedDate(now);
-                setHours(now.getHours());
-                setMinutes(now.getMinutes());
-                onChange(now.toISOString());
-              }}
-              className="text-sm text-brand-600 hover:text-brand-700"
-            >
-              Now
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="px-3 py-1 text-sm text-white rounded bg-brand-600 hover:bg-brand-700"
-            >
-              Done
-            </button>
-          </div>
+            <div className="mt-3 flex items-center justify-between">
+              <Button variant="ghost" size="sm" onClick={() => onChange(new Date().toISOString())}>
+                Now
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => setOpen(false)}>
+                Done
+              </Button>
+            </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
 
-          <Popover.Arrow className="fill-white" />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+      {clearable && display && (
+        <IconButton
+          label="Clear date and time"
+          size="sm"
+          onClick={() => onChange("")}
+          className="absolute top-1/2 right-1.5 -translate-y-1/2"
+        >
+          <X className="h-4 w-4" />
+        </IconButton>
+      )}
+    </div>
   );
 }

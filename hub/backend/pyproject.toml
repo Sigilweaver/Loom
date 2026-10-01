@@ -19,7 +19,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
     "cryptography>=46.0.7",
-    "polars[connectorx]>=1.43.0",
+    "polars[connectorx]>=1.43.2",
     "pyarrow>=23.0.1",
     "slowapi>=0.1.9",
 ]
@@ -46,7 +46,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
+select = ["E", "F", "I", "N", "RUF100", "W"]
 ignore = []
 
 [tool.mypy]
@@ -54,6 +54,12 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# APScheduler 3.x ships no type information.
+module = ["apscheduler.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

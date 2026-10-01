@@ -6,6 +6,7 @@ import App from "../App";
 // App uses Zustand stores which are automatically mocked in test environment
 
 vi.mock("../data/tools", () => ({
+  DEFAULT_FAVORITE_TOOLS: ["Input", "Output"],
   getToolDefinition: vi.fn((type) => ({
     type,
     name: `${type} Tool`,

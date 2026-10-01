@@ -15,7 +15,11 @@ from app.api.models.connections import (
     CreateConnectionRequest,
     UpdateConnectionRequest,
 )
-from app.domain.connections.models import CreateConnectionInput, UpdateConnectionInput
+from app.domain.connections.models import (
+    CreateConnectionInput,
+    DatabaseType,
+    UpdateConnectionInput,
+)
 from app.domain.connections.store import (
     ConnectionNotFoundError,
     ConnectionStoreError,
@@ -23,6 +27,8 @@ from app.domain.connections.store import (
     EncryptionKeyError,
     get_connection_store,
 )
+from app.domain.connections.uri import guard_database_uri
+from app.utils.security import validate_file_path
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -111,6 +117,10 @@ async def create_connection(request: CreateConnectionRequest) -> ConnectionInfoR
             "Set CONNECTION_ENCRYPTION_KEY environment variable.",
         )
 
+    if request.type == DatabaseType.SQLITE:
+        # SQLite "database" is a local file path: apply the file-access rules.
+        validate_file_path(request.database)
+
     try:
         input_data = CreateConnectionInput(
             name=request.name,
@@ -160,6 +170,11 @@ async def update_connection(
             detail="Server connections not enabled. "
             "Set CONNECTION_ENCRYPTION_KEY environment variable.",
         )
+
+    if request.database is not None:
+        existing = store.resolve_connection(connection_id)
+        if existing is not None and existing.type == DatabaseType.SQLITE:
+            validate_file_path(request.database)
 
     try:
         input_data = UpdateConnectionInput(
@@ -235,6 +250,9 @@ async def test_connection(connection_id: str) -> ConnectionTestResult:
     uri = store.build_connection_uri(connection_id)
     if not uri:
         return ConnectionTestResult(success=False, message="Failed to build connection URI")
+
+    # SQLite URIs name a local file: apply the file-access rules before opening it.
+    uri = guard_database_uri(uri)
 
     try:
         import polars as pl

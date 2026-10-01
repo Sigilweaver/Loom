@@ -9,9 +9,9 @@ import tempfile
 from uuid import UUID
 
 import pytest
+
 from app.config import settings
 from app.domain.artifacts import ArtifactService
-
 from tests.conftest import TestSessionLocal, make_workflow_content, new_client
 
 # A single output socket with two rows; mirrors the Server execute response.

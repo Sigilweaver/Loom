@@ -5,7 +5,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import ColumnSchema, DataSchema, PolarsDataType
+from app.domain.models.common import ColumnSchema, DataSchema, PolarsDataType
 from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import AggregationExpr, SummarizeOperation
 from app.domain.tools.registry import register_tool
@@ -32,15 +32,6 @@ AGGREGATION_OPERATIONS = {
     "Concat": "str.concat",
 }
 
-# Aggregations that work on numeric columns only
-NUMERIC_ONLY_AGGREGATIONS = {"Sum", "Mean", "Median", "Std", "Var"}
-
-# Aggregations that work on string columns
-STRING_AGGREGATIONS = {"First", "Last", "Concat", "Count", "CountDistinct", "Min", "Max"}
-
-# Aggregations that work on any column type
-UNIVERSAL_AGGREGATIONS = {"Count", "CountDistinct", "First", "Last", "Min", "Max"}
-
 
 class SummarizeAggregationConfig(BaseModel):
     """Single aggregation. Typed config."""
@@ -61,24 +52,6 @@ class SummarizeToolConfig(BaseModel):
     groupByColumns: list[Any] = Field(default_factory=list)
     aggregations: list[SummarizeAggregationConfig] = Field(default_factory=list)
     includeNulls: bool = False
-
-
-def is_numeric_dtype(dtype: str) -> bool:
-    """Check if a dtype string represents a numeric type"""
-    numeric_types = {
-        "Int8",
-        "Int16",
-        "Int32",
-        "Int64",
-        "UInt8",
-        "UInt16",
-        "UInt32",
-        "UInt64",
-        "Float32",
-        "Float64",
-        "Decimal",
-    }
-    return dtype in numeric_types
 
 
 def get_result_dtype(operation: str, input_dtype: PolarsDataType) -> PolarsDataType:
@@ -170,11 +143,17 @@ class SummarizeTool(BaseTool):
         values for those columns (like SQL SELECT DISTINCT).
         """
         if CommonSockets.INPUT not in inputs:
-            raise ToolError("Summarize tool requires input on socket 'input'")
+            raise ToolError(
+                "Summarize tool has no input connected. Connect an upstream tool to its 'input' "
+                "socket."
+            )
 
         input_data = inputs[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Summarize tool does not support multiple inputs")
+            raise ToolError(
+                "Summarize tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         group_by_config = config.get("groupByColumns", [])
@@ -245,11 +224,17 @@ class SummarizeTool(BaseTool):
         Calculate output schema based on group by and aggregation configuration.
         """
         if CommonSockets.INPUT not in input_schemas:
-            raise ToolError("Summarize tool requires input schema on socket 'input'")
+            raise ToolError(
+                "Summarize tool requires input schema on socket 'input'. Connect an upstream "
+                "tool to its 'input' socket."
+            )
 
         input_data = input_schemas[CommonSockets.INPUT]
         if isinstance(input_data, list):
-            raise ToolError("Summarize tool does not support multiple input schemas")
+            raise ToolError(
+                "Summarize tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         input_schema: DataSchema = input_data
         group_by_config = config.get("groupByColumns", [])
         aggregations = config.get("aggregations", [])

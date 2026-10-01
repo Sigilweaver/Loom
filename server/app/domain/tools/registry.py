@@ -2,7 +2,7 @@
 
 from typing import Callable, Type
 
-from app.api.models.workflow import DEFAULT_ENGINE
+from app.domain.models.workflow import DEFAULT_ENGINE
 from app.domain.tools.base import BaseTool
 from app.utils.errors import ToolError
 
@@ -67,25 +67,6 @@ class ToolRegistry:
             raise ToolError(msg)
 
         return cls._tools[tool_type]()
-
-    @classmethod
-    def is_registered(cls, tool_type: str) -> bool:
-        """Check if a tool type is registered"""
-        return tool_type in cls._tools
-
-    @classmethod
-    def list_registered(cls, engine: str | None = None) -> list[str]:
-        """Get list of all registered tool types.
-
-        Args:
-            engine: If provided, only list tools for that engine.
-                    Returns unqualified names (e.g., "Filter" not "core/polars::Filter").
-        """
-        if engine:
-            prefix = f"{engine}::"
-            return [key.removeprefix(prefix) for key in cls._tools if key.startswith(prefix)]
-        # Return only unqualified names
-        return [key for key in cls._tools if "::" not in key]
 
 
 def register_tool(tool_type: str) -> Callable[[Type[BaseTool]], Type[BaseTool]]:

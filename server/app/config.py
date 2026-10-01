@@ -1,5 +1,6 @@
 """Configuration management for the backend service"""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
     max_execution_time_seconds: int = 300
     max_memory_mb: int = 4096
     max_preview_rows: int = 10000
+    max_profile_rows: int = Field(default=100_000, ge=1)
 
     # Security - File Access
     # Explicit modes:

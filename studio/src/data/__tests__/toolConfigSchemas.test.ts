@@ -154,13 +154,37 @@ describe('toolConfigSchemas', () => {
       const schema = getToolConfigSchema('Sample')!;
       expect(schema.fields.mode!.enum).toContain('FirstN');
       expect(schema.fields.mode!.enum).toContain('Random');
-      expect(schema.fields.mode!.enum).toContain('Percent');
+      expect(schema.fields.mode!.enum).toEqual([
+        'FirstN', 'LastN', 'EveryN', 'Random', 'RandomPercent', 'FirstPercent',
+      ]);
     });
 
-    it('Input schema has file and connection categories', () => {
+    it('Input schema has file and database categories', () => {
       const schema = getToolConfigSchema('Input')!;
       expect(schema.fields.category!.enum).toContain('file');
-      expect(schema.fields.category!.enum).toContain('connection');
+      expect(schema.fields.category!.enum).toContain('database');
+      expect(schema.fields.category!.enum).not.toContain('connection');
+      expect(schema.fields.type!.enum).toContain('excel');
+      expect(schema.fields.type!.enum).not.toContain('xlsx');
+      expect(schema.fields).toHaveProperty('has_header');
+      expect(schema.fields).toHaveProperty('separator');
+      expect(schema.fields).toHaveProperty('sheet_name');
+      expect(schema.fields).toHaveProperty('sheet_id');
+      expect(schema.fields).not.toHaveProperty('hasHeader');
+      expect(schema.fields).not.toHaveProperty('delimiter');
+    });
+
+    it('Output schema uses writer field names and supported formats', () => {
+      const fields = getToolConfigSchema('Output')!.fields;
+      expect(fields).toHaveProperty('destination');
+      expect(fields).toHaveProperty('separator');
+      expect(fields).toHaveProperty('include_header');
+      expect(fields).not.toHaveProperty('path');
+      expect(fields).not.toHaveProperty('delimiter');
+      expect(fields).not.toHaveProperty('includeHeader');
+      expect(fields.type!.enum).toEqual([
+        'csv', 'parquet', 'excel', 'json', 'ipc', 'avro', 'yxdb',
+      ]);
     });
   });
 });

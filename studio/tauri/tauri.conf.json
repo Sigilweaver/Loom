@@ -71,10 +71,5 @@
                 "installMode": "currentUser"
             }
         }
-    },
-    "plugins": {
-        "shell": {
-            "open": true
-        }
     }
 }

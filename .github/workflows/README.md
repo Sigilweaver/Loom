@@ -13,11 +13,13 @@ only touch markdown or `docs/**`
 **Purpose**: Validates code quality and runs tests
 
 **Jobs**:
-- Tauri crate check (cargo check, clippy)
-- Server tests (pytest, ruff, mypy)
-- Studio tests (vitest, eslint, tsc)
-- Hub checks, backend and frontend (pytest, ruff, mypy, vitest, tsc)
+- Tauri crate check (`cargo check --locked`, clippy)
+- Test & Lint: `scripts/test.py --full --ci --server --studio --hub --repo`
+  (server, Studio and Hub lint, type-check and tests with coverage, plus ruff
+  and the release-script tests for `scripts/` and `.github/scripts/`)
 - Web build verification
+- Docker build check for the Hub and Server images (build only, no push), so a
+  broken Dockerfile fails here rather than when a release is published
 
 **Usage**:
 - Automatically runs on all PRs
@@ -35,9 +37,10 @@ link or invalid MDX in a docs-only PR would reach `main` with no CI signal.
 
 Note this covers the documentation site only. Markdown outside `docs/`
 (`README.md`, `SECURITY.md`, `docker/README.md` and so on) is not part of the
-Docusaurus build and is checked by neither workflow. `scripts/lint_repo.py`
-is the right home for repo-wide markdown checks; wiring it in is tracked in
-#140.
+Docusaurus build and is checked by neither workflow. The orphaned
+`scripts/lint_repo.py` was removed instead of wired in (#140): its empty-file
+and non-ASCII checks flag legitimate content (empty `__init__.py` files, UI
+glyphs in source).
 
 **Jobs**:
 - Typecheck (`bun run typecheck`)
@@ -50,9 +53,9 @@ is the right home for repo-wide markdown checks; wiring it in is tracked in
 
 **Purpose**: Build Python server executables for all platforms
 
-**Matrix Strategy**: 
+**Matrix Strategy**:
 - Linux (ubuntu-latest)
-- Windows (windows-latest) 
+- Windows (windows-latest)
 - macOS (macos-latest)
 
 **Outputs**:
@@ -161,11 +164,11 @@ gh workflow run build-web.yml
 ---
 
 #### 7. release.yml - Release Orchestrator
-**Trigger**: 
-- Git tags matching `v*` (e.g., v1.0.0)
-- Manual workflow_dispatch
+**Trigger**:
+- Git tags matching `v*` (e.g., v1.0.0 or v1.0.0-rc.1)
+- Manual workflow_dispatch (does nothing unless dispatched on a tag ref)
 
-**Purpose**: Coordinate all builds and publish to GitHub Releases
+**Purpose**: Coordinate all builds and create a DRAFT GitHub Release
 
 **Job Flow**:
 ```
@@ -182,7 +185,16 @@ validate-tag-on-main
     +-- publish-assets (waits for all)
 ```
 
-**Validation**: Only runs if tag commit is on `main` branch
+**Validation** (`validate-tag-on-main`, all before anything is built):
+- The tag must be semver: `vMAJOR.MINOR.PATCH` with an optional `-prerelease`
+  suffix. Anything else fails the run.
+- The tagged commit must be on `main`, otherwise the run is skipped.
+- The tagged commit must have a passing CI run (`ci.yml`, `push` or
+  `workflow_dispatch` event). `.github/scripts/check_ci_status.py` waits for a
+  run that is still in progress and fails if CI failed or never ran. CI skips
+  documentation-only pushes, so if the tagged commit only touched markdown or
+  `docs/`, or its run was cancelled by a newer push, start CI by hand
+  (Actions > CI > Run workflow on main) and re-run the release workflow.
 
 **Artifact Naming**:
 - `Sigilweaver-Loom-{VERSION}-x64.AppImage`
@@ -198,11 +210,76 @@ validate-tag-on-main
 - `Sigilweaver-Loom-Web-{VERSION}.zip`
 - `SHA256SUMS.txt`
 
+Missing expected assets are reported as warnings and in the run summary but do
+not fail the run (snap builds can be flaky); check the draft before publishing.
+
 **Publishing**:
-- Creates GitHub Release with version tag
-- Uploads all artifacts
-- Generates release notes automatically
-- Not marked as draft or prerelease
+- Creates the GitHub Release as a **draft** with all artifacts and generated
+  release notes. Nothing is public until a maintainer publishes the draft.
+- Tags with a `-` suffix are marked as **pre-release** automatically.
+- Publishing the draft in the GitHub UI is what triggers `mirror-release.yml`
+  and `docker-build.yml` (see below).
+- The Tauri build (`build-studio-tauri.yml`) is not part of the release yet
+  (see Loom#107).
+
+---
+
+#### 8. mirror-release.yml - R2 Mirror
+**Trigger**: A release is published (draft -> published), or manual
+`workflow_dispatch` with a `tag` input to re-mirror an existing release.
+
+**Purpose**: Download the published release's assets and mirror them to
+Cloudflare R2 with the download manifests, using
+`.github/scripts/upload_to_r2.py`. Doing this on publish rather than at build
+time means the download site never serves a build that has not been reviewed.
+
+**Pre-releases** (tag with a `-` suffix, or a release marked as pre-release):
+assets and manifests go to `releases/loom/{tag}/` only. The stable
+`releases/loom/index.json`, which the website reads to find the latest
+download, is not touched and its `latest` pointer never moves to a pre-release.
+
+**Secrets**: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`,
+`R2_ENDPOINT_URL`, `R2_CDN_URL` (optional).
+
+---
+
+#### 9. docker-build.yml - Container Images
+**Trigger**: A release is published, or manual `workflow_dispatch` with a
+`version` (and optional `tag_latest`) input.
+
+**Purpose**: Build the Hub (`hub/Dockerfile`) and Server (`server/Dockerfile`)
+images for linux/amd64 and push them to `ghcr.io`.
+
+**Tags**: a stable release pushes `X.Y.Z`, `X.Y` and `latest`. A pre-release
+pushes only its exact version tag. Manual dispatch pushes `latest` only when
+`tag_latest` is set and the version is not a pre-release.
+
+---
+
+#### 10. audit.yml - Dependency Audit
+**Trigger**: Pushes and PRs that touch a lockfile or manifest, a weekly
+schedule (Mondays 06:00 UTC), and manual dispatch.
+
+**Jobs**: `pip-audit` (server, hub/backend), `bun audit` (hub/frontend,
+studio) and `cargo audit` (studio/tauri).
+
+**Policy**: fix advisories with an in-range lockfile bump or an `overrides`
+entry in `package.json`. An `--ignore` is only acceptable when no fixed
+release exists, and it needs a comment in the workflow saying why and when it
+can be removed. The only ignores today are the two extract-zip advisories in
+the Studio job (Loom#148).
+
+---
+
+#### 11. build-studio-tauri.yml - Tauri Build (Reusable, not yet released)
+**Trigger**: `workflow_dispatch` or `workflow_call`
+
+**Purpose**: Build the Tauri desktop app (Linux, Windows, macOS arm64).
+
+Not called by `release.yml`: it has no bundled-server ("full") variant, no
+macOS x64 build, produces artifacts that `release.yml` and the R2 asset
+detection do not name or list, and has never run as part of a release. Tracked
+in Loom#107.
 
 ---
 
@@ -219,17 +296,20 @@ gh workflow run build-server.yml
 # Test full studio builds
 gh workflow run build-studio-full.yml
 
-# Test client studio builds  
+# Test client studio builds
 gh workflow run build-studio-client.yml
 
 # Test web build
 gh workflow run build-web.yml
 
-# Test complete release (without publishing)
-gh workflow run release.yml
+# Test the full release flow: push a pre-release tag (see below)
 ```
 
 ### Test Release Flow
+
+Releases are created as drafts, so a test tag never publishes anything and
+the `-` suffix makes it a pre-release. The tagged commit must be on `main` and
+have a passing CI run.
 
 1. Create a test tag locally:
 ```bash
@@ -241,7 +321,9 @@ git tag v0.0.1-test
 git push origin v0.0.1-test
 ```
 
-3. Monitor in GitHub Actions tab
+3. Monitor in GitHub Actions tab, then inspect the draft release. Publishing
+it also exercises the R2 mirror and Docker images (as a pre-release, so the
+stable index and `latest` tags are untouched).
 
 4. Clean up:
 ```bash
@@ -257,26 +339,40 @@ gh release delete v0.0.1-test --yes
 ### Permissions Required
 
 **All workflows**:
-- `contents: read` (implicit)
+- `contents: read` unless stated otherwise
 
-**release.yml** (publish-assets job):
-- `contents: write` (for creating releases)
+**release.yml**:
+- `contents: write` (publish-assets job creates the release)
+- `actions: read` (validate-tag-on-main job queries CI runs)
+
+**docker-build.yml** (build jobs):
+- `packages: write` (push to ghcr.io)
 
 ### Secrets Used
 
-**GH_TOKEN**: 
+**GITHUB_TOKEN**:
 - Automatically provided by GitHub Actions
-- Used by electron-builder for publishing
-- No manual setup required
+- Used to create the release, push images to ghcr.io and query CI runs
+- The Electron build workflows also pass it to electron-builder as `GH_TOKEN`
+
+**R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT_URL, R2_CDN_URL**:
+- Repository secrets used by `mirror-release.yml`
 
 ### External Actions
 
-- `actions/checkout@v4` - Repository checkout
-- `actions/setup-python@v5` - Python environment
-- `oven-sh/setup-bun@v2` - bun environment  
-- `actions/upload-artifact@v4` - Artifact storage
-- `actions/download-artifact@v4` - Artifact retrieval
-- `softprops/action-gh-release@v2` - GitHub Release creation
+Versions are kept current by Dependabot (`.github/dependabot.yml`); check the
+workflow files for the exact pins. In use:
+
+- `actions/checkout` - Repository checkout
+- `actions/setup-python` and `astral-sh/setup-uv` - Python environment
+- `oven-sh/setup-bun` - bun environment
+- `actions/upload-artifact` and `actions/download-artifact` - Artifact storage
+- `softprops/action-gh-release` - GitHub Release creation
+- `docker/setup-buildx-action`, `docker/login-action`,
+  `docker/build-push-action` - Container images (pinned by commit SHA)
+- `dtolnay/rust-toolchain`, `swatinem/rust-cache`, `taiki-e/install-action` -
+  Rust builds and `cargo audit`
+- `azure/trusted-signing-action` - Windows code signing
 
 ---
 
@@ -316,7 +412,7 @@ gh release delete v0.0.1-test --yes
 
 **1. Build fails on specific platform**:
 - Check platform-specific job logs
-- Test locally with `./scripts/build-{variant}.sh {platform}`
+- Reproduce locally with `./scripts/build.py` (see `scripts/README.md`)
 - Verify electron-builder config for that platform
 
 **2. Server artifact not found**:
@@ -324,9 +420,10 @@ gh release delete v0.0.1-test --yes
 - Check artifact name matches in download step
 - Verify needs: dependency in release.yml
 
-**3. Release doesn't trigger**:
-- Verify tag starts with 'v' (e.g., v1.0.0)
-- Check tag commit is on main branch
+**3. Release doesn't trigger, or stops at validation**:
+- Verify the tag is semver and starts with 'v' (e.g., v1.0.0 or v1.0.0-rc.1)
+- Check tag commit is on main branch (otherwise the run is skipped)
+- Check the tagged commit has a passing CI run; see the CI gate notes above
 - Review validate-tag-on-main job output
 
 **4. Snap build fails**:
@@ -365,17 +462,17 @@ specific version, add `bun-version:` to the setup-bun step in these files:
 
 ### Updating Python Version
 
-Update in these files:
-- `.github/workflows/ci.yml` (setup-python)
-- `.github/workflows/build-server.yml` (input default)
-- `.github/workflows/release.yml` (workflow_call inputs)
+The server build and CI read the version from `server/.python-version`.
+Also update the base images in `server/Dockerfile` and `hub/Dockerfile`, and
+`python-version` in `.github/workflows/mirror-release.yml`.
 
 ### Adding New Platforms
 
 1. Add to matrix in build-studio-*.yml
 2. Update studio/package.json with new build script
 3. Add platform-specific config to electron-builder-*.json
-4. Update release.yml asset preparation script
+4. Update the asset preparation and validation steps in release.yml, and the
+   asset detection in `.github/scripts/lib/asset_detector.py`
 
 ---
 
@@ -384,9 +481,9 @@ Update in these files:
 ### Typical Execution Times
 
 **CI (Pull Request)**:
-- Server tests: ~2-3 minutes
-- Studio tests: ~2-3 minutes
-- Total: ~5-6 minutes (parallel)
+- Test & Lint job (server, Studio, Hub): several minutes; the Hub backend
+  suite is the longest
+- Docker build check and Tauri check run in parallel
 
 **Release Build**:
 - Server builds (3 platforms): ~5-7 minutes (parallel)
@@ -407,8 +504,8 @@ Update in these files:
 
 ## Version History
 
-**v1.0 (Current)**: 
+**Current**:
 - Modular workflow structure with reusable workflows
 - Variant-based builds (full vs client)
 - Multi-platform matrix strategies
-- Automatic release publishing
+- Draft releases with a CI gate, publish-time R2 mirror and Docker images

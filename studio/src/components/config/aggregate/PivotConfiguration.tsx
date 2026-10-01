@@ -145,9 +145,9 @@ export function PivotConfiguration({
       if (uniqueCount === null) return "unknown";
       if (uniqueCount >= PIVOT_UNIQUE_DANGER) return "danger";
       if (uniqueCount >= PIVOT_UNIQUE_WARNING) return "warning";
-      return "safe";
+      return profileData?.sampled ? "unknown" : "safe";
     },
-    []
+    [profileData?.sampled]
   );
 
   // Get current configuration values
@@ -280,6 +280,13 @@ export function PivotConfiguration({
           </p>
         </div>
 
+        {profileData?.sampled && (
+          <p className="text-sm text-theme-text-secondary">
+            Counts cover the first {profileData.row_count.toLocaleString()} rows only.
+            The full data may create more pivot columns.
+          </p>
+        )}
+
         {/* Blocking Warning */}
         <div className="flex items-start gap-2 p-3 text-sm border rounded bg-theme-status-warning-bg border-theme-status-warning-border">
           <AlertTriangle className="w-4 h-4 text-theme-status-warning-text mt-0.5 flex-shrink-0" />
@@ -378,7 +385,9 @@ export function PivotConfiguration({
                   const uniqueCount = getUniqueCount(col.name);
                   const safetyLevel = getUniqueSafetyLevel(uniqueCount);
                   const emoji = safetyLevel !== "unknown" ? CARDINALITY_EMOJI[safetyLevel] + " " : "";
-                  const countLabel = uniqueCount !== null ? ` (${uniqueCount.toLocaleString()} unique)` : "";
+                  const countLabel = uniqueCount !== null
+                    ? ` (${profileData?.sampled ? 'at least ' : ''}${uniqueCount.toLocaleString()} unique)`
+                    : "";
                   return (
                     <option key={col.name} value={col.name}>
                       {emoji}{col.name} - {col.dtype}{countLabel}
@@ -409,8 +418,8 @@ export function PivotConfiguration({
                       <div>
                         <p className="font-medium text-theme-status-error-text">High cardinality warning</p>
                         <p className="text-theme-text-secondary">
-                          This column has {uniqueCount?.toLocaleString()} unique values. 
-                          Pivoting will create {uniqueCount?.toLocaleString()} new columns, 
+                          This column has {profileData?.sampled ? 'at least ' : ''}{uniqueCount?.toLocaleString()} unique values.
+                          Pivoting will create {profileData?.sampled ? 'at least ' : ''}{uniqueCount?.toLocaleString()} new columns,
                           which may cause performance issues or crash the application.
                         </p>
                       </div>
@@ -423,8 +432,8 @@ export function PivotConfiguration({
                       <div>
                         <p className="font-medium text-theme-status-warning-text">Moderate cardinality</p>
                         <p className="text-theme-text-secondary">
-                          This column has {uniqueCount?.toLocaleString()} unique values. 
-                          This will create {uniqueCount?.toLocaleString()} new columns.
+                          This column has {profileData?.sampled ? 'at least ' : ''}{uniqueCount?.toLocaleString()} unique values.
+                          This will create {profileData?.sampled ? 'at least ' : ''}{uniqueCount?.toLocaleString()} new columns.
                         </p>
                       </div>
                     </div>

@@ -1,5 +1,7 @@
 """Tests for authentication middleware"""
 
+import os
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -379,3 +381,22 @@ class TestTokenComparison:
         # Very wrong token (different length)
         headers = {"Authorization": "Bearer x"}
         assert client.get("/api/protected", headers=headers).status_code == 401
+
+
+class TestAuthStartup:
+    def test_generated_token_is_available_without_being_logged(self, monkeypatch, caplog):
+        from app.config import settings
+        from app.main import validate_auth_config
+
+        token = "generated-test-token-do-not-use"
+        monkeypatch.setattr(settings, "auth_mode", "ephemeral")
+        monkeypatch.setattr(settings, "session_token", "")
+        monkeypatch.setattr("app.main.secrets.token_urlsafe", lambda _: token)
+        monkeypatch.delenv("SESSION_TOKEN", raising=False)
+
+        validate_auth_config()
+
+        assert settings.session_token == token
+        assert os.environ["SESSION_TOKEN"] == token
+        assert token not in caplog.text
+        assert "generated session token" in caplog.text

@@ -1,6 +1,6 @@
 """Tests for comment handling in PythonCodeGenerator."""
 
-from app.api.models.workflow import Socket, Tool, Wire, Workflow, WorkflowMeta
+from app.domain.models.workflow import Socket, Tool, Wire, Workflow, WorkflowMeta
 
 
 def _make_workflow(tools: list[Tool], wires: list[Wire] | None = None) -> Workflow:

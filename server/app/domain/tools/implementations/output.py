@@ -6,7 +6,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.models.common import DataSchema
+from app.domain.models.common import DataSchema
 from app.domain.tools.base import BaseTool
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
@@ -62,13 +62,19 @@ class OutputTool(BaseTool):
         input_data = inputs[CommonSockets.INPUT]
         # Extract single LazyFrame (Output tool doesn't support list inputs)
         if isinstance(input_data, list):
-            raise ToolError("Output tool does not support multiple inputs")
+            raise ToolError(
+                "Output tool accepts a single input, but several are connected. Combine them "
+                "first, for example with a Union tool."
+            )
         lf: pl.LazyFrame = input_data
 
         # Get output type
         output_type = config.get("type")
         if not output_type:
-            raise ToolError("Output tool config missing 'type' field")
+            raise ToolError(
+                "Output tool has no format selected. Choose an output format in the Output "
+                "tool settings."
+            )
 
         # Save data based on type
         if output_type == "csv":
@@ -95,7 +101,9 @@ class OutputTool(BaseTool):
         """Save to CSV using sink_csv or write_csv based on mode"""
         destination = config.get("destination")
         if not destination:
-            raise ToolError("CSV output config missing 'destination' field")
+            raise ToolError(
+                "CSV output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -119,7 +127,7 @@ class OutputTool(BaseTool):
                 df = lf.collect()
                 df.write_csv(destination, **csv_kwargs)
             else:
-                raise ToolError(f"Unknown CSV mode: {mode}")
+                raise ToolError(f"Unknown CSV mode: {mode}. Expected 'sink' or 'write'.")
         except Exception as e:
             raise ToolError(f"Failed to write CSV: {str(e)}") from e
 
@@ -127,7 +135,9 @@ class OutputTool(BaseTool):
         """Save to Parquet using sink_parquet or write_parquet based on mode"""
         destination = config.get("destination")
         if not destination:
-            raise ToolError("Parquet output config missing 'destination' field")
+            raise ToolError(
+                "Parquet output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -151,7 +161,7 @@ class OutputTool(BaseTool):
                 df = lf.collect()
                 df.write_parquet(destination, **parquet_kwargs)
             else:
-                raise ToolError(f"Unknown Parquet mode: {mode}")
+                raise ToolError(f"Unknown Parquet mode: {mode}. Expected 'sink' or 'write'.")
         except Exception as e:
             raise ToolError(f"Failed to write Parquet: {str(e)}") from e
 
@@ -163,7 +173,9 @@ class OutputTool(BaseTool):
         """
         destination = config.get("destination")
         if not destination:
-            raise ToolError("IPC output config missing 'destination' field")
+            raise ToolError(
+                "IPC output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -193,7 +205,7 @@ class OutputTool(BaseTool):
                 df = lf.collect()
                 df.write_ipc(destination, **write_kwargs)
             else:
-                raise ToolError(f"Unknown IPC mode: {mode}")
+                raise ToolError(f"Unknown IPC mode: {mode}. Expected 'sink' or 'write'.")
         except Exception as e:
             raise ToolError(f"Failed to write IPC: {str(e)}") from e
 
@@ -207,7 +219,9 @@ class OutputTool(BaseTool):
         """
         destination = config.get("destination")
         if not destination:
-            raise ToolError("Avro output config missing 'destination' field")
+            raise ToolError(
+                "Avro output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -343,7 +357,9 @@ class OutputTool(BaseTool):
 
         destination = config.get("destination")
         if not destination:
-            raise ToolError("YXDB output config missing 'destination' field")
+            raise ToolError(
+                "YXDB output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -362,7 +378,9 @@ class OutputTool(BaseTool):
         """Save to Excel using write_excel (always eager - no streaming support)"""
         destination = config.get("destination")
         if not destination:
-            raise ToolError("Excel output config missing 'destination' field")
+            raise ToolError(
+                "Excel output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -445,7 +463,9 @@ class OutputTool(BaseTool):
         """
         destination = config.get("destination")
         if not destination:
-            raise ToolError("JSON output config missing 'destination' field")
+            raise ToolError(
+                "JSON output has no destination. Set the file path in the Output tool settings."
+            )
 
         # Security: Validate destination path against allowed paths (Hub mode enforcement)
         validate_file_path_for_write(destination)
@@ -472,7 +492,7 @@ class OutputTool(BaseTool):
                     df = lf.collect()
                     df.write_ndjson(destination)
                 else:
-                    raise ToolError(f"Unknown JSON mode: {mode}")
+                    raise ToolError(f"Unknown JSON mode: {mode}. Expected 'sink' or 'write'.")
             else:
                 # Standard JSON: only eager write supported
                 df = lf.collect()

@@ -24,10 +24,8 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 **SmartScreen warnings on install**
 
-- **Issue**: Windows flags unsigned executables as potentially harmful
-- **Root cause**: No code signing certificate yet
-- **Workaround**: Click "More info" → "Run anyway"
-- **Future**: Code signing is on the roadmap
+- **Status**: Release builds are signed with Azure Trusted Signing. A new release can still trigger SmartScreen until it builds reputation.
+- **Workaround**: Click "More info" then "Run anyway"
 
 **Path length limits**
 
@@ -41,13 +39,12 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 - **Issue**: macOS blocks apps from "unidentified developers"
 - **Root cause**: No Apple Developer certificate yet
-- **Workaround**: Right-click → Open → Open anyway
+- **Workaround**: Right-click -> Open -> Open anyway
 - **Future**: Notarization is on the roadmap
 
 **Apple Silicon (M1/M2/M3)**
 
-- **Status**: Builds are generated but limited testing
-- **Known**: Works via Rosetta 2, native ARM builds in progress
+- **Status**: Release builds target x64 only. They run on Apple Silicon through Rosetta 2.
 - **Notes**: Report issues if you encounter them
 
 ---
@@ -147,17 +144,17 @@ Good bug reports get fixed faster.
 
 ## Security Notes
 
-**Arbitrary code execution**
+**Workflow trust boundaries**
 
-- **Reality**: Formula and Filter tools evaluate Polars expressions on the backend
-- **Implication**: A malicious workflow file could execute arbitrary Python
-- **Mitigation**: Only open workflow files you trust (same as any script)
-- **Notes**: This is inherent to the design. The tool is for technical users who understand the risk
+- Formula and Filter expressions use a restricted Polars namespace. File and network readers, Python callables and disallowed attribute chains are rejected before evaluation.
+- On a single-user desktop, the workflow author controls the machine. Native file access still requires an open/save dialog grant; use trusted workflows and keep backups.
+- In Hub mode, workflow authors are untrusted relative to the Server. Expressions must not bypass Hub-issued connection or file grants. Use Hub file-access mode and restricted database accounts on Servers you control.
+- The expression sandbox does not isolate the whole Server process or guarantee resource isolation. See the [Security Model](../admin/security.md#expressions-and-code) for the limits.
 
 **Data stays local**
 
-- **Reality**: All processing happens on your machine
-- **No telemetry**: No data sent anywhere
+- Desktop processing runs on the local Server; Hub workflows run on the selected Server.
+- Database connections and configured AI providers can receive requests and data. AI use sends workflow context and sample data to that provider.
 - **Your data, your responsibility**: Back it up, secure it appropriately
 
 ---
