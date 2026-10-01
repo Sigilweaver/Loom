@@ -88,6 +88,8 @@ A Server decides which files workflows may touch. In Hub mode, the Server allows
 
 Filter and Calculate accept Polars expressions. Loom runs each expression in an allowlist sandbox. It sees only a restricted `pl` namespace, and file and network I/O, callables and format-string tricks are blocked. This lowers the risk, but it is not a guarantee. **Treat a workflow file like a script**: open workflows from people you trust, and remember that a workflow runs with the permissions of the Server process.
 
+On a single-user desktop, the workflow author already controls the host, though native file reads and writes still require dialog grants. In Hub mode, workflow authors are untrusted relative to the Server: the expression allowlist prevents expressions from reaching Polars readers or Python callables that bypass per-request file and connection grants. Run shared Servers with `FILE_ACCESS_MODE=hub`, least-privilege database accounts and host permissions. The allowlist is not process isolation or a total memory limit; trusted Server hosts and grant enforcement remain part of the boundary.
+
 ## AI proxy
 
 The Server includes a proxy that forwards Studio's AI requests to the model provider. It refuses to connect to loopback, private, link-local and other reserved addresses, resolves names before connecting to prevent DNS tricks, and forwards only an allowlist of headers. It never forwards Loom's own tokens. Studio sends workflow context and sample data to the provider you configure. See [AI Assistant](../user/interface/ai-assistant.md).
