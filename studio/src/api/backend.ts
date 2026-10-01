@@ -449,6 +449,8 @@ export interface ProfileResponse {
   socket_id: string;
   row_count: number;
   column_count: number;
+  sampled?: boolean;
+  sample_limit?: number;
   columns: Record<string, ColumnProfile>;
 }
 

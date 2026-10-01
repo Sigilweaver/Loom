@@ -486,8 +486,9 @@ async def profile_tool_input(
     - Determining pivot safety (unique value counts)
     - Exploring data distribution (top values, min/max)
 
-    This endpoint collects the FULL dataset (not preview limited) to
-    compute accurate statistics. It executes all upstream tools.
+    This endpoint profiles at most MAX_PROFILE_ROWS from the target output.
+    row_count is the number profiled; sampled indicates that more rows exist.
+    It executes the target's upstream tools under the execution budget.
 
     The metrics parameter allows requesting specific statistics:
     - Basic: count, null_count, null_percent, unique_count

@@ -46,9 +46,12 @@ CORS_ORIGINS=["https://studio.example.com"]
 | ---------------------------- | ------- | -------------------------------------------------------------------- |
 | `MAX_EXECUTION_TIME_SECONDS` | `300`   | Wall-clock budget for one workflow execution. `0` disables it.       |
 | `MAX_PREVIEW_ROWS`           | `10000` | Upper limit on rows returned in a preview                            |
+| `MAX_PROFILE_ROWS`           | `100000` | Positive cap on rows collected for column statistics; cannot be disabled. |
 | `MAX_MEMORY_MB`              | `4096`  | Defined but not enforced by the current code                         |
 
 The time limit is checked between steps. A single long Polars operation cannot be interrupted, so a run can overshoot the budget by the length of that operation.
+
+Column profiling applies the same request budget to upstream execution, collection and statistics. It collects at most `MAX_PROFILE_ROWS` plus one row to detect truncation. `row_count` reports the rows profiled; `sampled` identifies truncated data. Studio labels sampled profiles, and pivot cardinality remains a lower bound rather than a guarantee of safety. A timed-out profiling request returns without waiting for the worker, but an already running Polars operation may finish in the background. The row cap bounds the collected profile, not every intermediate operation in a workflow or total process memory.
 
 ## Parallel execution
 

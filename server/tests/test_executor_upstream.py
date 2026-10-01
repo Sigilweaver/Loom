@@ -244,8 +244,15 @@ class TestSingleBudgetedRunner:
                 super().__setitem__(key, value)
 
         workflow = _two_branch_workflow(tmp_path)
+        workflow.tools.append(Tool(
+            id="write", type="Output", x=0, y=0,
+            config={"type": "csv", "destination": str(tmp_path / "output.csv")},
+            sockets=[Socket(id="input", direction="input")],
+        ))
+        workflow.wires.append(_wire("filter1", "write", "output-true"))
         for run in (
             lambda e: e.execute_workflow(workflow),
+            lambda e: e.execute_workflow(workflow, preview_only=True),
             lambda e: e.get_tool_schema(workflow, "filter1", "output-true"),
             lambda e: e.get_tool_metadata(workflow, "filter1"),
             lambda e: e.profile_columns(workflow, "filter1", "output-true"),

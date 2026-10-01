@@ -114,8 +114,9 @@ class WorkflowExecutor:
             execution_log["tool_executions"] = tool_logs
             execution_log["cache_hits"] = cache_hits
             execution_log["skipped_outputs"] = skipped_outputs
-            for tool_id in skipped_outputs:
-                self.results[tool_id] = {}
+            async with self._results_lock:
+                for tool_id in skipped_outputs:
+                    self.results[tool_id] = {}
 
             # Format results
             result = self._format_results(final_tool_id, preview_limit)
@@ -318,8 +319,8 @@ class WorkflowExecutor:
         """
         Profile columns for data quality and statistics.
 
-        Executes the tool and collects the full dataset from the specified
-        output socket to compute profile statistics.
+        Executes the tool and profiles at most max_profile_rows from its
+        output socket. The response identifies when statistics are sampled.
 
         Note: The frontend always sends output socket IDs. For input sockets,
         the frontend traces back to the upstream tool's output socket before
@@ -335,7 +336,28 @@ class WorkflowExecutor:
         Returns:
             Dictionary with column profiles and metadata
         """
-        # Execute the target and everything upstream of it
+        timeout_s = settings.max_execution_time_seconds
+        budget = (
+            float(timeout_s)
+            if isinstance(timeout_s, (int, float))
+            and not isinstance(timeout_s, bool) and timeout_s > 0
+            else None
+        )
+        try:
+            async with asyncio.timeout(budget):
+                return await self._profile_columns(workflow, tool_id, socket_id, columns, metrics)
+        except TimeoutError as exc:
+            raise ExecutionTimeoutError(f"Column profiling exceeded {timeout_s}s budget") from exc
+
+    async def _profile_columns(
+        self,
+        workflow: Workflow,
+        tool_id: str,
+        socket_id: str,
+        columns: list[str] | None,
+        metrics: list[str] | None,
+    ) -> dict[str, Any]:
+        # Execute the target and everything upstream of it.
         await self._run_upstream(workflow, tool_id, include_target=True)
 
         # Get the LazyFrame from the tool's output socket
@@ -349,10 +371,6 @@ class WorkflowExecutor:
 
         lf = self.results[tool_id][socket_id]
 
-        # Collect the full dataset for profiling
-        df = lf.collect()
-        row_count = len(df)
-
         # Parse metrics if provided
         parsed_metrics: list[ProfileMetrics] | None = None
         if metrics:
@@ -363,17 +381,27 @@ class WorkflowExecutor:
                 except ValueError:
                     logger.warning(f"Unknown profile metric: {m}")
 
-        # Create profiler and compute profiles
-        profiler = ColumnProfiler(metrics=parsed_metrics)
-        column_profiles = profiler.profile_columns(df, columns)
+        def collect_profile() -> dict[str, Any]:
+            # One extra row detects truncation without counting the whole source.
+            # Keep collection and statistics off the event loop so the request's
+            # budget also covers this work. Running Polars work cannot be killed
+            # mid-operation after the await is cancelled.
+            limit = settings.max_profile_rows
+            collected = lf.head(limit + 1).collect()
+            sampled = len(collected) > limit
+            df = collected.head(limit)
+            profiler = ColumnProfiler(metrics=parsed_metrics)
+            return {
+                "tool_id": tool_id,
+                "socket_id": socket_id,
+                "row_count": len(df),
+                "column_count": len(df.columns),
+                "sampled": sampled,
+                "sample_limit": limit,
+                "columns": profiler.profile_columns(df, columns),
+            }
 
-        return {
-            "tool_id": tool_id,
-            "socket_id": socket_id,
-            "row_count": row_count,
-            "column_count": len(df.columns),
-            "columns": column_profiles,
-        }
+        return await asyncio.to_thread(collect_profile)
 
     # --- Private methods ---
 
