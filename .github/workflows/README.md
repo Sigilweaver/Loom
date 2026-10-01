@@ -266,8 +266,10 @@ studio) and `cargo audit` (studio/tauri).
 **Policy**: fix advisories with an in-range lockfile bump or an `overrides`
 entry in `package.json`. An `--ignore` is only acceptable when no fixed
 release exists, and it needs a comment in the workflow saying why and when it
-can be removed. The only ignores today are the two extract-zip advisories in
-the Studio job (Loom#148).
+can be removed. No advisory IDs are currently ignored. Electron now uses
+`@electron-internal/extract-zip`, so Studio's former extract-zip exceptions
+were removed (Loom#148). JavaScript audit jobs enforce high/critical severity;
+run `bun audit` locally to inspect findings at every severity.
 
 ---
 
