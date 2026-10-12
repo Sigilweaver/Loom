@@ -43,7 +43,7 @@ RUN bun run build
 # =============================================================================
 # Stage 2: Build backend dependencies
 # =============================================================================
-FROM python:3.11.9-slim-bookworm AS backend-builder
+FROM python:3.11.17-slim-bookworm AS backend-builder
 
 WORKDIR /build
 
@@ -62,7 +62,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # =============================================================================
 # Stage 3: Production runtime
 # =============================================================================
-FROM python:3.11.9-slim-bookworm AS runtime
+FROM python:3.11.17-slim-bookworm AS runtime
 
 # Re-declare ARGs after FROM
 ARG VERSION
