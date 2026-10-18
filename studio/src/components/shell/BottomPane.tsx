@@ -132,7 +132,7 @@ const BottomPane = () => {
         <div className="flex flex-1 overflow-hidden">
           {/* Socket Tabs Sidebar - Visible in Data Preview and Profile modes */}
           {(activeBottomTab === "preview" || activeBottomTab === "profile") && (
-            <div className="flex-shrink-0 w-30 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
+            <div className="flex-shrink-0 overflow-y-auto border-r bg-theme-surface-panel border-theme-border-secondary">
               <SocketTabs />
             </div>
           )}

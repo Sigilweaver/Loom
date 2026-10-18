@@ -902,7 +902,6 @@ const DataTable = () => {
                   const isRowNum = cell.column.id === '_rowNum';
                   // colIdx for data columns (0-indexed, excluding row num column)
                   const colIdx = cellIdx - 1;
-                  const isSelected = !isRowNum && isCellSelected(rowIdx, colIdx);
                   const edges = !isRowNum ? getSelectionEdges(rowIdx, colIdx) : null;
 
                   // Build border classes for selection outline
@@ -921,9 +920,7 @@ const DataTable = () => {
                       data-col={isRowNum ? undefined : colIdx}
                       className={`flex items-center px-3 py-2 text-theme-text-primary ${!edges ? 'border-r border-theme-border-primary last:border-r-0' : ''} ${
                         isNumeric ? 'text-right justify-end' : ''
-                      } ${isRowNum ? 'bg-theme-surface-elevated cursor-cell hover:bg-theme-surface-panel border-r border-theme-border-primary' : ''} ${
-                        isSelected ? 'bg-theme-interactive-accent/20' : ''
-                      } ${!isRowNum ? 'cursor-cell' : ''} ${borderClasses}`}
+                      } ${isRowNum ? 'bg-theme-surface-elevated cursor-cell hover:bg-theme-surface-panel border-r border-theme-border-primary' : ''} ${!isRowNum ? 'cursor-cell' : ''} ${borderClasses}`}
                       style={{ width: cellSize, minWidth: cellSize, maxWidth: cellSize, flexShrink: 0 }}
                       onMouseDown={(e) => {
                         if (isRowNum) {

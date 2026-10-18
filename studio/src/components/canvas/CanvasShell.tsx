@@ -6,7 +6,6 @@ import {
   type Connection,
   type Node,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 import { forwardRef, useCallback } from "react";
 import WorkflowNode from "@components/workflow/WorkflowNode";
 import AutoConnectPreviewEdge from "./AutoConnectPreviewEdge";

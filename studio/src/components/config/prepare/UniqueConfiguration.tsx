@@ -162,7 +162,7 @@ export function UniqueConfiguration({
           </p>
           <div className="mt-2 space-y-1 text-xs text-theme-text-tertiary">
             <div className="flex items-center gap-2">
-              <span className="px-1.5 py-0.5 rounded bg-theme-log-success/20 text-theme-log-success font-medium">U</span>
+              <span className="px-1.5 py-0.5 rounded text-theme-log-success font-medium">U</span>
               <span>Unique rows (based on mode)</span>
             </div>
             <div className="flex items-center gap-2">

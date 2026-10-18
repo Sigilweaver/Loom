@@ -84,9 +84,9 @@ const FollowUpQuestion: React.FC<FollowUpQuestionProps> = ({
   }, [selected, options, onAnswer]);
 
   return (
-    <div className="mx-4 my-3 rounded-lg border border-theme-interactive-accent/30 bg-theme-surface-elevated overflow-hidden">
+    <div className="mx-4 my-3 rounded-lg border bg-theme-surface-elevated overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-theme-interactive-accent/8 border-b border-theme-interactive-accent/20">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b">
         <MessageCircleQuestion className="w-4 h-4 text-theme-interactive-accent flex-shrink-0" />
         <span className="text-xs font-medium text-theme-interactive-accent">Follow-up Question</span>
         {multiSelect && (
@@ -113,10 +113,10 @@ const FollowUpQuestion: React.FC<FollowUpQuestionProps> = ({
                 className={`flex items-start gap-2 w-full px-3 py-2 text-sm text-left rounded-md
                   border transition-colors group
                   ${isRecommended && !multiSelect
-                    ? 'border-theme-interactive-accent/50 bg-theme-interactive-accent/6 hover:bg-theme-interactive-accent/12'
+                    ? ''
                     : isSelected
-                      ? 'border-theme-interactive-accent bg-theme-interactive-accent/10'
-                      : 'border-theme-border-primary bg-theme-surface-page hover:bg-theme-surface-hover hover:border-theme-interactive-accent/40'
+                      ? 'border-theme-interactive-accent'
+                      : 'border-theme-border-primary bg-theme-surface-page hover:bg-theme-surface-hover'
                   }`}
               >
                 {/* Indicator: number circle (single) or checkbox (multi) */}
@@ -143,7 +143,7 @@ const FollowUpQuestion: React.FC<FollowUpQuestionProps> = ({
                   <div className="flex items-center gap-1.5">
                     <span className="text-theme-text-primary leading-relaxed">{option.label}</span>
                     {isRecommended && !multiSelect && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-theme-interactive-accent/12 text-theme-interactive-accent">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium text-theme-interactive-accent">
                         <Star className="w-2.5 h-2.5" />
                         Recommended
                       </span>

@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { defineConfig, PluginOption } from "vite";
 import electron from "vite-plugin-electron";
@@ -103,6 +104,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    tailwindcss(),
     react(),
     // @ts-ignore - CJS module interop issue
     (monacoEditorPlugin.default || monacoEditorPlugin)({

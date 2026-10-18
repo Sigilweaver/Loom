@@ -106,7 +106,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
               onClick={() => setDebugMode(!debugMode)}
               className={`p-1 rounded transition-colors ${
                 debugMode
-                  ? 'bg-theme-interactive-accent/15 text-theme-interactive-accent'
+                  ? 'text-theme-interactive-accent'
                   : 'hover:bg-theme-surface-hover text-theme-text-tertiary'
               }`}
               title={debugMode ? 'Hide tool call details' : 'Show tool call details (debug mode)'}

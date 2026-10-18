@@ -663,10 +663,10 @@ function ConditionGroup({
 
   return (
     <div
-      className={`rounded border border-theme-border-secondary border-l-2 ${borderColor} ${depth > 0 ? "bg-theme-bg-primary/50" : ""}`}
+      className={`rounded border border-theme-border-secondary border-l-2 ${borderColor}`}
     >
       {/* Group header */}
-      <div className="flex items-center justify-between px-2.5 py-1.5 bg-theme-surface-elevated/50 rounded-t border-b border-theme-border-secondary">
+      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-t border-b border-theme-border-secondary">
         <div className="flex items-center gap-1.5 text-xs text-theme-text-secondary">
           <span className="text-theme-text-tertiary">Where</span>
           <button
@@ -721,7 +721,7 @@ function ConditionGroup({
 
       {/* Group comment (optional, sub-groups only) */}
       {isSubGroup && showGroupComment && (
-        <div className="flex gap-1.5 items-center px-2.5 py-1 border-b border-theme-border-secondary bg-theme-surface-elevated/30">
+        <div className="flex gap-1.5 items-center px-2.5 py-1 border-b border-theme-border-secondary">
           <span className="text-[10px] text-theme-text-tertiary font-mono select-none">#</span>
           <input
             type="text"
@@ -752,7 +752,7 @@ function ConditionGroup({
               <button
                 type="button"
                 onClick={addCondition}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-dashed border-theme-interactive-accent text-theme-interactive-accent hover:bg-theme-interactive-accent/10 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-dashed border-theme-interactive-accent text-theme-interactive-accent transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add a filter condition
