@@ -392,7 +392,7 @@ export function FormulaConfiguration({
             <button
               type="button"
               onClick={handleAddOperation}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-dashed border-theme-interactive-accent text-theme-interactive-accent hover:bg-theme-interactive-accent/10 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-dashed border-theme-interactive-accent text-theme-interactive-accent transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               Add operation
@@ -416,12 +416,12 @@ export function FormulaConfiguration({
                   onDragEnd={handleDragEnd}
                   className={`rounded border transition-colors ${
                     isDragOver
-                      ? "border-theme-interactive-accent bg-theme-interactive-accent/5"
+                      ? "border-theme-interactive-accent"
                       : "border-theme-border-secondary"
                   }`}
                 >
                   {/* Card Header */}
-                  <div className="flex items-center gap-1 px-2 py-1.5 bg-theme-surface-elevated/50 rounded-t border-b border-theme-border-secondary">
+                  <div className="flex items-center gap-1 px-2 py-1.5 rounded-t border-b border-theme-border-secondary">
                     {/* Drag handle */}
                     {operations.length > 1 && (
                       <div className="cursor-grab text-theme-text-tertiary hover:text-theme-text-secondary">
@@ -462,7 +462,7 @@ export function FormulaConfiguration({
                       onClick={() => handleModeToggle(op.id, !isAdvanced)}
                       className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                         isAdvanced
-                          ? "bg-theme-interactive-accent/15 text-theme-interactive-accent"
+                          ? "text-theme-interactive-accent"
                           : "bg-theme-surface-elevated text-theme-text-tertiary hover:text-theme-text-secondary"
                       }`}
                       title={isAdvanced ? "Switch to basic mode" : "Switch to advanced mode"}
