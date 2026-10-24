@@ -21,7 +21,7 @@ updates:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
 
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/hub/frontend"
     schedule:
       interval: "weekly"
@@ -41,7 +41,7 @@ updates:
           - "version-update:semver-minor"
     open-pull-requests-limit: 5
 
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/studio"
     schedule:
       interval: "weekly"
