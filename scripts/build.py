@@ -350,11 +350,19 @@ def build_studio_tauri(
     try:
         for script, extra in calls:
             print(f"Running bun run {script} --target {triple} {' '.join(extra)}...")
-            result = subprocess.run(
-                ["bun", "run", script, "--target", triple, *extra],
-                cwd=studio_dir,
-                capture_output=False,
-            )
+            # hdiutil on macOS intermittently fails with "Resource busy" while
+            # creating the dmg; a retry succeeds, and the compile is cached.
+            attempts = 3 if platform_of_triple(triple) == "mac" else 1
+            for attempt in range(1, attempts + 1):
+                result = subprocess.run(
+                    ["bun", "run", script, "--target", triple, *extra],
+                    cwd=studio_dir,
+                    capture_output=False,
+                )
+                if result.returncode == 0 or attempt == attempts:
+                    break
+                print(f"{script} failed (attempt {attempt}/{attempts}); retrying")
+                time.sleep(10)
             if result.returncode != 0:
                 return BuildResult(
                     name="Studio",
