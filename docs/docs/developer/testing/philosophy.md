@@ -77,7 +77,7 @@ Domain logic is more stable. The tool interface won't change much. Invest in tes
 |------|----------|-----------|
 | Component rendering | Basic render tests only | Changes frequently |
 | CSS/Tailwind | Manual verification | Tooling handles it |
-| Electron integration | Manual testing | Hard to automate |
+| Desktop shell UI | Manual testing; launch and shutdown covered by `scripts/smoke_desktop.py` | Hard to automate |
 | Visual appearance | Human eyes | Machines can't judge aesthetics |
 
 ## Testing Hierarchy

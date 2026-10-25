@@ -15,18 +15,18 @@ bun install
 # Start dev server (browser mode)
 bun run dev
 
-# Start with Electron (requires two terminals)
+# Start the desktop app (requires two terminals)
 # Terminal 1:
 bun run dev
 # Terminal 2:
-bun run electron
+bun run dev:tauri
 ```
 
 Or from the repository root:
 
 ```bash
 ./scripts/dev.py --studio           # Browser mode
-./scripts/dev.py --studio-electron  # With Electron
+./scripts/dev.py --studio-tauri     # With the Tauri desktop app
 ```
 
 ### Running Tests

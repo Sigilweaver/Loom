@@ -25,11 +25,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-studio-tauri:
-    name: Check Studio Tauri
+  # Decides whether the heavy desktop jobs (Windows and macOS runners, installer
+  # builds) are needed. They run when the desktop app, the server it bundles, or
+  # the build tooling changed; Linux always runs the cheap Rust checks.
+  changes:
+    name: Detect desktop changes
     runs-on: ubuntu-latest
+    outputs:
+      desktop: ${{ steps.filter.outputs.desktop }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Compare against the base
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base="${{ github.event.before }}"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No usable base commit; running the desktop jobs"
+            echo "desktop=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "$base" HEAD | grep -E \
+            '^(studio/|server/|scripts/(build|smoke_desktop)\.py|\.github/workflows/(ci|build-server|build-studio-tauri)\.yml)'; then
+            echo "desktop=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "desktop=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  check-studio-tauri:
+    name: Studio Tauri (${{ matrix.os }})
+    needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.changes.outputs.desktop == 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
+        shell: bash
         working-directory: studio/tauri
     steps:
       - name: Checkout
@@ -38,7 +82,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, rustfmt
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -47,6 +91,7 @@ jobs:
           cache-on-failure: true
 
       - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -59,14 +104,41 @@ jobs:
             libdbus-1-dev \
             pkg-config
 
+      # tauri-build needs the frontend output directory to exist.
       - name: Create frontend placeholder
         run: mkdir -p ../dist
+
+      - name: Check formatting
+        run: cargo fmt --check
 
       - name: Check Tauri crate
         run: cargo check --locked
 
       - name: Lint Tauri crate
-        run: cargo clippy --locked -- -D warnings
+        run: |
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo clippy --locked --all-targets --features bundled-server -- -D warnings
+
+      - name: Test Tauri crate
+        run: cargo test --locked
+
+  # Server binaries for the Full installers; only when the desktop app is built.
+  build-server:
+    name: Build Server
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
+    uses: ./.github/workflows/build-server.yml
+
+  # Builds the Full installers on every desktop platform and launches each one
+  # (scripts/smoke_desktop.py). The Client variant differs only by leaving the
+  # sidecar out; releases build both.
+  package-studio:
+    name: Package Studio
+    needs: [changes, build-server]
+    if: needs.changes.outputs.desktop == 'true'
+    uses: ./.github/workflows/build-studio-tauri.yml
+    with:
+      variant: full
 
   test:
     name: Test & Lint

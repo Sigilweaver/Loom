@@ -73,7 +73,7 @@ Production grade means "it works when you need it." That's a promise we make to 
 
 | Component   | What It Does                                                                              |
 | ----------- | ----------------------------------------------------------------------------------------- |
-| **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Electron/Tauri) |
+| **Studio**  | Visual workflow designer with no-code builders and optional AI assistant (React + Tauri)          |
 | **Server**  | Execution engine that runs workflows (FastAPI + Polars)                                   |
 | **Hub**     | Orchestration platform for teams and automation (Full stack)                              |
 

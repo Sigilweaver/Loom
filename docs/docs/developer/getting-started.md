@@ -14,7 +14,8 @@ Set up a development environment and run Studio, Server and Hub from source.
 | [uv](https://docs.astral.sh/uv/) | current | Python environments for Server and Hub |
 | Python | 3.11 or newer (the repo pins 3.13 in `server/.python-version`; uv fetches it for you) | Server and Hub backend |
 | [Bun](https://bun.sh) | current | JavaScript dependencies and scripts for Studio, Hub frontend and docs |
-| Node.js | 22 (pinned in `.nvmrc` and `.node-version`; 20.19 is the minimum) | Toolchain that Vite, Electron and Docusaurus run on |
+| Node.js | 22 (pinned in `.nvmrc` and `.node-version`; 20.19 is the minimum) | Toolchain that Vite and Docusaurus run on |
+| Rust | stable (only for the desktop app) | Tauri shell in `studio/tauri/`. Linux also needs the [Tauri system packages](https://tauri.app/start/prerequisites/) |
 | Git | any | |
 | Docker | optional | PostgreSQL for Hub development, and the Docker stacks |
 
@@ -68,7 +69,6 @@ Pick what to run:
 ./scripts/dev.py --studio            # Studio only, in the browser
 ./scripts/dev.py --hub               # Hub backend and frontend
 ./scripts/dev.py --docs              # Documentation site
-./scripts/dev.py --studio-electron   # everything, plus the Electron desktop app
 ./scripts/dev.py --studio-tauri      # everything, plus the Tauri desktop app
 ./scripts/dev.py --install           # install dependencies, then exit
 ```
@@ -104,12 +104,9 @@ AUTH_MODE=disabled uv run uvicorn app.main:app --reload --port 25811
 # Studio (second terminal)
 cd studio
 bun install
-NO_ELECTRON=1 bun run dev   # browser only, http://localhost:25810
-bun run dev:electron        # Vite plus an Electron window
-bun run dev:tauri           # Vite plus a Tauri window (needs the Rust toolchain)
+bun run dev                 # browser, http://localhost:25810
+bun run dev:tauri           # a Tauri window on the running Vite server (needs the Rust toolchain)
 ```
-
-Plain `bun run dev` also opens an Electron window when a display is available. Set `NO_ELECTRON=1` to stay in the browser.
 
 `AUTH_MODE=disabled` lets you call the Server API without a token. The default is `ephemeral`, which requires a bearer token that the Server prints once at startup.
 
@@ -160,9 +157,8 @@ Loom/
 |-- server/        Python: FastAPI + Polars (Server)
 |   |-- app/       api/, domain/, middleware/, utils/
 |   `-- tests/
-|-- studio/        TypeScript: React + Vite, Electron and Tauri shells
+|-- studio/        TypeScript: React + Vite, Tauri shell
 |   |-- src/       components/, state/, domain/, api/, platform/, ai/, data/
-|   |-- electron/  Electron main and preload
 |   `-- tauri/     Tauri (Rust) shell
 |-- hub/           Hub
 |   |-- backend/   FastAPI + PostgreSQL + Alembic
@@ -185,6 +181,6 @@ Read the [Architecture Overview](./architecture/overview.md) next.
 
 **Hub cannot connect to PostgreSQL.** Start it with `docker compose -f hub/docker-compose.yml up -d postgres` and check that port 25801 is free.
 
-**Electron window is blank.** Check the terminal that runs Vite for build errors. The window loads from the Vite dev server.
+**The desktop window is blank.** Check the terminal that runs Vite for build errors. The window loads from the Vite dev server.
 
 **Tests fail on Windows.** Fix line endings: `git config --global core.autocrlf input`, then `git checkout -- .`.

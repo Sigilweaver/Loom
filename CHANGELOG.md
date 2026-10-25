@@ -22,6 +22,10 @@ and documentation checked against the code.
 ### Changed
 
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
+- **Desktop app is Tauri only** - Studio ships as a Tauri app in Full (bundled Server sidecar) and Client variants: AppImage, deb and rpm for Linux, an NSIS installer for Windows, and a DMG each for Apple silicon and Intel Macs. The app identifier is `com.sigilweaver.loom-studio`. Settings and saved connections are stored by the new shell, so enter them again on first launch. The Linux snap and Windows portable exe are no longer built
+- **Desktop shutdown** - The shell stops the bundled Server on `SIGTERM`, `SIGINT`, `SIGHUP` and Ctrl+C as well as on a normal quit, and stops a Server left behind by a force-quit on the next launch. A Full build whose bundled Server is missing now fails at startup with an error instead of opening a window with no backend
+- **Desktop CI** - `ci.yml` checks, lints (clippy, rustfmt) and tests the Tauri crate on Linux, Windows and macOS, builds the Full installers on every platform and launches each one (`scripts/smoke_desktop.py`) when desktop code changes. `release.yml` builds Full and Client installers from the same workflow
+- **Studio dependencies** - React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator

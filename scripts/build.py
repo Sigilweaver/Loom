@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 """
-Cross-platform build script for Sigilweaver Loom.
+Build script for Sigilweaver Loom Studio (Tauri desktop app).
 
-Builds the complete application:
+Builds the complete application for the machine it runs on:
 1. Server executable (PyInstaller)
-2. Stage the server for the chosen shell:
-   - Electron: copy into studio resources (extraResources)
-   - Tauri: stage as a target-triple-named sidecar (externalBin)
-3. Studio + desktop shell (Electron by default, or Tauri with --tauri)
+2. Stage the server as a target-triple-named Tauri sidecar (externalBin)
+3. Studio + Tauri desktop shell
+
+PyInstaller and Tauri both build for the host, so run this on each OS (and
+each CPU architecture) you want an installer for; CI does exactly that.
 
 Usage:
-    ./scripts/build.py                    # Electron Full build, current platform
-    ./scripts/build.py --platform linux   # Build for Linux
-    ./scripts/build.py --platform win     # Build for Windows
-    ./scripts/build.py --platform mac     # Build for macOS
+    ./scripts/build.py                    # Full build (bundled server sidecar)
+    ./scripts/build.py --client           # Client build (no bundled server)
     ./scripts/build.py --server-only      # Build server only
     ./scripts/build.py --studio-only      # Build studio only (assumes server exists)
-    ./scripts/build.py --tauri            # Tauri Full build (bundled server sidecar)
-    ./scripts/build.py --tauri --client   # Tauri Client build (no bundled server)
     ./scripts/build.py --clean            # Clean build artifacts before building
 """
 
@@ -79,39 +76,28 @@ def get_server_extension(platform: str) -> str:
     return ".exe" if platform == "win" else ""
 
 
-# Target triples per platform. These must match the `--target` flag hardcoded
-# in each `build:tauri:<platform>:full` npm script (studio/package.json), since
-# that flag - not the host machine's own arch - determines the triple Tauri's
-# `externalBin` will look for. PyInstaller cannot cross-compile, so the staged
-# binary is always a host build; this naming exists purely to satisfy Tauri's
-# sidecar resolution for the target the npm scripts actually build.
-DEFAULT_TARGET_TRIPLES = {
-    "linux": "x86_64-unknown-linux-gnu",
-    "win": "x86_64-pc-windows-msvc",
-    "mac": "x86_64-apple-darwin",
-}
+def get_host_target_triple() -> str:
+    """Return the Rust target triple of this machine (`rustc -vV`)."""
+    out = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True).stdout
+    for line in out.splitlines():
+        if line.startswith("host:"):
+            return line.split(":", 1)[1].strip()
+    raise RuntimeError("Could not read the host target triple from `rustc -vV`")
 
 
-def get_target_triple(platform: str) -> str:
-    """Return the Rust target triple to name the Tauri sidecar binary with.
-
-    Tauri's `externalBin` resolves a sidecar by a `-<target-triple>` suffix
-    (e.g. `server-x86_64-unknown-linux-gnu`). This must match the `--target`
-    flag the corresponding npm script passes to `tauri build`, not whatever
-    triple the host machine happens to be (e.g. an Apple Silicon dev machine
-    still builds `x86_64-apple-darwin` per package.json).
-    """
-    return DEFAULT_TARGET_TRIPLES[platform]
+def platform_of_triple(triple: str) -> str:
+    """Map a Rust target triple to linux, win or mac."""
+    if "windows" in triple:
+        return "win"
+    if "apple" in triple:
+        return "mac"
+    return "linux"
 
 
 def _stage_server_binary(
     server_src: Path, dest: Path, platform: str, result_name: str
 ) -> BuildResult:
-    """Copy the built server executable to `dest`, making it executable.
-
-    Shared by `stage_server_sidecar` (Tauri) and `copy_server_to_resources`
-    (Electron); the two differ only in destination path and naming scheme.
-    """
+    """Copy the built server executable to `dest`, making it executable."""
     start_time = time.time()
 
     try:
@@ -149,24 +135,20 @@ def _stage_server_binary(
         )
 
 
-def stage_server_sidecar(repo_root: Path, platform: str) -> BuildResult:
+def stage_server_sidecar(repo_root: Path, triple: str) -> BuildResult:
     """Stage the PyInstaller server binary as a Tauri sidecar.
 
-    Tauri's `externalBin` names sidecars `server-<target-triple>[.exe]` under a
-    directory relative to `tauri.conf.json`; the base name (`server`) and the
-    dir (`binaries/`) match the `externalBin` entry in `tauri.conf.full.json`.
-    This differs from Electron's `extraResources`, which just copies the binary
-    into `resources/server/`, so the Tauri build needs this extra rename step.
+    Tauri's `externalBin` names sidecars `loom-server-<target-triple>[.exe]`
+    under a directory relative to `tauri.conf.json`; the base name and the dir
+    (`binaries/`) match the `externalBin` entry in `tauri.conf.full.json`. The
+    bundler strips the triple again when it copies the binary next to the app.
     """
-    print_header("Staging Server Sidecar (Tauri)")
+    print_header("Staging Server Sidecar")
 
-    host_ext = get_server_extension(get_host_platform())
-    target_ext = get_server_extension(platform)
-    server_src = repo_root / "server" / "dist" / f"server{host_ext}"
-    triple = get_target_triple(platform)
-    sidecar_dest = (
-        repo_root / "studio" / "tauri" / "binaries" / f"server-{triple}{target_ext}"
-    )
+    platform = platform_of_triple(triple)
+    ext = get_server_extension(platform)
+    server_src = repo_root / "server" / "dist" / f"server{ext}"
+    sidecar_dest = repo_root / "studio" / "tauri" / "binaries" / f"loom-server-{triple}{ext}"
 
     return _stage_server_binary(server_src, sidecar_dest, platform, "Stage Sidecar")
 
@@ -186,7 +168,6 @@ def clean_build_artifacts(repo_root: Path) -> None:
     studio_dir = repo_root / "studio"
     for path in [
         studio_dir / "dist",
-        studio_dir / "resources" / "server",
         studio_dir / "tauri" / "binaries",
     ]:
         if path.exists():
@@ -203,15 +184,13 @@ def build_server(repo_root: Path, platform: str) -> BuildResult:
     argument is the *target* platform for the overall build. If host != target,
     the server binary won't have the target extension (e.g., no .exe on Linux).
     """
-    print_header("Step 1/3: Building Server Executable")
+    print_header("Building Server Executable")
 
     host = get_host_platform()
     if host != platform:
         print(f"  Warning: Host platform is '{host}' but target is '{platform}'.")
         print(f"  PyInstaller will produce a '{host}' binary, not '{platform}'.")
-        print(
-            "  For cross-platform releases, build the server on each target OS (or use CI)."
-        )
+        print("  For cross-platform releases, build the server on each target OS (or use CI).")
 
     server_dir = repo_root / "server"
     lock_path = server_dir / "uv.lock"
@@ -304,141 +283,71 @@ def build_server(repo_root: Path, platform: str) -> BuildResult:
         )
 
 
-def copy_server_to_resources(repo_root: Path, platform: str) -> BuildResult:
-    """Copy the server executable to studio resources.
-
-    The source binary uses the host platform extension (what PyInstaller built).
-    The destination uses the target platform extension (what Electron expects).
-    When host != target, this copies the binary but renames it to match
-    the target convention - the binary itself is still a host-platform binary,
-    which is fine for local dev builds. CI builds on each OS for real releases.
-    """
-    print_header("Step 2/3: Copying Server to Resources")
-
-    host_ext = get_server_extension(get_host_platform())
-    target_ext = get_server_extension(platform)
-    server_src = repo_root / "server" / "dist" / f"server{host_ext}"
-    server_dest = repo_root / "studio" / "resources" / "server" / f"server{target_ext}"
-
-    return _stage_server_binary(server_src, server_dest, platform, "Copy Server")
-
-
-def _run_studio_npm_build(
-    repo_root: Path, npm_script: str, result_name: str
-) -> BuildResult:
-    """Run a studio build via `npm run <npm_script>`.
-
-    Shared by `build_studio` (Electron) and `build_studio_tauri`; the two
-    differ only in which npm script/platform map they select.
-    """
-    studio_dir = repo_root / "studio"
-    node_modules = studio_dir / "node_modules"
-
-    if not node_modules.exists():
-        return BuildResult(
-            name=result_name,
-            success=False,
-            duration=0,
-            error="node_modules not found. Run: cd studio && npm install",
-        )
-
-    start_time = time.time()
-
-    try:
-        print(f"Running npm run {npm_script}...")
-        result = subprocess.run(
-            ["npm", "run", npm_script],
-            cwd=studio_dir,
-            capture_output=False,
-        )
-
-        duration = time.time() - start_time
-
-        if result.returncode != 0:
-            return BuildResult(
-                name=result_name,
-                success=False,
-                duration=duration,
-                error=f"{result_name} build failed",
-            )
-
-        return BuildResult(
-            name=result_name,
-            success=True,
-            duration=duration,
-        )
-
-    except Exception as e:
-        return BuildResult(
-            name=result_name,
-            success=False,
-            duration=time.time() - start_time,
-            error=str(e),
-        )
-
-
-def build_studio(repo_root: Path, platform: str) -> BuildResult:
-    """Build the studio + Electron application."""
-    print_header("Step 3/3: Building Studio + Electron")
-
-    platform_scripts = {
-        "linux": "build:linux:full",
-        "win": "build:win:full",
-        "mac": "build:mac:full",
-    }
-
-    if platform not in platform_scripts:
-        return BuildResult(
-            name="Studio",
-            success=False,
-            duration=0,
-            error=f"Unknown platform: {platform}. Use: linux, win, or mac",
-        )
-
-    result = _run_studio_npm_build(repo_root, platform_scripts[platform], "Studio")
-
-    if result.success:
-        dist_dir = repo_root / "studio" / "dist"
-        if dist_dir.exists():
-            print()
-            print("Output files:")
-            for item in dist_dir.iterdir():
-                if item.is_file():
-                    size_mb = item.stat().st_size / (1024 * 1024)
-                    print(f"  {item.name} ({size_mb:.1f} MB)")
-
-    return result
-
-
-def build_studio_tauri(repo_root: Path, platform: str, *, client: bool) -> BuildResult:
+def build_studio_tauri(repo_root: Path, triple: str, *, client: bool) -> BuildResult:
     """Build the studio + Tauri application.
 
     A Full build (`client=False`) bundles the staged server sidecar via the
-    `build:tauri:<platform>:full` npm script, which compiles with the
-    `bundled-server` feature and `tauri.conf.full.json`. A Client build
-    (`client=True`) bundles no server and uses the base config.
+    `build:tauri:full` script, which compiles with the `bundled-server` feature
+    and `tauri.conf.full.json`. A Client build (`client=True`) bundles no
+    server and uses the base config.
     """
     variant = "Client" if client else "Full"
     print_header(f"Building Studio + Tauri ({variant})")
 
-    suffix = "client" if client else "full"
-    platform_scripts = {
-        "linux": f"build:tauri:linux:{suffix}",
-        "win": f"build:tauri:win:{suffix}",
-        "mac": f"build:tauri:mac:{suffix}",
-    }
-
-    if platform not in platform_scripts:
+    studio_dir = repo_root / "studio"
+    if not (studio_dir / "node_modules").exists():
         return BuildResult(
-            name="Studio (Tauri)",
+            name="Studio",
             success=False,
             duration=0,
-            error=f"Unknown platform: {platform}. Use: linux, win, or mac",
+            error="node_modules not found. Run: cd studio && bun install",
         )
 
-    return _run_studio_npm_build(
-        repo_root, platform_scripts[platform], "Studio (Tauri)"
-    )
+    script = "build:tauri" if client else "build:tauri:full"
+    start_time = time.time()
+
+    try:
+        print(f"Running bun run {script} --target {triple}...")
+        result = subprocess.run(
+            ["bun", "run", script, "--target", triple],
+            cwd=studio_dir,
+            capture_output=False,
+        )
+        duration = time.time() - start_time
+
+        if result.returncode != 0:
+            return BuildResult(
+                name="Studio",
+                success=False,
+                duration=duration,
+                error="Studio build failed",
+            )
+
+        bundle_dir = repo_root / "studio" / "tauri" / "target" / triple / "release" / "bundle"
+        if bundle_dir.exists():
+            print()
+            print(f"Bundles in {bundle_dir}:")
+            for item in sorted(bundle_dir.rglob("*")):
+                if item.is_file() and item.suffix in {
+                    ".deb",
+                    ".rpm",
+                    ".AppImage",
+                    ".exe",
+                    ".dmg",
+                    ".gz",
+                }:
+                    size_mb = item.stat().st_size / (1024 * 1024)
+                    print(f"  {item.relative_to(bundle_dir)} ({size_mb:.1f} MB)")
+
+        return BuildResult(name="Studio", success=True, duration=duration)
+
+    except Exception as e:
+        return BuildResult(
+            name="Studio",
+            success=False,
+            duration=time.time() - start_time,
+            error=str(e),
+        )
 
 
 def print_summary(results: list[BuildResult]) -> None:
@@ -467,13 +376,7 @@ def print_summary(results: list[BuildResult]) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Build Sigilweaver Loom application")
-    parser.add_argument(
-        "--platform",
-        choices=["linux", "win", "mac"],
-        default=None,
-        help="Target platform (default: auto-detect)",
-    )
+    parser = argparse.ArgumentParser(description="Build Sigilweaver Loom Studio")
     parser.add_argument("--server-only", action="store_true", help="Build server only")
     parser.add_argument(
         "--studio-only",
@@ -481,14 +384,9 @@ def main() -> int:
         help="Build studio only (assumes server already built)",
     )
     parser.add_argument(
-        "--tauri",
-        action="store_true",
-        help="Build the Tauri shell instead of Electron (stages the server as a sidecar)",
-    )
-    parser.add_argument(
         "--client",
         action="store_true",
-        help="Tauri only: build the Client variant (no bundled server)",
+        help="Build the Client variant (no bundled server)",
     )
     parser.add_argument(
         "--clean", action="store_true", help="Clean build artifacts before building"
@@ -496,17 +394,13 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    if args.client and not args.tauri:
-        parser.error("--client is only valid together with --tauri")
+    triple = get_host_target_triple()
+    platform = platform_of_triple(triple)
 
-    # Determine platform
-    platform = args.platform or detect_platform()
-
-    # Determine what to build. A Tauri Client build bundles no server, so it
-    # skips the server build and the sidecar/resource staging entirely.
-    tauri_client = args.tauri and args.client
-    build_server_step = not tauri_client
-    stage_server_step = not tauri_client
+    # A Client build bundles no server, so it skips the server build and the
+    # sidecar staging entirely.
+    build_server_step = not args.client
+    stage_server_step = not args.client
     build_studio_step = True
 
     if args.server_only:
@@ -524,18 +418,15 @@ def main() -> int:
     repo_root = get_repo_root()
     results: list[BuildResult] = []
 
-    shell = "Tauri" if args.tauri else "Electron"
-    variant = "Client" if tauri_client else "Full"
+    variant = "Client" if args.client else "Full"
     print_header("Sigilweaver Loom Build")
     print(f"Repository: {repo_root}")
-    print(f"Platform: {platform}")
-    print(f"Shell: {shell} ({variant})")
+    print(f"Target: {triple}")
+    print(f"Variant: {variant}")
 
-    # Clean if requested
     if args.clean:
         clean_build_artifacts(repo_root)
 
-    # Build steps
     if build_server_step:
         result = build_server(repo_root, platform)
         results.append(result)
@@ -544,28 +435,16 @@ def main() -> int:
             return 1
 
     if stage_server_step:
-        # Tauri consumes the server as a target-triple-named sidecar; Electron
-        # consumes it as a plain resource copy.
-        if args.tauri:
-            result = stage_server_sidecar(repo_root, platform)
-        else:
-            result = copy_server_to_resources(repo_root, platform)
+        result = stage_server_sidecar(repo_root, triple)
         results.append(result)
         if not result.success:
             print_summary(results)
             return 1
 
     if build_studio_step:
-        if args.tauri:
-            result = build_studio_tauri(repo_root, platform, client=args.client)
-        else:
-            result = build_studio(repo_root, platform)
-        results.append(result)
+        results.append(build_studio_tauri(repo_root, triple, client=args.client))
 
-    # Print summary
     print_summary(results)
-
-    # Return appropriate exit code
     return 0 if all(r.success for r in results) else 1
 
 

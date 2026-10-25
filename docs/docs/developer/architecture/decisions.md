@@ -22,7 +22,7 @@ Every decision here could be revisited as the project grows.
 
 **What's in the monorepo**:
 - **Server**  -  Python/FastAPI data processing engine
-- **Studio**  -  React/Electron visual workflow designer
+- **Studio**  -  React/Tauri visual workflow designer
 - **Hub**  -  Multi-user orchestration platform (FastAPI backend + React frontend)
 - **Docs**  -  Docusaurus documentation site
 - **Site**  -  Marketing/landing page
@@ -35,25 +35,20 @@ These components are tightly integrated. Hub imports Server's workflow execution
 
 ---
 
-## Why Electron?
+## Why Tauri?
 
-**Decision**: Use Electron for the desktop shell, with Tauri available as a secondary option.
+**Decision**: Use Tauri for the desktop shell.
 
-**Context**: Electron gets a lot of hate. It's resource-heavy, ships a whole Chromium instance, and has security quirks. Alternatives like Tauri are lighter (~5MB vs ~200MB), and native frameworks (Qt, GTK) are even leaner.
+**Context**: A desktop shell wraps the React app, owns native file dialogs, credential storage and settings, and starts the bundled Server. The alternatives are Electron, which ships a whole Chromium instance (about 100MB before the Server is added), and native frameworks (Qt, GTK, Swift, WinUI), which mean either C++ or three codebases.
 
-**But here's my perspective**:
-- **Cross-platform is hard.** Qt requires C++, GTK is Linux-first, native Swift/WinUI means three codebases.
-- **Iteration speed in Rust is slower.** I know Rust reasonably well, but the gap from "what I want" to "working code" takes longer than TypeScript. For rapid iteration, that matters.
-- **Web technologies are accessible.** The React/TypeScript ecosystem has far more developers than Qt/GTK.
-- **Linux and macOS are underserved.** Most data science GUI tools are Windows-only or web-only. Electron delivers real desktop apps on all platforms with minimal effort.
-- **Bundle size is misleading.** Yes, Electron is ~200MB. But the bundled Python server is *larger* than the entire Electron app. Electron's memory overhead matters more than disk space, and for a data tool loading multi-gigabyte datasets, baseline memory is noise.
-- **Mature ecosystem.** Electron's secure storage (`safeStorage`), auto-update, and distribution tooling are battle-tested.
+**Why Tauri**:
+- **The shell is small.** Tauri uses the operating system's webview (WebKitGTK, WebView2, WKWebView), so a Client build is a few megabytes. The bundled Python Server is far larger than the shell either way, but a shell that adds nothing is still a better deal.
+- **Web technologies stay.** Studio is the same React/TypeScript app. Only the thin native layer is Rust.
+- **Native pieces are small and auditable.** The Rust shell exposes a handful of commands: dialog-granted file access, settings, credentials and the credential-injecting proxy. The renderer is granted no plugin permissions beyond opening links, so a compromised renderer cannot reach files, the shell or the credential store directly.
+- **Credentials use the OS keychain.** Database passwords live in Keychain, Credential Manager or Secret Service through the `keyring` crate, never in the settings file.
+- **Installers cover each platform.** NSIS (per-user, no admin prompt), DMG, AppImage, deb and rpm come from one tool.
 
-**Why not Tauri (yet)?** Two specific blockers:
-1. **Secure storage maturity.** Electron's `safeStorage` uses OS-level encryption (Keychain, DPAPI, Secret Service) reliably. Tauri's equivalents are improving but not at parity.
-2. **Distribution formats.** Tauri's `.msi` installer triggers admin prompts even when installing to user-space (`AppData`). Electron's NSIS installer handles this correctly.
-
-**Tauri is implemented.** Studio uses a platform abstraction layer (`src/platform/`) that isolates all Electron-specific code behind a `PlatformAdapter` interface. Tauri support exists as a secondary build target - contributors can build and test it today. When the ecosystem gaps close, Tauri will become the primary shell. The architecture is ready; we're waiting on tooling.
+**Tradeoffs**: Rust is slower to iterate in than TypeScript, so the shell is kept thin and logic stays in the renderer and the Server. The system webview differs by platform and version, so UI is checked on WebKit and WebView2, not just Chromium. Studio keeps a platform abstraction layer (`src/platform/`) so the app also runs in a plain browser.
 
 ---
 
@@ -191,7 +186,7 @@ The `.swwf` extension is arbitrary branding. It's just JSON with a custom extens
 | Decision | Tradeoff | Why It's Worth It |
 |----------|----------|-------------------|
 | Monorepo | Mixed languages, heavier clone | Atomic updates across all components |
-| Electron (Tauri ready) | Large bundle (but smaller than Server) | Mature tooling, Tauri when ecosystem catches up |
+| Tauri | Rust shell, system webview differences | Small shell, OS keychain, scoped native access |
 | Python Server | Slower than compiled | Fastest iteration, unmatched data ecosystem |
 | Polars | Smaller community | Lazy eval, speed, memory efficiency |
 | Studio/Server split | HTTP overhead | Security, debuggability, Hub flexibility |

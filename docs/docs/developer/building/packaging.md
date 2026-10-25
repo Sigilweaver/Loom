@@ -8,10 +8,10 @@ Building distributable releases of Sigilweaver Loom.
 
 ## Overview
 
-Sigilweaver Loom is distributed as a standalone desktop application. The build process:
+Sigilweaver Loom is distributed as a standalone desktop application built with [Tauri](https://tauri.app). The build process:
 
 1. **Server**: PyInstaller bundles Python code + interpreter into a single executable
-2. **Studio**: Vite builds the React app, Electron packages everything
+2. **Studio**: Vite builds the React app, Tauri wraps it in a Rust shell that uses the operating system's webview and packages everything
 
 The result is a single application with **zero external dependencies**. Users don't need Python or Node.js installed.
 
@@ -19,25 +19,19 @@ The result is a single application with **zero external dependencies**. Users do
 
 ```bash
 # From repo root
-./scripts/build.py
+./scripts/build.py            # Full: bundled Server
+./scripts/build.py --client   # Client: Studio only
 ```
 
-This builds for your current platform. Output goes to `studio/dist/`.
+This builds for your current platform and CPU. `scripts/build.py` runs the three steps below in order. Installers are written to `studio/tauri/target/<target-triple>/release/bundle/`.
 
-### Platform-Specific
+**Note**: PyInstaller and Tauri build for the machine they run on. Build on each OS and architecture you want to ship; CI does this (see [Releasing](./releasing)).
 
-```bash
-# Linux
-cd studio && bun run build:linux
+### Prerequisites
 
-# Windows
-cd studio && bun run build:win
-
-# macOS
-cd studio && bun run build:mac
-```
-
-**Note**: You can only build for your current platform. Cross-compilation is limited.
+- Rust (stable) and the [Tauri system dependencies](https://tauri.app/start/prerequisites/)
+- On Linux: `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libssl-dev`, `libdbus-1-dev`, `patchelf` and `pkg-config`
+- bun and uv, as for development
 
 ## Build Process Details
 
@@ -46,7 +40,7 @@ cd studio && bun run build:mac
 ```bash
 cd server
 uv sync --all-extras  # Includes PyInstaller
-../scripts/build_server.sh
+uv run pyinstaller sigilweaver.spec
 ```
 
 PyInstaller analyzes `app/main.py` and bundles:
@@ -55,43 +49,50 @@ PyInstaller analyzes `app/main.py` and bundles:
 - All dependencies (FastAPI, Uvicorn, Polars)
 - Native libraries
 
-Result: `server/dist/server` (~50-100MB)
+Result: `server/dist/server` (about 200 MB)
 
-### Step 2: Studio + Electron
+### Step 2: Stage the sidecar
+
+Tauri ships the server as a **sidecar**, declared under `externalBin` in `studio/tauri/tauri.conf.full.json` and resolved by target-triple suffix. `scripts/build.py` copies `server/dist/server[.exe]` to `studio/tauri/binaries/loom-server-<target-triple>[.exe]` (for example `loom-server-x86_64-unknown-linux-gnu`). If the triple is wrong, Tauri cannot find the sidecar. The bundler strips the triple again and installs the file next to the app as `loom-server`, so it does not collide with other programs in `/usr/bin`.
+
+### Step 3: Studio + Tauri
 
 ```bash
 cd studio
-bun run build
-bun run dist:linux  # or dist:win, dist:mac
+bun run build:tauri:full --target x86_64-unknown-linux-gnu
 ```
 
 This:
-1. Vite builds the React app to `studio/dist/`
-2. electron-builder packages everything
-3. Includes the Server executable from `server/dist/`
+1. Runs `bun run build:web` (Vite builds the React app to `studio/dist/`)
+2. Compiles the Rust shell in release mode
+3. Bundles the installers for the current OS
 
 ## Output Artifacts
+
+File names below are the Tauri output names. The release workflow renames them (see [Releasing](./releasing)).
 
 ### Linux
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver Loom-<version>.AppImage` | Single-file, runs anywhere |
-| `sigilweaver-loom_<version>_amd64.snap` | Snap package |
+| `Sigilweaver Loom_<version>_amd64.AppImage` | Single-file, runs anywhere with a recent glibc |
+| `Sigilweaver Loom_<version>_amd64.deb` | Debian and Ubuntu package |
+| `Sigilweaver Loom-<version>-1.x86_64.rpm` | Fedora and openSUSE package |
 
 ### Windows
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver Loom Setup <version>.exe` | NSIS installer |
-| `Sigilweaver Loom <version>.exe` | Portable (no install) |
+| `Sigilweaver Loom_<version>_x64-setup.exe` | NSIS installer (per-user, no admin prompt) |
 
 ### macOS
 
 | File | Description |
 |------|-------------|
-| `Sigilweaver Loom-<version>.dmg` | Standard Mac installer |
-| `Sigilweaver Loom-<version>-mac.zip` | Zipped app bundle |
+| `Sigilweaver Loom_<version>_aarch64.dmg` | Apple silicon |
+| `Sigilweaver Loom_<version>_x64.dmg` | Intel |
+
+macOS ships as two separate disk images, one per architecture, rather than one universal binary. The bundled Server is a PyInstaller executable and PyInstaller cannot produce a universal binary, so a universal app would still need a separate Server per architecture. Two native builds keep each download smaller and each Server native.
 
 ## Build Configurations
 
@@ -102,85 +103,19 @@ Two build variants exist:
 - **Full**: Includes embedded Server (standalone)
 - **Client**: Studio only (requires external Server)
 
-```bash
-# Full version (default)
-bun run build:linux
-
-# Client version
-bun run build:linux:client
-```
-
-Client builds are smaller (~100MB vs ~200MB) but require a separate backend installation.
-
-### electron-builder Config
-
-Configuration lives in `package.json` and `electron-builder*.json`:
-
-```json
-{
-  "build": {
-    "appId": "app.sigilweaver.loom",
-    "productName": "Sigilweaver Loom",
-    "directories": {
-      "output": "dist"
-    },
-    "extraResources": [
-      {
-        "from": "../server/dist",
-        "to": "server"
-      }
-    ],
-    "linux": {
-      "target": ["AppImage", "snap"],
-      "category": "Development"
-    },
-    "win": {
-      "target": ["nsis", "portable"]
-    },
-    "mac": {
-      "target": ["dmg", "zip"],
-      "category": "public.app-category.developer-tools"
-    }
-  }
-}
-```
-
-### Tauri Shell (Sidecar Server)
-
-The Tauri shell is packaged in parallel with Electron and reuses the same
-PyInstaller server. Where Electron ships the server via `extraResources`, Tauri
-ships it as a **sidecar** declared under `externalBin`, resolved by
-target-triple suffix.
+The Full build compiles with the `bundled-server` Cargo feature and merges `studio/tauri/tauri.conf.full.json` (which sets `externalBin`). The Client build uses the base config, which declares no sidecar. The shell refuses to start if the feature and the config disagree, so a mismatched build fails loudly instead of shipping without a server.
 
 ```bash
-# Full Tauri build (bundled server sidecar)
-./scripts/build.py --tauri
-
-# Client Tauri build (no bundled server)
-./scripts/build.py --tauri --client
+cd studio
+bun run build:tauri:full   # Full
+bun run build:tauri        # Client
 ```
 
-`--tauri` runs three steps: build the server, stage it as a sidecar, then build
-the Tauri app.
+Client builds are smaller but require a separate backend installation.
 
-- **Staging**: `scripts/build.py` copies `server/dist/server[.exe]` to
-  `studio/tauri/binaries/server-<target-triple>[.exe]` (for example,
-  `server-x86_64-unknown-linux-gnu`). This rename is the key difference from
-  Electron's `extraResources` copy, and is the most common source of
-  "works on my platform" breakage if the triple is wrong.
-- **Full vs Client**: the Full build compiles with the `bundled-server` Cargo
-  feature and merges `studio/tauri/tauri.conf.full.json` (which sets
-  `externalBin`); the Client build uses the base config, which declares no
-  sidecar. The Rust dispatch keys off the `bundled-server` feature, so
-  client-vs-full is a compile-time decision, matching how Tauri embeds its
-  config.
-- **Runtime**: on launch, a Full build spawns the sidecar, injects the
-  `SESSION_TOKEN` and writable `*_PATH` environment, polls `/api/health/` until
-  ready, and terminates the process on exit (including abnormal exit). Dev and
-  Client builds never spawn.
+### Tauri configuration
 
-Underlying npm scripts: `build:tauri:<platform>:full` and
-`build:tauri:<platform>:client`.
+`studio/tauri/tauri.conf.json` holds the app identifier (`com.sigilweaver.loom-studio`), window settings, the content security policy, the icons and the bundle targets (`deb`, `rpm`, `appimage`, `nsis`, `dmg`). `studio/tauri/capabilities/main.json` lists what the renderer may call. The renderer gets no file, shell or store permissions; those run in Rust behind the app's own commands.
 
 ### PyInstaller Spec
 
@@ -205,22 +140,22 @@ Hidden imports are manually specified because PyInstaller can't detect dynamic i
 ### Production Mode
 
 1. User launches Sigilweaver Loom
-2. Electron main process starts
-3. Spawns Server executable from `resources/server/`
-4. Waits for Server health check (`/api/health/`)
-5. Opens main window pointing to bundled Studio
-6. On quit, terminates Server process
+2. The Tauri shell starts and creates the main window hidden
+3. A Full build spawns the `loom-server` sidecar with a launch-scoped session token and writable data paths under the app data directory
+4. The shell waits for the Server health check (`/api/health/`)
+5. The window is shown, loading the bundled Studio
+6. On quit (window close, `SIGTERM`, `SIGINT`, `SIGHUP` or Ctrl+C), the shell stops the Server process tree
 
-The Tauri Full build follows the same lifecycle, spawning the server as a
-sidecar rather than from `resources/server/` and reaping it on the app's
-`ExitRequested`/`Exit` events.
+If the Server does not become healthy, or the sidecar is missing from the install, the shell shows an error dialog and exits. Dev and Client builds never spawn a Server.
+
+A force-kill of the shell (`SIGKILL`, a crash) cannot run the exit handlers and leaves the Server running. The next launch then reports that port 25811 is in use. Stop the leftover `loom-server` process and start the app again.
 
 ### Development Mode
 
 1. Developer runs `./scripts/dev.py`
 2. Server runs from Python source with hot reload
 3. Studio runs from Vite dev server with hot reload
-4. Electron (optional) connects to dev server
+4. Tauri (optional, `--studio-tauri`) connects to the dev server
 
 The app detects development mode and adjusts behavior automatically.
 
@@ -228,48 +163,49 @@ The app detects development mode and adjusts behavior automatically.
 
 Typical sizes:
 
-| Component | Size |
-|-----------|------|
-| Server executable | 50-100 MB |
-| Studio bundle | 5-10 MB |
-| Electron runtime | 80-100 MB |
-| **Total (full)** | **~200 MB** |
-| **Total (client)** | **~100 MB** |
+| Package | Client | Full |
+|---------|--------|------|
+| deb, rpm | about 6 MB | about 205 MB |
+| AppImage | about 105 MB | about 305 MB |
 
-The Server is large because it includes the entire Python runtime and Polars (which is written in Rust and fairly hefty).
+The Server executable (about 200 MB) accounts for nearly all of the difference. It is large because it includes the entire Python runtime and Polars (which is written in Rust and fairly hefty). The Tauri shell itself is a few megabytes because it uses the operating system's webview (WebKitGTK, WebView2, WKWebView). The AppImage bundles WebKitGTK so it runs on any distro, which is why it is larger than the deb and rpm.
 
 ## Testing Builds
 
-After building, test on a clean system:
+`scripts/smoke_desktop.py` launches a built app and checks that it starts and shuts down cleanly. CI runs it on every platform.
 
 ```bash
-# Linux
-./studio/dist/Sigilweaver-Loom-*.AppImage
+# Linux, headless
+xvfb-run -a python3 scripts/smoke_desktop.py \
+  --app studio/tauri/target/x86_64-unknown-linux-gnu/release/sigilweaver-loom-studio
 
-# Or unpack and run
-./studio/dist/linux-unpacked/sigilweaver-loom
+# Client build
+python3 scripts/smoke_desktop.py --app <binary> --client
 ```
 
-Verify:
+For a Full build it waits for the Server health check, confirms the Server is listening on port 25811, stops the app and confirms the port is released.
+
+Then test an installer by hand on a clean system:
 - [ ] App launches without errors
-- [ ] Backend starts (check Developer Tools console)
+- [ ] Backend starts
 - [ ] Can load a CSV file
 - [ ] Can execute a workflow
 - [ ] Output files are written correctly
 
 ## Troubleshooting
 
-### Backend not found
+### Sidecar not found
 
-The backend executable must exist at build time:
+`tauri build` fails if `studio/tauri/binaries/loom-server-<target-triple>` is missing. Build and stage the Server first:
 
 ```bash
-# Build server first
-cd server && ./build_executable.sh
-
-# Then build studio
-cd studio && bun run build:linux
+./scripts/build.py              # all three steps
+./scripts/build.py --studio-only   # Server already built in server/dist
 ```
+
+### Port 25811 is already in use
+
+Another Loom instance or a leftover Server holds the port. Close the other instance, or stop the stray `loom-server` process.
 
 ### Large build size
 
@@ -288,41 +224,19 @@ hiddenimports=[
 
 ### Platform-specific issues
 
-- **Linux**: Builds AppImage and Snap on any Linux distro
-- **Windows**: NSIS installer only builds on Windows (or with Wine)
-- **macOS**: Must build on macOS; code signing requires Developer ID
+- **Linux**: Builds AppImage, deb and rpm on any distro with the Tauri dependencies installed
+- **Windows**: The NSIS installer builds on Windows (or with Wine)
+- **macOS**: Must build on macOS, once per architecture
 
 ## Code Signing
 
-For production releases:
-
 ### Windows
 
-Authenticode signing reduces SmartScreen warnings:
-
-```bash
-# In electron-builder config
-"win": {
-  "sign": "./sign.js",
-  "certificateFile": "./cert.pfx",
-  "certificatePassword": "${env.CERT_PASSWORD}"
-}
-```
+Release installers are signed with Azure Trusted Signing, which reduces SmartScreen warnings. The release workflow signs the NSIS installer after the build (`.github/workflows/build-studio-tauri.yml`). The signing secrets live in the `windows-signing` environment.
 
 ### macOS
 
-Apple notarization is required for Gatekeeper:
-
-```bash
-# In electron-builder config
-"mac": {
-  "hardenedRuntime": true,
-  "entitlements": "./entitlements.plist",
-  "notarize": {
-    "teamId": "${env.APPLE_TEAM_ID}"
-  }
-}
-```
+macOS builds are not signed or notarized. Gatekeeper blocks them until the user opens them from the context menu. Notarization needs an Apple Developer ID and is configured under `bundle.macOS` in `tauri.conf.json`.
 
 ---
 

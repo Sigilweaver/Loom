@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
-from .asset_detector import detect_asset_type, is_variant
+from .asset_detector import detect_arch, detect_asset_type, is_variant
 
 
 def _version_sort_key(version: str) -> tuple:
@@ -56,7 +56,7 @@ def strip_version_from_filename(filename: str) -> str:
     Examples:
         Sigilweaver-Loom-Setup-v0.3.0-alpha.exe -> Sigilweaver-Loom-Setup.exe
         Sigilweaver-Loom-v0.3.0-alpha-x64.AppImage -> Sigilweaver-Loom-x64.AppImage
-        Sigilweaver-Loom-Client-v0.3.0-alpha-x64.snap -> Sigilweaver-Loom-Client-x64.snap
+        Sigilweaver-Loom-Client-v0.3.0-alpha-x64.deb -> Sigilweaver-Loom-Client-x64.deb
     """
     path = Path(filename)
     name = path.stem
@@ -144,7 +144,6 @@ class ManifestBuilder:
         full_assets = []
         client_assets = []
         web_assets = []
-        tauri_assets = []
 
         for file in self.assets_dir.iterdir():
             if not file.is_file():
@@ -162,10 +161,6 @@ class ManifestBuilder:
                 asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
                     web_assets.append(asset_info)
-            elif is_variant(file.name, "Tauri"):
-                asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
-                if asset_info:
-                    tauri_assets.append(asset_info)
             else:
                 asset_info = self._build_asset_info(file, path_prefix=self.path_prefix)
                 if asset_info:
@@ -178,7 +173,6 @@ class ManifestBuilder:
             "variants": {
                 "full": full_assets,
                 "client": client_assets,
-                "tauri": tauri_assets,
                 "web": web_assets,
             },
         }
@@ -208,7 +202,7 @@ class ManifestBuilder:
         return {
             "id": type_info["id"],
             "os": type_info["os"],
-            "arch": "x64",  # All our builds are x64 for now
+            "arch": detect_arch(file.name),
             "kind": type_info["kind"],
             "fileName": file.name,  # Keep original for reference
             "url": f"{self.base_url}/{path_prefix}/{url_filename}",

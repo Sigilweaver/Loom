@@ -17,7 +17,7 @@ Loom is **pre-1.0**. There has been no stable release yet, so expect breaking ch
 | ----------------- | ---------- | ------------------------------------------------------------------------------------------ |
 | Studio            | Beta       | 13 tools, tabs, undo/redo, themes, data preview and profiling, optional AI assistant.      |
 | Server            | Beta       | Lazy Polars execution, disk caching of blocking tools, Python code export, Hub integration. |
-| Desktop apps      | Beta       | Releases ship Electron builds in a Full (bundled Server) and a Client variant, plus a web build. Tauri builds exist but are not part of the release yet. Windows builds are code signed. macOS builds are not notarized and target x64. |
+| Desktop apps      | Beta       | Releases ship Tauri builds in a Full (bundled Server) and a Client variant, plus a web build. Windows builds are code signed. macOS builds (Apple silicon and Intel) are not notarized. |
 | Docker deployment | Beta       | Compose files for Hub, Server and PostgreSQL with secret handling. Images are amd64 only.  |
 | Hub               | Open beta  | Users, roles, groups, shared connections, scheduling, audit log. See [Hub Open Beta](./admin/hub-beta.md) for the current limitations. |
 

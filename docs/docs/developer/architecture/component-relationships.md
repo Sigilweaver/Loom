@@ -11,7 +11,7 @@ How **Studio**, **Server** and **Hub** interact in each deployment mode.
 
 | Component | Purpose | Stack | Default port |
 | --------- | ------- | ----- | ------------ |
-| **Studio** | Visual workflow designer | React, Xyflow, Vite; Electron, Tauri or browser | 25810 (dev server) |
+| **Studio** | Visual workflow designer | React, Xyflow, Vite; Tauri or browser | 25810 (dev server) |
 | **Server** | Workflow execution engine | Python, FastAPI, Polars | 25811 |
 | **Hub** | Team orchestration platform | FastAPI, React, PostgreSQL | 25802 (API and web app), 25803 (dev frontend) |
 
@@ -31,14 +31,14 @@ Studio's **Settings > Execution** chooses one of three modes (`executionMode` in
 
 ```mermaid
 flowchart TB
-    subgraph Shell["Desktop shell (Electron or Tauri, Full build)"]
+    subgraph Shell["Desktop shell (Tauri, Full build)"]
         Studio["Studio"]
         Server["Bundled Server<br/>(PyInstaller binary)"]
     end
     Studio -->|"HTTP localhost:25811"| Server
 ```
 
-Both desktop shells come in a **Full** variant that bundles the Server and a **Client** variant that does not. Electron ships the Server binary as an extra resource. Tauri ships it as a sidecar. The Tauri Full build is selected at compile time by the `bundled-server` Cargo feature. The [Packaging](../building/packaging.md) page has the build details.
+The desktop app comes in a **Full** variant that bundles the Server and a **Client** variant that does not. Tauri ships the Server binary as a sidecar. The Full build is selected at compile time by the `bundled-server` Cargo feature. The [Packaging](../building/packaging.md) page has the build details.
 
 How it works:
 
@@ -53,7 +53,7 @@ Studio's defaults for this mode:
 { executionMode: 'bundled', backend: { url: 'http://localhost:25811', autoStart: true, previewRows: 100 } }
 ```
 
-Client connections are stored in the operating system's credential store: Electron `safeStorage` or the Tauri `keyring` crate.
+Client connections are stored in the operating system's credential store (Keychain, Credential Manager or Secret Service) through the Tauri shell's `keyring` crate.
 
 ## Mode 2: External Server
 

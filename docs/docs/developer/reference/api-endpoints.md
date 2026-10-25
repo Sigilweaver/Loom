@@ -766,7 +766,7 @@ Clear cached function list.
 Reverse proxy for LLM provider API calls. Solves CORS restrictions when Studio runs in web mode. Supports streaming SSE for progressive token display.
 
 :::note
-In Electron mode, Studio calls LLM providers directly. These proxy endpoints are used when Studio runs in a browser.
+In the desktop app, Studio calls LLM providers directly. These proxy endpoints are used when Studio runs in a browser.
 :::
 
 Supported providers: `openai`, `anthropic`, `google`, `mistral`, `openai-compatible`.

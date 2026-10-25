@@ -5,7 +5,7 @@ title: Studio Architecture
 
 # Studio Architecture
 
-Studio is a React application. It runs inside an Electron or Tauri shell, or in a browser. It handles everything the user sees: the canvas, tool configuration, state and undo history. All data processing is delegated to a Server.
+Studio is a React application. It runs inside a Tauri shell, or in a browser. It handles everything the user sees: the canvas, tool configuration, state and undo history. All data processing is delegated to a Server.
 
 ## Technology stack
 
@@ -15,7 +15,7 @@ Studio is a React application. It runs inside an Electron or Tauri shell, or in 
 | State | Zustand (with Immer) | Small, fast, little boilerplate |
 | Canvas | Xyflow (React Flow 12) | Built for node editors |
 | Bundler | Vite | Fast dev server |
-| Desktop | Electron and Tauri | Native dialogs and credential storage |
+| Desktop | Tauri | Native dialogs and credential storage |
 | Styling | Tailwind CSS with a theme token layer | Consistent design tokens, 27 themes |
 | Editor | Monaco | Expression and SQL editing |
 | AI | Vercel AI SDK with provider packages | OpenAI, Anthropic, Google, Mistral and OpenAI-compatible |
@@ -45,7 +45,7 @@ studio/src/
 |   |-- workflow/       entities, serializer, auto layout, loop detection
 |   `-- dataSources/    Per-format option types and defaults
 |-- api/                Server and Hub clients
-|-- platform/           Electron, Tauri and web adapters
+|-- platform/           Tauri and web adapters
 |-- ai/                 Agent loop, tools, prompts, provider setup
 |-- data/               Tool definitions and config schemas
 |-- hooks/              Shared hooks
@@ -80,16 +80,16 @@ Every meaningful edit pushes a snapshot to `historyStore`. Each tab has its own 
 
 | What | Where |
 | ---- | ----- |
-| Settings (`settingsStore`) | The platform adapter: Electron store, Tauri settings file, or browser `localStorage` |
+| Settings (`settingsStore`) | The platform adapter: Tauri settings file, or browser `localStorage` |
 | Favorite tools, collapsed categories, snap to grid | `localStorage` |
 | AI settings and recent chat history | `localStorage` |
 | Client connection credentials | The operating system's credential store, through the platform adapter |
 
 ## Platform adapter
 
-`platform/` exposes one interface (`PlatformAdapter`) with file, settings, credential, authentication and menu operations, plus a `capabilities` object such as `nativeDialogs`. There are three implementations: `electron.ts`, `tauri.ts` and `web.ts`. The web adapter has limited capabilities. It cannot read a path or store a client credential.
+`platform/` exposes one interface (`PlatformAdapter`) with file, settings, credential, authentication and menu operations, plus a `capabilities` object such as `nativeDialogs`. There are two implementations: `tauri.ts` and `web.ts`. The web adapter has limited capabilities. It cannot read a path or store a client credential.
 
-Components import `platform` from `@platform` and check `platform.capabilities`. They never touch `window.electronAPI` directly, so all native access stays in one place.
+Components import `platform` from `@platform` and check `platform.capabilities`. They never call the Tauri API directly, so all native access stays in one place.
 
 ## Tool definitions
 
@@ -167,11 +167,9 @@ Database credentials never enter the file. A database Read tool stores a connect
 
 ## Desktop shells
 
-**Electron** (`electron/main.ts`, `electron/preload.ts`): the main process starts the bundled Server in Full builds, waits for its health check, opens the window and handles native menus, dialogs, settings storage and credential encryption. The preload script exposes a small API to the renderer through `contextBridge` as `window.electronAPI`.
+**Tauri** (`tauri/`): a Rust shell with commands for files, settings, credentials and, in Full builds, the Server sidecar. It starts the bundled Server, waits for its health check, then shows the window. The renderer reaches it only through the platform adapter, and is granted no plugin permissions beyond opening links.
 
-**Tauri** (`tauri/`): a Rust shell with commands for files, settings, credentials and, in Full builds, the Server sidecar.
-
-Both only read or write files the user picked in a native open or save dialog in the current session, so a compromised renderer cannot reach other paths (`electron/fileAccess.ts`, `tauri/src/commands/files.rs`). Both are reached only through the platform adapter.
+The shell only reads or writes files the user picked in a native open or save dialog in the current session, so a compromised renderer cannot reach other paths (`tauri/src/commands/files.rs`).
 
 ## AI assistant
 

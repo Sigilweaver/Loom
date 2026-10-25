@@ -69,8 +69,7 @@ body:
       label: Runtime
       description: How are you running Studio?
       options:
-        - Electron (desktop)
-        - Tauri (desktop)
+        - Desktop app
         - Web browser
         - Docker
         - N/A (server / hub only)

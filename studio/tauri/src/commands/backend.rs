@@ -37,15 +37,15 @@ pub(crate) const BACKEND_PORT: u16 = 25811;
 /// The `externalBin` entry in `tauri.conf.full.json` (the source path, without
 /// the target-triple suffix). Used to verify the compiled config matches the
 /// `bundled-server` feature.
-pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/server";
+pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/loom-server";
 
 /// Program name passed to `Shell::sidecar`. The bundler copies the
 /// `externalBin` file next to the app executable under its bare file name
-/// (`server`, or `server.exe` on Windows) and `Shell::sidecar` resolves the
+/// (`loom-server`, or `loom-server.exe` on Windows) and `Shell::sidecar` resolves the
 /// name relative to that executable's directory, so this is the file name and
 /// NOT the `binaries/` config path. Passing the config path looked for
-/// `<app dir>/binaries/server`, which does not exist in an installed bundle.
-const SIDECAR_NAME: &str = "server";
+/// `<app dir>/binaries/loom-server`, which does not exist in an installed bundle.
+const SIDECAR_NAME: &str = "loom-server";
 
 /// How long to wait for the server to exit after a polite termination request
 /// before killing it outright.
@@ -136,9 +136,12 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| format!("Failed to create server data directory: {e}"))?;
 
-    // Something already answering on the port (an orphaned server from a
-    // crashed session, or another program) would make the readiness probe
-    // fail with an opaque timeout. Say what is wrong instead.
+    // A previous session that was force-quit or crashed leaves its server
+    // running. Stop that one (and only that one) before starting a new one.
+    reap_stale_server(&data_dir).await;
+
+    // Something else already answering on the port would make the readiness
+    // probe fail with an opaque timeout. Say what is wrong instead.
     if port_in_use().await {
         return Err(format!(
             "Port {BACKEND_PORT} is already in use. Close any other Sigilweaver Loom \
@@ -146,17 +149,12 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
         ));
     }
 
-    // A Full build should always have this binary; if it's missing (e.g. a
-    // packaging mistake), log and run without a backend rather than treating a bundling defect as an unrecoverable startup
-    // failure the user can't do anything about.
-    let sidecar_cmd = match app.shell().sidecar(SIDECAR_NAME) {
-        Ok(cmd) => cmd,
-        Err(e) => {
-            eprintln!("[Backend] Server sidecar not found ({e})");
-            println!("[Backend] Connect to a remote server via Settings");
-            return Ok(());
-        }
-    };
+    // A Full build always ships this binary. If it is missing, the package is
+    // broken: fail startup with a clear message instead of opening a window
+    // that has no backend behind it.
+    let sidecar_cmd = app.shell().sidecar(SIDECAR_NAME).map_err(|e| {
+        format!("The bundled server ({SIDECAR_NAME}) is missing from this install: {e}")
+    })?;
 
     println!("[Backend] Starting bundled server (Full build)");
     println!("[Backend] Server data directory: {}", data_dir.display());
@@ -169,6 +167,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
 
     let pid = child.pid();
     println!("[Backend] Spawned server sidecar (pid: {pid})");
+    write_pid_file(&data_dir, pid);
     app.state::<BackendManager>().set(child);
 
     // Drain the event stream: forward stdout/stderr to the log and flip a flag
@@ -248,6 +247,9 @@ pub fn stop_backend(app: &AppHandle) {
         Some(child) => {
             let pid = child.pid();
             terminate_process_tree(pid);
+            if let Ok(data_dir) = server_data_dir(app) {
+                remove_pid_file(&data_dir);
+            }
             if process_alive(pid) {
                 eprintln!("[Backend] Server (pid: {pid}) ignored the stop request, killing it");
                 if let Err(e) = child.kill() {
@@ -259,6 +261,88 @@ pub fn stop_backend(app: &AppHandle) {
         }
         None => println!("[Backend] No backend process to stop"),
     }
+}
+
+/// Where the running server's pid is recorded so a later launch can find a
+/// server that outlived its app (force-quit, crash, power loss).
+fn pid_file(data_dir: &Path) -> PathBuf {
+    data_dir.join("loom-server.pid")
+}
+
+fn write_pid_file(data_dir: &Path, pid: u32) {
+    if let Err(e) = std::fs::write(pid_file(data_dir), pid.to_string()) {
+        eprintln!("[Backend] Could not record the server pid: {e}");
+    }
+}
+
+fn remove_pid_file(data_dir: &Path) {
+    let _ = std::fs::remove_file(pid_file(data_dir));
+}
+
+/// If a previous session left its bundled server running, stop it. The pid
+/// file names the server this app launched; the process is only touched if it
+/// is still alive and still looks like the bundled server, so a recycled pid
+/// never takes down an unrelated program.
+async fn reap_stale_server(data_dir: &Path) {
+    let Ok(text) = std::fs::read_to_string(pid_file(data_dir)) else {
+        return;
+    };
+    remove_pid_file(data_dir);
+    let Ok(pid) = text.trim().parse::<u32>() else {
+        return;
+    };
+    if !is_bundled_server_process(pid) {
+        return;
+    }
+
+    println!("[Backend] Stopping a server left over from an earlier session (pid: {pid})");
+    terminate_process_tree(pid);
+    for _ in 0..20 {
+        if !port_in_use().await {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+}
+
+/// Whether `pid` is a live process whose executable is the bundled server.
+#[cfg(unix)]
+fn is_bundled_server_process(pid: u32) -> bool {
+    let output = std::process::Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "comm="])
+        .output();
+    match output {
+        Ok(out) if out.status.success() => {
+            looks_like_bundled_server(&String::from_utf8_lossy(&out.stdout))
+        }
+        _ => false,
+    }
+}
+
+#[cfg(windows)]
+fn is_bundled_server_process(pid: u32) -> bool {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let output = std::process::Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output();
+    match output {
+        Ok(out) if out.status.success() => {
+            looks_like_bundled_server(&String::from_utf8_lossy(&out.stdout))
+        }
+        _ => false,
+    }
+}
+
+/// Whether process-listing output names the bundled server executable.
+fn looks_like_bundled_server(listing: &str) -> bool {
+    listing
+        .trim()
+        .trim_start_matches('"')
+        .rsplit(['/', '\\'])
+        .next()
+        .is_some_and(|name| name.starts_with(SIDECAR_NAME))
 }
 
 /// Ask a process and its children to exit, then wait up to [`SHUTDOWN_GRACE`].
@@ -427,6 +511,30 @@ mod tests {
         assert!(!is_2xx_status_line("HTTP/1.1 301 Moved"));
         assert!(!is_2xx_status_line(""));
         assert!(!is_2xx_status_line("garbage"));
+    }
+
+    #[test]
+    fn recognises_the_bundled_server_in_process_listings() {
+        // Linux `ps -o comm=`
+        assert!(looks_like_bundled_server("loom-server\n"));
+        // macOS `ps -o comm=` prints the full path
+        assert!(looks_like_bundled_server(
+            "/Applications/Sigilweaver Loom.app/Contents/MacOS/loom-server\n"
+        ));
+        // Windows `tasklist /FO CSV /NH`
+        assert!(looks_like_bundled_server(
+            "\"loom-server.exe\",\"4242\",\"Console\",\"1\",\"52,000 K\"\r\n"
+        ));
+    }
+
+    #[test]
+    fn ignores_other_processes_in_process_listings() {
+        assert!(!looks_like_bundled_server(""));
+        assert!(!looks_like_bundled_server("python3\n"));
+        assert!(!looks_like_bundled_server("/usr/bin/server\n"));
+        assert!(!looks_like_bundled_server(
+            "INFO: No tasks are running which match the specified criteria."
+        ));
     }
 
     #[test]

@@ -206,9 +206,9 @@ Some things are hard to automate. Manual testing checklist:
 - [ ] Save/load workflow works
 - [ ] Tab switching preserves state
 
-## Electron Integration
+## Desktop Integration
 
-Testing the Electron shell requires manual verification:
+`scripts/smoke_desktop.py` automates launch, Server startup and shutdown on every platform (CI runs it against each build). The rest of the Tauri shell needs manual verification:
 
 - [ ] Backend starts automatically in production build
 - [ ] File dialogs work (open, save)

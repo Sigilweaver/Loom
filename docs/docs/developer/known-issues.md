@@ -103,10 +103,10 @@ This is a living document. Things get fixed, new issues appear. Check [GitHub Is
 
 **Memory usage**
 
-- **Issue**: Electron + Chromium + bundled Python can use significant RAM
+- **Issue**: The webview plus the bundled Python Server can use significant RAM
 - **Typical**: 500MB-1GB for normal use
 - **Peak**: Can spike higher during large data operations
-- **Notes**: This is the Electron tax. Desktop apps have memory to spare.
+- **Notes**: Memory is dominated by the Server and the data it holds, not by the shell.
 
 ---
 
@@ -118,7 +118,7 @@ The app can run in a browser for frontend development, but with limitations:
 
 - **Issue**: Browser security prevents reading/writing local files
 - **Workaround**: File picker works, but paths may not resolve correctly
-- **Notes**: Use Electron mode for actual workflows
+- **Notes**: Use the desktop app for actual workflows
 
 **No backend bundling**
 

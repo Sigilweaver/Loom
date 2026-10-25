@@ -18,7 +18,7 @@ Loom has three components. You can use the first two on their own.
 
 | Component  | What it is                                                                 | Where to start                     |
 | ---------- | -------------------------------------------------------------------------- | ---------------------------------- |
-| **Studio** | The visual workflow designer. A desktop app (Electron or Tauri) or a web build. | [Getting Started](./user/getting-started.md) |
+| **Studio** | The visual workflow designer. A desktop app (Tauri) or a web build. | [Getting Started](./user/getting-started.md) |
 | **Server** | The execution engine. A FastAPI service that runs workflows with Polars.   | [Server Configuration](./admin/server-configuration.md) |
 | **Hub**    | An optional orchestrator for teams: users, roles, shared connections, schedules and audit log. Open beta. | [Administrator Guide](./admin/index.md) |
 

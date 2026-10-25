@@ -47,6 +47,42 @@ fn check_bundled_server_config_matches_feature(config: &tauri::Config) {
     }
 }
 
+/// Quit through the normal exit path when the OS asks the process to
+/// terminate (SIGTERM from a logout or shutdown, SIGINT from a terminal,
+/// SIGHUP when the terminal closes, Ctrl+C on Windows). Without this the
+/// process dies immediately, the exit handlers never run and the bundled
+/// server is left running with its port bound.
+fn exit_on_termination_signal(handle: tauri::AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{signal, SignalKind};
+            let (Ok(mut term), Ok(mut int), Ok(mut hup)) = (
+                signal(SignalKind::terminate()),
+                signal(SignalKind::interrupt()),
+                signal(SignalKind::hangup()),
+            ) else {
+                eprintln!("[Main] Could not install termination signal handlers");
+                return;
+            };
+            tokio::select! {
+                _ = term.recv() => {}
+                _ = int.recv() => {}
+                _ = hup.recv() => {}
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            if tokio::signal::ctrl_c().await.is_err() {
+                eprintln!("[Main] Could not install the Ctrl+C handler");
+                return;
+            }
+        }
+        println!("[Main] Termination signal received, shutting down");
+        handle.exit(0);
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
@@ -88,6 +124,7 @@ pub fn run() {
         .setup(|app| {
             // Initialize session token on app startup
             credentials::initialize_session(app.handle())?;
+            exit_on_termination_signal(app.handle().clone());
 
             // Start the backend (Full build only; Dev and Client never spawn).
             // Run it off the setup path so window creation is not blocked, and

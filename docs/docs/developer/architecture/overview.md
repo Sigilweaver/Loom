@@ -30,7 +30,7 @@ flowchart LR
     Hub -.->|"authorize, credentials"| Engine
 ```
 
-Studio runs in an Electron or Tauri shell, or in a plain browser. The Full desktop builds bundle a Server and start it for you. Otherwise Studio talks to a Server you run. In Hub mode, Studio first gets a short-lived token from Hub. See [Component Relationships](./component-relationships.md).
+Studio runs in a Tauri shell, or in a plain browser. The Full desktop builds bundle a Server and start it for you. Otherwise Studio talks to a Server you run. In Hub mode, Studio first gets a short-lived token from Hub. See [Component Relationships](./component-relationships.md).
 
 ## Monorepo structure
 
@@ -58,11 +58,10 @@ studio/                     TypeScript: React + Vite
 |   |-- state/              Zustand stores
 |   |-- domain/             pure workflow logic and data source descriptors
 |   |-- api/                Server and Hub clients
-|   |-- platform/           Electron, Tauri and web adapters
+|   |-- platform/           Tauri and web adapters
 |   |-- ai/                 AI agent, tools and prompts
 |   |-- data/               tool definitions and config schemas
 |   `-- themes/
-|-- electron/               Electron main and preload
 `-- tauri/                  Tauri (Rust) shell
 
 hub/
@@ -106,7 +105,7 @@ See [Studio Architecture](./frontend.md).
 
 - **React 18** components, **Zustand** stores, **Xyflow** canvas, **Vite**, **Tailwind**.
 - Stores split by concern: `workflowStore`, `historyStore`, `tabStore`, `uiStore`, `settingsStore`, `executionStore`, `connectionStore`, `clipboardStore`, `runtimeLogStore`, `aiStore` and `autoConnectPreviewStore`.
-- A platform adapter isolates Electron, Tauri and browser differences.
+- A platform adapter isolates Tauri and browser differences.
 
 ## Server at a glance
 

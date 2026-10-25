@@ -15,8 +15,13 @@ jobs:
           - os: windows-latest
             artifact-name: server-win
             executable-name: server.exe
+          # PyInstaller builds for the CPU it runs on, so each macOS
+          # architecture gets its own runner and its own server binary.
           - os: macos-latest
-            artifact-name: server-mac
+            artifact-name: server-mac-arm64
+            executable-name: server
+          - os: macos-15-intel
+            artifact-name: server-mac-x64
             executable-name: server
 
     runs-on: ${{ matrix.os }}
