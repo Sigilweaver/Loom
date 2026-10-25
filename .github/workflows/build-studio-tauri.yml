@@ -160,6 +160,38 @@ jobs:
       # Signed Windows builds: build.py signs the staged server sidecar and hands
       # scripts/sign-windows.ps1 to Tauri as its sign command, so Tauri signs
       # the app exe after its last patch, then the installer.
+      # Tauri staples the notarization ticket right after notarizing, but the
+      # ticket is not always fetchable yet, and a failed staple is not an error
+      # there. Staple again with retries; if the dmg already holds the app
+      # unstapled, rewrite the dmg with the stapled app.
+      - name: Staple the notarization ticket (signed macOS build)
+        if: matrix.platform == 'mac' && inputs.sign
+        run: |
+          bundle="studio/tauri/target/${{ matrix.target }}/release/bundle"
+          app="$(ls -d "$bundle"/macos/*.app)"
+          dmg="$(ls "$bundle"/dmg/*.dmg)"
+          staple() {
+            for i in 1 2 3 4 5 6; do
+              xcrun stapler staple "$1" && return 0
+              echo "staple attempt $i failed; retrying in 30s"; sleep 30
+            done
+            return 1
+          }
+          xcrun stapler validate "$app" || staple "$app"
+          mnt="$RUNNER_TEMP/loom-dmg-check"
+          hdiutil attach "$dmg" -mountpoint "$mnt" -nobrowse -quiet
+          if xcrun stapler validate "$mnt"/*.app; then
+            hdiutil detach "$mnt" -quiet; exit 0
+          fi
+          hdiutil detach "$mnt" -quiet
+          echo "The app in $dmg is not stapled; rewriting the dmg"
+          rw="$RUNNER_TEMP/loom-rw.dmg"
+          hdiutil convert "$dmg" -format UDRW -o "$rw" -quiet
+          hdiutil attach "$rw" -mountpoint "$mnt" -nobrowse -quiet
+          staple "$mnt"/*.app
+          hdiutil detach "$mnt" -quiet
+          hdiutil convert "$rw" -format UDZO -imagekey zlib-level=9 -o "$dmg" -ov -quiet
+
       - name: Install the Artifact Signing module
         if: matrix.platform == 'win' && inputs.sign
         shell: pwsh
