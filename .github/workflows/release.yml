@@ -104,6 +104,9 @@ jobs:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: [validate-tag-on-main, build-server]
     uses: ./.github/workflows/build-studio-tauri.yml
+    permissions:
+      contents: read
+      actions: read
     with:
       variant: both
       sign: true

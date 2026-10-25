@@ -13,9 +13,13 @@ on:
         options: [both, full, client]
         default: both
       sign:
-        description: "Sign the Windows installers (needs the windows-signing environment)"
+        description: "Sign the Windows and macOS builds (needs the windows-signing and macos-signing environments)"
         type: boolean
         default: false
+      server-run-id:
+        description: "Full builds: take the server artifacts from this Build Server run (a standalone run has none of its own)"
+        type: string
+        default: ""
   workflow_call:
     inputs:
       variant:
@@ -25,8 +29,11 @@ on:
         type: boolean
         default: false
 
+# actions: read lets a standalone Full build download server artifacts from
+# another run (server-run-id). Callers must grant it too.
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build-studio:
@@ -59,7 +66,7 @@ jobs:
             server-artifact: server-mac-x64
 
     runs-on: ${{ matrix.os }}
-    environment: ${{ (matrix.platform == 'win' && inputs.sign) && 'windows-signing' || '' }}
+    environment: ${{ inputs.sign && (matrix.platform == 'win' && 'windows-signing' || matrix.platform == 'mac' && 'macos-signing') || '' }}
     defaults:
       run:
         shell: bash
@@ -118,6 +125,8 @@ jobs:
         with:
           name: ${{ matrix.server-artifact }}
           path: server/dist
+          run-id: ${{ inputs.server-run-id || github.run_id }}
+          github-token: ${{ inputs.server-run-id && github.token || '' }}
 
       - name: Make server executable
         if: matrix.variant == 'full' && matrix.platform != 'win'
@@ -126,8 +135,27 @@ jobs:
       # scripts/build.py stages the server as the sidecar and runs `tauri build`
       # (which builds the web assets first). It is the same command used locally.
       - name: Build Studio
-        if: ${{ !(matrix.platform == 'win' && inputs.sign) }}
+        if: ${{ !inputs.sign || matrix.platform == 'linux' }}
         run: python scripts/build.py --studio-only ${{ matrix.variant == 'client' && '--client' || '' }}
+
+      # Signed macOS builds: Tauri imports the Developer ID certificate into a
+      # temporary keychain, signs the app and the server sidecar with the
+      # hardened runtime and tauri/entitlements.plist, then notarizes and
+      # staples the app with the App Store Connect API key.
+      - name: Build Studio (signed macOS build)
+        if: matrix.platform == 'mac' && inputs.sign
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_P8" > "$APPLE_API_KEY_PATH"
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          python scripts/build.py --studio-only ${{ matrix.variant == 'client' && '--client' || '' }}
 
       # Signed Windows builds: build.py signs the staged server sidecar and hands
       # scripts/sign-windows.ps1 to Tauri as its sign command, so Tauri signs
@@ -230,6 +258,15 @@ jobs:
           trap 'hdiutil detach /tmp/loom-dmg -quiet || true' EXIT
           app="$(ls -d /tmp/loom-dmg/*.app)"
           ls -l "$app/Contents/MacOS"
+          if [ "${{ inputs.sign }}" = "true" ]; then
+            codesign --verify --deep --strict --verbose=2 "$app"
+            for bin in "$app"/Contents/MacOS/*; do
+              codesign -d --verbose=2 "$bin" 2>&1 | grep -E '^(Executable|Authority=Developer ID Application|TeamIdentifier|Runtime Version)'
+              codesign -d --verbose=2 "$bin" 2>&1 | grep -q 'flags=.*runtime' || { echo "::error::$bin lacks the hardened runtime"; exit 1; }
+            done
+            xcrun stapler validate "$app"
+            spctl --assess --type execute --verbose=2 "$app"
+          fi
           python scripts/smoke_desktop.py \
             --app "$app/Contents/MacOS/sigilweaver-loom-studio" ${{ matrix.variant == 'client' && '--client' || '' }} \
             --check basic --check kill

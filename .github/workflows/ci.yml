@@ -146,6 +146,9 @@ jobs:
     needs: [changes, build-server]
     if: needs.changes.outputs.desktop == 'true'
     uses: ./.github/workflows/build-studio-tauri.yml
+    permissions:
+      contents: read
+      actions: read
     with:
       variant: full
 
