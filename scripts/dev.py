@@ -9,7 +9,6 @@ Usage:
     ./scripts/dev.py                    # Start all core components (auto-installs deps)
     ./scripts/dev.py --server           # Server only
     ./scripts/dev.py --studio           # Studio (web mode)
-    ./scripts/dev.py --studio-electron  # Studio as Electron desktop app
     ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Documentation site only (Docusaurus)
@@ -42,7 +41,6 @@ NC = "\033[0m"  # No Color
 # Global process references for cleanup
 server_process: subprocess.Popen | None = None
 studio_process: subprocess.Popen | None = None
-electron_process: subprocess.Popen | None = None
 tauri_process: subprocess.Popen | None = None
 hub_backend_process: subprocess.Popen | None = None
 hub_frontend_process: subprocess.Popen | None = None
@@ -706,7 +704,7 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
 
     Args:
         repo_root: Repository root path.
-        mode: One of "web", "electron", or "tauri"
+        mode: "web" (Tauri is started by start_tauri)
     """
     global studio_process
 
@@ -717,13 +715,7 @@ def start_studio(repo_root: Path, mode: str = "web") -> subprocess.Popen | None:
     env = os.environ.copy()
 
     if mode == "web":
-        # Web mode - disable Electron
-        env["NO_ELECTRON"] = "1"
         cmd = ["bun", "run", "dev"]
-    elif mode == "electron":
-        # Electron mode - let vite-plugin-electron handle it
-        env["NO_ELECTRON"] = "0"
-        cmd = ["bun", "run", "dev:electron"]
     else:
         # Should not reach here for Tauri - handled by start_tauri()
         print_error(f"Unknown studio mode: {mode}")
@@ -788,43 +780,6 @@ def start_tauri(repo_root: Path) -> subprocess.Popen | None:
         return tauri_process
     except Exception as e:
         print_error(f"Failed to start Tauri: {e}")
-        return None
-
-
-def start_electron(repo_root: Path) -> subprocess.Popen | None:
-    """Start Electron (optional)."""
-    global electron_process
-
-    # Check for display in headless environments
-    if not is_display_available():
-        print_warning("No display available (headless environment)")
-        print_warning("Skipping Electron - use Studio web UI at http://localhost:25810")
-        return None
-
-    print_success("Starting Electron...")
-
-    studio_dir = repo_root / "studio"
-    try:
-        electron_process = subprocess.Popen(
-            ["bun", "run", "electron"],
-            cwd=studio_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
-
-        # Start output streaming in a separate thread
-        thread = threading.Thread(
-            target=stream_output,
-            args=(electron_process, "ELECTRON"),
-            daemon=True
-        )
-        thread.start()
-
-        return electron_process
-    except Exception as e:
-        print_error(f"Failed to start Electron: {e}")
         return None
 
 
@@ -962,7 +917,6 @@ def cleanup() -> None:
     print()
     print_warning("Shutting down services...")
 
-    terminate_process(electron_process, "Electron")
     terminate_process(tauri_process, "Tauri")
     terminate_process(docs_process, "Docs")
     terminate_process(hub_frontend_process, "Hub Frontend")
@@ -991,7 +945,7 @@ def print_status(
     Args:
         run_server: Whether server is running.
         run_studio: Whether studio is running.
-        studio_mode: One of "web", "electron", or "tauri".
+        studio_mode: One of "web" or "tauri".
         run_hub: Whether hub is running.
         run_docs: Whether docs server is running.
     """
@@ -1010,9 +964,7 @@ def print_status(
     if run_docs:
         print(f"Docs:           {GREEN}http://localhost:25809{NC}")
     print(f"{BLUE}========================================{NC}")
-    if run_studio and studio_mode == "electron":
-        print_success("Electron desktop mode enabled")
-    elif run_studio and studio_mode == "tauri":
+    if run_studio and studio_mode == "tauri":
         print_success("Tauri desktop mode enabled")
     print()
     print_warning("Press Ctrl+C to stop all services")
@@ -1030,7 +982,6 @@ Examples:
     ./scripts/dev.py --all              # Start all core components (Server, Studio web, Hub)
     ./scripts/dev.py --server           # Server only
     ./scripts/dev.py --studio           # Studio (web mode) only
-    ./scripts/dev.py --studio-electron  # Studio as Electron desktop app
     ./scripts/dev.py --studio-tauri     # Studio as Tauri desktop app
     ./scripts/dev.py --hub              # Hub only (backend + frontend)
     ./scripts/dev.py --docs             # Docs only (Docusaurus)
@@ -1052,11 +1003,6 @@ Examples:
         "--studio",
         action="store_true",
         help="Start Studio in web mode"
-    )
-    parser.add_argument(
-        "--studio-electron",
-        action="store_true",
-        help="Start Studio as Electron desktop app"
     )
     parser.add_argument(
         "--studio-tauri",
@@ -1087,12 +1033,7 @@ Examples:
     args = parser.parse_args()
 
     # Determine studio mode
-    # Priority: tauri > electron > web (if multiple specified, use highest priority)
-    studio_mode = "web"
-    if args.studio_tauri:
-        studio_mode = "tauri"
-    elif args.studio_electron:
-        studio_mode = "electron"
+    studio_mode = "tauri" if args.studio_tauri else "web"
 
     # Determine what to run
     # If --all flag is set, run core components
@@ -1103,11 +1044,11 @@ Examples:
         run_docs = False
     # If any specific services requested, only run those
     elif (
-        args.server or args.studio or args.studio_electron
+        args.server or args.studio
         or args.studio_tauri or args.hub or args.docs
     ):
         run_server = args.server
-        run_studio = args.studio or args.studio_electron or args.studio_tauri
+        run_studio = args.studio or args.studio_tauri
         run_hub = args.hub
         run_docs = args.docs
     # Default: run all core components (server, studio, hub)
@@ -1217,11 +1158,6 @@ Examples:
             if start_tauri(repo_root) is None:
                 # Tauri failed (e.g. no display), but web server is running
                 print_warning("Tauri failed to start, but web UI is available")
-        elif studio_mode == "electron":
-            # Electron mode - vite-plugin-electron handles Electron
-            if start_studio(repo_root, mode="electron") is None:
-                return 1
-            time.sleep(3)
         else:
             # Web mode only
             if start_studio(repo_root, mode="web") is None:

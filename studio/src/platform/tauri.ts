@@ -2,7 +2,7 @@
  * Tauri Platform Adapter
  *
  * Implements the PlatformAdapter interface on top of Tauri's invoke system.
- * Mirrors electron.ts; the commands live in studio/tauri/src/commands.
+ * The commands live in studio/tauri/src/commands.
  *
  * Note on argument names: Tauri converts command parameter names from
  * snake_case in Rust to camelCase in JavaScript, so `db_type` is `dbType`.

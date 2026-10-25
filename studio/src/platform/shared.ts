@@ -1,7 +1,7 @@
 /**
  * Logic shared by the platform adapters.
  *
- * The Electron, Tauri and web adapters used to carry near-identical copies of
+ * The Tauri and web adapters used to carry near-identical copies of
  * the localStorage settings fallback, the session-token cache and the
  * proxy-response decoding. They live here so each adapter only contains what
  * is genuinely specific to its bridge.

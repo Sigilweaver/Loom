@@ -12,9 +12,10 @@ def sample_assets_dir(tmp_path):
     # Create sample files
     files = [
         "Sigilweaver-Loom-Setup-v0.2.5.exe",
-        "Sigilweaver-Loom-Portable-v0.2.5.exe",
         "Sigilweaver-Loom-v0.2.5-x64.AppImage",
-        "Sigilweaver-Loom-v0.2.5-x64.snap",
+        "Sigilweaver-Loom-v0.2.5-x64.deb",
+        "Sigilweaver-Loom-v0.2.5-arm64.dmg",
+        "Sigilweaver-Loom-v0.2.5-x64.dmg",
         "Sigilweaver-Loom-Client-Setup-v0.2.5.exe",
         "Sigilweaver-Loom-Client-v0.2.5-x64.AppImage",
         "Sigilweaver-Loom-Web-v0.2.5.zip",

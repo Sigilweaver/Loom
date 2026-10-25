@@ -9,6 +9,7 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "types": ["node", "vitest/globals"],
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
@@ -32,6 +33,6 @@
       "@utils/*": ["./src/utils/*"]
     }
   },
-  "include": ["src", "electron"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

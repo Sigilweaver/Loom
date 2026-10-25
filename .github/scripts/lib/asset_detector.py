@@ -8,6 +8,22 @@ from pathlib import Path
 from typing import Dict, Optional
 
 
+def detect_arch(filename: str) -> str:
+    """
+    Detect the CPU architecture from filename.
+
+    macOS installers ship for both Apple silicon ("arm64") and Intel ("x64");
+    everything else is x64.
+
+    Examples:
+        >>> detect_arch('Sigilweaver-Loom-v0.2.5-arm64.dmg')
+        'arm64'
+        >>> detect_arch('Sigilweaver-Loom-v0.2.5-x64.dmg')
+        'x64'
+    """
+    return 'arm64' if 'arm64' in filename.lower() else 'x64'
+
+
 def detect_asset_type(filename: str) -> Dict[str, str]:
     """
     Detect asset type from filename.
@@ -24,48 +40,34 @@ def detect_asset_type(filename: str) -> Dict[str, str]:
 
         >>> detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.AppImage')
         {'os': 'linux', 'id': 'linuxAppImage', 'kind': 'image'}
+
+        >>> detect_asset_type('Sigilweaver-Loom-v0.2.5-arm64.dmg')
+        {'os': 'macos', 'id': 'macDmgArm64', 'kind': 'image'}
     """
-    name_lower = filename.lower()
-
-    # Windows executables
+    # Windows installer (NSIS)
     if filename.endswith('.exe'):
-        if 'setup' in name_lower:
-            return {'os': 'windows', 'id': 'windowsSetup', 'kind': 'installer'}
-        elif 'portable' in name_lower:
-            return {'os': 'windows', 'id': 'windowsPortable', 'kind': 'installer'}
-        else:
-            return {'os': 'windows', 'id': 'windowsInstaller', 'kind': 'installer'}
+        return {'os': 'windows', 'id': 'windowsSetup', 'kind': 'installer'}
 
-    # Windows MSI installer (Tauri)
-    elif filename.endswith('.msi'):
-        return {'os': 'windows', 'id': 'windowsMsi', 'kind': 'installer'}
-
-    # macOS disk images
+    # macOS disk images, one per CPU architecture
     elif filename.endswith('.dmg'):
-        return {'os': 'macos', 'id': 'macDmg', 'kind': 'image'}
-
-    # macOS app bundle tarball (Tauri)
-    elif filename.endswith('.app.tar.gz'):
-        return {'os': 'macos', 'id': 'macAppTarGz', 'kind': 'archive'}
+        if detect_arch(filename) == 'arm64':
+            return {'os': 'macos', 'id': 'macDmgArm64', 'kind': 'image'}
+        return {'os': 'macos', 'id': 'macDmgX64', 'kind': 'image'}
 
     # Linux AppImage
     elif filename.endswith('.AppImage') or filename.endswith('.appimage'):
         return {'os': 'linux', 'id': 'linuxAppImage', 'kind': 'image'}
 
-    # Linux Snap
-    elif filename.endswith('.snap'):
-        return {'os': 'linux', 'id': 'linuxSnap', 'kind': 'image'}
-
-    # Linux DEB package (Tauri)
+    # Linux DEB package
     elif filename.endswith('.deb'):
         return {'os': 'linux', 'id': 'linuxDeb', 'kind': 'package'}
 
-    # Linux RPM package (Tauri)
+    # Linux RPM package
     elif filename.endswith('.rpm'):
         return {'os': 'linux', 'id': 'linuxRpm', 'kind': 'package'}
 
     # Web archive
-    elif filename.endswith('.zip') and 'web' in name_lower:
+    elif filename.endswith('.zip') and 'web' in filename.lower():
         return {'os': 'web', 'id': 'webZip', 'kind': 'archive'}
 
     # Generic archive

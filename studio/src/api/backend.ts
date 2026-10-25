@@ -20,7 +20,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:25811/api';
 
 /**
  * Session token for backend authentication.
- * In desktop mode, retrieved from Electron via IPC.
+ * In desktop mode, retrieved from the Tauri shell.
  * In browser mode, can be set manually via localStorage.
  */
 let sessionToken: string | null = null;

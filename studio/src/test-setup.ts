@@ -1,6 +1,6 @@
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { DEFAULT_SETTINGS, mergeWithDefaults } from './types/settings';
 
@@ -10,7 +10,7 @@ import { DEFAULT_SETTINGS, mergeWithDefaults } from './types/settings';
  * Tests can configure this mock by importing and modifying:
  *   import { mockPlatform, mockPlatformCapabilities } from '../../test-setup';
  * 
- * The mock defaults to simulating the Electron platform with all capabilities.
+ * The mock defaults to simulating the Tauri platform with all capabilities.
  */
 export const mockPlatformCapabilities = {
   secureStorage: true,
@@ -64,7 +64,7 @@ export const mockPlatformFiles = {
 };
 
 export const mockPlatform = {
-  name: 'electron' as 'electron' | 'web' | 'tauri',
+  name: 'tauri' as 'web' | 'tauri',
   capabilities: mockPlatformCapabilities,
   initialize: vi.fn().mockResolvedValue(undefined),
   credentials: mockPlatformCredentials,

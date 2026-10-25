@@ -30,7 +30,7 @@ You should receive an initial acknowledgment within 72 hours. From there we will
 The following are in scope:
 
 - **Server** (Python/FastAPI): SQL injection, command injection, path traversal, authentication/authorization bypass
-- **Studio** (Electron/Tauri): local privilege escalation, unsafe IPC, arbitrary file read/write outside of user-initiated file dialogs
+- **Studio** (Tauri): local privilege escalation, unsafe IPC, arbitrary file read/write outside of user-initiated file dialogs
 - **Hub** (FastAPI): authentication bypass, RBAC escalation, cross-tenant data access, session fixation
 - **Build/release pipeline**: supply chain issues, unsigned artifacts, manifest tampering
 

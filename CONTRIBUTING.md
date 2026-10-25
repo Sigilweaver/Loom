@@ -54,7 +54,7 @@ That's it. The dev script handles dependency installation, database setup, and l
 ./scripts/dev.py --server           # Server only (port 25811)
 ./scripts/dev.py --studio           # Studio only (port 25810)
 ./scripts/dev.py --hub              # Hub only (backend: 25802, frontend: 25803)
-./scripts/dev.py --studio-electron  # Full stack + Electron desktop app
+./scripts/dev.py --studio-tauri     # Full stack + Tauri desktop app
 ```
 
 ---
@@ -63,7 +63,7 @@ That's it. The dev script handles dependency installation, database setup, and l
 
 | Area        | Description                       | Documentation                                                              |
 | ----------- | --------------------------------- | -------------------------------------------------------------------------- |
-| **Studio**  | Desktop app (React/Electron)      | [Studio Guide](https://sigilweaver.app/docs/developer/contributing/studio) |
+| **Studio**  | Desktop app (React/Tauri)         | [Studio Guide](https://sigilweaver.app/docs/developer/contributing/studio) |
 | **Server**  | Execution engine (Python/FastAPI) | [Server Guide](https://sigilweaver.app/docs/developer/contributing/server) |
 | **Hub**     | Orchestration platform            | [Hub Guide](https://sigilweaver.app/docs/developer/contributing/hub)       |
 | **Docs**    | Documentation site (Docusaurus)   | [docs/README.md](docs/README.md)                                           |

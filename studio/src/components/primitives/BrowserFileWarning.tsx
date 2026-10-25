@@ -8,7 +8,7 @@ export interface BrowserFileWarningProps {
 
 /**
  * Reusable warning component for browser file path limitations
- * Shows when Electron API is not available (browser mode)
+ * Shows when the desktop shell is not available (browser mode)
  */
 export const BrowserFileWarning: React.FC<BrowserFileWarningProps> = ({ 
   className = "" 
@@ -36,7 +36,7 @@ export const BrowserFileWarning: React.FC<BrowserFileWarningProps> = ({
             <div className="mt-2 text-theme-text-tertiary">
               <strong>Solutions:</strong>
               <ul className="list-disc list-inside mt-1 space-y-0.5">
-                <li>Use the Electron desktop app for full file access</li>
+                <li>Use the desktop app for full file access</li>
                 <li>Manually paste the complete file path in the input field</li>
               </ul>
             </div>

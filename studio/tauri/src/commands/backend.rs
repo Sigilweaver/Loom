@@ -1,94 +1,117 @@
 //! Backend server lifecycle management.
 //!
-//! Ports the bundled-server lifecycle from the Electron shell
-//! (`studio/electron/main.ts`) to the Tauri shell. The three build modes behave
-//! exactly as they do under Electron:
+//! Starts and stops the bundled server. There are three build modes:
 //!
 //! - **Dev**: never spawn. The developer runs the server manually
 //!   (`./scripts/dev.py --server`). Detected via [`tauri::is_dev`].
 //! - **Client build**: never spawn. No server binary is bundled; the app talks
 //!   to a separately running Server. Selected at compile time by the absence of
 //!   the `bundled-server` Cargo feature.
-//! - **Full build**: spawn the bundled PyInstaller binary as a Tauri sidecar.
+//! - **Full build**: spawn the bundled PyInstaller binary (declared as a Tauri
+//!   `externalBin`, installed next to the app executable as `loom-server`).
 //!   Selected by the `bundled-server` feature plus the `externalBin` entry in
 //!   `tauri.conf.full.json`.
 //!
-//! Why a compile-time feature instead of Electron's runtime `existsSync` probe:
+//! Why a compile-time feature instead of a runtime probe for the binary:
 //! Tauri embeds its configuration (including `externalBin`) at build time via
-//! `generate_context!`, so client-vs-full is already a compile-time distinction
-//! in this shell. A Cargo feature makes the dispatch deterministic and keeps it
-//! in lockstep with which config was compiled in.
+//! `generate_context!`, so client-vs-full is already a compile-time distinction.
+//! A Cargo feature makes the dispatch deterministic and keeps it in lockstep
+//! with which config was compiled in.
+
+//! The server runs in its own process group (Unix) or Job Object (Windows), so
+//! stopping it stops the PyInstaller bootloader and the Python child together;
+//! see `procs.rs`. A pid file records the server of the running session. After a
+//! force-quit or crash the next launch uses it (or, failing that, the port's
+//! listener) to stop the leftover server, but only ever a process that is
+//! named `loom-server`, and never while another instance of the app is alive.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
+use tokio::process::Command;
 
+use crate::commands::procs;
 use crate::commands::{credentials, settings};
 
-/// Port the bundled server listens on. Must match the server default and the
-/// Electron shell's `BACKEND_PORT`.
+/// Port the bundled server listens on. Must match the server default.
 pub(crate) const BACKEND_PORT: u16 = 25811;
 
 /// The `externalBin` entry in `tauri.conf.full.json` (the source path, without
 /// the target-triple suffix). Used to verify the compiled config matches the
 /// `bundled-server` feature.
-pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/server";
+pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/loom-server";
 
-/// Program name passed to `Shell::sidecar`. The bundler copies the
-/// `externalBin` file next to the app executable under its bare file name
-/// (`server`, or `server.exe` on Windows) and `Shell::sidecar` resolves the
-/// name relative to that executable's directory, so this is the file name and
-/// NOT the `binaries/` config path. Passing the config path looked for
-/// `<app dir>/binaries/server`, which does not exist in an installed bundle.
-const SIDECAR_NAME: &str = "server";
+/// Image name of the bundled server. The bundler copies the `externalBin` file
+/// next to the app executable under its bare file name (`loom-server`, or
+/// `loom-server.exe` on Windows), so this is the file name and NOT the
+/// `binaries/` config path.
+const SIDECAR_NAME: &str = "loom-server";
 
-/// How long to wait for the server to exit after a polite termination request
-/// before killing it outright.
-const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
+/// Image name of the app itself, used to tell a live earlier instance from a
+/// recycled pid.
+const APP_NAME: &str = "sigilweaver-loom-studio";
 
-/// Readiness poll cadence: 30 attempts, 500ms apart (15s total), matching the
-/// Electron shell's health-check loop.
-const HEALTH_MAX_ATTEMPTS: u32 = 30;
+/// How long a stopping server gets to finish in-flight work (a running
+/// workflow, a streaming preview) after SIGTERM before it is killed. Windows
+/// has no polite request, so the job is terminated immediately.
+#[cfg(unix)]
+const SHUTDOWN_GRACE: Duration = Duration::from_secs(10);
+
+/// Readiness poll cadence.
 const HEALTH_INTERVAL: Duration = Duration::from_millis(500);
 
-/// Whether this build bundles the server sidecar. `true` only for Full builds
+/// Longest a single health probe may take. A server that accepts the
+/// connection but never answers must not hang startup.
+const HEALTH_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Longest the server may take to become healthy.
+const STARTUP_DEADLINE: Duration = Duration::from_secs(45);
+
+/// Whether this build bundles the server. `true` only for Full builds
 /// compiled with `--features bundled-server`.
 pub(crate) const HAS_BUNDLED_SERVER: bool = cfg!(feature = "bundled-server");
 
-/// Holds the spawned server child so it can be terminated on app exit.
+/// The running server's process tree.
+struct Running {
+    /// Pid of the PyInstaller bootloader, which is also the process group id
+    /// on Unix.
+    pid: u32,
+    #[cfg(windows)]
+    job: procs::Job,
+}
+
+/// Holds the spawned server so it can be terminated on app exit.
 /// Managed as Tauri state and reaped from the `RunEvent` handler.
 #[derive(Default)]
 pub struct BackendManager {
-    child: Mutex<Option<CommandChild>>,
+    running: Mutex<Option<Running>>,
     /// True only while a server this shell launched is up and healthy. Gates
     /// the credential proxy and the legacy plaintext `resolve_connection`.
     owned: AtomicBool,
 }
 
 impl BackendManager {
-    fn set(&self, child: CommandChild) {
+    fn set(&self, running: Running) {
         // Recover a poisoned lock rather than dropping the update: a panic
-        // elsewhere while holding this mutex doesn't invalidate the child
-        // handle itself, and silently skipping registration here would leave
-        // the sidecar unkillable on shutdown.
+        // elsewhere while holding this mutex doesn't invalidate the handle,
+        // and skipping registration here would leave the server unkillable.
         let mut guard = self
-            .child
+            .running
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        *guard = Some(child);
+        *guard = Some(running);
     }
 
-    fn take(&self) -> Option<CommandChild> {
+    fn take(&self) -> Option<Running> {
         let mut guard = self
-            .child
+            .running
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         guard.take()
@@ -106,9 +129,8 @@ impl BackendManager {
 
 /// Start the backend according to the build mode. Returns `Ok(())` once the
 /// server is ready (Full build) or immediately (Dev / Client, which never
-/// spawn). Mirrors Electron's `startBackend`: the returned future resolves only
-/// after `GET /api/health/` answers OK, and rejects on spawn error, early
-/// process exit, or timeout.
+/// spawn). The returned future resolves only after `GET /api/health/` answers
+/// OK, and rejects on spawn error, early process exit, or timeout.
 pub async fn start_backend(app: &AppHandle) -> Result<(), String> {
     // DEV: never auto-spawn; the developer starts the server manually.
     if tauri::is_dev() {
@@ -132,7 +154,89 @@ pub async fn start_backend(app: &AppHandle) -> Result<(), String> {
     spawn_and_wait(app).await
 }
 
-/// Spawn the sidecar with the server environment and wait until it is healthy.
+/// Path of the bundled server: next to the app executable.
+fn sidecar_path() -> Result<PathBuf, String> {
+    let exe =
+        std::env::current_exe().map_err(|e| format!("Could not locate the app executable: {e}"))?;
+    let dir = exe
+        .parent()
+        .ok_or_else(|| "The app executable has no parent directory".to_string())?;
+    let file = if cfg!(windows) {
+        format!("{SIDECAR_NAME}.exe")
+    } else {
+        SIDECAR_NAME.to_string()
+    };
+    let path = dir.join(file);
+    if path.is_file() {
+        Ok(path)
+    } else {
+        Err(format!(
+            "The bundled server ({}) is missing from this install",
+            path.display()
+        ))
+    }
+}
+
+/// Spawn the server in its own process group / job object.
+fn spawn_server(
+    path: &Path,
+    env: &HashMap<String, String>,
+) -> Result<(tokio::process::Child, Running), String> {
+    let mut cmd = Command::new(path);
+    cmd.envs(env)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(false);
+    #[cfg(unix)]
+    cmd.process_group(0);
+    #[cfg(windows)]
+    {
+        // CREATE_NO_WINDOW: no console window for the server.
+        cmd.creation_flags(0x0800_0000);
+    }
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn the bundled server: {e}"))?;
+    let pid = child
+        .id()
+        .ok_or_else(|| "The bundled server exited immediately".to_string())?;
+
+    #[cfg(windows)]
+    let running = {
+        let job = procs::Job::new().map_err(|e| format!("Could not create a job object: {e}"))?;
+        let handle = child
+            .raw_handle()
+            .ok_or_else(|| "The bundled server exited immediately".to_string())?;
+        job.assign(handle)
+            .map_err(|e| format!("Could not put the server in its job object: {e}"))?;
+        Running { pid, job }
+    };
+    #[cfg(not(windows))]
+    let running = Running { pid };
+
+    Ok((child, running))
+}
+
+/// Forward a server output stream to the log.
+fn pump_output<R: tokio::io::AsyncRead + Unpin + Send + 'static>(stream: &'static str, reader: R) {
+    tauri::async_runtime::spawn(async move {
+        let mut lines = BufReader::new(reader).lines();
+        loop {
+            match lines.next_line().await {
+                Ok(Some(line)) => log_server_line(stream, line.as_bytes()),
+                Ok(None) => break,
+                Err(e) => {
+                    eprintln!("[Backend] Lost the server's {stream}: {e}");
+                    break;
+                }
+            }
+        }
+    });
+}
+
+/// Spawn the server with its environment and wait until it is healthy.
 async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     let token =
         credentials::session_token().ok_or_else(|| "Session token not initialized".to_string())?;
@@ -141,82 +245,68 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| format!("Failed to create server data directory: {e}"))?;
 
-    // Something already answering on the port (an orphaned server from a
-    // crashed session, or another program) would make the readiness probe
-    // fail with an opaque timeout. Say what is wrong instead.
+    // A previous session that was force-quit or crashed leaves its server
+    // running. Stop that one (and only that one) before starting a new one.
+    // This runs only in the single running instance (see the single-instance
+    // plugin in lib.rs).
+    reap_stale_server(&data_dir).await?;
+
+    // Something else already answering on the port would make the readiness
+    // probe fail with an opaque timeout. Say what is wrong instead.
     if port_in_use().await {
+        let owner = procs::find_listener_pid(BACKEND_PORT)
+            .map(|pid| format!(" (process {pid})"))
+            .unwrap_or_default();
         return Err(format!(
-            "Port {BACKEND_PORT} is already in use. Close any other Sigilweaver Loom \
-             instance or server using it and try again."
+            "Port {BACKEND_PORT} is already in use{owner}. Close the program using it \
+             and try again."
         ));
     }
 
-    // A Full build should always have this binary; if it's missing (e.g. a
-    // packaging mistake), degrade the same way Electron's `getBackendPath`
-    // does for a missing server executable - log and run without a backend -
-    // rather than treating a bundling defect as an unrecoverable startup
-    // failure the user can't do anything about.
-    let sidecar_cmd = match app.shell().sidecar(SIDECAR_NAME) {
-        Ok(cmd) => cmd,
-        Err(e) => {
-            eprintln!("[Backend] Server sidecar not found ({e})");
-            println!("[Backend] Connect to a remote server via Settings");
-            return Ok(());
-        }
-    };
+    // A Full build always ships this binary. If it is missing, the package is
+    // broken: fail startup with a clear message instead of opening a window
+    // that has no backend behind it.
+    let path = sidecar_path()?;
 
     println!("[Backend] Starting bundled server (Full build)");
     println!("[Backend] Server data directory: {}", data_dir.display());
     println!("[Backend] Auth mode: ephemeral");
 
-    let (mut rx, child) = sidecar_cmd
-        .envs(build_env(&token, &data_dir))
-        .spawn()
-        .map_err(|e| format!("Failed to spawn server sidecar: {e}"))?;
+    let (mut child, running) = spawn_server(&path, &build_env(&token, &data_dir))?;
+    let pid = running.pid;
+    println!("[Backend] Spawned server (pid: {pid})");
+    write_pid_file(&data_dir, pid);
+    app.state::<BackendManager>().set(running);
 
-    let pid = child.pid();
-    println!("[Backend] Spawned server sidecar (pid: {pid})");
-    app.state::<BackendManager>().set(child);
+    if let Some(out) = child.stdout.take() {
+        pump_output("stdout", out);
+    }
+    if let Some(err) = child.stderr.take() {
+        pump_output("stderr", err);
+    }
 
-    // Drain the event stream: forward stdout/stderr to the log and flip a flag
-    // when the process errors or terminates, so the readiness loop can fail fast
-    // (Electron rejects startBackend on early process exit).
+    // Reap the bootloader when it exits and flag it, so the readiness loop can
+    // fail fast. The process tree record is kept: on Unix the Python child can
+    // outlive the bootloader, and `stop_backend` must still be able to signal
+    // the group.
     let terminated = Arc::new(AtomicBool::new(false));
-    let terminated_reader = terminated.clone();
-    let app_for_reader = app.clone();
+    let terminated_waiter = terminated.clone();
+    let app_for_waiter = app.clone();
     tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(bytes) => log_server_line("stdout", &bytes),
-                CommandEvent::Stderr(bytes) => log_server_line("stderr", &bytes),
-                CommandEvent::Error(err) => {
-                    eprintln!("[Backend] Sidecar error: {err}");
-                    terminated_reader.store(true, Ordering::SeqCst);
-                    // Drop the stored child: it's already gone, and leaving it
-                    // registered risks a later `stop_backend` killing a PID the
-                    // OS has since recycled for something else.
-                    let manager = app_for_reader.state::<BackendManager>();
-                    manager.set_owned(false);
-                    manager.take();
-                }
-                CommandEvent::Terminated(payload) => {
-                    println!(
-                        "[Backend] Server process exited (code: {:?}, signal: {:?})",
-                        payload.code, payload.signal
-                    );
-                    terminated_reader.store(true, Ordering::SeqCst);
-                    let manager = app_for_reader.state::<BackendManager>();
-                    manager.set_owned(false);
-                    manager.take();
-                }
-                _ => {}
-            }
+        match child.wait().await {
+            Ok(status) => println!("[Backend] Server process exited ({status})"),
+            Err(e) => eprintln!("[Backend] Could not wait for the server process: {e}"),
         }
+        terminated_waiter.store(true, Ordering::SeqCst);
+        app_for_waiter.state::<BackendManager>().set_owned(false);
     });
 
-    // Poll the health endpoint until it answers OK, the process exits, or we
-    // exhaust the attempt budget.
-    for attempt in 1..=HEALTH_MAX_ATTEMPTS {
+    // Poll the health endpoint until it answers OK, the process exits, or the
+    // startup deadline passes.
+    let started = Instant::now();
+    let mut attempt = 0u32;
+    while started.elapsed() < STARTUP_DEADLINE {
+        attempt += 1;
         if terminated.load(Ordering::SeqCst) {
             return Err("Server process exited before becoming ready".to_string());
         }
@@ -229,88 +319,190 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
             println!("[Backend] Health check passed on attempt {attempt}");
             return Ok(());
         }
-        println!("[Backend] Health check attempt {attempt}/{HEALTH_MAX_ATTEMPTS} not ready yet");
+        println!("[Backend] Health check attempt {attempt} not ready yet");
     }
 
-    let timeout_secs = HEALTH_MAX_ATTEMPTS as u64 * HEALTH_INTERVAL.as_millis() as u64 / 1000;
-    Err(format!("Server failed to start within {timeout_secs}s"))
+    Err(format!(
+        "Server failed to start within {}s",
+        STARTUP_DEADLINE.as_secs()
+    ))
 }
 
-/// Stop the backend server if one is running. Idempotent: the child is taken
+/// Stop the backend server if one is running. Idempotent: the record is taken
 /// out of the manager, so a second call (e.g. `Exit` after `ExitRequested`) is
 /// a no-op.
 ///
-/// The bundled server is a PyInstaller one-file executable: a small bootloader
-/// process that extracts and runs the real Python process as its child.
-/// Killing only the bootloader (`CommandChild::kill` sends SIGKILL / calls
-/// TerminateProcess on it alone) orphans the child, which keeps port 25811
-/// bound and blocks the next launch. So the whole tree is asked to stop first:
-/// SIGTERM on Unix (the bootloader forwards it and waits for the child) and
-/// `taskkill /T` on Windows. Only if it is still alive after a grace period is
-/// it killed outright.
+/// The whole process tree is stopped (see the module docs). On Unix the group
+/// gets SIGTERM and [`SHUTDOWN_GRACE`] to finish in-flight work, then SIGKILL;
+/// on Windows the job is terminated. The pid file is removed only once the
+/// port is actually free, so a server that could not be stopped is still found
+/// by the next launch.
 pub fn stop_backend(app: &AppHandle) {
     let manager = app.state::<BackendManager>();
     manager.set_owned(false);
-    match manager.take() {
-        Some(child) => {
-            let pid = child.pid();
-            terminate_process_tree(pid);
-            if process_alive(pid) {
-                eprintln!("[Backend] Server (pid: {pid}) ignored the stop request, killing it");
-                if let Err(e) = child.kill() {
-                    eprintln!("[Backend] Failed to kill server (pid: {pid}): {e}");
-                }
-            } else {
-                println!("[Backend] Server stopped (pid: {pid})");
-            }
+    let Some(running) = manager.take() else {
+        println!("[Backend] No backend process to stop");
+        return;
+    };
+
+    // Hide the window so the wait below does not look like a frozen app.
+    if let Some(window) = app.get_webview_window("main") {
+        if let Err(e) = window.hide() {
+            eprintln!("[Backend] Could not hide the window during shutdown: {e}");
         }
-        None => println!("[Backend] No backend process to stop"),
+    }
+
+    let pid = running.pid;
+    let gone = stop_tree(&running);
+    let port_free = procs::wait_until(Duration::from_secs(5), || !port_in_use_blocking());
+    if gone && port_free {
+        println!("[Backend] Server stopped (pid: {pid})");
+        match server_data_dir(app) {
+            Ok(dir) => remove_pid_file(&dir),
+            Err(e) => eprintln!("[Backend] Could not locate the pid file to remove: {e}"),
+        }
+    } else {
+        eprintln!(
+            "[Backend] Server (pid: {pid}) is still running or still holds port \
+             {BACKEND_PORT}; the next launch will try to stop it"
+        );
     }
 }
 
-/// Ask a process and its children to exit, then wait up to [`SHUTDOWN_GRACE`].
 #[cfg(unix)]
-fn terminate_process_tree(pid: u32) {
-    let _ = std::process::Command::new("kill")
-        .args(["-TERM", &pid.to_string()])
-        .status();
-    let deadline = std::time::Instant::now() + SHUTDOWN_GRACE;
-    while process_alive(pid) && std::time::Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(100));
+fn stop_tree(running: &Running) -> bool {
+    procs::stop_group(running.pid, SHUTDOWN_GRACE)
+}
+
+#[cfg(windows)]
+fn stop_tree(running: &Running) -> bool {
+    if let Err(e) = running.job.terminate() {
+        eprintln!("[Backend] Could not terminate the server's job object: {e}");
+    }
+    procs::wait_until(Duration::from_secs(5), || {
+        !procs::process_alive(running.pid)
+    })
+}
+
+/// Where the running server's pid is recorded so a later launch can find a
+/// server that outlived its app (force-quit, crash, power loss). Content:
+/// `<server pid> <app pid>`.
+fn pid_file(data_dir: &Path) -> PathBuf {
+    data_dir.join("loom-server.pid")
+}
+
+fn write_pid_file(data_dir: &Path, server_pid: u32) {
+    let content = format!("{server_pid} {}", std::process::id());
+    if let Err(e) = std::fs::write(pid_file(data_dir), content) {
+        eprintln!("[Backend] Could not record the server pid: {e}");
     }
 }
 
-#[cfg(windows)]
-fn terminate_process_tree(pid: u32) {
-    use std::os::windows::process::CommandExt;
-    // CREATE_NO_WINDOW: do not flash a console for taskkill.
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let _ = std::process::Command::new("taskkill")
-        .args(["/PID", &pid.to_string(), "/T", "/F"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .status();
+fn remove_pid_file(data_dir: &Path) {
+    if let Err(e) = std::fs::remove_file(pid_file(data_dir)) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("[Backend] Could not remove the server pid file: {e}");
+        }
+    }
 }
 
-#[cfg(unix)]
-fn process_alive(pid: u32) -> bool {
-    std::process::Command::new("kill")
-        .args(["-0", &pid.to_string()])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
+/// Parse the pid file: the server pid and, if recorded, the owning app pid.
+fn parse_pid_file(text: &str) -> Option<(u32, Option<u32>)> {
+    let mut parts = text.split_whitespace();
+    let server = parts.next()?.parse().ok()?;
+    let app = parts.next().and_then(|p| p.parse().ok());
+    Some((server, app))
 }
 
-#[cfg(windows)]
-fn process_alive(_pid: u32) -> bool {
-    // `taskkill /F` is synchronous, so the tree is gone once it returns.
-    false
+/// If a previous session left its bundled server running, stop it.
+///
+/// Safety rules, in order:
+/// 1. If the app pid recorded with the server is another live instance of the
+///    app, do nothing and say so: that server is in use.
+/// 2. Only a process still named `loom-server` is ever stopped, so a recycled
+///    pid never takes down an unrelated program.
+/// 3. If the port is still held afterwards (the pid file was lost, or only the
+///    Python child survived), the listener on the port is looked up and, if it
+///    is `loom-server`, stopped too.
+///
+/// The pid file is removed only once the port is free.
+async fn reap_stale_server(data_dir: &Path) -> Result<(), String> {
+    let text = match std::fs::read_to_string(pid_file(data_dir)) {
+        Ok(t) => Some(t),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => {
+            eprintln!("[Backend] Could not read the server pid file: {e}");
+            None
+        }
+    };
+
+    if let Some(text) = text {
+        match parse_pid_file(&text) {
+            Some((server_pid, app_pid)) => {
+                if let Some(app_pid) = app_pid {
+                    if app_pid != std::process::id() && procs::is_process_named(app_pid, APP_NAME) {
+                        return Err(format!(
+                            "Another Sigilweaver Loom instance (process {app_pid}) is already \
+                             running. Close it and try again."
+                        ));
+                    }
+                }
+                if procs::is_process_named(server_pid, SIDECAR_NAME) {
+                    println!(
+                        "[Backend] Stopping a server left over from an earlier session \
+                         (pid: {server_pid})"
+                    );
+                    stop_stale_blocking(server_pid).await;
+                }
+            }
+            None => eprintln!("[Backend] Ignoring an unreadable server pid file: {text:?}"),
+        }
+    }
+
+    if !port_in_use().await {
+        remove_pid_file(data_dir);
+        return Ok(());
+    }
+
+    // The port is still held: look for the listener directly.
+    match procs::find_listener_pid(BACKEND_PORT) {
+        Some(pid) if procs::is_process_named(pid, SIDECAR_NAME) => {
+            println!("[Backend] Stopping the server holding port {BACKEND_PORT} (pid: {pid})");
+            stop_stale_blocking(pid).await;
+        }
+        Some(pid) => {
+            eprintln!("[Backend] Port {BACKEND_PORT} is held by another program (pid: {pid})");
+        }
+        None => eprintln!("[Backend] Port {BACKEND_PORT} is in use but its owner was not found"),
+    }
+
+    for _ in 0..20 {
+        if !port_in_use().await {
+            remove_pid_file(data_dir);
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+    Ok(())
+}
+
+/// Run the blocking stop on a worker thread and log a failure.
+async fn stop_stale_blocking(pid: u32) {
+    #[cfg(unix)]
+    let grace = SHUTDOWN_GRACE;
+    #[cfg(windows)]
+    let grace = Duration::from_secs(5);
+    match tauri::async_runtime::spawn_blocking(move || procs::stop_stale(pid, grace)).await {
+        Ok(true) => {}
+        Ok(false) => eprintln!("[Backend] Could not stop the leftover server (pid: {pid})"),
+        Err(e) => eprintln!("[Backend] Stopping the leftover server failed: {e}"),
+    }
 }
 
 /// Resolve the writable data directory for the server's working files.
 ///
 /// The app resources directory is read-only on AppImage and NSIS installs, so
-/// (as Electron does with `app.getPath('userData')`) the server's archive,
+/// the server's archive,
 /// audit, cache, and connection-store paths are redirected under the per-user
 /// app-data directory. These must never default to paths inside the bundle.
 fn server_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -321,8 +513,7 @@ fn server_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(base.join("server-data"))
 }
 
-/// Build the environment block passed to the spawned server. Mirrors the block
-/// set by Electron's `startBackend`.
+/// Build the environment block passed to the spawned server.
 fn build_env(token: &str, data_dir: &Path) -> HashMap<String, String> {
     let path_str = |p: PathBuf| p.to_string_lossy().into_owned();
     let mut env = HashMap::new();
@@ -352,6 +543,15 @@ async fn port_in_use() -> bool {
         .is_ok()
 }
 
+/// Blocking variant of [`port_in_use`], for the exit path.
+fn port_in_use_blocking() -> bool {
+    std::net::TcpStream::connect_timeout(
+        &std::net::SocketAddr::from(([127, 0, 0, 1], BACKEND_PORT)),
+        Duration::from_millis(500),
+    )
+    .is_ok()
+}
+
 /// Log a line emitted by the server, routing obvious error output to stderr.
 fn log_server_line(stream: &str, bytes: &[u8]) {
     let message = String::from_utf8_lossy(bytes);
@@ -367,12 +567,12 @@ fn log_server_line(stream: &str, bytes: &[u8]) {
 }
 
 /// Probe the server's health endpoint with the session token. Returns `true`
-/// only on a 2xx response, matching Electron's `response.ok` check.
+/// only on a 2xx response.
 ///
 /// Implemented as a raw HTTP/1.1 request over a localhost TCP socket to avoid
 /// pulling in an HTTP-client dependency; the readiness contract stays in Rust
-/// (faithful to Electron) rather than moving to the frontend.
-async fn health_ok(token: &str) -> bool {
+/// rather than moving to the frontend.
+async fn health_probe(token: &str) -> bool {
     let addr = format!("127.0.0.1:{BACKEND_PORT}");
     let Ok(mut stream) = TcpStream::connect(&addr).await else {
         return false;
@@ -408,6 +608,17 @@ async fn health_ok(token: &str) -> bool {
     }
 }
 
+/// [`health_probe`] bounded by [`HEALTH_PROBE_TIMEOUT`].
+async fn health_ok(token: &str) -> bool {
+    match tokio::time::timeout(HEALTH_PROBE_TIMEOUT, health_probe(token)).await {
+        Ok(ok) => ok,
+        Err(_) => {
+            println!("[Backend] Health probe timed out after {HEALTH_PROBE_TIMEOUT:?}");
+            false
+        }
+    }
+}
+
 /// Parse an HTTP status line and report whether the code is 2xx.
 fn is_2xx_status_line(status_line: &str) -> bool {
     status_line
@@ -435,6 +646,38 @@ mod tests {
         assert!(!is_2xx_status_line("HTTP/1.1 301 Moved"));
         assert!(!is_2xx_status_line(""));
         assert!(!is_2xx_status_line("garbage"));
+    }
+
+    #[test]
+    fn parses_the_pid_file() {
+        assert_eq!(parse_pid_file("123 456"), Some((123, Some(456))));
+        assert_eq!(parse_pid_file("123\n"), Some((123, None)));
+        assert_eq!(parse_pid_file(""), None);
+        assert_eq!(parse_pid_file("abc 1"), None);
+    }
+
+    #[tokio::test]
+    async fn a_silent_server_does_not_hang_the_health_probe() {
+        // Accepts the connection, never answers: the probe must give up.
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (_sock, _) = listener.accept().await.unwrap();
+            tokio::time::sleep(Duration::from_secs(30)).await;
+        });
+        let started = Instant::now();
+        let result = tokio::time::timeout(HEALTH_PROBE_TIMEOUT, async {
+            // Same shape as health_probe: connect, write, wait for a reply.
+            let mut s = TcpStream::connect(addr).await.unwrap();
+            s.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
+            let mut buf = [0u8; 8];
+            s.read(&mut buf).await
+        })
+        .await;
+        assert!(result.is_err(), "the silent server must hit the timeout");
+        assert!(started.elapsed() < HEALTH_PROBE_TIMEOUT + Duration::from_secs(2));
     }
 
     #[test]

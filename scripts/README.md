@@ -10,7 +10,6 @@ Utility scripts for building, testing, and running Sigilweaver Loom.
 ./scripts/dev.py --server           # Server only
 ./scripts/dev.py --studio           # Studio only  
 ./scripts/dev.py --hub              # Hub (backend + frontend)
-./scripts/dev.py --studio-electron  # All + launch Electron desktop app
 ./scripts/dev.py --studio-tauri     # All + launch Tauri desktop app
 
 # Testing
@@ -31,10 +30,9 @@ Utility scripts for building, testing, and running Sigilweaver Loom.
 ./scripts/workflow.py ci --job test # Run specific job
 
 # Building
-./scripts/build.py                  # Build for current platform
-./scripts/build.py --platform linux # Build for Linux
-./scripts/build.py --platform win   # Build for Windows
-./scripts/build.py --platform mac   # Build for macOS
+./scripts/build.py                  # Full desktop build for this machine
+./scripts/build.py --client         # Client build (no bundled server)
+python3 scripts/smoke_desktop.py --app <binary>  # Launch a built app and check it
 ```
 
 ---
@@ -52,7 +50,6 @@ Utility scripts for building, testing, and running Sigilweaver Loom.
 ./scripts/dev.py --studio           # Studio only
 ./scripts/dev.py --hub              # Hub (backend + frontend)
 ./scripts/dev.py --docs             # Documentation site (Docusaurus)
-./scripts/dev.py --studio-electron  # All + launch Electron desktop app
 ./scripts/dev.py --studio-tauri     # All + launch Tauri desktop app
 ./scripts/dev.py --hub-auth         # All with Hub authentication enabled
 ./scripts/dev.py --install          # Force reinstall dependencies (then exit)
@@ -191,33 +188,26 @@ R2_SECRET_ACCESS_KEY=xxx
 ## Build Scripts
 
 ### `build.py`
-**Purpose**: Build complete standalone application for distribution
+**Purpose**: Build the standalone Tauri desktop app for the machine it runs on
 
 **Usage**:
 ```bash
-./scripts/build.py                      # Build for current platform
-./scripts/build.py --platform linux     # Build for Linux
-./scripts/build.py --platform win       # Build for Windows
-./scripts/build.py --platform mac       # Build for macOS
-./scripts/build.py --server-only       # Build server only
-./scripts/build.py --studio-only       # Build studio only (assumes server already built)
+./scripts/build.py                      # Full build (bundled server)
+./scripts/build.py --client             # Client build (no bundled server)
+./scripts/build.py --server-only        # Build server only
+./scripts/build.py --studio-only        # Build studio only (assumes server already built)
+./scripts/build.py --no-bundle          # Compile only (e.g. to sign the exes first)
+./scripts/build.py --bundle-only        # Package already-compiled binaries
 ./scripts/build.py --clean              # Clean artifacts before building
 ```
-- Final packages: `studio/dist/` (AppImage, DMG, exe, etc.)
+- Steps: build the server (PyInstaller), stage it as the Tauri sidecar, run `tauri build`
+- Final packages: `studio/tauri/target/<target-triple>/release/bundle/` (AppImage, deb, rpm, NSIS installer, DMG)
+- PyInstaller and Tauri build for the host, so run it on each OS and CPU you want an installer for
 
 **Examples**:
 ```bash
-# Build for current platform
+# Full build
 ./scripts/build.py
-
-# Build for Linux specifically
-./scripts/build.py --platform linux
-
-# Build for Windows (cross-compile)
-./scripts/build.py --platform win
-
-# Build for macOS (on Mac only)
-./scripts/build.py --platform mac
 
 # Quick server iteration
 ./scripts/build.py --server-only
@@ -228,6 +218,21 @@ R2_SECRET_ACCESS_KEY=xxx
 # Clean build
 ./scripts/build.py --clean
 ```
+
+### `smoke_desktop.py`
+**Purpose**: Launch a built desktop app and check that it starts and shuts down cleanly
+
+**Usage**:
+```bash
+xvfb-run -a python3 scripts/smoke_desktop.py --app studio/tauri/target/x86_64-unknown-linux-gnu/release/sigilweaver-loom-studio
+python3 scripts/smoke_desktop.py --app <binary> --client     # Client build
+python3 scripts/smoke_desktop.py --app <binary> --check basic --check kill --check second-instance --check slow-shutdown
+```
+- `basic`: waits for the server health check, checks port 25811 is listening, stops the app and checks the port is released
+- `kill`: force-quits the app; the next launch must stop the leftover server (Windows: the job object must take it down)
+- `second-instance`: a second launch must leave the first instance's server alone
+- `slow-shutdown` (Linux, Full): quits the app with a request held open on the server; nothing may keep the port
+- Needs a display; on headless Linux use `xvfb-run -a`
 
 ---
 

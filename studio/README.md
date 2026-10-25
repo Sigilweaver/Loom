@@ -9,7 +9,7 @@ Studio is where you design your workflows. It's a desktop application that gives
 Studio is built with:
 - **[React](https://react.dev/)** - For the user interface
 - **[Xyflow](https://xyflow.com/)** - For the node-based canvas
-- **[Electron](https://www.electronjs.org/)** or **[Tauri](https://tauri.app/)** - For native desktop distribution
+- **[Tauri](https://tauri.app/)** - For native desktop distribution
 
 ## Key Features
 
@@ -45,22 +45,15 @@ bun run dev
 
 Studio runs at `http://localhost:25810` in dev mode. You'll need a Server running at `localhost:25811` to execute workflows.
 
-### With Electron
+### As a desktop app
 
 ```bash
 cd studio
-bun run dev      # Terminal 1: Start Vite dev server
-bun run electron  # Terminal 2: Launch Electron (after Vite starts)
+bun run dev        # Terminal 1: Start Vite dev server
+bun run dev:tauri  # Terminal 2: Open the Tauri window (needs the Rust toolchain)
 ```
 
-### With Tauri
-
-```bash
-cd studio
-bun run dev:tauri  # Starts Tauri dev mode (Vite + Tauri)
-```
-
-> **Note:** Electron (Full build) bundles the Server executable. Tauri (Client build) is a lightweight shell that connects to an external Server.
+> **Note:** The Full build bundles the Server executable. The Client build is a lightweight shell that connects to an external Server.
 
 ## Connecting to a Backend
 

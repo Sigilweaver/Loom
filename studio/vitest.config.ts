@@ -10,16 +10,16 @@ export default defineConfig({
       // `z` namespace via `import * as z` / `export { z }` chains that the
       // vitest module runner mishandles (yielding an undefined `z`). The CJS
       // build exposes a flat `z` export that resolves correctly.
-      zod: path.resolve(__dirname, "node_modules/zod/index.cjs"),
-      "@api": path.resolve(__dirname, "src/api"),
-      "@components": path.resolve(__dirname, "src/components"),
-      "@contexts": path.resolve(__dirname, "src/contexts"),
-      "@data": path.resolve(__dirname, "src/data"),
-      "@domain": path.resolve(__dirname, "src/domain"),
-      "@hooks": path.resolve(__dirname, "src/hooks"),
-      "@platform": path.resolve(__dirname, "src/platform"),
-      "@state": path.resolve(__dirname, "src/state"),
-      "@utils": path.resolve(__dirname, "src/utils"),
+      zod: path.resolve(import.meta.dirname, "node_modules/zod/index.cjs"),
+      "@api": path.resolve(import.meta.dirname, "src/api"),
+      "@components": path.resolve(import.meta.dirname, "src/components"),
+      "@contexts": path.resolve(import.meta.dirname, "src/contexts"),
+      "@data": path.resolve(import.meta.dirname, "src/data"),
+      "@domain": path.resolve(import.meta.dirname, "src/domain"),
+      "@hooks": path.resolve(import.meta.dirname, "src/hooks"),
+      "@platform": path.resolve(import.meta.dirname, "src/platform"),
+      "@state": path.resolve(import.meta.dirname, "src/state"),
+      "@utils": path.resolve(import.meta.dirname, "src/utils"),
     },
   },
   test: {
@@ -29,7 +29,6 @@ export default defineConfig({
     include: [
       "src/**/*.test.{ts,tsx}",
       "src/**/__tests__/**/*.{ts,tsx}",
-      "electron/**/*.test.ts",
     ],
     exclude: [
       "**/*.integration.test.{ts,tsx}", // Exclude integration tests by default
@@ -46,9 +45,7 @@ export default defineConfig({
         "src/**/*.spec.{ts,tsx}",
         "**/*.d.ts",
         "**/vite-env.d.ts",
-        "electron/**",
         "dist/**",
-        "dist-electron/**",
       ],
     },
   },

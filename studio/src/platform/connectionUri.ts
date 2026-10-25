@@ -6,11 +6,10 @@
  * references; the desktop shell swaps them for real connection URIs (with
  * credentials) immediately before forwarding the request to the bundled
  * server, then redacts the credentials from the response. See
- * `credentialFetch.ts` for the renderer side and `electron/backendProxy.ts` /
+ * `credentialFetch.ts` for the renderer side and
  * `tauri/src/commands/proxy.rs` for the shell side.
  *
- * This module is pure (no DOM, no Electron) so it is shared by the renderer
- * and the Electron main process.
+ * This module is pure (no DOM, no shell APIs) and is used by the renderer.
  */
 
 import type { DatabaseType } from '../types/connections';

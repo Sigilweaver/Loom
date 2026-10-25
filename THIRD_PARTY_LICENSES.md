@@ -104,15 +104,15 @@ Full license: https://gsap.com/licensing/
 
 ---
 
-## Electron
+## Tauri
 
-**Location:** `studio/` (for desktop builds)
+**Location:** `studio/tauri/` (for desktop builds)
 
-**License:** MIT License
+**License:** MIT License or Apache License 2.0
 
-**Source:** https://www.electronjs.org/
+**Source:** https://tauri.app/
 
-**Copyright:** Copyright (c) Electron contributors, Copyright (c) GitHub Inc.
+**Copyright:** Copyright (c) Tauri Programme within The Commons Conservancy
 
 ---
 

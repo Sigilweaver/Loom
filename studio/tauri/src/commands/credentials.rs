@@ -203,9 +203,15 @@ pub async fn get_session_token() -> Result<Option<String>, String> {
 
 /// Read the current session token from Rust (for wiring into the spawned
 /// server's environment). Returns `None` if the session has not been
-/// initialized or the lock is poisoned.
+/// initialized. The token is a plain `Option<String>`, so a poisoned lock
+/// (a panic elsewhere while it was held) still holds a valid value: recover it
+/// and say so rather than reporting "not initialized".
 pub fn session_token() -> Option<String> {
-    SESSION_TOKEN.lock().ok().and_then(|s| s.clone())
+    let guard = SESSION_TOKEN.lock().unwrap_or_else(|poisoned| {
+        eprintln!("[Credentials] Session token lock was poisoned; recovering it");
+        poisoned.into_inner()
+    });
+    guard.clone()
 }
 
 /// Check if secure credential storage is available.

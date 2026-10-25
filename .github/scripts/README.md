@@ -241,7 +241,7 @@ Handles R2 uploads via boto3:
 ## Testing
 
 Unit tests cover:
-- Asset type detection for all file types (exe, AppImage, snap, dmg, zip)
+- Asset type detection for all file types (exe, AppImage, deb, rpm, dmg, zip)
 - Manifest generation and structure validation
 - Variant categorization (full vs client vs web)
 - Index updates, deduplication and pre-release handling

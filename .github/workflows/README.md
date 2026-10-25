@@ -13,7 +13,17 @@ only touch markdown or `docs/**`
 **Purpose**: Validates code quality and runs tests
 
 **Jobs**:
-- Tauri crate check (`cargo check --locked`, clippy)
+- Detect desktop changes: decides whether the Windows and macOS jobs and the
+  installer builds below are needed (they run when `studio/`, `server/`,
+  `scripts/build.py`, `scripts/smoke_desktop.py`, `.github/scripts/` or the
+  build and release workflows change). Pushes to a branch skip them and the
+  pull request run covers it, so installers are built once
+- Studio Tauri crate checks (`cargo fmt --check`, `cargo check`, clippy with
+  and without the `bundled-server` feature, `cargo test`). Linux always runs;
+  Windows and macOS run when the desktop changed
+- Package Studio (desktop changes only): builds the Server on every platform,
+  then builds the Full installers with `build-studio-tauri.yml` and launches
+  each build with `scripts/smoke_desktop.py`
 - Test & Lint: `scripts/test.py --full --ci --server --studio --hub --repo`
   (server, Studio and Hub lint, type-check and tests with coverage, plus ruff
   and the release-script tests for `scripts/` and `.github/scripts/`)
@@ -56,12 +66,17 @@ glyphs in source).
 **Matrix Strategy**:
 - Linux (ubuntu-latest)
 - Windows (windows-latest)
-- macOS (macos-latest)
+- macOS on Apple silicon (macos-latest)
+- macOS on Intel (macos-15-intel)
+
+PyInstaller builds for the CPU it runs on, so each macOS architecture builds
+its own Server.
 
 **Outputs**:
 - `server-linux` artifact
-- `server-windows` artifact
-- `server-macos` artifact
+- `server-win` artifact
+- `server-mac-arm64` artifact
+- `server-mac-x64` artifact
 
 **Build Process**:
 1. Sets up Python environment
@@ -76,75 +91,62 @@ gh workflow run build-server.yml
 
 ---
 
-#### 4. build-studio-full.yml - Full Version Builds (Reusable)
-**Trigger**: Called by other workflows via `workflow_call`
+#### 4. build-studio-tauri.yml - Studio Installers (Reusable)
+**Trigger**: Called by `ci.yml` and `release.yml` via `workflow_call`, or run
+by hand (Actions > Build Studio > Run workflow)
 
-**Purpose**: Build Electron apps with bundled server
+**Purpose**: Build the Tauri desktop installers, Full (bundled server sidecar)
+and Client (no server)
 
-**Matrix Strategy**:
-- Linux (AppImage + Snap with classic confinement)
-- Windows (NSIS installer + Portable)
-- macOS (DMG)
+**Inputs**: `variant` (`both`, `full` or `client`) and `sign` (sign the Windows
+installer with Azure Trusted Signing; releases set it)
+
+**Matrix Strategy** (per variant):
+- Linux x64: AppImage, deb, rpm
+- Windows x64: NSIS installer
+- macOS arm64 and macOS x64: one DMG each
 
 **Dependencies**:
-- Requires server artifacts from build-server.yml
+- Full builds need the `server-*` artifacts from build-server.yml in the same
+  run
 
-**Outputs**:
-- `linux-full-artifacts` (AppImage, Snap)
-- `windows-full-artifacts` (Setup.exe, Portable.exe)
-- `macos-full-artifacts` (DMG)
+**Outputs**: `studio-{variant}-{platform}-{arch}` artifacts, for example
+`studio-full-linux-x64` and `studio-client-macos-arm64`
 
 **Build Process**:
-1. Downloads server-{platform} artifact
-2. Copies to studio/resources/server/
-3. Makes executable (Linux/macOS)
-4. Runs bun run build:{platform}:full
-5. Uses electron-builder-full.json config
+1. Downloads the matching server artifact (Full only)
+2. Runs `python scripts/build.py --studio-only [--client]`, which stages the
+   server as `studio/tauri/binaries/loom-server-<target-triple>` and runs
+   `tauri build --target <target-triple>`
+3. Launches the built binary with `scripts/smoke_desktop.py`: normal stop,
+   force-quit recovery, a second launch, and (Linux, Full) shutdown with a
+   request in flight
+4. Launches each installed layout: the AppImage, the deb in an Ubuntu
+   container, the app inside the mounted dmg, and the silently installed NSIS
+   installer (then uninstalls it)
+5. Uploads the installers
 
-**Product Name**: Sigilweaver Loom (no suffix)
+**Windows signing** (when `sign` is set): the job uses the `windows-signing`
+environment and the `AZURE_*` secrets. It compiles with `--no-bundle`, signs
+the app exe and the staged `loom-server` exe, packages with `--bundle-only`,
+signs the installer, and verifies every signature with
+`Get-AuthenticodeSignature` (including the installed files in step 4).
+
+**Pre-release versions**: the tag's full version is written to the app. On
+Linux `scripts/build.py` packages the rpm of a pre-release as `X.Y.Z-0.rc.N`
+because rpm versions cannot contain `-`.
 
 **Can be tested standalone**:
 ```bash
-gh workflow run build-studio-full.yml
+gh workflow run build-studio-tauri.yml -f variant=client
 ```
 
 ---
 
-#### 5. build-studio-client.yml - Client Version Builds (Reusable)
+#### 5. build-web.yml - Web Version Build (Reusable)
 **Trigger**: Called by other workflows via `workflow_call`
 
-**Purpose**: Build Electron apps without bundled server
-
-**Matrix Strategy**:
-- Linux (AppImage + Snap with strict confinement)
-- Windows (NSIS installer + Portable)
-- macOS (DMG)
-
-**Dependencies**: None (no server required)
-
-**Outputs**:
-- `linux-client-artifacts` (AppImage, Snap)
-- `windows-client-artifacts` (Setup.exe, Portable.exe)
-- `macos-client-artifacts` (DMG)
-
-**Build Process**:
-1. Installs bun dependencies
-2. Runs bun run build:{platform}:client
-3. Uses electron-builder-client.json config
-
-**Product Name**: Sigilweaver-Loom-Client (with suffix)
-
-**Can be tested standalone**:
-```bash
-gh workflow run build-studio-client.yml
-```
-
----
-
-#### 6. build-web.yml - Web Version Build (Reusable)
-**Trigger**: Called by other workflows via `workflow_call`
-
-**Purpose**: Build static web files (no Electron wrapper)
+**Purpose**: Build static web files (no desktop wrapper)
 
 **Platform**: Ubuntu only
 
@@ -163,7 +165,7 @@ gh workflow run build-web.yml
 
 ---
 
-#### 7. release.yml - Release Orchestrator
+#### 6. release.yml - Release Orchestrator
 **Trigger**:
 - Git tags matching `v*` (e.g., v1.0.0 or v1.0.0-rc.1)
 - Manual workflow_dispatch (does nothing unless dispatched on a tag ref)
@@ -176,9 +178,7 @@ validate-tag-on-main
     |
     +-- build-server
     |       |
-    |       +-- build-studio-full (depends on server)
-    |
-    +-- build-studio-client (parallel to full)
+    |       +-- build-studio (Full and Client; Full needs the server)
     |
     +-- build-web (parallel)
     |
@@ -197,21 +197,16 @@ validate-tag-on-main
   (Actions > CI > Run workflow on main) and re-run the release workflow.
 
 **Artifact Naming**:
-- `Sigilweaver-Loom-{VERSION}-x64.AppImage`
-- `Sigilweaver-Loom-{VERSION}-x64.snap`
+- `Sigilweaver-Loom-{VERSION}-x64.AppImage`, `.deb` and `.rpm`
 - `Sigilweaver-Loom-Setup-{VERSION}.exe`
-- `Sigilweaver-Loom-Portable-{VERSION}.exe`
-- `Sigilweaver-Loom-{VERSION}.dmg`
-- `Sigilweaver-Loom-Client-{VERSION}-x64.AppImage`
-- `Sigilweaver-Loom-Client-{VERSION}-x64.snap`
-- `Sigilweaver-Loom-Client-Setup-{VERSION}.exe`
-- `Sigilweaver-Loom-Client-Portable-{VERSION}.exe`
-- `Sigilweaver-Loom-Client-{VERSION}.dmg`
+- `Sigilweaver-Loom-{VERSION}-arm64.dmg` and `-x64.dmg`
+- The same six with `Sigilweaver-Loom-Client-` in place of `Sigilweaver-Loom-`
 - `Sigilweaver-Loom-Web-{VERSION}.zip`
 - `SHA256SUMS.txt`
 
-Missing expected assets are reported as warnings and in the run summary but do
-not fail the run (snap builds can be flaky); check the draft before publishing.
+Each installer is staged by name and the run fails if one is missing (or
+matches more than one file), so a draft release is never created with a
+platform missing.
 
 **Publishing**:
 - Creates the GitHub Release as a **draft** with all artifacts and generated
@@ -219,12 +214,10 @@ not fail the run (snap builds can be flaky); check the draft before publishing.
 - Tags with a `-` suffix are marked as **pre-release** automatically.
 - Publishing the draft in the GitHub UI is what triggers `mirror-release.yml`
   and `docker-build.yml` (see below).
-- The Tauri build (`build-studio-tauri.yml`) is not part of the release yet
-  (see Loom#107).
 
 ---
 
-#### 8. mirror-release.yml - R2 Mirror
+#### 7. mirror-release.yml - R2 Mirror
 **Trigger**: A release is published (draft -> published), or manual
 `workflow_dispatch` with a `tag` input to re-mirror an existing release.
 
@@ -243,7 +236,7 @@ download, is not touched and its `latest` pointer never moves to a pre-release.
 
 ---
 
-#### 9. docker-build.yml - Container Images
+#### 8. docker-build.yml - Container Images
 **Trigger**: A release is published, or manual `workflow_dispatch` with a
 `version` (and optional `tag_latest`) input.
 
@@ -256,7 +249,7 @@ pushes only its exact version tag. Manual dispatch pushes `latest` only when
 
 ---
 
-#### 10. audit.yml - Dependency Audit
+#### 9. audit.yml - Dependency Audit
 **Trigger**: Pushes and PRs that touch a lockfile or manifest, a weekly
 schedule (Mondays 06:00 UTC), and manual dispatch.
 
@@ -266,22 +259,10 @@ studio) and `cargo audit` (studio/tauri).
 **Policy**: fix advisories with an in-range lockfile bump or an `overrides`
 entry in `package.json`. An `--ignore` is only acceptable when no fixed
 release exists, and it needs a comment in the workflow saying why and when it
-can be removed. No advisory IDs are currently ignored. Electron now uses
-`@electron-internal/extract-zip`, so Studio's former extract-zip exceptions
-were removed (Loom#148). JavaScript audit jobs enforce high/critical severity;
+can be removed. No advisory IDs are currently ignored. JavaScript audit jobs enforce high/critical severity;
 run `bun audit` locally to inspect findings at every severity.
 
 ---
-
-#### 11. build-studio-tauri.yml - Tauri Build (Reusable, not yet released)
-**Trigger**: `workflow_dispatch` or `workflow_call`
-
-**Purpose**: Build the Tauri desktop app (Linux, Windows, macOS arm64).
-
-Not called by `release.yml`: it has no bundled-server ("full") variant, no
-macOS x64 build, produces artifacts that `release.yml` and the R2 asset
-detection do not name or list, and has never run as part of a release. Tracked
-in Loom#107.
 
 ---
 
@@ -295,11 +276,9 @@ Each reusable workflow has `workflow_dispatch` enabled for manual testing:
 # Test server builds
 gh workflow run build-server.yml
 
-# Test full studio builds
-gh workflow run build-studio-full.yml
-
-# Test client studio builds
-gh workflow run build-studio-client.yml
+# Test studio installers (Full needs server artifacts from the same run, so
+# run build-server first or use variant=client)
+gh workflow run build-studio-tauri.yml -f variant=client
 
 # Test web build
 gh workflow run build-web.yml
@@ -355,7 +334,6 @@ gh release delete v0.0.1-test --yes
 **GITHUB_TOKEN**:
 - Automatically provided by GitHub Actions
 - Used to create the release, push images to ghcr.io and query CI runs
-- The Electron build workflows also pass it to electron-builder as `GH_TOKEN`
 
 **R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT_URL, R2_CDN_URL**:
 - Repository secrets used by `mirror-release.yml`
@@ -387,15 +365,10 @@ workflow files for the exact pins. In use:
 **Purpose**: Pass build outputs between jobs
 
 **Artifacts**:
-- `server-linux` (61MB)
-- `server-windows` (70MB)
-- `server-macos` (65MB)
-- `linux-full-artifacts` (~150-200MB)
-- `windows-full-artifacts` (~150-200MB)
-- `macos-full-artifacts` (~150-200MB)
-- `linux-client-artifacts` (~100MB)
-- `windows-client-artifacts` (~100MB)
-- `macos-client-artifacts` (~100MB)
+- `server-linux`, `server-win`, `server-mac-arm64`, `server-mac-x64`
+  (one PyInstaller executable each)
+- `studio-full-{linux-x64,windows-x64,macos-arm64,macos-x64}`
+- `studio-client-{linux-x64,windows-x64,macos-arm64,macos-x64}`
 - `web-dist-zip` (~5MB)
 
 ### Release Assets (Permanent)
@@ -415,7 +388,7 @@ workflow files for the exact pins. In use:
 **1. Build fails on specific platform**:
 - Check platform-specific job logs
 - Reproduce locally with `./scripts/build.py` (see `scripts/README.md`)
-- Verify electron-builder config for that platform
+- Check the `tauri build` output in the Build Studio step
 
 **2. Server artifact not found**:
 - Ensure build-server.yml completed successfully
@@ -428,15 +401,18 @@ workflow files for the exact pins. In use:
 - Check the tagged commit has a passing CI run; see the CI gate notes above
 - Review validate-tag-on-main job output
 
-**4. Snap build fails**:
-- Snapcraft may need classic confinement for full version
-- Check electron-builder-full.json has `confinement: classic`
-- Client version uses strict confinement
+**4. Sidecar not found**:
+- A Full build needs `studio/tauri/binaries/loom-server-<target-triple>`.
+  `scripts/build.py --studio-only` stages it from `server/dist/`
+- Check the server artifact was downloaded to `server/dist/`
 
-**5. Windows build missing exe**:
-- Verify bun run build:win:{variant} creates dist/ directory
-- Check electron-builder config has correct targets (nsis, portable)
-- Review Windows runner logs for electron-builder errors
+**5. Smoke test fails**:
+- The log shows the app's own output. Look for the `[Backend]` lines
+- "port 25811 is already in use" means a previous run left a server behind
+
+**6. Windows installer missing**:
+- Check the Build Studio step produced `bundle/nsis/*-setup.exe`
+- Review the signing step if `sign` was set
 
 ### Debug Mode
 
@@ -457,8 +433,6 @@ env:
 bun is installed via `oven-sh/setup-bun@v2` (latest by default). To pin a
 specific version, add `bun-version:` to the setup-bun step in these files:
 - `.github/workflows/ci.yml`
-- `.github/workflows/build-studio-full.yml`
-- `.github/workflows/build-studio-client.yml`
 - `.github/workflows/build-studio-tauri.yml`
 - `.github/workflows/build-web.yml`
 
@@ -470,10 +444,9 @@ Also update the base images in `server/Dockerfile` and `hub/Dockerfile`, and
 
 ### Adding New Platforms
 
-1. Add to matrix in build-studio-*.yml
-2. Update studio/package.json with new build script
-3. Add platform-specific config to electron-builder-*.json
-4. Update the asset preparation and validation steps in release.yml, and the
+1. Add to the matrix in build-server.yml and build-studio-tauri.yml
+2. Add the bundle target to `bundle.targets` in studio/tauri/tauri.conf.json
+3. Update the asset preparation and validation steps in release.yml, and the
    asset detection in `.github/scripts/lib/asset_detector.py`
 
 ---
@@ -488,9 +461,9 @@ Also update the base images in `server/Dockerfile` and `hub/Dockerfile`, and
 - Docker build check and Tauri check run in parallel
 
 **Release Build**:
-- Server builds (3 platforms): ~5-7 minutes (parallel)
-- Studio full builds (3 platforms): ~15-20 minutes (parallel after server)
-- Studio client builds (3 platforms): ~10-15 minutes (parallel)
+- Server builds (4 targets): ~5-7 minutes (parallel)
+- Studio builds (Full and Client, 4 targets each): parallel; Full waits for
+  the server
 - Web build: ~2-3 minutes (parallel)
 - Publish: ~1-2 minutes
 - **Total: ~25-30 minutes**

@@ -15,8 +15,13 @@ jobs:
           - os: windows-latest
             artifact-name: server-win
             executable-name: server.exe
+          # PyInstaller builds for the CPU it runs on, so each macOS
+          # architecture gets its own runner and its own server binary.
           - os: macos-latest
-            artifact-name: server-mac
+            artifact-name: server-mac-arm64
+            executable-name: server
+          - os: macos-15-intel
+            artifact-name: server-mac-x64
             executable-name: server
 
     runs-on: ${{ matrix.os }}
@@ -45,11 +50,30 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: python3 .github/scripts/set-version.py
 
+      # cryptography publishes no macOS Intel wheel, so uv builds it from source
+      # there and links the runner's libssl dynamically; PyInstaller then bundles
+      # a different libssl and the server fails to import it. Build it with
+      # OpenSSL linked statically instead.
+      - name: Build cryptography with static OpenSSL (macOS Intel)
+        if: matrix.os == 'macos-15-intel'
+        working-directory: server
+        shell: bash
+        run: |
+          version="$(uv pip show cryptography | awk '/^Version:/ {print $2}')"
+          OPENSSL_STATIC=1 OPENSSL_DIR="$(brew --prefix openssl@3)" \
+            uv pip install --reinstall --no-cache --no-binary cryptography --no-deps "cryptography==${version}"
+          so="$(find .venv -name '_rust.abi3.so' -path '*cryptography*' | head -n 1)"
+          otool -L "$so"
+          if otool -L "$so" | grep -Eq 'libssl|libcrypto'; then
+            echo "::error::cryptography still links libssl or libcrypto dynamically"
+            exit 1
+          fi
+
       - name: Build server executable
         working-directory: server
         shell: bash
         run: |
-          uv run pyinstaller sigilweaver.spec
+          uv run --no-sync pyinstaller sigilweaver.spec
 
       - name: Verify executable exists
         working-directory: server
@@ -62,6 +86,14 @@ jobs:
             echo "ERROR: Server executable not found"
             exit 1
           fi
+
+      # Informational: the oldest macOS the server runs on. It should not exceed
+      # bundle.macOS.minimumSystemVersion in studio/tauri/tauri.conf.json.
+      - name: Report the server's minimum macOS version
+        if: runner.os == 'macOS'
+        working-directory: server
+        shell: bash
+        run: otool -l dist/server | grep -E -A3 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX' | grep -E 'minos|version' | head -n 4
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v7

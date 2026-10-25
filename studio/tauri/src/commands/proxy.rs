@@ -14,8 +14,8 @@
 //! (the same approach as the readiness probe in `backend.rs`), which avoids an
 //! HTTP-client dependency. It only ever talks plain HTTP to `127.0.0.1`.
 //!
-//! This mirrors `electron/backendProxy.ts` and `src/platform/connectionUri.ts`;
-//! keep the three in step.
+//! The reference format mirrors `src/platform/connectionUri.ts`; keep the two
+//! in step.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -881,10 +881,10 @@ mod tests {
 
     #[tokio::test]
     async fn reports_connection_failures() {
-        // Bind then drop to obtain a port nothing listens on.
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap().to_string();
-        drop(listener);
+        // Port 1 (tcpmux) has no listener on any desktop OS. A port that was
+        // bound and released is not safe here: other tests bind ephemeral
+        // ports in parallel and can be handed the same one.
+        let addr = "127.0.0.1:1".to_string();
         let request = ProxyRequest {
             url: String::new(),
             method: None,

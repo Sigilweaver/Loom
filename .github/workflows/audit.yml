@@ -85,8 +85,6 @@ jobs:
       # studio/package.json (nanoid, fast-uri, js-yaml, @xmldom/xmldom) and by
       # keeping the minimatch/brace-expansion entries in bun.lock on patched
       # releases. Do not add an --ignore for anything that has a fix.
-      # Electron now uses @electron-internal/extract-zip, so the old extract-zip
-      # advisory exceptions are no longer needed (Sigilweaver/Loom#148).
       - run: cd studio && bun audit --audit-level=high
 
   cargo-audit:

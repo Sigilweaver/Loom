@@ -100,16 +100,13 @@ jobs:
     uses: ./.github/workflows/build-server.yml
     secrets: inherit
 
-  build-studio-full:
+  build-studio:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: [validate-tag-on-main, build-server]
-    uses: ./.github/workflows/build-studio-full.yml
-    secrets: inherit
-
-  build-studio-client:
-    if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
-    needs: validate-tag-on-main
-    uses: ./.github/workflows/build-studio-client.yml
+    uses: ./.github/workflows/build-studio-tauri.yml
+    with:
+      variant: both
+      sign: true
     secrets: inherit
 
   build-web:
@@ -124,8 +121,7 @@ jobs:
     needs:
       - validate-tag-on-main
       - build-server
-      - build-studio-full
-      - build-studio-client
+      - build-studio
       - build-web
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     permissions:
@@ -147,33 +143,42 @@ jobs:
           
           VERSION="${GITHUB_REF_NAME}"
           
-          # Linux Full
-          find artifacts/linux-full-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}-x64.AppImage \; || true
-          find artifacts/linux-full-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}-x64.snap \; || true
-          
-          # Linux Client
-          find artifacts/linux-client-artifacts -name "*.AppImage" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}-x64.AppImage \; || true
-          find artifacts/linux-client-artifacts -name "*.snap" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}-x64.snap \; || true
-          
-          # Windows Full
-          find artifacts/windows-full-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Setup-${VERSION}.exe \; || true
-          find artifacts/windows-full-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Portable-${VERSION}.exe \; || true
-          
-          # Windows Client
-          find artifacts/windows-client-artifacts -name "*Setup*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Client-Setup-${VERSION}.exe \; || true
-          find artifacts/windows-client-artifacts -name "*Portable*.exe" -exec cp {} release-assets/Sigilweaver-Loom-Client-Portable-${VERSION}.exe \; || true
-          
-          # macOS Full
-          find artifacts/macos-full-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Loom-${VERSION}.dmg \; || true
-          
-          # macOS Client
-          find artifacts/macos-client-artifacts -name "*.dmg" -exec cp {} release-assets/Sigilweaver-Loom-Client-${VERSION}.dmg \; || true
-          
+          problems=0
+          stage() {
+            # stage <artifact dir> <file glob> <release asset name>
+            # Exactly one file must match: none means a build produced nothing,
+            # several means the pick would be arbitrary.
+            local matches count
+            matches="$(find "artifacts/$1" -name "$2" 2>/dev/null)"
+            count="$(printf '%s' "$matches" | grep -c . || true)"
+            if [ "$count" -ne 1 ]; then
+              echo "::error::Expected exactly one '$2' in artifacts/$1 for $3, found $count"
+              problems=$((problems + 1))
+              return
+            fi
+            cp "$matches" "release-assets/$3"
+          }
+
+          for variant in full client; do
+            if [ "$variant" = "client" ]; then name="Sigilweaver-Loom-Client"; else name="Sigilweaver-Loom"; fi
+            stage "studio-$variant-linux-x64"   "*.AppImage" "$name-${VERSION}-x64.AppImage"
+            stage "studio-$variant-linux-x64"   "*.deb"      "$name-${VERSION}-x64.deb"
+            stage "studio-$variant-linux-x64"   "*.rpm"      "$name-${VERSION}-x64.rpm"
+            stage "studio-$variant-windows-x64" "*-setup.exe" "$name-Setup-${VERSION}.exe"
+            stage "studio-$variant-macos-arm64" "*.dmg"      "$name-${VERSION}-arm64.dmg"
+            stage "studio-$variant-macos-x64"   "*.dmg"      "$name-${VERSION}-x64.dmg"
+          done
+
           # Web
           cp artifacts/web-dist-zip/dist-web.zip release-assets/Sigilweaver-Loom-Web-${VERSION}.zip || true
           
           echo "Prepared release assets:"
           ls -lh release-assets/ || true
+
+          if [ "$problems" -ne 0 ]; then
+            echo "::error::$problems installer(s) could not be staged"
+            exit 1
+          fi
 
       - name: Compute SHA256 checksums
         shell: bash
@@ -193,15 +198,17 @@ jobs:
           # Check expected files exist
           expected=(
             "Sigilweaver-Loom-${VERSION}-x64.AppImage"
-            "Sigilweaver-Loom-${VERSION}-x64.snap"
+            "Sigilweaver-Loom-${VERSION}-x64.deb"
+            "Sigilweaver-Loom-${VERSION}-x64.rpm"
             "Sigilweaver-Loom-Setup-${VERSION}.exe"
-            "Sigilweaver-Loom-Portable-${VERSION}.exe"
-            "Sigilweaver-Loom-${VERSION}.dmg"
+            "Sigilweaver-Loom-${VERSION}-arm64.dmg"
+            "Sigilweaver-Loom-${VERSION}-x64.dmg"
             "Sigilweaver-Loom-Client-${VERSION}-x64.AppImage"
-            "Sigilweaver-Loom-Client-${VERSION}-x64.snap"
+            "Sigilweaver-Loom-Client-${VERSION}-x64.deb"
+            "Sigilweaver-Loom-Client-${VERSION}-x64.rpm"
             "Sigilweaver-Loom-Client-Setup-${VERSION}.exe"
-            "Sigilweaver-Loom-Client-Portable-${VERSION}.exe"
-            "Sigilweaver-Loom-Client-${VERSION}.dmg"
+            "Sigilweaver-Loom-Client-${VERSION}-arm64.dmg"
+            "Sigilweaver-Loom-Client-${VERSION}-x64.dmg"
             "Sigilweaver-Loom-Web-${VERSION}.zip"
             "SHA256SUMS.txt"
           )
@@ -221,7 +228,7 @@ jobs:
             if [ ${#missing[@]} -eq 0 ]; then
               echo "All expected assets are present."
             else
-              echo "**Missing expected assets** (snap builds can be flaky; review before publishing):"
+              echo "**Missing expected assets** (the release is not created):"
               for asset in "${missing[@]}"; do
                 echo "- ${asset}"
               done
@@ -232,7 +239,8 @@ jobs:
             echo ""
             echo "Available files:"
             ls -lh release-assets/
-            echo "Continuing: the release is a draft, so a maintainer reviews the assets before publishing."
+            echo "::error::${#missing[@]} expected asset(s) are missing; not creating the release"
+            exit 1
           else
             echo "SUCCESS: All expected assets present!"
           fi

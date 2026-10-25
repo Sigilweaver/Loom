@@ -29,7 +29,7 @@ describe('connectionResolver', () => {
     vi.clearAllMocks();
     
     // Default to desktop mode with secure storage
-    mockPlatform.name = 'electron';
+    mockPlatform.name = 'tauri';
     mockPlatformCapabilities.secureStorage = true;
     mockPlatformCapabilities.nativeDialogs = true;
   });
@@ -463,7 +463,7 @@ describe('connectionResolver', () => {
 
       const result = await resolveWorkflowConnections(workflow);
 
-      // Should NOT call Electron API for server connections
+      // Should NOT call the platform credential API for server connections
       expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
       
       const tool0 = result.tools[0];

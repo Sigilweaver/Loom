@@ -12,50 +12,32 @@ class TestDetectAssetType:
         assert result['id'] == 'windowsSetup'
         assert result['kind'] == 'installer'
 
-    def test_windows_portable(self):
-        result = detect_asset_type('Sigilweaver-Loom-Portable-v0.2.5.exe')
-        assert result['os'] == 'windows'
-        assert result['id'] == 'windowsPortable'
-        assert result['kind'] == 'installer'
-
     def test_linux_appimage(self):
         result = detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.AppImage')
         assert result['os'] == 'linux'
         assert result['id'] == 'linuxAppImage'
         assert result['kind'] == 'image'
 
-    def test_linux_snap(self):
-        result = detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.snap')
-        assert result['os'] == 'linux'
-        assert result['id'] == 'linuxSnap'
+    def test_macos_dmg_arm64(self):
+        result = detect_asset_type('Sigilweaver-Loom-v0.2.5-arm64.dmg')
+        assert result['os'] == 'macos'
+        assert result['id'] == 'macDmgArm64'
         assert result['kind'] == 'image'
 
-    def test_macos_dmg(self):
-        result = detect_asset_type('Sigilweaver-Loom-v0.2.5.dmg')
+    def test_macos_dmg_x64(self):
+        result = detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.dmg')
         assert result['os'] == 'macos'
-        assert result['id'] == 'macDmg'
+        assert result['id'] == 'macDmgX64'
         assert result['kind'] == 'image'
-
-    def test_macos_app_tarball(self):
-        result = detect_asset_type('Sigilweaver-Loom-Tauri-v0.2.5-x64.app.tar.gz')
-        assert result['os'] == 'macos'
-        assert result['id'] == 'macAppTarGz'
-        assert result['kind'] == 'archive'
-
-    def test_windows_msi(self):
-        result = detect_asset_type('Sigilweaver-Loom-Tauri-Setup-v0.2.5.msi')
-        assert result['os'] == 'windows'
-        assert result['id'] == 'windowsMsi'
-        assert result['kind'] == 'installer'
 
     def test_linux_deb(self):
-        result = detect_asset_type('Sigilweaver-Loom-Tauri-v0.2.5-x64.deb')
+        result = detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.deb')
         assert result['os'] == 'linux'
         assert result['id'] == 'linuxDeb'
         assert result['kind'] == 'package'
 
     def test_linux_rpm(self):
-        result = detect_asset_type('Sigilweaver-Loom-Tauri-v0.2.5-x64.rpm')
+        result = detect_asset_type('Sigilweaver-Loom-v0.2.5-x64.rpm')
         assert result['os'] == 'linux'
         assert result['id'] == 'linuxRpm'
         assert result['kind'] == 'package'

@@ -21,14 +21,14 @@ export function useCanvasDrag({
   onCommitTransaction,
 }: UseCanvasDragParams) {
   const onNodeDragStart = useCallback(
-    (_e: React.MouseEvent, _n: Node) => {
+    (_e: MouseEvent | TouchEvent, _n: Node) => {
       onBeginTransaction();
     },
     [onBeginTransaction]
   );
 
   const onNodeDragStop = useCallback(
-    (_e: React.MouseEvent, _n: Node) => {
+    (_e: MouseEvent | TouchEvent, _n: Node) => {
       // Persist positions for all selected nodes (group move)
       const current = getNodes();
       current
