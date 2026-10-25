@@ -98,6 +98,20 @@ class TestJoinToolExecute:
         assert sorted(unmatched_right["id"].to_list()) == [5, 6]
 
     @pytest.mark.asyncio
+    async def test_join_outer_keeps_unmatched_rows(self, left_dataframe, right_dataframe):
+        """The "outer" join type is a full join and keeps unmatched rows from both sides."""
+        tool = JoinTool()
+        config = {"joinType": "outer", "leftKeys": ["id"], "rightKeys": ["id"]}
+        result = await tool.execute(
+            config, {"input-left": left_dataframe, "input-right": right_dataframe}
+        )
+
+        matched = result["output-match"].collect()
+        assert sorted(matched["id"].to_list()) == [1, 2, 3, 4, 5, 6]
+        assert result["output-left"].collect().is_empty()
+        assert result["output-right"].collect().is_empty()
+
+    @pytest.mark.asyncio
     async def test_join_all_match(self):
         """Test join where all rows match."""
         tool = JoinTool()
@@ -429,6 +443,17 @@ class TestJoinCodeGeneration:
         assert "output-left" in output_vars
         assert "output-match" in output_vars
         assert "output-right" in output_vars
+
+    def test_code_gen_outer_join_uses_full(self):
+        """Generated code spells the outer join type as Polars' "full"."""
+        tool = JoinTool()
+        config = {"joinType": "outer", "leftKeys": ["id"], "rightKeys": ["id"]}
+        lines, _ = tool.to_python_code(
+            "join1", config, {"input-left": "df_left", "input-right": "df_right"}
+        )
+        code = "\n".join(lines)
+        assert 'how="full"' in code
+        assert 'how="outer"' not in code
 
     def test_code_gen_no_inputs(self):
         """Test code generation with no inputs."""
