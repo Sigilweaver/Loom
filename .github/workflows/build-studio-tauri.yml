@@ -296,7 +296,12 @@ jobs:
               codesign -d --verbose=2 "$bin" 2>&1 | grep -E '^(Executable|Authority=Developer ID Application|TeamIdentifier|Runtime Version)'
               codesign -d --verbose=2 "$bin" 2>&1 | grep -q 'flags=.*runtime' || { echo "::error::$bin lacks the hardened runtime"; exit 1; }
             done
-            xcrun stapler validate "$app"
+            # stapler validate asks Apple's ticket service; retry network drops.
+            for i in 1 2 3 4 5; do
+              xcrun stapler validate "$app" && break
+              [ "$i" = 5 ] && { echo "::error::stapler validate failed 5 times"; exit 1; }
+              sleep 20
+            done
             spctl --assess --type execute --verbose=2 "$app"
           fi
           python scripts/smoke_desktop.py \
