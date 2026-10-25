@@ -48,7 +48,9 @@ pub(crate) const SIDECAR_CONFIG_ENTRY: &str = "binaries/loom-server";
 const SIDECAR_NAME: &str = "loom-server";
 
 /// How long to wait for the server to exit after a polite termination request
-/// before killing it outright.
+/// before killing it outright. (Windows has no polite request: `taskkill /F`
+/// is synchronous.)
+#[cfg(unix)]
 const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
 
 /// Readiness poll cadence: 30 attempts, 500ms apart (15s total).

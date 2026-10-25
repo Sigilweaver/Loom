@@ -59,9 +59,15 @@ def stop_app(proc: subprocess.Popen, how: str) -> None:
     if how == "kill":
         proc.kill()
     elif sys.platform == "win32":
-        # Closest to a graceful close for a console-less GUI process.
+        # Close the main window, as a user would. A GUI process has no console
+        # to receive a signal.
         subprocess.run(
-            ["taskkill", "/PID", str(proc.pid), "/T"],
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"(Get-Process -Id {proc.pid}).CloseMainWindow() | Out-Null",
+            ],
             capture_output=True,
             check=False,
         )
