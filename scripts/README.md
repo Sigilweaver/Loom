@@ -196,8 +196,7 @@ R2_SECRET_ACCESS_KEY=xxx
 ./scripts/build.py --client             # Client build (no bundled server)
 ./scripts/build.py --server-only        # Build server only
 ./scripts/build.py --studio-only        # Build studio only (assumes server already built)
-./scripts/build.py --no-bundle          # Compile only (e.g. to sign the exes first)
-./scripts/build.py --bundle-only        # Package already-compiled binaries
+./scripts/build.py --windows-sign       # Sign the Windows exes and installer (see sign-windows.ps1)
 ./scripts/build.py --clean              # Clean artifacts before building
 ```
 - Steps: build the server (PyInstaller), stage it as the Tauri sidecar, run `tauri build`

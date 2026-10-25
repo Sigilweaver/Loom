@@ -129,63 +129,24 @@ jobs:
         if: ${{ !(matrix.platform == 'win' && inputs.sign) }}
         run: python scripts/build.py --studio-only ${{ matrix.variant == 'client' && '--client' || '' }}
 
-      # Signed Windows builds: compile, sign the executables, package, then sign
-      # the installer, so the exes inside the installer are signed as well.
-      - name: Compile Studio (signed Windows build)
+      # Signed Windows builds: build.py signs the staged server sidecar and hands
+      # scripts/sign-windows.ps1 to Tauri as its sign command, so Tauri signs
+      # the app exe after its last patch, then the installer.
+      - name: Install the Artifact Signing module
         if: matrix.platform == 'win' && inputs.sign
-        run: python scripts/build.py --studio-only --no-bundle ${{ matrix.variant == 'client' && '--client' || '' }}
+        shell: pwsh
+        run: Install-Module -Name ArtifactSigning -RequiredVersion 0.1.8 -Force -Repository PSGallery -Scope CurrentUser
 
-      - name: Sign the app executable
+      - name: Build Studio (signed Windows build)
         if: matrix.platform == 'win' && inputs.sign
-        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
-          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-          files-folder: studio/tauri/target/${{ matrix.target }}/release
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Sign the bundled server
-        if: matrix.platform == 'win' && inputs.sign && matrix.variant == 'full'
-        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
-          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-          files-folder: studio/tauri/binaries
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Package Studio (signed Windows build)
-        if: matrix.platform == 'win' && inputs.sign
-        run: python scripts/build.py --studio-only --bundle-only ${{ matrix.variant == 'client' && '--client' || '' }}
-
-      - name: Sign Windows installer
-        if: matrix.platform == 'win' && inputs.sign
-        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
-          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-          files-folder: studio/tauri/target/${{ matrix.target }}/release/bundle/nsis
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_CODE_SIGNING_ENDPOINT: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
+          AZURE_CODE_SIGNING_ACCOUNT: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
+          AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+        run: python scripts/build.py --studio-only --windows-sign ${{ matrix.variant == 'client' && '--client' || '' }}
 
       - name: Verify Windows signatures
         if: matrix.platform == 'win' && inputs.sign

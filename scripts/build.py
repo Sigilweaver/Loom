@@ -15,8 +15,7 @@ Usage:
     ./scripts/build.py --client           # Client build (no bundled server)
     ./scripts/build.py --server-only      # Build server only
     ./scripts/build.py --studio-only      # Build studio only (assumes server exists)
-    ./scripts/build.py --no-bundle        # Compile only (sign the exes, then --bundle-only)
-    ./scripts/build.py --bundle-only      # Package already-compiled (and signed) binaries
+    ./scripts/build.py --windows-sign     # Sign the Windows exes and installer (sign-windows.ps1)
     ./scripts/build.py --clean            # Clean build artifacts before building
 """
 
@@ -300,13 +299,41 @@ def rpm_config(version: str) -> str:
     return json.dumps({"version": base, "bundle": {"linux": {"rpm": {"release": release}}}})
 
 
+def windows_sign_config(repo_root: Path) -> str:
+    """Config override that makes Tauri sign each Windows binary and installer.
+
+    Tauri runs the sign command after its last change to the app exe, so the
+    signature survives bundling. Signing the exe before `tauri bundle` does not:
+    bundling patches the exe and the signature no longer matches.
+    """
+    script = repo_root / "scripts" / "sign-windows.ps1"
+    args = ["-NoProfile", "-NonInteractive", "-File", str(script), "%1"]
+    command = {"cmd": "pwsh", "args": args}
+    return json.dumps({"bundle": {"windows": {"signCommand": command}}})
+
+
+def sign_windows_file(repo_root: Path, path: Path) -> BuildResult:
+    """Sign one file with scripts/sign-windows.ps1."""
+    print_header(f"Signing {path.name}")
+    start_time = time.time()
+    script = repo_root / "scripts" / "sign-windows.ps1"
+    result = subprocess.run(
+        ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script), str(path)]
+    )
+    return BuildResult(
+        name=f"Sign {path.name}",
+        success=result.returncode == 0,
+        duration=time.time() - start_time,
+        error=None if result.returncode == 0 else f"signing {path} failed",
+    )
+
+
 def build_studio_tauri(
     repo_root: Path,
     triple: str,
     *,
     client: bool,
-    no_bundle: bool = False,
-    bundle_only: bool = False,
+    windows_sign: bool = False,
 ) -> BuildResult:
     """Build the studio + Tauri application.
 
@@ -336,15 +363,13 @@ def build_studio_tauri(
     # "-". On Linux such a build compiles first, then packages deb and AppImage
     # with the real version and the rpm with the pre-release moved into the
     # release field (1.0.0-0.rc.1), which sorts before the final 1.0.0-1.
-    calls: list[tuple[str, list[str]]] = []
-    if not bundle_only:
-        calls.append((f"build:{suffix}", ["--no-bundle"] if (no_bundle or split_rpm) else []))
-    if bundle_only or (split_rpm and not no_bundle):
-        if split_rpm:
-            calls.append((f"bundle:{suffix}", ["--bundles", "deb", "appimage"]))
-            calls.append((f"bundle:{suffix}", ["--bundles", "rpm", "-c", rpm_config(version)]))
-        else:
-            calls.append((f"bundle:{suffix}", []))
+    sign_args = ["-c", windows_sign_config(repo_root)] if windows_sign else []
+    calls: list[tuple[str, list[str]]] = [
+        (f"build:{suffix}", (["--no-bundle"] if split_rpm else []) + sign_args)
+    ]
+    if split_rpm:
+        calls.append((f"bundle:{suffix}", ["--bundles", "deb", "appimage"]))
+        calls.append((f"bundle:{suffix}", ["--bundles", "rpm", "-c", rpm_config(version)]))
     start_time = time.time()
 
     try:
@@ -438,14 +463,9 @@ def main() -> int:
         help="Build the Client variant (no bundled server)",
     )
     parser.add_argument(
-        "--no-bundle",
+        "--windows-sign",
         action="store_true",
-        help="Compile the app but do not package installers (e.g. to sign the exes first)",
-    )
-    parser.add_argument(
-        "--bundle-only",
-        action="store_true",
-        help="Package installers from binaries that are already compiled (and signed)",
+        help="Sign the server sidecar, app exe and installer (Windows; see sign-windows.ps1)",
     )
     parser.add_argument(
         "--clean", action="store_true", help="Clean build artifacts before building"
@@ -456,8 +476,8 @@ def main() -> int:
     triple = get_host_target_triple()
     platform = platform_of_triple(triple)
 
-    if args.no_bundle and args.bundle_only:
-        parser.error("--no-bundle and --bundle-only are mutually exclusive")
+    if args.windows_sign and platform != "win":
+        parser.error("--windows-sign only works on a Windows build")
 
     # A Client build bundles no server, so it skips the server build and the
     # sidecar staging entirely.
@@ -470,10 +490,6 @@ def main() -> int:
         stage_server_step = False
     elif args.studio_only:
         build_server_step = False
-    if args.bundle_only:
-        # Never rebuild or restage: that would replace signed binaries.
-        build_server_step = False
-        stage_server_step = False
 
     if not (build_server_step or stage_server_step or build_studio_step):
         parser.error(
@@ -506,6 +522,13 @@ def main() -> int:
         if not result.success:
             print_summary(results)
             return 1
+        if args.windows_sign:
+            sidecar = repo_root / "studio" / "tauri" / "binaries" / f"loom-server-{triple}.exe"
+            result = sign_windows_file(repo_root, sidecar)
+            results.append(result)
+            if not result.success:
+                print_summary(results)
+                return 1
 
     if build_studio_step:
         results.append(
@@ -513,8 +536,7 @@ def main() -> int:
                 repo_root,
                 triple,
                 client=args.client,
-                no_bundle=args.no_bundle,
-                bundle_only=args.bundle_only,
+                windows_sign=args.windows_sign,
             )
         )
 
