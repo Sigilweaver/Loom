@@ -12,6 +12,15 @@ from typing import Any, Literal
 import polars as pl
 
 
+def _polars_join_how(join_type: str) -> Literal["inner", "left", "right", "full"]:
+    """Map a tool join type to a Polars `how` ("outer" is spelled "full" in Polars 2)."""
+    if join_type == "outer":
+        return "full"
+    if join_type in ("inner", "left", "right"):
+        return join_type  # type: ignore[return-value]
+    return "inner"
+
+
 class ExprNode(ABC):
     """Base class for expression AST nodes."""
 
@@ -520,11 +529,8 @@ class JoinOperation:
             return empty, matched, empty
 
         # Use the configured join type for the matched output
-        how: Literal["inner", "left", "right", "full", "semi", "anti", "cross", "outer"] = (
-            self.join_type  # type: ignore[assignment]
-            if self.join_type in ("inner", "left", "right", "outer")
-            else "inner"
-        )
+        # The tool config keeps "outer" for saved workflows; Polars 2 calls it "full".
+        how = _polars_join_how(self.join_type)
 
         matched = left_lf.join(
             right_lf,
@@ -537,7 +543,7 @@ class JoinOperation:
 
         # Anti-join for unmatched rows
         # For left/outer joins, unmatched_left is empty (already included in matched)
-        if how in ("left", "outer"):
+        if how in ("left", "full"):
             unmatched_left = empty
         else:
             unmatched_left = left_lf.join(
@@ -548,7 +554,7 @@ class JoinOperation:
             )
 
         # For right/outer joins, unmatched_right is empty (already included in matched)
-        if how in ("right", "outer"):
+        if how in ("right", "full"):
             unmatched_right = empty
         else:
             unmatched_right = right_lf.join(
@@ -597,9 +603,7 @@ class JoinOperation:
         else:
             left_keys_str = repr(self.left_keys)
             right_keys_str = repr(self.right_keys)
-            how = (
-                self.join_type if self.join_type in ("inner", "left", "right", "outer") else "inner"
-            )
+            how = _polars_join_how(self.join_type)
 
             lines.append(f"# Join: {how} join for matches")
             lines.append(
@@ -612,7 +616,7 @@ class JoinOperation:
                 f"coalesce=True)"
             )
 
-            if how in ("left", "outer"):
+            if how in ("left", "full"):
                 lines.append(
                     f"{left_out_var} = pl.LazyFrame([])  # unmatched left already in {how} join"
                 )
@@ -627,7 +631,7 @@ class JoinOperation:
                     f'how="anti")'
                 )
 
-            if how in ("right", "outer"):
+            if how in ("right", "full"):
                 lines.append(
                     f"{right_out_var} = pl.LazyFrame([])  # unmatched right already in {how} join"
                 )
