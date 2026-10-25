@@ -449,8 +449,8 @@ Also update the base images in `server/Dockerfile` and `hub/Dockerfile`, and
 
 **Release Build**:
 - Server builds (4 targets): ~5-7 minutes (parallel)
-- Studio builds (Full and Client, 4 targets each): about 15-25 minutes
-  (parallel; Full waits for the server)
+- Studio builds (Full and Client, 4 targets each): parallel; Full waits for
+  the server
 - Web build: ~2-3 minutes (parallel)
 - Publish: ~1-2 minutes
 - **Total: ~25-30 minutes**
