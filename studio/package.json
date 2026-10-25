@@ -49,7 +49,9 @@
     "test:ui": "vitest --ui",
     "verify": "bun run --silent type-check && bun run --silent test && bun run --silent lint",
     "verify:quick": "bun run --silent type-check && bun run --silent test",
-    "build:tauri:full": "tauri build --features bundled-server -c tauri/tauri.conf.full.json"
+    "build:tauri:full": "tauri build --features bundled-server -c tauri/tauri.conf.full.json",
+    "bundle:tauri": "tauri bundle",
+    "bundle:tauri:full": "tauri bundle --features bundled-server -c tauri/tauri.conf.full.json"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.88",

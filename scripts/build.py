@@ -15,10 +15,14 @@ Usage:
     ./scripts/build.py --client           # Client build (no bundled server)
     ./scripts/build.py --server-only      # Build server only
     ./scripts/build.py --studio-only      # Build studio only (assumes server exists)
+    ./scripts/build.py --no-bundle        # Compile only (sign the exes, then --bundle-only)
+    ./scripts/build.py --bundle-only      # Package already-compiled (and signed) binaries
     ./scripts/build.py --clean            # Clean build artifacts before building
 """
 
 import argparse
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -283,7 +287,27 @@ def build_server(repo_root: Path, platform: str) -> BuildResult:
         )
 
 
-def build_studio_tauri(repo_root: Path, triple: str, *, client: bool) -> BuildResult:
+def tauri_conf_version(repo_root: Path) -> str:
+    """The app version from tauri.conf.json (set from the tag in CI)."""
+    conf = json.loads((repo_root / "studio" / "tauri" / "tauri.conf.json").read_text())
+    return str(conf["version"])
+
+
+def rpm_config(version: str) -> str:
+    """Config override that makes a pre-release version valid for rpm."""
+    base, pre = version.split("-", 1)
+    release = "0." + re.sub(r"[^A-Za-z0-9._+]", ".", pre)
+    return json.dumps({"version": base, "bundle": {"linux": {"rpm": {"release": release}}}})
+
+
+def build_studio_tauri(
+    repo_root: Path,
+    triple: str,
+    *,
+    client: bool,
+    no_bundle: bool = False,
+    bundle_only: bool = False,
+) -> BuildResult:
     """Build the studio + Tauri application.
 
     A Full build (`client=False`) bundles the staged server sidecar via the
@@ -303,25 +327,42 @@ def build_studio_tauri(repo_root: Path, triple: str, *, client: bool) -> BuildRe
             error="node_modules not found. Run: cd studio && bun install",
         )
 
-    script = "build:tauri" if client else "build:tauri:full"
+    suffix = "tauri" if client else "tauri:full"
+    version = tauri_conf_version(repo_root)
+    split_rpm = platform_of_triple(triple) == "linux" and "-" in version
+
+    # (script, extra args) in order. A pre-release version (v1.0.0-rc.1) is
+    # valid for every installer except rpm, whose version field cannot contain
+    # "-". On Linux such a build compiles first, then packages deb and AppImage
+    # with the real version and the rpm with the pre-release moved into the
+    # release field (1.0.0-0.rc.1), which sorts before the final 1.0.0-1.
+    calls: list[tuple[str, list[str]]] = []
+    if not bundle_only:
+        calls.append((f"build:{suffix}", ["--no-bundle"] if (no_bundle or split_rpm) else []))
+    if bundle_only or (split_rpm and not no_bundle):
+        if split_rpm:
+            calls.append((f"bundle:{suffix}", ["--bundles", "deb", "appimage"]))
+            calls.append((f"bundle:{suffix}", ["--bundles", "rpm", "-c", rpm_config(version)]))
+        else:
+            calls.append((f"bundle:{suffix}", []))
     start_time = time.time()
 
     try:
-        print(f"Running bun run {script} --target {triple}...")
-        result = subprocess.run(
-            ["bun", "run", script, "--target", triple],
-            cwd=studio_dir,
-            capture_output=False,
-        )
-        duration = time.time() - start_time
-
-        if result.returncode != 0:
-            return BuildResult(
-                name="Studio",
-                success=False,
-                duration=duration,
-                error="Studio build failed",
+        for script, extra in calls:
+            print(f"Running bun run {script} --target {triple} {' '.join(extra)}...")
+            result = subprocess.run(
+                ["bun", "run", script, "--target", triple, *extra],
+                cwd=studio_dir,
+                capture_output=False,
             )
+            if result.returncode != 0:
+                return BuildResult(
+                    name="Studio",
+                    success=False,
+                    duration=time.time() - start_time,
+                    error=f"Studio build failed ({script})",
+                )
+        duration = time.time() - start_time
 
         bundle_dir = repo_root / "studio" / "tauri" / "target" / triple / "release" / "bundle"
         if bundle_dir.exists():
@@ -389,6 +430,16 @@ def main() -> int:
         help="Build the Client variant (no bundled server)",
     )
     parser.add_argument(
+        "--no-bundle",
+        action="store_true",
+        help="Compile the app but do not package installers (e.g. to sign the exes first)",
+    )
+    parser.add_argument(
+        "--bundle-only",
+        action="store_true",
+        help="Package installers from binaries that are already compiled (and signed)",
+    )
+    parser.add_argument(
         "--clean", action="store_true", help="Clean build artifacts before building"
     )
 
@@ -396,6 +447,9 @@ def main() -> int:
 
     triple = get_host_target_triple()
     platform = platform_of_triple(triple)
+
+    if args.no_bundle and args.bundle_only:
+        parser.error("--no-bundle and --bundle-only are mutually exclusive")
 
     # A Client build bundles no server, so it skips the server build and the
     # sidecar staging entirely.
@@ -408,6 +462,10 @@ def main() -> int:
         stage_server_step = False
     elif args.studio_only:
         build_server_step = False
+    if args.bundle_only:
+        # Never rebuild or restage: that would replace signed binaries.
+        build_server_step = False
+        stage_server_step = False
 
     if not (build_server_step or stage_server_step or build_studio_step):
         parser.error(
@@ -442,7 +500,15 @@ def main() -> int:
             return 1
 
     if build_studio_step:
-        results.append(build_studio_tauri(repo_root, triple, client=args.client))
+        results.append(
+            build_studio_tauri(
+                repo_root,
+                triple,
+                client=args.client,
+                no_bundle=args.no_bundle,
+                bundle_only=args.bundle_only,
+            )
+        )
 
     print_summary(results)
     return 0 if all(r.success for r in results) else 1

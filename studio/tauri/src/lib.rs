@@ -8,10 +8,14 @@
 //! - Backend process management
 
 mod commands;
+mod navigation;
 
 use commands::{backend, credentials, files, proxy, settings};
+use navigation::{classify, UrlAction};
+use tauri::webview::{NewWindowResponse, PermissionResponse, WebviewWindowBuilder};
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+use tauri_plugin_opener::OpenerExt;
 
 /// Refuse to run if the `bundled-server` Cargo feature and the compiled
 /// config's `externalBin` disagree about whether a server sidecar exists.
@@ -83,17 +87,98 @@ fn exit_on_termination_signal(handle: tauri::AppHandle) {
     });
 }
 
+/// Bring the main window to the front (a second launch, or a restore).
+fn focus_main_window(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    for (what, result) in [
+        ("unminimize", window.unminimize()),
+        ("show", window.show()),
+        ("focus", window.set_focus()),
+    ] {
+        if let Err(e) = result {
+            eprintln!("[Main] Could not {what} the main window: {e}");
+        }
+    }
+}
+
+/// Create the main window from its config entry (`create: false` in
+/// tauri.conf.json), with the navigation and permission policy attached.
+fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == "main")
+        .ok_or("tauri.conf.json has no \"main\" window")?;
+
+    let nav_handle = app.handle().clone();
+    let new_window_handle = app.handle().clone();
+    let title = format!("Sigilweaver Loom - Version {}", app.package_info().version);
+
+    WebviewWindowBuilder::from_config(app.handle(), config)?
+        .title(title)
+        // Off-app URLs open in the system browser and are never loaded here.
+        .on_navigation(move |url| match classify(url, tauri::is_dev()) {
+            UrlAction::App => true,
+            UrlAction::External => {
+                open_externally(&nav_handle, url);
+                false
+            }
+            UrlAction::Block => {
+                eprintln!("[Main] Blocked navigation to {url}");
+                false
+            }
+        })
+        // window.open gets the same treatment; no extra windows are created.
+        .on_new_window(move |url, _features| {
+            match classify(&url, tauri::is_dev()) {
+                UrlAction::External => open_externally(&new_window_handle, &url),
+                UrlAction::App => eprintln!("[Main] Refused to open a second app window"),
+                UrlAction::Block => eprintln!("[Main] Blocked window.open to {url}"),
+            }
+            NewWindowResponse::Deny
+        })
+        // Studio asks for no camera, microphone, location or notifications.
+        .on_permission_request(|_, kind| {
+            eprintln!("[Main] Denied webview permission request: {kind:?}");
+            PermissionResponse::Deny
+        })
+        .build()?;
+    Ok(())
+}
+
+fn open_externally(app: &tauri::AppHandle, url: &tauri::Url) {
+    if let Err(e) = app.opener().open_url(url.as_str(), None::<&str>) {
+        eprintln!("[Main] Could not open {url} in the system browser: {e}");
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
     check_bundled_server_config_matches_feature(context.config());
 
-    let app = tauri::Builder::default()
-        // Dialogs, the store and the shell (sidecar) plugins are used from Rust
-        // only; the renderer is granted none of their commands (see
-        // capabilities/main.json). The opener plugin backs external links.
+    let mut builder = tauri::Builder::default();
+
+    // Must be the first plugin: a second launch hands over to the running
+    // instance and exits before anything else (including the stale-server
+    // reaper) starts, so it can never stop the first instance's server.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            println!("[Main] A second launch was redirected to the running instance");
+            focus_main_window(app);
+        }));
+    }
+
+    let app = builder
+        // Dialogs and the store are used from Rust only; the renderer is
+        // granted none of their commands (see capabilities/main.json). The
+        // opener plugin backs external links.
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .manage(backend::BackendManager::default())
@@ -125,6 +210,7 @@ pub fn run() {
             // Initialize session token on app startup
             credentials::initialize_session(app.handle())?;
             exit_on_termination_signal(app.handle().clone());
+            create_main_window(app)?;
 
             // Start the backend (Full build only; Dev and Client never spawn).
             // Run it off the setup path so window creation is not blocked, and
@@ -135,11 +221,14 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 match backend::start_backend(&handle).await {
-                    Ok(()) => {
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
+                    Ok(()) => match handle.get_webview_window("main") {
+                        Some(window) => {
+                            if let Err(e) = window.show() {
+                                eprintln!("[Main] Could not show the main window: {e}");
+                            }
                         }
-                    }
+                        None => eprintln!("[Main] The main window does not exist"),
+                    },
                     Err(e) => {
                         eprintln!("[Main] Failed to start the backend server: {e}");
                         let dialog_handle = handle.clone();

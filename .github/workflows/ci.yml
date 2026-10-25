@@ -66,7 +66,7 @@ jobs:
             exit 0
           fi
           if git diff --name-only "$base" HEAD | grep -E \
-            '^(studio/|server/|scripts/(build|smoke_desktop)\.py|\.github/workflows/(ci|build-server|build-studio-tauri)\.yml)'; then
+            '^(studio/|server/|scripts/(build|smoke_desktop)\.py|\.github/scripts/|\.github/workflows/(ci|build-server|build-studio-tauri|release)\.yml)'; then
             echo "desktop=true" >> "$GITHUB_OUTPUT"
           else
             echo "desktop=false" >> "$GITHUB_OUTPUT"

@@ -25,7 +25,7 @@ This guide assumes you are comfortable with Python or TypeScript and a terminal.
 
 ## The codebase in one paragraph
 
-Loom is a monorepo. **Studio** (`studio/`) is a React app that runs in Tauri or a browser. **Server** (`server/`) is a FastAPI service that executes workflows with Polars. **Hub** (`hub/`) is a FastAPI and React platform, backed by PostgreSQL, for teams. Studio never touches your data. It sends workflow JSON to a Server and shows what comes back.
+Loom is a monorepo. **Studio** (`studio/`) is a React app that runs in Electron, Tauri or a browser. **Server** (`server/`) is a FastAPI service that executes workflows with Polars. **Hub** (`hub/`) is a FastAPI and React platform, backed by PostgreSQL, for teams. Studio never touches your data. It sends workflow JSON to a Server and shows what comes back.
 
 Python uses **uv**. JavaScript uses **Bun**. Both have lockfiles that CI enforces.
 

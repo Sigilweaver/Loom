@@ -143,13 +143,20 @@ jobs:
           
           VERSION="${GITHUB_REF_NAME}"
           
+          problems=0
           stage() {
             # stage <artifact dir> <file glob> <release asset name>
-            local file
-            file="$(find "artifacts/$1" -name "$2" 2>/dev/null | head -n 1)"
-            if [ -n "$file" ]; then
-              cp "$file" "release-assets/$3"
+            # Exactly one file must match: none means a build produced nothing,
+            # several means the pick would be arbitrary.
+            local matches count
+            matches="$(find "artifacts/$1" -name "$2" 2>/dev/null)"
+            count="$(printf '%s' "$matches" | grep -c . || true)"
+            if [ "$count" -ne 1 ]; then
+              echo "::error::Expected exactly one '$2' in artifacts/$1 for $3, found $count"
+              problems=$((problems + 1))
+              return
             fi
+            cp "$matches" "release-assets/$3"
           }
 
           for variant in full client; do
@@ -167,6 +174,11 @@ jobs:
           
           echo "Prepared release assets:"
           ls -lh release-assets/ || true
+
+          if [ "$problems" -ne 0 ]; then
+            echo "::error::$problems installer(s) could not be staged"
+            exit 1
+          fi
 
       - name: Compute SHA256 checksums
         shell: bash
@@ -216,7 +228,7 @@ jobs:
             if [ ${#missing[@]} -eq 0 ]; then
               echo "All expected assets are present."
             else
-              echo "**Missing expected assets** (review before publishing):"
+              echo "**Missing expected assets** (the release is not created):"
               for asset in "${missing[@]}"; do
                 echo "- ${asset}"
               done
@@ -227,7 +239,8 @@ jobs:
             echo ""
             echo "Available files:"
             ls -lh release-assets/
-            echo "Continuing: the release is a draft, so a maintainer reviews the assets before publishing."
+            echo "::error::${#missing[@]} expected asset(s) are missing; not creating the release"
+            exit 1
           else
             echo "SUCCESS: All expected assets present!"
           fi

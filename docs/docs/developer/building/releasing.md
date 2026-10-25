@@ -23,10 +23,11 @@ The release workflow builds only when the tag is a semver tag (`vMAJOR.MINOR.PAT
 
 Pushing a `v*` tag runs `release.yml`:
 
-1. **Server**: PyInstaller binaries for Linux, Windows, macOS on Apple silicon and macOS on Intel.
-2. **Studio**: Tauri apps in two variants. Full bundles the Server; Client does not. Each variant builds an AppImage, deb and rpm (Linux x64), an NSIS installer (Windows x64) and a DMG per macOS architecture (arm64 and x64). Every build is launched once by `scripts/smoke_desktop.py` before it is uploaded.
-3. **Web**: a zip of the static Studio build.
-4. **Draft release**: renames the artifacts, writes `SHA256SUMS.txt` and attaches everything to a **draft** GitHub Release. Nothing is public yet.
+1. **Server**: PyInstaller binaries for Linux, Windows and macOS.
+2. **Studio Full**: Electron apps with the bundled Server (AppImage and Snap, NSIS installer and portable exe, DMG).
+3. **Studio Client**: Electron apps without a Server.
+4. **Web**: a zip of the static Studio build.
+5. **Draft release**: renames the artifacts, writes `SHA256SUMS.txt` and attaches everything to a **draft** GitHub Release. Nothing is public yet.
 
 Review the draft's assets and notes, then publish it in the GitHub UI. Publishing triggers two workflows:
 
@@ -35,9 +36,9 @@ Review the draft's assets and notes, then publish it in the GitHub UI. Publishin
 
 A pre-release is mirrored to its versioned path only. It never updates the stable download index or the `latest` Docker tag.
 
-The Windows installer is signed with Azure Trusted Signing. macOS builds are not signed or notarized.
+Windows executables are signed with Azure Trusted Signing. macOS builds are not notarized.
 
-`build-studio-tauri.yml` can also be run by hand (Actions, Run workflow) to produce installers for a branch without tagging.
+Tauri builds come from the manually triggered `build-studio-tauri.yml` and are not part of the release yet.
 
 ## Checking a release
 

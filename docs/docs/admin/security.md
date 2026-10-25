@@ -82,7 +82,7 @@ Every API endpoint checks the caller's role. See [Roles and Permissions](./roles
 
 ## File access
 
-A Server decides which files workflows may touch. In Hub mode, the Server allows only the paths that Hub grants to the requesting user through filesystem connections. Outside Hub mode, the Server's `FILE_ACCESS_MODE` decides. `open` means no restriction. See [Server Configuration](./server-configuration.md#file-access). Set `allowlist` or `hub` on any shared Server. SQLite database paths (`sqlite://`) go through the same checks as file inputs, including Hub file grants. The desktop apps only read or write files you picked in a native open or save dialog in the current session.
+A Server decides which files workflows may touch. In Hub mode, the Server allows only the paths that Hub grants to the requesting user through filesystem connections. Outside Hub mode, the Server's `FILE_ACCESS_MODE` decides. `open` means no restriction. See [Server Configuration](./server-configuration.md#file-access). Set `allowlist` or `hub` on any shared Server. SQLite database paths (`sqlite://`) go through the same checks as file inputs, including Hub file grants. The desktop apps (Electron and Tauri) only read or write files you picked in a native open or save dialog in the current session.
 
 ## Expressions and code
 

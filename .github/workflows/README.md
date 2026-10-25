@@ -15,7 +15,9 @@ only touch markdown or `docs/**`
 **Jobs**:
 - Detect desktop changes: decides whether the Windows and macOS jobs and the
   installer builds below are needed (they run when `studio/`, `server/`,
-  `scripts/build.py`, `scripts/smoke_desktop.py` or the build workflows change)
+  `scripts/build.py`, `scripts/smoke_desktop.py`, `.github/scripts/` or the
+  build and release workflows change). Pushes to a branch skip them and the
+  pull request run covers it, so installers are built once
 - Studio Tauri crate checks (`cargo fmt --check`, `cargo check`, clippy with
   and without the `bundled-server` feature, `cargo test`). Linux always runs;
   Windows and macOS run when the desktop changed
@@ -116,13 +118,23 @@ installer with Azure Trusted Signing; releases set it)
 2. Runs `python scripts/build.py --studio-only [--client]`, which stages the
    server as `studio/tauri/binaries/loom-server-<target-triple>` and runs
    `tauri build --target <target-triple>`
-3. Launches the built app with `scripts/smoke_desktop.py` (Full: waits for the
-   server health check and checks the port is released on exit)
-4. Signs the Windows installer (when `sign` is set)
+3. Launches the built binary with `scripts/smoke_desktop.py`: normal stop,
+   force-quit recovery, a second launch, and (Linux, Full) shutdown with a
+   request in flight
+4. Launches each installed layout: the AppImage, the deb in an Ubuntu
+   container, the app inside the mounted dmg, and the silently installed NSIS
+   installer (then uninstalls it)
 5. Uploads the installers
 
-**Windows signing**: the job uses the `windows-signing` environment and the
-`AZURE_*` secrets, and signs `bundle/nsis/*.exe` after the build.
+**Windows signing** (when `sign` is set): the job uses the `windows-signing`
+environment and the `AZURE_*` secrets. It compiles with `--no-bundle`, signs
+the app exe and the staged `loom-server` exe, packages with `--bundle-only`,
+signs the installer, and verifies every signature with
+`Get-AuthenticodeSignature` (including the installed files in step 4).
+
+**Pre-release versions**: the tag's full version is written to the app. On
+Linux `scripts/build.py` packages the rpm of a pre-release as `X.Y.Z-0.rc.N`
+because rpm versions cannot contain `-`.
 
 **Can be tested standalone**:
 ```bash
@@ -192,8 +204,9 @@ validate-tag-on-main
 - `Sigilweaver-Loom-Web-{VERSION}.zip`
 - `SHA256SUMS.txt`
 
-Missing expected assets are reported as warnings and in the run summary but do
-not fail the run; check the draft before publishing.
+Each installer is staged by name and the run fails if one is missing (or
+matches more than one file), so a draft release is never created with a
+platform missing.
 
 **Publishing**:
 - Creates the GitHub Release as a **draft** with all artifacts and generated

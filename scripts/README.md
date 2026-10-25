@@ -196,6 +196,8 @@ R2_SECRET_ACCESS_KEY=xxx
 ./scripts/build.py --client             # Client build (no bundled server)
 ./scripts/build.py --server-only        # Build server only
 ./scripts/build.py --studio-only        # Build studio only (assumes server already built)
+./scripts/build.py --no-bundle          # Compile only (e.g. to sign the exes first)
+./scripts/build.py --bundle-only        # Package already-compiled binaries
 ./scripts/build.py --clean              # Clean artifacts before building
 ```
 - Steps: build the server (PyInstaller), stage it as the Tauri sidecar, run `tauri build`
@@ -224,9 +226,12 @@ R2_SECRET_ACCESS_KEY=xxx
 ```bash
 xvfb-run -a python3 scripts/smoke_desktop.py --app studio/tauri/target/x86_64-unknown-linux-gnu/release/sigilweaver-loom-studio
 python3 scripts/smoke_desktop.py --app <binary> --client     # Client build
-python3 scripts/smoke_desktop.py --app <binary> --stop kill  # Force-quit instead of SIGTERM
+python3 scripts/smoke_desktop.py --app <binary> --check basic --check kill --check second-instance --check slow-shutdown
 ```
-- Full build: waits for the server health check, checks port 25811 is listening, stops the app and checks the port is released
+- `basic`: waits for the server health check, checks port 25811 is listening, stops the app and checks the port is released
+- `kill`: force-quits the app; the next launch must stop the leftover server (Windows: the job object must take it down)
+- `second-instance`: a second launch must leave the first instance's server alone
+- `slow-shutdown` (Linux, Full): quits the app with a request held open on the server; nothing may keep the port
 - Needs a display; on headless Linux use `xvfb-run -a`
 
 ---

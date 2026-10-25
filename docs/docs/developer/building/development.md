@@ -22,12 +22,13 @@ Flags for both scripts are in `scripts/README.md`.
 
 | Mode | Command | Use it for |
 | ---- | ------- | ---------- |
-| Studio in the browser | `bun run dev` in `studio/` | Fast UI iteration and easy debugging |
-| Studio in Tauri | `bun run dev:tauri` in `studio/` (with `bun run dev` running) | Desktop-only features: native dialogs, credential storage |
+| Studio in the browser | `NO_ELECTRON=1 bun run dev` in `studio/` | Fast UI iteration and easy debugging |
+| Studio in Electron | `bun run dev:electron` in `studio/` | Desktop-only features: native dialogs, credential storage |
+| Studio in Tauri | `bun run dev:tauri` in `studio/` | The Tauri shell |
 | Server only | `AUTH_MODE=disabled uv run uvicorn app.main:app --reload` in `server/` | API work. Swagger UI is at http://localhost:25811/docs |
 | Hub | `./scripts/dev.py --hub` | Hub backend and frontend |
 
-The Vite dev server reloads on `.ts`, `.tsx` and `.css` changes. Uvicorn reloads on `.py` changes. Changes to the Rust shell in `studio/tauri/` rebuild and restart the app; hot reload only covers the renderer.
+The Vite dev server reloads on `.ts`, `.tsx` and `.css` changes. Uvicorn reloads on `.py` changes. Changes to `studio/electron/main.ts` need an Electron restart, because hot reload only covers the renderer.
 
 ## Common tasks
 
@@ -112,7 +113,7 @@ The aliases are `@api`, `@components`, `@contexts`, `@data`, `@domain`, `@hooks`
 
 ### Platform code
 
-Anything that differs between Tauri and the browser lives behind the adapter in `studio/src/platform/`. Do not call the Tauri API from components.
+Anything that differs between Electron, Tauri and the browser lives behind the adapter in `studio/src/platform/`. Do not call `window.electronAPI` from components.
 
 ## Editor setup
 
