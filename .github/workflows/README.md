@@ -133,6 +133,22 @@ the staged `loom-server` exe and passes `scripts/sign-windows.ps1` to Tauri as
 patched it, then the installer. The job then verifies every signature with
 `Get-AuthenticodeSignature` (including the installed files in step 4).
 
+**macOS signing** (when `sign` is set): the job uses the `macos-signing`
+environment (main and `v*` tags only) and its `APPLE_*` secrets: the Developer
+ID Application certificate as a base64 `.p12` (`APPLE_CERTIFICATE`, with
+`APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`) and an App Store
+Connect API key for notarization (`APPLE_API_ISSUER`, `APPLE_API_KEY`, and the
+`.p8` contents in `APPLE_API_KEY_P8`). Tauri signs the app and the server
+sidecar with the hardened runtime and `studio/tauri/entitlements.plist`, then
+notarizes and staples the app. A follow-up step re-staples with retries (and
+rewrites the dmg if its app is unstapled), and step 4 checks `codesign`, the
+stapled ticket and Gatekeeper (`spctl`) on the app inside the dmg. The
+Developer ID certificate expires Nov 24, 2027; renew it before then and replace
+the three certificate secrets.
+
+**Standalone Full builds**: a manual run has no server artifacts of its own.
+Run Build Server first and pass its run id as `server-run-id`.
+
 **Pre-release versions**: the tag's full version is written to the app. On
 Linux `scripts/build.py` packages the rpm of a pre-release as `X.Y.Z-0.rc.N`
 because rpm versions cannot contain `-`.

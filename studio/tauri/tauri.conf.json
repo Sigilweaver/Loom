@@ -68,7 +68,7 @@
             "minimumSystemVersion": "10.15",
             "exceptionDomain": null,
             "signingIdentity": null,
-            "entitlements": null
+            "entitlements": "entitlements.plist"
         },
         "windows": {
             "certificateThumbprint": null,
