@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.1",
-    "polars>=1.43.2",
+    "polars>=2.0.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "python-multipart>=0.0.6",
@@ -16,9 +16,9 @@ dependencies = [
     "xlsxwriter>=3.1.0",
     "connectorx>=0.3.0",
     "cryptography>=46.0.3",
-    "pyarrow>=22.0.0",
+    "pyarrow>=26.0.0",
     "httpx>=0.28.1",
-    "openqvd>=1.1.0",
+    "openqvd>=2.0.0",
     "sigilyx",
     "slowapi>=0.1.9",
 ]
