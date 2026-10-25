@@ -127,9 +127,10 @@ installer with Azure Trusted Signing; releases set it)
 5. Uploads the installers
 
 **Windows signing** (when `sign` is set): the job uses the `windows-signing`
-environment and the `AZURE_*` secrets. It compiles with `--no-bundle`, signs
-the app exe and the staged `loom-server` exe, packages with `--bundle-only`,
-signs the installer, and verifies every signature with
+environment and the `AZURE_*` secrets. `scripts/build.py --windows-sign` signs
+the staged `loom-server` exe and passes `scripts/sign-windows.ps1` to Tauri as
+`bundle.windows.signCommand`, so Tauri signs the app exe after bundling has
+patched it, then the installer. The job then verifies every signature with
 `Get-AuthenticodeSignature` (including the installed files in step 4).
 
 **Pre-release versions**: the tag's full version is written to the app. On
