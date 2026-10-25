@@ -98,6 +98,8 @@ jobs:
     if: ${{ needs.validate-tag-on-main.outputs.run == 'true' }}
     needs: validate-tag-on-main
     uses: ./.github/workflows/build-server.yml
+    with:
+      sign: true
     secrets: inherit
 
   build-studio:
