@@ -6,7 +6,7 @@
  *
  * All calls are routed through the Sigilweaver Loom Server's reverse proxy
  * (/api/ai/proxy/) to avoid CORS restrictions. This applies to both
- * Electron and web mode since both run in a browser renderer context.
+ * desktop and web mode since both run in a browser renderer context.
  */
 
 import type { AIProvider } from '@state/aiStore';
@@ -36,7 +36,7 @@ function getProxyBaseURL(provider: string, userBaseUrl?: string): string {
  * never pay the import cost.
  *
  * All calls are routed through the server proxy to avoid CORS restrictions
- * (applies to both Electron renderer and web browser modes).
+ * (applies to both the desktop webview and web browser modes).
  */
 export async function createLanguageModel(
   provider: AIProvider,

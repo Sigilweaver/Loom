@@ -1,11 +1,11 @@
 import { useCallback, useRef } from "react";
 
 export interface UseCanvasFocusParams {
-  isPointerDownRef: React.MutableRefObject<boolean>;
+  isPointerDownRef: React.RefObject<boolean>;
 }
 
 export interface UseCanvasFocusResult {
-  keyScopeRef: React.RefObject<HTMLDivElement>;
+  keyScopeRef: React.RefObject<HTMLDivElement | null>;
   onMouseDown: (e: React.MouseEvent) => void;
   onTouchStart: (e: React.TouchEvent) => void;
 }

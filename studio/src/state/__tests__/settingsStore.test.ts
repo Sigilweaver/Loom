@@ -339,10 +339,10 @@ describe("SettingsStore", () => {
     });
   });
 
-  describe("Electron Mode", () => {
+  describe("Desktop Mode", () => {
     beforeEach(() => {
       // Switch to desktop mode for these tests
-      mockPlatform.name = 'electron';
+      mockPlatform.name = 'tauri';
       mockPlatformCapabilities.secureStorage = true;
       mockPlatformCapabilities.nativeDialogs = true;
     });
@@ -351,13 +351,13 @@ describe("SettingsStore", () => {
       // Override the default localStorage-based mock with a direct value mock
       mockPlatformSettings.getSettings.mockResolvedValueOnce({
         ...DEFAULT_SETTINGS,
-        author: "Electron User",
+        author: "Desktop User",
       });
 
       await useSettingsStore.getState().loadSettings();
 
       expect(mockPlatformSettings.getSettings).toHaveBeenCalled();
-      expect(useSettingsStore.getState().author).toBe("Electron User");
+      expect(useSettingsStore.getState().author).toBe("Desktop User");
     });
 
     it("uses platform settings when in desktop mode for saving", async () => {
@@ -365,7 +365,7 @@ describe("SettingsStore", () => {
       const setSettingsMock = vi.fn().mockResolvedValue(undefined);
       mockPlatformSettings.setSettings.mockImplementationOnce(setSettingsMock);
 
-      await useSettingsStore.getState().updateAuthor("Electron Author");
+      await useSettingsStore.getState().updateAuthor("Desktop Author");
 
       expect(mockPlatformSettings.setSettings).toHaveBeenCalled();
     });

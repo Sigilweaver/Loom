@@ -13,8 +13,6 @@ export default tseslint.config(
     // node_modules by default, so build output must be listed explicitly.
     ignores: [
       "dist/**",
-      "dist-electron/**",
-      "electron/**",
       "coverage/**",
       "tauri/**",
       "**/*.config.*",

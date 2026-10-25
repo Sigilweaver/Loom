@@ -121,7 +121,7 @@ const AboutContent: React.FC = () => {
               <strong>Frontend:</strong>
               <ul className="ml-4 mt-1 space-y-0.5 text-theme-text-secondary">
                 <li><a href="https://react.dev" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://react.dev">React</a> - UI framework</li>
-                <li><a href="https://www.electronjs.org" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://www.electronjs.org">Electron</a> - Desktop wrapper</li>
+                <li><a href="https://tauri.app" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://tauri.app">Tauri</a> - Desktop shell</li>
                 <li><a href="https://zustand-demo.pmnd.rs" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://zustand-demo.pmnd.rs">Zustand</a> - State management</li>
                 <li><a href="https://reactflow.dev" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://reactflow.dev">Xyflow</a> - Canvas/graph rendering</li>
                 <li><a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer" className="text-theme-interactive-accent font-medium hover:underline" title="https://vitejs.dev">Vite</a> - Build tooling</li>

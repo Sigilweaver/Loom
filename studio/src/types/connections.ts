@@ -2,7 +2,7 @@
  * Database Connection Types
  * 
  * Type definitions for secure credential storage and database connections.
- * Credentials are stored encrypted via Electron's safeStorage API (client)
+ * Credentials are stored encrypted in the OS keychain (client)
  * or Fernet encryption (server).
  */
 
@@ -13,7 +13,7 @@ export type DatabaseType = 'postgresql' | 'mysql' | 'sqlite' | 'mssql';
 
 /**
  * Who manages the connection credentials
- * - 'client': Credentials stored in Electron (desktop app)
+ * - 'client': Credentials stored in the OS keychain (desktop app)
  * - 'hub': Credentials managed by Hub (resolved by Server via Hub validation)
  * - 'server': DEPRECATED - Use 'hub' instead
  */

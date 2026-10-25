@@ -2,7 +2,7 @@
  * Settings Store
  * 
  * Manages application settings with persistence via platform adapter.
- * Uses Electron Store in desktop mode, localStorage in browser mode.
+ * Uses the Tauri store plugin in desktop mode, localStorage in browser mode.
  */
 
 import { create } from 'zustand';

@@ -1,7 +1,7 @@
 //! Sigilweaver Loom Studio - Tauri Application
 //!
 //! This is the Rust backend for the Tauri build of Sigilweaver Loom Studio.
-//! It implements the same platform capabilities as the Electron version:
+//! It provides the desktop platform capabilities:
 //! - File operations (dialog-granted read/write, dialogs)
 //! - Settings persistence
 //! - Secure credential storage and the credential-injecting proxy
@@ -91,9 +91,8 @@ pub fn run() {
 
             // Start the backend (Full build only; Dev and Client never spawn).
             // Run it off the setup path so window creation is not blocked, and
-            // mirror Electron's `await startBackend(); createWindow();`: the
-            // main window (created hidden, see tauri.conf.json) is only shown
-            // once the backend is confirmed ready, and a startup failure shows
+            // keep the main window (created hidden, see tauri.conf.json)
+            // hidden until the backend is confirmed ready. A startup failure shows
             // an error dialog followed by exit instead of ever revealing a
             // window that has no working backend behind it.
             let handle = app.handle().clone();

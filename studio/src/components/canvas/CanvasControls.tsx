@@ -8,8 +8,8 @@ interface Props {
   onToggleMinimap: () => void;
   onToggleSnap: () => void;
   onContextMenuMinimap: (e: React.MouseEvent) => void;
-  minimapButtonRef: React.RefObject<HTMLDivElement>;
-  actionsButtonRef?: React.RefObject<HTMLDivElement>;
+  minimapButtonRef: React.RefObject<HTMLDivElement | null>;
+  actionsButtonRef?: React.RefObject<HTMLDivElement | null>;
   onActionsClick?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
 }

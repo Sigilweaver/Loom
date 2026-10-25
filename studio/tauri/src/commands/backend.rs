@@ -1,8 +1,6 @@
 //! Backend server lifecycle management.
 //!
-//! Ports the bundled-server lifecycle from the Electron shell
-//! (`studio/electron/main.ts`) to the Tauri shell. The three build modes behave
-//! exactly as they do under Electron:
+//! Starts and stops the bundled server. There are three build modes:
 //!
 //! - **Dev**: never spawn. The developer runs the server manually
 //!   (`./scripts/dev.py --server`). Detected via [`tauri::is_dev`].
@@ -13,11 +11,11 @@
 //!   Selected by the `bundled-server` feature plus the `externalBin` entry in
 //!   `tauri.conf.full.json`.
 //!
-//! Why a compile-time feature instead of Electron's runtime `existsSync` probe:
+//! Why a compile-time feature instead of a runtime probe for the binary:
 //! Tauri embeds its configuration (including `externalBin`) at build time via
-//! `generate_context!`, so client-vs-full is already a compile-time distinction
-//! in this shell. A Cargo feature makes the dispatch deterministic and keeps it
-//! in lockstep with which config was compiled in.
+//! `generate_context!`, so client-vs-full is already a compile-time distinction.
+//! A Cargo feature makes the dispatch deterministic and keeps it in lockstep
+//! with which config was compiled in.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -33,8 +31,7 @@ use tokio::net::TcpStream;
 
 use crate::commands::{credentials, settings};
 
-/// Port the bundled server listens on. Must match the server default and the
-/// Electron shell's `BACKEND_PORT`.
+/// Port the bundled server listens on. Must match the server default.
 pub(crate) const BACKEND_PORT: u16 = 25811;
 
 /// The `externalBin` entry in `tauri.conf.full.json` (the source path, without
@@ -54,8 +51,7 @@ const SIDECAR_NAME: &str = "server";
 /// before killing it outright.
 const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
 
-/// Readiness poll cadence: 30 attempts, 500ms apart (15s total), matching the
-/// Electron shell's health-check loop.
+/// Readiness poll cadence: 30 attempts, 500ms apart (15s total).
 const HEALTH_MAX_ATTEMPTS: u32 = 30;
 const HEALTH_INTERVAL: Duration = Duration::from_millis(500);
 
@@ -106,9 +102,8 @@ impl BackendManager {
 
 /// Start the backend according to the build mode. Returns `Ok(())` once the
 /// server is ready (Full build) or immediately (Dev / Client, which never
-/// spawn). Mirrors Electron's `startBackend`: the returned future resolves only
-/// after `GET /api/health/` answers OK, and rejects on spawn error, early
-/// process exit, or timeout.
+/// spawn). The returned future resolves only after `GET /api/health/` answers
+/// OK, and rejects on spawn error, early process exit, or timeout.
 pub async fn start_backend(app: &AppHandle) -> Result<(), String> {
     // DEV: never auto-spawn; the developer starts the server manually.
     if tauri::is_dev() {
@@ -152,9 +147,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
     }
 
     // A Full build should always have this binary; if it's missing (e.g. a
-    // packaging mistake), degrade the same way Electron's `getBackendPath`
-    // does for a missing server executable - log and run without a backend -
-    // rather than treating a bundling defect as an unrecoverable startup
+    // packaging mistake), log and run without a backend rather than treating a bundling defect as an unrecoverable startup
     // failure the user can't do anything about.
     let sidecar_cmd = match app.shell().sidecar(SIDECAR_NAME) {
         Ok(cmd) => cmd,
@@ -180,7 +173,7 @@ async fn spawn_and_wait(app: &AppHandle) -> Result<(), String> {
 
     // Drain the event stream: forward stdout/stderr to the log and flip a flag
     // when the process errors or terminates, so the readiness loop can fail fast
-    // (Electron rejects startBackend on early process exit).
+    // (startup rejects on early process exit).
     let terminated = Arc::new(AtomicBool::new(false));
     let terminated_reader = terminated.clone();
     let app_for_reader = app.clone();
@@ -310,7 +303,7 @@ fn process_alive(_pid: u32) -> bool {
 /// Resolve the writable data directory for the server's working files.
 ///
 /// The app resources directory is read-only on AppImage and NSIS installs, so
-/// (as Electron does with `app.getPath('userData')`) the server's archive,
+/// the server's archive,
 /// audit, cache, and connection-store paths are redirected under the per-user
 /// app-data directory. These must never default to paths inside the bundle.
 fn server_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -321,8 +314,7 @@ fn server_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(base.join("server-data"))
 }
 
-/// Build the environment block passed to the spawned server. Mirrors the block
-/// set by Electron's `startBackend`.
+/// Build the environment block passed to the spawned server.
 fn build_env(token: &str, data_dir: &Path) -> HashMap<String, String> {
     let path_str = |p: PathBuf| p.to_string_lossy().into_owned();
     let mut env = HashMap::new();
@@ -367,11 +359,11 @@ fn log_server_line(stream: &str, bytes: &[u8]) {
 }
 
 /// Probe the server's health endpoint with the session token. Returns `true`
-/// only on a 2xx response, matching Electron's `response.ok` check.
+/// only on a 2xx response.
 ///
 /// Implemented as a raw HTTP/1.1 request over a localhost TCP socket to avoid
 /// pulling in an HTTP-client dependency; the readiness contract stays in Rust
-/// (faithful to Electron) rather than moving to the frontend.
+/// rather than moving to the frontend.
 async fn health_ok(token: &str) -> bool {
     let addr = format!("127.0.0.1:{BACKEND_PORT}");
     let Ok(mut stream) = TcpStream::connect(&addr).await else {

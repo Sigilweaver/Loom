@@ -38,7 +38,7 @@ describe("useCanvasDrag", () => {
   describe("onNodeDragStart", () => {
     it("should begin transaction", () => {
       const { result } = renderHook(() => useCanvasDrag(params));
-      const mockEvent = {} as React.MouseEvent;
+      const mockEvent = {} as MouseEvent;
       const mockNode = { id: "n1" } as Node;
 
       result.current.onNodeDragStart(mockEvent, mockNode);
@@ -50,7 +50,7 @@ describe("useCanvasDrag", () => {
   describe("onNodeDragStop", () => {
     it("should persist positions for selected nodes with snapping", () => {
       const { result } = renderHook(() => useCanvasDrag(params));
-      const mockEvent = {} as React.MouseEvent;
+      const mockEvent = {} as MouseEvent;
       const mockNode = { id: "n1" } as Node;
 
       result.current.onNodeDragStop(mockEvent, mockNode);
@@ -69,7 +69,7 @@ describe("useCanvasDrag", () => {
       ];
 
       const { result } = renderHook(() => useCanvasDrag(params));
-      const mockEvent = {} as React.MouseEvent;
+      const mockEvent = {} as MouseEvent;
       const mockNode = { id: "n1" } as Node;
 
       result.current.onNodeDragStop(mockEvent, mockNode);

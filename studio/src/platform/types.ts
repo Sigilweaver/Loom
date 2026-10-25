@@ -2,7 +2,7 @@
  * Platform Abstraction Types
  * 
  * Platform-agnostic interfaces for native functionality.
- * Implementations exist for Electron, Tauri, and Web (limited).
+ * Implementations exist for Tauri (desktop) and Web (limited).
  */
 
 import type { AppSettings } from '../types/settings';
@@ -192,7 +192,7 @@ export interface PlatformCapabilities {
 // Platform Adapter Interface
 // =============================================================================
 
-export type PlatformName = 'electron' | 'tauri' | 'web';
+export type PlatformName = 'tauri' | 'web';
 
 export interface PlatformAdapter {
   /** Platform identifier */

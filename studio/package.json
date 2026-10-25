@@ -9,7 +9,6 @@
     "url": "https://github.com/Sigilweaver/Loom.git"
   },
   "type": "module",
-  "main": "dist-electron/main.js",
   "overrides": {
     "nanoid": "^3.3.18",
     "fast-uri": "^3.1.8",
@@ -22,48 +21,24 @@
     "zod": "^4.6.7",
     "undici": "^7.30.1"
   },
-  "homepage": "./",
   "engines": {
     "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "vite",
-    "dev:electron": "NO_ELECTRON=0 vite",
     "dev:tauri": "tauri dev",
-    "build": "tsc && vite build && electron-builder",
+    "build": "tauri build",
     "build:web": "tsc && vite build",
-    "build:electron": "electron-builder",
     "build:tauri": "tauri build",
-    "build:linux": "bun run build:web && electron-builder --linux --publish=never",
-    "build:win": "bun run build:web && electron-builder --win --publish=never",
-    "build:mac": "bun run build:web && electron-builder --mac --publish=never",
-    "build:linux:client": "bun run build:web && electron-builder --linux --config electron-builder-client.json --publish=never",
-    "build:linux:full": "bun run build:web && electron-builder --linux --config electron-builder-full.json --publish=never",
-    "build:win:client": "bun run build:web && electron-builder --win --config electron-builder-client.json --publish=never",
-    "build:win:full": "bun run build:web && electron-builder --win --config electron-builder-full.json --publish=never",
-    "build:mac:client": "bun run build:web && electron-builder --mac --config electron-builder-client.json --publish=never",
-    "build:mac:full": "bun run build:web && electron-builder --mac --config electron-builder-full.json --publish=never",
-    "build:tauri:linux": "tauri build --target x86_64-unknown-linux-gnu",
-    "build:tauri:win": "tauri build --target x86_64-pc-windows-msvc",
-    "build:tauri:mac": "tauri build --target x86_64-apple-darwin",
-    "build:tauri:linux:full": "tauri build --target x86_64-unknown-linux-gnu --features bundled-server -c tauri/tauri.conf.full.json",
-    "build:tauri:win:full": "tauri build --target x86_64-pc-windows-msvc --features bundled-server -c tauri/tauri.conf.full.json",
-    "build:tauri:mac:full": "tauri build --target x86_64-apple-darwin --features bundled-server -c tauri/tauri.conf.full.json",
-    "build:tauri:linux:client": "tauri build --target x86_64-unknown-linux-gnu",
-    "build:tauri:win:client": "tauri build --target x86_64-pc-windows-msvc",
-    "build:tauri:mac:client": "tauri build --target x86_64-apple-darwin",
     "build:web:zip": "bun run build:web && cd dist && zip -r ../dist-web.zip .",
     "preview": "vite preview",
-    "electron": "wait-on tcp:25810 && cross-env IS_DEV=true electron . --enable-features=UseOzonePlatform,WaylandWindowDecorations --ozone-platform-hint=auto",
     "tauri": "tauri",
-    "electron:pack": "electron-builder --dir",
-    "preelectron:pack": "bun run build:web",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "clean": "rm -rf dist dist-electron node_modules/.vite",
+    "clean": "rm -rf dist node_modules/.vite",
     "clean:install": "bun run clean && bun install",
     "analyze": "bun run build:web && bun x vite-bundle-analyzer dist",
     "test": "vitest run",
@@ -73,164 +48,75 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:ui": "vitest --ui",
     "verify": "bun run --silent type-check && bun run --silent test && bun run --silent lint",
-    "verify:quick": "bun run --silent type-check && bun run --silent test"
+    "verify:quick": "bun run --silent type-check && bun run --silent test",
+    "build:tauri:full": "tauri build --features bundled-server -c tauri/tauri.conf.full.json"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.27",
-    "@ai-sdk/google": "^4.0.31",
-    "@ai-sdk/mistral": "^4.0.20",
-    "@ai-sdk/openai": "^4.0.27",
+    "@ai-sdk/anthropic": "^4.0.88",
+    "@ai-sdk/google": "^4.0.105",
+    "@ai-sdk/mistral": "^4.0.72",
+    "@ai-sdk/openai": "^4.0.102",
     "@monaco-editor/react": "^4.7.0",
-    "@radix-ui/react-checkbox": "^1.3.3",
-    "@radix-ui/react-context-menu": "^2.2.16",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@radix-ui/react-select": "^2.2.6",
-    "@radix-ui/react-slot": "^1.2.4",
-    "@radix-ui/react-switch": "^1.2.6",
-    "@radix-ui/react-tabs": "^1.1.13",
-    "@radix-ui/react-tooltip": "^1.2.8",
+    "@radix-ui/react-checkbox": "^1.4.1",
+    "@radix-ui/react-context-menu": "^2.4.1",
+    "@radix-ui/react-dialog": "^1.3.1",
+    "@radix-ui/react-dropdown-menu": "^2.2.1",
+    "@radix-ui/react-select": "^2.4.1",
+    "@radix-ui/react-slot": "^1.5.0",
+    "@radix-ui/react-switch": "^1.4.1",
+    "@radix-ui/react-tabs": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.4.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.13.12",
-    "@tauri-apps/api": "^2.2.0",
-    "@tauri-apps/plugin-dialog": "^2.2.0",
-    "@tauri-apps/plugin-fs": "^2.2.0",
-    "@tauri-apps/plugin-opener": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0",
-    "@tauri-apps/plugin-store": "^2.2.0",
-    "@xyflow/react": "^12.9.3",
-    "ai": "^7.0.48",
+    "@tanstack/react-virtual": "^3.14.22",
+    "@tauri-apps/api": "^2.12.4",
+    "@xyflow/react": "^12.12.0",
+    "ai": "^7.0.153",
     "clsx": "^2.1.0",
-    "electron-store": "^11.0.2",
-    "lucide": "^1.28.0",
+    "lucide": "^1.61.0",
     "lucide-react": "^0.556.0",
-    "monaco-editor": "^0.56.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "monaco-editor": "^0.57.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
-    "react-syntax-highlighter": "^16.1.0",
+    "react-syntax-highlighter": "^16.1.2",
     "remark-gfm": "^4.0.1",
     "tailwindcss-animate": "^1.0.7",
-    "uuid": "^14.0.1",
+    "uuid": "^14.0.3",
     "zod": "^4.3.6",
-    "zustand": "^4.5.0"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@tauri-apps/cli": "^2.2.3",
-    "@testing-library/dom": "^10.4.1",
+    "@tauri-apps/cli": "^2.12.4",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^24.1.0",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^9.0.7",
-    "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
-    "@vitejs/plugin-react": "^6.0.4",
-    "@vitest/coverage-istanbul": "^4.0.18",
-    "autoprefixer": "^10.4.16",
-    "cross-env": "^10.1.0",
-    "electron": "^41.10.6",
-    "electron-builder": "^26.0.12",
-    "esbuild": "^0.28.0",
-    "eslint": "^10.8.1",
+    "@typescript-eslint/eslint-plugin": "^8.72.0",
+    "@typescript-eslint/parser": "^8.72.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-istanbul": "^5.0.5",
+    "autoprefixer": "^10.6.1",
+    "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.3",
-    "globals": "^17.11.0",
-    "immer": "^11.0.0",
-    "jsdom": "^29.1.1",
-    "postcss": "^8.4.32",
-    "prettier": "^3.2.5",
-    "simple-icons": "^16.3.0",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "immer": "^11.2.9",
+    "jsdom": "^30.1.3",
+    "postcss": "^8.5.31",
+    "prettier": "^3.9.10",
+    "simple-icons": "^16.35.0",
     "tailwindcss": "^3.3.6",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.67.0",
+    "typescript-eslint": "^8.72.0",
     "vite": "^8.2.4",
-    "vite-plugin-electron": "^1.1.0",
-    "vite-plugin-electron-renderer": "^0.14.5",
     "vite-plugin-monaco-editor": "^1.1.0",
-    "vitest": "^4.0.18",
-    "wait-on": "^9.0.3"
-  },
-  "build": {
-    "appId": "com.sigilweaver.loom",
-    "productName": "Sigilweaver Loom",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "public/assets/**/*",
-      "!public/assets/generate-favicon.js"
-    ],
-    "extraResources": [
-      {
-        "from": "../server/dist/",
-        "to": "server/",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "linux": {
-      "icon": "public/assets/icon-512.png",
-      "category": "Development",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "snap",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "win": {
-      "icon": "public/assets/app-icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "signtoolOptions": {
-        "publisherName": "Sigilweaver Development Team"
-      },
-      "verifyUpdateCodeSignature": false
-    },
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "icon": "public/assets/icon-512.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowElevation": true,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Sigilweaver Loom"
-    }
+    "vitest": "^5.0.5"
   }
 }

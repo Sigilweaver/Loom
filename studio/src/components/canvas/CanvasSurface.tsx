@@ -23,8 +23,8 @@ interface Props {
   onPaneContextMenu?: (e: MouseEvent | React.MouseEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
-  onNodeDragStart?: (e: React.MouseEvent, node: Node) => void;
-  onNodeDragStop: (e: React.MouseEvent, node: Node) => void;
+  onNodeDragStart?: (e: MouseEvent | TouchEvent, node: Node) => void;
+  onNodeDragStop: (e: MouseEvent | TouchEvent, node: Node) => void;
   onWheel: (e: React.WheelEvent) => void;
   onMouseMove?: (e: React.MouseEvent) => void;
   onMove?: (event: MouseEvent | TouchEvent | null, viewport: Viewport) => void;

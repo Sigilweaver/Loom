@@ -26,7 +26,7 @@ describe('connectionStore', () => {
     // Reset platform mock to default desktop state
     mockPlatformCapabilities.secureStorage = true;
     mockPlatformCapabilities.nativeDialogs = true;
-    mockPlatform.name = 'electron';
+    mockPlatform.name = 'tauri';
     
     // Reset store state
     useConnectionStore.setState({

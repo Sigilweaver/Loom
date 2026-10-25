@@ -1,7 +1,6 @@
 //! Settings commands
 //!
 //! Persistent settings storage using tauri-plugin-store.
-//! Mirrors the electron-store functionality.
 //!
 //! The settings object is stored verbatim as JSON. The TypeScript side
 //! (`AppSettings`) owns the schema and fills in defaults for missing fields,
@@ -24,7 +23,7 @@ fn system_username() -> String {
     whoami::username().unwrap_or_else(|_| "User".to_string())
 }
 
-/// Apply the author hierarchy shared with the Electron shell: a persisted
+/// Apply the author hierarchy: a persisted
 /// custom value wins, otherwise the OS username, otherwise "User".
 fn with_author_default(mut settings: Map<String, Value>, username: &str) -> Map<String, Value> {
     let is_placeholder = match settings.get("author") {
@@ -54,8 +53,7 @@ fn stored_settings(app: &AppHandle) -> Result<Map<String, Value>, String> {
 }
 
 /// Whether the bundled server should auto-start (Full build only).
-/// Mirrors Electron's `settings.backend.autoStart` default of `true`. Falls
-/// back to the default if the store is missing or unreadable, so a settings
+/// Defaults to `true`. Falls back to the default if the store is missing or unreadable, so a settings
 /// problem never blocks startup.
 pub fn backend_auto_start(app: &AppHandle) -> bool {
     match stored_settings(app) {

@@ -58,7 +58,6 @@ pnpm-debug.log*
 *.tgz
 
 # Build outputs
-dist-electron/
 .docusaurus/
 .cache-loader/
 

@@ -25,7 +25,7 @@ export interface AISettings {
   provider: AIProvider;
   /** Model identifier (e.g. "gpt-4o", "claude-sonnet-4-20250514", "gemini-2.0-flash") */
   model: string;
-  /** API key (stored encrypted in Electron, localStorage in web) */
+  /** API key (stored in localStorage) */
   apiKey: string;
   /** Base URL for openai-compatible providers (e.g. http://localhost:11434/v1 for Ollama) */
   baseUrl: string;
@@ -277,14 +277,7 @@ function loadPersistedSettings(): AISettings {
 
 function savePersistedSettings(settings: AISettings): void {
   try {
-    // Don't persist the API key to localStorage in web mode for security
-    // In Electron, the platform adapter handles encrypted storage
-    const toSave = { ...settings };
-    if (typeof window !== 'undefined' && !('electron' in window)) {
-      // In web mode, still persist the key in localStorage (user's choice)
-      // They can use a local model if they're concerned about key storage
-    }
-    localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(toSave));
+    localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // Ignore save errors
   }

@@ -1,7 +1,7 @@
 /**
  * Application Settings Types
  *
- * Persistent settings that are saved across sessions using Electron Store.
+ * Persistent settings that are saved across sessions using the Tauri store plugin.
  */
 
 /**
@@ -99,7 +99,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  author: 'User', // Will be replaced by system username in Electron, or user can change it
+  author: 'User', // Will be replaced by system username in the desktop app, or user can change it
   executionMode: 'bundled', // Default to bundled for desktop
   backend: {
     url: 'http://localhost:25811',
