@@ -151,9 +151,12 @@ jobs:
       - name: Verify Windows signatures
         if: matrix.platform == 'win' && inputs.sign
         shell: pwsh
+        # The app exe is checked after installation (Smoke test the installed
+        # app): Tauri signs a patched copy for the installer and restores the
+        # unsigned exe in target/ afterwards.
         run: |
           $release = "studio/tauri/target/${{ matrix.target }}/release"
-          $files = @(Get-ChildItem "$release/bundle/nsis/*-setup.exe") + @(Get-Item "$release/sigilweaver-loom-studio.exe")
+          $files = @(Get-ChildItem "$release/bundle/nsis/*-setup.exe")
           if ("${{ matrix.variant }}" -eq "full") { $files += Get-Item "studio/tauri/binaries/loom-server-*.exe" }
           $bad = 0
           foreach ($f in $files) {
