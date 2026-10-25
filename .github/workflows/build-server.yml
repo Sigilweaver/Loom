@@ -2,7 +2,16 @@ name: Build Server
 
 on:
   workflow_dispatch:
+    inputs:
+      sign:
+        description: "Sign the Windows and macOS servers (needs the windows-signing and macos-signing environments)"
+        type: boolean
+        default: false
   workflow_call:
+    inputs:
+      sign:
+        type: boolean
+        default: false
 
 jobs:
   build-server:
@@ -10,21 +19,26 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            platform: linux
             artifact-name: server-linux
             executable-name: server
           - os: windows-latest
+            platform: win
             artifact-name: server-win
             executable-name: server.exe
           # PyInstaller builds for the CPU it runs on, so each macOS
           # architecture gets its own runner and its own server binary.
           - os: macos-latest
+            platform: mac
             artifact-name: server-mac-arm64
             executable-name: server
           - os: macos-15-intel
+            platform: mac
             artifact-name: server-mac-x64
             executable-name: server
 
     runs-on: ${{ matrix.os }}
+    environment: ${{ inputs.sign && (matrix.platform == 'win' && 'windows-signing' || matrix.platform == 'mac' && 'macos-signing') || '' }}
 
     steps:
       - name: Checkout
@@ -94,6 +108,69 @@ jobs:
         working-directory: server
         shell: bash
         run: otool -l dist/server | grep -E -A3 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX' | grep -E 'minos|version' | head -n 4
+
+      # Signed builds: the standalone server downloads are signed too. On macOS
+      # it gets the Developer ID signature with the hardened runtime and the
+      # Studio entitlements (the same PyInstaller needs), then notarization. A
+      # bare binary cannot hold a stapled ticket; Gatekeeper checks it online.
+      - name: Sign and notarize the server (macOS)
+        if: matrix.platform == 'mac' && inputs.sign
+        working-directory: server
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          kc="$RUNNER_TEMP/server-signing.keychain-db"
+          key="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          zip="$RUNNER_TEMP/server.zip"
+          trap 'security delete-keychain "$kc" 2>/dev/null || true; rm -f "$key" "$RUNNER_TEMP/cert.p12" "$zip"' EXIT
+          kcpw="$(openssl rand -base64 24)"
+          security create-keychain -p "$kcpw" "$kc"
+          security set-keychain-settings -lut 3600 "$kc"
+          security unlock-keychain -p "$kcpw" "$kc"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$kc" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpw" "$kc" > /dev/null
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          codesign --force --timestamp --options runtime \
+            --entitlements ../studio/tauri/entitlements.plist \
+            --keychain "$kc" --sign "$APPLE_SIGNING_IDENTITY" dist/server
+          codesign --verify --strict --verbose=2 dist/server
+          codesign -d --verbose=2 dist/server 2>&1 | grep -E '^(Authority=Developer ID Application|TeamIdentifier|flags)'
+          printf '%s' "$APPLE_API_KEY_P8" > "$key"
+          ditto -c -k dist/server "$zip"
+          for i in 1 2 3; do
+            if out="$(xcrun notarytool submit "$zip" --key "$key" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" --wait --timeout 90m 2>&1)"; then
+              echo "$out"
+              echo "$out" | grep -q 'status: Accepted' && exit 0
+              echo "::error::notarization did not end Accepted"; exit 1
+            fi
+            echo "$out"; echo "notarytool attempt $i failed; retrying in 60s"; sleep 60
+          done
+          echo "::error::notarization failed after 3 attempts"; exit 1
+
+      - name: Install the Artifact Signing module (Windows)
+        if: matrix.platform == 'win' && inputs.sign
+        shell: pwsh
+        run: Install-Module -Name ArtifactSigning -RequiredVersion 0.1.8 -Force -Repository PSGallery -Scope CurrentUser
+
+      - name: Sign the server (Windows)
+        if: matrix.platform == 'win' && inputs.sign
+        shell: pwsh
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_CODE_SIGNING_ENDPOINT: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
+          AZURE_CODE_SIGNING_ACCOUNT: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
+          AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+        run: ./scripts/sign-windows.ps1 server/dist/server.exe
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v7

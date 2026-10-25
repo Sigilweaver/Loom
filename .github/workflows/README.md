@@ -146,6 +146,13 @@ stapled ticket and Gatekeeper (`spctl`) on the app inside the dmg. The
 Developer ID certificate expires Nov 24, 2027; renew it before then and replace
 the three certificate secrets.
 
+**Standalone server signing** (Build Server with `sign`, set by release.yml):
+the macOS servers get a Developer ID signature with the hardened runtime and
+`studio/tauri/entitlements.plist`, then notarization (a bare binary cannot hold
+a stapled ticket, so Gatekeeper checks it online on first run). `server.exe`
+is signed with `scripts/sign-windows.ps1`. The jobs use the same `macos-signing`
+and `windows-signing` environments.
+
 **Standalone Full builds**: a manual run has no server artifacts of its own.
 Run Build Server first and pass its run id as `server-run-id`.
 
