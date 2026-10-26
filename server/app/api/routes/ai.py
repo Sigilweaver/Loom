@@ -1,8 +1,8 @@
 """AI proxy endpoints
 
 Provides a reverse proxy for LLM provider API calls, solving CORS
-restrictions when Studio runs in web/browser mode. In Electron mode,
-calls go direct; in web mode they route through this proxy.
+restrictions. Studio routes every LLM call through this proxy, in both
+desktop and web mode, since both run in a browser renderer.
 
 Streaming: The proxy preserves SSE streaming semantics end-to-end.
 LLM providers send Server-Sent Events; this proxy forwards each chunk

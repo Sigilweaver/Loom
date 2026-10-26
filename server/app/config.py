@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     # Default is "ephemeral" so an unconfigured server is not silently open.
     auth_mode: str = "ephemeral"
     # Session token for ephemeral/static modes. In ephemeral mode this is set by
-    # the desktop launcher (Electron or Tauri) via SESSION_TOKEN; otherwise .env.
+    # the desktop app (Tauri) via SESSION_TOKEN; otherwise .env.
     session_token: str = ""
     # Protect /docs and /redoc endpoints (default: protected)
     auth_protect_docs: bool = True
