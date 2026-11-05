@@ -53,6 +53,8 @@ and documentation checked against the code.
 - **Join `leftSuffix`** - Removed from the Join config: it was accepted but never applied (left columns always keep their names)
 - **Schema dtypes** - Polars Enum columns are reported as Categorical and Array columns as List instead of Utf8
 - **Server operations (silent wrong data)** - Filter now sends rows whose predicate is null to the False output instead of dropping them from both outputs; Sort is stable; Summarize group-by, distinct and Join keep input row order; Union by name/position widens mismatched numeric types instead of failing; generated Python quotes column names safely
+- **Hub dashboard figures** - The success rate counts finished runs only and is hidden until a run has finished (it showed 100% with no runs). The 24-hour total shows the previous day's count instead of an unlabeled trend arrow, and is marked as a lower bound when more runs exist than the dashboard fetched. Stat cards sit two to a row on phones
+- **Hub form controls** - Controls given their own width (the schedule builder's selects) no longer stretch to full width
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
 - **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
@@ -100,6 +102,7 @@ and documentation checked against the code.
 
 ### Removed
 
+- **Hub Admin > Settings** - The placeholder page and its navigation entry; Hub is configured through environment variables
 - Completed B2-to-R2 migration scripts, `convert-tags.sh`, `generate-downloads-manifest.py`, `cleanup-r2-staging.py` and the orphaned `scripts/lint_repo.py` (#140)
 - Dead server modules and helpers; unused platform-layer APIs (`listByType`, `isDesktop`, `isBrowser`, `nativeMenus`, `backendManagement`) and the Tauri `list_connections_by_type` command
 - Unused Studio desktop-menu plumbing (`platform.menu`, `MenuOperations`) and a duplicated canvas style block

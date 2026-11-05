@@ -1,6 +1,6 @@
 /** Display formatting helpers shared across pages. */
 
-/** "Just now", "5m ago", "3h ago", "2d ago", then a plain date. */
+/** "just now", "5m ago", "3h ago", "2d ago", then a plain date. */
 export function formatRelativeTime(isoString: string, now: Date = new Date()): string {
   const date = new Date(isoString);
   const diffSecs = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -8,7 +8,7 @@ export function formatRelativeTime(isoString: string, now: Date = new Date()): s
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffSecs < 60) return "Just now";
+  if (diffSecs < 60) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;

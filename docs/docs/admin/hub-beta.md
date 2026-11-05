@@ -51,7 +51,7 @@ Use the interactive API documentation at `/docs` on your Hub to call them.
 
 ## Not built yet
 
-- **Settings page.** **Admin > Settings** is a placeholder.
+- **Settings screen.** Hub is configured through its environment variables; see the [Deployment Guide](./deployment.md).
 - **Single sign-on.** Accounts are local usernames and passwords.
 - **Per-user API tokens.** Automation has to use a user login.
 - **Notifications** by email or webhook.
