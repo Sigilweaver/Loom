@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
 - **Desktop app is Tauri only** - Studio ships as a Tauri app in Full (bundled Server sidecar) and Client variants: AppImage, deb and rpm for Linux, an NSIS installer for Windows, and a DMG each for Apple silicon and Intel Macs. The app identifier is `com.sigilweaver.loom-studio`. Settings and saved connections are stored by the new shell, so enter them again on first launch. The Linux snap and Windows portable exe are no longer built
