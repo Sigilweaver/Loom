@@ -50,7 +50,7 @@ Only when **Share sample data with the AI provider** is on does it also send dat
 If that data is sensitive, use a provider you are allowed to send it to, or leave the assistant off. Studio stores your API key and the recent chat history on your machine in the app's local storage. The key is not encrypted there, so do not use a key you cannot afford to expose on a shared computer. The key travels through the Loom Server you are connected to, so that Server can see it.
 
 :::note Local model servers
-The Server's proxy blocks requests to `localhost` and private network addresses as a safeguard against server-side request forgery. An OpenAI-compatible model server on such an address is rejected today. Use an address that resolves to a public IP.
+The Server's proxy blocks requests to `localhost` and private network addresses as a safeguard against server-side request forgery. To use a model server such as Ollama on your own machine or network, the Server's operator (you, for the desktop app's bundled Server) adds its origin to `AI_ALLOWED_PRIVATE_UPSTREAMS`, for example `["http://localhost:11434"]`. See [Server configuration](../../admin/server-configuration.md#ai-proxy).
 :::
 
 ## Capabilities
