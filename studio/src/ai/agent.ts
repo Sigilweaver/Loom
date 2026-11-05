@@ -24,9 +24,11 @@ import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTo
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
 import { getToolSchemaTool } from './tools/reference';
+import { getToolConfig, validateWorkflowTool } from './tools/inspect';
+import { guardTools, withAnthropicStepCache } from './loop';
 
 // All tools available to the agent
-const AGENT_TOOLS = {
+const AGENT_TOOL_DEFS = {
   add_tool: addTool,
   update_tool: updateTool,
   update_tools: updateTools,
@@ -45,9 +47,17 @@ const AGENT_TOOLS = {
   describe_schema: describeSchema,
   query_database: queryDatabase,
   build_workflow: buildWorkflowTool,
+  get_tool_config: getToolConfig,
   get_tool_config_schema: getToolSchemaTool,
+  validate_workflow: validateWorkflowTool,
   ask_user: askUser,
 };
+
+/**
+ * The registry the model sees: every tool wrapped so oversized results are
+ * capped and thrown errors come back as readable tool errors.
+ */
+const AGENT_TOOLS = guardTools(AGENT_TOOL_DEFS);
 
 /** Name and description of every agent tool, as the model sees them. */
 export function getAgentToolDescriptions(): Array<[string, string]> {
@@ -224,6 +234,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       tools: AGENT_TOOLS,
       stopWhen: stepCountIs(store.maxIterations),
       abortSignal: abortController.signal,
+      // Anthropic: move a cache breakpoint onto the newest message each step,
+      // so a multi-step turn re-reads the growing conversation from cache.
+      ...(store.provider === 'anthropic' ? { prepareStep: withAnthropicStepCache } : {}),
+      onToolExecutionStart: ({ toolCall }) => useAIStore.getState().toolStarted(toolCall.toolName),
+      onToolExecutionEnd: ({ toolCall }) => useAIStore.getState().toolFinished(toolCall.toolName),
       onStepFinish: (step) => {
         // Build interleaved segments from each step as it completes
         const stepToolCalls = (step.toolCalls ?? []).map((tc) => ({
@@ -353,6 +368,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     store.setAgentTabId(null);
     store.setStreamingText('');
     store.setStreamingSegments([]);
+    useAIStore.setState({ runningTools: [] });
 
     // Auto-dequeue: if there's a queued prompt for this tab and the tab
     // is still active, send it automatically.
