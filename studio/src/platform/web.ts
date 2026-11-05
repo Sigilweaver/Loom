@@ -75,11 +75,6 @@ const webCredentialOps: CredentialOperations = {
     throw new Error('Client credential storage not available in browser mode.');
   },
 
-  async resolve() {
-    // Cannot resolve client connections in browser mode
-    return null;
-  },
-
   async fetch() {
     throw new Error('Client connections are not available in browser mode.');
   },

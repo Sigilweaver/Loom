@@ -1,7 +1,7 @@
 /**
- * Connection resolution when the desktop shell owns the server
- * (`capabilities.credentialProxy`): the renderer must only ever handle
- * `loom-connection://<id>` references, never plaintext credentials.
+ * Connection resolution through the desktop shell's credential proxy: the
+ * renderer only ever handles `loom-connection://<id>` references, never
+ * plaintext credentials. There is no API that returns a stored password.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,7 +71,7 @@ describe('connectionResolver with the credential proxy', () => {
 
     expect(config.source).toBe('loom-connection://conn-1');
     expect(config.owner).toBe('client');
-    expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
+    expect(mockPlatformCredentials).not.toHaveProperty('resolve');
     expect(JSON.stringify(result)).not.toMatch(/password|postgresql:\/\//);
   });
 
@@ -93,7 +93,7 @@ describe('connectionResolver with the credential proxy', () => {
   it('refuses client connections in Hub mode, where the shell cannot inject them', async () => {
     useSettingsStore.setState({ executionMode: 'hub' });
     await expect(resolveWorkflowConnections(dbWorkflow())).rejects.toThrow(/Hub/);
-    expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
+    expect(mockPlatformCredentials.get).not.toHaveBeenCalled();
   });
 
   it('resolveConnectionUri returns a reference and the database type', async () => {
@@ -101,7 +101,6 @@ describe('connectionResolver with the credential proxy', () => {
       uri: 'loom-connection://conn-1',
       type: 'postgresql',
     });
-    expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
   });
 
   it('resolveConnectionUri fails clearly for unknown connections', async () => {
@@ -115,13 +114,17 @@ describe('connectionResolver without the credential proxy', () => {
     vi.clearAllMocks();
     mockPlatformCapabilities.secureStorage = true;
     mockPlatformCapabilities.credentialProxy = false;
+    useSettingsStore.setState({ executionMode: 'bundled' });
   });
 
-  it('still resolves credentials locally (Client build, dev, remote server)', async () => {
-    mockPlatformCredentials.resolve.mockResolvedValue({ ...info, username: 'u', password: 'p@ss' });
-    const result = await resolveWorkflowConnections(dbWorkflow());
-    const config = result.tools[0]?.config as Record<string, unknown>;
-    expect(config.source).toBe('postgresql://u:p%40ss@db:5432/sales');
+  it('refuses client connections instead of resolving credentials', async () => {
+    await expect(resolveWorkflowConnections(dbWorkflow())).rejects.toThrow(/desktop app/);
+    await expect(resolveConnectionUri('conn-1')).rejects.toThrow(/desktop app/);
     expect(mockPlatformCredentials.get).not.toHaveBeenCalled();
+  });
+
+  it('still passes hub-owned connections through', async () => {
+    const result = await resolveWorkflowConnections(dbWorkflow('hub'));
+    expect((result.tools[0]?.config as Record<string, unknown>).owner).toBe('hub');
   });
 });

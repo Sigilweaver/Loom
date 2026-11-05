@@ -124,8 +124,7 @@ describe('tauri adapter: credentials', () => {
     expect(invoke).toHaveBeenLastCalledWith('delete_connection', { id: 'c1' });
     await tauri.credentials.test('c1');
     expect(invoke).toHaveBeenLastCalledWith('test_connection', { id: 'c1' });
-    await tauri.credentials.resolve('c1');
-    expect(invoke).toHaveBeenLastCalledWith('resolve_connection', { id: 'c1' });
+    expect(tauri.credentials).not.toHaveProperty('resolve');
   });
 
   it('reports availability false when the command errors', async () => {
@@ -159,26 +158,16 @@ describe('tauri adapter: credentials', () => {
 });
 
 describe('tauri adapter: initialize', () => {
-  it('enables the credential proxy when Rust reports it', async () => {
+  it('enables the credential proxy whenever the shell is present', async () => {
     const tauri = await loadAdapter();
     invoke.mockImplementation(async (cmd: string) => {
       if (cmd === 'get_session_token') return 'tok';
       if (cmd === 'is_encryption_available') return true;
-      if (cmd === 'connection_proxy_available') return true;
       return null;
     });
     await tauri.initialize();
     expect(tauri.capabilities.secureStorage).toBe(true);
     expect(tauri.capabilities.credentialProxy).toBe(true);
-  });
-
-  it('leaves the proxy off when the command is missing or false', async () => {
-    const tauri = await loadAdapter();
-    invoke.mockImplementation(async (cmd: string) => {
-      if (cmd === 'connection_proxy_available') throw new Error('unknown command');
-      return cmd === 'is_encryption_available' ? true : null;
-    });
-    await tauri.initialize();
-    expect(tauri.capabilities.credentialProxy).toBe(false);
+    expect(invoke).not.toHaveBeenCalledWith('connection_proxy_available', undefined);
   });
 });

@@ -61,7 +61,7 @@ const FollowUpQuestion: React.FC<FollowUpQuestionProps> = ({
     }
   }, [handleCustomSubmit]);
 
-  // Single-select: click → immediate answer
+  // Single-select: click -> immediate answer
   const handleSingleSelect = useCallback(
     (label: string) => onAnswer(label),
     [onAnswer],

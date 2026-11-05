@@ -25,7 +25,6 @@ export const mockPlatformCredentials = {
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn().mockResolvedValue(undefined),
-  resolve: vi.fn().mockResolvedValue(null),
   fetch: vi.fn(),
   test: vi.fn().mockResolvedValue({ success: true, message: 'OK' }),
 };
@@ -264,7 +263,7 @@ vi.mock('lucide-react', () => {
     'Fingerprint', 'CornerRightDown', 'CornerLeftUp', 'ChevronDown',
     'ChevronRight', 'ChevronUp', 'LayoutGrid', 'X', 'Check', 'Minus', 'Circle',
     'Trash2', 'Plus', 'Loader2', 'MessageSquare', 'Copy', 'GripVertical',
-    'AlertCircle', 'CheckCircle2', 'ShieldCheck'
+    'AlertCircle', 'CheckCircle2', 'ShieldCheck', 'Database', 'Pencil', 'Info'
   ];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
