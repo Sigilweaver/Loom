@@ -300,6 +300,14 @@ class SortOperation:
 BLOCKING_SAMPLE_MODES = {"LastN", "Random", "RandomPercent", "FirstPercent"}
 
 
+def _first_percent_rows(total: int, percent: float) -> int:
+    """Rows kept by FirstPercent: floor of the share, at least one row when percent > 0."""
+    n_rows = int(total * percent / 100.0)
+    if percent > 0 and total:
+        return max(n_rows, 1)
+    return n_rows
+
+
 @dataclass
 class SampleOperation:
     """Represents a sample operation with multiple modes."""
@@ -339,8 +347,7 @@ class SampleOperation:
         elif self.mode == "FirstPercent":
             # First N% requires knowing row count - blocking
             df = lf.collect()
-            n_rows = max(1, int(len(df) * self.percent / 100.0))
-            return df.head(n_rows).lazy()
+            return df.head(_first_percent_rows(len(df), self.percent)).lazy()
 
         else:
             # Unknown mode - pass through
@@ -375,11 +382,14 @@ class SampleOperation:
             ]
 
         elif self.mode == "FirstPercent":
-            return [
+            lines = [
                 f"_df_temp = {input_var}.collect()",
-                f"_n_rows = max(1, int(len(_df_temp) * {self.percent} / 100.0))",
-                f"{output_var} = _df_temp.head(_n_rows).lazy()",
+                f"_n_rows = int(len(_df_temp) * {self.percent} / 100.0)",
             ]
+            if self.percent > 0:
+                lines.append("_n_rows = max(_n_rows, 1) if len(_df_temp) else 0")
+            lines.append(f"{output_var} = _df_temp.head(_n_rows).lazy()")
+            return lines
 
         else:
             return [f"{output_var} = {input_var}"]
@@ -395,10 +405,10 @@ AGGREGATION_METHODS = {
     "Std": ("std", ".std()"),
     "Var": ("var", ".var()"),
     "Count": ("count", ".count()"),
-    "CountDistinct": ("n_unique", ".n_unique()"),
+    "CountDistinct": ("n_unique", ".drop_nulls().n_unique()"),
     "First": ("first", ".first()"),
     "Last": ("last", ".last()"),
-    "Concat": ("str.concat", '.str.concat(", ")'),
+    "Concat": ("str.join", '.str.join(", ")'),
 }
 
 
@@ -431,13 +441,15 @@ class AggregationExpr:
         elif self.operation == "Count":
             expr = expr.count()
         elif self.operation == "CountDistinct":
-            expr = expr.n_unique()
+            # Nulls are not a value: Count skips them, so CountDistinct does too.
+            expr = expr.drop_nulls().n_unique()
         elif self.operation == "First":
             expr = expr.first()
         elif self.operation == "Last":
             expr = expr.last()
         elif self.operation == "Concat":
-            expr = expr.str.concat(delimiter=", ")
+            # Polars 2 removed str.concat; str.join skips nulls the same way.
+            expr = expr.str.join(", ")
         else:
             expr = expr.sum()  # fallback
 
