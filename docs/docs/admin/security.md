@@ -96,7 +96,7 @@ On a single-user desktop, the workflow author already controls the host, though 
 
 ## AI proxy
 
-The Server includes a proxy that forwards Studio's AI requests to the model provider. It refuses to connect to loopback, private, link-local and other reserved addresses, resolves names before connecting to prevent DNS tricks, and forwards only an allowlist of headers. It never forwards Loom's own tokens. Studio sends workflow context and sample data to the provider you configure. See [AI Assistant](../user/interface/ai-assistant.md).
+The Server includes a proxy that forwards Studio's AI requests to the model provider. It refuses to connect to loopback, private, link-local and other reserved addresses (except origins the operator lists in `AI_ALLOWED_PRIVATE_UPSTREAMS`), resolves names before connecting to prevent DNS tricks, and forwards only an allowlist of headers. It never forwards Loom's own tokens. Studio sends workflow context to the provider you configure, and sample data only when the user turns on sample data sharing. See [AI Assistant](../user/interface/ai-assistant.md).
 
 ## Audit log
 

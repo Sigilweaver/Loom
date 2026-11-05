@@ -14,20 +14,25 @@ import type { LanguageModel } from 'ai';
 import { classifyError } from './errors';
 import { useSettingsStore } from '@state/settingsStore';
 
+/** Header that tells the Server proxy where an OpenAI-compatible server lives. */
+export const UPSTREAM_BASE_URL_HEADER = 'x-loom-upstream-base-url';
+
 /**
  * Build the proxy base URL for a given provider.
  * Routes through the Sigilweaver Loom Server at /api/ai/proxy/{provider}
  * so that browser-mode calls avoid CORS blocks.
  */
-function getProxyBaseURL(provider: string, userBaseUrl?: string): string {
+function getProxyBaseURL(provider: string): string {
   const serverUrl = useSettingsStore.getState().backend.url;
-  if (provider === 'openai-compatible' && userBaseUrl) {
-    // Strip trailing slashes and any trailing /v1 from user-supplied URL
-    // (the SDK appends /v1 itself, so duplicates would break the path)
-    const normalizedUrl = userBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
-    return `${serverUrl}/api/ai/proxy/${provider}?base_url=${encodeURIComponent(normalizedUrl)}`;
-  }
   return `${serverUrl}/api/ai/proxy/${provider}`;
+}
+
+/**
+ * Normalize a user-supplied OpenAI-compatible base URL: strip trailing
+ * slashes and a trailing /v1 (the SDK appends /v1 itself).
+ */
+export function normalizeCompatibleBaseUrl(userBaseUrl: string): string {
+  return userBaseUrl.trim().replace(/\/+$/, '').replace(/\/v1$/, '');
 }
 
 /**
@@ -81,11 +86,17 @@ export async function createLanguageModel(
     }
     case 'openai-compatible': {
       const { createOpenAI } = await import('@ai-sdk/openai');
+      // The upstream goes in a header, not the URL: the SDK appends paths
+      // such as /chat/completions to baseURL, which would otherwise land
+      // inside a query string.
       const openaiCompatible = createOpenAI({
         apiKey: apiKey || 'ollama',
-        baseURL: `${getProxyBaseURL('openai-compatible', baseUrl || 'http://localhost:11434')}/v1`,
+        baseURL: `${getProxyBaseURL('openai-compatible')}/v1`,
+        headers: { [UPSTREAM_BASE_URL_HEADER]: normalizeCompatibleBaseUrl(baseUrl || 'http://localhost:11434') },
       });
-      return openaiCompatible(model);
+      // Chat Completions, not the Responses API (the SDK default), which
+      // most OpenAI-compatible servers do not implement.
+      return openaiCompatible.chat(model);
     }
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
@@ -120,14 +131,18 @@ export async function testProviderConnection(
 
 /**
  * Fetch available models from a provider via the server proxy.
- * Returns model IDs or falls back to the static list on error.
+ *
+ * On failure the static suggestions are returned together with the reason,
+ * so the settings panel can say the live list could not be loaded instead of
+ * silently showing a possibly stale list.
  */
 export async function fetchProviderModels(
   provider: AIProvider,
   apiKey: string,
   baseUrl?: string,
-): Promise<Array<{ id: string; name?: string }>> {
+): Promise<{ models: Array<{ id: string; name?: string }>; error?: string }> {
   const serverUrl = useSettingsStore.getState().backend.url;
+  const fallback = (PROVIDER_MODELS[provider] ?? []).map((id) => ({ id }));
 
   try {
     const resp = await fetch(`${serverUrl}/api/ai/models`, {
@@ -136,20 +151,20 @@ export async function fetchProviderModels(
       body: JSON.stringify({
         provider,
         api_key: apiKey || null,
-        base_url: baseUrl || null,
+        base_url: baseUrl ? normalizeCompatibleBaseUrl(baseUrl) : null,
       }),
     });
 
     if (!resp.ok) {
       const errorData = await resp.json().catch(() => null);
-      throw new Error(errorData?.detail ?? `HTTP ${resp.status}`);
+      const detail = typeof errorData?.detail === 'string' ? errorData.detail : `HTTP ${resp.status}`;
+      throw Object.assign(new Error(detail), { statusCode: resp.status });
     }
 
     const data = await resp.json();
-    return data.models ?? [];
-  } catch {
-    // Fall back to static list
-    return (PROVIDER_MODELS[provider] ?? []).map((id) => ({ id }));
+    return { models: data.models ?? [] };
+  } catch (err) {
+    return { models: fallback, error: classifyError(err).displayMessage };
   }
 }
 

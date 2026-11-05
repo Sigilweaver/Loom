@@ -78,12 +78,9 @@ const AISettingsPanel: React.FC = () => {
     setModelsError(null);
 
     try {
-      const models = await fetchProviderModels(provider, apiKey, baseUrl || undefined);
+      const { models, error } = await fetchProviderModels(provider, apiKey, baseUrl || undefined);
       setFetchedModels(models);
-    } catch (err) {
-      setModelsError(err instanceof Error ? err.message : 'Failed to fetch models');
-      // Fall back to static list
-      setFetchedModels(PROVIDER_MODELS[provider].map((id) => ({ id })));
+      setModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setModelsFetching(false);
     }
@@ -408,6 +405,7 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
   // Expression model list
   const [exprModels, setExprModels] = useState<Array<{ id: string; name?: string }>>([]);
   const [exprModelsFetching, setExprModelsFetching] = useState(false);
+  const [exprModelsError, setExprModelsError] = useState<string | null>(null);
 
   const fetchExprModels = useCallback(async () => {
     const key = expressionApiKey || mainApiKey;
@@ -417,10 +415,9 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
     }
     setExprModelsFetching(true);
     try {
-      const models = await fetchProviderModels(expressionProvider, key, expressionBaseUrl || undefined);
+      const { models, error } = await fetchProviderModels(expressionProvider, key, expressionBaseUrl || undefined);
       setExprModels(models);
-    } catch {
-      setExprModels(PROVIDER_MODELS[expressionProvider].map((id) => ({ id })));
+      setExprModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setExprModelsFetching(false);
     }
@@ -504,6 +501,9 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
                     <RefreshCw className={`w-3 h-3 ${exprModelsFetching ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
+                {exprModelsError && (
+                  <p className="mb-1 text-xs text-theme-status-error-text">{exprModelsError}</p>
+                )}
                 {exprModelOptions.length > 0 ? (
                   <>
                     <select
@@ -619,6 +619,7 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
   // Audit model list
   const [auditModels, setAuditModels] = useState<Array<{ id: string; name?: string }>>([]);
   const [auditModelsFetching, setAuditModelsFetching] = useState(false);
+  const [auditModelsError, setAuditModelsError] = useState<string | null>(null);
 
   const fetchAuditModels = useCallback(async () => {
     const key = auditApiKey || mainApiKey;
@@ -628,10 +629,9 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
     }
     setAuditModelsFetching(true);
     try {
-      const models = await fetchProviderModels(auditProvider, key, auditBaseUrl || undefined);
+      const { models, error } = await fetchProviderModels(auditProvider, key, auditBaseUrl || undefined);
       setAuditModels(models);
-    } catch {
-      setAuditModels(PROVIDER_MODELS[auditProvider].map((id) => ({ id })));
+      setAuditModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setAuditModelsFetching(false);
     }
@@ -726,6 +726,9 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
                         <RefreshCw className={`w-3 h-3 ${auditModelsFetching ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
+                    {auditModelsError && (
+                      <p className="mb-1 text-xs text-theme-status-error-text">{auditModelsError}</p>
+                    )}
                     {auditModelOptions.length > 0 ? (
                       <>
                         <select
