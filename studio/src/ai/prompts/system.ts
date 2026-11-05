@@ -95,6 +95,22 @@ export function buildWorkflowSystemPrompt(
   meta: WorkflowMeta,
   options?: { auditEnabled?: boolean },
 ): string {
+  const { stable, dynamic } = buildWorkflowSystemPromptParts(tools, wires, meta, options);
+  return `${stable}\n${dynamic}`;
+}
+
+/**
+ * Same prompt as {@link buildWorkflowSystemPrompt}, split at the point where
+ * it starts depending on the live canvas. `stable` is identical across turns
+ * (until the formula catalog toggles), so it can carry a provider cache
+ * breakpoint; `dynamic` holds the canvas state and changes after every edit.
+ */
+export function buildWorkflowSystemPromptParts(
+  tools: Tool[],
+  wires: Wire[],
+  meta: WorkflowMeta,
+  options?: { auditEnabled?: boolean },
+): { stable: string; dynamic: string } {
   const parts: string[] = [];
 
   // 1. Static instructions (cacheable)
@@ -123,6 +139,9 @@ export function buildWorkflowSystemPrompt(
     parts.push(`\nAvailable Formula operations (use operationId):\n${formulaCatalog}`);
   }
 
+  const stable = parts.join('\n');
+  parts.length = 0;
+
   // 6. Dynamic canvas context
   const canvasContext = tools.length > 0
     ? `\nCurrent canvas has ${tools.length} tool(s) and ${wires.length} wire(s):\n${formatCanvasState(tools, wires)}`
@@ -132,7 +151,7 @@ export function buildWorkflowSystemPrompt(
   // 7. Tail reminder (compact rule reinforcement)
   parts.push(TAIL_REMINDER);
 
-  return parts.join('\n');
+  return { stable, dynamic: parts.join('\n') };
 }
 
 /**

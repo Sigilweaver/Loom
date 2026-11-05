@@ -792,8 +792,8 @@ List available models from an LLM provider.
 ```json
 {
   "models": [
-    { "id": "gpt-4o", "name": null, "owned_by": "openai" },
-    { "id": "gpt-4o-mini", "name": null, "owned_by": "openai" }
+    { "id": "gpt-6.1-sol", "name": null, "owned_by": "openai" },
+    { "id": "gpt-6-luna", "name": null, "owned_by": "openai" }
   ]
 }
 ```

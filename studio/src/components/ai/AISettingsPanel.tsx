@@ -198,7 +198,7 @@ const AISettingsPanel: React.FC = () => {
                     type="text"
                     value={model}
                     onChange={(e) => updateModel(e.target.value)}
-                    placeholder="e.g. gpt-4o"
+                    placeholder="e.g. gpt-6.1-sol"
                     className="w-full mt-1.5 px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
                   />
                 )}
@@ -208,7 +208,7 @@ const AISettingsPanel: React.FC = () => {
                 type="text"
                 value={model}
                 onChange={(e) => updateModel(e.target.value)}
-                placeholder="e.g. gpt-4o"
+                placeholder="e.g. gpt-6.1-sol"
                 className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
               />
             )}
@@ -721,7 +721,7 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
                             type="text"
                             value={auditModel}
                             onChange={(e) => updateAuditModel(e.target.value)}
-                            placeholder="e.g. gpt-4o-mini"
+                            placeholder="e.g. gpt-6-luna"
                             className="w-full mt-1 px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
                           />
                         )}
@@ -731,7 +731,7 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
                         type="text"
                         value={auditModel}
                         onChange={(e) => updateAuditModel(e.target.value)}
-                        placeholder="e.g. gpt-4o-mini"
+                        placeholder="e.g. gpt-6-luna"
                         className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus bg-theme-bg-input border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary"
                       />
                     )}

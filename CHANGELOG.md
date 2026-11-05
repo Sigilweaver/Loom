@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **AI assistant providers** - Default and suggested models are updated (Anthropic claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5; OpenAI gpt-6.1-sol, gpt-6-astra, gpt-6-luna; Google gemini-3.8-flash, gemini-3.1-pro-preview, gemini-3.5-flash-lite). Provider errors are classified from the HTTP status, with distinct messages for a missing model and an oversized conversation. On Anthropic, only the stable instructions carry the prompt-cache breakpoint, so editing the canvas no longer invalidates the cache
 - **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
@@ -48,6 +49,7 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **AI assistant turns failed** - Every assistant turn failed with "System messages are not allowed in the prompt or messages fields" after the AI SDK 7 update; the system prompt is now sent as instructions
 - **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
 - **Summarize on Polars 2** - The Concat aggregation failed on Polars 2 (`str.concat` was removed) and now uses `str.join`; Count Distinct no longer counts null as a value, matching Count and the documentation; output schemas are derived from Polars, so previews show the real result dtype (an Int8 Sum is Int64, a Float32 Mean stays Float32, a Date Mean is a Datetime)
 - **Union type mismatches** - Union widens numeric columns (Int32 + Int64, Int64 + Float64) but stops with an error naming the column for any other mismatch, instead of silently converting, for example, numbers to strings; the schema preview shows the widened type
