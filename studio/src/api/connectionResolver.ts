@@ -1,87 +1,83 @@
 /**
  * Connection Resolution Utilities
  *
- * Resolves database connection references in workflows before execution.
- * This ensures credentials are only passed to the backend at execution time,
- * never stored in workflow files.
- *
- * Where the desktop shell owns the server (`capabilities.credentialProxy`),
- * client connections are NOT resolved here: the workflow carries a
- * `loom-connection://<id>` reference and `backendFetch` sends it through the
- * shell, which injects the credentials. Plaintext credentials then never
- * reach the renderer. Otherwise (Client build, dev, remote server) the
- * credentials are resolved here as before.
+ * Prepares database connection references in workflows before execution.
+ * Credentials are never stored in workflow files, and the renderer never
+ * holds them either.
  *
  * Connection ownership:
- * - owner='client': Credentials stored locally, resolved here before sending to backend
+ * - owner='client': Credentials live in the OS keychain, owned by the desktop
+ *   shell. The workflow carries a `loom-connection://<id>` reference and
+ *   `backendFetch` sends the request through the shell, which swaps the
+ *   reference for the real connection URI and forwards it to a Server on this
+ *   computer (see `tauri/src/commands/proxy.rs`). There is no way for the
+ *   renderer to read a stored password.
  * - owner='hub': Credentials stored on Hub, resolved by Server during execution via Hub validation
  * - owner='server': DEPRECATED - use 'hub' instead
  */
 
 import type { WorkflowJSON } from '../domain/workflow/services/WorkflowSerializer';
 import type { Tool } from '../domain/workflow/entities/workflow';
-import type { ConnectionOwner, ResolvedConnection } from '../types/connections';
+import type { ConnectionOwner, DatabaseType } from '../types/connections';
 import { platform, hasSecureStorage } from '@platform';
-import { buildConnectionUri, connectionRef } from '../platform/connectionUri';
+import { connectionRef } from '../platform/connectionUri';
 import { useSettingsStore } from '../state/settingsStore';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ConnectionResolver');
 
+const DESKTOP_REQUIRED =
+  'Client database connections require the desktop app. Please run Sigilweaver Loom as a desktop application to use client-managed database features.';
+
+const HUB_MODE_REFUSED =
+  'Client-owned database connections cannot be used when executing through Hub. Use a Hub-managed connection instead.';
+
 /**
- * Whether client connections should be sent as references for the shell to
- * expand. Not possible in Hub mode: those requests go to a remote server the
- * shell does not own, so it cannot (and must not) inject credentials there.
+ * Throws unless client-owned connections can be used right now: the desktop
+ * shell must hold them (secure storage plus the credential proxy), and the
+ * request must not be headed for a Hub-chosen Server, which the shell will
+ * not send local credentials to.
  */
-function shouldProxyCredentials(): boolean {
-  return (
-    platform.capabilities.credentialProxy === true &&
-    useSettingsStore.getState().executionMode !== 'hub'
-  );
+function assertClientConnectionsUsable(): void {
+  if (!hasSecureStorage() || !platform.capabilities.credentialProxy) {
+    throw new Error(DESKTOP_REQUIRED);
+  }
+  if (useSettingsStore.getState().executionMode === 'hub') {
+    throw new Error(HUB_MODE_REFUSED);
+  }
 }
 
 /**
- * Resolves a single client-managed connection to its URI and database type.
+ * Resolves a single client-managed connection to a connection reference and
+ * its database type.
  *
  * Intended for ad-hoc lookups (e.g. AI schema introspection) where only a
- * connection id is known. Requires secure storage (desktop app) since the
- * credentials live in the local keychain.
+ * connection id is known. The returned `uri` is a `loom-connection://<id>`
+ * reference: send it with `backendFetch` so the shell injects the
+ * credentials.
  *
  * @param connectionId - The id of a client-owned connection
- * @returns The connection URI and database type
- * @throws If secure storage is unavailable or the connection cannot be resolved
+ * @returns The connection reference and database type
+ * @throws If client connections are unavailable or the connection does not exist
  */
 export async function resolveConnectionUri(
   connectionId: string
-): Promise<{ uri: string; type: ResolvedConnection['type'] }> {
-  if (!hasSecureStorage()) {
-    throw new Error(
-      'Database connections require the desktop app with secure storage.'
-    );
-  }
+): Promise<{ uri: string; type: DatabaseType }> {
+  assertClientConnectionsUsable();
 
-  if (shouldProxyCredentials()) {
-    const info = await platform.credentials.get(connectionId);
-    if (!info) {
-      throw new Error(`Connection not found: "${connectionId}"`);
-    }
-    return { uri: connectionRef(connectionId), type: info.type };
-  }
-
-  const resolved = await platform.credentials.resolve(connectionId);
-  if (!resolved) {
+  const info = await platform.credentials.get(connectionId);
+  if (!info) {
     throw new Error(`Connection not found: "${connectionId}"`);
   }
-
-  return { uri: buildConnectionUri(resolved), type: resolved.type };
+  return { uri: connectionRef(connectionId), type: info.type };
 }
 
 /**
  * Resolves all database connection references in a workflow.
  *
- * For client-owned connections (owner='client'), resolves the connectionId to a full
- * connection URI with embedded credentials. The resolved URI is stored in the
- * `source` field which the backend expects.
+ * For client-owned connections (owner='client'), puts a connection reference
+ * (`loom-connection://<id>`) in the `source` field. The desktop shell swaps it
+ * for the real connection URI when the request is sent (see `backendFetch`).
  *
  * For server-owned connections (owner='server'), passes the connectionId through
  * without resolving - the backend will resolve these during execution.
@@ -135,38 +131,29 @@ export async function resolveWorkflowConnections(
   logger.debug('Hub-owned connections:', hubTools.length);
   logger.debug('Server-owned connections (deprecated):', serverTools.length);
 
-  // For client-owned connections, we need secure storage
-  if (clientTools.length > 0 && !hasSecureStorage()) {
-    logger.error('Secure storage not available - client connections require the desktop app');
-    throw new Error('Client database connections require the desktop app. Please run Sigilweaver Loom as a desktop application to use client-managed database features.');
+  if (clientTools.length > 0) {
+    try {
+      assertClientConnectionsUsable();
+    } catch (error) {
+      logger.error('Client connections are not usable here');
+      throw error;
+    }
   }
 
-  const proxied = shouldProxyCredentials();
-  if (clientTools.length > 0 && platform.capabilities.credentialProxy && !proxied) {
-    // The shell refuses to hand credentials to the renderer and cannot inject
-    // them into requests for a remote server.
-    throw new Error('Client-owned database connections cannot be used when executing through Hub. Use a Hub-managed connection instead.');
-  }
-
-  // Resolve client-owned connections
+  // Confirm each client connection exists; the shell injects the credentials
+  // when the request is sent.
   const resolutions = await Promise.all(
     clientTools.map(async (tool: Tool) => {
       const connectionId = tool.config?.connectionId as string;
       logger.debug('Resolving client connection:', connectionId);
       try {
-        if (proxied) {
-          // Only confirm the connection exists; the shell injects the
-          // credentials when the request is sent (see backendFetch).
-          const info = await platform.credentials.get(connectionId);
-          logger.debug('Reference:', info ? 'success' : 'null');
-          return { toolId: tool.id, uri: info ? connectionRef(connectionId) : null };
-        }
-        const resolved = await platform.credentials.resolve(connectionId);
-        logger.debug('Resolved:', resolved ? 'success' : 'null');
-        return { toolId: tool.id, uri: resolved ? buildConnectionUri(resolved) : null };
+        const info = await platform.credentials.get(connectionId);
+        logger.debug('Reference:', info ? 'success' : 'null');
+        return { toolId: tool.id, uri: info ? connectionRef(connectionId) : null };
       } catch {
-        // Native/driver errors can contain connection URIs and passwords.
-        logger.error(`Failed to resolve connection ${connectionId}`);
+        // Native errors are not logged verbatim: keep connection details out
+        // of the log. The tool is reported as unresolved below.
+        logger.error(`Failed to look up connection ${connectionId}`);
         return { toolId: tool.id, uri: null };
       }
     })
@@ -228,10 +215,10 @@ export async function resolveWorkflowConnections(
         };
       }
 
-      // Client-owned: set resolved URI in source field
+      // Client-owned: set the connection reference in the source field
       const resolvedUri = resolutionMap.get(tool.id);
       if (resolvedUri) {
-        logger.debug(`Tool ${tool.id}: client-owned, resolved to URI`);
+        logger.debug(`Tool ${tool.id}: client-owned, resolved to a reference`);
         return {
           ...tool,
           config: {

@@ -43,14 +43,6 @@ export interface ConnectionInfo {
   updatedAt: string;
 }
 
-/**
- * Full connection with decrypted credentials (only used when connecting)
- * This is what gets sent to the backend for actual database queries.
- */
-export interface ResolvedConnection extends ConnectionInfo {
-  username: string;
-  password: string;
-}
 
 /**
  * Input for creating a new connection

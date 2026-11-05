@@ -1,15 +1,17 @@
 /**
  * Tests for connection resolution utilities
  * 
- * Tests the connection resolver that converts connectionId references
- * to actual connection URIs with credentials before workflow execution.
- * 
+ * Tests the connection resolver that turns connectionIds into
+ * `loom-connection://<id>` references before workflow execution. The
+ * renderer never sees credentials: the desktop shell swaps references for
+ * real URIs (see tauri/src/commands/proxy.rs, which has the URI tests).
+ *
  * Connection ownership:
- * - owner='client': Resolved locally via platform credentials API
+ * - owner='client': Replaced by a reference the shell expands
  * - owner='server': Passed through to backend for resolution
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   resolveWorkflowConnections,
   hasDatabaseConnections,
@@ -17,7 +19,7 @@ import {
   getWorkflowConnectionIdsByOwner,
 } from '../connectionResolver';
 import type { WorkflowJSON } from '../../domain/workflow/services/WorkflowSerializer';
-import type { ResolvedConnection } from '../../types/connections';
+import type { ConnectionInfo } from '../../types/connections';
 import {
   mockPlatform,
   mockPlatformCapabilities,
@@ -32,13 +34,18 @@ describe('connectionResolver', () => {
     mockPlatform.name = 'tauri';
     mockPlatformCapabilities.secureStorage = true;
     mockPlatformCapabilities.nativeDialogs = true;
+    mockPlatformCapabilities.credentialProxy = true;
+  });
+
+  afterEach(() => {
+    mockPlatformCapabilities.credentialProxy = false;
   });
 
   describe('resolveWorkflowConnections', () => {
-    it('does not log credentials from a native resolution error', async () => {
+    it('does not log details from a native lookup error', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       try {
-        mockPlatformCredentials.resolve.mockRejectedValueOnce(
+        mockPlatformCredentials.get.mockRejectedValueOnce(
           new Error('postgresql://alice:secret-password@localhost/db'),
         );
         const workflow: WorkflowJSON = {
@@ -89,25 +96,23 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
       
       expect(result).toEqual(workflow);
-      expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
+      expect(mockPlatformCredentials.get).not.toHaveBeenCalled();
     });
 
-    it('should resolve database connection to URI', async () => {
-      const mockResolved: ResolvedConnection = {
+    it('should replace the connection with a reference', async () => {
+      const mockResolved: ConnectionInfo = {
         id: 'conn-1',
         name: 'Test DB',
         type: 'postgresql',
         host: 'localhost',
         port: 5432,
         database: 'testdb',
-        username: 'testuser',
-        password: 'testpass',
         owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
       };
 
-      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
+      mockPlatformCredentials.get.mockResolvedValue(mockResolved);
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -138,72 +143,18 @@ describe('connectionResolver', () => {
 
       const result = await resolveWorkflowConnections(workflow);
 
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.get).toHaveBeenCalledWith('conn-1');
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');
-      expect(tool0.config.source).toBe(
-        'postgresql://testuser:testpass@localhost:5432/testdb'
-      );
+      expect(tool0.config.source).toBe('loom-connection://conn-1');
+      expect(JSON.stringify(result)).not.toContain('testuser');
       // Original config should be preserved
       expect(tool0.config.connectionId).toBe('conn-1');
       expect(tool0.config.query).toBe('SELECT * FROM users');
     });
 
-    it('should URL encode special characters in credentials', async () => {
-      const mockResolved: ResolvedConnection = {
-        id: 'conn-1',
-        name: 'Test DB',
-        type: 'postgresql',
-        host: 'localhost',
-        port: 5432,
-        database: 'testdb',
-        username: 'user@example.com',
-        password: 'p@ss:w/ord',
-        owner: 'client',
-        createdAt: '2025-08-01',
-        updatedAt: '2025-08-01',
-      };
-
-      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
-
-      const workflow: WorkflowJSON = {
-        version: '1.0',
-        meta: {
-          name: 'Test',
-          description: '',
-          author: 'Test',
-          workflowId: 'test-1',
-          created: '2025-08-01',
-        },
-        tools: [
-          {
-            id: 'db1',
-            type: 'Input',
-            x: 0,
-            y: 0,
-            config: {
-              category: 'database',
-              type: 'postgresql',
-              connectionId: 'conn-1',
-              query: 'SELECT 1',
-            },
-            sockets: [],
-          },
-        ],
-        wires: [],
-      };
-
-      const result = await resolveWorkflowConnections(workflow);
-
-      // Should encode special characters
-      const tool0 = result.tools[0];
-      if (!tool0 || !tool0.config) throw new Error('Tool not found');
-      expect(tool0.config.source).toContain('user%40example.com');
-      expect(tool0.config.source).toContain('p%40ss%3Aw%2Ford');
-    });
-
     it('should handle multiple database connections', async () => {
-      mockPlatformCredentials.resolve
+      mockPlatformCredentials.get
         .mockResolvedValueOnce({
           id: 'conn-1',
           name: 'DB1',
@@ -211,8 +162,6 @@ describe('connectionResolver', () => {
           host: 'host1',
           port: 5432,
           database: 'db1',
-          username: 'user1',
-          password: 'pass1',
           owner: 'client',
           createdAt: '2025-08-01',
           updatedAt: '2025-08-01',
@@ -224,8 +173,6 @@ describe('connectionResolver', () => {
           host: 'host2',
           port: 5433,
           database: 'db2',
-          username: 'user2',
-          password: 'pass2',
           owner: 'client',
           createdAt: '2025-08-01',
           updatedAt: '2025-08-01',
@@ -273,16 +220,16 @@ describe('connectionResolver', () => {
 
       const result = await resolveWorkflowConnections(workflow);
 
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledTimes(2);
+      expect(mockPlatformCredentials.get).toHaveBeenCalledTimes(2);
       const tool0 = result.tools[0];
       const tool1 = result.tools[1];
       if (!tool0 || !tool0.config || !tool1 || !tool1.config) throw new Error('Tools not found');
-      expect(tool0.config.source).toContain('host1');
-      expect(tool1.config.source).toContain('host2');
+      expect(tool0.config.source).toBe('loom-connection://conn-1');
+      expect(tool1.config.source).toBe('loom-connection://conn-2');
     });
 
     it('should return original workflow if connection resolution fails', async () => {
-      mockPlatformCredentials.resolve.mockResolvedValue(null);
+      mockPlatformCredentials.get.mockResolvedValue(null);
 
       const workflow: WorkflowJSON = {
         version: '1.0',
@@ -357,15 +304,13 @@ describe('connectionResolver', () => {
     });
 
     it('should not modify non-database tools', async () => {
-      mockPlatformCredentials.resolve.mockResolvedValue({
+      mockPlatformCredentials.get.mockResolvedValue({
         id: 'conn-1',
         name: 'DB',
         type: 'postgresql',
         host: 'localhost',
         port: 5432,
         database: 'db',
-        username: 'user',
-        password: 'pass',
         owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
@@ -464,7 +409,7 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should NOT call the platform credential API for server connections
-      expect(mockPlatformCredentials.resolve).not.toHaveBeenCalled();
+      expect(mockPlatformCredentials.get).not.toHaveBeenCalled();
       
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');
@@ -476,15 +421,13 @@ describe('connectionResolver', () => {
     });
 
     it('should handle mixed client and server connections', async () => {
-      mockPlatformCredentials.resolve.mockResolvedValue({
+      mockPlatformCredentials.get.mockResolvedValue({
         id: 'client-conn-1',
         name: 'Client DB',
         type: 'postgresql',
         host: 'localhost',
         port: 5432,
         database: 'clientdb',
-        username: 'clientuser',
-        password: 'clientpass',
         owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
@@ -535,15 +478,15 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should only resolve client connection
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledTimes(1);
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('client-conn-1');
+      expect(mockPlatformCredentials.get).toHaveBeenCalledTimes(1);
+      expect(mockPlatformCredentials.get).toHaveBeenCalledWith('client-conn-1');
       
       const tool0 = result.tools[0];
       const tool1 = result.tools[1];
       if (!tool0 || !tool0.config || !tool1 || !tool1.config) throw new Error('Tools not found');
       
       // Client connection should have source
-      expect(tool0.config.source).toContain('clientdb');
+      expect(tool0.config.source).toBe('loom-connection://client-conn-1');
       expect(tool0.config.owner).toBe('client');
       
       // Server connection should NOT have source (backend resolves it)
@@ -553,15 +496,13 @@ describe('connectionResolver', () => {
     });
 
     it('should default to client owner when not specified', async () => {
-      mockPlatformCredentials.resolve.mockResolvedValue({
+      mockPlatformCredentials.get.mockResolvedValue({
         id: 'conn-1',
         name: 'DB',
         type: 'postgresql',
         host: 'localhost',
         port: 5432,
         database: 'db',
-        username: 'user',
-        password: 'pass',
         owner: 'client',
         createdAt: '2025-08-01',
         updatedAt: '2025-08-01',
@@ -598,7 +539,7 @@ describe('connectionResolver', () => {
       const result = await resolveWorkflowConnections(workflow);
 
       // Should resolve as client connection
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
+      expect(mockPlatformCredentials.get).toHaveBeenCalledWith('conn-1');
       
       const tool0 = result.tools[0];
       if (!tool0 || !tool0.config) throw new Error('Tool not found');
