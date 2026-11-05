@@ -30,7 +30,7 @@ function server(overrides: Partial<api.ServerResponse> = {}): api.ServerResponse
 }
 
 function signInAs(role: UserRole) {
-  useAuthStore.getState().setAuth("tok", { id: "me", username: "me", role });
+  useAuthStore.getState().setAuth({ id: "me", username: "me", role });
 }
 
 async function openAddDialog() {

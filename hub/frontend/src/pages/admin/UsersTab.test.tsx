@@ -24,7 +24,7 @@ const ADMIN = user("a", "adam", "admin");
 const BOB = user("b", "bob", "user");
 
 function signInAs(u: api.UserResponse) {
-  useAuthStore.getState().setAuth("tok", { id: u.id, username: u.username, role: u.role as UserRole });
+  useAuthStore.getState().setAuth({ id: u.id, username: u.username, role: u.role as UserRole });
 }
 
 beforeEach(() => {
