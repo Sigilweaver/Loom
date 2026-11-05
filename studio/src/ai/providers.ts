@@ -11,6 +11,7 @@
 
 import type { AIProvider } from '@state/aiStore';
 import type { LanguageModel } from 'ai';
+import { classifyError } from './errors';
 import { useSettingsStore } from '@state/settingsStore';
 
 /**
@@ -113,8 +114,7 @@ export async function testProviderConnection(
 
     return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { success: false, error: message };
+    return { success: false, error: classifyError(err).displayMessage };
   }
 }
 
@@ -154,12 +154,13 @@ export async function fetchProviderModels(
 }
 
 /**
- * Suggested models per provider for the UI (static fallback).
+ * Suggested models per provider for the UI (static fallback, used when the
+ * live model listing fails). The first entry of each list is the default.
  */
 export const PROVIDER_MODELS: Record<AIProvider, string[]> = {
-  openai: ['gpt-4o', 'gpt-4o-mini', 'o3-mini'],
-  anthropic: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414'],
-  google: ['gemini-2.0-flash', 'gemini-2.5-pro'],
+  openai: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-luna'],
+  anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
+  google: ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite'],
   mistral: ['mistral-large-latest', 'mistral-small-latest'],
   'openai-compatible': [], // User specifies manually
 };

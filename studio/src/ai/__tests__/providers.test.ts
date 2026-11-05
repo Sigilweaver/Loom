@@ -33,4 +33,19 @@ describe("provider configuration", () => {
     expect(PROVIDER_LABELS.anthropic).toBe("Anthropic");
     expect(PROVIDER_LABELS["openai-compatible"]).toContain("Ollama");
   });
+
+  it("lists the current Anthropic models first-class", () => {
+    expect(PROVIDER_MODELS.anthropic).toEqual([
+      "claude-sonnet-5-5",
+      "claude-opus-5-5",
+      "claude-haiku-5-5",
+    ]);
+  });
+
+  it("has no retired model ids in the static lists", () => {
+    const all = Object.values(PROVIDER_MODELS).flat();
+    for (const id of all) {
+      expect(id).not.toMatch(/gpt-4|claude-.*-4-|gemini-2/);
+    }
+  });
 });
