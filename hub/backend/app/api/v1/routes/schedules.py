@@ -20,6 +20,16 @@ from app.domain.executions import (
     TriggerExecutionInput,
     TriggerType,
 )
+from app.domain.executions.service import (
+    ExecutionServiceError,
+    NoAvailableServerError,
+)
+from app.domain.executions.service import (
+    ServerNotFoundError as ExecutionServerNotFoundError,
+)
+from app.domain.executions.service import (
+    WorkflowNotFoundError as ExecutionWorkflowNotFoundError,
+)
 from app.domain.schedules import (
     CreateScheduleInput,
     ScheduleInfo,
@@ -188,7 +198,7 @@ async def list_schedules(
 
     schedules, total = await service.list_schedules(
         workflow_id=workflow_id,
-        enabled_only=enabled if enabled else False,
+        enabled=enabled,
         created_by=filter_by,
         skip=offset,
         limit=limit,
@@ -409,10 +419,11 @@ async def trigger_schedule(
             trigger_type=TriggerType.MANUAL,
             schedule_id=schedule_id,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to trigger execution: {e}",
-        )
+    except NoAvailableServerError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+    except (ExecutionWorkflowNotFoundError, ExecutionServerNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ExecutionServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return _execution_to_response(execution)

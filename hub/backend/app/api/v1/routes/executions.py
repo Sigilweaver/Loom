@@ -228,6 +228,9 @@ async def stream_executions(
     """
     is_auditor = get_role_level(user.role) <= get_role_level(Role.AUDITOR)
     username = user.username
+    # Return the request's connection to the pool: the stream itself never
+    # touches the database and can stay open for hours.
+    await db.close()
 
     async def event_stream() -> AsyncGenerator[str, None]:
         with execution_broker.subscribe(GLOBAL_TOPIC) as queue:
@@ -270,19 +273,29 @@ async def stream_execution(
     execution reaches a terminal status.
     """
     await _require_execution_access(execution_id, user, db)
+    await db.close()
     service = _get_service(db)
+
+    async def snapshot() -> dict[str, Any] | None:
+        # Each read closes the session again, so an open stream does not hold
+        # a pooled connection between reads.
+        try:
+            info = await service.get_execution(execution_id)
+        except ExecutionNotFoundError:
+            return None
+        finally:
+            await db.close()
+        return _info_to_response(info).model_dump(mode="json")
 
     async def event_stream() -> AsyncGenerator[str, None]:
         # Subscribe before reading the snapshot so no transition is missed in
         # the window between the snapshot and the first delivered event.
         with execution_broker.subscribe(str(execution_id)) as queue:
-            try:
-                snapshot = await service.get_execution(execution_id)
-            except ExecutionNotFoundError:
+            current = await snapshot()
+            if current is None:
                 return
-            snapshot_data = _info_to_response(snapshot).model_dump(mode="json")
-            yield _sse_event(json.dumps(snapshot_data), event="update")
-            if snapshot_data["status"] in _TERMINAL_STATUSES:
+            yield _sse_event(json.dumps(current), event="update")
+            if current["status"] in _TERMINAL_STATUSES:
                 return
 
             while True:
@@ -293,8 +306,20 @@ async def stream_execution(
                         queue.get(), timeout=_SSE_HEARTBEAT_SECONDS
                     )
                 except asyncio.TimeoutError:
-                    yield ": ping\n\n"
+                    # The run may be owned by another Hub process, whose
+                    # events this process's broker never sees: re-read it.
+                    latest = await snapshot()
+                    if latest is None:
+                        break
+                    if latest["status"] != current["status"]:
+                        current = latest
+                        yield _sse_event(json.dumps(latest), event="update")
+                        if latest["status"] in _TERMINAL_STATUSES:
+                            break
+                    else:
+                        yield ": ping\n\n"
                     continue
+                current = event
                 yield _sse_event(json.dumps(event), event="update")
                 if event.get("status") in _TERMINAL_STATUSES:
                     break

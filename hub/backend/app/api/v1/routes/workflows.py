@@ -10,6 +10,7 @@ Provides CRUD operations for workflow files:
 
 from datetime import UTC, datetime
 from typing import Annotated, Any
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import (
@@ -40,7 +41,19 @@ from app.domain.workflows import (
     WorkflowService,
     WorkflowServiceError,
 )
-from app.domain.workflows.service import WorkflowParseError
+from app.domain.workflows.service import WorkflowInUseError, WorkflowParseError
+
+
+def _attachment(filename: str) -> str:
+    """Content-Disposition for any workflow name (RFC 6266 / RFC 5987).
+
+    Header values must be Latin-1, so non-ASCII names go in ``filename*``
+    with an ASCII fallback in ``filename``.
+    """
+    fallback = "".join(
+        c if c.isascii() and c.isprintable() and c not in '"\\' else "_" for c in filename
+    )
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename, safe='')}"
 
 router = APIRouter(prefix="/workflows")
 
@@ -405,13 +418,10 @@ async def download_workflow(
     content = service.get_file_bytes(workflow_id)
 
     # Return as downloadable file
-    filename = f"{info.name}.swwf"
     return Response(
         content=content,
         media_type="application/octet-stream",
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+        headers={"Content-Disposition": _attachment(f"{info.name}.swwf")},
     )
 
 
@@ -568,7 +578,10 @@ async def delete_workflow(
             detail="Cannot delete workflows uploaded by other users",
         )
 
-    await service.delete_workflow(workflow_id)
+    try:
+        await service.delete_workflow(workflow_id)
+    except WorkflowInUseError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
 # =============================================================================
@@ -647,12 +660,13 @@ async def download_workflow_revision(
             detail="Revision not found",
         )
 
-    filename = f"{info.name}.r{revision.revision_number}.swwf"
     return Response(
         content=blob,
         media_type="application/octet-stream",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": _attachment(
+                f"{info.name}.r{revision.revision_number}.swwf"
+            )
         },
     )
 
