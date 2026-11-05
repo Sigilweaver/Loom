@@ -9,7 +9,7 @@ description: Deploy Sigilweaver Loom Hub, PostgreSQL and Servers with Docker Com
 Deploy Hub, PostgreSQL and a Server with Docker Compose. The compose files live in the [`docker/`](https://github.com/Sigilweaver/Loom/tree/main/docker) directory of the repository.
 
 :::caution Open beta
-Hub runs as a **single replica**. Execution records and schedule claims are persisted in PostgreSQL, while execution runners and live updates run inside the Hub process. Read [Hub Open Beta](./hub-beta.md) before you plan for high availability.
+Hub runs as a **single replica**. Executions and schedule occurrences are queued and claimed through PostgreSQL and survive restarts, but live updates run inside the Hub process. Read [Hub Open Beta](./hub-beta.md) before you plan for high availability.
 :::
 
 ## What you get
@@ -228,7 +228,7 @@ Hub applies database migrations when it starts. Back up the database before you 
 
 ## Troubleshooting
 
-**Hub exits at startup.** Read `docker compose logs hub`. The usual cause is a missing or empty secret. Hub also stops if `CORS_ORIGINS` is not valid JSON, or if the database is unreachable after 30 attempts.
+**Hub exits at startup.** Read `docker compose logs hub`. The usual cause is a missing or empty secret. Hub also stops if `CORS_ORIGINS` is not valid JSON, or if the database is unreachable after 30 attempts. If a migration fails, Hub does not start and the log names the migration. Migration `011_not_null_drift` stops without changing anything if `audit_events.details` or `execution_records.execution_id` contain NULLs; the message gives the row counts to fix before you start Hub again.
 
 **A Server never appears in Admin > Servers.** Check that it has `HUB_SERVER_TOKEN` and `HUB_URL`, that `HUB_REGISTRATION_SECRET` matches Hub's `server_registration_secret`, and that the Server's log shows a successful registration.
 

@@ -9,7 +9,6 @@ import {
   Package,
   Play,
   Server,
-  Settings,
   ShieldCheck,
   Users,
   UsersRound,
@@ -63,9 +62,6 @@ const adminSections: NavSection[] = [
       { to: "/admin/groups", label: "User Groups", icon: UsersRound },
       { to: "/admin/grant-groups", label: "Grant Groups", icon: Package },
     ],
-  },
-  {
-    items: [{ to: "/admin/settings", label: "Settings", icon: Settings }],
   },
 ];
 

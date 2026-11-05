@@ -10,6 +10,8 @@ import { useAIStore, type ChatMessage } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { v4 as uuid } from 'uuid';
 import { createLogger } from '../utils/logger';
+import { classifyError } from './errors';
+import { formatAuditMessage } from './auditFormat';
 
 const logger = createLogger('AI:Audit');
 
@@ -34,6 +36,8 @@ export async function runAudit(
   const cfg = store.getAuditModelConfig();
   if (!cfg.model) {
     logger.warn('Audit enabled but no model configured - skipping');
+    const content = formatAuditMessage('warning', 'auditing is on but no audit model is set (Settings -> AI). The changes above were not reviewed.');
+    store.addMessage({ id: uuid(), role: 'assistant', content, timestamp: Date.now(), segments: [{ type: 'text', content }] });
     return;
   }
 
@@ -50,7 +54,7 @@ export async function runAudit(
     const canvasSummary = tools.length > 0
       ? tools.map((t) => {
           const commentNote = t.comment ? ` // "${t.comment}"` : ' // (no comment)';
-          return `  ${t.type} [${t.id.slice(0, 8)}]${commentNote}`;
+          return `  ${t.type} [${t.id}]${commentNote}`;
         }).join('\n')
       : '  (empty canvas)';
     const toolsWithoutComments = tools.filter((t) => !t.comment).length;
@@ -58,7 +62,7 @@ export async function runAudit(
       ? wires.map((w) => {
           const from = tools.find((t) => t.id === w.from.tool);
           const to = tools.find((t) => t.id === w.to.tool);
-          return `  ${from?.type ?? '?'} → ${to?.type ?? '?'}`;
+          return `  ${from?.type ?? "?"} -> ${to?.type ?? "?"}`;
         }).join('\n')
       : '  (no connections)';
 
@@ -113,18 +117,22 @@ ${wireSummary}`;
     });
 
     const auditText = (result.text ?? '').trim();
-    if (!auditText) return;
 
-    // Parse the verdict
-    const isWarning = auditText.startsWith('WARNING:');
-    const prefix = isWarning ? 'Audit warning' : 'Audit passed';
+    // Parse the verdict. Anything but an explicit PASS is reported as a
+    // warning, so a malformed or empty reply is never shown as a pass.
+    const verdict = /^(PASS|WARNING):\s*/.exec(auditText);
+    const content = verdict?.[1] === 'PASS'
+      ? formatAuditMessage('passed', auditText.slice(verdict[0].length))
+      : verdict
+        ? formatAuditMessage('warning', auditText.slice(verdict[0].length))
+        : formatAuditMessage('warning', `the auditor gave no verdict${auditText ? `: ${auditText.slice(0, 200)}` : ''}.`);
 
     const auditMsg: ChatMessage = {
       id: uuid(),
       role: 'assistant',
-      content: `${prefix}: ${auditText.replace(/^(PASS|WARNING):\s*/, '')}`,
+      content,
       timestamp: Date.now(),
-      segments: [{ type: 'text', content: `${prefix}: ${auditText.replace(/^(PASS|WARNING):\s*/, '')}` }],
+      segments: [{ type: 'text', content }],
     };
 
     store.addMessage(auditMsg);
@@ -140,7 +148,17 @@ ${wireSummary}`;
 
     logger.info('Audit complete:', auditText.slice(0, 80));
   } catch (err) {
+    // Non-fatal for the turn, but the user enabled auditing and must know it
+    // did not happen.
     logger.error('Audit failed:', err);
-    // Non-fatal - don't surface audit failures to the user
+    const reason = classifyError(err).displayMessage;
+    const content = formatAuditMessage('warning', `the audit could not run (${reason}). The changes above were not reviewed.`);
+    store.addMessage({
+      id: uuid(),
+      role: 'assistant',
+      content,
+      timestamp: Date.now(),
+      segments: [{ type: 'text', content }],
+    });
   }
 }

@@ -17,6 +17,7 @@ import { getToolDefinition } from '@data/tools';
 import { generateUniqueId } from '@utils/id';
 import { autoLayout } from '@domain/workflow/services/autoLayout';
 import { enrichToolConfig } from './tools/canvas';
+import { defaultOutputSocket, resolveToolType, unknownToolTypeError } from './tools/toolTypes';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
 import type { Tool, Wire, WorkflowMeta, ToolConfig } from '@domain/workflow/entities/workflow';
 import { DEFAULT_ENGINE } from '@domain/workflow/entities/workflow';
@@ -41,9 +42,9 @@ export interface SimplifiedConnection {
   from: string;
   /** Target step ID */
   to: string;
-  /** Source socket name (defaults to "Output") - socket ID, not tool name */
+  /** Source socket ID (defaults to the tool's first output) */
   fromSocket?: string | undefined;
-  /** Target socket name (defaults to "Input") - socket ID, not tool name */
+  /** Target socket ID (defaults to the tool's first input) */
   toSocket?: string | undefined;
 }
 
@@ -85,9 +86,9 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
   // 1. Validate and create tools
   const tools: Tool[] = [];
   for (const step of spec.steps) {
-    const def = getToolDefinition(step.type);
+    const def = getToolDefinition(resolveToolType(step.type) ?? step.type);
     if (!def) {
-      errors.push(`Unknown tool type: "${step.type}" (step "${step.id}")`);
+      errors.push(`${unknownToolTypeError(step.type)} (step "${step.id}")`);
       continue;
     }
 
@@ -103,7 +104,7 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
     const config: ToolConfig = { ...def.defaultConfig };
     if (step.config) {
       // Run enrichment for tool types that need config normalization
-      const enriched = enrichToolConfig(step.type, step.config);
+      const enriched = enrichToolConfig(def.type, step.config);
       for (const [key, value] of Object.entries(enriched)) {
         config[key] = value as ToolConfig[string];
       }
@@ -147,13 +148,19 @@ export function compileSpec(spec: SimplifiedSpec, author?: string): CompileResul
 
     if (!fromTool || !toTool) continue;
 
-    // Resolve socket IDs
-    const fromSocket = conn.fromSocket
-      ?? fromTool.sockets.find((s) => s.direction === 'output')?.id
-      ?? 'Output';
-    const toSocket = conn.toSocket
-      ?? toTool.sockets.find((s) => s.direction === 'input')?.id
-      ?? 'Input';
+    // Resolve socket IDs, defaulting to the first output/input
+    const outputs = fromTool.sockets.filter((s) => s.direction === 'output').map((s) => s.id);
+    const inputs = toTool.sockets.filter((s) => s.direction === 'input').map((s) => s.id);
+    const fromSocket = conn.fromSocket ?? defaultOutputSocket(fromTool);
+    const toSocket = conn.toSocket ?? inputs[0];
+    if (!fromSocket || !outputs.includes(fromSocket)) {
+      errors.push(`Connection ${conn.from} -> ${conn.to}: ${fromTool.type} has no output socket "${conn.fromSocket ?? ''}". Outputs: ${outputs.join(', ') || 'none'}`);
+      continue;
+    }
+    if (!toSocket || !inputs.includes(toSocket)) {
+      errors.push(`Connection ${conn.from} -> ${conn.to}: ${toTool.type} has no input socket "${conn.toSocket ?? ''}". Inputs: ${inputs.join(', ') || 'none'}`);
+      continue;
+    }
 
     wires.push({
       from: { tool: fromId, socket: fromSocket },

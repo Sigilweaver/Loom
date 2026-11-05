@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildWorkflowSystemPrompt } from "../prompts/system";
+import { buildWorkflowSystemPrompt, buildWorkflowSystemPromptParts } from "../prompts/system";
 import { buildExpressionPrompt } from "../prompts/expression";
 import { buildFormulaCatalogForPrompt } from "../prompts/formulaCatalog";
 import type { Tool, Wire, WorkflowMeta, FieldValue, EmissionMap } from "@domain/workflow/entities/workflow";
@@ -187,5 +187,22 @@ describe("formula catalog for prompt", () => {
     const catalog = buildFormulaCatalogForPrompt();
     expect(catalog).toContain("mode");
     expect(catalog).toContain("operand");
+  });
+});
+
+describe("buildWorkflowSystemPromptParts", () => {
+  it("keeps canvas state out of the cacheable stable part", () => {
+    const meta = makeMetadata();
+    const empty = buildWorkflowSystemPromptParts([], [], meta);
+    expect(empty.stable).not.toContain("Current Workflow");
+    expect(empty.dynamic).toContain("Current Workflow");
+    const again = buildWorkflowSystemPromptParts([], [], { ...meta, name: "Other" });
+    expect(again.stable).toBe(empty.stable);
+  });
+
+  it("joins back to the full prompt", () => {
+    const meta = makeMetadata();
+    const parts = buildWorkflowSystemPromptParts([], [], meta);
+    expect(buildWorkflowSystemPrompt([], [], meta)).toBe(`${parts.stable}\n${parts.dynamic}`);
   });
 });

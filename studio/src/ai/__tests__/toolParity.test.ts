@@ -1,97 +1,75 @@
 /**
- * Tool-Registry Parity Test
+ * Agent tool registry checks.
  *
- * Validates that the runtime AGENT_TOOLS registry and the UI TOOL_DESCRIPTIONS
- * map stay in sync. This prevents drift where a tool is added to the agent
- * but not described in the UI (or vice versa).
- *
- * Strategy: Read the source files at test time and extract object keys via
- * regex. This avoids importing the modules (which pull in heavy AI SDK deps)
- * while still catching real drift automatically - no hardcoded canonical list
- * that a developer could forget to update.
+ * The chat export and the model both read tool descriptions from AGENT_TOOLS
+ * itself, so there is no second registry to keep in sync. These tests guard
+ * the remaining drift points: tool names the system prompt and tool
+ * descriptions mention must exist, and every tool must summarize into chat
+ * history.
  */
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { getAgentToolDescriptions, summarizeToolResult } from '../agent';
+import { buildWorkflowSystemPrompt } from '../prompts/system';
+import type { WorkflowMeta } from '@domain/workflow/entities/workflow';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const tools = getAgentToolDescriptions();
+const names = new Set(tools.map(([name]) => name));
 
-/**
- * Extract object keys from a source file section.
- * Matches lines like `  key_name: someValue,` within the first
- * occurrence of `const <objectName> = {` ... `};`.
- */
-function extractObjectKeys(source: string, objectName: string): string[] {
-  // Find the object declaration and its body
-  const pattern = new RegExp(
-    `(?:const|let|var)\\s+${objectName}\\s*(?::[^=]+=|=)\\s*\\{([^}]+)\\}`,
-    's',
-  );
-  const match = source.match(pattern);
-  if (!match) return [];
+const meta: WorkflowMeta = {
+  name: 'Test',
+  description: '',
+  author: '',
+  workflowId: 'w',
+  created: '2026-01-01T00:00:00Z',
+  defaultEngine: 'core/polars',
+};
 
-  const body = match[1]!;
-  const keys: string[] = [];
-  // Match keys like `  key_name:` (with optional quotes)
-  for (const line of body.split('\n')) {
-    const keyMatch = line.match(/^\s+['"]?([a-z][a-z0-9_]*)['"]?\s*:/);
-    if (keyMatch) {
-      keys.push(keyMatch[1]!);
-    }
+/** snake_case identifiers in backticks or bare that look like agent tool names. */
+function mentionedToolNames(text: string): string[] {
+  const found = new Set<string>();
+  for (const m of text.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)) found.add(m[1]!);
+  for (const m of text.matchAll(/\b((?:add|update|patch|insert|remove|connect|disconnect|batch|list|search|preview|get|profile|describe|query|build|ask|validate|run)_[a-z_]+)\b/g)) {
+    found.add(m[1]!);
   }
-  return keys;
+  return [...found];
 }
 
-// Read source files once
-const agentSource = readFileSync(resolve(__dirname, '../agent.ts'), 'utf-8');
-const chatPanelSource = readFileSync(
-  resolve(__dirname, '../../components/ai/AIChatPanel.tsx'),
-  'utf-8',
-);
-
-const agentToolKeys = extractObjectKeys(agentSource, 'AGENT_TOOLS');
-const toolDescriptionKeys = extractObjectKeys(chatPanelSource, 'TOOL_DESCRIPTIONS');
-
-describe('tool-registry parity', () => {
-  it('should extract AGENT_TOOLS keys from source', () => {
-    expect(agentToolKeys.length).toBeGreaterThan(0);
-  });
-
-  it('should extract TOOL_DESCRIPTIONS keys from source', () => {
-    expect(toolDescriptionKeys.length).toBeGreaterThan(0);
-  });
-
-  it('AGENT_TOOLS and TOOL_DESCRIPTIONS should have the same keys', () => {
-    const agentSet = new Set(agentToolKeys);
-    const descSet = new Set(toolDescriptionKeys);
-
-    const missingFromDescriptions = agentToolKeys.filter((k) => !descSet.has(k));
-    const extraInDescriptions = toolDescriptionKeys.filter((k) => !agentSet.has(k));
-
-    expect(missingFromDescriptions).toEqual([]);
-    expect(extraInDescriptions).toEqual([]);
-    expect(agentToolKeys.sort()).toEqual(toolDescriptionKeys.sort());
-  });
-
-  it('should have no duplicate entries in either registry', () => {
-    expect(new Set(agentToolKeys).size).toBe(agentToolKeys.length);
-    expect(new Set(toolDescriptionKeys).size).toBe(toolDescriptionKeys.length);
-  });
-
-  it('summarizeToolResult should handle every registered tool', async () => {
-    // Dynamic import - only loads the summarize function
-    const { summarizeToolResult } = await import('../agent');
-    for (const tool of agentToolKeys) {
-      const result = summarizeToolResult(tool, { success: true });
-      expect(typeof result).toBe('string');
+describe('agent tool registry', () => {
+  it('registers tools with snake_case names and real descriptions', () => {
+    expect(tools.length).toBeGreaterThan(10);
+    for (const [name, description] of tools) {
+      expect(name).toMatch(/^[a-z][a-z0-9_]*$/);
+      expect(description.length, name).toBeGreaterThan(20);
     }
   });
 
-  it('tool names should be valid snake_case identifiers', () => {
-    for (const tool of agentToolKeys) {
-      expect(tool).toMatch(/^[a-z][a-z0-9_]*$/);
+  it('every tool name the system prompt mentions exists', () => {
+    const prompt = buildWorkflowSystemPrompt([], [], meta, { auditEnabled: true });
+    const unknown = mentionedToolNames(prompt).filter((n) => !names.has(n) && !NON_TOOL_IDENTIFIERS.has(n));
+    expect(unknown).toEqual([]);
+  });
+
+  it('every tool name a tool description mentions exists', () => {
+    const unknown: string[] = [];
+    for (const [name, description] of tools) {
+      for (const n of mentionedToolNames(description)) {
+        if (!names.has(n) && !NON_TOOL_IDENTIFIERS.has(n)) unknown.push(`${name} -> ${n}`);
+      }
+    }
+    expect(unknown).toEqual([]);
+  });
+
+  it('summarizeToolResult handles every registered tool', () => {
+    for (const [name] of tools) {
+      expect(typeof summarizeToolResult(name, { success: true })).toBe('string');
     }
   });
 });
+
+/** snake_case words that appear in prompts but are config keys, not tools. */
+const NON_TOOL_IDENTIFIERS = new Set([
+  'column_name', 'is_null', 'is_not_null', 'not_contains', 'starts_with', 'ends_with',
+  'has_header', 'sheet_name', 'sheet_id', 'include_header', 'is_true', 'is_false',
+  'count_distinct',
+]);

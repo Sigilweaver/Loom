@@ -12,6 +12,8 @@ import { User, Bot, ChevronDown, ChevronRight, Wrench, ShieldCheck, ShieldAlert 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import clsx from 'clsx';
+import { parseAuditMessage } from '../../ai/auditFormat';
+import TurnChangesCard from './TurnChangesCard';
 
 /**
  * Normalize segments for display.
@@ -32,23 +34,9 @@ interface ChatMessageProps {
   debug?: boolean;
 }
 
-/**
- * Detect if a message is an audit result by checking content prefix.
- * Returns { isAudit: true, isWarning, text } if it's an audit message.
- */
-function parseAuditMessage(msg: ChatMessageType): { isAudit: boolean; isWarning: boolean; text: string } {
-  const content = msg.content ?? '';
-  if (content.startsWith('\u2705 Audit:') || content.startsWith('\u26A0\uFE0F Audit:')) {
-    const isWarning = content.startsWith('\u26A0\uFE0F');
-    const text = content.replace(/^(?:\u2705|\u26A0\uFE0F)\s*Audit:\s*/, '');
-    return { isAudit: true, isWarning, text };
-  }
-  return { isAudit: false, isWarning: false, text: '' };
-}
-
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => {
   const isUser = message.role === 'user';
-  const audit = useMemo(() => parseAuditMessage(message), [message]);
+  const audit = useMemo(() => parseAuditMessage(message.content), [message]);
 
   // Audit messages get a compact, collapsible treatment
   if (audit.isAudit) {
@@ -87,6 +75,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => 
         ) : (
           <LegacyContent message={message} debug={debug} />
         )}
+
+        {message.changes && <TurnChangesCard messageId={message.id} changes={message.changes} />}
       </div>
     </div>
   );

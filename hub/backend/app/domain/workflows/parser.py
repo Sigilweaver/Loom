@@ -7,6 +7,8 @@ import json
 import logging
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.domain.workflows.models import ParsedWorkflow, WorkflowMeta
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ class WorkflowParser:
 
     REQUIRED_FIELDS = {"version", "meta", "tools", "wires"}
     REQUIRED_META_FIELDS = {"name", "workflowId"}
+    MAX_META_LENGTH = 255
 
     def parse(self, content: bytes) -> ParsedWorkflow:
         """Parse workflow file content.
@@ -75,21 +78,37 @@ class WorkflowParser:
         if not isinstance(data["wires"], list):
             raise ParseError("Field 'wires' must be an array")
 
-        # Build WorkflowMeta with defaults
-        workflow_meta = WorkflowMeta(
-            name=meta.get("name", ""),
-            description=meta.get("description", ""),
-            author=meta.get("author", ""),
-            workflow_id=meta.get("workflowId", ""),
-            created=meta.get("created", ""),
-        )
+        # The database stores these in 255-character columns.
+        for key in ("name", "author", "workflowId"):
+            value = meta.get(key, "")
+            if not isinstance(value, str):
+                raise ParseError(f"Invalid meta field: '{key}' must be a string")
+            if len(value) > self.MAX_META_LENGTH:
+                raise ParseError(
+                    f"Invalid meta field: '{key}' is longer than "
+                    f"{self.MAX_META_LENGTH} characters"
+                )
 
-        return ParsedWorkflow(
-            version=data["version"],
-            meta=workflow_meta,
-            tools=data["tools"],
-            wires=data["wires"],
-        )
+        try:
+            workflow_meta = WorkflowMeta(
+                name=meta.get("name", ""),
+                description=meta.get("description", ""),
+                author=meta.get("author", ""),
+                workflow_id=meta.get("workflowId", ""),
+                created=meta.get("created", ""),
+            )
+            return ParsedWorkflow(
+                version=data["version"],
+                meta=workflow_meta,
+                tools=data["tools"],
+                wires=data["wires"],
+            )
+        except ValidationError as e:
+            problems = "; ".join(
+                f"{'.'.join(str(p) for p in err['loc']) or 'workflow'}: {err['msg']}"
+                for err in e.errors()
+            )
+            raise ParseError(f"Invalid workflow file: {problems}") from e
 
     def extract_metadata(self, content: bytes) -> WorkflowMeta:
         """Extract just metadata from workflow file.

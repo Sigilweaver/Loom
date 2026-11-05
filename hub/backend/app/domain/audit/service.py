@@ -101,10 +101,12 @@ class AuditService:
             schedule_id=schedule_id,
             actor_type=actor_type,
             actor_id=actor_id,
-            actor_identity=actor_identity,
+            actor_identity=actor_identity[:255],
             auth_method=auth_method,
-            client_ip=client_ip,
-            user_agent=user_agent,
+            # Client-supplied; clip to the column sizes rather than failing
+            # the request that is being audited.
+            client_ip=client_ip[:45] if client_ip else client_ip,
+            user_agent=user_agent[:512] if user_agent else user_agent,
             server_id=server_id,
             details=details or {},
             previous_hash=previous_hash,

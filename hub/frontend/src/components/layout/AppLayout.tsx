@@ -172,6 +172,7 @@ export function AppLayout() {
 
       {/* Desktop sidebar */}
       <aside
+        aria-label="Sidebar"
         className={clsx(
           "hidden shrink-0 flex-col border-r border-line bg-surface-raised transition-[width] duration-200 md:flex",
           collapsed ? "w-16" : "w-64"

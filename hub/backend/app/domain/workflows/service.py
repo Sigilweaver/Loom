@@ -9,10 +9,10 @@ import json
 import logging
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Workflow, WorkflowRevision
+from app.db.models import Execution, Schedule, Workflow, WorkflowRevision
 from app.domain.workflows.models import (
     CreateWorkflowInput,
     UpdateWorkflowInput,
@@ -40,6 +40,12 @@ class WorkflowNotFoundError(WorkflowServiceError):
 
 class WorkflowParseError(WorkflowServiceError):
     """Raised when workflow file parsing fails."""
+
+    pass
+
+
+class WorkflowInUseError(WorkflowServiceError):
+    """Raised when deleting a workflow that schedules or executions reference."""
 
     pass
 
@@ -206,7 +212,11 @@ class WorkflowService:
             message=message or "Initial upload",
         )
 
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            self._restore_file(workflow.id, None)
+            raise
         await self.db.refresh(workflow)
 
         logger.info(
@@ -393,32 +403,27 @@ class WorkflowService:
             WorkflowNotFoundError: If workflow doesn't exist.
             WorkflowParseError: If new content is invalid.
         """
+        # Lock the row: concurrent saves of one workflow are serialized, so
+        # they cannot pick the same revision number or interleave file writes.
         result = await self.db.execute(
-            select(Workflow).where(Workflow.id == workflow_id)
+            select(Workflow).where(Workflow.id == workflow_id).with_for_update()
         )
         workflow = result.scalar_one_or_none()
 
         if not workflow:
             raise WorkflowNotFoundError(f"Workflow not found: {workflow_id}")
 
-        # Update file content if provided
         if content is not None:
             try:
                 parsed = self.parser.parse(content)
             except ParseError as e:
                 raise WorkflowParseError(str(e))
 
-            try:
-                checksum = self.file_store.save(workflow_id, content, overwrite=True)
-            except Exception as e:
-                raise WorkflowServiceError(f"Failed to save workflow file: {e}")
-
-            # Update metadata from new file
             workflow.name = parsed.meta.name
             workflow.description = parsed.meta.description
             workflow.author = parsed.meta.author
             workflow.workflow_id = parsed.meta.workflow_id
-            workflow.checksum = checksum
+            workflow.checksum = self.file_store.calculate_checksum(content)
 
             # Record a new revision for the content change.
             await self._create_revision(
@@ -428,7 +433,6 @@ class WorkflowService:
                 message=message or "Updated workflow",
             )
 
-        # Update metadata fields if provided
         if input is not None:
             if input.folder_path is not None:
                 workflow.folder_path = input.folder_path
@@ -436,10 +440,43 @@ class WorkflowService:
             if input.tags is not None:
                 workflow.tags = ",".join(input.tags)
 
-        await self.db.commit()
+        # Surface database errors before the file on disk changes.
+        await self.db.flush()
+
+        previous: bytes | None = None
+        if content is not None:
+            if self.file_store.exists(workflow_id):
+                previous = self.file_store.load(workflow_id)
+            try:
+                self.file_store.save(workflow_id, content, overwrite=True)
+            except Exception as e:
+                await self.db.rollback()
+                raise WorkflowServiceError(f"Failed to save workflow file: {e}")
+
+        try:
+            await self.db.commit()
+        except Exception:
+            if content is not None:
+                self._restore_file(workflow_id, previous)
+            raise
         await self.db.refresh(workflow)
 
         return self._model_to_info(workflow)
+
+    def _restore_file(self, workflow_id: UUID, previous: bytes | None) -> None:
+        """Put back the file content that matches the (rolled back) database."""
+        try:
+            if previous is None:
+                if self.file_store.exists(workflow_id):
+                    self.file_store.delete(workflow_id)
+            else:
+                self.file_store.save(workflow_id, previous, overwrite=True)
+        except Exception:
+            logger.exception(
+                "Failed to restore workflow file %s after a failed save; its "
+                "content no longer matches the stored checksum",
+                workflow_id,
+            )
 
     # =========================================================================
     # Revision history
@@ -570,56 +607,6 @@ class WorkflowService:
             message=message or f"Rollback to revision {target.revision_number}",
         )
 
-    async def update_file(
-        self,
-        workflow_id: UUID,
-        content: bytes,
-    ) -> WorkflowInfo:
-        """Update workflow file content.
-
-        Args:
-            workflow_id: The workflow UUID.
-            content: New file content.
-
-        Returns:
-            Updated WorkflowInfo.
-
-        Raises:
-            WorkflowNotFoundError: If workflow doesn't exist.
-            WorkflowParseError: If new content is invalid.
-        """
-        result = await self.db.execute(
-            select(Workflow).where(Workflow.id == workflow_id)
-        )
-        workflow = result.scalar_one_or_none()
-
-        if not workflow:
-            raise WorkflowNotFoundError(f"Workflow not found: {workflow_id}")
-
-        # Parse and validate new content
-        try:
-            parsed = self.parser.parse(content)
-        except ParseError as e:
-            raise WorkflowParseError(str(e))
-
-        # Save new file
-        try:
-            checksum = self.file_store.save(workflow_id, content, overwrite=True)
-        except Exception as e:
-            raise WorkflowServiceError(f"Failed to save workflow file: {e}")
-
-        # Update metadata from new file
-        workflow.name = parsed.meta.name
-        workflow.description = parsed.meta.description
-        workflow.author = parsed.meta.author
-        workflow.workflow_id = parsed.meta.workflow_id
-        workflow.checksum = checksum
-
-        await self.db.commit()
-        await self.db.refresh(workflow)
-
-        return self._model_to_info(workflow)
-
     async def delete_workflow(self, workflow_id: UUID) -> None:
         """Delete a workflow.
 
@@ -637,19 +624,37 @@ class WorkflowService:
         if not workflow:
             raise WorkflowNotFoundError(f"Workflow not found: {workflow_id}")
 
-        # Delete file
+        executions = (
+            await self.db.execute(
+                select(func.count()).select_from(Execution).where(
+                    Execution.workflow_id == workflow_id
+                )
+            )
+        ).scalar_one()
+        schedules = (
+            await self.db.execute(
+                select(func.count()).select_from(Schedule).where(
+                    Schedule.workflow_id == workflow_id
+                )
+            )
+        ).scalar_one()
+        if executions or schedules:
+            raise WorkflowInUseError(
+                f"Workflow has {schedules} schedule(s) and {executions} "
+                "execution(s); delete its schedules first. Workflows with "
+                "execution history are kept."
+            )
+
+        # Delete the database record first, so a failure leaves the workflow
+        # intact rather than a row without its file.
+        await self.db.delete(workflow)
+        await self.db.commit()
+
         try:
             if self.file_store.exists(workflow_id):
                 self.file_store.delete(workflow_id)
-        except Exception as e:
-            logger.warning(
-                "Failed to delete workflow file",
-                extra={"workflow_id": str(workflow_id), "error": str(e)},
-            )
-
-        # Delete database record
-        await self.db.delete(workflow)
-        await self.db.commit()
+        except Exception:
+            logger.exception("Failed to delete file of deleted workflow %s", workflow_id)
 
         logger.info(
             "Deleted workflow",

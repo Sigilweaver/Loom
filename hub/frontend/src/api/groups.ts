@@ -19,10 +19,7 @@ export function listGroups(): Promise<GroupListResponse> {
   return request("/groups");
 }
 
-export function createGroup(data: {
-  name: string;
-  description?: string;
-}): Promise<GroupResponse> {
+export function createGroup(data: Schemas["GroupCreate"]): Promise<GroupResponse> {
   return request("/groups", { method: "POST", json: data });
 }
 
@@ -32,7 +29,7 @@ export function getGroup(id: string): Promise<GroupResponse> {
 
 export function updateGroup(
   id: string,
-  data: { name?: string; description?: string }
+  data: Schemas["GroupUpdate"]
 ): Promise<GroupResponse> {
   return request(`/groups/${id}`, { method: "PATCH", json: data });
 }
