@@ -1,30 +1,12 @@
 /** Workflow schedules. */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 import type { ExecutionResponse } from "./executions";
 
-export interface ScheduleResponse {
-  id: string;
-  workflow_id: string;
-  workflow_name: string | null;
-  cron_expression: string;
-  timezone: string;
-  target_server_id: string | null;
-  target_server_name: string | null;
-  enabled: boolean;
-  description: string | null;
-  start_at: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string | null;
-  last_triggered_at: string | null;
-  next_trigger_at: string | null;
-}
+export type ScheduleResponse = Schemas["ScheduleResponse"];
 
-export interface ScheduleListResponse {
-  schedules: ScheduleResponse[];
-  total: number;
-}
+export type ScheduleListResponse = Schemas["ScheduleListResponse"];
 
 /** List schedules (auto-filtered by ownership for regular users). */
 export function listSchedules(params?: {

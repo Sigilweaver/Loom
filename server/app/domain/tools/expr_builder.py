@@ -28,6 +28,18 @@ PivotAgg = Literal["first", "last", "sum", "mean", "median", "min", "max", "len"
 _PIVOT_AGGS: dict[str, PivotAgg] = {name: name for name in get_args(PivotAgg)}
 
 
+def _q(name: str) -> str:
+    """Render a column name as a double-quoted Python string literal."""
+    escaped = (
+        name.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
 class ExprNode(ABC):
     """Base class for expression AST nodes."""
 
@@ -190,8 +202,10 @@ class FilterOperation:
 
         from app.utils.expression import parse_polars_expression
 
+        # A null predicate is "not true": those rows belong on the False output.
+        # Without fill_null they would match neither branch and silently vanish.
         filter_expr = parse_polars_expression(self.expr_str)
-        return lf.filter(filter_expr), lf.filter(~filter_expr)
+        return lf.filter(filter_expr), lf.filter(~filter_expr.fill_null(False))
 
     def to_code(self, input_var: str, var_t: str, var_f: str) -> list[str]:
         """Generate Python code for filter operation."""
@@ -206,7 +220,7 @@ class FilterOperation:
         expr_code = normalize_expression(self.expr_str)
         return [
             f"{var_t} = {input_var}.filter({expr_code})",
-            f"{var_f} = {input_var}.filter(~({expr_code}))",
+            f"{var_f} = {input_var}.filter(~({expr_code}).fill_null(False))",
         ]
 
 
@@ -263,14 +277,19 @@ class SortOperation:
         descending = [c.descending for c in self.columns]
         nulls_last = [c.nulls_last for c in self.columns]
 
-        return lf.sort(by=by_columns, descending=descending, nulls_last=nulls_last)
+        return lf.sort(
+            by=by_columns,
+            descending=descending,
+            nulls_last=nulls_last,
+            maintain_order=True,
+        )
 
     def to_code(self, input_var: str, output_var: str) -> list[str]:
         """Generate Python code for sort operation."""
         if not self.columns:
             return [f"{output_var} = {input_var}"]
 
-        by_str = ", ".join(f'"{c.column}"' for c in self.columns)
+        by_str = ", ".join(_q(c.column) for c in self.columns)
         desc_str = ", ".join("True" if c.descending else "False" for c in self.columns)
         nulls_str = ", ".join("True" if c.nulls_last else "False" for c in self.columns)
 
@@ -279,6 +298,7 @@ class SortOperation:
             f"    by=[{by_str}],",
             f"    descending=[{desc_str}],",
             f"    nulls_last=[{nulls_str}],",
+            "    maintain_order=True,",
             ")",
         ]
 
@@ -464,13 +484,13 @@ class SummarizeOperation:
         if not self.aggregations:
             if not self.group_by_columns:
                 return lf
-            return lf.select(self.group_by_columns).unique()
+            return lf.select(self.group_by_columns).unique(maintain_order=True)
 
         # Build aggregation expressions
         agg_exprs = [agg.to_polars() for agg in self.aggregations]
 
         if self.group_by_columns:
-            return lf.group_by(self.group_by_columns).agg(agg_exprs)
+            return lf.group_by(self.group_by_columns, maintain_order=True).agg(agg_exprs)
         else:
             return lf.select(agg_exprs)
 
@@ -480,15 +500,18 @@ class SummarizeOperation:
         if not self.aggregations:
             if not self.group_by_columns:
                 return [f"{output_var} = {input_var}"]
-            cols_str = ", ".join(f'"{c}"' for c in self.group_by_columns)
-            return [f"{output_var} = {input_var}.select([{cols_str}]).unique()"]
+            cols_str = ", ".join(_q(c) for c in self.group_by_columns)
+            return [f"{output_var} = {input_var}.select([{cols_str}]).unique(maintain_order=True)"]
 
         # Build aggregation code
         agg_code_parts = [agg.to_code() for agg in self.aggregations]
 
         if self.group_by_columns:
-            group_by_str = ", ".join(f'"{c}"' for c in self.group_by_columns)
-            lines = [f"{output_var} = {input_var}.group_by([{group_by_str}]).agg(["]
+            group_by_str = ", ".join(_q(c) for c in self.group_by_columns)
+            lines = [
+                f"{output_var} = {input_var}.group_by("
+                f"[{group_by_str}], maintain_order=True).agg(["
+            ]
         else:
             lines = [f"{output_var} = {input_var}.select(["]
 
@@ -546,6 +569,7 @@ class JoinOperation:
             how=how,
             suffix=self.right_suffix,
             coalesce=True,
+            maintain_order="left" if how != "right" else "right",
         )
 
         # Anti-join for unmatched rows
@@ -558,6 +582,7 @@ class JoinOperation:
                 left_on=self.left_keys,
                 right_on=self.right_keys,
                 how="anti",
+                maintain_order="left",
             )
 
         # For right/outer joins, unmatched_right is empty (already included in matched)
@@ -569,6 +594,7 @@ class JoinOperation:
                 left_on=self.right_keys,
                 right_on=self.left_keys,
                 how="anti",
+                maintain_order="left",
             )
 
         return unmatched_left, matched, unmatched_right
@@ -620,7 +646,8 @@ class JoinOperation:
                 f"right_on={right_keys_str}, "
                 f'how="{how}", '
                 f'suffix="{self.right_suffix}", '
-                f"coalesce=True)"
+                f"coalesce=True, "
+                f'maintain_order="{"right" if how == "right" else "left"}")'
             )
 
             if how in ("left", "full"):
@@ -635,7 +662,7 @@ class JoinOperation:
                     f"{right_var}, "
                     f"left_on={left_keys_str}, "
                     f"right_on={right_keys_str}, "
-                    f'how="anti")'
+                    f'how="anti", maintain_order="left")'
                 )
 
             if how in ("right", "full"):
@@ -650,7 +677,7 @@ class JoinOperation:
                     f"{left_var}, "
                     f"left_on={right_keys_str}, "
                     f"right_on={left_keys_str}, "
-                    f'how="anti")'
+                    f'how="anti", maintain_order="left")'
                 )
 
         return lines
@@ -671,7 +698,7 @@ class UnionOperation:
             return frames[0]
 
         if self.mode == "ByName":
-            return pl.concat(frames, how="diagonal")
+            return pl.concat(frames, how="diagonal_relaxed")
         elif self.mode == "ByPosition":
             first_frame = frames[0]
             target_cols = first_frame.collect_schema().names()
@@ -683,9 +710,9 @@ class UnionOperation:
                 rename_map = {old: new for old, new in zip(current_cols, target_cols)}
                 processed_frames.append(current_frame.rename(rename_map))
 
-            return pl.concat(processed_frames, how="vertical")
+            return pl.concat(processed_frames, how="vertical_relaxed")
         else:
-            return pl.concat(frames, how="vertical")
+            return pl.concat(frames, how="vertical_relaxed")
 
     def to_code(self, input_vars: list[str], output_var: str) -> list[str]:
         """Generate Python code for union operation."""
@@ -698,7 +725,7 @@ class UnionOperation:
         frames_str = ", ".join(input_vars)
 
         if self.mode == "ByName":
-            return [f'{output_var} = pl.concat([{frames_str}], how="diagonal")']
+            return [f'{output_var} = pl.concat([{frames_str}], how="diagonal_relaxed")']
         elif self.mode == "ByPosition":
             return [
                 "# Union by position - align columns to first frame",
@@ -709,10 +736,10 @@ class UnionOperation:
                 "    _curr_cols = _frame.collect_schema().names()",
                 "    _rename_map = {old: new for old, new in zip(_curr_cols, _first_cols)}",
                 "    _processed.append(_frame.rename(_rename_map))",
-                f'{output_var} = pl.concat(_processed, how="vertical")',
+                f'{output_var} = pl.concat(_processed, how="vertical_relaxed")',
             ]
         else:
-            return [f'{output_var} = pl.concat([{frames_str}], how="vertical")']
+            return [f'{output_var} = pl.concat([{frames_str}], how="vertical_relaxed")']
 
 
 @dataclass
@@ -758,7 +785,7 @@ class UniqueOperation:
 
         # Build key expression code
         if self.columns:
-            cols_str = ", ".join(f'"{c}"' for c in self.columns)
+            cols_str = ", ".join(_q(c) for c in self.columns)
             key_code = f"pl.struct([{cols_str}])"
         else:
             lines.append(f"_all_cols = {input_var}.collect_schema().names()")
@@ -798,12 +825,12 @@ class UnpivotOperation:
 
     def to_code(self, input_var: str, output_var: str) -> list[str]:
         """Generate Python code for unpivot operation."""
-        on_str = ", ".join(f'"{c}"' for c in self.on)
+        on_str = ", ".join(_q(c) for c in self.on)
         var_escaped = self.variable_name.replace("\\", "\\\\").replace('"', '\\"')
         val_escaped = self.value_name.replace("\\", "\\\\").replace('"', '\\"')
 
         if self.index:
-            index_str = ", ".join(f'"{c}"' for c in self.index)
+            index_str = ", ".join(_q(c) for c in self.index)
             return [
                 f"{output_var} = {input_var}.unpivot(",
                 f"    on=[{on_str}],",
@@ -870,7 +897,7 @@ class PivotOperation:
         lines = [f"_df_pivot_temp = {input_var}.collect()"]
 
         if self.index:
-            index_str = ", ".join(f'"{c}"' for c in self.index)
+            index_str = ", ".join(_q(c) for c in self.index)
             lines.extend(
                 [
                     f"{output_var} = _df_pivot_temp.pivot(",

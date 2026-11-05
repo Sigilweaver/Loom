@@ -761,6 +761,18 @@ def run_hub_frontend_typecheck(repo_root: Path) -> CheckResult:
     )
 
 
+def run_hub_frontend_api_types(repo_root: Path) -> CheckResult:
+    """Fail when the generated Hub API types differ from the backend schema."""
+    print_subheader("Hub Frontend API Types (openapi drift)")
+
+    return run_command(
+        ["bun", "run", "check:api"],
+        repo_root / "hub" / "frontend",
+        "Hub Frontend API Types",
+        fail_on_error=True
+    )
+
+
 def run_hub_frontend_lint(repo_root: Path, strict: bool = False) -> CheckResult:
     """Run ESLint on hub frontend code."""
     print_subheader("Hub Frontend Lint (eslint)")
@@ -841,6 +853,7 @@ def run_hub_suite(
     else:
         # Run frontend checks
         suite.checks.append(run_hub_frontend_typecheck(repo_root))
+        suite.checks.append(run_hub_frontend_api_types(repo_root))
         suite.checks.append(run_hub_frontend_lint(repo_root, strict=strict))
         suite.checks.append(run_hub_frontend_tests(repo_root, coverage=coverage))
 

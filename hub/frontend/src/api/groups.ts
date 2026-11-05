@@ -1,49 +1,19 @@
 /** User groups (access control) and their membership. */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 
-export interface GroupResponse {
-  id: string;
-  name: string;
-  description: string;
-  member_count: number;
-  connection_count: number;
-  created_by: string;
-  created_at: string;
-}
+export type GroupResponse = Schemas["GroupResponse"];
 
-export interface GroupListResponse {
-  groups: GroupResponse[];
-  total: number;
-}
+export type GroupListResponse = Schemas["GroupListResponse"];
 
-export interface GroupMemberResponse {
-  user_id: string;
-  username: string;
-  role: string;
-  joined_at: string;
-}
+export type GroupMemberResponse = Schemas["GroupMemberResponse"];
 
-export interface GroupMembersResponse {
-  group_id: string;
-  group_name: string;
-  members: GroupMemberResponse[];
-  total: number;
-}
+export type GroupMembersResponse = Schemas["GroupMembersResponse"];
 
-export interface GroupGrantGroupResponse {
-  grant_group_id: string;
-  grant_group_name: string;
-  connection_count: number;
-  assigned_at: string;
-}
+export type GroupGrantGroupResponse = Schemas["GroupGrantGroupResponse"];
 
-export interface GroupGrantGroupsResponse {
-  group_id: string;
-  group_name: string;
-  grant_groups: GroupGrantGroupResponse[];
-  total: number;
-}
+export type GroupGrantGroupsResponse = Schemas["GroupGrantGroupsResponse"];
 
 export function listGroups(): Promise<GroupListResponse> {
   return request("/groups");

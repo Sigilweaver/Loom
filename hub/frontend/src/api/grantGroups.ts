@@ -1,17 +1,9 @@
 /** Grant groups: permission bundles that link user groups to connections. */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 
-export interface GrantGroupSummary {
-  id: string;
-  name: string;
-  description: string;
-  connection_count: number;
-  user_group_count: number;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
+export type GrantGroupSummary = Schemas["GrantGroupSummary"];
 
 export interface GrantGroupConnection {
   connection_id: string;
@@ -30,15 +22,9 @@ export interface GrantGroupUserGroup {
   assigned_by: string;
 }
 
-export interface GrantGroupDetail extends GrantGroupSummary {
-  connections: GrantGroupConnection[];
-  user_groups: GrantGroupUserGroup[];
-}
+export type GrantGroupDetail = Schemas["GrantGroupDetail"];
 
-export interface GrantGroupListResponse {
-  grant_groups: GrantGroupSummary[];
-  total: number;
-}
+export type GrantGroupListResponse = Schemas["GrantGroupListResponse"];
 
 export function listGrantGroups(): Promise<GrantGroupListResponse> {
   return request("/grant-groups");
