@@ -48,10 +48,7 @@ All lease times come from the database clock (`now()`), so processes with skewed
 A claim is one statement:
 
 ```sql
-UPDATE executions
-SET claim_token = gen_random_uuid(), claimed_by = :me,
-    heartbeat_at = now(), attempts = attempts + 1
-WHERE id IN (
+WITH candidates AS MATERIALIZED (
   SELECT id FROM executions
   WHERE status = 'queued'
     AND (claim_token IS NULL
@@ -59,10 +56,14 @@ WHERE id IN (
   ORDER BY queued_at
   LIMIT :free_slots
   FOR UPDATE SKIP LOCKED)
+UPDATE executions
+SET claim_token = gen_random_uuid(), claimed_by = :me,
+    heartbeat_at = now(), attempts = attempts + 1
+FROM candidates WHERE executions.id = candidates.id
 RETURNING id, claim_token, attempts;
 ```
 
-`SKIP LOCKED` lets concurrent claimers take disjoint rows without waiting on each other. A process claims no more than its free slots (`EXECUTION_MAX_CONCURRENT`). The partial index `ix_executions_active` covers the queued and running rows the claim and the sweep read.
+`SKIP LOCKED` lets concurrent claimers take disjoint rows without waiting on each other. The CTE is `MATERIALIZED` so the locked candidate set is computed once and a claim never takes more than its free slots. A process claims no more than its free slots (`EXECUTION_MAX_CONCURRENT`). The partial index `ix_executions_active` covers the queued and running rows the claim and the sweep read.
 
 ## Running
 

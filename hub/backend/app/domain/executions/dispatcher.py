@@ -244,10 +244,15 @@ class ExecutionDispatcher:
             .order_by(Execution.queued_at)
             .limit(limit)
             .with_for_update(skip_locked=True)
+            # Materialized so the locked candidate set is computed once; an
+            # ``IN (subquery)`` may be re-evaluated by the planner and claim
+            # more than ``limit`` rows.
+            .cte("candidates")
+            .prefix_with("MATERIALIZED", dialect="postgresql")
         )
         stmt = (
             update(Execution)
-            .where(Execution.id.in_(candidates.scalar_subquery()))
+            .where(Execution.id == candidates.c.id)
             .values(
                 claim_token=func.gen_random_uuid(),
                 claimed_by=self.instance_id,
