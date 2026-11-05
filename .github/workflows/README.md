@@ -460,6 +460,14 @@ specific version, add `bun-version:` to the setup-bun step in these files:
 - `.github/workflows/build-studio-tauri.yml`
 - `.github/workflows/build-web.yml`
 
+### Updating Node Version
+
+Vitest, Vite and the other JavaScript tooling run on Node, which `ci.yml`
+installs with `actions/setup-node` from the root `.nvmrc`. To change the
+version, update `.nvmrc` and `.node-version` together and keep the `engines`
+minimum in `studio/package.json`, `hub/frontend/package.json` and
+`docs/package.json` at or below it.
+
 ### Updating Python Version
 
 The server build and CI read the version from `server/.python-version`.
