@@ -10,7 +10,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LogIn, UserPlus } from "lucide-react";
 import { useAuthStore, type UserRole } from "@state/authStore";
-import { getAuthStatus, login, readCsrfToken, register, type LoginResponse } from "@api";
+import { ApiError, getAuthStatus, login, readCsrfToken, register, type LoginResponse } from "@api";
 import { errorMessage, fieldError } from "@utils/errors";
 import { Alert, Button, Card, Field, Input, LoadingState } from "@components/ui";
 
@@ -107,7 +107,12 @@ export function LoginPage() {
       }
       setFieldErrors(next);
       if (Object.keys(next).length === 0) {
-        setError(errorMessage(err, isSetup ? "Setup failed" : "Login failed"));
+        // A 401 here means bad credentials, not an expired session.
+        setError(
+          err instanceof ApiError && err.isUnauthorized
+            ? err.message
+            : errorMessage(err, isSetup ? "Setup failed" : "Login failed")
+        );
       }
     } finally {
       setSubmitting(false);

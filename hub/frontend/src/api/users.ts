@@ -1,5 +1,6 @@
 /** User administration (admin/owner only). */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 import type { UserResponse } from "./auth";
 
@@ -11,10 +12,7 @@ export interface CreateUserRequest {
 
 export type CreateUserResponse = UserResponse;
 
-export interface UserListResponse {
-  users: UserResponse[];
-  total: number;
-}
+export type UserListResponse = Schemas["UserListResponse"];
 
 export function createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
   return request("/users", { method: "POST", json: data });
