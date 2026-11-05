@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import clsx from 'clsx';
 import { parseAuditMessage } from '../../ai/auditFormat';
+import TurnChangesCard from './TurnChangesCard';
 
 /**
  * Normalize segments for display.
@@ -74,6 +75,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, debug = false }) => 
         ) : (
           <LegacyContent message={message} debug={debug} />
         )}
+
+        {message.changes && <TurnChangesCard messageId={message.id} changes={message.changes} />}
       </div>
     </div>
   );

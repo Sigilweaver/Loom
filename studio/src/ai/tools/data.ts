@@ -14,7 +14,8 @@ import {
   getToolSchema,
   profileColumns,
 } from '@api';
-import { formatPreviewResult, formatCompactProfile, type ProfileColumn } from '../format';
+import { formatPreviewResult, formatCompactProfile, formatSchemaOnly, type ProfileColumn } from '../format';
+import { SAMPLE_DATA_WITHHELD, sampleDataAllowed, shareableProfile } from '../dataSharing';
 import { listFiles, listFileRoots, searchFiles, getSessionToken } from '@api/backend';
 import { describeDatabaseSchema, previewDatabaseQuery } from '@api/backend';
 import { resolveConnectionUri } from '@api/connectionResolver';
@@ -113,7 +114,7 @@ export const listAvailableFiles = tool({
  * Returns compact CSV text instead of JSON to minimize token usage.
  */
 export const previewToolOutput = tool({
-  description: 'Execute a tool and preview its output as CSV with typed headers.',
+  description: 'Execute a tool and preview its output as CSV with typed headers. When the user has not enabled sample data sharing, returns the row count and schema only.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to preview.'),
     socketId: z.string().optional().describe('Output socket ID. Defaults to the default output (output-match for Join).'),
@@ -137,6 +138,9 @@ export const previewToolOutput = tool({
       const schema = result.data_schema?.columns ?? [];
       const rowCount = result.row_count ?? rows.length;
 
+      if (!sampleDataAllowed()) {
+        return { data: `${formatSchemaOnly(schema, rowCount)}\n${SAMPLE_DATA_WITHHELD}` };
+      }
       return { data: formatPreviewResult(rows, schema, rowCount) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
@@ -214,7 +218,7 @@ export const searchFilesTool = tool({
  * Returns compact text profile instead of JSON to minimize token usage.
  */
 export const profileToolData = tool({
-  description: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output. Returns compact text.',
+  description: 'Get column statistics (nulls, uniques; and min, max, mean, top values when sample data sharing is on) for a tool\'s output. Returns compact text.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to profile.'),
     socketId: z.string().optional().describe('Output socket ID. Defaults to the default output (output-match for Join).'),
@@ -254,7 +258,8 @@ export const profileToolData = tool({
       }));
 
       return {
-        data: formatCompactProfile(result.row_count, result.column_count, profileCols),
+        data: formatCompactProfile(result.row_count, result.column_count, shareableProfile(profileCols)) +
+          (sampleDataAllowed() ? '' : `\n${SAMPLE_DATA_WITHHELD}`),
       };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
@@ -344,6 +349,9 @@ export const queryDatabase = tool({
 
       const rows = result.data ?? [];
       const schema = result.data_schema?.columns ?? [];
+      if (!sampleDataAllowed()) {
+        return { data: `Query OK. ${formatSchemaOnly(schema, result.returned_rows ?? rows.length)}\n${SAMPLE_DATA_WITHHELD}` };
+      }
       return { data: formatPreviewResult(rows, schema, result.returned_rows ?? rows.length) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };

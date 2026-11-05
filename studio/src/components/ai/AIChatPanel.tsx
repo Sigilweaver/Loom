@@ -14,6 +14,7 @@ import { buildWorkflowSystemPrompt } from '../../ai/prompts/system';
 import ChatMessage from './ChatMessage';
 import { MarkdownBlock } from './ChatMessage';
 import FollowUpQuestion from './FollowUpQuestion';
+import ApprovalPrompt from './ApprovalPrompt';
 import PromptInput from './PromptInput';
 import { Trash2, Sparkles, PlayCircle, Bot, Wrench, X, Info, Bug, Download } from 'lucide-react';
 
@@ -36,6 +37,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   const streamingSegments = useAIStore((s) => s.streamingSegments);
   const stoppedAtLimit = useAIStore((s) => s.stoppedAtLimit);
   const pendingQuestion = useAIStore((s) => s.pendingQuestion);
+  const pendingApproval = useAIStore((s) => s.pendingApproval);
   const agentTabId = useAIStore((s) => s.agentTabId);
   const queueLength = useAIStore((s) => {
     const tabId = agentTabId ?? '';
@@ -49,7 +51,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   // Auto-scroll to bottom on new messages or streaming updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, isGenerating, streamingText, streamingSegments.length, pendingQuestion]);
+  }, [messages.length, isGenerating, streamingText, streamingSegments.length, pendingQuestion, pendingApproval]);
 
   const handleSend = useCallback(async (prompt: string) => {
     await sendAgentMessage(prompt);
@@ -191,6 +193,15 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
                 options={pendingQuestion.options}
                 multiSelect={pendingQuestion.multiSelect}
                 onAnswer={pendingQuestion.resolve}
+              />
+            )}
+
+            {/* Approval for a destructive edit */}
+            {pendingApproval && (
+              <ApprovalPrompt
+                title={pendingApproval.title}
+                details={pendingApproval.details}
+                onDecide={pendingApproval.resolve}
               />
             )}
 
@@ -410,6 +421,7 @@ function exportChatLog(messages: ChatMessageType[]): void {
   // Build the system prompt exactly as the agent receives it
   const systemPrompt = buildWorkflowSystemPrompt(tools, wires, workflowMeta, {
     auditEnabled: aiState.useAudit,
+    shareSampleData: aiState.shareSampleData,
   });
 
   const lines: string[] = [];

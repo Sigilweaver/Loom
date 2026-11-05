@@ -26,6 +26,7 @@ import { buildWorkflowTool } from './compilerTool';
 import { getToolSchemaTool } from './tools/reference';
 import { getToolConfig, validateWorkflowTool } from './tools/inspect';
 import { guardTools, withAnthropicStepCache } from './loop';
+import { diffWorkflows, recordTurnUndo, serializeWorkflow, type TurnChanges } from './turnChanges';
 
 // All tools available to the agent
 const AGENT_TOOL_DEFS = {
@@ -82,10 +83,6 @@ let pendingTurnSnapshot:
   | { tools: Tool[]; wires: Wire[]; meta: WorkflowMeta; serialized: string }
   | null = null;
 
-function serializeWorkflow(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
-  return JSON.stringify({ tools, wires, meta });
-}
-
 /**
  * Capture workflow state at the start of an agent turn. Nothing is written to
  * history here; see {@link commitAgentTurn}.
@@ -114,16 +111,23 @@ export function beginAgentTurn(): void {
  *
  * Safe to call when no turn is open, and safe to call after a failed or
  * aborted turn: a turn that mutated before failing is still recorded.
+ *
+ * Returns what the turn changed (null when nothing changed). When
+ * `messageId` is given, the chat can undo the turn from that message.
  */
-export function commitAgentTurn(): void {
+export function commitAgentTurn(messageId?: string): TurnChanges | null {
   const pending = pendingTurnSnapshot;
   pendingTurnSnapshot = null;
-  if (!pending) return;
+  if (!pending) return null;
 
   const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-  if (serializeWorkflow(tools, wires, workflowMeta) === pending.serialized) return;
+  if (serializeWorkflow(tools, wires, workflowMeta) === pending.serialized) return null;
 
   useHistoryStore.getState().pushState(pending.tools, pending.wires, pending.meta);
+  const before = { tools: pending.tools, wires: pending.wires, meta: pending.meta };
+  const after = { tools, wires, meta: workflowMeta };
+  if (messageId) recordTurnUndo(messageId, before, after);
+  return diffWorkflows(before, after);
 }
 
 /**
@@ -184,6 +188,9 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   store.setStreamingSegments([]);
   store.setStoppedAtLimit(false);
 
+  // The chat message that reports this turn; changes are attached to it.
+  let turnMessageId: string | undefined;
+
   try {
     // Create the language model
     const model = await createLanguageModel(
@@ -197,6 +204,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
     const systemPrompt = buildWorkflowSystemPromptParts(tools, wires, workflowMeta, {
       auditEnabled: store.useAudit,
+      shareSampleData: store.shareSampleData,
     });
 
     // Build message history for the LLM
@@ -323,6 +331,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       usage,
     };
     store.addMessage(assistantMsg);
+    turnMessageId = assistantMsg.id;
     store.addTokenUsage(usage);
 
     // Check if we stopped because we hit the iteration limit.
@@ -358,12 +367,31 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
         timestamp: Date.now(),
       };
       store.addMessage(errorMsg);
+      turnMessageId = errorMsg.id;
     }
   } finally {
     // Close the history turn first. This must precede the auto-dequeue below,
     // which re-enters sendAgentMessage and would otherwise overwrite the
-    // pending snapshot before it was recorded.
-    commitAgentTurn();
+    // pending snapshot before it was recorded. A cancelled turn has no
+    // message yet; give its changes one so they are visible and undoable.
+    // (Skipped after a tab switch: the chat on screen belongs to another tab.)
+    if (!turnMessageId && pendingTurnSnapshot && useTabStore.getState().activeTabId === tabId) {
+      const { tools: t, wires: w, workflowMeta: m } = useWorkflowStore.getState();
+      if (serializeWorkflow(t, w, m) !== pendingTurnSnapshot.serialized) {
+        const cancelledMsg: ChatMessage = {
+          id: uuid(),
+          role: 'assistant',
+          content: 'Stopped before finishing. These changes were made before it stopped:',
+          timestamp: Date.now(),
+        };
+        store.addMessage(cancelledMsg);
+        turnMessageId = cancelledMsg.id;
+      }
+    }
+    const changes = commitAgentTurn(turnMessageId);
+    if (changes && turnMessageId) {
+      useAIStore.getState().updateMessage(turnMessageId, { changes });
+    }
 
     // Capture the tab this agent was running on before clearing state
     const finishedTabId = useAIStore.getState().agentTabId;
