@@ -23,6 +23,7 @@ import { addTool, updateTool, updateTools, patchToolConfig, insertToolBetween, r
 import { listAvailableFiles, previewToolOutput, getColumnMetadata, searchFilesTool, profileToolData, listDatabaseConnections, describeSchema, queryDatabase } from './tools/data';
 import { askUser } from './tools/interaction';
 import { buildWorkflowTool } from './compilerTool';
+import { getToolSchemaTool } from './tools/reference';
 
 // All tools available to the agent
 const AGENT_TOOLS = {
@@ -44,8 +45,14 @@ const AGENT_TOOLS = {
   describe_schema: describeSchema,
   query_database: queryDatabase,
   build_workflow: buildWorkflowTool,
+  get_tool_config_schema: getToolSchemaTool,
   ask_user: askUser,
 };
+
+/** Name and description of every agent tool, as the model sees them. */
+export function getAgentToolDescriptions(): Array<[string, string]> {
+  return Object.entries(AGENT_TOOLS).map(([name, t]) => [name, typeof t.description === 'string' ? t.description : '']);
+}
 
 /**
  * Get the tab ID that currently owns the running agent.

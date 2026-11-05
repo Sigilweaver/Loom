@@ -1,38 +1,30 @@
 /**
  * Reference Tools
  *
- * Vercel AI SDK tool definitions for querying tool type information
- * and configuration schemas. Helps the agent know what's available.
+ * Lets the agent look up the full config schema of a tool type on demand,
+ * so the system prompt only needs a compact example per tool.
  */
 
 import { tool } from 'ai';
 import { z } from 'zod';
 import { listToolTypes, getToolConfigSchema } from '@data/toolConfigSchemas';
-
-/**
- * List all available tool types with descriptions.
- */
-export const listToolTypesTool = tool({
-  description: 'List all available tool types in Sigilweaver Loom with their descriptions. Use this to discover what tools you can add to the canvas.',
-  inputSchema: z.object({}),
-  execute: async () => {
-    return { toolTypes: listToolTypes() };
-  },
-});
+import { resolveToolType } from './toolTypes';
 
 /**
  * Get the config schema for a specific tool type.
  */
 export const getToolSchemaTool = tool({
-  description: 'Get the configuration schema for a specific tool type. Shows what fields are available, their types, defaults, and valid values. Use this before configuring a tool.',
+  description: 'Get the full configuration schema for a tool type: every field, its type, default, allowed values and description. Use it before configuring a field that the Tool Config Reference does not show.',
   inputSchema: z.object({
-    toolType: z.string().describe('The tool type to get the schema for (e.g. "Filter", "Input", "Formula").'),
+    toolType: z.string().describe('Tool type, e.g. "Filter", "Input", "Summarize". Display names such as "Aggregate" also work.'),
   }),
   execute: async ({ toolType }) => {
-    const schema = getToolConfigSchema(toolType);
+    const resolved = resolveToolType(toolType);
+    const schema = resolved ? getToolConfigSchema(resolved) : undefined;
     if (!schema) {
-      return { error: `No schema found for tool type: ${toolType}. Use list_tool_types to see available types.` };
+      const available = listToolTypes().map((t) => t.type).join(', ');
+      return { error: `No schema for tool type "${toolType}". Available types: ${available}` };
     }
-    return { schema };
+    return { data: JSON.stringify(schema) };
   },
 });
