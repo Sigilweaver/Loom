@@ -8,6 +8,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ConfigErrorBoundary } from "./components/ConfigErrorBoundary";
 import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
@@ -332,8 +333,12 @@ function App() {
               <ReactFlowProvider>
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <TabBar />
-                  <Canvas ref={canvasRef} />
-                  <BottomPane />
+                  <ConfigErrorBoundary componentName="Canvas" title="The canvas failed to render">
+                    <Canvas ref={canvasRef} />
+                  </ConfigErrorBoundary>
+                  <ConfigErrorBoundary componentName="Bottom pane" title="This panel failed to render">
+                    <BottomPane />
+                  </ConfigErrorBoundary>
                 </div>
               </ReactFlowProvider>
             </div>

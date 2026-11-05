@@ -5,6 +5,8 @@ interface Props {
     children: ReactNode;
     onReset?: () => void;
     componentName?: string;
+    /** Heading shown in the fallback; defaults to "Configuration Error". */
+    title?: string;
 }
 
 interface State {
@@ -13,9 +15,9 @@ interface State {
 }
 
 /**
- * Lightweight error boundary for configuration panels.
- * Catches errors in tool configuration components and displays a recovery UI
- * without crashing the entire application.
+ * Lightweight error boundary for a single area of the UI (tool configuration,
+ * canvas, bottom pane). Shows a recovery UI in place of that area so the rest
+ * of the application keeps working.
  */
 export class ConfigErrorBoundary extends Component<Props, State> {
     constructor(props: Props) {
@@ -56,7 +58,7 @@ export class ConfigErrorBoundary extends Component<Props, State> {
                         </svg>
                     </div>
                     <h3 className="text-sm font-medium text-theme-text-primary mb-2">
-                        Configuration Error
+                        {this.props.title ?? 'Configuration Error'}
                     </h3>
                     <p className="text-xs text-theme-text-secondary mb-4 max-w-xs">
                         {this.state.error?.message || 'An error occurred while rendering this configuration panel.'}
