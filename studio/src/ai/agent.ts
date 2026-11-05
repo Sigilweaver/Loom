@@ -195,14 +195,15 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     // changes nothing leaves history alone.
     beginAgentTurn();
 
-    // Run the agent loop with streaming
-    // System prompt is passed as a message (not the `system` param) so we can
-    // attach Anthropic cacheControl. Other providers ignore providerOptions.
+    // Run the agent loop with streaming. The system prompt is passed as
+    // system messages (not a string) so we can attach Anthropic
+    // cacheControl. Other providers ignore providerOptions.
     const result = streamText({
       model,
-      messages: [
-        // Stable instructions carry the cache breakpoint; the canvas state
-        // that changes every edit follows it, uncached.
+      // AI SDK 7 rejects system messages inside `messages`; they go in
+      // `instructions`. The stable part carries the cache breakpoint; the
+      // canvas state that changes every edit follows it, uncached.
+      instructions: [
         {
           role: 'system' as const,
           content: systemPrompt.stable,
@@ -211,8 +212,8 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
           },
         },
         { role: 'system' as const, content: systemPrompt.dynamic },
-        ...messages,
       ],
+      messages,
       tools: AGENT_TOOLS,
       stopWhen: stepCountIs(store.maxIterations),
       abortSignal: abortController.signal,

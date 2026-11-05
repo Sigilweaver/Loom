@@ -50,6 +50,7 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **AI assistant turns failed** - Every assistant turn failed with "System messages are not allowed in the prompt or messages fields" after the AI SDK 7 update; the system prompt is now sent as instructions
 - **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
 - **Summarize on Polars 2** - The Concat aggregation failed on Polars 2 (`str.concat` was removed) and now uses `str.join`; Count Distinct no longer counts null as a value, matching Count and the documentation; output schemas are derived from Polars, so previews show the real result dtype (an Int8 Sum is Int64, a Float32 Mean stays Float32, a Date Mean is a Datetime)
 - **Union type mismatches** - Union widens numeric columns (Int32 + Int64, Int64 + Float64) but stops with an error naming the column for any other mismatch, instead of silently converting, for example, numbers to strings; the schema preview shows the widened type
