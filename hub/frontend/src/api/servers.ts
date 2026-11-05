@@ -1,29 +1,13 @@
 /** Server registry. */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 
-export interface ServerResponse {
-  id: string;
-  name: string;
-  endpoint_url: string;
-  status: string;
-  version: string | null;
-  last_poll: string | null;
-  last_healthy: string | null;
-  created_at: string;
-}
+export type ServerResponse = Schemas["ServerResponse"];
 
-export interface ServerListResponse {
-  servers: ServerResponse[];
-  total: number;
-}
+export type ServerListResponse = Schemas["ServerListResponse"];
 
-export interface ServerTestResponse {
-  success: boolean;
-  status: string;
-  version: string | null;
-  message: string | null;
-}
+export type ServerTestResponse = Schemas["ServerTestResponse"];
 
 interface ServerInput {
   name: string;

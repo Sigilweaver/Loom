@@ -11,7 +11,7 @@ export default tseslint.config(
   {
     // Replaces the old `ignorePatterns`. Flat config ignores nothing except
     // node_modules by default, so build output must be listed explicitly.
-    ignores: ["dist/**", "coverage/**", "**/*.config.*", "eslint.config.js"],
+    ignores: ["dist/**", "coverage/**", "src/api/schema.gen.ts", "**/*.config.*", "eslint.config.js"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

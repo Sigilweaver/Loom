@@ -1,55 +1,17 @@
 /** Workflow storage: files, metadata and revision history. */
 
+import type { Schemas } from "./schema";
 import { request, requestBlob, requestText, requestVoid } from "./http";
 
-export interface WorkflowMetadata {
-  id: string;
-  name: string;
-  description: string;
-  author: string;
-  workflow_id: string;
-  folder_path: string;
-  tags: string[];
-  checksum: string;
-  uploaded_by: string;
-  created_at: string;
-  updated_at: string;
-}
+export type WorkflowMetadata = Schemas["WorkflowMetadata"];
 
-export interface WorkflowContent {
-  version: string;
-  meta: {
-    name: string;
-    description: string;
-    author: string;
-    workflowId: string;
-    created: string;
-  };
-  tools: Array<Record<string, unknown>>;
-  wires: Array<Record<string, unknown>>;
-}
+export type WorkflowContent = Schemas["WorkflowContentResponse"];
 
-export interface WorkflowListResponse {
-  workflows: WorkflowMetadata[];
-  total: number;
-}
+export type WorkflowListResponse = Schemas["WorkflowListResponse"];
 
-export interface WorkflowRevision {
-  id: string;
-  workflow_id: string;
-  revision_number: number;
-  parent_revision_id: string | null;
-  author: string;
-  checksum: string;
-  size_bytes: number;
-  message: string;
-  created_at: string;
-}
+export type WorkflowRevision = Schemas["WorkflowRevisionResponse"];
 
-export interface WorkflowRevisionListResponse {
-  revisions: WorkflowRevision[];
-  total: number;
-}
+export type WorkflowRevisionListResponse = Schemas["WorkflowRevisionListResponse"];
 
 /** List workflows (auto-filtered by ownership for regular users). */
 export function listWorkflows(params?: {
