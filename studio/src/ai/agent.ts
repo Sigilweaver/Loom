@@ -354,9 +354,24 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.setStoppedAtLimit(true);
     }
 
+    // A provider error after the first step does not reject the result
+    // promises; the stream reports it and the turn ends early. Say so.
+    const failedMidTurn = !abortController.signal.aborted
+      && (streamError !== undefined || finishReason === 'error');
+    if (failedMidTurn) {
+      const classified = classifyError(streamError ?? new Error('The provider ended the turn with an error.'));
+      store.setError(`Agent error: ${classified.displayMessage}`);
+      store.addMessage({
+        id: uuid(),
+        role: 'assistant',
+        content: `Error: ${classified.displayMessage} The turn stopped before finishing.`,
+        timestamp: Date.now(),
+      });
+    }
+
     // Run post-turn audit only when the agent completed its work naturally
-    // (not when it was stopped at the iteration limit or aborted by the user)
-    if (userPrompt && !abortController.signal.aborted && !stoppedEarly) {
+    // (not when it was stopped at the iteration limit, failed, or was aborted)
+    if (userPrompt && !abortController.signal.aborted && !stoppedEarly && !failedMidTurn) {
       await runAudit(userPrompt, assistantMsg);
     }
 

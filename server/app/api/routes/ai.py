@@ -185,6 +185,9 @@ def _validate_upstream_url(url: str) -> str:
             raise HTTPException(
                 status_code=400, detail=f"Could not resolve upstream host: {hostname}"
             )
+        # Prefer IPv4: "localhost" often resolves to ::1 first, while local
+        # model servers such as Ollama listen on 127.0.0.1 by default.
+        infos.sort(key=lambda info: 0 if info[0] == socket.AF_INET else 1)
         return str(infos[0][4][0])
 
     # Block common internal hostnames outright (defence in depth; the DNS

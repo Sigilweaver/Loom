@@ -508,7 +508,8 @@ class TestAllowedPrivateUpstreams:
 
         monkeypatch.setattr(settings, "ai_allowed_private_upstreams", ["http://localhost:11434"])
         mock_getaddrinfo.return_value = [
-            (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("127.0.0.1", 11434))
+            (_socket.AF_INET6, _socket.SOCK_STREAM, 6, "", ("::1", 11434, 0, 0)),
+            (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("127.0.0.1", 11434)),
         ]
         mock_instance = _capture_client(mock_client_cls)
 

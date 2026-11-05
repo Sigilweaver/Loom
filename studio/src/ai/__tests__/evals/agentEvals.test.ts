@@ -187,6 +187,41 @@ describe('agent evals', () => {
     expect(useHistoryStore.getState().past).toHaveLength(0);
   });
 
+  it('handles two approvals requested in one step, one at a time', async () => {
+    const meta = useWorkflowStore.getState().workflowMeta;
+    useWorkflowStore.getState().loadWorkflow(
+      ['a', 'b'].map((id) => ({ id, type: 'Input', x: 0, y: 0, config: { source: PASSENGERS_PATH }, sockets: [{ id: 'output', direction: 'output' as const }], comment: id })),
+      [],
+      meta,
+    );
+    withScript([
+      { toolCalls: [{ name: 'remove_tool', input: { toolId: 'a' } }, { name: 'remove_tool', input: { toolId: 'b' } }] },
+      { text: 'Removed what you approved.' },
+    ]);
+
+    const turn = sendAgentMessage('Remove both inputs');
+    await vi.waitFor(() => expect(useAIStore.getState().pendingApproval?.title).toContain('[a]'));
+    useAIStore.getState().pendingApproval!.resolve(true);
+    await vi.waitFor(() => expect(useAIStore.getState().pendingApproval?.title).toContain('[b]'));
+    useAIStore.getState().pendingApproval!.resolve(false);
+    await turn;
+
+    expect(useWorkflowStore.getState().tools.map((t) => t.id)).toEqual(['b']);
+    expect(lastAssistant().changes?.removed).toHaveLength(1);
+  });
+
+  it('reports a provider error that happens after the first step', async () => {
+    withScript([
+      { toolCalls: [{ name: 'search_files', input: { query: 'passengers' } }] },
+      { error: new APICallError({ message: 'rate limited', url: 'u', requestBodyValues: {}, statusCode: 429, isRetryable: false }) },
+    ]);
+
+    await sendAgentMessage('Find files');
+
+    expect(lastAssistant().content).toContain('Rate limited by provider');
+    expect(useAIStore.getState().error).toContain('Rate limited');
+  });
+
   it('ends the turn cleanly when the user cancels during a question', async () => {
     withScript([
       { toolCalls: [{ name: 'add_tool', input: { type: 'Input', comment: 'load', config: { category: 'file', type: 'csv', source: PASSENGERS_PATH } } }] },
