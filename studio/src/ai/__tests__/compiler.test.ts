@@ -155,19 +155,50 @@ describe("compileSpec", () => {
       steps: [
         { id: "left", type: "Input" },
         { id: "right", type: "Input" },
-        { id: "join", type: "Join", config: { joinType: "inner", leftKey: "id", rightKey: "id" } },
+        { id: "join", type: "Join", config: { joinType: "inner", leftKeys: ["id"], rightKeys: ["id"] } },
       ],
       connections: [
-        { from: "left", to: "join", toSocket: "Left" },
-        { from: "right", to: "join", toSocket: "Right" },
+        { from: "left", to: "join", toSocket: "input-left" },
+        { from: "right", to: "join", toSocket: "input-right" },
       ],
     };
 
     const result = compileSpec(spec);
     expect(result.success).toBe(true);
     expect(result.wires).toHaveLength(2);
-    expect(result.wires![0]!.to.socket).toBe("Left");
-    expect(result.wires![1]!.to.socket).toBe("Right");
+    expect(result.wires![0]!.to.socket).toBe("input-left");
+    expect(result.wires![1]!.to.socket).toBe("input-right");
+  });
+
+  it("rejects socket IDs the tool does not have, listing the real ones", () => {
+    const spec: SimplifiedSpec = {
+      steps: [
+        { id: "left", type: "Input" },
+        { id: "join", type: "Join" },
+      ],
+      connections: [{ from: "left", to: "join", toSocket: "Left" }],
+    };
+
+    const result = compileSpec(spec);
+    expect(result.success).toBe(false);
+    expect(result.errors![0]).toContain('no input socket "Left"');
+    expect(result.errors![0]).toContain("input-left, input-right");
+  });
+
+  it("accepts display names and case variants for tool types", () => {
+    const spec: SimplifiedSpec = {
+      steps: [
+        { id: "read", type: "Read" },
+        { id: "agg", type: "aggregate", config: { groupByColumns: ["a"], aggregations: [{ column: "b", operation: "Sum", outputName: "t" }] } },
+      ],
+      connections: [{ from: "read", to: "agg" }],
+    };
+
+    const result = compileSpec(spec);
+    expect(result.success).toBe(true);
+    expect(result.tools!.map((t) => t.type)).toEqual(["Input", "Summarize"]);
+    // Summarize enrichment ran under the resolved type
+    expect(result.tools![1]!.config.actions).toBeDefined();
   });
 
   it("should set workflow metadata with custom author", () => {

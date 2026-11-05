@@ -61,13 +61,23 @@ export const askUser = tool({
         'Use for questions like "which columns to include?".',
       ),
   }),
-  execute: async ({ question, options, multiSelect }) => {
-    return new Promise<{ answer: string | string[] }>((resolve) => {
+  execute: async ({ question, options, multiSelect }, { abortSignal }) => {
+    return new Promise<{ answer: string | string[] }>((resolve, reject) => {
+      const onAbort = () => {
+        useAIStore.getState().setPendingQuestion(null);
+        reject(Object.assign(new Error('Question cancelled'), { name: 'AbortError' }));
+      };
+      if (abortSignal?.aborted) {
+        onAbort();
+        return;
+      }
+      abortSignal?.addEventListener('abort', onAbort, { once: true });
       useAIStore.getState().setPendingQuestion({
         question,
         options: (options ?? []).map((o) => (typeof o === 'string' ? { label: o } : o)),
         multiSelect: multiSelect ?? false,
         resolve: (answer: string | string[]) => {
+          abortSignal?.removeEventListener('abort', onAbort);
           // Clear the pending question and resolve the promise
           useAIStore.getState().setPendingQuestion(null);
           resolve({ answer });

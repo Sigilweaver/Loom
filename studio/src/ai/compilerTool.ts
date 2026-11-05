@@ -13,34 +13,30 @@ import { useSettingsStore } from '@state/settingsStore';
 import { getToolSchema, profileColumns } from '@api';
 import { formatCompactProfile, type ProfileColumn } from './format';
 import { createLogger } from '../utils/logger';
+import { defaultOutputSocket } from './tools/toolTypes';
 
 const logger = createLogger('AI:CompilerTool');
 
 /**
  * Build a complete workflow from a simplified spec.
  * Replaces the current canvas contents.
- * Returns an inline data profile for the first Read tool so the agent
+ * Returns an inline data profile for the first Input tool so the agent
  * immediately understands the dataset (column types, ranges, nulls, top values).
  */
 export const buildWorkflowTool = tool({
-  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas UUIDs) and a compact data profile for the first Read tool.',
-  // Cache breakpoint: placed on the last tool so Anthropic caches the full
-  // tool-definition block (all 11 tools). Other providers ignore this.
-  providerOptions: {
-    anthropic: { cacheControl: { type: 'ephemeral' } },
-  },
+  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas tool IDs) and a compact data profile for the first Input tool.',
   inputSchema: z.object({
     steps: z.array(z.object({
       id: z.string().describe('Simple ID for referencing in connections'),
-      type: z.string().describe('Tool type (e.g. "Input", "Filter")'),
+      type: z.string().describe('Internal tool type from the Tool Config Reference (e.g. "Input", "Filter", "Summarize")'),
       config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration'),
-      comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this step does in the pipeline. Every step must have a comment (e.g. "Load Titanic passenger data", "Remove passengers under 18", "Calculate survival rate by class"). Comments appear on the canvas and help users understand the workflow.'),
+      comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this step does in the pipeline. Every step must have a comment (e.g. "Load passenger data", "Remove passengers under 18", "Survival rate by class"). Comments appear on the canvas and help users understand the workflow.'),
     })).describe('Workflow steps'),
     connections: z.array(z.object({
       from: z.string().describe('Source step ID'),
       to: z.string().describe('Target step ID'),
-      fromSocket: z.string().optional().describe('Source socket (default: "Output")'),
-      toSocket: z.string().optional().describe('Target socket (default: "Input")'),
+      fromSocket: z.string().optional().describe('Source socket ID, e.g. "output-false" (default: the default output, output-match for Join)'),
+      toSocket: z.string().optional().describe('Target socket ID, e.g. "input-right" (default: first input)'),
     })).describe('Connections between steps'),
     name: z.string().optional().describe('Workflow name'),
     description: z.string().optional().describe('Workflow description'),
@@ -57,7 +53,7 @@ export const buildWorkflowTool = tool({
     // Load the compiled workflow onto the canvas
     useWorkflowStore.getState().loadWorkflow(result.tools, result.wires, result.meta);
 
-    // Return the simple-ID → UUID mapping so the agent can reference tools
+    // Return the simple-ID -> tool ID mapping so the agent can reference tools
     // by their canvas IDs (e.g. for preview_tool_output) without needing
     // to call get_canvas_state first.
     const idMap: Record<string, string> = {};
@@ -69,7 +65,7 @@ export const buildWorkflowTool = tool({
       }
     }
 
-    // Proactively fetch a data profile for the first Read tool so the agent
+    // Proactively fetch a data profile for the first Input tool so the agent
     // immediately understands the dataset - column types, ranges, nulls,
     // unique counts, and top values for string columns.
     let inputProfile: string | undefined;
@@ -77,7 +73,7 @@ export const buildWorkflowTool = tool({
     if (firstInput) {
       try {
         const workflow = { version: '1.0' as const, tools: result.tools, wires: result.wires, meta: result.meta };
-        const socket = firstInput.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+        const socket = defaultOutputSocket(firstInput) ?? 'output';
 
         // Try profile first (richer info), fall back to schema-only
         try {
