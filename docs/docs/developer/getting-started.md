@@ -12,7 +12,7 @@ Set up a development environment and run Studio, Server and Hub from source.
 | Tool | Version | Used for |
 | ---- | ------- | -------- |
 | [uv](https://docs.astral.sh/uv/) | current | Python environments for Server and Hub |
-| Python | 3.11 or newer (the repo pins 3.13 in `server/.python-version`; uv fetches it for you) | Server and Hub backend |
+| Python | 3.13 for the Server (pinned in `server/.python-version` and `requires-python`; uv fetches it for you). The Hub backend supports 3.11 or newer | Server and Hub backend |
 | [Bun](https://bun.sh) | current | JavaScript dependencies and scripts for Studio, Hub frontend and docs |
 | Node.js | 22 (pinned in `.nvmrc` and `.node-version`; 20.19 is the minimum) | Toolchain that Vite, Electron and Docusaurus run on |
 | Git | any | |

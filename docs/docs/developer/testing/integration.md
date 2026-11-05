@@ -218,35 +218,21 @@ Testing the Electron shell requires manual verification:
 
 ## CI Integration
 
-Integration tests run in GitHub Actions:
+The `Test & Lint` job in `.github/workflows/ci.yml` runs every automated suite,
+integration tests included, on the Python version pinned in
+`server/.python-version`:
 
 ```yaml
-# .github/workflows/test.yml
-jobs:
-  integration:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-      
-      - name: Install backend
-        run: |
-            cd server
-            uv sync --all-extras
-        
-        - name: Install frontend
-          run: |
-            cd studio
-      - name: Run integration tests
-        run: ./scripts/test_integration.sh
+- name: Setup Python
+  uses: actions/setup-python@v7
+  with:
+    python-version-file: "server/.python-version"
+
+- name: Run all tests
+  run: python scripts/test.py --full --ci --server --studio --hub --repo -p
 ```
+
+Run the same command locally to reproduce a CI failure.
 
 ## When to Write Integration Tests
 
