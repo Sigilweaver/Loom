@@ -113,6 +113,11 @@ export function formatPreviewResult(
   return formatRowsAsCSV(rows, schema, rowCount);
 }
 
+/** Row count and typed schema without any values. */
+export function formatSchemaOnly(schema: ColumnSchema[], rowCount: number): string {
+  return `${rowCount} rows. Schema: ${formatTypedHeader(schema)}`;
+}
+
 /**
  * Format a compact execution status for `add_tool` inline preview.
  * Returns status line + optional CSV data.

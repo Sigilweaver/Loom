@@ -100,7 +100,7 @@ Mirror the format on the front end. Use the QVD files as templates:
 3. `components/config/inout/DataSourceSelector.tsx` - add the picker entry.
 4. `components/config/inout/SourceConfigurationPanel.tsx` - render the configuration panel for the type.
 5. `data/toolConfigSchemas.ts` - add the config schema / enum value.
-6. `ai/prompts/system.ts` - mention the format so the agent can suggest it.
+6. Regenerate the AI tool contract snapshot from `server/` with `UPDATE_TOOL_CONTRACT=1 uv run pytest tests/test_ai_tool_contract.py`. The agent's prompt lists input and output types from `toolConfigSchemas.ts`, and `studio/src/ai/__tests__/toolContract.test.ts` fails until both sides agree.
 
 ## Documentation
 

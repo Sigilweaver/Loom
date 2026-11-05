@@ -31,6 +31,13 @@ export interface AISettings {
   baseUrl: string;
   /** Max agent iterations per invocation */
   maxIterations: number;
+  /**
+   * Send sample rows and value statistics (min/max/mean, frequent values) to
+   * the provider. Off by default: column names, types and counts only.
+   */
+  shareSampleData: boolean;
+  /** Ask before the agent removes tools or replaces the canvas */
+  confirmDestructiveEdits: boolean;
 
   // -- Optional expression-assist model override --
   /** When true, expression/basic assists use a separate model instead of the main one */
@@ -85,6 +92,14 @@ export interface ChatMessage {
   segments?: MessageSegment[];
   /** Token usage for this message (assistant messages only) */
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  /** What this agent turn changed on the canvas (assistant messages only) */
+  changes?: {
+    added: string[];
+    removed: string[];
+    changed: string[];
+    wiresAdded: number;
+    wiresRemoved: number;
+  };
 }
 
 export interface TokenUsage {
@@ -119,6 +134,15 @@ export interface PendingQuestionOption {
   recommended?: boolean | undefined;
 }
 
+/** A destructive edit waiting for the user's approval. */
+export interface PendingApproval {
+  /** One-line description, e.g. "Remove 2 tools" */
+  title: string;
+  /** What exactly will be affected */
+  details: string[];
+  resolve: (approved: boolean) => void;
+}
+
 export interface PendingQuestion {
   /** The question text displayed to the user */
   question: string;
@@ -141,6 +165,8 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   apiKey: '',
   baseUrl: '',
   maxIterations: 25,
+  shareSampleData: false,
+  confirmDestructiveEdits: true,
   useExpressionModel: false,
   expressionProvider: 'openai',
   expressionModel: '',
@@ -187,6 +213,8 @@ interface AIState extends AISettings {
   pendingQuestion: PendingQuestion | null;
   /** Agent tools executing right now (shown while a step is in progress) */
   runningTools: string[];
+  /** A destructive edit waiting for approval (null when none) */
+  pendingApproval: PendingApproval | null;
 
   // -- Multi-agent / per-tab concurrency --
   /** Tab ID that owns the currently running agent (null when idle) */
@@ -202,6 +230,8 @@ interface AIState extends AISettings {
   updateApiKey: (apiKey: string) => Promise<void>;
   updateBaseUrl: (baseUrl: string) => Promise<void>;
   updateMaxIterations: (max: number) => Promise<void>;
+  updateShareSampleData: (share: boolean) => Promise<void>;
+  updateConfirmDestructiveEdits: (confirm: boolean) => Promise<void>;
   updateUseExpressionModel: (use: boolean) => Promise<void>;
   updateExpressionProvider: (provider: AIProvider) => Promise<void>;
   updateExpressionModel: (model: string) => Promise<void>;
@@ -222,6 +252,7 @@ interface AIState extends AISettings {
 
   // -- Chat actions --
   addMessage: (msg: ChatMessage) => void;
+  updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
   setMessages: (msgs: ChatMessage[]) => void;
   clearChat: () => void;
   setIsGenerating: (generating: boolean) => void;
@@ -236,6 +267,7 @@ interface AIState extends AISettings {
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
   setPendingQuestion: (question: PendingQuestion | null) => void;
+  setPendingApproval: (approval: PendingApproval | null) => void;
   toolStarted: (toolName: string) => void;
   toolFinished: (toolName: string) => void;
 
@@ -337,6 +369,8 @@ function buildAISettings(state: AIState): AISettings {
     apiKey: state.apiKey,
     baseUrl: state.baseUrl,
     maxIterations: state.maxIterations,
+    shareSampleData: state.shareSampleData,
+    confirmDestructiveEdits: state.confirmDestructiveEdits,
     useExpressionModel: state.useExpressionModel,
     expressionProvider: state.expressionProvider,
     expressionModel: state.expressionModel,
@@ -367,6 +401,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
   stoppedAtLimit: false,
   pendingQuestion: null,
   runningTools: [],
+  pendingApproval: null,
   agentTabId: null,
   runQueues: {},
 
@@ -410,6 +445,16 @@ export const useAIStore = create<AIState>()((set, get) => ({
     const clamped = Math.max(1, Math.min(100, maxIterations));
     set({ maxIterations: clamped });
     savePersistedSettings(buildAISettings({ ...get(), maxIterations: clamped }));
+  },
+
+  updateShareSampleData: async (shareSampleData) => {
+    set({ shareSampleData });
+    savePersistedSettings(buildAISettings({ ...get(), shareSampleData }));
+  },
+
+  updateConfirmDestructiveEdits: async (confirmDestructiveEdits) => {
+    set({ confirmDestructiveEdits });
+    savePersistedSettings(buildAISettings({ ...get(), confirmDestructiveEdits }));
   },
 
   updateUseExpressionModel: async (useExpressionModel) => {
@@ -515,6 +560,14 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
 
+  updateMessage: (id, patch) => {
+    set((s) => {
+      const messages = s.messages.map((m) => (m.id === id ? { ...m, ...patch } : m));
+      savePersistedChat(messages);
+      return { messages };
+    });
+  },
+
   setMessages: (msgs) => {
     set({ messages: msgs });
     savePersistedChat(msgs);
@@ -552,7 +605,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
     }
     if (abortController) {
       abortController.abort();
-      set({ abortController: null, isGenerating: false, agentTabId: null, runningTools: [] });
+      set({ abortController: null, isGenerating: false, agentTabId: null, runningTools: [], pendingApproval: null });
     }
     // Clear the run queue for the tab that was running
     if (agentTabId) {
@@ -602,6 +655,8 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
+
+  setPendingApproval: (pendingApproval) => set({ pendingApproval }),
 
   toolStarted: (toolName) => set((s) => ({ runningTools: [...s.runningTools, toolName] })),
 
@@ -681,6 +736,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         streamingSegments: [],
         pendingQuestion: null,
         runningTools: [],
+        pendingApproval: null,
       });
     } else {
       // No session for this tab - start fresh
@@ -696,6 +752,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         streamingSegments: [],
         pendingQuestion: null,
         runningTools: [],
+        pendingApproval: null,
       });
     }
     // Persist the new active session's chat

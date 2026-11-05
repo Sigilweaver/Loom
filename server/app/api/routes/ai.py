@@ -40,6 +40,9 @@ PROVIDER_URLS: dict[str, str] = {
     "mistral": "https://api.mistral.ai",
 }
 
+# Header carrying an openai-compatible upstream base URL (never forwarded).
+UPSTREAM_BASE_URL_HEADER = "x-loom-upstream-base-url"
+
 # Headers that should NOT be forwarded between client and upstream
 _HOP_BY_HOP = frozenset(
     {
@@ -115,8 +118,29 @@ def _reject_if_unsafe(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> No
         ):
             raise HTTPException(
                 status_code=400,
-                detail="Upstream URL must not target private or internal networks",
+                detail="Upstream URL must not target private or internal networks."
+                + _PRIVATE_UPSTREAM_HINT,
             )
+
+
+def _origin(url: str) -> str:
+    """scheme://host:port of a URL, lower-cased, with the default port filled in."""
+    parsed = urlparse(url.strip())
+    scheme = (parsed.scheme or "http").lower()
+    port = parsed.port or (443 if scheme == "https" else 80)
+    return f"{scheme}://{(parsed.hostname or '').lower()}:{port}"
+
+
+def _is_allowed_private_upstream(url: str) -> bool:
+    """Whether the operator explicitly allowed this upstream origin."""
+    origin = _origin(url)
+    return any(_origin(allowed) == origin for allowed in settings.ai_allowed_private_upstreams)
+
+
+_PRIVATE_UPSTREAM_HINT = (
+    " To use a model server on your own machine or network, the Server operator can add its"
+    " origin (for example http://localhost:11434) to AI_ALLOWED_PRIVATE_UPSTREAMS."
+)
 
 
 def _validate_upstream_url(url: str) -> str:
@@ -144,6 +168,28 @@ def _validate_upstream_url(url: str) -> str:
     if not hostname:
         raise HTTPException(status_code=400, detail="Invalid upstream URL")
 
+    if _is_allowed_private_upstream(url):
+        # Operator opt-in: resolve once and pin, but skip the private-range check.
+        try:
+            return str(ipaddress.ip_address(hostname))
+        except ValueError:
+            pass
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        try:
+            infos = socket.getaddrinfo(hostname, port, proto=socket.IPPROTO_TCP)
+        except socket.gaierror as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Could not resolve upstream host: {hostname}"
+            ) from exc
+        if not infos:
+            raise HTTPException(
+                status_code=400, detail=f"Could not resolve upstream host: {hostname}"
+            )
+        # Prefer IPv4: "localhost" often resolves to ::1 first, while local
+        # model servers such as Ollama listen on 127.0.0.1 by default.
+        infos.sort(key=lambda info: 0 if info[0] == socket.AF_INET else 1)
+        return str(infos[0][4][0])
+
     # Block common internal hostnames outright (defence in depth; the DNS
     # resolution below would catch most of these anyway).
     _blocked_hostnames = {
@@ -154,7 +200,7 @@ def _validate_upstream_url(url: str) -> str:
     if hostname.lower() in _blocked_hostnames:
         raise HTTPException(
             status_code=400,
-            detail="Upstream URL must not target internal services",
+            detail="Upstream URL must not target internal services." + _PRIVATE_UPSTREAM_HINT,
         )
 
     # IP literal: validate directly.
@@ -357,13 +403,22 @@ async def proxy_llm_request(
       Instead of calling https://api.anthropic.com/v1/messages
       Call http://localhost:25811/api/ai/proxy/anthropic/v1/messages
 
-    For openai-compatible providers, pass the base URL as a query param:
-      /api/ai/proxy/openai-compatible/v1/chat/completions?base_url=http://localhost:11434
+    For openai-compatible providers, pass the upstream base URL in the
+    ``x-loom-upstream-base-url`` header (or, older form, a ``base_url`` query
+    parameter):
+      /api/ai/proxy/openai-compatible/v1/chat/completions
+      x-loom-upstream-base-url: http://my-llm.example.com:11434
     """
     # Resolve base URL
     pinned_host: str | None = None
     if provider == "openai-compatible":
-        base_url = request.query_params.get("base_url", settings.ollama_default_url)
+        # Studio sends the upstream in a header; the query parameter is the
+        # older form and still accepted.
+        base_url = (
+            request.headers.get(UPSTREAM_BASE_URL_HEADER)
+            or request.query_params.get("base_url")
+            or settings.ollama_default_url
+        )
         # Normalize: strip trailing slashes to avoid double-slash in URL
         base_url = base_url.rstrip("/")
         # SSRF protection: resolve + validate, then pin the vetted IP so the

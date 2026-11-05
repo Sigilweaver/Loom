@@ -202,6 +202,7 @@ Without a key, the connections API returns 503. Generate a key with `openssl ran
 | Variable             | Default                  | Meaning                                                              |
 | -------------------- | ------------------------ | -------------------------------------------------------------------- |
 | `OLLAMA_DEFAULT_URL` | `http://localhost:11434` | Base URL used for the OpenAI-compatible provider when Studio sends none. It is still subject to the proxy's block on private and loopback addresses. |
+| `AI_ALLOWED_PRIVATE_UPSTREAMS` | `[]` | OpenAI-compatible model servers on private or loopback addresses that the proxy may reach anyway, as origins (JSON array), for example `["http://localhost:11434"]`. Matching is by scheme, host and port. Every Studio user of this Server can then send requests to those servers, so list only servers you run. |
 
 ## Example: a Server behind Hub
 

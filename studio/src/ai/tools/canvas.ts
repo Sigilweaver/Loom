@@ -12,6 +12,8 @@ import { getToolDefinition } from '@data/tools';
 import { generateUniqueId } from '@utils/id';
 import { previewTool } from '@api';
 import { formatAddToolResult } from '../format';
+import { shareableRows } from '../dataSharing';
+import { declinedResult, requestApproval } from '../approval';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
 import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
@@ -43,6 +45,25 @@ function checkTabOwnership(): { success: false; error: string } | null {
     };
   }
   return null;
+}
+
+function describeTool(t: Tool): string {
+  return `${t.type} [${t.id}]${t.comment ? ` "${t.comment}"` : ''}`;
+}
+
+/** What removing these tools affects, for the approval prompt. */
+export function removalDetails(toolIds: string[]): string[] {
+  const { tools, wires } = useWorkflowStore.getState();
+  const removing = new Set(toolIds);
+  const details = tools.filter((t) => removing.has(t.id)).map((t) => describeTool(t));
+  const cut = wires.filter((w) => removing.has(w.from.tool) || removing.has(w.to.tool));
+  if (cut.length > 0) details.push(`${cut.length} connection${cut.length > 1 ? 's' : ''} removed`);
+  const orphaned = new Set(cut.filter((w) => removing.has(w.from.tool) && !removing.has(w.to.tool)).map((w) => w.to.tool));
+  for (const id of orphaned) {
+    const t = tools.find((x) => x.id === id);
+    if (t) details.push(`${describeTool(t)} loses its input`);
+  }
+  return details;
 }
 
 // ---------------------------------------------------------------------------
@@ -610,7 +631,7 @@ export const addTool = tool({
         const outputSocket = defaultOutputSocket(newTool) ?? 'output';
         const result = await previewTool(newTool.id, workflow, outputSocket, 5);
         preview = {
-          rows: result.data?.slice(0, 5) ?? [],
+          rows: shareableRows(result.data?.slice(0, 5) ?? []),
           schema: result.data_schema?.columns ?? [],
           rowCount: result.row_count ?? 0,
         };
@@ -881,7 +902,7 @@ export const insertToolBetween = tool({
       const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
       const result = await previewTool(newTool.id, workflow, newOutput, 5);
       preview = {
-        rows: result.data?.slice(0, 5) ?? [],
+        rows: shareableRows(result.data?.slice(0, 5) ?? []),
         schema: result.data_schema?.columns ?? [],
         rowCount: result.row_count ?? 0,
       };
@@ -899,11 +920,11 @@ export const insertToolBetween = tool({
  * Remove a tool from the canvas.
  */
 export const removeTool = tool({
-  description: 'Remove a tool from the canvas. Also removes any wires connected to it.',
+  description: 'Remove a tool from the canvas, with its wires. The user may be asked to approve first; if they decline, do not retry.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to remove.'),
   }),
-  execute: async ({ toolId }) => {
+  execute: async ({ toolId }, { abortSignal }) => {
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
 
@@ -912,6 +933,13 @@ export const removeTool = tool({
     if (!existing) {
       return { success: false, error: `Tool not found: ${toolId}` };
     }
+
+    const title = `Remove ${describeTool(existing)}`;
+    if (!(await requestApproval({ title, details: removalDetails([toolId]) }, abortSignal))) {
+      return declinedResult(title);
+    }
+    const stillTabErr = checkTabOwnership();
+    if (stillTabErr) return stillTabErr;
 
     remove(toolId);
     await runAutoLayout();
@@ -1064,9 +1092,24 @@ export const batchCanvasOps = tool({
     operations: z.array(batchOpSchema).min(1).describe('Array of operations to execute in order.'),
     previewLast: z.boolean().optional().describe('When true, previews the output of the last added tool.'),
   }),
-  execute: async ({ operations, previewLast }) => {
+  execute: async ({ operations, previewLast }, { abortSignal }) => {
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
+
+    // Removals of existing tools need approval up front, for the whole batch.
+    const existingIds = new Set(useWorkflowStore.getState().tools.map((t) => t.id));
+    const removals = operations
+      .filter((o): o is Extract<typeof o, { op: 'remove' }> => o.op === 'remove')
+      .map((o) => o.toolId)
+      .filter((id) => existingIds.has(id));
+    if (removals.length > 0) {
+      const title = `Remove ${removals.length} tool${removals.length > 1 ? 's' : ''} as part of a batch edit`;
+      if (!(await requestApproval({ title, details: removalDetails(removals) }, abortSignal))) {
+        return declinedResult(title);
+      }
+      const stillTabErr = checkTabOwnership();
+      if (stillTabErr) return stillTabErr;
+    }
 
     const idMap: Record<string, string> = {}; // refId → actual canvas ID
     const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
@@ -1244,13 +1287,11 @@ export const batchCanvasOps = tool({
           const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
           const outputSocket = defaultOutputSocket(lastTool) ?? 'output';
           const result = await previewTool(lastAddedToolId!, workflow, outputSocket, 5);
-          const rows = result.data?.slice(0, 5) ?? [];
+          const rows = shareableRows(result.data?.slice(0, 5) ?? []);
           const schema = result.data_schema?.columns ?? [];
           const rowCount = result.row_count ?? rows.length;
-          if (rows.length > 0) {
-            parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
-            parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
-          }
+          parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
+          parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
         }
       } catch (err) {
         const previewError = err instanceof Error ? err.message : String(err);

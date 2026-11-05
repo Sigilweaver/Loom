@@ -3,6 +3,7 @@
  */
 
 import type { ModelMessage, Tool } from 'ai';
+import { shareableToolResult } from './dataSharing';
 
 /**
  * Longest tool result (as JSON) sent back to the model. A preview of a wide
@@ -45,9 +46,11 @@ export function capToolResult(result: unknown, maxChars = MAX_TOOL_RESULT_CHARS)
 type AnyExecute = (input: unknown, options: { abortSignal?: AbortSignal }) => unknown;
 
 /**
- * Wrap every tool so that (1) results are size-capped and (2) a tool that
- * throws returns `{ error }` the model can read and recover from, instead of
- * an opaque failure. Aborts still propagate so cancellation stops the loop.
+ * Wrap every tool so that (1) results are size-capped, (2) data values that
+ * Server errors quote are withheld when sample sharing is off, and (3) a
+ * tool that throws returns `{ error }` the model can read and recover from,
+ * instead of an opaque failure. Aborts still propagate so cancellation stops
+ * the loop.
  */
 export function guardTools<T extends Record<string, Tool>>(tools: T): T {
   const guarded: Record<string, Tool> = {};
@@ -61,10 +64,10 @@ export function guardTools<T extends Record<string, Tool>>(tools: T): T {
       ...t,
       execute: (async (input: unknown, options: { abortSignal?: AbortSignal }) => {
         try {
-          return capToolResult(await execute(input, options));
+          return capToolResult(shareableToolResult(await execute(input, options)));
         } catch (err) {
           if (options?.abortSignal?.aborted || (err as Error)?.name === 'AbortError') throw err;
-          return { error: `${name} failed: ${err instanceof Error ? err.message : String(err)}` };
+          return shareableToolResult({ error: `${name} failed: ${err instanceof Error ? err.message : String(err)}` });
         }
       }) as unknown as Tool['execute'],
     } as Tool;

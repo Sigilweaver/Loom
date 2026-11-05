@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useSettingsStore } from '@state/settingsStore';
 import { useAIStore, type AIProvider } from '@state/aiStore';
 import { testProviderConnection, fetchProviderModels, PROVIDER_MODELS, PROVIDER_LABELS } from '../../ai/providers';
 import { Checkbox } from '@components/ui/Checkbox';
@@ -19,6 +20,8 @@ const AISettingsPanel: React.FC = () => {
     apiKey,
     baseUrl,
     maxIterations,
+    shareSampleData,
+    confirmDestructiveEdits,
     useExpressionModel,
     expressionProvider,
     expressionModel,
@@ -36,6 +39,8 @@ const AISettingsPanel: React.FC = () => {
     updateApiKey,
     updateBaseUrl,
     updateMaxIterations,
+    updateShareSampleData,
+    updateConfirmDestructiveEdits,
     updateUseExpressionModel,
     updateExpressionProvider,
     updateExpressionModel,
@@ -52,6 +57,7 @@ const AISettingsPanel: React.FC = () => {
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testError, setTestError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  const serverUrl = useSettingsStore((st) => st.backend.url);
 
   // Dynamic model list state
   const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name?: string }>>([]);
@@ -72,12 +78,9 @@ const AISettingsPanel: React.FC = () => {
     setModelsError(null);
 
     try {
-      const models = await fetchProviderModels(provider, apiKey, baseUrl || undefined);
+      const { models, error } = await fetchProviderModels(provider, apiKey, baseUrl || undefined);
       setFetchedModels(models);
-    } catch (err) {
-      setModelsError(err instanceof Error ? err.message : 'Failed to fetch models');
-      // Fall back to static list
-      setFetchedModels(PROVIDER_MODELS[provider].map((id) => ({ id })));
+      setModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setModelsFetching(false);
     }
@@ -239,6 +242,10 @@ const AISettingsPanel: React.FC = () => {
                 {showApiKey ? 'Hide' : 'Show'}
               </button>
             </div>
+            <p className="mt-1 text-xs text-theme-text-tertiary">
+              Saved in this app's local storage on this device, not in the OS keychain. Requests go through the
+              Loom Server at {serverUrl} to the provider, so that Server sees the key.
+            </p>
           </div>
 
           {/* Base URL (only for openai-compatible) */}
@@ -277,6 +284,23 @@ const AISettingsPanel: React.FC = () => {
               Max tool-use steps per conversation turn (1-100)
             </p>
           </div>
+
+          {/* Privacy and safety */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium mb-1 text-theme-text-primary">Privacy and safety</legend>
+            <Checkbox
+              checked={shareSampleData}
+              onCheckedChange={(checked) => updateShareSampleData(checked === true)}
+              label="Share sample data with the AI provider"
+              description="Off: the assistant sees column names, types and row, null and unique counts only. On: it also sees sample rows, query results, min/max/mean and frequent values. Results improve with real values; leave off for confidential data."
+            />
+            <Checkbox
+              checked={confirmDestructiveEdits}
+              onCheckedChange={(checked) => updateConfirmDestructiveEdits(checked === true)}
+              label="Ask before destructive edits"
+              description="The assistant waits for your approval before removing tools or replacing a non-empty canvas."
+            />
+          </fieldset>
 
           {/* Expression Assist Model Override */}
           <ExpressionModelSection
@@ -381,6 +405,7 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
   // Expression model list
   const [exprModels, setExprModels] = useState<Array<{ id: string; name?: string }>>([]);
   const [exprModelsFetching, setExprModelsFetching] = useState(false);
+  const [exprModelsError, setExprModelsError] = useState<string | null>(null);
 
   const fetchExprModels = useCallback(async () => {
     const key = expressionApiKey || mainApiKey;
@@ -390,10 +415,9 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
     }
     setExprModelsFetching(true);
     try {
-      const models = await fetchProviderModels(expressionProvider, key, expressionBaseUrl || undefined);
+      const { models, error } = await fetchProviderModels(expressionProvider, key, expressionBaseUrl || undefined);
       setExprModels(models);
-    } catch {
-      setExprModels(PROVIDER_MODELS[expressionProvider].map((id) => ({ id })));
+      setExprModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setExprModelsFetching(false);
     }
@@ -477,6 +501,9 @@ const ExpressionModelSection: React.FC<ExpressionModelSectionProps> = ({
                     <RefreshCw className={`w-3 h-3 ${exprModelsFetching ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
+                {exprModelsError && (
+                  <p className="mb-1 text-xs text-theme-status-error-text">{exprModelsError}</p>
+                )}
                 {exprModelOptions.length > 0 ? (
                   <>
                     <select
@@ -592,6 +619,7 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
   // Audit model list
   const [auditModels, setAuditModels] = useState<Array<{ id: string; name?: string }>>([]);
   const [auditModelsFetching, setAuditModelsFetching] = useState(false);
+  const [auditModelsError, setAuditModelsError] = useState<string | null>(null);
 
   const fetchAuditModels = useCallback(async () => {
     const key = auditApiKey || mainApiKey;
@@ -601,10 +629,9 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
     }
     setAuditModelsFetching(true);
     try {
-      const models = await fetchProviderModels(auditProvider, key, auditBaseUrl || undefined);
+      const { models, error } = await fetchProviderModels(auditProvider, key, auditBaseUrl || undefined);
       setAuditModels(models);
-    } catch {
-      setAuditModels(PROVIDER_MODELS[auditProvider].map((id) => ({ id })));
+      setAuditModelsError(error ? `Could not load the model list (${error}). Showing suggested models.` : null);
     } finally {
       setAuditModelsFetching(false);
     }
@@ -699,6 +726,9 @@ const AuditModelSection: React.FC<AuditModelSectionProps> = ({
                         <RefreshCw className={`w-3 h-3 ${auditModelsFetching ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
+                    {auditModelsError && (
+                      <p className="mb-1 text-xs text-theme-status-error-text">{auditModelsError}</p>
+                    )}
                     {auditModelOptions.length > 0 ? (
                       <>
                         <select

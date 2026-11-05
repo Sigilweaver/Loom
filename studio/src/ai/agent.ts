@@ -10,6 +10,7 @@ import { buildWorkflowSystemPromptParts } from './prompts/system';
 import { buildExpressionPrompt, buildBasicFilterPrompt, buildBasicFormulaPrompt } from './prompts/expression';
 import { runAudit } from './audit';
 import { classifyError } from './errors';
+import { generateStructured } from './structured';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useHistoryStore } from '@state/historyStore';
@@ -26,6 +27,7 @@ import { buildWorkflowTool } from './compilerTool';
 import { getToolSchemaTool } from './tools/reference';
 import { getToolConfig, validateWorkflowTool } from './tools/inspect';
 import { guardTools, withAnthropicStepCache } from './loop';
+import { diffWorkflows, recordTurnUndo, serializeWorkflow, type TurnChanges } from './turnChanges';
 
 // All tools available to the agent
 const AGENT_TOOL_DEFS = {
@@ -82,10 +84,6 @@ let pendingTurnSnapshot:
   | { tools: Tool[]; wires: Wire[]; meta: WorkflowMeta; serialized: string }
   | null = null;
 
-function serializeWorkflow(tools: Tool[], wires: Wire[], meta: WorkflowMeta): string {
-  return JSON.stringify({ tools, wires, meta });
-}
-
 /**
  * Capture workflow state at the start of an agent turn. Nothing is written to
  * history here; see {@link commitAgentTurn}.
@@ -114,16 +112,23 @@ export function beginAgentTurn(): void {
  *
  * Safe to call when no turn is open, and safe to call after a failed or
  * aborted turn: a turn that mutated before failing is still recorded.
+ *
+ * Returns what the turn changed (null when nothing changed). When
+ * `messageId` is given, the chat can undo the turn from that message.
  */
-export function commitAgentTurn(): void {
+export function commitAgentTurn(messageId?: string): TurnChanges | null {
   const pending = pendingTurnSnapshot;
   pendingTurnSnapshot = null;
-  if (!pending) return;
+  if (!pending) return null;
 
   const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-  if (serializeWorkflow(tools, wires, workflowMeta) === pending.serialized) return;
+  if (serializeWorkflow(tools, wires, workflowMeta) === pending.serialized) return null;
 
   useHistoryStore.getState().pushState(pending.tools, pending.wires, pending.meta);
+  const before = { tools: pending.tools, wires: pending.wires, meta: pending.meta };
+  const after = { tools, wires, meta: workflowMeta };
+  if (messageId) recordTurnUndo(messageId, before, after);
+  return diffWorkflows(before, after);
 }
 
 /**
@@ -184,6 +189,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   store.setStreamingSegments([]);
   store.setStoppedAtLimit(false);
 
+  // The chat message that reports this turn; changes are attached to it.
+  let turnMessageId: string | undefined;
+  // First error reported by the stream (the thrown one is often a wrapper).
+  let streamError: unknown;
+
   try {
     // Create the language model
     const model = await createLanguageModel(
@@ -197,6 +207,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
     const systemPrompt = buildWorkflowSystemPromptParts(tools, wires, workflowMeta, {
       auditEnabled: store.useAudit,
+      shareSampleData: store.shareSampleData,
     });
 
     // Build message history for the LLM
@@ -242,6 +253,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       // Anthropic: move a cache breakpoint onto the newest message each step,
       // so a multi-step turn re-reads the growing conversation from cache.
       ...(store.provider === 'anthropic' ? { prepareStep: withAnthropicStepCache } : {}),
+      // streamText reports a failed stream as a generic "No output
+      // generated"; keep the underlying error so the user sees the cause.
+      onError: ({ error }) => {
+        streamError ??= error;
+      },
       onToolExecutionStart: ({ toolCall }) => useAIStore.getState().toolStarted(toolCall.toolName),
       onToolExecutionEnd: ({ toolCall }) => useAIStore.getState().toolFinished(toolCall.toolName),
       onStepFinish: (step) => {
@@ -323,6 +339,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       usage,
     };
     store.addMessage(assistantMsg);
+    turnMessageId = assistantMsg.id;
     store.addTokenUsage(usage);
 
     // Check if we stopped because we hit the iteration limit.
@@ -337,17 +354,33 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       store.setStoppedAtLimit(true);
     }
 
+    // A provider error after the first step does not reject the result
+    // promises; the stream reports it and the turn ends early. Say so.
+    const failedMidTurn = !abortController.signal.aborted
+      && (streamError !== undefined || finishReason === 'error');
+    if (failedMidTurn) {
+      const classified = classifyError(streamError ?? new Error('The provider ended the turn with an error.'));
+      store.setError(`Agent error: ${classified.displayMessage}`);
+      store.addMessage({
+        id: uuid(),
+        role: 'assistant',
+        content: `Error: ${classified.displayMessage} The turn stopped before finishing.`,
+        timestamp: Date.now(),
+      });
+    }
+
     // Run post-turn audit only when the agent completed its work naturally
-    // (not when it was stopped at the iteration limit or aborted by the user)
-    if (userPrompt && !abortController.signal.aborted && !stoppedEarly) {
+    // (not when it was stopped at the iteration limit, failed, or was aborted)
+    if (userPrompt && !abortController.signal.aborted && !stoppedEarly && !failedMidTurn) {
       await runAudit(userPrompt, assistantMsg);
     }
 
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
+    const cause = streamError ?? err;
+    if ((err as Error).name === 'AbortError' || (cause as Error)?.name === 'AbortError') {
       store.setError('Generation cancelled.');
     } else {
-      const classified = classifyError(err);
+      const classified = classifyError(cause);
       store.setError(`Agent error: ${classified.displayMessage}`);
 
       // Add error as assistant message so user sees it in chat
@@ -358,12 +391,31 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
         timestamp: Date.now(),
       };
       store.addMessage(errorMsg);
+      turnMessageId = errorMsg.id;
     }
   } finally {
     // Close the history turn first. This must precede the auto-dequeue below,
     // which re-enters sendAgentMessage and would otherwise overwrite the
-    // pending snapshot before it was recorded.
-    commitAgentTurn();
+    // pending snapshot before it was recorded. A cancelled turn has no
+    // message yet; give its changes one so they are visible and undoable.
+    // (Skipped after a tab switch: the chat on screen belongs to another tab.)
+    if (!turnMessageId && pendingTurnSnapshot && useTabStore.getState().activeTabId === tabId) {
+      const { tools: t, wires: w, workflowMeta: m } = useWorkflowStore.getState();
+      if (serializeWorkflow(t, w, m) !== pendingTurnSnapshot.serialized) {
+        const cancelledMsg: ChatMessage = {
+          id: uuid(),
+          role: 'assistant',
+          content: 'Stopped before finishing. These changes were made before it stopped:',
+          timestamp: Date.now(),
+        };
+        store.addMessage(cancelledMsg);
+        turnMessageId = cancelledMsg.id;
+      }
+    }
+    const changes = commitAgentTurn(turnMessageId);
+    if (changes && turnMessageId) {
+      useAIStore.getState().updateMessage(turnMessageId, { changes });
+    }
 
     // Capture the tab this agent was running on before clearing state
     const finishedTabId = useAIStore.getState().agentTabId;
@@ -469,44 +521,30 @@ export async function generateBasicFilter(
     );
 
     const prompt = buildBasicFilterPrompt(columns, userRequest);
-    const { generateText } = await import('ai');
-
-    const response = await generateText({
-      model,
-      prompt,
-      maxOutputTokens: 1000,
+    const condition = z.object({
+      column: z.string(),
+      operator: z.string(),
+      value: z.string().optional(),
     });
-
-    const text = (response.text ?? '').trim();
-    // Strip markdown code fences if present
-    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
-
-    // Schema-validate the parsed output
     const filterSchema = z.object({
-      conditions: z.array(z.object({
-        column: z.string(),
-        operator: z.string(),
-        value: z.string().optional(),
-      })),
+      conditions: z.array(condition),
       groups: z.array(z.object({
-        conditions: z.array(z.object({
-          column: z.string(),
-          operator: z.string(),
-          value: z.string().optional(),
-        })),
+        conditions: z.array(condition),
         combinator: z.string().optional(),
       })).optional(),
       combinator: z.string(),
     });
 
-    const validated = filterSchema.safeParse(parsed);
-    if (!validated.success) {
-      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
-      return { error: `Invalid filter structure from AI: ${issues}` };
-    }
-
-    return { result: validated.data as BasicFilterResult };
+    const generated = await generateStructured({
+      model,
+      provider: cfg.provider,
+      prompt,
+      schema: filterSchema,
+      what: 'filter conditions',
+      maxOutputTokens: 1000,
+    });
+    if (generated.error !== undefined) return { error: generated.error };
+    return { result: generated.value as BasicFilterResult };
   } catch (err) {
     return { error: classifyError(err).displayMessage };
   }
@@ -545,34 +583,24 @@ export async function generateBasicFormula(
     );
 
     const prompt = buildBasicFormulaPrompt(columns, userRequest, operationCatalog);
-    const { generateText } = await import('ai');
-
-    const response = await generateText({
-      model,
-      prompt,
-      maxOutputTokens: 1000,
-    });
-
-    const text = (response.text ?? '').trim();
-    const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
-
-    // Schema-validate the parsed output
     const formulaOpSchema = z.object({
       operationId: z.string(),
       sourceColumn: z.string(),
       params: z.record(z.string(), z.string()).default({}),
       columnName: z.string(),
     });
-    const formulaArraySchema = z.array(formulaOpSchema);
 
-    const validated = formulaArraySchema.safeParse(parsed);
-    if (!validated.success) {
-      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
-      return { error: `Invalid formula structure from AI: ${issues}` };
-    }
-
-    return { result: validated.data as BasicFormulaOperation[] };
+    const generated = await generateStructured({
+      model,
+      provider: cfg.provider,
+      prompt,
+      schema: z.array(formulaOpSchema),
+      arrayElement: formulaOpSchema,
+      what: 'formula operations',
+      maxOutputTokens: 1000,
+    });
+    if (generated.error !== undefined) return { error: generated.error };
+    return { result: generated.value as BasicFormulaOperation[] };
   } catch (err) {
     return { error: classifyError(err).displayMessage };
   }
