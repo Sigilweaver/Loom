@@ -1,121 +1,63 @@
 /** Data connections (database and filesystem). */
 
+import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
 
-export type ConnectionType = "database" | "filesystem";
-export type DatabaseType = "postgresql" | "mysql" | "sqlite" | "mssql";
-export type PathType = "local" | "unc";
+export type ConnectionType = Schemas["ConnectionType"];
+export type DatabaseType = Schemas["DatabaseType"];
+export type PathType = Schemas["PathType"];
+// The Hub declares `status` as a plain string; these are the values it emits.
 export type ConnectionStatus = "healthy" | "unhealthy" | "error" | "unknown";
 
 // Type-specific configs (for response)
-export interface DatabaseConfigResponse {
+// The Hub declares the enum-like response fields as plain strings; narrow them
+// here to the enums it validates on the way in.
+export type DatabaseConfigResponse = Omit<Schemas["DatabaseConfigResponse"], "db_type"> & {
   db_type: DatabaseType;
-  host: string;
-  port: number;
-  database: string;
-}
+};
 
-export interface FilesystemConfigResponse {
-  path: string;
+export type FilesystemConfigResponse = Omit<Schemas["FilesystemConfigResponse"], "path_type"> & {
   path_type: PathType;
-}
+};
 
 // Connection response (database or filesystem)
-export interface ConnectionResponse {
-  id: string;
-  name: string;
+export type ConnectionResponse = Omit<
+  Schemas["ConnectionResponse"],
+  "type" | "status" | "database_config" | "filesystem_config"
+> & {
   type: ConnectionType;
-  description: string | null;
-  read_only: boolean;
   status: ConnectionStatus;
-  last_checked: string | null;
-  last_healthy: string | null;
-  last_error: string | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  // Type-specific configs (only one will be present)
-  database_config?: DatabaseConfigResponse;
-  filesystem_config?: FilesystemConfigResponse;
-}
+  database_config?: DatabaseConfigResponse | null;
+  filesystem_config?: FilesystemConfigResponse | null;
+};
 
-export interface ConnectionsListResponse {
+export type ConnectionsListResponse = Omit<Schemas["ConnectionListResponse"], "connections"> & {
   connections: ConnectionResponse[];
-  total: number;
-}
+};
 
-export interface HealthCheckResponse {
-  status: string;
-  last_checked: string | null;
-  last_healthy: string | null;
-  last_error: string | null;
-}
+export type HealthCheckResponse = Schemas["HealthCheckResponse"];
 
-export interface HealthCheckAllResponse {
-  checked: number;
-  healthy: number;
-  unhealthy: number;
-  error: number;
-}
+export type HealthCheckAllResponse = Schemas["HealthCheckAllResponse"];
 
 // Create connection requests (discriminated by type)
-export interface CreateDatabaseConnectionRequest {
-  type: "database";
-  name: string;
-  description?: string;
-  read_only?: boolean;
-  db_type: DatabaseType;
-  host: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-}
+export type CreateDatabaseConnectionRequest = Schemas["CreateDatabaseConnectionInput"];
 
-export interface CreateFilesystemConnectionRequest {
-  type: "filesystem";
-  name: string;
-  description?: string;
-  read_only?: boolean;
-  path: string;
-  path_type?: PathType;
-}
+export type CreateFilesystemConnectionRequest = Schemas["CreateFilesystemConnectionInput"];
 
 export type CreateConnectionRequest =
   | CreateDatabaseConnectionRequest
   | CreateFilesystemConnectionRequest;
 
 // Update connection requests (all fields optional, type determines which fields apply)
-export interface UpdateDatabaseConnectionRequest {
-  type?: "database";
-  name?: string;
-  description?: string;
-  read_only?: boolean;
-  host?: string;
-  port?: number;
-  database?: string;
-  username?: string;
-  password?: string;
-}
+export type UpdateDatabaseConnectionRequest = Schemas["UpdateDatabaseConnectionInput"];
 
-export interface UpdateFilesystemConnectionRequest {
-  type?: "filesystem";
-  name?: string;
-  description?: string;
-  read_only?: boolean;
-  path?: string;
-  path_type?: PathType;
-}
+export type UpdateFilesystemConnectionRequest = Schemas["UpdateFilesystemConnectionInput"];
 
 export type UpdateConnectionRequest =
   | UpdateDatabaseConnectionRequest
   | UpdateFilesystemConnectionRequest;
 
-export interface ConnectionTestResult {
-  success: boolean;
-  message: string;
-  latency_ms?: number;
-}
+export type ConnectionTestResult = Schemas["TestConnectionResponse"];
 
 export function listConnections(type?: ConnectionType): Promise<ConnectionsListResponse> {
   return request("/connections", { query: { type } });
