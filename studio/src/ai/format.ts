@@ -41,7 +41,7 @@ function shortDtype(dtype: string): string {
  * Format a typed CSV header from schema columns.
  * Example: "PassengerId:i64,Name:str,Age:f64?,Cabin:str?"
  */
-function formatTypedHeader(schema: ColumnSchema[]): string {
+export function formatTypedHeader(schema: ColumnSchema[]): string {
   return schema
     .map((c) => `${c.name}:${shortDtype(c.dtype)}${c.nullable ? '?' : ''}`)
     .join(',');
@@ -111,6 +111,11 @@ export function formatPreviewResult(
   rowCount: number,
 ): string {
   return formatRowsAsCSV(rows, schema, rowCount);
+}
+
+/** Row count and typed schema without any values. */
+export function formatSchemaOnly(schema: ColumnSchema[], rowCount: number): string {
+  return `${rowCount} rows. Schema: ${formatTypedHeader(schema)}`;
 }
 
 /**

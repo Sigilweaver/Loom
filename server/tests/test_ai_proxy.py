@@ -430,3 +430,108 @@ class TestProxyErrorHandling:
         assert resp.status_code == 502
         assert "Something broke" in resp.json()["detail"]
         mock_instance.aclose.assert_awaited_once()
+
+
+def _capture_client(mock_client_cls: MagicMock) -> MagicMock:
+    mock_instance = MagicMock()
+    mock_instance.build_request = MagicMock(return_value=MagicMock())
+    mock_instance.send = AsyncMock(return_value=_mock_response())
+    mock_instance.aclose = AsyncMock()
+    mock_client_cls.return_value = mock_instance
+    return mock_instance
+
+
+class TestUpstreamHeader:
+    """Studio sends the openai-compatible upstream in a header."""
+
+    @patch("app.api.routes.ai.socket.getaddrinfo")
+    @patch("app.api.routes.ai.httpx.AsyncClient")
+    def test_header_sets_upstream_and_is_not_forwarded(
+        self, mock_client_cls, mock_getaddrinfo, client
+    ):
+        import socket as _socket
+
+        mock_getaddrinfo.return_value = [
+            (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("93.184.216.34", 8000))
+        ]
+        mock_instance = _capture_client(mock_client_cls)
+
+        client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions",
+            headers={"x-loom-upstream-base-url": "http://llm.example.com:8000"},
+            json={},
+        )
+
+        _, kwargs = mock_instance.build_request.call_args
+        assert str(kwargs["url"]) == "http://93.184.216.34:8000/v1/chat/completions"
+        assert "x-loom-upstream-base-url" not in {k.lower() for k in kwargs["headers"]}
+        assert kwargs["params"] is None
+
+    def test_header_upstream_gets_the_ssrf_guard(self, client):
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions",
+            headers={"x-loom-upstream-base-url": "http://127.0.0.1:11434"},
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "AI_ALLOWED_PRIVATE_UPSTREAMS" in resp.json()["detail"]
+
+
+class TestAllowedPrivateUpstreams:
+    """Operators can opt specific private model servers in."""
+
+    @patch("app.api.routes.ai.httpx.AsyncClient")
+    def test_allowlisted_loopback_origin_is_reached(self, mock_client_cls, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_allowed_private_upstreams", ["http://127.0.0.1:11434"])
+        mock_instance = _capture_client(mock_client_cls)
+
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions",
+            headers={"x-loom-upstream-base-url": "http://127.0.0.1:11434"},
+            json={},
+        )
+
+        assert resp.status_code == 200
+        _, kwargs = mock_instance.build_request.call_args
+        assert str(kwargs["url"]) == "http://127.0.0.1:11434/v1/chat/completions"
+
+    @patch("app.api.routes.ai.socket.getaddrinfo")
+    @patch("app.api.routes.ai.httpx.AsyncClient")
+    def test_allowlisted_localhost_name_is_resolved_and_pinned(
+        self, mock_client_cls, mock_getaddrinfo, client, monkeypatch
+    ):
+        import socket as _socket
+
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_allowed_private_upstreams", ["http://localhost:11434"])
+        mock_getaddrinfo.return_value = [
+            (_socket.AF_INET6, _socket.SOCK_STREAM, 6, "", ("::1", 11434, 0, 0)),
+            (_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("127.0.0.1", 11434)),
+        ]
+        mock_instance = _capture_client(mock_client_cls)
+
+        resp = client.post(
+            "/api/ai/proxy/openai-compatible/v1/chat/completions",
+            headers={"x-loom-upstream-base-url": "http://localhost:11434"},
+            json={},
+        )
+
+        assert resp.status_code == 200
+        _, kwargs = mock_instance.build_request.call_args
+        assert str(kwargs["url"]) == "http://127.0.0.1:11434/v1/chat/completions"
+        assert kwargs["headers"].get("host") == "localhost"
+
+    def test_other_ports_and_hosts_stay_blocked(self, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_allowed_private_upstreams", ["http://localhost:11434"])
+        for upstream in ("http://localhost:6379", "http://127.0.0.1:11434", "http://169.254.169.254"):
+            resp = client.post(
+                "/api/ai/proxy/openai-compatible/v1/chat/completions",
+                headers={"x-loom-upstream-base-url": upstream},
+                json={},
+            )
+            assert resp.status_code == 400, upstream

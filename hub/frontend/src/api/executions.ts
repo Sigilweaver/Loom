@@ -29,10 +29,7 @@ export function listExecutions(params?: {
   });
 }
 
-export function triggerExecution(data: {
-  workflow_id: string;
-  server_id?: string;
-}): Promise<ExecutionResponse> {
+export function triggerExecution(data: Schemas["ExecutionTrigger"]): Promise<ExecutionResponse> {
   return request("/executions", { method: "POST", json: data });
 }
 
@@ -107,8 +104,9 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
           if (parsed?.event === "update" && parsed.data) {
             try {
               handlers.onUpdate(JSON.parse(parsed.data) as ExecutionResponse);
-            } catch {
-              // Ignore malformed frames.
+            } catch (error) {
+              // One bad frame should not end the stream; report it and carry on.
+              console.warn("Ignoring malformed execution stream frame:", error);
             }
           }
           boundary = buffer.indexOf("\n\n");

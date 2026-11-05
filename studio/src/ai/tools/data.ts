@@ -14,13 +14,15 @@ import {
   getToolSchema,
   profileColumns,
 } from '@api';
-import { formatPreviewResult, formatCompactProfile, type ProfileColumn } from '../format';
+import { formatPreviewResult, formatCompactProfile, formatSchemaOnly, type ProfileColumn } from '../format';
+import { SAMPLE_DATA_WITHHELD, sampleDataAllowed, shareableProfile } from '../dataSharing';
 import { listFiles, listFileRoots, searchFiles, getSessionToken } from '@api/backend';
 import { describeDatabaseSchema, previewDatabaseQuery } from '@api/backend';
 import { resolveConnectionUri } from '@api/connectionResolver';
 import { useConnectionStore } from '@state/connectionStore';
 import { getHubClient, hasHubClient, initHubClient } from '@api/hub';
 import { createLogger } from '../../utils/logger';
+import { defaultOutputSocket } from './toolTypes';
 
 const logger = createLogger('AI:DataTools');
 
@@ -112,10 +114,10 @@ export const listAvailableFiles = tool({
  * Returns compact CSV text instead of JSON to minimize token usage.
  */
 export const previewToolOutput = tool({
-  description: 'Execute a tool and preview its output as CSV with typed headers.',
+  description: 'Execute a tool and preview its output as CSV with typed headers. When the user has not enabled sample data sharing, returns the row count and schema only.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to preview.'),
-    socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
+    socketId: z.string().optional().describe('Output socket ID. Defaults to the default output (output-match for Join).'),
     limit: z.number().optional().describe('Max rows to return. Default 10.'),
   }),
   execute: async ({ toolId, socketId, limit }) => {
@@ -125,7 +127,7 @@ export const previewToolOutput = tool({
     const targetTool = found.tool;
 
     const socket = socketId
-      ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
+      ?? defaultOutputSocket(targetTool)
       ?? 'Output';
 
     try {
@@ -136,6 +138,9 @@ export const previewToolOutput = tool({
       const schema = result.data_schema?.columns ?? [];
       const rowCount = result.row_count ?? rows.length;
 
+      if (!sampleDataAllowed()) {
+        return { data: `${formatSchemaOnly(schema, rowCount)}\n${SAMPLE_DATA_WITHHELD}` };
+      }
       return { data: formatPreviewResult(rows, schema, rowCount) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
@@ -150,7 +155,7 @@ export const getColumnMetadata = tool({
   description: 'Get column names and types for a tool\'s output without executing. Faster than preview.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to inspect.'),
-    socketId: z.string().optional().describe('Socket ID. Defaults to first output socket.'),
+    socketId: z.string().optional().describe('Socket ID. Defaults to the default output (output-match for Join).'),
   }),
   execute: async ({ toolId, socketId }) => {
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
@@ -159,7 +164,7 @@ export const getColumnMetadata = tool({
     const targetTool = found.tool;
 
     const socket = socketId
-      ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
+      ?? defaultOutputSocket(targetTool)
       ?? 'Output';
 
     try {
@@ -213,10 +218,10 @@ export const searchFilesTool = tool({
  * Returns compact text profile instead of JSON to minimize token usage.
  */
 export const profileToolData = tool({
-  description: 'Get column statistics (min, max, mean, nulls, uniques, top values) for a tool\'s output. Returns compact text.',
+  description: 'Get column statistics (nulls, uniques; and min, max, mean, top values when sample data sharing is on) for a tool\'s output. Returns compact text.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to profile.'),
-    socketId: z.string().optional().describe('Output socket ID. Defaults to the first output socket.'),
+    socketId: z.string().optional().describe('Output socket ID. Defaults to the default output (output-match for Join).'),
     columns: z.array(z.string()).optional().describe('Specific columns to profile. Omit to profile all columns.'),
   }),
   execute: async ({ toolId, socketId, columns }) => {
@@ -226,7 +231,7 @@ export const profileToolData = tool({
     const targetTool = found.tool;
 
     const socket = socketId
-      ?? targetTool.sockets.find((s) => s.direction === 'output')?.id
+      ?? defaultOutputSocket(targetTool)
       ?? 'Output';
 
     try {
@@ -253,7 +258,8 @@ export const profileToolData = tool({
       }));
 
       return {
-        data: formatCompactProfile(result.row_count, result.column_count, profileCols),
+        data: formatCompactProfile(result.row_count, result.column_count, shareableProfile(profileCols)) +
+          (sampleDataAllowed() ? '' : `\n${SAMPLE_DATA_WITHHELD}`),
       };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };
@@ -343,6 +349,9 @@ export const queryDatabase = tool({
 
       const rows = result.data ?? [];
       const schema = result.data_schema?.columns ?? [];
+      if (!sampleDataAllowed()) {
+        return { data: `Query OK. ${formatSchemaOnly(schema, result.returned_rows ?? rows.length)}\n${SAMPLE_DATA_WITHHELD}` };
+      }
       return { data: formatPreviewResult(rows, schema, result.returned_rows ?? rows.length) };
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) };

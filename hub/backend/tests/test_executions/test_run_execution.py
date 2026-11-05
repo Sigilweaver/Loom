@@ -13,6 +13,7 @@ from app.config import settings
 from app.db.models import Execution
 from app.domain.auth.tokens import InMemoryTokenStore
 from app.domain.capabilities import CapabilityIssuer
+from app.domain.executions.dispatcher import ExecutionDispatcher
 from app.domain.executions.service import ExecutionService, ExecutionServiceError
 from app.domain.servers.client import ServerError
 from app.domain.workflows.store import WorkflowFileStore
@@ -41,7 +42,7 @@ class FakeServerClient:
 def fake_client():
     FakeServerClient.instances = []
     FakeServerClient.result = {"duration": 1.5}
-    with patch("app.domain.executions.service.ServerClient", FakeServerClient):
+    with patch("app.domain.executions.dispatcher.ServerClient", FakeServerClient):
         yield FakeServerClient
 
 
@@ -58,9 +59,14 @@ async def runner_env(setup_database, temp_storage):
 
 
 async def _run(execution, workflow, server) -> None:
-    async with TestSessionLocal() as db:
-        service = ExecutionService(db, file_store=WorkflowFileStore(settings.workflow_storage_path))
-        await service._run_execution(execution.id, workflow.id, workflow.name, server)
+    """Claim and run queued executions the way a Hub dispatcher does."""
+    dispatcher = ExecutionDispatcher(
+        TestSessionLocal,
+        instance_id="test-hub",
+        file_store=WorkflowFileStore(settings.workflow_storage_path),
+    )
+    for claim in await dispatcher.claim(10):
+        await dispatcher.run_claim(claim)
 
 
 async def _setup(triggered_by: str = "runner"):

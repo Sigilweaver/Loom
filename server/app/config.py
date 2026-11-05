@@ -126,6 +126,12 @@ class Settings(BaseSettings):
     # client does not supply ``base_url``. Must be an externally reachable
     # address; SSRF validation still applies.
     ollama_default_url: str = "http://localhost:11434"
+    # OpenAI-compatible model servers on private or loopback addresses that
+    # the proxy may reach despite its SSRF guard, as origins such as
+    # "http://localhost:11434". Empty by default: every private address is
+    # refused. Only list servers you run and trust; any Studio user of this
+    # Server can then send requests to them.
+    ai_allowed_private_upstreams: list[str] = []
 
     # Rate limiting. When enabled, a per-key limit is applied to all
     # /api/workflow/* endpoints. Disabled by default so existing test suites

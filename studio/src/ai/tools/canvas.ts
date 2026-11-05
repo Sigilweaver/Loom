@@ -9,16 +9,18 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { useWorkflowStore } from '@state/workflowStore';
 import { getToolDefinition } from '@data/tools';
-import { listToolTypes } from '@data/toolConfigSchemas';
 import { generateUniqueId } from '@utils/id';
 import { previewTool } from '@api';
 import { formatAddToolResult } from '../format';
+import { shareableRows } from '../dataSharing';
+import { declinedResult, requestApproval } from '../approval';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
 import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
-import { getAgentTabId } from '../agent';
+import { useAIStore } from '@state/aiStore';
 import { useTabStore } from '@state/tabStore';
 import { setConfigPath, removeConfigPath } from './configPath';
+import { defaultOutputSocket, resolveToolType, unknownToolTypeError } from './toolTypes';
 import type { Tool, Wire, ToolConfig } from '@domain/workflow/entities/workflow';
 
 const logger = createLogger('AI:CanvasTools');
@@ -33,7 +35,7 @@ const logger = createLogger('AI:CanvasTools');
  * or null if the agent is safe to proceed.
  */
 function checkTabOwnership(): { success: false; error: string } | null {
-  const agentTab = getAgentTabId();
+  const agentTab = useAIStore.getState().agentTabId;
   if (!agentTab) return null; // No agent context (e.g. direct tool call in tests)
   const activeTab = useTabStore.getState().activeTabId;
   if (activeTab !== agentTab) {
@@ -43,6 +45,25 @@ function checkTabOwnership(): { success: false; error: string } | null {
     };
   }
   return null;
+}
+
+function describeTool(t: Tool): string {
+  return `${t.type} [${t.id}]${t.comment ? ` "${t.comment}"` : ''}`;
+}
+
+/** What removing these tools affects, for the approval prompt. */
+export function removalDetails(toolIds: string[]): string[] {
+  const { tools, wires } = useWorkflowStore.getState();
+  const removing = new Set(toolIds);
+  const details = tools.filter((t) => removing.has(t.id)).map((t) => describeTool(t));
+  const cut = wires.filter((w) => removing.has(w.from.tool) || removing.has(w.to.tool));
+  if (cut.length > 0) details.push(`${cut.length} connection${cut.length > 1 ? 's' : ''} removed`);
+  const orphaned = new Set(cut.filter((w) => removing.has(w.from.tool) && !removing.has(w.to.tool)).map((w) => w.to.tool));
+  for (const id of orphaned) {
+    const t = tools.find((x) => x.id === id);
+    if (t) details.push(`${describeTool(t)} loses its input`);
+  }
+  return details;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,15 +81,23 @@ interface FilterConditionGroup {
   combinator?: string;
 }
 
+/** Escape a value for a double-quoted Python string literal. */
+function pyString(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+}
+
 /**
- * Generate a Polars expression from a single condition.
+ * Generate a Polars expression from a single condition. Mirrors the Filter
+ * panel's Basic-mode generator (FilterExpressionBuilder) so reopening the
+ * tool in the UI produces the same expression.
  */
 function conditionToExpr(c: FilterCondition): string | null {
   if (!c.column) return null;
-  const colRef = `pl.col("${c.column}")`;
-  const val = c.value ?? '';
-  const isNum = val !== '' && !isNaN(Number(val));
-  const formatted = isNum ? val : `"${val}"`;
+  const colRef = `pl.col(${pyString(c.column)})`;
+  const val = String(c.value ?? '');
+  const isNum = val.trim() !== '' && !isNaN(Number(val));
+  const formatted = isNum ? val.trim() : pyString(val);
+  const lit = pyString(val);
 
   switch (c.operator) {
     case 'eq': return `${colRef} == ${formatted}`;
@@ -77,10 +106,10 @@ function conditionToExpr(c: FilterCondition): string | null {
     case 'lt': return `${colRef} < ${formatted}`;
     case 'gte': return `${colRef} >= ${formatted}`;
     case 'lte': return `${colRef} <= ${formatted}`;
-    case 'contains': return `${colRef}.str.contains("${val}")`;
-    case 'not_contains': return `~(${colRef}.str.contains("${val}"))`;
-    case 'starts_with': return `${colRef}.str.starts_with("${val}")`;
-    case 'ends_with': return `${colRef}.str.ends_with("${val}")`;
+    case 'contains': return `${colRef}.str.contains(${lit})`;
+    case 'not_contains': return `~(${colRef}.str.contains(${lit}))`;
+    case 'starts_with': return `${colRef}.str.starts_with(${lit})`;
+    case 'ends_with': return `${colRef}.str.ends_with(${lit})`;
     case 'is_null': return `${colRef}.is_null()`;
     case 'is_not_null': return `${colRef}.is_not_null()`;
     case 'is_true': return `${colRef} == True`;
@@ -515,10 +544,10 @@ async function runAutoLayout(): Promise<void> {
 export const addTool = tool({
   description: 'Add a new tool to the workflow canvas. Optionally connect via "after". Returns inline preview of the tool output when connected.',
   inputSchema: z.object({
-    type: z.string().describe('Tool type (e.g. "Input", "Filter", "Formula", "Sort", "Select", "Join", "Union", "Summarize", "Output", "Sample", "Unique"). Note: Aggregate is type "Summarize", Concatenate is type "Union", Read is type "Input", Write is type "Output", Schema is type "Select", Calculate is type "Formula".'),
+    type: z.string().describe('Internal tool type from the Tool Config Reference, e.g. "Input", "Filter", "Summarize".'),
     config: z.record(z.string(), z.unknown()).optional().describe('Tool configuration. Omit to use defaults.'),
     comment: z.string().optional().describe('REQUIRED: Brief human-readable comment explaining what this tool does in the pipeline. Every tool must have a comment (e.g. "Load raw sales data", "Keep only active customers", "Calculate profit margin per product"). Comments help users understand the workflow.'),
-    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool will only see columns from that tool\'s output. For independent analyses (e.g. multiple Aggregates on raw data), always point back to the Read tool ID - not to another Aggregate.'),
+    after: z.string().optional().describe('ID of the upstream tool whose output feeds into this new tool. The new tool only sees columns from that tool\'s output. For independent analyses (e.g. several Summarize tools on the raw data), point each back to the Input tool, not to another Summarize.'),
     fromSocket: z.string().optional().describe('Output socket on the "after" tool. Only needed for non-default sockets (e.g. "output-false").'),
     toSocket: z.string().optional().describe('Input socket on the new tool. Only needed for multi-input tools like Join ("input-left", "input-right").'),
   }),
@@ -526,17 +555,24 @@ export const addTool = tool({
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
 
-    const def = getToolDefinition(type);
+    const def = getToolDefinition(resolveToolType(type) ?? type);
     if (!def) {
-      const available = listToolTypes().map((t) => t.type).join(', ');
-      return { success: false, error: `Unknown tool type: "${type}". Available types: ${available}` };
+      return { success: false, error: unknownToolTypeError(type) };
     }
 
     const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
     const existingIds = new Set(tools.map((t) => t.id));
 
+    // Validate the upstream tool before touching the canvas, so a bad "after"
+    // does not leave an unconnected tool behind.
+    const sourceTool = after ? tools.find((t) => t.id === after) : undefined;
+    if (after && !sourceTool) {
+      const available = tools.map((t) => `${t.type} [${t.id}]`).join(', ') || '(canvas is empty)';
+      return { success: false, error: `Upstream tool "${after}" not found; nothing was added. Tools on canvas: ${available}` };
+    }
+
     // Resolve comment: use agent-provided, or auto-generate from config
-    const resolvedConfig = config ? enrichToolConfig(type, config) : config;
+    const resolvedConfig = config ? enrichToolConfig(def.type, config) : config;
     const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
     const resolvedComment = comment || generateComment(def.type, finalConfig) || undefined;
 
@@ -555,16 +591,11 @@ export const addTool = tool({
 
     // Auto-connect if "after" is specified
     let connected = false;
-    if (after) {
-      const sourceTool = tools.find((t) => t.id === after);
-      if (!sourceTool) {
-        const available = tools.map((t) => `${t.type} [${t.id}]`).join(', ');
-        return { data: formatAddToolResult(newTool.id, newTool.type, false, undefined, `Could not connect: source tool "${after}" not found. Available: ${available}`) };
-      }
-
+    let connectError: string | undefined;
+    if (after && sourceTool) {
       // Resolve output socket on source - default to first output
       const outputSocket = fromSocket
-        ?? sourceTool.sockets.find((s) => s.direction === 'output')?.id;
+        ?? defaultOutputSocket(sourceTool);
       // Resolve input socket on new tool - default to first input
       const inputSocket = toSocket
         ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
@@ -576,11 +607,19 @@ export const addTool = tool({
         };
         const result = addWire(wire);
         connected = result.success;
+        if (!result.success) connectError = `Added but not connected: ${result.error ?? 'wire rejected'}`;
+      } else {
+        connectError = `Added but not connected: socket "${fromSocket ?? toSocket ?? 'default'}" not found. ` +
+          `Outputs of ${sourceTool.type}: ${sourceTool.sockets.filter((s) => s.direction === 'output').map((s) => s.id).join(', ')}; ` +
+          `inputs of ${newTool.type}: ${newTool.sockets.filter((s) => s.direction === 'input').map((s) => s.id).join(', ')}`;
       }
     }
 
     // Auto-layout the canvas
     await runAutoLayout();
+    if (connectError) {
+      return { data: formatAddToolResult(newTool.id, newTool.type, false, undefined, connectError) };
+    }
 
     // Auto-preview when the tool is connected so the agent immediately sees
     // if the tool executed correctly and what the output looks like.
@@ -589,10 +628,10 @@ export const addTool = tool({
       try {
         const { tools: currentTools, wires: currentWires, workflowMeta } = useWorkflowStore.getState();
         const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
-        const outputSocket = newTool.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+        const outputSocket = defaultOutputSocket(newTool) ?? 'output';
         const result = await previewTool(newTool.id, workflow, outputSocket, 5);
         preview = {
-          rows: result.data?.slice(0, 5) ?? [],
+          rows: shareableRows(result.data?.slice(0, 5) ?? []),
           schema: result.data_schema?.columns ?? [],
           rowCount: result.row_count ?? 0,
         };
@@ -721,7 +760,7 @@ export const patchToolConfig = tool({
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to patch.'),
     patches: z.array(z.object({
-      path: z.string().describe('Dot/bracket path to the field, e.g. "conditions.0.value" or "sortColumns[0].order".'),
+      path: z.string().describe('Dot/bracket path to the field, e.g. "conditions.0.value" or "sortColumns[0].direction".'),
       value: z.unknown().optional().describe('New value to set at the path. Omit when op is "remove".'),
       op: z.enum(['set', 'remove']).optional().describe('Operation: "set" (default) writes value; "remove" deletes the field or array element.'),
     })).min(1).describe('Field-level patches to apply in order.'),
@@ -786,17 +825,16 @@ export const insertToolBetween = tool({
     toToolId: z.string().describe('ID of the downstream tool of the existing wire (B).'),
     config: z.record(z.string(), z.unknown()).optional().describe('Configuration for the new tool. Omit for defaults.'),
     comment: z.string().optional().describe('Brief human-readable comment for the new tool.'),
-    fromSocket: z.string().optional().describe('Output socket on the upstream tool. Defaults to the first output socket.'),
+    fromSocket: z.string().optional().describe('Output socket on the upstream tool. Defaults to the default output (output-match for Join).'),
     toSocket: z.string().optional().describe('Input socket on the downstream tool that the wire currently feeds. Defaults to the first input socket.'),
   }),
   execute: async ({ type, fromToolId, toToolId, config, comment, fromSocket, toSocket }) => {
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
 
-    const def = getToolDefinition(type);
+    const def = getToolDefinition(resolveToolType(type) ?? type);
     if (!def) {
-      const available = listToolTypes().map((t) => t.type).join(', ');
-      return { success: false, error: `Unknown tool type: "${type}". Available types: ${available}` };
+      return { success: false, error: unknownToolTypeError(type) };
     }
 
     const { tools, wires, addTool: storeAddTool, addWire, removeWire } = useWorkflowStore.getState();
@@ -805,7 +843,7 @@ export const insertToolBetween = tool({
     if (!fromTool) return { success: false, error: `Upstream tool not found: ${fromToolId}` };
     if (!toTool) return { success: false, error: `Downstream tool not found: ${toToolId}` };
 
-    const fromOutput = fromSocket ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+    const fromOutput = fromSocket ?? defaultOutputSocket(fromTool);
     const toInput = toSocket ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
     if (!fromOutput) return { success: false, error: `No output socket found on ${fromTool.type}` };
     if (!toInput) return { success: false, error: `No input socket found on ${toTool.type}` };
@@ -823,7 +861,7 @@ export const insertToolBetween = tool({
 
     // Build the new tool (same path as add_tool).
     const existingIds = new Set(tools.map((t) => t.id));
-    const resolvedConfig = config ? enrichToolConfig(type, config) : config;
+    const resolvedConfig = config ? enrichToolConfig(def.type, config) : config;
     const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
     const resolvedComment = comment || generateComment(def.type, finalConfig) || undefined;
     const newTool: Tool = {
@@ -837,7 +875,7 @@ export const insertToolBetween = tool({
     };
 
     const newInput = newTool.sockets.find((s) => s.direction === 'input')?.id;
-    const newOutput = newTool.sockets.find((s) => s.direction === 'output')?.id;
+    const newOutput = defaultOutputSocket(newTool);
     if (!newInput || !newOutput) {
       return { success: false, error: `Tool type "${type}" cannot be inserted inline (needs both an input and an output socket).` };
     }
@@ -864,7 +902,7 @@ export const insertToolBetween = tool({
       const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
       const result = await previewTool(newTool.id, workflow, newOutput, 5);
       preview = {
-        rows: result.data?.slice(0, 5) ?? [],
+        rows: shareableRows(result.data?.slice(0, 5) ?? []),
         schema: result.data_schema?.columns ?? [],
         rowCount: result.row_count ?? 0,
       };
@@ -882,11 +920,11 @@ export const insertToolBetween = tool({
  * Remove a tool from the canvas.
  */
 export const removeTool = tool({
-  description: 'Remove a tool from the canvas. Also removes any wires connected to it.',
+  description: 'Remove a tool from the canvas, with its wires. The user may be asked to approve first; if they decline, do not retry.',
   inputSchema: z.object({
     toolId: z.string().describe('The ID of the tool to remove.'),
   }),
-  execute: async ({ toolId }) => {
+  execute: async ({ toolId }, { abortSignal }) => {
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
 
@@ -895,6 +933,13 @@ export const removeTool = tool({
     if (!existing) {
       return { success: false, error: `Tool not found: ${toolId}` };
     }
+
+    const title = `Remove ${describeTool(existing)}`;
+    if (!(await requestApproval({ title, details: removalDetails([toolId]) }, abortSignal))) {
+      return declinedResult(title);
+    }
+    const stillTabErr = checkTabOwnership();
+    if (stillTabErr) return stillTabErr;
 
     remove(toolId);
     await runAutoLayout();
@@ -910,7 +955,7 @@ export const connectTools = tool({
   inputSchema: z.object({
     fromToolId: z.string().describe('The ID of the source tool (output).'),
     toToolId: z.string().describe('The ID of the target tool (input).'),
-    fromSocket: z.string().optional().describe('Output socket ID on the source tool. Defaults to the first output socket.'),
+    fromSocket: z.string().optional().describe('Output socket ID on the source tool. Defaults to the default output (output-match for Join).'),
     toSocket: z.string().optional().describe('Input socket ID on the target tool. Defaults to the first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
@@ -926,7 +971,7 @@ export const connectTools = tool({
 
     // Resolve sockets
     const outputSocket = fromSocket
-      ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+      ?? defaultOutputSocket(fromTool);
     const inputSocket = toSocket
       ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
 
@@ -952,7 +997,7 @@ export const disconnectTools = tool({
   inputSchema: z.object({
     fromToolId: z.string().describe('The ID of the source tool.'),
     toToolId: z.string().describe('The ID of the target tool.'),
-    fromSocket: z.string().optional().describe('Output socket ID. Defaults to first output socket.'),
+    fromSocket: z.string().optional().describe('Output socket ID. Defaults to the default output (output-match for Join).'),
     toSocket: z.string().optional().describe('Input socket ID. Defaults to first input socket.'),
   }),
   execute: async ({ fromToolId, toToolId, fromSocket, toSocket }) => {
@@ -967,7 +1012,7 @@ export const disconnectTools = tool({
     if (!toTool) return { success: false, error: `Target tool not found: ${toToolId}` };
 
     const outputSocket = fromSocket
-      ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+      ?? defaultOutputSocket(fromTool);
     const inputSocket = toSocket
       ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
 
@@ -1047,9 +1092,24 @@ export const batchCanvasOps = tool({
     operations: z.array(batchOpSchema).min(1).describe('Array of operations to execute in order.'),
     previewLast: z.boolean().optional().describe('When true, previews the output of the last added tool.'),
   }),
-  execute: async ({ operations, previewLast }) => {
+  execute: async ({ operations, previewLast }, { abortSignal }) => {
     const tabErr = checkTabOwnership();
     if (tabErr) return tabErr;
+
+    // Removals of existing tools need approval up front, for the whole batch.
+    const existingIds = new Set(useWorkflowStore.getState().tools.map((t) => t.id));
+    const removals = operations
+      .filter((o): o is Extract<typeof o, { op: 'remove' }> => o.op === 'remove')
+      .map((o) => o.toolId)
+      .filter((id) => existingIds.has(id));
+    if (removals.length > 0) {
+      const title = `Remove ${removals.length} tool${removals.length > 1 ? 's' : ''} as part of a batch edit`;
+      if (!(await requestApproval({ title, details: removalDetails(removals) }, abortSignal))) {
+        return declinedResult(title);
+      }
+      const stillTabErr = checkTabOwnership();
+      if (stillTabErr) return stillTabErr;
+    }
 
     const idMap: Record<string, string> = {}; // refId → actual canvas ID
     const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
@@ -1065,16 +1125,23 @@ export const batchCanvasOps = tool({
       try {
         switch (operation.op) {
           case 'add': {
-            const def = getToolDefinition(operation.type);
+            const def = getToolDefinition(resolveToolType(operation.type) ?? operation.type);
             if (!def) {
-              results.push({ op: 'add', success: false, error: `Unknown type: "${operation.type}"` });
+              results.push({ op: 'add', success: false, error: unknownToolTypeError(operation.type) });
               continue;
             }
 
             const { tools, addTool: storeAddTool, addWire } = useWorkflowStore.getState();
             const existingIds = new Set(tools.map((t) => t.id));
 
-            const resolvedConfig = operation.config ? enrichToolConfig(operation.type, operation.config) : undefined;
+            const afterId = operation.after ? resolveId(operation.after) : undefined;
+            const sourceTool = afterId ? tools.find((t) => t.id === afterId) : undefined;
+            if (operation.after && !sourceTool) {
+              results.push({ op: 'add', success: false, error: `Upstream tool "${operation.after}" not found; tool not added` });
+              continue;
+            }
+
+            const resolvedConfig = operation.config ? enrichToolConfig(def.type, operation.config) : undefined;
             const finalConfig = { ...def.defaultConfig, ...resolvedConfig } as ToolConfig;
             const resolvedComment = operation.comment || generateComment(def.type, finalConfig) || undefined;
 
@@ -1097,21 +1164,20 @@ export const batchCanvasOps = tool({
             lastAddedToolId = newTool.id;
 
             // Auto-connect if "after" is specified
-            if (operation.after) {
-              const afterId = resolveId(operation.after);
-              const currentTools = useWorkflowStore.getState().tools;
-              const sourceTool = currentTools.find((t) => t.id === afterId);
-              if (sourceTool) {
-                const outputSocket = operation.fromSocket
-                  ?? sourceTool.sockets.find((s) => s.direction === 'output')?.id;
-                const inputSocket = operation.toSocket
-                  ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
-                if (outputSocket && inputSocket) {
-                  addWire({
-                    from: { tool: afterId, socket: outputSocket },
-                    to: { tool: newTool.id, socket: inputSocket },
-                  });
-                }
+            if (afterId && sourceTool) {
+              const outputSocket = operation.fromSocket
+                ?? defaultOutputSocket(sourceTool);
+              const inputSocket = operation.toSocket
+                ?? newTool.sockets.find((s) => s.direction === 'input')?.id;
+              const wired = outputSocket && inputSocket
+                ? addWire({
+                  from: { tool: afterId, socket: outputSocket },
+                  to: { tool: newTool.id, socket: inputSocket },
+                })
+                : { success: false, error: 'Could not resolve sockets' };
+              if (!wired.success) {
+                results.push({ op: 'add', success: false, toolId: newTool.id, error: `Added ${newTool.id} but not connected: ${wired.error ?? 'wire rejected'}` });
+                break;
               }
             }
 
@@ -1132,16 +1198,18 @@ export const batchCanvasOps = tool({
             }
 
             const outputSocket = operation.fromSocket
-              ?? fromTool.sockets.find((s) => s.direction === 'output')?.id;
+              ?? defaultOutputSocket(fromTool);
             const inputSocket = operation.toSocket
               ?? toTool.sockets.find((s) => s.direction === 'input')?.id;
 
             if (outputSocket && inputSocket) {
-              addWire({
+              const wired = addWire({
                 from: { tool: fromId, socket: outputSocket },
                 to: { tool: toId, socket: inputSocket },
               });
-              results.push({ op: 'connect', success: true });
+              results.push(wired.success
+                ? { op: 'connect', success: true }
+                : { op: 'connect', success: false, error: wired.error ?? 'wire rejected' });
             } else {
               results.push({ op: 'connect', success: false, error: 'Could not resolve sockets' });
             }
@@ -1217,15 +1285,13 @@ export const batchCanvasOps = tool({
         const lastTool = currentTools.find((t) => t.id === lastAddedToolId);
         if (lastTool) {
           const workflow = { version: '1.0' as const, tools: currentTools, wires: currentWires, meta: workflowMeta };
-          const outputSocket = lastTool.sockets.find((s) => s.direction === 'output')?.id ?? 'output';
+          const outputSocket = defaultOutputSocket(lastTool) ?? 'output';
           const result = await previewTool(lastAddedToolId!, workflow, outputSocket, 5);
-          const rows = result.data?.slice(0, 5) ?? [];
+          const rows = shareableRows(result.data?.slice(0, 5) ?? []);
           const schema = result.data_schema?.columns ?? [];
           const rowCount = result.row_count ?? rows.length;
-          if (rows.length > 0) {
-            parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
-            parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
-          }
+          parts.push(`Preview (${lastTool.type} [${lastAddedToolId}], ${rowCount} rows):`);
+          parts.push(formatAddToolResult(lastAddedToolId!, lastTool.type, true, { rows, schema, rowCount }));
         }
       } catch (err) {
         const previewError = err instanceof Error ? err.message : String(err);

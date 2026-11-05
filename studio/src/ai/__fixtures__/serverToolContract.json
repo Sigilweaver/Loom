@@ -1,0 +1,777 @@
+{
+  "configSchemas": {
+    "Filter": {
+      "description": "Typed config for Filter.",
+      "properties": {
+        "expression": {
+          "default": "",
+          "description": "Polars expression evaluated per row.",
+          "title": "Expression",
+          "type": "string"
+        }
+      },
+      "title": "FilterToolConfig",
+      "type": "object"
+    },
+    "Formula": {
+      "$defs": {
+        "FormulaOperationConfig": {
+          "description": "Single column operation. Typed config.",
+          "properties": {
+            "column_name": {
+              "minLength": 1,
+              "title": "Column Name",
+              "type": "string"
+            },
+            "expression": {
+              "default": "",
+              "title": "Expression",
+              "type": "string"
+            }
+          },
+          "required": [
+            "column_name"
+          ],
+          "title": "FormulaOperationConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Typed config for Formula.\n\nTwo shapes are accepted for backward compatibility:\n- ``operations`` (preferred): list of FormulaOperationConfig.\n- Legacy top-level ``column_name`` / ``expression`` (single op).",
+      "properties": {
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Column Name"
+        },
+        "expression": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        },
+        "operations": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FormulaOperationConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operations"
+        }
+      },
+      "title": "FormulaToolConfig",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": true,
+      "description": "Typed config for Input.\n\nInput configs are polymorphic across data-source loaders (CSV,\nParquet, Excel, databases, etc.) so extra fields are allowed and\nonly the dispatch fields are typed here.",
+      "properties": {
+        "category": {
+          "default": "file",
+          "description": "'file' or 'database'.",
+          "title": "Category",
+          "type": "string"
+        },
+        "connectionName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Connectionname"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Query"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "File path or connection URI.",
+          "title": "Source"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Loader type, e.g. 'csv', 'parquet'.",
+          "title": "Type"
+        }
+      },
+      "title": "InputToolConfig",
+      "type": "object"
+    },
+    "Join": {
+      "additionalProperties": true,
+      "description": "Typed config for Join.",
+      "properties": {
+        "joinType": {
+          "default": "inner",
+          "enum": [
+            "inner",
+            "left",
+            "right",
+            "outer"
+          ],
+          "title": "Jointype",
+          "type": "string"
+        },
+        "leftKeys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Leftkeys",
+          "type": "array"
+        },
+        "rightKeys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rightkeys",
+          "type": "array"
+        },
+        "rightSuffix": {
+          "default": "_right",
+          "title": "Rightsuffix",
+          "type": "string"
+        }
+      },
+      "title": "JoinToolConfig",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": true,
+      "description": "Typed config for Output.\n\nOutput configs are polymorphic across writer formats (CSV, Parquet,\nExcel, IPC, JSON, etc.) so extra fields are allowed and only the\ndispatch fields are typed here.",
+      "properties": {
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Destination path.",
+          "title": "Destination"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Writer type, e.g. 'csv'.",
+          "title": "Type"
+        }
+      },
+      "title": "OutputToolConfig",
+      "type": "object"
+    },
+    "Pivot": {
+      "additionalProperties": true,
+      "description": "Typed config for Pivot.",
+      "properties": {
+        "aggregateFunction": {
+          "default": "first",
+          "title": "Aggregatefunction",
+          "type": "string"
+        },
+        "index": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Index",
+          "type": "array"
+        },
+        "on": {
+          "default": "",
+          "title": "On",
+          "type": "string"
+        },
+        "values": {
+          "default": "",
+          "title": "Values",
+          "type": "string"
+        }
+      },
+      "title": "PivotToolConfig",
+      "type": "object"
+    },
+    "Sample": {
+      "additionalProperties": true,
+      "description": "Typed config for Sample.",
+      "properties": {
+        "mode": {
+          "default": "FirstN",
+          "title": "Mode",
+          "type": "string"
+        },
+        "n": {
+          "default": 100,
+          "title": "N",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "percent": {
+          "default": 10.0,
+          "title": "Percent",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "SampleToolConfig",
+      "type": "object"
+    },
+    "Select": {
+      "$defs": {
+        "SelectColumnConfig": {
+          "additionalProperties": true,
+          "description": "Single column configuration. Typed config.",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "rename": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rename"
+            },
+            "selected": {
+              "default": true,
+              "title": "Selected",
+              "type": "boolean"
+            },
+            "size": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Size"
+            },
+            "targetType": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Targettype"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "SelectColumnConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Typed config for Select.",
+      "properties": {
+        "columnConfigs": {
+          "items": {
+            "$ref": "#/$defs/SelectColumnConfig"
+          },
+          "title": "Columnconfigs",
+          "type": "array"
+        }
+      },
+      "title": "SelectToolConfig",
+      "type": "object"
+    },
+    "Sort": {
+      "$defs": {
+        "SortColumnConfig": {
+          "additionalProperties": false,
+          "description": "Single sort-column definition. Typed-config exemplar.\n\nUnknown keys are rejected (`extra=\"forbid\"`) so config drift surfaces as a\nvalidation error rather than being silently dropped: an AI-generated config\nusing `order: \"descending\"` instead of `direction: \"desc\"` previously\nproduced a silent ascending sort.",
+          "properties": {
+            "column": {
+              "description": "Column to sort by.",
+              "minLength": 1,
+              "title": "Column",
+              "type": "string"
+            },
+            "direction": {
+              "default": "asc",
+              "description": "Sort direction.",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Direction",
+              "type": "string"
+            },
+            "nullsFirst": {
+              "default": false,
+              "description": "Place nulls first.",
+              "title": "Nullsfirst",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "column"
+          ],
+          "title": "SortColumnConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Top-level Sort tool config. Typed-config exemplar.",
+      "properties": {
+        "sortColumns": {
+          "items": {
+            "$ref": "#/$defs/SortColumnConfig"
+          },
+          "title": "Sortcolumns",
+          "type": "array"
+        }
+      },
+      "title": "SortToolConfig",
+      "type": "object"
+    },
+    "Summarize": {
+      "$defs": {
+        "SummarizeAggregationConfig": {
+          "additionalProperties": true,
+          "description": "Single aggregation. Typed config.",
+          "properties": {
+            "column": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Column"
+            },
+            "operation": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Operation"
+            },
+            "outputName": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Outputname"
+            }
+          },
+          "title": "SummarizeAggregationConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Typed config for Summarize.",
+      "properties": {
+        "aggregations": {
+          "items": {
+            "$ref": "#/$defs/SummarizeAggregationConfig"
+          },
+          "title": "Aggregations",
+          "type": "array"
+        },
+        "groupByColumns": {
+          "items": {},
+          "title": "Groupbycolumns",
+          "type": "array"
+        },
+        "includeNulls": {
+          "default": false,
+          "title": "Includenulls",
+          "type": "boolean"
+        }
+      },
+      "title": "SummarizeToolConfig",
+      "type": "object"
+    },
+    "Union": {
+      "additionalProperties": true,
+      "description": "Typed config for Union.",
+      "properties": {
+        "mode": {
+          "default": "ByName",
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "title": "UnionToolConfig",
+      "type": "object"
+    },
+    "Unique": {
+      "additionalProperties": true,
+      "description": "Typed config for Unique.",
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "mode": {
+          "default": "First",
+          "enum": [
+            "First",
+            "Strict"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "title": "UniqueToolConfig",
+      "type": "object"
+    },
+    "Unpivot": {
+      "additionalProperties": true,
+      "description": "Typed config for Unpivot.",
+      "properties": {
+        "index": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Index",
+          "type": "array"
+        },
+        "on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "On",
+          "type": "array"
+        },
+        "valueName": {
+          "default": "value",
+          "title": "Valuename",
+          "type": "string"
+        },
+        "variableName": {
+          "default": "variable",
+          "title": "Variablename",
+          "type": "string"
+        }
+      },
+      "title": "UnpivotToolConfig",
+      "type": "object"
+    }
+  },
+  "editorStateKeys": {
+    "Filter": [
+      "combinator",
+      "conditionGroup",
+      "conditions",
+      "mode"
+    ],
+    "Formula": [],
+    "Input": [],
+    "Join": [],
+    "Output": [],
+    "Pivot": [],
+    "Sample": [],
+    "Select": [],
+    "Sort": [],
+    "Summarize": [
+      "actions"
+    ],
+    "Union": [],
+    "Unique": [],
+    "Unpivot": []
+  },
+  "expressions": {
+    "deniedMethodSamples": [
+      "inspect",
+      "map_batches",
+      "map_elements",
+      "pipe"
+    ],
+    "plAllowedNames": [
+      "Array",
+      "Binary",
+      "Boolean",
+      "Categorical",
+      "Date",
+      "Datetime",
+      "Decimal",
+      "Duration",
+      "Enum",
+      "Field",
+      "Float32",
+      "Float64",
+      "Int128",
+      "Int16",
+      "Int32",
+      "Int64",
+      "Int8",
+      "List",
+      "Null",
+      "String",
+      "Struct",
+      "Time",
+      "UInt128",
+      "UInt16",
+      "UInt32",
+      "UInt64",
+      "UInt8",
+      "Utf8",
+      "all",
+      "all_horizontal",
+      "any",
+      "any_horizontal",
+      "approx_n_unique",
+      "arange",
+      "arctan2",
+      "arctan2d",
+      "arg_sort_by",
+      "arg_where",
+      "business_day_count",
+      "coalesce",
+      "col",
+      "concat",
+      "concat_arr",
+      "concat_list",
+      "concat_str",
+      "corr",
+      "count",
+      "cov",
+      "cum_count",
+      "cum_sum",
+      "cum_sum_horizontal",
+      "date",
+      "date_range",
+      "date_ranges",
+      "datetime",
+      "datetime_range",
+      "datetime_ranges",
+      "duration",
+      "element",
+      "exclude",
+      "field",
+      "first",
+      "format",
+      "from_epoch",
+      "head",
+      "implode",
+      "int_range",
+      "int_ranges",
+      "last",
+      "len",
+      "linear_space",
+      "linear_spaces",
+      "lit",
+      "max",
+      "max_horizontal",
+      "mean",
+      "mean_horizontal",
+      "median",
+      "min",
+      "min_horizontal",
+      "n_unique",
+      "nth",
+      "ones",
+      "quantile",
+      "repeat",
+      "rolling_corr",
+      "rolling_cov",
+      "std",
+      "struct",
+      "sum",
+      "sum_horizontal",
+      "tail",
+      "time",
+      "time_range",
+      "time_ranges",
+      "var",
+      "when",
+      "zeros"
+    ]
+  },
+  "forwardsExtraConfig": {
+    "Filter": false,
+    "Formula": false,
+    "Input": true,
+    "Join": false,
+    "Output": true,
+    "Pivot": false,
+    "Sample": false,
+    "Select": false,
+    "Sort": false,
+    "Summarize": false,
+    "Union": false,
+    "Unique": false,
+    "Unpivot": false
+  },
+  "toolTypes": [
+    "Filter",
+    "Formula",
+    "Input",
+    "Join",
+    "Output",
+    "Pivot",
+    "Sample",
+    "Select",
+    "Sort",
+    "Summarize",
+    "Union",
+    "Unique",
+    "Unpivot"
+  ],
+  "values": {
+    "inputTypes": [
+      "avro",
+      "csv",
+      "excel",
+      "ipc",
+      "json",
+      "mssql",
+      "mysql",
+      "ods",
+      "parquet",
+      "postgresql",
+      "qvd",
+      "sqlite",
+      "yxdb"
+    ],
+    "outputTypes": [
+      "avro",
+      "csv",
+      "excel",
+      "ipc",
+      "json",
+      "parquet",
+      "yxdb"
+    ],
+    "pivotAggregations": [
+      "first",
+      "last",
+      "len",
+      "max",
+      "mean",
+      "median",
+      "min",
+      "sum"
+    ],
+    "summarizeOperations": [
+      "Concat",
+      "Count",
+      "CountDistinct",
+      "First",
+      "Last",
+      "Max",
+      "Mean",
+      "Median",
+      "Min",
+      "Std",
+      "Sum",
+      "Var"
+    ]
+  }
+}

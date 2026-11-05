@@ -148,14 +148,13 @@ Everything below runs inside the Hub process, started in the app's lifespan hook
 | ---- | ---- |
 | Server health poller | Checks every Server each `SERVER_POLL_INTERVAL_SECONDS`, with backoff and an offline threshold |
 | Connection health poller | Tests every connection about hourly |
-| Scheduler | APScheduler polls due database occurrences every second; a schedule row lock serializes occurrence advancement and execution insertion |
+| Scheduler | APScheduler polls due database occurrences every second; a schedule row lock serializes occurrence advancement and execution insertion, and a unique `(schedule_id, scheduled_for)` index allows one execution per occurrence |
 | Session cleanup | Deletes expired sessions in batches |
 | Token store cleanup | Drops expired in-memory tokens |
-| Execution tasks | One `asyncio` task per execution, started by `ExecutionService.trigger_execution`; heartbeat every 15 seconds |
-| Execution recovery | Startup and 60-second sweeps mark stale queued/running records failed; runners are cancelled on shutdown |
+| Execution dispatcher | Claims queued executions from PostgreSQL with `FOR UPDATE SKIP LOCKED` (up to `EXECUTION_MAX_CONCURRENT`), runs each under a lease refreshed every 15 seconds, and sweeps expired leases at startup and every 30 seconds |
 | Event broker | In-memory fan-out of execution events to Server-Sent Events clients |
 
-Execution records and next schedule occurrences survive in PostgreSQL. A dispatcher locks a due schedule with `FOR UPDATE SKIP LOCKED`, uses the database clock, and advances its next occurrence in the same transaction that inserts the execution. A failed uncommitted claim can be retried by another process; overdue intervals are coalesced into one attempt. This prevents duplicate schedule dispatch, but does not make the execution runner durable: a restarted Hub marks stale records failed and cannot resume their Server requests. The in-memory event broker and default token store still require one Hub replica.
+Executions and schedule occurrences are a queue in PostgreSQL that every Hub process works from, with no leader. Queued work survives a restart, a run is sent to a Server by one process at most, and a run whose process stopped is recovered when its lease expires. See [Hub Execution Dispatch](./hub-execution.md). The in-memory event broker and the default in-memory token store are the parts that still assume one process.
 
 ## Frontend
 

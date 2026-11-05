@@ -2,13 +2,11 @@
 
 import type { Schemas } from "./schema";
 import { request, requestVoid } from "./http";
-import type { UserResponse } from "./auth";
 
-export interface CreateUserRequest {
-  username: string;
-  password: string;
-  role?: string;
-}
+export type CreateUserRequest = Schemas["CreateUserRequest"];
+
+// Same shape as the signed-in user's UserResponse in auth.ts, from the users routes.
+type UserResponse = Schemas["app__api__v1__routes__users__UserResponse"];
 
 export type CreateUserResponse = UserResponse;
 
@@ -28,7 +26,7 @@ export function getUser(userId: string): Promise<UserResponse> {
 
 export function updateUser(
   userId: string,
-  data: { username?: string; password?: string; role?: string }
+  data: Schemas["UpdateUserRequest"]
 ): Promise<UserResponse> {
   return request(`/users/${userId}`, { method: "PATCH", json: data });
 }

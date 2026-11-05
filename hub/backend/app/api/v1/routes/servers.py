@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,7 +16,7 @@ from app.api.dependencies import CurrentUser, OptionalUser, RequireAdmin, Requir
 from app.config import settings
 from app.config import settings as _rl_settings
 from app.db.database import get_db
-from app.db.models import Group, Server, ServerGroup, UserGroup
+from app.db.models import Execution, Group, Schedule, Server, ServerGroup, UserGroup
 from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
@@ -223,8 +223,22 @@ async def register_server(
     # so it must never match (and overwrite) another server that also has no token.
     server = None
     if request.auth_token:
-        existing = await db.execute(select(Server).where(Server.auth_token == request.auth_token))
-        server = existing.scalar_one_or_none()
+        existing = await db.execute(
+            select(Server).where(Server.auth_token == request.auth_token).limit(2)
+        )
+        matches = existing.scalars().all()
+        if len(matches) > 1:
+            # Two registry entries share this token, so the token no longer
+            # identifies one server. Refuse rather than update an arbitrary one.
+            logger.error(
+                "Registration token is shared by servers %s; refusing re-registration",
+                ", ".join(m.name for m in matches),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This auth token is shared by more than one registered server",
+            )
+        server = matches[0] if matches else None
 
     if server:
         # Update existing server (endpoint may have changed)
@@ -304,6 +318,17 @@ async def update_server(
     if request.endpoint_url is not None:
         server.endpoint_url = request.endpoint_url.rstrip("/")
     if request.auth_token is not None:
+        if request.auth_token:
+            clash = await db.execute(
+                select(Server.id).where(
+                    Server.auth_token == request.auth_token, Server.id != server_id
+                )
+            )
+            if clash.first() is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Another server already uses this auth token",
+                )
         server.auth_token = request.auth_token
 
     await db.commit()
@@ -328,6 +353,28 @@ async def unregister_server(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Server not found",
+        )
+
+    executions = (
+        await db.execute(
+            select(func.count()).select_from(Execution).where(Execution.server_id == server_id)
+        )
+    ).scalar_one()
+    schedules = (
+        await db.execute(
+            select(func.count())
+            .select_from(Schedule)
+            .where(Schedule.target_server_id == server_id)
+        )
+    ).scalar_one()
+    if executions or schedules:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Server is the target of {schedules} schedule(s) and has "
+                f"{executions} execution(s) in its history; retarget the "
+                "schedules first. Servers with execution history are kept."
+            ),
         )
 
     server_name = server.name

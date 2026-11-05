@@ -9,11 +9,12 @@ Hub is in open beta. It works, it has tests, and teams can use it. It also has k
 
 ## Run one Hub
 
-Run Hub as a **single process**. Scheduled occurrences are coordinated through PostgreSQL, but live updates and the default token store still live in memory:
+Run Hub as a **single process**. Executions and scheduled occurrences are coordinated through PostgreSQL, but live updates and the default token store still live in memory:
 
 | Part                     | What lives in the Hub process                                                          | Effect with more than one replica                              |
 | ------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Scheduler**            | Each process polls persisted next occurrences once per second and claims a due schedule under a row lock. | Competing dispatchers create at most one execution per claimed occurrence. |
+| **Scheduler**            | Each process polls persisted next occurrences once per second and claims a due schedule under a row lock. | An occurrence creates at most one execution.                   |
+| **Execution dispatch**   | Each process claims queued executions from PostgreSQL and holds a lease while it runs them. | A run is sent to a Server by one process at most; another process recovers runs of a stopped one. |
 | **Live updates**         | Execution status events pass through an in-memory broker.                              | A browser sees only events from the replica it is connected to.  |
 | **Server tokens**        | By default, issued tokens are kept in memory (`TOKEN_STORE_BACKEND=memory`).           | A token issued by one replica is unknown to the others.       |
 
@@ -21,14 +22,15 @@ Run Hub as a **single process**. Scheduled occurrences are coordinated through P
 
 ## Execution recovery has limits
 
-When a user clicks **Run Now** or a schedule fires, Hub records an execution and then runs it as a background task inside the Hub process. The task makes one HTTP request to the Server and waits for the answer.
+When a user clicks **Run Now** or a schedule fires, Hub queues an execution in PostgreSQL. A Hub process claims it, makes one HTTP request to the Server and waits for the answer. [Hub Execution Dispatch](../developer/architecture/hub-execution.md) describes the design.
 
 What that means in practice:
 
-- **A Hub restart interrupts its runner.** Execution records survive in PostgreSQL. A sweep at startup and every 60 seconds marks queued or running records failed when their last heartbeat is older than `EXECUTION_STALE_SECONDS` (120 seconds by default). Runners refresh that heartbeat every 15 seconds. The failure message says the outcome on the Server is unknown; Hub does not resume the run.
+- **Queued runs survive a restart.** A run that had not reached a Server when Hub stopped is started by the next Hub process.
+- **A run in progress does not.** If Hub stops while it waits for a Server, the run is marked failed, either at shutdown (after `EXECUTION_SHUTDOWN_GRACE_SECONDS`, 5 seconds by default) or, after a crash, once its lease is older than `EXECUTION_STALE_SECONDS` (120 seconds). The message says the outcome on the Server is unknown. Hub does not run it again, because the workflow may already have written its outputs.
 - **There is a time limit.** Hub waits for a Server's answer for ten times `SERVER_TIMEOUT_SECONDS`, which is 100 seconds by default. A longer workflow is marked failed in Hub with "Execution timeout". The Server may still finish it.
-- **Cancel is bookkeeping.** **Cancel** marks the execution as cancelled in Hub. It does not stop the work on the Server.
-- **Executions are not retried.** Once an execution record is committed, a failed run waits for the next scheduled occurrence. An attempt that fails before the execution and occurrence claim commit is retried on a later scheduler poll.
+- **Cancel stops Hub, not the Server.** **Cancel** marks the execution as cancelled, and Hub stops waiting within 15 seconds. The Server keeps running work it already received.
+- **Failed runs are not retried.** A failed run waits for the next scheduled occurrence or a new **Run Now**. A scheduled occurrence that cannot start, for example because no Server is online, stays due and starts once one is.
 
 For long-running work, keep workflows short, or run them from Studio in External or Hub mode, where Studio holds the connection.
 
@@ -51,7 +53,7 @@ Use the interactive API documentation at `/docs` on your Hub to call them.
 
 ## Not built yet
 
-- **Settings page.** **Admin > Settings** is a placeholder.
+- **Settings screen.** Hub is configured through its environment variables; see the [Deployment Guide](./deployment.md).
 - **Single sign-on.** Accounts are local usernames and passwords.
 - **Per-user API tokens.** Automation has to use a user login.
 - **Notifications** by email or webhook.

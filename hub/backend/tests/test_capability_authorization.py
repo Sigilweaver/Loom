@@ -261,3 +261,25 @@ async def test_token_issuance_storage_failure_has_no_success_audit(
             select(AuditEvent).where(AuditEvent.event_type == "capability.token_issued")
         )
         assert issued.scalars().all() == []
+
+
+async def test_undecryptable_credentials_deny_instead_of_partial_grant(
+    capability_context, monkeypatch
+):
+    """A key rotation must not yield authorized=True with no credentials."""
+    from app.domain.connections import store as store_module
+
+    user, server, headers = capability_context
+    database, _, _ = await make_connections()
+    await grant(user.id, [database])
+
+    async def broken(self, connection_id):
+        raise store_module.EncryptionKeyError("key does not match")
+
+    monkeypatch.setattr(ConnectionStore, "resolve_connection", broken)
+    async with new_client() as client:
+        token = await issue(client, headers, server)
+        body = (await authorize(client, token, "execute", [database])).json()
+    assert body["authorized"] is False
+    assert "decrypt" in body["error"]
+    assert body["credentials"] == {}

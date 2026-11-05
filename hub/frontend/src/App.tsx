@@ -37,9 +37,6 @@ const GrantGroupsTab = lazy(() =>
   import("@pages/admin/GrantGroupsTab").then((m) => ({ default: m.GrantGroupsTab }))
 );
 const UsersTab = lazy(() => import("@pages/admin/UsersTab").then((m) => ({ default: m.UsersTab })));
-const SettingsPage = lazy(() =>
-  import("@pages/admin/SettingsPage").then((m) => ({ default: m.SettingsPage }))
-);
 
 function App() {
   return (
@@ -74,7 +71,6 @@ function App() {
           <Route path="groups" element={<Lazy><GroupsTab /></Lazy>} />
           <Route path="grant-groups" element={<Lazy><GrantGroupsTab /></Lazy>} />
           <Route path="users" element={<Lazy><UsersTab /></Lazy>} />
-          <Route path="settings" element={<Lazy><SettingsPage /></Lazy>} />
         </Route>
       </Route>
 

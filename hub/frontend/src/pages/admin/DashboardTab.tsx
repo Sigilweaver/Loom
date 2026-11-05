@@ -6,15 +6,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  ArrowDownRight,
-  ArrowUpRight,
   Calendar,
   CheckCircle2,
   Clock,
   Database,
   FileCode2,
   Loader2,
-  Minus,
   Play,
   RefreshCw,
   Server,
@@ -48,15 +45,15 @@ import {
   StatCard,
 } from "@components/ui";
 
-type Trend = "up" | "down" | "stable";
-
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Executions fetched for the dashboard; the 24-hour figures are counted from these. */
+const RECENT_LIMIT = 100;
 
 async function loadDashboard() {
   const [servers, workflows, executions, schedules, users, connections, groups, health] = await Promise.all([
     listServers(),
     listWorkflows(),
-    listExecutions({ limit: 100 }),
+    listExecutions({ limit: RECENT_LIMIT }),
     listSchedules({ enabled: true, limit: 1 }),
     listUsers(),
     listConnections(),
@@ -72,9 +69,14 @@ async function loadDashboard() {
   const last24h = executions.executions.filter((e) => inWindow(e.queued_at, now - DAY_MS, Infinity));
   const previous24h = executions.executions.filter((e) => inWindow(e.queued_at, now - 2 * DAY_MS, now - DAY_MS));
 
-  let trend: Trend = "stable";
-  if (last24h.length > previous24h.length * 1.1) trend = "up";
-  else if (last24h.length < previous24h.length * 0.9) trend = "down";
+  // Executions arrive newest first. When the Hub has more than were fetched and
+  // the oldest fetched run is still inside the 48-hour window, the counts below
+  // are lower bounds rather than exact figures.
+  const oldest = executions.executions[executions.executions.length - 1];
+  const capped =
+    executions.total > executions.executions.length &&
+    oldest !== undefined &&
+    inWindow(oldest.queued_at, now - 2 * DAY_MS, Infinity);
 
   const online = servers.servers.filter((s) => s.status === "online").length;
 
@@ -91,7 +93,8 @@ async function loadDashboard() {
       total: last24h.length,
       completed: last24h.filter((e) => e.status === "completed").length,
       failed: last24h.filter((e) => e.status === "failed").length,
-      trend,
+      previous: previous24h.length,
+      capped,
     },
     running: executions.executions.filter((e) => e.status === "running").length,
     queued: executions.executions.filter((e) => e.status === "queued").length,
@@ -103,19 +106,6 @@ async function loadDashboard() {
   };
 }
 
-const TREND_ICON = { up: ArrowUpRight, down: ArrowDownRight, stable: Minus } as const;
-const TREND_CLASS = { up: "text-success-ink", down: "text-danger-ink", stable: "text-ink-subtle" } as const;
-
-function TrendLabel({ trend }: { trend: Trend }) {
-  const Icon = TREND_ICON[trend];
-  return (
-    <span className={`flex items-center gap-1 text-xs font-medium ${TREND_CLASS[trend]}`}>
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      vs previous 24h
-    </span>
-  );
-}
-
 export function DashboardTab() {
   const queryClient = useQueryClient();
   const dashboard = useQuery({
@@ -125,7 +115,9 @@ export function DashboardTab() {
   });
 
   const data = dashboard.data;
-  const successRate = data && data.day.total > 0 ? Math.round((data.day.completed / data.day.total) * 100) : 100;
+  // Success rate over finished runs only: running and queued runs have no outcome yet.
+  const finished = data ? data.day.completed + data.day.failed : 0;
+  const successRate = data && finished > 0 ? Math.round((data.day.completed / finished) * 100) : null;
 
   return (
     <Page>
@@ -155,7 +147,7 @@ export function DashboardTab() {
       ) : (
         data && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <StatCard label="Users" value={data.counts.users} icon={Users} tone="info" to="/admin/users" />
               <StatCard label="Workflows" value={data.counts.workflows} icon={FileCode2} tone="accent" to="/admin/activity" />
               <StatCard label="Connections" value={data.counts.connections} icon={Database} tone="warning" to="/admin/connections" />
@@ -167,18 +159,22 @@ export function DashboardTab() {
                 <Activity className="h-4 w-4" aria-hidden="true" />
                 Execution activity, last 24 hours
               </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 <StatCard
                   label="Total executions"
-                  value={data.day.total}
+                  value={data.day.capped ? `${data.day.total}+` : data.day.total}
+                  hint={
+                    data.day.capped
+                      ? `Counted from the latest ${RECENT_LIMIT} runs`
+                      : `${data.day.previous} in the previous 24h`
+                  }
                   icon={Play}
                   tone="neutral"
-                  aside={<TrendLabel trend={data.day.trend} />}
                 />
                 <StatCard
                   label="Completed"
                   value={data.day.completed}
-                  hint={`${successRate}% success rate`}
+                  hint={successRate === null ? undefined : `${successRate}% success rate`}
                   icon={CheckCircle2}
                   tone="success"
                 />

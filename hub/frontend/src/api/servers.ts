@@ -9,11 +9,7 @@ export type ServerListResponse = Schemas["ServerListResponse"];
 
 export type ServerTestResponse = Schemas["ServerTestResponse"];
 
-interface ServerInput {
-  name: string;
-  endpoint_url: string;
-  auth_token?: string;
-}
+type ServerInput = Schemas["ServerCreate"];
 
 /** List servers (auto-filtered by group membership for regular users). */
 export function listServers(): Promise<ServerListResponse> {
