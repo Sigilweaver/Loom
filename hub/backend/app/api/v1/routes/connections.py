@@ -30,6 +30,7 @@ from app.domain.connections import (
     ResolvedDatabaseConnection,
     UpdateConnectionInput,
 )
+from app.domain.connections.testing import check_database_connection
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 logger = logging.getLogger(__name__)
@@ -414,7 +415,7 @@ async def test_connection(
             ),
         )
 
-    return _test_connection_params(
+    return await _test_connection_params(
         db_type=resolved.db_type,
         host=resolved.host,
         port=resolved.port,
@@ -444,7 +445,7 @@ async def test_connection_params(
 
     Requires admin role. Tests if we can connect with the provided credentials.
     """
-    return _test_connection_params(
+    return await _test_connection_params(
         db_type=input.type,
         host=input.host,
         port=input.port,
@@ -454,7 +455,7 @@ async def test_connection_params(
     )
 
 
-def _test_connection_params(
+async def _test_connection_params(
     db_type: str | DatabaseType,
     host: str,
     port: int,
@@ -462,57 +463,8 @@ def _test_connection_params(
     username: str,
     password: str,
 ) -> TestConnectionResponse:
-    """Test connection with provided parameters.
-
-    Uses Polars with connectorx engine for consistency with the Server.
-    """
-    try:
-        from urllib.parse import quote_plus
-
-        import polars as pl
-
-        # URL-encode credentials
-        safe_username = quote_plus(username)
-        safe_password = quote_plus(password)
-
-        # Convert enum to string if needed
-        type_str = db_type if isinstance(db_type, str) else db_type.value
-
-        # Build connection URL based on type
-        if type_str == "postgresql":
-            url = f"postgresql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-        elif type_str == "mysql":
-            url = f"mysql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-        elif type_str == "mssql":
-            url = f"mssql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-        elif type_str == "sqlite":
-            url = f"sqlite://{database}"
-        else:
-            return TestConnectionResponse(
-                success=False,
-                message=f"Connection testing not implemented for type: {type_str}",
-            )
-
-        # Execute a simple query to test the connection using Polars + connectorx
-        pl.read_database_uri(
-            query="SELECT 1",
-            uri=url,
-            engine="connectorx",
-        )
-
-        return TestConnectionResponse(success=True, message="Connection successful")
-
-    except ImportError as e:
-        logger.error(f"ImportError: {e}")
-        return TestConnectionResponse(
-            success=False,
-            message=f"Database driver not available: {e}",
-        )
-    except Exception as e:
-        # Sanitize error to not leak credentials
-        error_msg = str(e)
-        if password and password in error_msg:
-            error_msg = error_msg.replace(password, "***")
-        if username and username in error_msg:
-            error_msg = error_msg.replace(username, "***")
-        return TestConnectionResponse(success=False, message=f"Connection failed: {error_msg}")
+    """Test connection parameters with the same tester the health poller uses."""
+    success, message = await check_database_connection(
+        db_type, host, port, database, username, password
+    )
+    return TestConnectionResponse(success=success, message=message)

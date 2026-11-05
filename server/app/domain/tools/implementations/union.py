@@ -8,6 +8,8 @@ from app.domain.tools.base import BaseTool
 from app.domain.tools.expr_builder import UnionOperation
 from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import UnionSockets
+from app.utils.errors import ToolError
+from app.utils.type_mapping import MODEL_TO_POLARS, schema_from_polars
 
 
 class UnionToolConfig(BaseModel):
@@ -69,10 +71,12 @@ class UnionTool(BaseTool):
             return {UnionSockets.OUTPUT: DataSchema(columns=[])}
 
         mode = config.get("mode", "ByName")
+        derived = self._schema_from_polars(config, schemas)
+        if derived is not None:
+            return {UnionSockets.OUTPUT: derived}
 
         if mode == "ByName":
-            # Union of all columns, keyed by name. When inputs disagree on a column's
-            # type the first input's type is reported (Polars upcasts at execution).
+            # Union of all columns, keyed by name, first input's type per column.
             merged_columns = {}
             for schema in schemas:
                 for col in schema.columns:
@@ -81,11 +85,32 @@ class UnionTool(BaseTool):
 
             return {UnionSockets.OUTPUT: DataSchema(columns=list(merged_columns.values()))}
 
-        elif mode == "ByPosition":
-            # Output schema matches the first input
-            return {UnionSockets.OUTPUT: schemas[0]}
-
+        # ByPosition: output names and types follow the first input
         return {UnionSockets.OUTPUT: schemas[0]}
+
+    def _schema_from_polars(
+        self, config: dict[str, Any], schemas: list[DataSchema]
+    ) -> DataSchema | None:
+        """Run the union on empty frames so the preview shows the widened types.
+
+        Returns None when an input has a dtype the API cannot rebuild (List,
+        Struct) or the inputs are incompatible; the caller then falls back to
+        the first input's types and execution reports any real error.
+        """
+        frames: list[pl.LazyFrame] = []
+        for schema in schemas:
+            polars_schema: dict[str, pl.DataType] = {}
+            for col in schema.columns:
+                dtype = MODEL_TO_POLARS.get(col.dtype)
+                if dtype is None:
+                    return None
+                polars_schema[col.name] = dtype
+            frames.append(pl.LazyFrame(schema=polars_schema))
+        try:
+            result = self._build_operation(config).execute(frames)
+            return schema_from_polars(result)
+        except (ToolError, pl.exceptions.PolarsError):
+            return None
 
     def to_python_code(
         self,

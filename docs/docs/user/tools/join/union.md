@@ -109,5 +109,5 @@ If files have different column names but the same meaning:
 
 - **Single input**: If only one input is connected, data passes through unchanged
 - **No inputs**: Returns an empty dataset
-- **Type compatibility**: Polars will attempt to upcast types when they differ (e.g., Int32 + Int64 = Int64)
+- **Type compatibility**: Mismatched column types are widened to a common type (Int32 + Int64 gives Int64, Int64 + Float64 gives Float64); any other mismatch (for example a number and a string, or a number and a boolean) stops the run with an error naming the column
 - **Row order**: Rows from the first input come first, then second input, etc.

@@ -11,6 +11,8 @@ from typing import Any, Literal, get_args
 
 import polars as pl
 
+from app.utils.errors import ToolError
+
 _JOIN_HOW: dict[str, Literal["inner", "left", "right", "full"]] = {
     "inner": "inner",
     "left": "left",
@@ -307,6 +309,14 @@ class SortOperation:
 BLOCKING_SAMPLE_MODES = {"LastN", "Random", "RandomPercent", "FirstPercent"}
 
 
+def _first_percent_rows(total: int, percent: float) -> int:
+    """Rows kept by FirstPercent: floor of the share, at least one row when percent > 0."""
+    n_rows = int(total * percent / 100.0)
+    if percent > 0 and total:
+        return max(n_rows, 1)
+    return n_rows
+
+
 @dataclass
 class SampleOperation:
     """Represents a sample operation with multiple modes."""
@@ -346,8 +356,7 @@ class SampleOperation:
         elif self.mode == "FirstPercent":
             # First N% requires knowing row count - blocking
             df = lf.collect()
-            n_rows = max(1, int(len(df) * self.percent / 100.0))
-            return df.head(n_rows).lazy()
+            return df.head(_first_percent_rows(len(df), self.percent)).lazy()
 
         else:
             # Unknown mode - pass through
@@ -382,11 +391,14 @@ class SampleOperation:
             ]
 
         elif self.mode == "FirstPercent":
-            return [
+            lines = [
                 f"_df_temp = {input_var}.collect()",
-                f"_n_rows = max(1, int(len(_df_temp) * {self.percent} / 100.0))",
-                f"{output_var} = _df_temp.head(_n_rows).lazy()",
+                f"_n_rows = int(len(_df_temp) * {self.percent} / 100.0)",
             ]
+            if self.percent > 0:
+                lines.append("_n_rows = max(_n_rows, 1) if len(_df_temp) else 0")
+            lines.append(f"{output_var} = _df_temp.head(_n_rows).lazy()")
+            return lines
 
         else:
             return [f"{output_var} = {input_var}"]
@@ -402,10 +414,10 @@ AGGREGATION_METHODS = {
     "Std": ("std", ".std()"),
     "Var": ("var", ".var()"),
     "Count": ("count", ".count()"),
-    "CountDistinct": ("n_unique", ".n_unique()"),
+    "CountDistinct": ("n_unique", ".drop_nulls().n_unique()"),
     "First": ("first", ".first()"),
     "Last": ("last", ".last()"),
-    "Concat": ("str.concat", '.str.concat(", ")'),
+    "Concat": ("str.join", '.str.join(", ")'),
 }
 
 
@@ -438,13 +450,15 @@ class AggregationExpr:
         elif self.operation == "Count":
             expr = expr.count()
         elif self.operation == "CountDistinct":
-            expr = expr.n_unique()
+            # Nulls are not a value: Count skips them, so CountDistinct does too.
+            expr = expr.drop_nulls().n_unique()
         elif self.operation == "First":
             expr = expr.first()
         elif self.operation == "Last":
             expr = expr.last()
         elif self.operation == "Concat":
-            expr = expr.str.concat(delimiter=", ")
+            # Polars 2 removed str.concat; str.join skips nulls the same way.
+            expr = expr.str.join(", ")
         else:
             expr = expr.sum()  # fallback
 
@@ -683,6 +697,35 @@ class JoinOperation:
         return lines
 
 
+def _check_union_dtypes(frames: list[pl.LazyFrame]) -> None:
+    """Reject column type mismatches that the relaxed concat would hide.
+
+    The relaxed concat modes widen to a common supertype. That is wanted for
+    numbers (Int32 + Int64, Int64 + Float64) but would silently turn an Int64
+    column unioned with a String column into strings. Numeric widening,
+    widening within one dtype family (Datetime units) and all-null columns are
+    allowed; any other mismatch raises.
+    """
+    seen: dict[str, pl.DataType] = {}
+    for frame in frames:
+        for name, dtype in frame.collect_schema().items():
+            first = seen.setdefault(name, dtype)
+            if dtype == first or dtype == pl.Null or first == pl.Null:
+                if first == pl.Null:
+                    seen[name] = dtype
+                continue
+            if first.is_numeric() and dtype.is_numeric():
+                continue
+            if type(first) is type(dtype):
+                # Same family with different parameters (Datetime units or
+                # time zones, Decimal precision): the supertype keeps the values.
+                continue
+            raise ToolError(
+                f"Union column '{name}' has incompatible types {first} and {dtype}. "
+                "Cast the columns to one type first, for example with a Select tool."
+            )
+
+
 @dataclass
 class UnionOperation:
     """Represents a union operation."""
@@ -698,6 +741,7 @@ class UnionOperation:
             return frames[0]
 
         if self.mode == "ByName":
+            _check_union_dtypes(frames)
             return pl.concat(frames, how="diagonal_relaxed")
         elif self.mode == "ByPosition":
             first_frame = frames[0]
@@ -710,8 +754,10 @@ class UnionOperation:
                 rename_map = {old: new for old, new in zip(current_cols, target_cols)}
                 processed_frames.append(current_frame.rename(rename_map))
 
+            _check_union_dtypes(processed_frames)
             return pl.concat(processed_frames, how="vertical_relaxed")
         else:
+            _check_union_dtypes(frames)
             return pl.concat(frames, how="vertical_relaxed")
 
     def to_code(self, input_vars: list[str], output_var: str) -> list[str]:
