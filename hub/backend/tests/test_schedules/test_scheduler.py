@@ -1,19 +1,21 @@
 """PostgreSQL integration tests for competing schedule dispatchers."""
 
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from app.config import settings
-from app.db.models import Execution, Schedule
+from app.db.models import Execution, Schedule, Server
 from app.domain.executions.service import ExecutionService
 from app.domain.schedules.scheduler import Scheduler
 from app.domain.workflows.store import WorkflowFileStore
 from tests import db_helpers
-from tests.conftest import TestSessionLocal
+from tests.conftest import TestSessionLocal, create_user_direct
+from tests.dispatch_helpers import fake_server, make_dispatcher, real_issuer, run_all
 
 
 @pytest.fixture
@@ -25,12 +27,8 @@ async def scheduled_run(setup_database, temp_storage):
         row = await db.get(Schedule, schedule.id)
         row.next_trigger_at = datetime.now(UTC) - timedelta(minutes=3)
         await db.commit()
-    with (
-        patch("app.domain.schedules.scheduler.async_session_maker", TestSessionLocal),
-        patch.object(ExecutionService, "_run_execution"),
-    ):
+    with patch("app.domain.schedules.scheduler.async_session_maker", TestSessionLocal):
         yield schedule
-    await asyncio.sleep(0)
 
 
 async def execution_count():
@@ -136,3 +134,76 @@ async def test_legacy_schedule_honors_future_start(scheduled_run):
     async with TestSessionLocal() as db:
         row = await db.get(Schedule, scheduled_run.id)
         assert row.next_trigger_at >= start
+
+
+@pytest.mark.asyncio
+async def test_competing_replicas_run_an_occurrence_once(scheduled_run):
+    """Two Hub processes, each with a scheduler and a dispatcher."""
+    await create_user_direct("test", "user")
+    with real_issuer(), fake_server() as server:
+        await asyncio.gather(
+            Scheduler()._load_schedules(),
+            Scheduler()._load_schedules(),
+        )
+        hub_a, hub_b = make_dispatcher("hub-a"), make_dispatcher("hub-b")
+        await asyncio.gather(run_all(hub_a), run_all(hub_b))
+        assert server.requests == 1
+    async with TestSessionLocal() as db:
+        execution = (await db.execute(select(Execution))).scalar_one()
+        schedule = await db.get(Schedule, scheduled_run.id)
+    assert execution.status == "completed"
+    assert execution.scheduled_for is not None
+    assert execution.scheduled_for < schedule.next_trigger_at
+
+
+@pytest.mark.asyncio
+async def test_occurrence_with_an_execution_is_skipped(scheduled_run):
+    """The unique occurrence key stops a rewound schedule from running twice."""
+    async with TestSessionLocal() as db:
+        schedule = await db.get(Schedule, scheduled_run.id)
+        occurrence = schedule.next_trigger_at
+        server_id = schedule.target_server_id
+    await db_helpers.make_execution(
+        scheduled_run.workflow_id,
+        server_id,
+        trigger_type="scheduled",
+        schedule_id=scheduled_run.id,
+    )
+    async with TestSessionLocal() as db:
+        row = (await db.execute(select(Execution))).scalar_one()
+        row.scheduled_for = occurrence
+        await db.commit()
+
+    with patch("app.domain.schedules.scheduler.async_session_maker", TestSessionLocal):
+        await Scheduler()._execute_schedule(scheduled_run.id)
+    assert await execution_count() == 1
+    async with TestSessionLocal() as db:
+        schedule = await db.get(Schedule, scheduled_run.id)
+    assert schedule.next_trigger_at > datetime.now(UTC)
+
+
+@pytest.mark.asyncio
+async def test_unstartable_occurrence_logs_once_and_stays_due(scheduled_run, caplog):
+    async with TestSessionLocal() as db:
+        row = await db.get(Schedule, scheduled_run.id)
+        row.target_server_id = None
+        await db.commit()
+    async with TestSessionLocal() as db:
+        await db.execute(update(Server).values(status="offline"))
+        await db.commit()
+
+    scheduler = Scheduler()
+    with caplog.at_level(logging.WARNING, logger="app.domain.schedules.scheduler"):
+        for _ in range(3):
+            await scheduler._execute_schedule(scheduled_run.id)
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "cannot start yet" in warnings[0].getMessage()
+    assert await execution_count() == 0
+
+    # Once a Server is online the same occurrence runs.
+    async with TestSessionLocal() as db:
+        await db.execute(update(Server).values(status="online"))
+        await db.commit()
+    await scheduler._execute_schedule(scheduled_run.id)
+    assert await execution_count() == 1

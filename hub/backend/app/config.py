@@ -1,5 +1,6 @@
 """Configuration management for Hub backend"""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,9 +62,19 @@ class Settings(BaseSettings):
     # delete transaction short on large/long-lived deployments.
     session_cleanup_batch_size: int = 1000
 
-    # Queued/running executions with no heartbeat for this many seconds are
-    # marked failed (the Hub that ran them is assumed to have stopped).
-    execution_stale_seconds: int = 120
+    # Durable execution dispatch (docs/developer/architecture/hub-execution.md).
+    # A claimed execution whose heartbeat is older than this many seconds has
+    # lost its lease: a queued one is claimed again, a running one is marked
+    # failed (the Hub that ran it is assumed to have stopped).
+    execution_stale_seconds: int = Field(default=120, ge=30)
+    # Executions one Hub process runs at the same time.
+    execution_max_concurrent: int = Field(default=32, ge=1)
+    # Claims of one execution before it is marked failed instead of claimed
+    # again. Only claims lost before the request reaches the Server count.
+    execution_max_attempts: int = Field(default=3, ge=1)
+    # On shutdown, how long running executions may finish before they are
+    # marked interrupted.
+    execution_shutdown_grace_seconds: float = Field(default=5.0, ge=0)
 
     # Workflow storage
     workflow_storage_path: str = "./workflows"

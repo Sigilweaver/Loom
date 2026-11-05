@@ -43,6 +43,8 @@ and documentation checked against the code.
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
+- **Durable Hub executions** - Executions are a queue in PostgreSQL that every Hub process claims from (`FOR UPDATE SKIP LOCKED`) and runs under a lease with a fencing token. Queued runs survive a restart; a run that never reached a Server is claimed again by another process (up to `EXECUTION_MAX_ATTEMPTS`), and one that may have reached it is marked interrupted, not retried. Shutdown releases preparing runs and gives running ones `EXECUTION_SHUTDOWN_GRACE_SECONDS`. Cancel is seen by the runner within 15 seconds. New settings `EXECUTION_MAX_CONCURRENT`, `EXECUTION_MAX_ATTEMPTS` and `EXECUTION_SHUTDOWN_GRACE_SECONDS`; migration `010_execution_leases` (#68)
+- **Scheduled occurrences run once** - A unique `(schedule_id, scheduled_for)` index allows one execution per cron occurrence across Hub processes; an occurrence that cannot start yet (no Server online) stays due and is logged once instead of every second (#69)
 
 ### Fixed
 
