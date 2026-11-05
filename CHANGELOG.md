@@ -36,6 +36,7 @@ and documentation checked against the code.
 - **Hub frontend rebuilt** - API client split by resource with a typed `ApiError` (#91); shared component layer with per-theme status colors (#90); all pages rebuilt with loading, empty and error states
 - **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
 - **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
+- **Unknown tool config keys** - A config key the engine does not read is no longer dropped silently: Sort rejects it, Studio editor state (`_`-prefixed keys, Filter condition-builder keys, Summarize `actions`) is ignored, Input and Output forward it to the reader or writer, and any other unknown key is reported in the run response's `config_warnings` and the server log (#77)
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
