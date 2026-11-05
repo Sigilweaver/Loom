@@ -94,6 +94,28 @@ describe("ConnectionsTab", () => {
     );
   });
 
+  it("shows a server error for a field the form does not display", async () => {
+    vi.mocked(api.listConnections).mockResolvedValue(listed([]));
+    vi.mocked(api.createConnection).mockRejectedValue(
+      new api.ApiError(422, "host: String should have at least 1 character", null, {
+        host: "String should have at least 1 character",
+      })
+    );
+    renderWithProviders(<ConnectionsTab />);
+    await screen.findByText("No connections yet");
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Add connection" })[0]!);
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Database type"), "sqlite");
+    await userEvent.type(within(dialog).getByLabelText(/^Name/), "Local");
+    await userEvent.type(within(dialog).getByLabelText(/^Database file path/), "/data/app.db");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add connection" }));
+
+    expect(
+      await within(dialog).findByText("host: String should have at least 1 character")
+    ).toBeInTheDocument();
+  });
+
   it("asks before deleting", async () => {
     vi.mocked(api.listConnections).mockResolvedValue(listed([connection()]));
     vi.mocked(api.deleteConnection).mockResolvedValue(undefined);

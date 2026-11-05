@@ -9,6 +9,7 @@ import { useState, type FormEvent } from "react";
 import { Database, RefreshCw } from "lucide-react";
 import {
   createConnection,
+  isApiError,
   testConnectionPreCreate,
   updateConnection,
   type ConnectionResponse,
@@ -22,7 +23,12 @@ import { errorMessage, fieldError } from "@utils/errors";
 import { Alert, Button, Checkbox, Field, Input, Modal, Select } from "@components/ui";
 import { CONNECTION_TYPES, DATABASE_TYPES, PATH_TYPES, defaultPort } from "./options";
 
-const FIELD_KEYS = ["name", "description", "host", "port", "database", "username", "password", "path"];
+/** Form fields shown for each kind of connection, used to place server-side field errors. */
+function visibleFields(connectionType: ConnectionType, dbType: DatabaseType): string[] {
+  if (connectionType === "filesystem") return ["name", "description", "path"];
+  if (dbType === "sqlite") return ["name", "description", "database"];
+  return ["name", "description", "host", "port", "database", "username", "password"];
+}
 
 interface ConnectionDialogProps {
   /** The connection being edited, or null to create one. */
@@ -171,13 +177,21 @@ export function ConnectionDialog({ connection, onClose, onSaved }: ConnectionDia
       onSaved(await save());
       onClose();
     } catch (err) {
+      // Show field errors next to their inputs. Anything the form cannot place
+      // (a field that is not shown for this connection type, or no field at
+      // all) goes into the general message so a failed save is never silent.
       const fromServer: Record<string, string> = {};
-      for (const key of FIELD_KEYS) {
+      for (const key of visibleFields(connectionType, dbType)) {
         const message = fieldError(err, key);
         if (message) fromServer[key] = message;
       }
       setFieldErrors(fromServer);
-      if (Object.keys(fromServer).length === 0) setError(errorMessage(err, "Failed to save connection"));
+      const unplaced = isApiError(err)
+        ? Object.keys(err.fieldErrors).filter((key) => !(key in fromServer))
+        : [];
+      if (Object.keys(fromServer).length === 0 || unplaced.length > 0) {
+        setError(errorMessage(err, "Failed to save connection"));
+      }
     } finally {
       setSubmitting(false);
     }
