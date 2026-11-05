@@ -29,6 +29,7 @@ function execution(id: string, extra: Partial<api.ExecutionResponse> = {}): api.
     success: true,
     error_message: null,
     duration_seconds: 4,
+    schedule_id: null,
     ...extra,
   };
 }
