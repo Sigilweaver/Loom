@@ -22,6 +22,7 @@ interface JsonSchema {
   $defs?: Record<string, JsonSchema>;
   anyOf?: JsonSchema[];
   enum?: string[];
+  const?: string;
   required?: string[];
   additionalProperties?: boolean;
 }
@@ -104,7 +105,9 @@ function checkFields(
     }
 
     if (field.enum) {
-      const allowed = serverField.enum ?? SERVER_VALUE_SETS[fullPath];
+      const allowed = serverField.enum
+        ?? (serverField.const !== undefined ? [serverField.const] : undefined)
+        ?? SERVER_VALUE_SETS[fullPath];
       if (allowed) {
         const extra = STUDIO_ONLY_ENUM_VALUES[fullPath] ?? [];
         for (const v of field.enum) {
@@ -153,7 +156,8 @@ describe('Studio tool schemas vs Server config models', () => {
     for (const schema of getAllToolConfigSchemas()) {
       const server = serverSchemas[schema.type]!;
       for (const [key, prop] of Object.entries(server.properties ?? {})) {
-        const item = prop.items ? deref(prop.items, server) : undefined;
+        const resolved = deref(prop, server);
+        const item = resolved.items ? deref(resolved.items, server) : undefined;
         const studioField = schema.fields[key];
         if (!item?.required || !studioField?.items || 'type' in studioField.items) continue;
         const studioItems = studioField.items as Record<string, FieldSchema>;
@@ -162,8 +166,20 @@ describe('Studio tool schemas vs Server config models', () => {
         }
       }
     }
-    // Formula structured operations fill column_name in Studio.
     expect(problems).toEqual([]);
+  });
+
+  it('checks required item fields for every list-of-objects config (not vacuous)', () => {
+    const checked: string[] = [];
+    for (const schema of getAllToolConfigSchemas()) {
+      const server = serverSchemas[schema.type]!;
+      for (const [key, prop] of Object.entries(server.properties ?? {})) {
+        const resolved = deref(prop, server);
+        const item = resolved.items ? deref(resolved.items, server) : undefined;
+        if (item?.required) checked.push(`${schema.type}.${key}`);
+      }
+    }
+    expect(checked.sort()).toEqual(['Formula.operations', 'Select.columnConfigs', 'Sort.sortColumns']);
   });
 
   it('lists the allowed keys exhaustively (no stale allowlist entries)', () => {
