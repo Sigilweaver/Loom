@@ -7,6 +7,7 @@ for integrity verification.
 
 import hashlib
 import logging
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -104,7 +105,18 @@ class WorkflowFileStore:
                 "Use overwrite=True to replace."
             )
 
-        file_path.write_bytes(content)
+        # Write to a temporary file and rename it into place, so a crash or a
+        # full disk never leaves a truncated workflow file behind.
+        tmp_path = file_path.with_name(f".{file_path.name}.{os.getpid()}.tmp")
+        try:
+            with open(tmp_path, "wb") as fh:
+                fh.write(content)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(tmp_path, file_path)
+        except BaseException:
+            tmp_path.unlink(missing_ok=True)
+            raise
         checksum = self.calculate_checksum(content)
 
         logger.debug(

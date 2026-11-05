@@ -13,6 +13,7 @@ from uuid import UUID
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -223,6 +224,22 @@ class ConnectionStore:
 
         return self._model_to_info(conn)
 
+    async def _commit_unique_name(self, name: str) -> None:
+        """Commit, turning a concurrent duplicate name into DuplicateConnectionError.
+
+        The name check before the write cannot see a row another request
+        inserts at the same moment; the unique constraint does.
+        """
+        try:
+            await self.db.commit()
+        except IntegrityError as e:
+            await self.db.rollback()
+            if "name" in str(e.orig):
+                raise DuplicateConnectionError(
+                    f"Connection with name '{name}' already exists"
+                ) from e
+            raise
+
     async def create_connection(
         self,
         input: CreateConnectionInput,
@@ -271,7 +288,7 @@ class ConnectionStore:
             )
 
         self.db.add(conn)
-        await self.db.commit()
+        await self._commit_unique_name(input.name)
         await self.db.refresh(conn, ["database_config", "filesystem_config"])
 
         logger.info(f"Created {input.type} connection '{conn.name}' (id={conn.id}) by {created_by}")
@@ -354,7 +371,7 @@ class ConnectionStore:
             if input.path_type is not None:
                 fs_cfg.path_type = input.path_type.value
 
-        await self.db.commit()
+        await self._commit_unique_name(conn.name)
         await self.db.refresh(conn, ["database_config", "filesystem_config"])
 
         logger.info(f"Updated connection '{conn.name}' (id={conn.id})")

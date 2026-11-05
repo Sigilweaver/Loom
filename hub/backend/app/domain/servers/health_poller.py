@@ -70,8 +70,8 @@ class HealthPoller:
         while self._running:
             try:
                 await self._poll_all_servers()
-            except Exception as e:
-                logger.error("Error in health poll loop: %s", e)
+            except Exception:
+                logger.exception("Error in health poll loop")
 
             await asyncio.sleep(settings.server_poll_interval_seconds)
 
@@ -85,8 +85,17 @@ class HealthPoller:
                 return
 
             # Poll servers concurrently
+            # One server failing unexpectedly must not discard the others'
+            # updates.
             tasks = [self._poll_server(session, server) for server in servers]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for server, outcome in zip(servers, results):
+                if isinstance(outcome, BaseException):
+                    logger.error(
+                        "Health poll of server %s failed",
+                        server.name,
+                        exc_info=outcome,
+                    )
 
             # Commit all updates
             await session.commit()

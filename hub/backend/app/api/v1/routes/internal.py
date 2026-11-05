@@ -250,7 +250,20 @@ async def authorize(
                             path_type=resolved.path_type.value,
                         )
         except EncryptionKeyError as e:
-            logger.error(f"Connection store not available: {e}")
+            # Without credentials the run would fail later in a confusing way;
+            # refuse it here with the reason instead.
+            logger.error("Connection credentials cannot be decrypted: %s", e)
+            return AuthorizeResponse(
+                authorized=False,
+                error="Hub cannot decrypt the connection credentials; ask an administrator",
+            )
+        missing = [c for c in request.connection_ids if c not in credentials]
+        if missing:
+            logger.warning("Connections not resolvable for authorize: %s", missing)
+            return AuthorizeResponse(
+                authorized=False,
+                error=f"Connections not found: {missing}",
+            )
 
     # 4. Get user's file path grants
     file_paths = await _get_user_file_paths_for_authorize(user_uuid, db)

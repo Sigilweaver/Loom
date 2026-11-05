@@ -40,7 +40,7 @@ class ScheduleService:
     async def list_schedules(
         self,
         workflow_id: UUID | None = None,
-        enabled_only: bool = False,
+        enabled: bool | None = None,
         created_by: str | None = None,
         skip: int = 0,
         limit: int = 50,
@@ -60,9 +60,9 @@ class ScheduleService:
             query = query.where(Schedule.workflow_id == workflow_id)
             count_query = count_query.where(Schedule.workflow_id == workflow_id)
 
-        if enabled_only:
-            query = query.where(Schedule.enabled.is_(True))
-            count_query = count_query.where(Schedule.enabled.is_(True))
+        if enabled is not None:
+            query = query.where(Schedule.enabled.is_(enabled))
+            count_query = count_query.where(Schedule.enabled.is_(enabled))
 
         if created_by:
             query = query.where(Schedule.created_by == created_by)

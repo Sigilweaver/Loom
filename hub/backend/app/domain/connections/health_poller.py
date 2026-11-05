@@ -62,26 +62,31 @@ class ConnectionHealthPoller:
         while self._running:
             try:
                 await self._check_all_connections()
-            except Exception as e:
-                logger.error("Error in connection health poll loop: %s", e)
+            except Exception:
+                logger.exception("Error in connection health poll loop")
 
             await asyncio.sleep(CONNECTION_CHECK_INTERVAL_SECONDS)
 
     async def _check_all_connections(self) -> None:
-        """Check all connections."""
+        """Check all connections, committing each result on its own.
+
+        One transaction per connection, so a failure (or a connection deleted
+        mid-pass) does not discard the other results.
+        """
         async with async_session_maker() as session:
-            result = await session.execute(select(Connection))
-            connections = result.scalars().all()
+            connection_ids = (await session.execute(select(Connection.id))).scalars().all()
 
-            if not connections:
-                return
-
-            # Check connections sequentially to avoid overwhelming databases
-            for connection in connections:
-                await self._check_connection(session, connection)
-
-            # Commit all updates
-            await session.commit()
+        # Check connections sequentially to avoid overwhelming databases
+        for connection_id in connection_ids:
+            try:
+                async with async_session_maker() as session:
+                    connection = await session.get(Connection, connection_id)
+                    if connection is None:
+                        continue  # deleted since the pass started
+                    await self._check_connection(session, connection)
+                    await session.commit()
+            except Exception:
+                logger.exception("Failed to record health of connection %s", connection_id)
 
     async def _check_connection(
         self, session: AsyncSession, connection: Connection
