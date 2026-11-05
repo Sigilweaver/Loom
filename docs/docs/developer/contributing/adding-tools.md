@@ -70,6 +70,27 @@ class MyTool(BaseTool):
         return errors
 ```
 
+### Config Validation and Unknown Keys
+
+Before a run starts, the executor calls `validate_config()` on every tool that
+will execute. Any error fails the run with a per-tool message, before data is
+read. The default implementation parses the config through the model returned
+by `config_model()`, so declaring a Pydantic model is usually enough.
+
+A top-level config key the engine does not read has one defined outcome per
+tool:
+
+| Case | Outcome |
+| --- | --- |
+| Config model sets `extra="forbid"` (Sort) | Validation error; the run fails |
+| Key starts with `_` (`_emit`) | Studio editor metadata; ignored |
+| Key listed in the tool's `editor_state_keys` (Filter `conditionGroup`, Summarize `actions`) | Studio editor state; ignored |
+| Tool sets `forwards_extra_config = True` (Input, Output) | Passed to the reader or writer as a format option |
+| Anything else | The run continues and reports `"<tool_id> (<type>): unknown config key '<key>' is ignored"` in the response's `config_warnings` list and the server log |
+
+If Studio stores editor state in your tool's config, list those keys in
+`editor_state_keys` so they are not reported.
+
 ### Register the Tool
 
 Add an import to `server/app/domain/tools/implementations/__init__.py`:
