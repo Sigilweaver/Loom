@@ -10,13 +10,18 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LogIn, UserPlus } from "lucide-react";
 import { useAuthStore, type UserRole } from "@state/authStore";
-import { ApiError, getAuthStatus, login, register, type LoginResponse } from "@api";
+import { ApiError, getAuthStatus, login, readCsrfToken, register, type LoginResponse } from "@api";
 import { errorMessage, fieldError } from "@utils/errors";
 import { Alert, Button, Card, Field, Input, LoadingState } from "@components/ui";
 
 type PageMode = "loading" | "login" | "setup";
 
 const MIN_PASSWORD_LENGTH = 8;
+
+/** Shown when the browser refused the session cookie the Hub just set. */
+export const COOKIE_REJECTED_MESSAGE =
+  "Signed in, but the browser did not keep the session cookie. Open Hub over HTTPS, " +
+  "or ask an administrator to set SESSION_COOKIE_SECURE=false for a plain-HTTP Hub.";
 
 /** Where to go after signing in: the page that required login, else the role-based home. */
 function destinationAfterLogin(state: unknown): string {
@@ -59,7 +64,14 @@ export function LoginPage() {
   }
 
   const finish = (response: LoginResponse) => {
-    setAuth(response.access_token, {
+    // The session is an HttpOnly cookie the browser drops when it is marked
+    // Secure and the page is plain HTTP on a non-localhost host. Without it
+    // every later request would fail, so say why instead of "signing in".
+    if (readCsrfToken() === null) {
+      setError(COOKIE_REJECTED_MESSAGE);
+      return;
+    }
+    setAuth({
       id: response.user.id,
       username: response.user.username,
       role: response.user.role as UserRole,

@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # Generate: python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
     session_secret: str = ""
     session_lifetime_hours: int = 24
+    # Mark the web app's session cookies Secure (sent over HTTPS only).
+    # Browsers treat http://localhost as secure, so this stays on in
+    # development. Turn it off only for a Hub served over plain HTTP on
+    # another host, which also exposes sessions and passwords on the network.
+    session_cookie_secure: bool = True
 
     # Authentication - Legacy JWT (to be removed in Phase 2)
     # MUST be set via env. No default - Hub refuses to boot if empty.

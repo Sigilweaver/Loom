@@ -1,17 +1,23 @@
 """Authentication routes (API v1)"""
 
 from datetime import UTC, datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, get_optional_user
+from app.api.dependencies import CurrentUser, extract_session_token, get_optional_user
 from app.config import settings as _rl_settings
 from app.db.database import get_db
 from app.db.models import User
-from app.domain.auth.password import hash_password, verify_password
+from app.domain.auth.cookies import (
+    clear_session_cookies,
+    csrf_is_valid,
+    set_session_cookies,
+)
+from app.domain.auth.password import burn_password_check, hash_password, verify_password
 from app.domain.auth.roles import Role
 from app.domain.auth.sessions import SessionInfo, SessionManager
 from app.middleware.rate_limit import limiter as _rl
@@ -21,12 +27,22 @@ router = APIRouter(prefix="/auth")
 
 # Request/Response models
 
+SessionMode = Literal["bearer", "cookie"]
+
+_SESSION_MODE_DESCRIPTION = (
+    "How the new session is delivered. 'bearer' (API clients such as "
+    "Studio) returns the token in access_token. 'cookie' (the Hub web "
+    "app) sets an HttpOnly session cookie plus a CSRF cookie and returns "
+    "no token."
+)
+
 
 class RegisterRequest(BaseModel):
     """Registration request body"""
 
     username: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=8, max_length=128)
+    session_mode: SessionMode = Field("bearer", description=_SESSION_MODE_DESCRIPTION)
 
 
 class LoginRequest(BaseModel):
@@ -34,12 +50,18 @@ class LoginRequest(BaseModel):
 
     username: str
     password: str
+    session_mode: SessionMode = Field("bearer", description=_SESSION_MODE_DESCRIPTION)
 
 
 class LoginResponse(BaseModel):
-    """Login response with access token"""
+    """Login response.
 
-    access_token: str
+    ``access_token`` is set only for ``session_mode='bearer'``. It is null for
+    cookie sessions and when an administrator registers another user (no
+    session is created for them).
+    """
+
+    access_token: str | None = None
     token_type: str = "bearer"
     user: "UserResponse"
 
@@ -100,6 +122,26 @@ async def _get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def _start_session(
+    db: AsyncSession,
+    user: User,
+    mode: SessionMode,
+    http_request: Request,
+    http_response: Response,
+) -> LoginResponse:
+    """Create a session and deliver it as a bearer token or as cookies."""
+    session_manager = SessionManager(db)
+    token = await session_manager.create_session(
+        user=user,
+        user_agent=http_request.headers.get("User-Agent"),
+        ip_address=http_request.client.host if http_request.client else None,
+    )
+    if mode == "cookie":
+        set_session_cookies(http_response, token)
+        return LoginResponse(access_token=None, token_type="cookie", user=_user_to_response(user))
+    return LoginResponse(access_token=token, token_type="bearer", user=_user_to_response(user))
+
+
 # Routes
 
 
@@ -108,6 +150,7 @@ async def _get_user_by_username(db: AsyncSession, username: str) -> User | None:
 async def register(
     request: RegisterRequest,
     http_request: Request,
+    http_response: Response,
     db: AsyncSession = Depends(get_db),
     current_user: SessionInfo | None = Depends(get_optional_user),
 ) -> LoginResponse:
@@ -157,19 +200,13 @@ async def register(
     await db.commit()
     await db.refresh(user)
 
-    # Create session for the new user
-    session_manager = SessionManager(db)
-    token = await session_manager.create_session(
-        user=user,
-        user_agent=http_request.headers.get("User-Agent"),
-        ip_address=http_request.client.host if http_request.client else None,
-    )
+    if not is_first_user:
+        # An administrator created this account. Signing them in as the new
+        # user would hand them a live session for someone else's account.
+        return LoginResponse(access_token=None, token_type="none", user=_user_to_response(user))
 
-    return LoginResponse(
-        access_token=token,
-        token_type="bearer",
-        user=_user_to_response(user),
-    )
+    # First run: sign the new owner in.
+    return await _start_session(db, user, request.session_mode, http_request, http_response)
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -177,12 +214,16 @@ async def register(
 async def login(
     request: LoginRequest,
     http_request: Request,
+    http_response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     """Authenticate user and return access token"""
     # Find user
     user = await _get_user_by_username(db, request.username)
     if user is None:
+        # Take as long as a wrong password so timing does not reveal which
+        # usernames exist.
+        burn_password_check(request.password)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
@@ -199,37 +240,31 @@ async def login(
     user.last_login = datetime.now(UTC)
     await db.commit()
 
-    # Create session
-    session_manager = SessionManager(db)
-    token = await session_manager.create_session(
-        user=user,
-        user_agent=http_request.headers.get("User-Agent"),
-        ip_address=http_request.client.host if http_request.client else None,
-    )
-
-    return LoginResponse(
-        access_token=token,
-        token_type="bearer",
-        user=_user_to_response(user),
-    )
+    return await _start_session(db, user, request.session_mode, http_request, http_response)
 
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
-    """Logout current user by invalidating session"""
-    # Extract token from header
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
+    """Logout current user by invalidating session.
+
+    Accepts a bearer token or the web app's session cookie. A cookie session
+    must present its CSRF token, and its cookies are cleared.
+    """
+    token, from_cookie = extract_session_token(request)
+    if not token:
         return MessageResponse(message="No session to invalidate")
 
-    parts = auth_header.split(" ", 1)
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        return MessageResponse(message="No session to invalidate")
-
-    token = parts[1]
+    if from_cookie:
+        if not csrf_is_valid(request, token):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Missing or invalid CSRF token",
+            )
+        clear_session_cookies(response)
 
     # Invalidate session
     session_manager = SessionManager(db)
@@ -304,11 +339,19 @@ async def update_profile(
         user.username = request.username
 
     # Update password if provided
+    password_changed = request.new_password is not None
     if request.new_password is not None:
         user.password_hash = hash_password(request.new_password)
 
     await db.commit()
     await db.refresh(user)
+
+    if password_changed:
+        # Whoever else holds a session for this account (another device, or
+        # someone who learned the old password) is signed out. This one stays.
+        await SessionManager(db).invalidate_other_user_sessions(
+            user.id, keep_session_id=current_user.session_id
+        )
 
     return _user_to_response(user)
 

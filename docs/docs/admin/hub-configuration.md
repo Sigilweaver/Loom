@@ -66,10 +66,13 @@ The Docker image applies database migrations each time it starts.
 | Variable                            | Default  | Meaning                                                                        |
 | ----------------------------------- | -------- | ------------------------------------------------------------------------------ |
 | `SESSION_LIFETIME_HOURS`            | `24`     | How long a login lasts                                                         |
+| `SESSION_COOKIE_SECURE`             | `true`   | Mark the web app's session cookies `Secure` (HTTPS only). Browsers treat `http://localhost` as secure, so leave this on for local development too. Set `false` only for a Hub served over plain HTTP on another host. |
 | `SESSION_CLEANUP_INTERVAL_SECONDS`  | `3600`   | How often expired sessions are removed                                         |
 | `SESSION_CLEANUP_BATCH_SIZE`        | `1000`   | Most sessions removed per pass                                                 |
 | `SERVER_TOKEN_TTL_SECONDS`          | `300`    | Lifetime of the token that lets Studio call a Server                           |
 | `TOKEN_STORE_BACKEND`               | `memory` | Where issued Server tokens are kept: `memory` or `postgres`                    |
+
+The Hub web app keeps its session in an `HttpOnly` cookie and sends an `X-CSRF-Token` header with every state-changing request. API clients, including Studio, send `Authorization: Bearer <token>` instead.
 
 With `memory`, tokens are lost when Hub restarts and cannot be shared between Hub processes. Use `postgres` if you ever run more than one Hub process. See [Hub Open Beta](./hub-beta.md).
 

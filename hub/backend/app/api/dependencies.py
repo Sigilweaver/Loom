@@ -7,19 +7,13 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
+from app.domain.auth.cookies import SAFE_METHODS, SESSION_COOKIE, csrf_is_valid
 from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo, SessionManager
 
 
-def _extract_token(request: Request) -> str | None:
-    """Extract bearer token from Authorization header.
-
-    Args:
-        request: The incoming request.
-
-    Returns:
-        The token string if present and valid format, None otherwise.
-    """
+def _bearer_token(request: Request) -> str | None:
+    """Extract the bearer token from the Authorization header, if any."""
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         return None
@@ -31,17 +25,62 @@ def _extract_token(request: Request) -> str | None:
     return parts[1]
 
 
+def extract_session_token(request: Request) -> tuple[str | None, bool]:
+    """Find the session token of a request.
+
+    API clients send ``Authorization: Bearer <token>``; the Hub web app sends
+    the session cookie. The header wins when both are present.
+
+    Returns:
+        ``(token, from_cookie)``. ``token`` is None when the request carries
+        neither.
+    """
+    token = _bearer_token(request)
+    if token:
+        return token, False
+    cookie = request.cookies.get(SESSION_COOKIE)
+    if cookie:
+        return cookie, True
+    return None, False
+
+
+def _require_csrf(request: Request, token: str) -> None:
+    """Reject a state-changing, cookie-authenticated request without CSRF proof."""
+    if request.method in SAFE_METHODS:
+        return
+    if not csrf_is_valid(request, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Missing or invalid CSRF token",
+        )
+
+
+def _extract_token(request: Request) -> str | None:
+    """Extract the session token, enforcing CSRF for cookie sessions.
+
+    Raises:
+        HTTPException: 403 for a cookie-authenticated, state-changing request
+            without a valid ``X-CSRF-Token`` header.
+    """
+    token, from_cookie = extract_session_token(request)
+    if token and from_cookie:
+        _require_csrf(request, token)
+    return token
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> SessionInfo:
     """Dependency to get the current authenticated user.
 
-    Extracts the bearer token from the Authorization header,
-    validates the session, and returns the session info.
+    Takes the session token from the Authorization header or the web app's
+    session cookie, validates the session, and returns the session info.
 
     Raises:
-        HTTPException: 401 if not authenticated or session invalid.
+        HTTPException: 401 if not authenticated or session invalid; 403 for a
+            cookie-authenticated, state-changing request without a valid
+            CSRF token.
 
     Returns:
         SessionInfo with user details.

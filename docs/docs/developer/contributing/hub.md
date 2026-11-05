@@ -212,6 +212,7 @@ bun run test:watch
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
 | `SECRET_KEY` | Yes | - | JWT signing key |
 | `SESSION_LIFETIME_HOURS` | No | 24 | Session expiration |
+| `SESSION_COOKIE_SECURE` | No | `true` | `Secure` flag on the web app's session cookies |
 | `CORS_ORIGINS` | No | `*` | Allowed CORS origins |
 
 ### Frontend

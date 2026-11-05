@@ -9,7 +9,6 @@ import {
 } from "./workflows";
 
 vi.mock("@state/authStore", () => ({
-  getAuthToken: () => "test-token",
   expireSession: () => {},
 }));
 
