@@ -7,18 +7,25 @@ and use them for both runtime execution and Python code generation.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 import polars as pl
 
+_JOIN_HOW: dict[str, Literal["inner", "left", "right", "full"]] = {
+    "inner": "inner",
+    "left": "left",
+    "right": "right",
+    "outer": "full",  # "outer" is spelled "full" in Polars 2
+}
+
 
 def _polars_join_how(join_type: str) -> Literal["inner", "left", "right", "full"]:
-    """Map a tool join type to a Polars `how` ("outer" is spelled "full" in Polars 2)."""
-    if join_type == "outer":
-        return "full"
-    if join_type in ("inner", "left", "right"):
-        return join_type  # type: ignore[return-value]
-    return "inner"
+    """Map a tool join type to a Polars `how`."""
+    return _JOIN_HOW.get(join_type, "inner")
+
+
+PivotAgg = Literal["first", "last", "sum", "mean", "median", "min", "max", "len"]
+_PIVOT_AGGS: dict[str, PivotAgg] = {name: name for name in get_args(PivotAgg)}
 
 
 class ExprNode(ABC):
@@ -828,11 +835,9 @@ class PivotOperation:
     values: str  # Column whose values fill the new columns
     aggregate_function: str = "first"  # How to aggregate duplicate values
 
-    # Valid aggregation functions for pivot
-    VALID_AGGREGATIONS: set[str] = field(
-        default_factory=lambda: {"first", "last", "sum", "mean", "median", "min", "max", "len"},
-        repr=False,
-    )
+    def _agg(self) -> PivotAgg:
+        """Polars aggregate for this pivot (unknown names were rejected by validation)."""
+        return _PIVOT_AGGS.get(self.aggregate_function, "first")
 
     def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """Execute pivot operation.
@@ -841,18 +846,14 @@ class PivotOperation:
         performs the pivot on the DataFrame, then returns as a LazyFrame.
         The PivotTool is_blocking() returns True to ensure proper execution.
         """
-        agg_func: str = (
-            self.aggregate_function
-            if self.aggregate_function in self.VALID_AGGREGATIONS
-            else "first"
-        )
+        agg_func = self._agg()
         # Pivot requires eager execution - collect, pivot, return lazy
         df = lf.collect()
         result = df.pivot(
             on=self.on,
             index=self.index if self.index else None,
             values=self.values,
-            aggregate_function=agg_func,  # type: ignore[arg-type]
+            aggregate_function=agg_func,
         )
         return result.lazy()
 
@@ -864,11 +865,7 @@ class PivotOperation:
         """
         on_escaped = self.on.replace("\\", "\\\\").replace('"', '\\"')
         values_escaped = self.values.replace("\\", "\\\\").replace('"', '\\"')
-        agg_func = (
-            self.aggregate_function
-            if self.aggregate_function in self.VALID_AGGREGATIONS
-            else "first"
-        )
+        agg_func = self._agg()
 
         lines = [f"_df_pivot_temp = {input_var}.collect()"]
 
