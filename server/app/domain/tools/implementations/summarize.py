@@ -97,6 +97,8 @@ class SummarizeTool(BaseTool):
     - includeNulls: bool - whether to include null values in grouping (default: False)
     """
 
+    editor_state_keys = frozenset({"actions"})
+
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Summarize is blocking - must see all rows per group."""
         return True

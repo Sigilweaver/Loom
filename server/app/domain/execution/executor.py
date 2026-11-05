@@ -106,6 +106,13 @@ class WorkflowExecutor:
             )
             if validation_errors:
                 return self._handle_validation_failure(execution_log, validation_errors, start_time)
+            config_warnings = self._unknown_config_key_warnings(
+                workflow, tool_ids=plan.execution_order
+            )
+            for warning in config_warnings:
+                logger.warning("Tool config: %s", warning)
+            if config_warnings:
+                execution_log["config_warnings"] = config_warnings
 
             execution_log["execution_order"] = list(plan.execution_order)
             execution_log["tool_count"] = len(plan)
@@ -120,6 +127,8 @@ class WorkflowExecutor:
 
             # Format results
             result = self._format_results(final_tool_id, preview_limit)
+            if config_warnings:
+                result["config_warnings"] = config_warnings
 
             execution_log["status"] = "completed"
             execution_log["result_summary"] = {
@@ -743,6 +752,28 @@ class WorkflowExecutor:
             for message in await tool_impl.validate_config(tool.config):
                 errors.append(f"{tool.id} ({tool.type}): {message}")
         return errors
+
+    def _unknown_config_key_warnings(
+        self, workflow: Workflow, tool_ids: Collection[str]
+    ) -> list[str]:
+        """Describe config keys the engine will not read, one entry per key.
+
+        Unknown keys on tools with an open config model are not errors (Studio
+        and older workflow files carry keys the engine never read), but they
+        are not dropped silently either: each one is reported so drift such as
+        a misspelt field name is visible on the run. See
+        `BaseTool.unknown_config_keys` for the per-tool rules.
+        """
+        warnings: list[str] = []
+        for tool in workflow.tools:
+            if tool.id not in tool_ids:
+                continue
+            tool_impl = ToolRegistry.get(tool.type, engine=workflow.get_engine_for_tool(tool))
+            for key in tool_impl.unknown_config_keys(tool.config):
+                warnings.append(
+                    f"{tool.id} ({tool.type}): unknown config key '{key}' is ignored"
+                )
+        return warnings
 
     def _handle_validation_failure(
         self,

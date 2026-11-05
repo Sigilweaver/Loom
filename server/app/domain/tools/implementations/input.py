@@ -43,6 +43,8 @@ class InputTool(BaseTool):
     For database sources, the source is a connection URI with embedded credentials.
     """
 
+    forwards_extra_config = True
+
     @classmethod
     def config_model(cls) -> type[InputToolConfig]:
         return InputToolConfig
