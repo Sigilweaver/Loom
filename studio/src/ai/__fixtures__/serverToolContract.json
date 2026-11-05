@@ -569,6 +569,28 @@
       "type": "object"
     }
   },
+  "editorStateKeys": {
+    "Filter": [
+      "combinator",
+      "conditionGroup",
+      "conditions",
+      "mode"
+    ],
+    "Formula": [],
+    "Input": [],
+    "Join": [],
+    "Output": [],
+    "Pivot": [],
+    "Sample": [],
+    "Select": [],
+    "Sort": [],
+    "Summarize": [
+      "actions"
+    ],
+    "Union": [],
+    "Unique": [],
+    "Unpivot": []
+  },
   "expressions": {
     "deniedMethodSamples": [
       "inspect",
@@ -676,6 +698,21 @@
       "when",
       "zeros"
     ]
+  },
+  "forwardsExtraConfig": {
+    "Filter": false,
+    "Formula": false,
+    "Input": true,
+    "Join": false,
+    "Output": true,
+    "Pivot": false,
+    "Sample": false,
+    "Select": false,
+    "Sort": false,
+    "Summarize": false,
+    "Union": false,
+    "Unique": false,
+    "Unpivot": false
   },
   "toolTypes": [
     "Filter",

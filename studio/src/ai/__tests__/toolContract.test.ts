@@ -14,6 +14,7 @@ import contract from '../__fixtures__/serverToolContract.json';
 import { getAllToolConfigSchemas, getToolConfigSchema, type FieldSchema } from '@data/toolConfigSchemas';
 import { TOOL_DEFINITIONS } from '@data/tools';
 import { TOOL_CONFIG_EXAMPLES, buildToolConfigReference, resolveSchemaField } from '../prompts/toolReference';
+import { enrichToolConfig } from '../tools/canvas';
 
 interface JsonSchema {
   properties?: Record<string, JsonSchema>;
@@ -35,26 +36,27 @@ const serverSchemas = contract.configSchemas as unknown as Record<string, JsonSc
  * Server side.
  */
 const STUDIO_ONLY_KEYS: Record<string, string> = {
-  // Input/Output loaders read format options from the open config dict.
-  'Input.has_header': 'CSV loader option, read by the csv data source',
-  'Input.separator': 'CSV loader option, read by the csv data source',
-  'Input.sheet_name': 'Excel/ODS loader option',
-  'Input.sheet_id': 'Excel/ODS loader option',
-  'Input.connectionId': 'resolved by Studio into source/owner before execution',
-  'Input.table': 'Studio database picker; turned into a query',
-  'Output.separator': 'CSV writer option, read from the open config dict',
-  'Output.include_header': 'CSV writer option, read from the open config dict',
-  // Filter Basic mode: Studio generates `expression` from these.
-  'Filter.mode': 'Studio Basic/Custom toggle',
-  'Filter.conditions': 'Basic-mode conditions, compiled to expression by Studio',
-  'Filter.groups': 'Basic-mode groups, compiled to expression by Studio',
-  'Filter.combinator': 'Basic-mode combinator, compiled to expression by Studio',
+  // Agent input only: Filter enrichment folds `groups` into conditionGroup
+  // and drops the key (checked by the enrichment test below).
+  'Filter.groups': 'agent input, removed by enrichment',
   // Formula structured operations: Studio fills expression/column_name.
   'Formula.operations.operationId': 'structured op, resolved by Studio',
   'Formula.operations.sourceColumn': 'structured op, resolved by Studio',
   'Formula.operations.params': 'structured op, resolved by Studio',
   'Formula.operations.columnName': 'structured op, copied to column_name by Studio',
 };
+
+const editorStateKeys = contract.editorStateKeys as Record<string, string[]>;
+const forwardsExtraConfig = contract.forwardsExtraConfig as Record<string, boolean>;
+
+/**
+ * Top-level keys the Server accepts without a run warning beyond its model
+ * fields: Studio editor state, and anything for tools that forward extra
+ * keys to their reader or writer (BaseTool.unknown_config_keys).
+ */
+function serverIgnoresTopLevelKey(toolType: string, key: string): boolean {
+  return key.startsWith('_') || forwardsExtraConfig[toolType] === true || (editorStateKeys[toolType] ?? []).includes(key);
+}
 
 /**
  * Enum values Studio writes that the Server model does not list, with reason.
@@ -98,6 +100,7 @@ function checkFields(
     const fullPath = `${toolType}.${path ? `${path}.` : ''}${key}`;
     const serverField = server?.properties?.[key] ? deref(server.properties[key]!, root) : undefined;
     if (!serverField) {
+      if (!path && serverIgnoresTopLevelKey(toolType, key)) continue;
       if (!(fullPath in STUDIO_ONLY_KEYS)) {
         problems.push(`${fullPath}: not declared by the Server config model`);
       }
@@ -236,6 +239,21 @@ describe('prompt Tool Config Reference', () => {
     }
     // Filter group conditions are validated by the filter enrichment, not
     // the schema (the schema types them as a plain array).
+    expect(problems).toEqual([]);
+  });
+
+  it('configs the agent writes carry no key the Server would warn about', () => {
+    const problems: string[] = [];
+    for (const entry of TOOL_CONFIG_EXAMPLES) {
+      const def = TOOL_DEFINITIONS.find((d) => d.type === entry.type)!;
+      const known = new Set(Object.keys(serverSchemas[entry.type]?.properties ?? {}));
+      for (const example of entry.examples) {
+        const written = { ...def.defaultConfig, ...enrichToolConfig(entry.type, example) };
+        for (const key of Object.keys(written)) {
+          if (!known.has(key) && !serverIgnoresTopLevelKey(entry.type, key)) problems.push(`${entry.type}.${key}`);
+        }
+      }
+    }
     expect(problems).toEqual([]);
   });
 

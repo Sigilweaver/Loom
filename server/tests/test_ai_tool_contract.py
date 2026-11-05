@@ -23,7 +23,7 @@ import pytest
 
 import app.domain.tools.implementations  # noqa: F401  (registers all tools)
 from app.domain.datasources.factory import DataSourceFactory
-from app.domain.tools.expr_builder import AGGREGATION_METHODS, PivotOperation
+from app.domain.tools.expr_builder import _PIVOT_AGGS, AGGREGATION_METHODS
 from app.domain.tools.implementations.output import OutputTool
 from app.domain.tools.registry import ToolRegistry
 from app.utils.expression import PL_ALLOWED_NAMES, is_denied_method_name
@@ -51,14 +51,24 @@ def _output_types() -> list[str]:
 def build_contract() -> dict[str, Any]:
     tool_types = sorted(k for k in ToolRegistry._tools if "::" not in k)
     configs: dict[str, Any] = {}
+    editor_state: dict[str, list[str]] = {}
+    forwards_extra: dict[str, bool] = {}
     for tool_type in tool_types:
-        model = ToolRegistry.get(tool_type).config_model()
+        tool = ToolRegistry.get(tool_type)
+        model = tool.config_model()
         configs[tool_type] = model.model_json_schema() if model is not None else None
+        editor_state[tool_type] = sorted(tool.editor_state_keys)
+        forwards_extra[tool_type] = tool.forwards_extra_config
 
-    pivot_aggs = PivotOperation(on="", index=[], values="").VALID_AGGREGATIONS
+    pivot_aggs = set(_PIVOT_AGGS)
     return {
         "toolTypes": tool_types,
         "configSchemas": configs,
+        # Top-level keys the engine ignores as Studio editor state, and tools
+        # that pass unknown keys to their reader or writer. Any other unknown
+        # key is reported as a run warning (BaseTool.unknown_config_keys).
+        "editorStateKeys": editor_state,
+        "forwardsExtraConfig": forwards_extra,
         "values": {
             "inputTypes": sorted(DataSourceFactory._sources),
             "outputTypes": _output_types(),
