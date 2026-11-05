@@ -39,7 +39,7 @@ describe("summarizeToolResult", () => {
   });
 
   it("should extract first line from compact text data", () => {
-    const result = { data: "Built workflow: 5 tools\nID map:\n  a → b" };
+    const result = { data: "Built workflow: 5 tools\nID map:\n  a -> b" };
     expect(summarizeToolResult("build_workflow", result)).toBe("Built workflow: 5 tools");
   });
 
@@ -195,7 +195,7 @@ describe("buildMessageHistory", () => {
     const result = buildMessageHistory(messages);
     expect(result).toHaveLength(1);
     expect(result[0]!.content).toContain("I'll add a filter tool.");
-    expect(result[0]!.content).toContain("[add_tool → Filter [abc] connected]");
+    expect(result[0]!.content).toContain("[add_tool -> Filter [abc] connected]");
   });
 
   it("should use only tool summaries when content is '(No response)'", () => {
@@ -210,7 +210,7 @@ describe("buildMessageHistory", () => {
     ];
 
     const result = buildMessageHistory(messages);
-    expect(result[0]!.content).toBe("[remove_tool → removed Sort]");
+    expect(result[0]!.content).toBe("[remove_tool -> removed Sort]");
     expect(result[0]!.content).not.toContain("(No response)");
   });
 
@@ -226,7 +226,7 @@ describe("buildMessageHistory", () => {
     ];
 
     const result = buildMessageHistory(messages);
-    expect(result[0]!.content).toBe("[connect_tools → ok]");
+    expect(result[0]!.content).toBe("[connect_tools -> ok]");
   });
 
   it("should handle multiple tool calls in one message", () => {
@@ -242,8 +242,8 @@ describe("buildMessageHistory", () => {
     ];
 
     const result = buildMessageHistory(messages);
-    expect(result[0]!.content).toContain("[add_tool → Input [1]]");
-    expect(result[0]!.content).toContain("[add_tool → Filter [2] connected]");
+    expect(result[0]!.content).toContain("[add_tool -> Input [1]]");
+    expect(result[0]!.content).toContain("[add_tool -> Filter [2] connected]");
   });
 
   it("should limit history by token budget, not fixed count", () => {
