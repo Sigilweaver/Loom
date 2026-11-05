@@ -21,7 +21,8 @@ export interface UserResponse {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  /** Always null for the web app: the session is an HttpOnly cookie. */
+  access_token: string | null;
   token_type: string;
   user: UserResponse;
 }
@@ -47,14 +48,25 @@ export function getAuthStatus(): Promise<AuthStatusResponse> {
   return request("/auth/status", { auth: false });
 }
 
-/** Login with username and password. */
+/**
+ * Login with username and password. The Hub answers with an HttpOnly session
+ * cookie (and a CSRF cookie); no token is returned to script.
+ */
 export function login(data: LoginRequest): Promise<LoginResponse> {
-  return request("/auth/login", { method: "POST", json: data, auth: false });
+  return request("/auth/login", {
+    method: "POST",
+    json: { ...data, session_mode: "cookie" },
+    auth: false,
+  });
 }
 
-/** Register the first user (becomes owner), or a new user with admin auth. */
+/**
+ * Register the first user (becomes owner), who is then signed in with a
+ * session cookie. Called with admin auth it creates another user without
+ * signing anyone in.
+ */
 export function register(data: RegisterRequest): Promise<RegisterResponse> {
-  return request("/auth/register", { method: "POST", json: data });
+  return request("/auth/register", { method: "POST", json: { ...data, session_mode: "cookie" } });
 }
 
 /** Logout (invalidate the session). */

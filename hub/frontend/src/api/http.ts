@@ -4,16 +4,26 @@
  * Every resource module (auth, workflows, servers, ...) goes through
  * `request` / `requestVoid` / `requestText` / `requestBlob` so that:
  *
- * - the bearer token is attached in exactly one place,
+ * - the session travels in the Hub's HttpOnly cookie, which the browser
+ *   sends on its own; script never sees the token. State-changing requests
+ *   add the CSRF token (from the script-readable CSRF cookie) in exactly one
+ *   place,
  * - failures surface as a typed `ApiError` that keeps the HTTP status and the
  *   server's error detail (instead of collapsing everything to a bare Error),
  * - an expired or revoked session (HTTP 401 on an authenticated request) ends
  *   the local session, which sends the user back to the login page.
  */
 
-import { getAuthToken, expireSession } from "@state/authStore";
+import { expireSession } from "@state/authStore";
 
 export const API_BASE = "/api/v1";
+
+/** Cookie holding the CSRF token for the current session (set by the Hub). */
+export const CSRF_COOKIE = "loom_hub_csrf";
+/** Header the Hub expects the CSRF token in. */
+export const CSRF_HEADER = "X-CSRF-Token";
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /** Shape of FastAPI error bodies: a string, or a list of validation errors. */
 export interface ApiErrorBody {
@@ -131,23 +141,40 @@ export interface RequestOptions {
   body?: BodyInit;
   query?: Record<string, QueryValue>;
   /**
-   * Whether this call carries the session token and, on HTTP 401, ends the
-   * session. Login and first-run status checks opt out (default: true).
+   * Whether this call is made as the signed-in user: it carries the CSRF
+   * token and, on HTTP 401, ends the session. Login and first-run status
+   * checks opt out (default: true).
    */
   auth?: boolean;
   signal?: AbortSignal;
 }
 
-/** Headers carrying the session token, for callers that use fetch directly. */
-export function authHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+/** The CSRF token from its cookie, or null when there is no session. */
+export function readCsrfToken(): string | null {
+  const prefix = `${CSRF_COOKIE}=`;
+  for (const part of document.cookie.split(";")) {
+    const cookie = part.trim();
+    if (cookie.startsWith(prefix)) {
+      return decodeURIComponent(cookie.slice(prefix.length)) || null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Headers an authenticated request needs besides the session cookie, for
+ * callers that use fetch directly: the CSRF token on state-changing methods.
+ */
+export function authHeaders(method: string = "GET"): Record<string, string> {
+  if (SAFE_METHODS.has(method.toUpperCase())) return {};
+  const csrf = readCsrfToken();
+  return csrf ? { [CSRF_HEADER]: csrf } : {};
 }
 
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const { method = "GET", json, body, query, auth = true, signal } = options;
 
-  const headers: Record<string, string> = auth ? authHeaders() : {};
+  const headers: Record<string, string> = auth ? authHeaders(method) : {};
   let requestBody: BodyInit | undefined = body;
   if (json !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -160,6 +187,8 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
       method,
       headers,
       body: requestBody,
+      // The session cookie is same-origin; never send it anywhere else.
+      credentials: "same-origin",
       signal,
     });
   } catch (error) {

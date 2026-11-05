@@ -64,6 +64,10 @@ and documentation checked against the code.
 
 ### Security
 
+- **Hub web sessions in HttpOnly cookies** - The Hub web app no longer keeps its session token in `localStorage`. `POST /auth/login` (and first-run `POST /auth/register`) accept `session_mode: "cookie"`, which sets an `HttpOnly`, `Secure`, `SameSite=Strict` session cookie and returns no token; the app restores the session from `/auth/me` on load and removes the old `localStorage` entry. State-changing cookie requests must send an `X-CSRF-Token` header bound to the session, or get 403. Bearer tokens for Studio and scripts are unchanged. New setting `SESSION_COOKIE_SECURE` (default `true`) (#118)
+- **Hub sessions end on password changes** - Changing your password signs out your other sessions, and an administrator's password reset signs out all of that user's sessions
+- **Hub registration by an administrator** - `POST /auth/register` called by an admin creates the user without also creating a session for them; `access_token` is null
+- **Hub login timing** - A login for an unknown username takes as long as one with a wrong password, so response times do not reveal which usernames exist
 - **Hub capability authorization** - Browse requests enforce connection grants before resolving credentials, matching execute and preview. In-memory tokens expire at the deadline, matching PostgreSQL. HTTP regressions cover issuer failure, server identity, expiry, replay, grant revocation and credential scope (#110)
 - **Bounded data profiling** - Column statistics collect at most `MAX_PROFILE_ROWS` plus a truncation check, share the upstream request deadline and label sampled results. Sampled pivot counts are lower bounds; skipped Output placeholders use the same results lock (#83)
 - **JavaScript dependency audits** - Patch brace-expansion, Axios, Joi and Undici advisories; upgrade Electron to 41.10.6 for popup sandbox, protocol CORS and webview worker restrictions

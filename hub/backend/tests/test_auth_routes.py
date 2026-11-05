@@ -86,6 +86,8 @@ class TestRegister:
         data = response.json()
         assert data["user"]["username"] == "user2"
         assert data["user"]["role"] == "user"  # Default role for non-first users
+        # The administrator is not handed a session for the new account.
+        assert data["access_token"] is None
 
     @pytest.mark.asyncio
     async def test_duplicate_username_rejected(self, client):
@@ -141,13 +143,17 @@ class TestRegister:
             )
             owner_token = owner_response.json()["access_token"]
 
-            # Create regular user
-            user_response = await client.post(
+            # Create regular user, then sign in as them
+            await client.post(
                 "/api/v1/auth/register",
                 json={"username": "regularuser", "password": "password123"},
                 headers={"Authorization": f"Bearer {owner_token}"},
             )
-            user_token = user_response.json()["access_token"]
+            login_response = await client.post(
+                "/api/v1/auth/login",
+                json={"username": "regularuser", "password": "password123"},
+            )
+            user_token = login_response.json()["access_token"]
 
             # Regular user tries to register someone
             response = await client.post(

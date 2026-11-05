@@ -57,7 +57,14 @@ hub/
 
 ## API
 
-All routes are under `/api/v1`. `GET /api/v1/health` needs no authentication. Every other route needs a session (`Authorization: Bearer <session token>`), except registration of the first account and login. Interactive docs are served at `/docs`.
+All routes are under `/api/v1`. `GET /api/v1/health` needs no authentication. Every other route needs a session, except registration of the first account and login. Interactive docs are served at `/docs`.
+
+A session token reaches the Hub in one of two ways, chosen by `session_mode` on `POST /auth/login` (and first-run `POST /auth/register`):
+
+- `bearer` (default, used by Studio and scripts): the token is returned in `access_token` and sent as `Authorization: Bearer <token>`.
+- `cookie` (used by the Hub web app): the token is set in the `loom_hub_session` cookie (`HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api`) and `access_token` is null. A second, script-readable cookie, `loom_hub_csrf`, holds an HMAC of the session token under `SESSION_SECRET`. Requests authenticated by the cookie with a method other than `GET`, `HEAD` or `OPTIONS` must send that value in `X-CSRF-Token`, or get 403. `POST /auth/logout` clears both cookies.
+
+When a request carries both, the `Authorization` header wins. See `app/domain/auth/cookies.py`.
 
 | Resource | Routes | Roles |
 | -------- | ------ | ----- |

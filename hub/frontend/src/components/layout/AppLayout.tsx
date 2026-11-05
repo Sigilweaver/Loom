@@ -3,9 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
-import { logout } from "@api";
+import { isApiError, logout } from "@api";
 import { useAuthStore } from "@state/authStore";
 import { ErrorBoundary } from "@components/ErrorBoundary";
+import { useToast } from "@components/ui";
 import { EditProfileDialog } from "./EditProfileDialog";
 import { UserMenu } from "./UserMenu";
 import { navigationFor, type NavSection } from "./navigation";
@@ -74,7 +75,8 @@ function SidebarNav({ sections, collapsed = false, onNavigate }: SidebarNavProps
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, token, clearAuth, setAuth } = useAuthStore();
+  const { user, clearAuth, setAuth } = useAuthStore();
+  const toast = useToast();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -91,12 +93,17 @@ export function AppLayout() {
     setSigningOut(true);
     try {
       await logout();
-    } catch {
-      // The server session may already be gone; we are signing out either way.
-    } finally {
-      clearAuth();
-      navigate("/login", { replace: true });
+    } catch (error) {
+      // A 401 means the session is already gone. Anything else means the
+      // session cookie may still be valid, so do not pretend to be signed out.
+      if (!(isApiError(error) && error.isUnauthorized)) {
+        setSigningOut(false);
+        toast.error(error, "Could not sign out");
+        return;
+      }
     }
+    clearAuth();
+    navigate("/login", { replace: true });
   };
 
   const userMenu = (isCollapsed: boolean) => (
@@ -206,12 +213,12 @@ export function AppLayout() {
         </ErrorBoundary>
       </main>
 
-      {editingProfile && user && token && (
+      {editingProfile && user && (
         <EditProfileDialog
           username={user.username}
           onClose={() => setEditingProfile(false)}
           onUpdated={(newUsername) => {
-            setAuth(token, { ...user, username: newUsername });
+            setAuth({ ...user, username: newUsername });
             setEditingProfile(false);
           }}
         />
