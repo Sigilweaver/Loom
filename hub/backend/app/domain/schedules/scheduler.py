@@ -6,11 +6,17 @@ from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from app.db.database import async_session_maker
 from app.db.models import Schedule
 from app.domain.executions.models import TriggerExecutionInput, TriggerType
-from app.domain.executions.service import ExecutionService
+from app.domain.executions.service import (
+    ExecutionService,
+    NoAvailableServerError,
+    ServerNotFoundError,
+    WorkflowNotFoundError,
+)
 from app.domain.schedules.cron import cron_trigger
 
 logger = logging.getLogger(__name__)
@@ -19,14 +25,19 @@ logger = logging.getLogger(__name__)
 class Scheduler:
     """Dispatch due occurrences using PostgreSQL row locks and its clock.
 
-    Advancing next_trigger_at and inserting the execution share a transaction.
-    Every process polls the database, so another process can take over without
-    a leader lease or rebuilding a replica-local set of cron jobs.
+    Advancing next_trigger_at and inserting the execution share a transaction,
+    and the execution carries the occurrence as ``scheduled_for`` under a
+    unique index, so an occurrence produces at most one execution. Every
+    process polls the database, so another process can take over without a
+    leader lease or rebuilding a replica-local set of cron jobs.
     """
 
     def __init__(self) -> None:
         self._scheduler: AsyncIOScheduler | None = None
         self._running = False
+        # schedule id -> occurrence whose failure was already logged, so an
+        # occurrence retried every poll (e.g. no Server online) logs once.
+        self._reported: dict[UUID, datetime | None] = {}
 
     @property
     def is_running(self) -> bool:
@@ -89,7 +100,12 @@ class Scheduler:
                     schedule.cron_expression, schedule.timezone, schedule.start_at
                 )
             except ValueError:
-                logger.exception("Invalid cron configuration for schedule %s", schedule_id)
+                self._report(
+                    schedule_id,
+                    schedule.next_trigger_at,
+                    "has an invalid cron configuration",
+                    exc_info=True,
+                )
                 return
             if schedule.next_trigger_at is None:
                 # Legacy schedules initialize once. Existing overdue occurrences
@@ -99,6 +115,7 @@ class Scheduler:
                 return
             if schedule.next_trigger_at > now:
                 return
+            occurrence = schedule.next_trigger_at
             schedule.last_triggered_at = now
             schedule.next_trigger_at = trigger.get_next_fire_time(now, now)
             try:
@@ -110,14 +127,70 @@ class Scheduler:
                     triggered_by="scheduler",
                     trigger_type=TriggerType.SCHEDULED,
                     schedule_id=schedule_id,
+                    scheduled_for=occurrence,
                 )
-                await db.commit()
-            except Exception:
-                # Roll back an uncommitted claim so a later poll can retry.
-                # If execution insertion committed before task startup failed,
-                # the occurrence stays claimed and the stale-run sweep handles it.
+            except IntegrityError:
                 await db.rollback()
-                logger.exception("Failed to trigger schedule %s", schedule_id)
+                await self._skip_dispatched_occurrence(schedule_id, occurrence)
+                return
+            except (NoAvailableServerError, ServerNotFoundError, WorkflowNotFoundError) as e:
+                # Nothing committed: the occurrence stays due and is retried on
+                # the next poll, so it runs once the condition clears.
+                await db.rollback()
+                self._report(schedule_id, occurrence, f"cannot start yet: {e}")
+                return
+            except Exception:
+                await db.rollback()
+                self._report(schedule_id, occurrence, "failed to trigger", exc_info=True)
+                return
+            self._reported.pop(schedule_id, None)
+
+    def _report(
+        self,
+        schedule_id: UUID,
+        occurrence: datetime | None,
+        message: str,
+        *,
+        exc_info: bool = False,
+    ) -> None:
+        if schedule_id in self._reported and self._reported[schedule_id] == occurrence:
+            logger.debug("Schedule %s occurrence %s still %s", schedule_id, occurrence, message)
+            return
+        self._reported[schedule_id] = occurrence
+        logger.warning(
+            "Schedule %s occurrence %s %s; retrying every poll",
+            schedule_id,
+            occurrence.isoformat() if occurrence else "(none)",
+            message,
+            exc_info=exc_info,
+        )
+
+    async def _skip_dispatched_occurrence(self, schedule_id: UUID, occurrence: datetime) -> None:
+        """Advance past an occurrence that already has an execution.
+
+        Only reachable if next_trigger_at was moved back to an occurrence that
+        already ran (for example by restoring a backup); without this the
+        schedule would retry the same occurrence forever.
+        """
+        logger.warning(
+            "Schedule %s occurrence %s already has an execution; skipping it",
+            schedule_id,
+            occurrence.isoformat(),
+        )
+        async with async_session_maker() as db:
+            schedule = (
+                await db.execute(
+                    select(Schedule)
+                    .where(Schedule.id == schedule_id)
+                    .with_for_update(skip_locked=True)
+                )
+            ).scalar_one_or_none()
+            if schedule is None or schedule.next_trigger_at != occurrence:
+                return
+            now = (await db.execute(select(func.clock_timestamp()))).scalar_one()
+            trigger = cron_trigger(schedule.cron_expression, schedule.timezone, schedule.start_at)
+            schedule.next_trigger_at = trigger.get_next_fire_time(now, now)
+            await db.commit()
 
     def add_schedule(self, schedule: Schedule, now: datetime) -> None:
         """Persist the next occurrence when configuration changes, even stopped."""

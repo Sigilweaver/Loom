@@ -89,9 +89,12 @@ With `memory`, tokens are lost when Hub restarts and cannot be shared between Hu
 
 | Variable | Default | Meaning |
 | -------- | ------- | ------- |
-| `EXECUTION_STALE_SECONDS` | `120` | Mark queued/running records failed when their last heartbeat is older than this many seconds |
+| `EXECUTION_STALE_SECONDS` | `120` | Lease length (at least 30). A claimed run not refreshed for this long is recovered: claimed again if it never reached a Server, otherwise marked failed |
+| `EXECUTION_MAX_CONCURRENT` | `32` | Executions one Hub process runs at the same time; more wait in the queue |
+| `EXECUTION_MAX_ATTEMPTS` | `3` | Claims of a run before it is failed as "Not started" |
+| `EXECUTION_SHUTDOWN_GRACE_SECONDS` | `5` | On shutdown, how long running executions may finish before they are marked interrupted. Keep it below the container stop timeout |
 
-Runners refresh their heartbeat every 15 seconds. Recovery runs at startup and every 60 seconds. It records an interrupted run with unknown Server outcome; it does not resume or retry that execution. Apply migration `009_execution_heartbeat` before upgrading Hub.
+Runners refresh their lease every 15 seconds. Recovery runs at startup and every 30 seconds. A run that may have reached a Server is recorded as interrupted with unknown outcome and is not retried. See [Hub Execution Dispatch](../developer/architecture/hub-execution.md). Migration `010_execution_leases` adds the lease columns: stop every Hub process before you upgrade, then run the migration.
 
 ## Storage
 
