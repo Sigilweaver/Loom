@@ -21,7 +21,7 @@ export function WorkflowCard({ workflow, actions }: { workflow: WorkflowMetadata
             <FileText className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="truncate font-medium text-ink">
+            <h2 className="truncate font-medium text-ink">
               {/* The title is the keyboard and screen reader entry point; the whole card is clickable for mouse users. */}
               <button
                 type="button"
@@ -33,7 +33,7 @@ export function WorkflowCard({ workflow, actions }: { workflow: WorkflowMetadata
               >
                 {workflow.name}
               </button>
-            </h3>
+            </h2>
             {workflow.description && (
               <p className="mt-0.5 line-clamp-2 text-sm text-ink-subtle">{workflow.description}</p>
             )}

@@ -112,7 +112,7 @@ export function WorkflowsPage() {
 
   return (
     <div className="flex min-h-full">
-      <aside className="hidden w-64 shrink-0 border-r border-line lg:block">
+      <aside aria-label="Workflow folders" className="hidden w-64 shrink-0 border-r border-line lg:block">
         <div className="sticky top-0 max-h-dvh overflow-y-auto p-4">
           <FolderTree root={tree} selectedPath={folder} onSelect={setFolder} />
         </div>
