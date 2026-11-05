@@ -50,7 +50,7 @@ export async function runAudit(
     const canvasSummary = tools.length > 0
       ? tools.map((t) => {
           const commentNote = t.comment ? ` // "${t.comment}"` : ' // (no comment)';
-          return `  ${t.type} [${t.id.slice(0, 8)}]${commentNote}`;
+          return `  ${t.type} [${t.id}]${commentNote}`;
         }).join('\n')
       : '  (empty canvas)';
     const toolsWithoutComments = tools.filter((t) => !t.comment).length;
@@ -58,7 +58,7 @@ export async function runAudit(
       ? wires.map((w) => {
           const from = tools.find((t) => t.id === w.from.tool);
           const to = tools.find((t) => t.id === w.to.tool);
-          return `  ${from?.type ?? '?'} → ${to?.type ?? '?'}`;
+          return `  ${from?.type ?? "?"} -> ${to?.type ?? "?"}`;
         }).join('\n')
       : '  (no connections)';
 

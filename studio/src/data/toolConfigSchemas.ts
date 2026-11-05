@@ -185,10 +185,11 @@ const SELECT_SCHEMA: ToolConfigSchema = {
       description: 'Column configuration array',
       type: 'array',
       items: {
-        column: { description: 'Source column name', type: 'string', required: true },
-        rename: { description: 'New name for the column (optional)', type: 'string' },
-        type: { description: 'Cast to a new data type (optional)', type: 'string' },
+        name: { description: 'Source column name', type: 'string', required: true },
         selected: { description: 'Whether to include this column in output', type: 'boolean', default: true },
+        rename: { description: 'New name for the column (optional)', type: 'string' },
+        targetType: { description: 'Polars dtype to cast to (optional), e.g. "Int64", "Float64", "String", "Date"', type: 'string' },
+        size: { description: 'Size for sized types such as fixed-width strings (optional)', type: 'number' },
       },
       default: [],
     },
@@ -221,8 +222,12 @@ const FORMULA_SCHEMA: ToolConfigSchema = {
       description: 'List of formula operations to apply',
       type: 'array',
       items: {
-        expression: { description: 'Polars expression that produces the column value', type: 'string', required: true },
-        column_name: { description: 'Name of the output column (new or existing to overwrite)', type: 'string', required: true },
+        operationId: { description: 'Structured operation id from the formula catalog (preferred). Studio generates expression and column_name from it.', type: 'string' },
+        sourceColumn: { description: 'Input column for a structured operation', type: 'string' },
+        params: { description: 'Parameters for a structured operation, keyed by the catalog parameter name', type: 'object' },
+        columnName: { description: 'Output column for a structured operation (generated when omitted)', type: 'string' },
+        expression: { description: 'Polars expression that produces the column value (raw mode)', type: 'string' },
+        column_name: { description: 'Name of the output column (raw mode; new or existing to overwrite)', type: 'string' },
       },
       default: [],
     },
@@ -331,6 +336,11 @@ const JOIN_SCHEMA: ToolConfigSchema = {
       default: [],
       required: true,
     },
+    rightSuffix: {
+      description: 'Suffix added to right-input columns whose names collide with left-input columns',
+      type: 'string',
+      default: '_right',
+    },
   },
 };
 
@@ -352,7 +362,7 @@ const SUMMARIZE_SCHEMA: ToolConfigSchema = {
         operation: {
           description: 'Aggregation function',
           type: 'enum',
-          enum: ['Sum', 'Mean', 'Min', 'Max', 'Count', 'CountDistinct', 'First', 'Last', 'Median', 'Std', 'Var'] as const,
+          enum: ['Sum', 'Mean', 'Min', 'Max', 'Count', 'CountDistinct', 'First', 'Last', 'Median', 'Std', 'Var', 'Concat'] as const,
           required: true,
         },
         outputName: { description: 'Name for the result column', type: 'string', required: true },
@@ -390,7 +400,7 @@ const PIVOT_SCHEMA: ToolConfigSchema = {
     aggregateFunction: {
       description: 'Aggregation function for conflicting values',
       type: 'enum',
-      enum: ['first', 'sum', 'mean', 'min', 'max', 'count', 'last', 'median'] as const,
+      enum: ['first', 'last', 'sum', 'mean', 'median', 'min', 'max', 'len'] as const,
       default: 'first',
     },
   },

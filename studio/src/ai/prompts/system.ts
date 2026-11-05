@@ -13,6 +13,7 @@
 import type { Tool, Wire, WorkflowMeta } from '@domain/workflow/entities/workflow';
 import { listToolTypes } from '@data/toolConfigSchemas';
 import { buildFormulaCatalogForPrompt } from './formulaCatalog';
+import { buildToolConfigReference } from './toolReference';
 
 // ---------------------------------------------------------------------------
 // Static prompt sections (cacheable, identical across turns)
@@ -22,16 +23,17 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 
 ## How to Build Workflows
 
-**For new workflows** (empty canvas), use \`build_workflow\` with a spec - it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Read tool.
+**For new workflows** (empty canvas), use \`build_workflow\` with a spec - it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Input tool.
 
 **For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** (up to 5 rows as CSV).
 
 ### Key Patterns
 - **Data format**: Compact text (CSV rows, one-line profiles), typed headers like \`ColName:type?\`
+- **Tool IDs**: Use the exact IDs shown in brackets on the canvas or returned by tool calls
 - **Finding files**: Use \`search_files\` before building - never guess paths
-- **Column names are case-sensitive**: Usually lowercase. Use names from profiles/metadata only.
-- **Two-phase builds**: search_files → build_workflow (Read only) → read profile → add_tool with exact column names
-- **Branching**: Fan-out from Read - do NOT chain Aggregates in series (columns get dropped)
+- **Column names are case-sensitive**: Use names exactly as they appear in profiles/metadata.
+- **Two-phase builds**: search_files -> build_workflow (Input only) -> read profile -> add_tool with exact column names
+- **Branching**: Fan-out from the Input - do NOT chain Summarize tools in series (columns get dropped)
 - **Batch builds**: Use \`batch_canvas_ops\` to add+connect multiple tools in one call. Assign \`refId\` strings to reference new tools within the same batch (e.g. add tool with refId "t1", then connect from "t1" to another). Layout runs once at the end.
 
 ### Editing Existing Workflows
@@ -46,7 +48,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 
 ## Rules
 1. Column names are case-sensitive - use exact names from data profiles/metadata
-2. Right tool for the job: Aggregate (type: "Summarize") for aggregation, Formula for row-level math, Filter for row selection
+2. Right tool for the job: Summarize for aggregation, Formula for row-level math, Filter for row selection
 3. Build reproducible pipelines - never calculate values yourself, add tools instead
 4. Use \`add_tool\` with \`after\` (auto-connects, auto-layouts)
 5. Handle errors - if preview fails, read the error, adjust config, retry
@@ -54,26 +56,13 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 7. Use \`ask_user\` when genuinely ambiguous - ask BEFORE building, not after
 8. ALWAYS add comments to every tool - a workflow without comments is incomplete`;
 
-const TOOL_CONFIG_REFERENCE = `## Tool Config Reference
-
-**Input**: \`{ "category": "file", "type": "csv", "source": "/path/to/file.csv" }\` - types: csv, parquet, yxdb, qvd, xlsx, json
-**Filter**: \`{ "conditions": [{ "column": "col", "operator": "gt", "value": "18" }], "combinator": "and" }\` - Operators: eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, ends_with, is_null, is_not_null. Nested: add \`groups\` array.
-**Aggregate** (type: "Summarize"): \`{ "groupByColumns": ["cat"], "aggregations": [{ "column": "amt", "operation": "Sum", "outputName": "total" }] }\` - Ops: Sum, Mean, Count, Min, Max, Median, Std, First, Last, CountDistinct
-**Formula**: Prefer structured ops: \`{ "operations": [{ "operationId": "divide", "sourceColumn": "total", "params": { "mode": "column", "operand": "qty" }, "columnName": "unit_price" }] }\` - Raw Polars fallback: \`{ "operations": [{ "column_name": "result", "expression": "pl.col('a') / pl.col('b').sum()" }] }\`
-**Sort**: \`{ "sortColumns": [{ "column": "created_at", "order": "descending" }] }\`
-**Join**: \`{ "joinType": "inner", "leftKeys": ["customer_id"], "rightKeys": ["id"] }\` - Types: inner, left, right, outer, cross. Sockets: input-left, input-right, output-match (default), output-left, output-right. ALWAYS set keys.
-**Output**: \`{ "type": "csv", "path": "/path/to/output.csv" }\`
-
-## Sockets
-Most tools: input → output. Non-default: Filter: output-true (default), output-false | Join: input-left, input-right, output-match (default) | Unique: output-unique (default), output-duplicate`;
-
 /**
  * Short tail reminder appended after dynamic context.
  * Reinforces critical rules without repeating the full prompt.
  */
 const TAIL_REMINDER = `
 
-Remember: column names are case-sensitive (usually lowercase), always add comments, use structured tool configs, never calculate values yourself.`;
+Remember: column names are case-sensitive and must match the data exactly, always add comments, use structured tool configs, never calculate values yourself.`;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -86,7 +75,7 @@ Remember: column names are case-sensitive (usually lowercase), always add commen
  * Token optimization:
  * - Static instructions are separated from dynamic context for Anthropic cache control
  * - Formula catalog is only included when relevant (canvas has Formula tools, or canvas is empty/small)
- * - Canvas state uses compact serialization (truncated configs, abbreviated IDs)
+ * - Canvas state uses compact serialization (truncated config values, full IDs)
  * - Tail reminder reinforces key rules in ~20 tokens instead of repeating full instructions
  */
 export function buildWorkflowSystemPrompt(
@@ -127,8 +116,8 @@ export function buildWorkflowSystemPromptParts(
     .join('\n');
   parts.push(`\n## Available Tool Types\n\n${toolTypeSummary}`);
 
-  // 4. Tool config reference (static)
-  parts.push(`\n${TOOL_CONFIG_REFERENCE}`);
+  // 4. Tool config reference (generated from the schemas and tool registry)
+  parts.push(`\n${buildToolConfigReference()}`);
 
   // 5. Formula catalog (conditional - only when relevant)
   // Include when: canvas is empty (new workflow), has <10 tools (early building), or has Formula tools
@@ -185,7 +174,7 @@ function stripInternalIds(value: unknown): unknown {
 
 /**
  * Format current canvas state for inclusion in the system prompt.
- * Uses compact serialization: abbreviated IDs, truncated config values,
+ * Uses compact serialization: full IDs (the agent passes them back verbatim), truncated config values,
  * and tool comments for faster agent comprehension.
  */
 function formatCanvasState(tools: Tool[], wires: Wire[]): string {
@@ -209,15 +198,15 @@ function formatCanvasState(tools: Tool[], wires: Wire[]): string {
     }
     const configStr = configParts.join(', ') || '(default)';
     const commentStr = t.comment ? ` // ${t.comment}` : '';
-    return `  [${t.id.slice(0, 8)}] ${t.type} - ${configStr}${commentStr}`;
+    return `  [${t.id}] ${t.type} - ${configStr}${commentStr}`;
   });
 
   const wireLines = wires.map((w) => {
     const fromTool = tools.find((t) => t.id === w.from.tool);
     const toTool = tools.find((t) => t.id === w.to.tool);
-    const fromLabel = fromTool ? `${fromTool.type}[${w.from.tool.slice(0, 8)}]` : w.from.tool.slice(0, 8);
-    const toLabel = toTool ? `${toTool.type}[${w.to.tool.slice(0, 8)}]` : w.to.tool.slice(0, 8);
-    return `  ${fromLabel}.${w.from.socket} → ${toLabel}.${w.to.socket}`;
+    const fromLabel = fromTool ? `${fromTool.type}[${w.from.tool}]` : w.from.tool;
+    const toLabel = toTool ? `${toTool.type}[${w.to.tool}]` : w.to.tool;
+    return `  ${fromLabel}.${w.from.socket} -> ${toLabel}.${w.to.socket}`;
   });
 
   return `Tools:\n${toolLines.join('\n')}\nWires:\n${wireLines.length > 0 ? wireLines.join('\n') : '  (none)'}`;
