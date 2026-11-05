@@ -1,7 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source(none);
+@import "@xyflow/react/dist/style.css" layer(components);
+@config "../tailwind.config.js";
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+@import "./tailwind-compat.css";
 
+/* Keep custom overrides and utilities at the same cascade priority as in v3. */
+@layer utilities {
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -402,4 +407,5 @@ select option:checked {
 .ai-markdown a {
   color: var(--color-interactive-accent, #3b82f6);
   text-decoration: underline;
+}
 }

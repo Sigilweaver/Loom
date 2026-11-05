@@ -1,6 +1,2 @@
-export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
+// Tailwind compilation and vendor prefixing are handled by @tailwindcss/vite.
+export default { plugins: {} };
