@@ -27,6 +27,7 @@ and documentation checked against the code.
 - **Desktop security** - Links and `window.open` to other sites open in the system browser and are never loaded in the app window; webview permission requests (camera, microphone, location) are denied; the window title is `Sigilweaver Loom - Version X`; developer tools are available in debug builds only
 - **Desktop CI** - `ci.yml` checks, lints (clippy, rustfmt) and tests the Tauri crate on Linux, Windows and macOS, builds the Full installers on every platform and launches each one (`scripts/smoke_desktop.py`) when desktop code changes. `release.yml` builds Full and Client installers from the same workflow
 - **Studio dependencies** - React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
+- **Node toolchain** - Node 22 is pinned in `.nvmrc` and `.node-version`, the `engines` minimum is 20.19 in every JavaScript package, and CI installs the pinned version before running the Studio and Hub frontend suites (#70)
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
