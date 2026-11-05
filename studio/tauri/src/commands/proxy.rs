@@ -1,21 +1,30 @@
-//! Credential-injecting proxy to the bundled server.
+//! Credential-injecting proxy to a Server on this computer.
 //!
-//! When this shell launched the server (Full build), client-owned database
-//! credentials never enter the renderer. The renderer sends request bodies
-//! containing `loom-connection://<id>` references; this module swaps them for
-//! real connection URIs, adds the session token, forwards the request to the
-//! loopback server, and redacts any credential that comes back.
+//! Client-owned database credentials never enter the renderer. The renderer
+//! sends request bodies containing `loom-connection://<id>` references; this
+//! module swaps them for real connection URIs, forwards the request to the
+//! Server over loopback, and redacts any credential that comes back. There is
+//! no IPC command that returns a stored password.
 //!
-//! The forwarding target is fixed (`127.0.0.1:<BACKEND_PORT>`), never taken
-//! from renderer-writable settings, so a compromised page cannot redirect
-//! credentials to a host of its choosing.
+//! Where the request may go:
+//!
+//! - While this shell runs the bundled server (Full build), only to that
+//!   server (`127.0.0.1:<BACKEND_PORT>`), with the shell's session token.
+//! - Otherwise (Client build, development, a Server the user runs), only to a
+//!   Server on a loopback address, with the renderer's own `Authorization`
+//!   header passed through.
+//!
+//! Requests to any other host are refused, so a compromised page cannot point
+//! the proxy at a host of its choosing and have credentials delivered there.
+//! Client-owned connections therefore cannot be used with a remote Server;
+//! Hub-managed connections exist for that.
 //!
 //! The HTTP exchange is a minimal HTTP/1.1 client over a loopback TCP socket
 //! (the same approach as the readiness probe in `backend.rs`), which avoids an
-//! HTTP-client dependency. It only ever talks plain HTTP to `127.0.0.1`.
+//! HTTP-client dependency. It only ever talks plain HTTP to loopback.
 //!
-//! The reference format mirrors `src/platform/connectionUri.ts`; keep the two
-//! in step.
+//! The reference format mirrors `src/platform/connectionUri.ts`, and URI
+//! building mirrors `server/app/domain/connections/uri.py`; keep them in step.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -35,7 +44,13 @@ const MAX_RESPONSE_BYTES: usize = 256 * 1024 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 const ALLOWED_METHODS: [&str; 5] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
-const LOOPBACK_AUTHORITIES: [&str; 3] = ["localhost", "127.0.0.1", "[::1]"];
+/// Loopback host names a request may address, and the socket address each
+/// one is sent to. Only literal addresses are dialled, never a DNS lookup.
+const LOOPBACK_HOSTS: [(&str, &str); 3] = [
+    ("localhost", "127.0.0.1"),
+    ("127.0.0.1", "127.0.0.1"),
+    ("[::1]", "[::1]"),
+];
 
 /// Request as sent by the renderer.
 #[derive(Debug, Deserialize)]
@@ -64,7 +79,7 @@ pub struct ResolvedRef {
 }
 
 // ---------------------------------------------------------------------------
-// URI building (port of buildConnectionUri in src/platform/connectionUri.ts)
+// URI building (mirrors server/app/domain/connections/uri.py)
 // ---------------------------------------------------------------------------
 
 /// `encodeURIComponent`: everything except `A-Z a-z 0-9 - _ . ! ~ * ' ( )`.
@@ -269,26 +284,45 @@ fn redact(text: &str, secrets: &[String]) -> String {
 // Target validation
 // ---------------------------------------------------------------------------
 
-/// Validate a renderer-supplied URL and reduce it to the request target
-/// (`/api/...?query`). Returns `None` unless it addresses the bundled server's
-/// `/api/` on its port over plain HTTP on a loopback name.
-fn backend_target(raw: &str) -> Option<String> {
+/// Where a validated request goes: the socket address to dial and the request
+/// target (`/api/...?query`).
+#[derive(Debug, PartialEq)]
+struct Target {
+    addr: String,
+    path: String,
+}
+
+/// Validate a renderer-supplied URL. Returns `None` unless it is plain HTTP to
+/// a loopback name with an explicit port and an `/api/` path. When `owned`
+/// (this shell runs the bundled server), the port must also be the bundled
+/// server's.
+fn backend_target(raw: &str, owned: bool) -> Option<Target> {
     let rest = raw.strip_prefix("http://")?;
     let (authority, path_and_query) = match rest.find('/') {
         Some(i) => (&rest[..i], &rest[i..]),
         None => (rest, ""),
     };
-    let port = format!(":{BACKEND_PORT}");
-    let host = authority.strip_suffix(port.as_str())?;
-    if !LOOPBACK_AUTHORITIES.contains(&host) {
+    let (host, port) = authority.rsplit_once(':')?;
+    if port.is_empty() || !port.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
+    let port: u16 = port.parse().ok().filter(|p| *p != 0)?;
+    if owned && port != BACKEND_PORT {
+        return None;
+    }
+    let ip = LOOPBACK_HOSTS
+        .iter()
+        .find(|(name, _)| *name == host)
+        .map(|(_, ip)| *ip)?;
     // Drop any fragment; refuse anything that could break the request line.
-    let target = path_and_query.split('#').next().unwrap_or("");
-    if !target.starts_with("/api/") || target.bytes().any(|b| b <= 0x20 || b == 0x7f) {
+    let path = path_and_query.split('#').next().unwrap_or("");
+    if !path.starts_with("/api/") || path.bytes().any(|b| b <= 0x20 || b == 0x7f) {
         return None;
     }
-    Some(target.to_string())
+    Some(Target {
+        addr: format!("{ip}:{port}"),
+        path: path.to_string(),
+    })
 }
 
 fn header_value_ok(value: &str) -> bool {
@@ -393,8 +427,8 @@ async fn send_http(
 ) -> Result<RawResponse, String> {
     let mut stream = tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(addr))
         .await
-        .map_err(|_| "Timed out connecting to the bundled server".to_string())?
-        .map_err(|e| format!("Failed to connect to the bundled server: {e}"))?;
+        .map_err(|_| "Timed out connecting to the Server".to_string())?
+        .map_err(|e| format!("Failed to connect to the Server: {e}"))?;
 
     let mut request = format!("{method} {target} HTTP/1.1\r\nHost: {addr}\r\n");
     for (name, value) in headers {
@@ -429,7 +463,7 @@ async fn send_http(
             }
             response.extend_from_slice(&chunk[..n]);
             if response.len() > MAX_RESPONSE_BYTES {
-                return Err("Response from the bundled server is too large".to_string());
+                return Err("Response from the Server is too large".to_string());
             }
         }
         Ok::<_, String>(response)
@@ -437,25 +471,29 @@ async fn send_http(
 
     let bytes = tokio::time::timeout(REQUEST_TIMEOUT, exchange)
         .await
-        .map_err(|_| "Timed out waiting for the bundled server".to_string())??;
+        .map_err(|_| "Timed out waiting for the Server".to_string())??;
     parse_response(&bytes)
 }
 
 /// Forward a validated request and redact the response. Split from the command
 /// so tests can point it at a local listener.
+///
+/// `token` is the shell's session token when it owns the server; it replaces
+/// any `Authorization` header from the renderer. With `None`, the renderer's
+/// `Authorization` header is passed through unchanged.
 async fn forward(
     addr: &str,
-    token: &str,
+    token: Option<&str>,
     target: &str,
     request: &ProxyRequest,
     method: &str,
     body: Option<&str>,
     secrets: &[String],
 ) -> Result<ProxyResponse, String> {
-    let mut headers = vec![
-        ("Authorization".to_string(), format!("Bearer {token}")),
-        ("Content-Type".to_string(), "application/json".to_string()),
-    ];
+    let mut headers = vec![("Content-Type".to_string(), "application/json".to_string())];
+    if let Some(token) = token {
+        headers.push(("Authorization".to_string(), format!("Bearer {token}")));
+    }
     for (name, value) in request.headers.iter().flatten() {
         if !header_value_ok(value) {
             return Err("Invalid header value".to_string());
@@ -463,7 +501,9 @@ async fn forward(
         if name.eq_ignore_ascii_case("accept") {
             headers.push(("Accept".to_string(), value.clone()));
         } else if name.eq_ignore_ascii_case("content-type") {
-            headers[1].1 = value.clone();
+            headers[0].1 = value.clone();
+        } else if name.eq_ignore_ascii_case("authorization") && token.is_none() {
+            headers.push(("Authorization".to_string(), value.clone()));
         }
     }
 
@@ -494,20 +534,21 @@ async fn forward(
     })
 }
 
-/// Forward a request to the bundled server, swapping connection references
-/// for real connection URIs and redacting credentials from the response.
+/// Forward a request to a Server on this computer, swapping connection
+/// references for real connection URIs and redacting credentials from the
+/// response.
 #[tauri::command]
 pub async fn backend_request(
     app: AppHandle,
     backend: State<'_, BackendManager>,
     request: ProxyRequest,
 ) -> Result<ProxyResponse, String> {
-    if !backend.is_owned() {
-        return Err(
-            "Connection proxy is not available: the bundled server is not running".to_string(),
-        );
-    }
-    let token = credentials::session_token().ok_or("Session token not initialized")?;
+    let owned = backend.is_owned();
+    let token = if owned {
+        Some(credentials::session_token().ok_or("Session token not initialized")?)
+    } else {
+        None
+    };
 
     let has_refs = request
         .body
@@ -518,8 +559,12 @@ pub async fn backend_request(
         return Err("Request carries no connection references".to_string());
     }
 
-    let target = backend_target(&request.url)
-        .ok_or("Credential proxy only forwards to the bundled server")?;
+    let target = backend_target(&request.url, owned).ok_or(if owned {
+        "Client-owned database connections can only be sent to the bundled server"
+    } else {
+        "Client-owned database connections can only be sent to a Server on this \
+         computer (localhost). Use a Hub-managed connection for a remote Server."
+    })?;
     let method = request
         .method
         .as_deref()
@@ -545,15 +590,14 @@ pub async fn backend_request(
     .map_err(|e| format!("Credential substitution failed: {e}"))??;
 
     println!(
-        "[Proxy] Injected {} connection(s) into {method} {target}",
-        substituted.replaced
+        "[Proxy] Injected {} connection(s) into {method} {}",
+        substituted.replaced, target.path
     );
 
-    let addr = format!("127.0.0.1:{BACKEND_PORT}");
     forward(
-        &addr,
-        &token,
-        &target,
+        &target.addr,
+        token.as_deref(),
+        &target.path,
         &request,
         &method,
         Some(&substituted.body),
@@ -569,17 +613,12 @@ mod tests {
 
     fn pg() -> ResolvedConnection {
         ResolvedConnection {
-            id: "conn-1".to_string(),
-            name: "Sales".to_string(),
             db_type: DatabaseType::Postgresql,
-            owner: "client".to_string(),
             host: "db.example.com".to_string(),
             port: 5432,
             database: "sales".to_string(),
             username: "lo om".to_string(),
             password: "p@ss/w:rd".to_string(),
-            created_at: String::new(),
-            updated_at: String::new(),
         }
     }
 
@@ -724,30 +763,67 @@ mod tests {
     }
 
     #[test]
-    fn validates_the_forwarding_target() {
+    fn validates_the_bundled_server_target() {
         let ok = format!("http://localhost:{BACKEND_PORT}/api/workflow/execute?x=1");
         assert_eq!(
-            backend_target(&ok).as_deref(),
-            Some("/api/workflow/execute?x=1")
+            backend_target(&ok, true),
+            Some(Target {
+                addr: format!("127.0.0.1:{BACKEND_PORT}"),
+                path: "/api/workflow/execute?x=1".to_string(),
+            })
         );
         assert_eq!(
-            backend_target(&format!("http://127.0.0.1:{BACKEND_PORT}/api/x#frag")).as_deref(),
+            backend_target(&format!("http://127.0.0.1:{BACKEND_PORT}/api/x#frag"), true)
+                .map(|t| t.path)
+                .as_deref(),
             Some("/api/x")
         );
-        assert!(backend_target(&format!("http://[::1]:{BACKEND_PORT}/api/x")).is_some());
+        assert_eq!(
+            backend_target(&format!("http://[::1]:{BACKEND_PORT}/api/x"), true).map(|t| t.addr),
+            Some(format!("[::1]:{BACKEND_PORT}"))
+        );
+        // Another loopback port is not the bundled server.
+        assert!(backend_target("http://localhost:8080/api/x", true).is_none());
+    }
 
-        for bad in [
-            "http://evil.example.com:25811/api/x",
-            "http://localhost:8080/api/x",
-            "https://localhost:25811/api/x",
-            "http://localhost:25811/other",
-            "http://user:pw@localhost:25811/api/x",
-            "http://localhost:25811.evil.com/api/x",
-            "http://localhost:25811",
-            "http://localhost:25811/api/x\r\nHost: evil",
-            "not a url",
-        ] {
-            assert!(backend_target(bad).is_none(), "{bad} should be refused");
+    #[test]
+    fn allows_any_loopback_port_when_the_server_is_not_owned() {
+        assert_eq!(
+            backend_target("http://localhost:8080/api/x", false),
+            Some(Target {
+                addr: "127.0.0.1:8080".to_string(),
+                path: "/api/x".to_string(),
+            })
+        );
+        assert!(backend_target(&format!("http://localhost:{BACKEND_PORT}/api/x"), false).is_some());
+    }
+
+    #[test]
+    fn refuses_every_other_target() {
+        for owned in [true, false] {
+            for bad in [
+                "http://evil.example.com:25811/api/x",
+                "http://192.168.1.10:25811/api/x",
+                "http://0.0.0.0:25811/api/x",
+                "https://localhost:25811/api/x",
+                "http://localhost/api/x",
+                "http://localhost:/api/x",
+                "http://localhost:0/api/x",
+                "http://localhost:99999/api/x",
+                "http://localhost:+25811/api/x",
+                "http://localhost:25811/other",
+                "http://user:pw@localhost:25811/api/x",
+                "http://localhost:25811.evil.com/api/x",
+                "http://localhost.evil.com:25811/api/x",
+                "http://localhost:25811",
+                "http://localhost:25811/api/x\r\nHost: evil",
+                "not a url",
+            ] {
+                assert!(
+                    backend_target(bad, owned).is_none(),
+                    "{bad} should be refused (owned: {owned})"
+                );
+            }
         }
     }
 
@@ -834,7 +910,7 @@ mod tests {
             .collect();
         let out = forward(
             &addr,
-            "shell-token",
+            Some("shell-token"),
             "/api/datasource/schema",
             &request,
             "POST",
@@ -863,6 +939,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn passes_the_renderer_token_through_when_the_server_is_not_owned() {
+        let response = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec();
+        let (addr, server) = serve_once(response).await;
+        let request = ProxyRequest {
+            url: String::new(),
+            method: Some("POST".to_string()),
+            headers: Some(HashMap::from([(
+                "authorization".to_string(),
+                "Bearer renderer-token".to_string(),
+            )])),
+            body: None,
+        };
+        let out = forward(&addr, None, "/api/x", &request, "POST", Some("{}"), &[])
+            .await
+            .unwrap();
+        assert_eq!(out.status, 200);
+
+        let received = String::from_utf8(server.await.unwrap()).unwrap();
+        assert!(received.contains("Authorization: Bearer renderer-token\r\n"));
+        assert_eq!(received.matches("Authorization:").count(), 1);
+    }
+
+    #[tokio::test]
     async fn refuses_header_injection() {
         let request = ProxyRequest {
             url: String::new(),
@@ -873,9 +972,17 @@ mod tests {
             )])),
             body: None,
         };
-        let err = forward("127.0.0.1:1", "t", "/api/x", &request, "POST", None, &[])
-            .await
-            .unwrap_err();
+        let err = forward(
+            "127.0.0.1:1",
+            Some("t"),
+            "/api/x",
+            &request,
+            "POST",
+            None,
+            &[],
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err, "Invalid header value");
     }
 
@@ -891,7 +998,7 @@ mod tests {
             headers: None,
             body: None,
         };
-        let err = forward(&addr, "t", "/api/x", &request, "GET", None, &[])
+        let err = forward(&addr, Some("t"), "/api/x", &request, "GET", None, &[])
             .await
             .unwrap_err();
         assert!(err.contains("Failed to connect"));

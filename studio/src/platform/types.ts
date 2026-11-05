@@ -10,7 +10,6 @@ import type {
   ConnectionInfo,
   CreateConnectionInput,
   UpdateConnectionInput,
-  ResolvedConnection,
   ConnectionTestResult,
 } from '../types/connections';
 
@@ -146,22 +145,14 @@ export interface CredentialOperations {
   delete(id: string): Promise<void>;
 
   /**
-   * Resolve a connection with decrypted credentials.
-   *
-   * @deprecated Hands plaintext credentials to the renderer. It is refused by
-   * the desktop shell whenever `capabilities.credentialProxy` is true; in that
-   * case put `connectionRef(id)` in the request body and send it with
-   * `credentials.fetch` (or `backendFetch` from `@api`) so the shell injects
-   * the credentials. It remains only for setups where the shell does not own
-   * the server (Client build, development, remote server).
-   */
-  resolve(id: string): Promise<ResolvedConnection | null>;
-
-  /**
-   * HTTP request to the bundled server in which `loom-connection://<id>`
+   * HTTP request to a Server on this computer in which `loom-connection://<id>`
    * references are replaced by the shell with real connection URIs, so
    * credentials never enter the renderer. Credentials echoed back in the
-   * response are redacted. Rejects unless `capabilities.credentialProxy`.
+   * response are redacted. The shell refuses any target other than the
+   * bundled server, or a loopback Server when it runs none. Rejects unless
+   * `capabilities.credentialProxy`.
+   *
+   * There is deliberately no operation that returns a stored password.
    */
   fetch(url: string, init?: RequestInit): Promise<Response>;
 
@@ -181,9 +172,9 @@ export interface PlatformCapabilities {
   /** Whether native file dialogs are available */
   nativeDialogs: boolean;
   /**
-   * Whether the shell owns the server process and can inject stored
-   * credentials into requests to it (see CredentialOperations.fetch). When
-   * true, the renderer must not (and cannot) resolve plaintext credentials.
+   * Whether the shell can inject stored credentials into requests to a
+   * Server on this computer (see CredentialOperations.fetch). Client-owned
+   * connections are usable only when this is true.
    */
   credentialProxy: boolean;
 }

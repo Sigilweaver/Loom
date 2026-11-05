@@ -203,35 +203,35 @@ function summarizeResult(tc: ToolCallInfo): string {
 
   // Success with details
   if (r.success === true) {
-    if (r.toolId) return `→ ${(r.type as string) ?? 'tool'} (${(r.toolId as string).slice(0, 8)})`;
-    if (r.toolCount) return `→ ${r.toolCount} tools, ${r.wireCount} wires`;
-    if (r.removedType) return `→ removed ${r.removedType}`;
-    if (r.updatedFields) return `→ updated ${(r.updatedFields as string[]).join(', ')}`;
-    return '→ success';
+    if (r.toolId) return `-> ${(r.type as string) ?? 'tool'} (${(r.toolId as string).slice(0, 8)})`;
+    if (r.toolCount) return `-> ${r.toolCount} tools, ${r.wireCount} wires`;
+    if (r.removedType) return `-> removed ${r.removedType}`;
+    if (r.updatedFields) return `-> updated ${(r.updatedFields as string[]).join(', ')}`;
+    return '-> success';
   }
   // Failures
   if (r.success === false) {
-    if (r.errors) return `→ ${(r.errors as string[]).length} error(s)`;
-    return `→ error: ${r.error ?? 'unknown'}`;
+    if (r.errors) return `-> ${(r.errors as string[]).length} error(s)`;
+    return `-> error: ${r.error ?? 'unknown'}`;
   }
-  if (r.error) return `→ error: ${r.error}`;
+  if (r.error) return `-> error: ${r.error}`;
 
   // Data results
-  if (r.rows) return `→ ${(r.rows as unknown[]).length} rows`;
-  if (r.columns) return `→ ${(r.columns as unknown[]).length} columns`;
-  if (r.results) return `→ ${(r.results as unknown[]).length} results`;
-  if (r.toolTypes) return `→ ${(r.toolTypes as unknown[]).length} types`;
-  if (r.schema) return '→ schema';
+  if (r.rows) return `-> ${(r.rows as unknown[]).length} rows`;
+  if (r.columns) return `-> ${(r.columns as unknown[]).length} columns`;
+  if (r.results) return `-> ${(r.results as unknown[]).length} results`;
+  if (r.toolTypes) return `-> ${(r.toolTypes as unknown[]).length} types`;
+  if (r.schema) return '-> schema';
 
   // Canvas state
-  if (r.totalTools != null) return `→ ${r.totalTools} tools, ${r.totalWires} wires`;
+  if (r.totalTools != null) return `-> ${r.totalTools} tools, ${r.totalWires} wires`;
 
   // File listing
-  if (r.roots) return '→ file roots';
-  if (r.files) return `→ ${r.directory}`;
+  if (r.roots) return '-> file roots';
+  if (r.files) return `-> ${r.directory}`;
 
   // Profiling
-  if (r.rowCount != null && r.columnCount != null) return `→ ${r.rowCount} rows, ${r.columnCount} cols`;
+  if (r.rowCount != null && r.columnCount != null) return `-> ${r.rowCount} rows, ${r.columnCount} cols`;
 
   return '';
 }

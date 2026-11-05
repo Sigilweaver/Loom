@@ -127,13 +127,13 @@ Studio's settings for this mode:
 
 | Owner | Stored in | Managed by | Notes |
 | ----- | --------- | ---------- | ----- |
-| **client** | The OS credential store on the user's machine | The user, in Studio | Credentials are sent to the Server with each request that needs them |
+| **client** | The OS credential store on the user's machine | The user, in Studio | The renderer sends a `loom-connection://<id>` reference; the desktop shell swaps in the credentials and forwards the request to a loopback Server only |
 | **hub** | Hub's database, encrypted | Hub administrators | The Server fetches credentials from Hub at request time |
 | **server** | `connections.json` on the Server | A Server administrator | Deprecated. Prefer Hub connections |
 
 ```mermaid
 flowchart LR
-    A["Client connections<br/>(Studio)"] -->|"URI in the request"| S["Server"]
+    A["Client connections<br/>(desktop shell)"] -->|"URI injected by the shell<br/>(loopback only)"| S["Server"]
     C["Hub connections<br/>(Hub)"] -->|"/internal/authorize"| S
     B["Server connections<br/>(deprecated)"] -->|"local lookup"| S
 ```

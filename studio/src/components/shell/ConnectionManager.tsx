@@ -225,7 +225,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={labelStyle}>
-              Password {isEditing ? '(leave blank to keep)' : ''}
+              Password {isEditing ? '(leave blank to keep; required to change host or port)' : ''}
             </label>
             <input
               type="password"
@@ -397,13 +397,14 @@ export const ConnectionManager: React.FC<{ showHeader?: boolean }> = ({ showHead
     
     setFormLoading(true);
     try {
-      // Only include password if it was changed
+      // Only include credentials that were changed
       const updateData: UpdateConnectionInput = {
         name: data.name,
         host: data.host,
         port: data.port,
         database: data.database,
-        username: data.username,
+        // Blank means "keep the stored value" for both credentials.
+        ...(data.username.trim() ? { username: data.username } : {}),
         ...(data.password ? { password: data.password } : {}),
       };
       

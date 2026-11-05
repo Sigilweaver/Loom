@@ -17,7 +17,6 @@ import type {
   ConnectionInfo, 
   CreateConnectionInput, 
   UpdateConnectionInput,
-  ResolvedConnection,
   ConnectionTestResult,
   DatabaseType 
 } from '../types/connections';
@@ -40,7 +39,6 @@ interface ConnectionState {
   createConnection: (input: CreateConnectionInput) => Promise<ConnectionInfo>;
   updateConnection: (id: string, input: UpdateConnectionInput) => Promise<ConnectionInfo>;
   deleteConnection: (id: string) => Promise<void>;
-  resolveConnection: (id: string) => Promise<ResolvedConnection | null>;
   testConnection: (id: string) => Promise<ConnectionTestResult>;
   checkEncryption: () => Promise<boolean>;
   clearError: () => void;
@@ -141,19 +139,6 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
       const message = error instanceof Error ? error.message : 'Failed to delete connection';
       set({ error: message, loading: false });
       throw error;
-    }
-  },
-
-  resolveConnection: async (id: string) => {
-    if (!hasSecureStorage()) {
-      throw new Error('Secure storage not available');
-    }
-
-    try {
-      return await platform.credentials.resolve(id);
-    } catch (error) {
-      console.error('[ConnectionStore] Failed to resolve connection:', error);
-      return null;
     }
   },
 

@@ -10,11 +10,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State};
+use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
-
-use crate::commands::backend::BackendManager;
 
 const CONNECTIONS_STORE: &str = "connections.json";
 
@@ -102,22 +100,17 @@ pub struct ConnectionInfo {
     pub updated_at: String,
 }
 
-/// Resolved connection (with credentials for backend use)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+/// Resolved connection: what the credential proxy needs to build a connection
+/// URI. Rust-side only; it is never returned over IPC, so it is not
+/// serializable.
+#[derive(Debug, Clone)]
 pub struct ResolvedConnection {
-    pub id: String,
-    pub name: String,
-    #[serde(rename = "type")]
     pub db_type: DatabaseType,
-    pub owner: String,
     pub host: String,
     pub port: u16,
     pub database: String,
     pub username: String,
     pub password: String,
-    pub created_at: String,
-    pub updated_at: String,
 }
 
 /// Input for creating a connection
@@ -170,17 +163,12 @@ impl StoredConnection {
 
     fn to_resolved(&self, password: String) -> ResolvedConnection {
         ResolvedConnection {
-            id: self.id.clone(),
-            name: self.name.clone(),
             db_type: self.db_type.clone(),
-            owner: "client".to_string(),
             host: self.host.clone(),
             port: self.port,
             database: self.database.clone(),
             username: self.username.clone(),
             password,
-            created_at: self.created_at.clone(),
-            updated_at: self.updated_at.clone(),
         }
     }
 }
@@ -345,6 +333,17 @@ pub async fn create_connection(
     Ok(info)
 }
 
+/// Whether an update moves the connection to another host or port without
+/// supplying a password. SQLite connections have no network endpoint.
+fn password_must_be_reentered(stored: &StoredConnection, input: &UpdateConnectionInput) -> bool {
+    if stored.db_type == DatabaseType::Sqlite || input.password.is_some() {
+        return false;
+    }
+    let host_changed = input.host.as_ref().is_some_and(|h| *h != stored.host);
+    let port_changed = input.port.is_some_and(|p| p != stored.port);
+    host_changed || port_changed
+}
+
 /// Update an existing connection
 #[tauri::command]
 pub async fn update_connection(
@@ -368,6 +367,18 @@ pub async fn update_connection(
     let connection = connections
         .get_mut(&id)
         .ok_or_else(|| format!("Connection {} not found", id))?;
+
+    // The stored password must not follow a connection to a new host or port
+    // unless the user types it again: otherwise anything that can edit a
+    // connection could point it at a host it controls and collect the
+    // password from the next query.
+    if password_must_be_reentered(connection, &input)
+        && get_password(&id)?.is_some_and(|stored| !stored.is_empty())
+    {
+        return Err(
+            "Enter the password again to change the host or port of this connection".to_string(),
+        );
+    }
 
     // Apply updates
     if let Some(new_name) = input.name {
@@ -443,36 +454,6 @@ pub(crate) fn load_resolved(
     }
 }
 
-/// Whether requests carrying connection references can be proxied by the
-/// shell. True only while the bundled server (launched by this process) runs;
-/// the renderer then never needs plaintext credentials.
-#[tauri::command]
-pub async fn connection_proxy_available(
-    backend: State<'_, BackendManager>,
-) -> Result<bool, String> {
-    Ok(backend.is_owned() && session_token().is_some())
-}
-
-/// Legacy: resolve a connection to plaintext credentials for the renderer.
-///
-/// Only permitted when this process does not own the server (Client build,
-/// development, or a remote server), because then the renderer must build the
-/// request itself. While the bundled server runs, the proxy
-/// (`backend_request`) is used and this is refused.
-#[tauri::command]
-pub async fn resolve_connection(
-    app: AppHandle,
-    id: String,
-) -> Result<Option<ResolvedConnection>, String> {
-    if app.state::<BackendManager>().is_owned() {
-        return Err(
-            "Credentials are not available to the renderer while the bundled server is running"
-                .to_string(),
-        );
-    }
-    load_resolved(&app, &id)
-}
-
 /// Test a connection
 #[tauri::command]
 pub async fn test_connection(app: AppHandle, id: String) -> Result<ConnectionTestResult, String> {
@@ -491,4 +472,77 @@ pub async fn test_connection(app: AppHandle, id: String) -> Result<ConnectionTes
         success: true,
         message: "Connection configured (test via backend pending)".to_string(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn stored(db_type: DatabaseType) -> StoredConnection {
+        StoredConnection {
+            id: "c1".to_string(),
+            name: "Sales".to_string(),
+            db_type,
+            host: "db.internal".to_string(),
+            port: 5432,
+            database: "sales".to_string(),
+            username: "loom".to_string(),
+            password: String::new(),
+            created_at: String::new(),
+            updated_at: String::new(),
+        }
+    }
+
+    fn update() -> UpdateConnectionInput {
+        UpdateConnectionInput {
+            name: None,
+            host: None,
+            port: None,
+            database: None,
+            username: None,
+            password: None,
+        }
+    }
+
+    #[test]
+    fn moving_a_connection_requires_the_password() {
+        let c = stored(DatabaseType::Postgresql);
+        let host = UpdateConnectionInput {
+            host: Some("evil.example.com".to_string()),
+            ..update()
+        };
+        assert!(password_must_be_reentered(&c, &host));
+        let port = UpdateConnectionInput {
+            port: Some(5433),
+            ..update()
+        };
+        assert!(password_must_be_reentered(&c, &port));
+    }
+
+    #[test]
+    fn other_edits_keep_the_stored_password() {
+        let c = stored(DatabaseType::Postgresql);
+        let same_endpoint = UpdateConnectionInput {
+            name: Some("Renamed".to_string()),
+            host: Some("db.internal".to_string()),
+            port: Some(5432),
+            database: Some("other".to_string()),
+            ..update()
+        };
+        assert!(!password_must_be_reentered(&c, &same_endpoint));
+        let with_password = UpdateConnectionInput {
+            host: Some("db2.internal".to_string()),
+            password: Some("new".to_string()),
+            ..update()
+        };
+        assert!(!password_must_be_reentered(&c, &with_password));
+        let sqlite = UpdateConnectionInput {
+            host: Some("elsewhere".to_string()),
+            ..update()
+        };
+        assert!(!password_must_be_reentered(
+            &stored(DatabaseType::Sqlite),
+            &sqlite
+        ));
+    }
 }
