@@ -233,6 +233,11 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
       messages,
       tools: AGENT_TOOLS,
       stopWhen: stepCountIs(store.maxIterations),
+      // One tool call at a time, in the order the model issued them. Canvas
+      // tools read, mutate and re-layout the shared workflow store, and
+      // ask_user (and approvals) show one prompt at a time; concurrent calls
+      // in one step would race or replace each other's prompt.
+      toolCallConcurrency: 1,
       abortSignal: abortController.signal,
       // Anthropic: move a cache breakpoint onto the newest message each step,
       // so a multi-step turn re-reads the growing conversation from cache.

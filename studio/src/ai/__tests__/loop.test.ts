@@ -168,3 +168,13 @@ describe('canvas state for large workflows', () => {
     expect(text).toContain('mode="LastN"');
   });
 });
+
+describe('agent request options', () => {
+  it('runs tool calls one at a time', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve, dirname } = await import('path');
+    const { fileURLToPath } = await import('url');
+    const source = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../agent.ts'), 'utf-8');
+    expect(source).toMatch(/toolCallConcurrency:\s*1\b/);
+  });
+});
