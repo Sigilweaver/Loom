@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **AI assistant providers** - Default and suggested models are updated (Anthropic claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5; OpenAI gpt-6.1-sol, gpt-6-astra, gpt-6-luna; Google gemini-3.8-flash, gemini-3.1-pro-preview, gemini-3.5-flash-lite). Provider errors are classified from the HTTP status, with distinct messages for a missing model and an oversized conversation. On Anthropic, only the stable instructions carry the prompt-cache breakpoint, so editing the canvas no longer invalidates the cache
 - **AI assistant providers** - Default and suggested models are updated (Anthropic claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5; OpenAI gpt-6.1-sol, gpt-6-astra, gpt-6-luna; Google gemini-3.6-flash and others). Provider errors are classified from the HTTP status, with distinct messages for a missing model and an oversized conversation. On Anthropic, only the stable instructions carry the prompt-cache breakpoint, so editing the canvas no longer invalidates the cache
 - **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)

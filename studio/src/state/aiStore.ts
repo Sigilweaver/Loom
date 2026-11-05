@@ -23,7 +23,7 @@ export interface AISettings {
   enabled: boolean;
   /** LLM provider */
   provider: AIProvider;
-  /** Model identifier (e.g. "gpt-6.1-sol", "claude-sonnet-5-5", "gemini-3.6-flash") */
+  /** Model identifier (e.g. "gpt-6.1-sol", "claude-sonnet-5-5", "gemini-3.8-flash") */
   model: string;
   /** API key (stored in localStorage) */
   apiKey: string;
@@ -157,7 +157,7 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
 const DEFAULT_MODELS: Record<AIProvider, string> = {
   openai: 'gpt-6.1-sol',
   anthropic: 'claude-sonnet-5-5',
-  google: 'gemini-3.6-flash',
+  google: 'gemini-3.8-flash',
   mistral: 'mistral-large-latest',
   'openai-compatible': '',
 };

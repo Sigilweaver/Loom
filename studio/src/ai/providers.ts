@@ -160,7 +160,7 @@ export async function fetchProviderModels(
 export const PROVIDER_MODELS: Record<AIProvider, string[]> = {
   openai: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-luna'],
   anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
-  google: ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite'],
+  google: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3.5-flash-lite'],
   mistral: ['mistral-large-latest', 'mistral-small-latest'],
   'openai-compatible': [], // User specifies manually
 };
