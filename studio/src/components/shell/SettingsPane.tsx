@@ -12,6 +12,7 @@ import AboutContent from './AboutContent';
 import ConnectionManager from './ConnectionManager';
 import HubLoginDialog from './HubLoginDialog';
 import { Checkbox } from '@components/ui/Checkbox';
+import { Button } from '@components/ui/Button';
 import { User, Database, Palette, Info, ChevronDown, ChevronRight, Globe, LogIn, LogOut, RefreshCw, Sparkles, MousePointerClick, MessageSquare, LayoutDashboard } from 'lucide-react';
 import type { ExecutionMode } from '../../types/settings';
 import { hasHubClient, getHubClient, clearHubClient, initHubClient } from '../../api/hub';
@@ -244,7 +245,7 @@ const SettingsPane: React.FC = () => {
                     key={id}
                     onClick={() => updateExecutionMode(id as ExecutionMode)}
                     className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${executionMode === id
-                        ? 'bg-theme-interactive-accent text-white'
+                        ? 'bg-theme-interactive-accent text-theme-text-on-accent'
                         : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
                       }`}
                   >
@@ -291,22 +292,20 @@ const SettingsPane: React.FC = () => {
                       )}
                     </div>
                     {hubUser ? (
-                      <button
-                        onClick={handleHubLogout}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-theme-border-primary text-theme-text-secondary hover:bg-theme-surface-hover transition-colors"
-                      >
-                        <LogOut className="w-3 h-3" />
+                      <Button variant="secondary" size="sm" onClick={handleHubLogout}>
+                        <LogOut className="w-3 h-3" aria-hidden />
                         Logout
-                      </button>
+                      </Button>
                     ) : (
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => setShowHubLogin(true)}
                         disabled={!hub.url}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-theme-interactive-accent text-white hover:bg-theme-interactive-accent-hover transition-colors disabled:opacity-50"
                       >
-                        <LogIn className="w-3 h-3" />
+                        <LogIn className="w-3 h-3" aria-hidden />
                         Login to Hub
-                      </button>
+                      </Button>
                     )}
                     {!hubUser && (
                       <p className="text-theme-text-tertiary">
@@ -482,7 +481,7 @@ const SettingsPane: React.FC = () => {
                             key={id}
                             onClick={() => updateTheme(id)}
                             className={`px-2 py-0.5 text-xs rounded transition-colors ${theme.id === id
-                                ? 'bg-theme-interactive-accent text-white font-medium'
+                                ? 'bg-theme-interactive-accent text-theme-text-on-accent font-medium'
                                 : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
                               }`}
                           >
@@ -576,7 +575,7 @@ const SettingsPane: React.FC = () => {
                                 key={id}
                                 onClick={() => updateTheme(id)}
                                 className={`px-2 py-0.5 text-xs rounded transition-colors ${theme.id === id
-                                    ? 'bg-theme-interactive-accent text-white font-medium'
+                                    ? 'bg-theme-interactive-accent text-theme-text-on-accent font-medium'
                                     : 'bg-theme-bg-tertiary hover:bg-theme-bg-secondary text-theme-text-secondary'
                                   }`}
                               >
@@ -730,7 +729,7 @@ const SettingsPane: React.FC = () => {
                         key={id}
                         onClick={() => updateCommentsAlignment(id)}
                         className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${comments.alignment === id
-                            ? 'bg-theme-interactive-accent text-white'
+                            ? 'bg-theme-interactive-accent text-theme-text-on-accent'
                             : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
                           }`}
                       >
@@ -808,7 +807,7 @@ const SettingsPane: React.FC = () => {
                     onClick={() => updateLayoutAlignment(id)}
                     className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
                       layout.alignment === id
-                        ? 'bg-theme-interactive-accent text-white'
+                        ? 'bg-theme-interactive-accent text-theme-text-on-accent'
                         : 'bg-theme-bg-secondary text-theme-text-secondary hover:bg-theme-bg-tertiary'
                     }`}
                   >

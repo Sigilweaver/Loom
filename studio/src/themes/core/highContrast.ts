@@ -6,6 +6,7 @@ export const highContrastTheme: Theme = {
   id: 'high-contrast',
   name: 'High Contrast',
   description: 'Maximum contrast for accessibility',
+  isDark: false,
   colors: {
     palette: lightPalette,
     surfaces: {

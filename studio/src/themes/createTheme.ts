@@ -212,6 +212,7 @@ export function createTheme(config: ThemeConfig): Theme {
     id,
     name,
     description,
+    isDark,
     colors: {
       palette: p,
       

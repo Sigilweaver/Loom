@@ -117,7 +117,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           type="text"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          className="w-full px-3 py-2 rounded focus:outline-none"
+          className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
           style={inputStyle}
           placeholder="My PostgreSQL Database"
           disabled={loading}
@@ -135,7 +135,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
         <select
           value={formData.type}
           onChange={(e) => handleTypeChange(e.target.value as DatabaseType)}
-          className="w-full px-3 py-2 rounded focus:outline-none"
+          className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
           style={inputStyle}
           disabled={isEditing || loading} // Can't change type when editing
         >
@@ -155,7 +155,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               type="text"
               value={formData.host}
               onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
-              className="w-full px-3 py-2 rounded focus:outline-none"
+              className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
               style={inputStyle}
               placeholder="localhost"
               disabled={loading}
@@ -172,7 +172,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               type="number"
               value={formData.port}
               onChange={(e) => setFormData(prev => ({ ...prev, port: parseInt(e.target.value, 10) || 0 }))}
-              className="w-full px-3 py-2 rounded focus:outline-none"
+              className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
               style={inputStyle}
               min={1}
               max={65535}
@@ -193,7 +193,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           type="text"
           value={formData.database}
           onChange={(e) => setFormData(prev => ({ ...prev, database: e.target.value }))}
-          className="w-full px-3 py-2 rounded focus:outline-none"
+          className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
           style={inputStyle}
           placeholder="mydb"
           disabled={loading}
@@ -213,7 +213,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               type="text"
               value={formData.username}
               onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              className="w-full px-3 py-2 rounded focus:outline-none"
+              className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
               style={inputStyle}
               placeholder={formData.type === 'mssql' ? 'sa' : 'postgres'}
               autoComplete="off"
@@ -231,7 +231,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
               type="password"
               value={formData.password}
               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full px-3 py-2 rounded focus:outline-none"
+              className="w-full px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-theme-border-focus"
               style={inputStyle}
               placeholder={isEditing ? '********' : ''}
               autoComplete="new-password"

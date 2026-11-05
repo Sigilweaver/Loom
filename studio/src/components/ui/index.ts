@@ -85,3 +85,6 @@ export {
   SelectScrollUpButton,
   SelectScrollDownButton,
 } from './Select';
+
+export { Button, IconButton, buttonClasses } from './Button';
+export type { ButtonProps, IconButtonProps, ButtonVariant, ButtonSize } from './Button';

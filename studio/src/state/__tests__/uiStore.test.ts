@@ -223,6 +223,36 @@ describe("uiStore", () => {
       expect(notification.isVisible).toBe(true);
     });
 
+    it("keeps errors until dismissed unless a duration is given", () => {
+      useUIStore.getState().showNotification("Execution failed", "error");
+      let notification = useUIStore.getState().notification;
+      expect(notification.duration).toBe(0);
+      expect(notification.expiresAt).toBeUndefined();
+
+      useUIStore.getState().maybeAutoHide();
+      expect(useUIStore.getState().notification.isVisible).toBe(true);
+
+      useUIStore.getState().showNotification("Failed to copy", "error", 1500);
+      notification = useUIStore.getState().notification;
+      expect(notification.duration).toBe(1500);
+      expect(notification.expiresAt).toBeGreaterThan(Date.now());
+    });
+
+    it("does not let routine info replace a visible error", () => {
+      useUIStore.getState().showNotification("Execution failed", "error");
+      useUIStore.getState().showNotification("Tab closed", "info");
+      expect(useUIStore.getState().notification.message).toBe("Execution failed");
+
+      useUIStore.getState().hideNotification();
+      useUIStore.getState().showNotification("Tab closed", "info");
+      expect(useUIStore.getState().notification.message).toBe("Tab closed");
+    });
+
+    it("gives warnings a longer default duration than info", () => {
+      useUIStore.getState().showNotification("Careful", "warning");
+      expect(useUIStore.getState().notification.duration).toBe(8000);
+    });
+
     it("shows notification with custom duration", () => {
       const message = "Custom duration";
       const duration = 3000;

@@ -88,7 +88,7 @@ const BottomPane = () => {
         onTouchStart={handleTouchStart}
         className={`h-1 cursor-row-resize transition-colors ${
           isResizing
-            ? "bg-theme-border-accent"
+            ? "bg-theme-border-focus"
             : "bg-transparent hover:bg-theme-border-secondary"
         }`}
       />

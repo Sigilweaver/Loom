@@ -38,52 +38,36 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const [loadFailed, setLoadFailed] = useState(false);
   const { currentTheme } = useTheme();
 
-  // Map app themes to Monaco themes
-  const getMonacoTheme = () => {
-    if (theme) return theme; // Allow override
-    
-    switch (currentTheme.id) {
-      case 'light':
-      case 'high-contrast':
-        return 'vs'; // Light theme
-      case 'sigilweaver-signature':
-      case 'dark':
-      default:
-        return 'vs-dark'; // Dark theme
-    }
-  };
+  // Monaco base theme follows the app theme's light/dark flag; an explicit
+  // `theme` prop overrides it.
+  const monacoTheme = theme ?? (currentTheme.isDark ? 'vs-dark' : 'vs');
 
-  const monacoTheme = getMonacoTheme();
+  // Match the editor surface to the app theme, and follow theme switches.
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (!monacoReady || !monaco || theme) return;
+    const { colors } = currentTheme;
+    monaco.editor.defineTheme('loom-editor', {
+      base: currentTheme.isDark ? 'vs-dark' : 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': colors.surfaces.elevated,
+        'editor.foreground': colors.text.primary,
+        'editorLineNumber.foreground': colors.text.tertiary,
+        'editorLineNumber.activeForeground': colors.text.secondary,
+        'editor.lineHighlightBackground': colors.surfaces.elevated,
+        'editor.selectionBackground': colors.borders.focus + '33', // 20% opacity
+        'editorCursor.foreground': colors.text.primary,
+      },
+    });
+    monaco.editor.setTheme('loom-editor');
+  }, [monacoReady, currentTheme, theme]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
     setMonacoReady(true); // Trigger useEffect
-
-    // Define custom theme colors for dark themes to match app background
-    if (monacoTheme === 'vs-dark') {
-      const bgColor = currentTheme.colors.surfaces.elevated;
-      const textColor = currentTheme.colors.text.primary;
-      const lineNumberColor = currentTheme.colors.text.tertiary;
-      const selectionBg = currentTheme.colors.borders.focus + '33'; // 20% opacity
-      
-      monaco.editor.defineTheme('sigilweaver-dark', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [],
-        colors: {
-          'editor.background': bgColor,
-          'editor.foreground': textColor,
-          'editorLineNumber.foreground': lineNumberColor,
-          'editorLineNumber.activeForeground': lineNumberColor,
-          'editor.lineHighlightBackground': bgColor,
-          'editor.selectionBackground': selectionBg,
-          'editorCursor.foreground': textColor,
-        },
-      });
-      
-      monaco.editor.setTheme('sigilweaver-dark');
-    }
 
     // CRITICAL FIX: Override the acceptSelectedSuggestion command to NOT trigger on space
     // This prevents the autocomplete from swallowing space key presses

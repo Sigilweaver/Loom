@@ -8,9 +8,11 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 import Canvas, { CanvasRef } from "./components/Canvas";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ConfigErrorBoundary } from "./components/ConfigErrorBoundary";
 import LeftPane from "./components/LeftPane";
 import Header, { HeaderRef } from "./components/shell/Header";
 import Notification from "./components/shell/Notification";
+import KeyboardShortcutsDialog from "./components/shell/KeyboardShortcutsDialog";
 import BottomPane from "./components/shell/BottomPane";
 import TabBar from "./components/shell/TabBar";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -257,54 +259,59 @@ function App() {
     return () => window.removeEventListener("keydown", handleTabShortcuts);
   }, [createTab, showNotification]);
 
-  // Save and workflow keyboard shortcuts
+  // Save and workflow keyboard shortcuts. These are app commands, so they
+  // also apply while a field has focus: otherwise Ctrl+S, Ctrl+P and F5 fall
+  // through to the browser (save page, print, reload and lose unsaved work).
   useEffect(() => {
     const handleWorkflowShortcuts = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const isTyping =
-        !!target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-      if (isTyping) return;
-
       const mod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
 
-      // Ctrl+S: Save
-      if (mod && (e.key === "s" || e.key === "S") && !e.shiftKey) {
-        e.preventDefault();
-        headerRef.current?.handleSaveWorkflow();
+      // "?" opens the shortcut list, except while typing (it is a character).
+      if (e.key === "?" && !mod && !e.altKey) {
+        const target = e.target as HTMLElement | null;
+        const isTyping =
+          !!target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.tagName === "SELECT" ||
+            target.isContentEditable);
+        if (!isTyping) {
+          e.preventDefault();
+          useUIStore.getState().setShortcutsHelpOpen(true);
+        }
+        return;
       }
 
-      // Ctrl+Shift+S: Save As
-      if (mod && (e.key === "s" || e.key === "S") && e.shiftKey) {
-        e.preventDefault();
-        headerRef.current?.handleSaveAsWorkflow();
+      let action: (() => void) | undefined;
+      if (mod && key === "s" && !e.shiftKey) {
+        action = () => headerRef.current?.handleSaveWorkflow();
+      } else if (mod && key === "s" && e.shiftKey) {
+        action = () => headerRef.current?.handleSaveAsWorkflow();
+      } else if (mod && key === "o") {
+        action = () => headerRef.current?.handleImportWorkflow();
+      } else if (mod && key === "p") {
+        action = () => headerRef.current?.handlePreviewWorkflow();
+      } else if (mod && e.altKey && key === "x") {
+        action = () => headerRef.current?.handleToggleWorkflowViewer();
+      } else if (e.key === "F5") {
+        action = () => headerRef.current?.handleRunWorkflow();
       }
+      if (!action) return;
 
-      // Ctrl+O: Open Workflow
-      if (mod && (e.key === "o" || e.key === "O")) {
-        e.preventDefault();
-        headerRef.current?.handleImportWorkflow();
+      e.preventDefault();
+      // Commit an in-progress edit (fields save on blur) before acting on it.
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.isContentEditable)
+      ) {
+        active.blur();
       }
-
-      // Ctrl+P: Preview All Tools
-      if (mod && (e.key === "p" || e.key === "P")) {
-        e.preventDefault();
-        headerRef.current?.handlePreviewWorkflow();
-      }
-
-      // Ctrl+Alt+X: Toggle Code Viewer
-      if (mod && e.altKey && (e.key === "x" || e.key === "X")) {
-        e.preventDefault();
-        headerRef.current?.handleToggleWorkflowViewer();
-      }
-
-      // F5: Run Workflow
-      if (e.key === "F5") {
-        e.preventDefault();
-        headerRef.current?.handleRunWorkflow();
-      }
+      action();
     };
 
     window.addEventListener("keydown", handleWorkflowShortcuts);
@@ -326,14 +333,19 @@ function App() {
               <ReactFlowProvider>
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <TabBar />
-                  <Canvas ref={canvasRef} />
-                  <BottomPane />
+                  <ConfigErrorBoundary componentName="Canvas" title="The canvas failed to render">
+                    <Canvas ref={canvasRef} />
+                  </ConfigErrorBoundary>
+                  <ConfigErrorBoundary componentName="Bottom pane" title="This panel failed to render">
+                    <BottomPane />
+                  </ConfigErrorBoundary>
                 </div>
               </ReactFlowProvider>
             </div>
 
             {/* Notification System - uses uiStore internally */}
             <Notification />
+            <KeyboardShortcutsDialog />
           </div>
         </TooltipProvider>
       </ThemeProvider>

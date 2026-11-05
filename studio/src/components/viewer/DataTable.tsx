@@ -715,7 +715,7 @@ const DataTable = () => {
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col h-full outline-none select-none"
+      className="flex flex-col h-full outline-none select-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-theme-border-focus"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseUp={handleMouseUp}
@@ -741,7 +741,7 @@ const DataTable = () => {
             const selRows = norm.endRow - norm.startRow + 1;
             const selCols = norm.endCol - norm.startCol + 1;
             return (
-              <span className="text-theme-text-accent">
+              <span className="text-theme-interactive-accent">
                 ({selRows} x {selCols} selected)
               </span>
             );
@@ -880,8 +880,8 @@ const DataTable = () => {
                             header.getResizeHandler()(e);
                           }}
                           onTouchStart={header.getResizeHandler()}
-                          className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none opacity-0 group-hover:opacity-100 hover:bg-theme-border-accent ${
-                            header.column.getIsResizing() ? "bg-theme-border-accent opacity-100" : ""
+                          className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none opacity-0 group-hover:opacity-100 hover:bg-theme-border-focus ${
+                            header.column.getIsResizing() ? "bg-theme-border-focus opacity-100" : ""
                           }`}
                         />
                       )}

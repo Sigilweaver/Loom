@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import { ChevronDown, ShieldCheck } from "lucide-react";
+import { ChevronDown, Keyboard, ShieldCheck } from "lucide-react";
+import { formatShortcut } from "../../utils/shortcuts";
 import { useUIStore } from "@state/uiStore";
 import { runWorkflowValidation } from "@state/validationStore";
 import { useWorkflowStore } from "@state/workflowStore";
@@ -61,6 +62,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
 
   const setLeftPaneTab = useUIStore((s) => s.setLeftPaneTab);
   const setBypassCache = useUIStore((s) => s.setBypassCache);
+  const setShortcutsHelpOpen = useUIStore((s) => s.setShortcutsHelpOpen);
 
   const {
     handleNewWorkflow,
@@ -137,7 +139,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
             <button
               onClick={handleImportWorkflow}
               className={IMPORT_BUTTON}
-              title="Open Workflow (Ctrl+O)"
+              title={`Open Workflow (${formatShortcut(["Mod", "O"])})`}
             >
               Open
             </button>
@@ -145,7 +147,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
             <button
               onClick={handleSaveWorkflow}
               className={EXPORT_BUTTON}
-              title="Save Workflow (Ctrl+S)"
+              title={`Save Workflow (${formatShortcut(["Mod", "S"])})`}
             >
               Save
             </button>
@@ -153,7 +155,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
             <button
               onClick={handleSaveAsWorkflow}
               className={EXPORT_BUTTON}
-              title="Save Workflow As... (Ctrl+Shift+S)"
+              title={`Save Workflow As... (${formatShortcut(["Mod", "Shift", "S"])})`}
             >
               Save As
             </button>
@@ -175,7 +177,7 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
                 onClick={handlePreviewWorkflow}
                 disabled={isPreviewLoading}
                 className={`${BUTTON_BASE} rounded-l border-r-0 ${PREVIEW_BUTTON_COLORS}`}
-                title={bypassCache ? "Preview All Tools - Cache Bypassed (Ctrl+P)" : "Preview All Tools (Ctrl+P)"}
+                title={`${bypassCache ? "Preview All Tools - Cache Bypassed" : "Preview All Tools"} (${formatShortcut(["Mod", "P"])})`}
               >
                 {isPreviewLoading ? "Loading..." : bypassCache ? "Preview All*" : "Preview All"}
               </button>
@@ -213,6 +215,15 @@ const Header = forwardRef<HeaderRef, object>((_, ref) => {
               title="Run Workflow (F5)"
             >
               {isExecuting ? "Running..." : "Run"}
+            </button>
+
+            <button
+              onClick={() => setShortcutsHelpOpen(true)}
+              className={`${EXPORT_BUTTON} !px-2`}
+              title="Keyboard shortcuts (?)"
+              aria-label="Keyboard shortcuts"
+            >
+              <Keyboard className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

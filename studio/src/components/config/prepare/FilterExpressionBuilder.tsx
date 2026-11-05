@@ -406,9 +406,9 @@ function CombinatorBadge({ combinator, onClick }: CombinatorBadgeProps) {
         style={{
           backgroundColor:
             combinator === "and"
-              ? "var(--theme-interactive-accent)"
-              : "var(--theme-log-warning, #d97706)",
-          color: "white",
+              ? "var(--color-interactive-accent)"
+              : "var(--color-log-warning)",
+          color: "var(--color-text-on-accent)",
           opacity: 0.85,
         }}
         title={`Click to switch to ${combinator === "and" ? "OR" : "AND"}`}
@@ -676,9 +676,9 @@ function ConditionGroup({
             style={{
               backgroundColor:
                 group.combinator === "and"
-                  ? "var(--theme-interactive-accent)"
-                  : "var(--theme-log-warning, #d97706)",
-              color: "white",
+                  ? "var(--color-interactive-accent)"
+                  : "var(--color-log-warning)",
+              color: "var(--color-text-on-accent)",
             }}
             title={`Click to switch to ${group.combinator === "and" ? "OR" : "AND"}`}
           >
@@ -730,7 +730,7 @@ function ConditionGroup({
               onChange({ ...group, comment: e.target.value || undefined })
             }
             placeholder="Describe this group..."
-            className="flex-1 min-w-0 h-5 px-1.5 text-xs bg-transparent text-theme-text-secondary placeholder:text-theme-text-tertiary italic border-none outline-none"
+            className="flex-1 min-w-0 h-5 px-1.5 text-xs bg-transparent text-theme-text-secondary placeholder:text-theme-text-tertiary italic border-none outline-none rounded focus-visible:ring-1 focus-visible:ring-theme-border-focus"
           />
         </div>
       )}

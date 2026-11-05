@@ -59,7 +59,19 @@ export default function Tab({
             : "bg-theme-surface-elevated text-theme-text-secondary hover:bg-theme-surface-panel"
         }
       `}
+      role="tab"
+      aria-selected={isActive}
+      tabIndex={isActive ? 0 : -1}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        } else if (e.key === "Delete") {
+          e.preventDefault();
+          onClose();
+        }
+      }}
       onContextMenu={onContextMenu}
       title={tab.filePath || tab.name}
     >
@@ -73,6 +85,8 @@ export default function Tab({
           <div
             className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity"
             title="Unsaved changes"
+            aria-label="Unsaved changes"
+            role="img"
           >
             <div className="w-2 h-2 rounded-full bg-theme-interactive-accent" />
           </div>
@@ -86,10 +100,12 @@ export default function Tab({
             flex items-center justify-center
             hover:bg-theme-surface-elevated
             transition-opacity
-            ${tab.isDirty ? "opacity-0 group-hover:opacity-100" : "opacity-100"}
+            ${tab.isDirty ? "opacity-0 group-hover:opacity-100 focus-visible:opacity-100" : "opacity-100"}
             ${isActive ? "text-theme-text-secondary" : "text-theme-text-tertiary"}
           `}
           title="Close tab"
+          aria-label={`Close ${tab.name}`}
+          tabIndex={-1}
         >
           <svg
             width="12"

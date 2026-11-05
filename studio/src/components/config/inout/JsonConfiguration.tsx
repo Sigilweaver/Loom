@@ -128,7 +128,7 @@ export const JsonConfiguration: React.FC<JsonConfigurationProps> = ({
                 <label className="block mb-2 text-sm font-medium text-theme-text-primary">
                   Reading Mode
                 </label>
-                <div className="px-3 py-2 text-sm border rounded bg-theme-surface border-theme-border-primary text-theme-text-secondary">
+                <div className="px-3 py-2 text-sm border rounded bg-theme-surface-elevated border-theme-border-primary text-theme-text-secondary">
                   {JSON_MODE_INFO.read.name}
                 </div>
               </div>

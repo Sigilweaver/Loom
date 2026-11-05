@@ -242,8 +242,8 @@ export function UniqueConfiguration({
           )}
 
           {hasInput && !loading && inputColumns.length > 0 && (
-            <div className="border rounded border-theme-border-subtle bg-theme-surface-elevated">
-              <div className="px-3 py-2 text-xs border-b border-theme-border-subtle text-theme-text-tertiary">
+            <div className="border rounded border-theme-border-secondary bg-theme-surface-elevated">
+              <div className="px-3 py-2 text-xs border-b border-theme-border-secondary text-theme-text-tertiary">
                 {allSelected
                   ? `All ${inputColumns.length} columns selected`
                   : `${selectedCount} of ${inputColumns.length} columns selected`}
@@ -258,7 +258,7 @@ export function UniqueConfiguration({
                       type="checkbox"
                       checked={isColumnSelected(col.name)}
                       onChange={() => toggleColumn(col.name)}
-                      className="w-4 h-4 rounded border-theme-border-subtle bg-theme-surface text-theme-accent focus:ring-theme-accent focus:ring-offset-0"
+                      className="w-4 h-4 rounded border-theme-border-secondary bg-theme-surface-elevated text-theme-interactive-accent focus:ring-theme-interactive-accent focus:ring-offset-0"
                     />
                     <span className="flex-1 text-sm text-theme-text-primary truncate">
                       {col.name}
@@ -274,7 +274,7 @@ export function UniqueConfiguration({
         </div>
 
         {/* Mode Description */}
-        <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-subtle">
+        <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-secondary">
           <h4 className="mb-1 font-medium text-theme-text-primary">
             {currentMode === "First" ? "First Occurrence Mode" : "Strictly Unique Mode"}
           </h4>

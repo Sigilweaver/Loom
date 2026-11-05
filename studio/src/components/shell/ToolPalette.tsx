@@ -120,6 +120,30 @@ export default function ToolPalette() {
     touchStartRef.current = null;
   }, []);
 
+  // Keyboard and double-click path: add the tool near the middle of the
+  // visible canvas.
+  const keyboardAddCountRef = useRef(0);
+  const addToolToCanvas = useCallback((toolType: string) => {
+    const target = document.querySelector<HTMLElement>("[data-canvas-drop-target]");
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    // Fill a 4 x 3 grid around the center (160px apart, a bit more than a
+    // tool node) so consecutive adds sit side by side instead of on top of
+    // each other.
+    const n = keyboardAddCountRef.current++ % 12;
+    const dx = ((n % 4) - 1.5) * 160;
+    const dy = (Math.floor(n / 4) - 1) * 160;
+    document.dispatchEvent(
+      new CustomEvent(TOOL_TOUCH_DROP_EVENT, {
+        detail: {
+          toolType,
+          clientX: rect.left + rect.width / 2 + dx,
+          clientY: rect.top + rect.height / 2 + dy,
+        } as ToolTouchDropDetail,
+      })
+    );
+  }, []);
+
   const handleToggleFavorite = (e: React.MouseEvent, toolType: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -203,6 +227,17 @@ export default function ToolPalette() {
                           {/* Tool node */}
                           <div
                             draggable
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Add ${tool.name} to the canvas`}
+                            title={`${tool.name}: drag to the canvas, or double-click or press Enter to add`}
+                            onDoubleClick={() => addToolToCanvas(tool.type)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                addToolToCanvas(tool.type);
+                              }
+                            }}
                             onDragStart={(e) => handleDragStart(e, tool.type)}
                             onDragEnd={() => setDragToolType(null)}
                             onTouchStart={(e) => handleTouchStart(e, tool.type)}
@@ -227,7 +262,7 @@ export default function ToolPalette() {
                           </div>
                           {/* Tool label */}
                           <div
-                            className="text-[8px] font-medium text-theme-text-primary text-center mt-0.5 px-1 py-0.5 rounded border max-w-[60px] truncate"
+                            className="text-[10px] leading-tight font-medium text-theme-text-primary text-center mt-0.5 px-1 py-0.5 rounded border max-w-[64px] truncate"
                             style={{
                               backgroundColor: "var(--color-surface-elevated)",
                               borderColor: toolColor,
@@ -260,7 +295,7 @@ export default function ToolPalette() {
             zIndex: 10000,
             opacity: 0.8,
           }}
-          className="flex items-center justify-center p-2 border-2 rounded-lg shadow-lg bg-theme-node-default-bg border-theme-border-accent"
+          className="flex items-center justify-center p-2 border-2 rounded-lg shadow-lg bg-theme-node-default-bg border-theme-border-focus"
         >
           {(() => {
             const tool = [...getToolsByCategory('connect'), ...getToolsByCategory('compute'), ...getToolsByCategory('reshape'), ...getToolsByCategory('combine')].find(t => t.type === touchDragTool);

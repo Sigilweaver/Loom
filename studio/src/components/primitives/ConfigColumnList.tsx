@@ -361,7 +361,7 @@ export const ConfigColumnList: React.FC<ConfigColumnListProps> = ({
                       className={clsx(
                         "w-8 h-8 flex items-center justify-center text-sm rounded",
                         "border border-theme-border-primary",
-                        "text-theme-text-secondary hover:text-theme-status-error",
+                        "text-theme-text-secondary hover:text-theme-status-error-text",
                         "hover:bg-theme-surface-hover transition-colors",
                         "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-theme-text-secondary"
                       )}
@@ -403,7 +403,7 @@ export const ConfigColumnList: React.FC<ConfigColumnListProps> = ({
               className={clsx(
                 "px-3 py-1.5 text-sm rounded",
                 "border border-theme-border-primary",
-                "text-theme-text-secondary hover:text-theme-status-error",
+                "text-theme-text-secondary hover:text-theme-status-error-text",
                 "hover:bg-theme-surface-hover transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}

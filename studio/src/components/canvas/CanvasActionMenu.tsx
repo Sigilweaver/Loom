@@ -80,7 +80,7 @@ export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose
             padding: '8px 10px',
             border: 'none',
             background: 'transparent',
-            color: it.disabled ? 'var(--color-muted-7)' : 'var(--color-canvas-controls-btn-text)',
+            color: it.disabled ? 'var(--color-text-disabled)' : 'var(--color-canvas-controls-btn-text)',
             textAlign: 'left',
             cursor: it.disabled ? 'not-allowed' : 'pointer',
             fontSize: 13,
@@ -90,7 +90,7 @@ export const CanvasActionMenu: React.FC<Props> = ({ open, coords, items, onClose
           <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span>{it.label}</span>
             {it.hint ? (
-              <span style={{ opacity: hoveredKey === it.key ? 0.75 : 0, transition: 'opacity 120ms', fontSize: 12, color: 'var(--color-muted-7)' }}>
+              <span style={{ opacity: hoveredKey === it.key ? 0.75 : 0, transition: 'opacity 120ms', fontSize: 12, color: 'var(--color-text-tertiary)' }}>
                 {it.hint}
               </span>
             ) : null}

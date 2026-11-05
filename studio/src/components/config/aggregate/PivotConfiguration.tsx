@@ -328,8 +328,8 @@ export function PivotConfiguration({
                 Select columns to group by. These become row identifiers in the output.
               </p>
 
-              <div className="border rounded border-theme-border-subtle bg-theme-surface-elevated">
-                <div className="px-3 py-2 text-xs border-b border-theme-border-subtle text-theme-text-tertiary">
+              <div className="border rounded border-theme-border-secondary bg-theme-surface-elevated">
+                <div className="px-3 py-2 text-xs border-b border-theme-border-secondary text-theme-text-tertiary">
                   {selectedIndex.length === 0
                     ? "No columns selected (will use all non-pivot/value columns)"
                     : `${selectedIndex.length} column${selectedIndex.length !== 1 ? "s" : ""} selected`}
@@ -352,7 +352,7 @@ export function PivotConfiguration({
                           checked={selectedIndex.includes(col.name)}
                           onChange={() => toggleIndexColumn(col.name)}
                           disabled={isDisabled}
-                          className="w-4 h-4 rounded border-theme-border-subtle bg-theme-surface text-theme-accent focus:ring-theme-accent focus:ring-offset-0 disabled:opacity-50"
+                          className="w-4 h-4 rounded border-theme-border-secondary bg-theme-surface-elevated text-theme-interactive-accent focus:ring-theme-interactive-accent focus:ring-offset-0 disabled:opacity-50"
                         />
                         <span className="flex-1 text-sm truncate text-theme-text-primary">
                           {col.name}
@@ -378,7 +378,7 @@ export function PivotConfiguration({
               <select
                 value={selectedOn}
                 onChange={handleOnChange}
-                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-accent"
+                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
               >
                 <option value="">Select column...</option>
                 {availableColumnsForOn.map((col) => {
@@ -454,7 +454,7 @@ export function PivotConfiguration({
               <select
                 value={selectedValues}
                 onChange={handleValuesChange}
-                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-accent"
+                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
               >
                 <option value="">Select column...</option>
                 {availableColumnsForValues.map((col) => (
@@ -476,7 +476,7 @@ export function PivotConfiguration({
               <select
                 value={currentAggValid ? aggregateFunction : "first"}
                 onChange={handleAggregateChange}
-                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-accent"
+                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
               >
                 {availableAggregations.map((agg) => (
                   <option key={agg.value} value={agg.value}>
@@ -499,20 +499,20 @@ export function PivotConfiguration({
 
             {/* Summary */}
             {selectedOn && selectedValues && (
-              <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-subtle">
+              <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-secondary">
                 <h4 className="mb-1 font-medium text-theme-text-primary">
                   Result Preview
                 </h4>
                 <p className="text-theme-text-secondary">
                   New columns will be created for each unique value in{" "}
-                  <span className="text-theme-accent">{selectedOn}</span>, filled with{" "}
-                  <span className="text-theme-accent">{aggregateFunction}</span> of{" "}
-                  <span className="text-theme-accent">{selectedValues}</span>.
+                  <span className="text-theme-interactive-accent">{selectedOn}</span>, filled with{" "}
+                  <span className="text-theme-interactive-accent">{aggregateFunction}</span> of{" "}
+                  <span className="text-theme-interactive-accent">{selectedValues}</span>.
                   {selectedIndex.length > 0 && (
                     <>
                       {" "}
                       Grouped by{" "}
-                      <span className="text-theme-accent">
+                      <span className="text-theme-interactive-accent">
                         {selectedIndex.join(", ")}
                       </span>
                       .

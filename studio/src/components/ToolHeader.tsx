@@ -2,7 +2,9 @@ import { Tool } from '../domain/workflow/entities/workflow';
 import { getToolDefinition } from '../data/tools';
 import { HelpLink } from './common/HelpLink';
 import { useSettingsStore } from '../state/settingsStore';
-import { Settings, AlertTriangle } from 'lucide-react';
+import { Settings, AlertTriangle, X } from 'lucide-react';
+import { IconButton } from './ui/Button';
+import { requestClearCanvasSelection } from './canvas/events';
 
 interface ToolHeaderProps {
   tool: Tool;
@@ -41,12 +43,20 @@ export default function ToolHeader({ tool }: ToolHeaderProps) {
             <p className="text-xs text-theme-text-tertiary">Tool ID: {tool.id}</p>
           </div>
         </div>
-        {toolDefinition?.docsUrl && (
-          <HelpLink 
-            url={toolDefinition.docsUrl} 
-            label={`${toolDefinition.name} documentation`}
-          />
-        )}
+        <div className="flex items-center gap-1">
+          {toolDefinition?.docsUrl && (
+            <HelpLink
+              url={toolDefinition.docsUrl}
+              label={`${toolDefinition.name} documentation`}
+            />
+          )}
+          <IconButton
+            label="Close configuration and show the tool palette"
+            onClick={requestClearCanvasSelection}
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </IconButton>
+        </div>
       </div>
     </div>
   );

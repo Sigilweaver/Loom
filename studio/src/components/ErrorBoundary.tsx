@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { Button } from './ui/Button';
 
 interface Props {
     children: ReactNode;
@@ -77,7 +78,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 <h2 className="text-sm font-medium text-theme-text-primary mb-2">
                                     Error Message
                                 </h2>
-                                <pre className="text-xs bg-theme-surface p-3 rounded border border-theme-border-secondary text-theme-status-error-text overflow-x-auto whitespace-pre-wrap">
+                                <pre className="text-xs bg-theme-surface-elevated p-3 rounded border border-theme-border-secondary text-theme-status-error-text overflow-x-auto whitespace-pre-wrap">
                                     {this.state.error.message}
                                 </pre>
                             </div>
@@ -88,25 +89,19 @@ export class ErrorBoundary extends Component<Props, State> {
                                 <summary className="text-sm font-medium text-theme-text-primary cursor-pointer hover:text-theme-text-secondary">
                                     Stack Trace
                                 </summary>
-                                <pre className="mt-2 text-xs bg-theme-surface p-3 rounded border border-theme-border-secondary text-theme-text-tertiary overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                <pre className="mt-2 text-xs bg-theme-surface-elevated p-3 rounded border border-theme-border-secondary text-theme-text-tertiary overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
                                     {this.state.errorInfo.componentStack}
                                 </pre>
                             </details>
                         )}
 
                         <div className="flex gap-3">
-                            <button
-                                onClick={this.handleReset}
-                                className="px-4 py-2 text-sm font-medium text-theme-text-on-accent bg-theme-interactive-accent rounded-md hover:opacity-90 transition-opacity"
-                            >
+                            <Button variant="primary" onClick={this.handleReset}>
                                 Try Again
-                            </button>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="px-4 py-2 text-sm font-medium text-theme-text-primary bg-theme-surface rounded-md border border-theme-border-primary hover:bg-theme-bg-hover transition-colors"
-                            >
+                            </Button>
+                            <Button variant="secondary" onClick={() => window.location.reload()}>
                                 Reload Application
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

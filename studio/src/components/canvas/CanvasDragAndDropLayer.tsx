@@ -143,7 +143,7 @@ export const CanvasDragAndDropLayer: React.FC<Props> = ({ onAddTool, snap, scree
   }, [onAddTool, snap, screenToFlowPosition, clearPreview]);
 
   return (
-    <div ref={containerRef} className="flex-1 h-full relative" onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
+    <div ref={containerRef} data-canvas-drop-target className="flex-1 h-full relative" onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
       {children}
     </div>
   );

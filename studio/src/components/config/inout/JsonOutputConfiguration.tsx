@@ -122,7 +122,7 @@ export const JsonOutputConfiguration: React.FC<
                 <label className="block mb-2 text-sm font-medium text-theme-text-primary">
                   Output Mode
                 </label>
-                <div className="px-3 py-2 text-sm border rounded bg-theme-surface border-theme-border-primary text-theme-text-secondary">
+                <div className="px-3 py-2 text-sm border rounded bg-theme-surface-elevated border-theme-border-primary text-theme-text-secondary">
                   {JSON_OUTPUT_MODE_INFO.write.label}
                 </div>
               </div>
@@ -178,7 +178,7 @@ export const JsonOutputConfiguration: React.FC<
             <h3 className="mb-3 text-sm font-semibold text-theme-text-primary">
               Format Information
             </h3>
-            <div className="p-3 border rounded bg-theme-surface border-theme-border-secondary">
+            <div className="p-3 border rounded bg-theme-surface-elevated border-theme-border-secondary">
               {isNdjson ? (
                 <div className="space-y-2">
                   <p className="text-sm text-theme-text-primary">
