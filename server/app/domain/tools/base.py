@@ -1,7 +1,7 @@
 """Base tool interface"""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 import polars as pl
 from pydantic import BaseModel
@@ -24,6 +24,15 @@ class BaseTool(ABC):
     """
 
     engine: str = DEFAULT_ENGINE
+
+    #: Top-level config keys Studio persists as editor state (for example the
+    #: Filter condition builder tree). The engine ignores them by design, so
+    #: they are not reported as unknown.
+    editor_state_keys: ClassVar[frozenset[str]] = frozenset()
+
+    #: True for tools that forward unrecognised config keys to a reader or
+    #: writer as format options (Input, Output). Such keys are not unknown.
+    forwards_extra_config: ClassVar[bool] = False
 
     @abstractmethod
     async def execute(
@@ -82,6 +91,32 @@ class BaseTool(ABC):
         except Exception as e:  # pydantic ValidationError or otherwise
             return [str(e)]
         return []
+
+    def unknown_config_keys(self, config: dict[str, Any]) -> list[str]:
+        """Return top-level config keys the engine does not read.
+
+        The outcome for an unknown key is defined per tool:
+
+        - a config model with ``extra="forbid"`` rejects it in
+          `validate_config` (it is an error, never reported here);
+        - keys starting with ``_`` and keys in `editor_state_keys` are Studio
+          editor state and are ignored;
+        - tools with `forwards_extra_config` pass extra keys to their reader or
+          writer;
+        - anything else is returned here, and the executor reports it as a
+          warning on the run instead of dropping it silently.
+        """
+        model = self.config_model()
+        if model is None or self.forwards_extra_config:
+            return []
+        if model.model_config.get("extra") == "forbid":
+            return []
+        known: set[str] = set(self.editor_state_keys)
+        for name, field in model.model_fields.items():
+            known.add(name)
+            if field.alias:
+                known.add(field.alias)
+        return sorted(k for k in config if not k.startswith("_") and k not in known)
 
     def to_python_code(
         self,

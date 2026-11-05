@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ApiError } from "@api/http";
 import { errorMessage, fieldError } from "./errors";
 
-vi.mock("@state/authStore", () => ({ getAuthToken: () => null, expireSession: () => {} }));
+vi.mock("@state/authStore", () => ({ expireSession: () => {} }));
 
 describe("errorMessage", () => {
   it("explains an expired session", () => {

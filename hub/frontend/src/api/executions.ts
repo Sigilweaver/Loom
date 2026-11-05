@@ -1,29 +1,12 @@
 /** Workflow executions, including the live event stream. */
 
+import type { Schemas } from "./schema";
 import { API_BASE, authHeaders, errorFromResponse, request } from "./http";
 import { expireSession } from "@state/authStore";
 
-export interface ExecutionResponse {
-  id: string;
-  workflow_id: string;
-  workflow_name: string;
-  server_id: string;
-  server_name: string;
-  trigger_type: string;
-  triggered_by: string | null;
-  status: string;
-  queued_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  success: boolean | null;
-  error_message: string | null;
-  duration_seconds: number | null;
-}
+export type ExecutionResponse = Schemas["app__api__v1__routes__executions__ExecutionResponse"];
 
-export interface ExecutionListResponse {
-  executions: ExecutionResponse[];
-  total: number;
-}
+export type ExecutionListResponse = Schemas["ExecutionListResponse"];
 
 /** List executions (auto-filtered by ownership for regular users). */
 export function listExecutions(params?: {
@@ -86,8 +69,8 @@ export function parseSseFrame(
 /**
  * Subscribe to the live execution event stream (Server-Sent Events).
  *
- * Uses fetch + ReadableStream rather than the browser EventSource API because
- * the Hub authenticates via a Bearer header, which EventSource cannot set.
+ * Uses fetch + ReadableStream rather than the browser EventSource API so that
+ * a rejected session (HTTP 401) can be told apart from a dropped connection.
  * Returns a function that cancels the subscription.
  */
 export function streamExecutions(handlers: ExecutionStreamHandlers): () => void {
@@ -97,6 +80,7 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
     try {
       const response = await fetch(`${API_BASE}/executions/stream`, {
         headers: authHeaders(),
+        credentials: "same-origin",
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {

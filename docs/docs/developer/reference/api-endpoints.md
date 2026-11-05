@@ -20,9 +20,9 @@ Health check endpoint.
   "status": "healthy",
   "version": "0.0.0-dev",
   "message": "Sigilweaver Loom Backend is running",
-  "python_version": "3.11.5",
+  "python_version": "3.13.9",
   "platform": "Linux 6.5.0",
-  "polars_version": "1.20.0",
+  "polars_version": "2.1.0",
   "max_preview_rows": 10000
 }
 ```
@@ -734,7 +734,7 @@ Get available Polars functions for autocomplete.
 **Response:**
 ```json
 {
-  "polars_version": "1.20.0",
+  "polars_version": "2.1.0",
   "table_level": ["pl.col", "pl.lit", "pl.when", "pl.concat"],
   "column_methods": {
     "all": ["alias", "cast", "fill_null", "is_null"],

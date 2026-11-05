@@ -7,7 +7,6 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import quote_plus
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import async_session_maker
 from app.db.models import Connection
 from app.domain.connections import ConnectionStore, EncryptionKeyError
+from app.domain.connections.testing import check_database_connection
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class ConnectionHealthPoller:
                 return
 
             if isinstance(resolved, ResolvedDatabaseConnection):
-                success, message = await self._test_database_connection(
+                success, message = await check_database_connection(
                     db_type=resolved.db_type,
                     host=resolved.host,
                     port=resolved.port,
@@ -139,66 +139,6 @@ class ConnectionHealthPoller:
             connection.status = "error"
             connection.last_error = str(e)
             logger.error("Error checking connection %s: %s", connection.name, e)
-
-    async def _test_database_connection(
-        self,
-        db_type: str,
-        host: str,
-        port: int,
-        database: str,
-        username: str,
-        password: str,
-    ) -> tuple[bool, str]:
-        """Test database connection with provided parameters.
-
-        Returns:
-            Tuple of (success, message).
-        """
-        try:
-            import polars as pl
-
-            # URL-encode credentials
-            safe_username = quote_plus(username)
-            safe_password = quote_plus(password)
-
-            # Get db_type value if it's an enum
-            db_type_str = db_type.value if hasattr(db_type, "value") else str(db_type)
-
-            # Build connection URL based on type
-            if db_type_str == "postgresql":
-                url = f"postgresql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type_str == "mysql":
-                url = f"mysql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type_str == "mssql":
-                url = f"mssql://{safe_username}:{safe_password}@{host}:{port}/{database}"
-            elif db_type_str == "sqlite":
-                url = f"sqlite://{database}"
-            else:
-                return False, f"Connection testing not implemented for database type: {db_type_str}"
-
-            # Run in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None,
-                lambda: pl.read_database_uri(
-                    query="SELECT 1",
-                    uri=url,
-                    engine="connectorx",
-                ),
-            )
-
-            return True, "Connection successful"
-
-        except ImportError as e:
-            return False, f"Database driver not available: {e}"
-        except Exception as e:
-            # Sanitize error to not leak credentials
-            error_msg = str(e)
-            if password and password in error_msg:
-                error_msg = error_msg.replace(password, "***")
-            if username and username in error_msg:
-                error_msg = error_msg.replace(username, "***")
-            return False, f"Connection failed: {error_msg}"
 
     def _test_filesystem_connection(
         self,

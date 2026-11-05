@@ -75,6 +75,12 @@ Or use the dev script from the repository root:
 ./scripts/dev.py --hub
 ```
 
+The frontend's wire types in `src/api/schema.gen.ts` are generated from the
+backend's OpenAPI schema. After changing a backend route or response model, run
+`bun run gen:api` in `hub/frontend` and commit `openapi.json` and
+`schema.gen.ts`; CI fails if they are stale. Resource modules in `src/api/`
+alias the generated types instead of declaring their own.
+
 ## Database Migrations
 
 Hub uses Alembic for database migrations.
@@ -206,6 +212,7 @@ bun run test:watch
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
 | `SECRET_KEY` | Yes | - | JWT signing key |
 | `SESSION_LIFETIME_HOURS` | No | 24 | Session expiration |
+| `SESSION_COOKIE_SECURE` | No | `true` | `Secure` flag on the web app's session cookies |
 | `CORS_ORIGINS` | No | `*` | Allowed CORS origins |
 
 ### Frontend

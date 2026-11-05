@@ -1,38 +1,13 @@
 /** Audit log (auditor role or higher). */
 
+import type { Schemas } from "./schema";
 import { request } from "./http";
 
-export interface AuditEventResponse {
-  id: string;
-  timestamp: string;
-  event_type: string;
-  execution_id: string | null;
-  workflow_id: string | null;
-  schedule_id: string | null;
-  actor_type: string;
-  actor_id: string | null;
-  actor_identity: string;
-  auth_method: string | null;
-  client_ip: string | null;
-  user_agent: string | null;
-  server_id: string | null;
-  details: Record<string, unknown>;
-  event_hash: string;
-  previous_hash: string | null;
-}
+export type AuditEventResponse = Schemas["AuditEventResponse"];
 
-export interface AuditEventListResponse {
-  events: AuditEventResponse[];
-  total: number;
-}
+export type AuditEventListResponse = Schemas["AuditEventListResponse"];
 
-export interface AuditChainVerifyResponse {
-  valid: boolean;
-  events_checked: number;
-  first_event_id: string | null;
-  last_event_id: string | null;
-  error: string | null;
-}
+export type AuditChainVerifyResponse = Schemas["AuditChainVerifyResponse"];
 
 /** List audit events with filtering. */
 export function listAuditEvents(params?: {
