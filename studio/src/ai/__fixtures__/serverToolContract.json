@@ -180,11 +180,6 @@
           "title": "Leftkeys",
           "type": "array"
         },
-        "leftSuffix": {
-          "default": "_left",
-          "title": "Leftsuffix",
-          "type": "string"
-        },
         "rightKeys": {
           "items": {
             "type": "string"
