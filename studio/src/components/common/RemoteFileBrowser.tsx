@@ -576,7 +576,7 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                                                 'w-full flex items-center gap-3 px-3 py-1.5 rounded',
                                                 'text-left transition-colors',
                                                 selectedPath === result.path
-                                                    ? 'bg-theme-interactive-accent/15 ring-1 ring-theme-interactive-accent'
+                                                    ? 'ring-1 ring-theme-interactive-accent'
                                                     : 'hover:bg-theme-bg-hover'
                                             )}
                                         >
@@ -656,7 +656,7 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                                         'w-full flex items-center gap-3 px-3 py-1.5 rounded',
                                         'text-left transition-colors',
                                         selectedPath === entry.path
-                                            ? 'bg-theme-interactive-accent/15 ring-1 ring-theme-interactive-accent'
+                                            ? 'ring-1 ring-theme-interactive-accent'
                                             : 'hover:bg-theme-bg-hover'
                                     )}
                                 >
@@ -729,7 +729,6 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                         className={clsx(
                             'px-4 py-2 text-sm rounded font-medium',
                             'bg-theme-interactive-accent text-white',
-                            'hover:bg-theme-interactive-accent/90',
                             'disabled:opacity-50 disabled:cursor-not-allowed',
                             'transition-colors'
                         )}

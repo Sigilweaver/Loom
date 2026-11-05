@@ -502,7 +502,7 @@ const SettingsPane: React.FC = () => {
                       key={t.id}
                       onClick={() => updateTheme(t.id)}
                       className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${theme.id === t.id
-                          ? 'bg-theme-interactive-accent/10 text-theme-interactive-accent font-medium'
+                          ? 'text-theme-interactive-accent font-medium'
                           : 'hover:bg-theme-bg-secondary text-theme-text-primary'
                         }`}
                     >
@@ -540,7 +540,7 @@ const SettingsPane: React.FC = () => {
                         key={item.id}
                         onClick={() => updateTheme(item.id)}
                         className={`w-full px-3 py-2 text-left text-xs transition-colors border-b border-theme-border-secondary ${theme.id === t.id
-                            ? 'bg-theme-interactive-accent/10 text-theme-interactive-accent font-medium'
+                            ? 'text-theme-interactive-accent font-medium'
                             : 'hover:bg-theme-bg-secondary text-theme-text-primary'
                           }`}
                       >

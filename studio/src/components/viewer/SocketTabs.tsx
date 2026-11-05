@@ -191,7 +191,7 @@ const SocketTabs = () => {
                 disabled={previewState?.loading}
                 className={`w-full px-3 py-1.5 text-left text-xs transition-colors rounded ${
                   isSelected(tab.socketId, "input")
-                    ? "bg-theme-interactive-accent/20 text-theme-interactive-accent font-medium border border-theme-interactive-accent"
+                    ? "text-theme-interactive-accent font-medium border border-theme-interactive-accent"
                     : "text-theme-text-secondary hover:bg-theme-surface-elevated hover:text-theme-text-primary border border-transparent"
                 } ${previewState?.loading ? "opacity-50 cursor-wait" : ""}`}
               >
@@ -216,7 +216,7 @@ const SocketTabs = () => {
                 disabled={previewState?.loading}
                 className={`w-full px-3 py-1.5 text-left text-xs transition-colors rounded ${
                   isSelected(tab.socketId, "output")
-                    ? "bg-theme-interactive-accent/20 text-theme-interactive-accent font-medium border border-theme-interactive-accent"
+                    ? "text-theme-interactive-accent font-medium border border-theme-interactive-accent"
                     : "text-theme-text-secondary hover:bg-theme-surface-elevated hover:text-theme-text-primary border border-transparent"
                 } ${previewState?.loading ? "opacity-50 cursor-wait" : ""}`}
               >

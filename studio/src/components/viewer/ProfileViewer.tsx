@@ -168,7 +168,7 @@ function ColumnProfileStrip({ profile }: { profile: ColumnProfile }) {
   return (
     <div className="flex flex-col w-40 min-w-[160px] h-full border rounded bg-theme-surface-elevated border-theme-border-secondary">
       {/* Column header with quality bar - sticky */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-theme-border-secondary bg-theme-surface-panel/50 space-y-1.5">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-theme-border-secondary space-y-1.5">
         <div className="text-sm font-medium truncate text-theme-text-primary" title={profile.column}>
           {profile.column}
         </div>

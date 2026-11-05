@@ -476,7 +476,7 @@ export function SummarizeConfiguration({
               {item.name}
             </span>
             {item.aggCount > 0 && (
-              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-theme-interactive-accent/30 text-theme-interactive-accent whitespace-nowrap">
+              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full text-theme-interactive-accent whitespace-nowrap">
                 {item.aggCount}
               </span>
             )}
