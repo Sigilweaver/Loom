@@ -40,6 +40,7 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
 - **Server operations (silent wrong data)** - Filter now sends rows whose predicate is null to the False output instead of dropping them from both outputs; Sort is stable; Summarize group-by, distinct and Join keep input row order; Union by name/position widens mismatched numeric types instead of failing; generated Python quotes column names safely
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
 - **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
