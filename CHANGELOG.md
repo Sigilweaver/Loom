@@ -69,6 +69,7 @@ and documentation checked against the code.
 - **Hub authorize** - Connection credentials that cannot be decrypted now deny the request with a reason instead of authorizing it without credentials
 - **Hub live updates** - Execution streams no longer hold a database connection while open, and a per-execution stream re-reads the run every 15 seconds so it also ends for runs another Hub process owns
 - **Hub workflow ownership** - Users can start and schedule only workflows they uploaded, as the role model documents; another user's workflow returns 403
+- **Hub schema drift** - Migration `011_not_null_drift` makes PostgreSQL enforce the 15 NOT NULL columns the models declare (backfilled with their defaults); it stops without changes if `audit_events.details` or `execution_records.execution_id` hold NULLs. A test now fails if the migrated schema and the models differ
 - **Hub server registration** - Registering a server without a token overwrote another tokenless server's record
 - **Preview and inspection** - Preview All, socket previews, schema inspection and profiling skip Output writers; Run still writes configured outputs
 - **Workflow validation errors** - Invalid tool configuration, invalid graphs and empty workflows return HTTP 400
