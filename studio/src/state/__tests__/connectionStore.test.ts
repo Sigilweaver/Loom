@@ -10,7 +10,6 @@ import type {
   ConnectionInfo,
   CreateConnectionInput,
   UpdateConnectionInput,
-  ResolvedConnection,
   ConnectionTestResult,
 } from '../../types/connections';
 import {
@@ -323,47 +322,8 @@ describe('connectionStore', () => {
     });
   });
 
-  describe('resolveConnection', () => {
-    it('should resolve connection with credentials', async () => {
-      const mockResolved: ResolvedConnection = {
-        id: 'conn-1',
-        name: 'Test DB',
-        type: 'postgresql',
-        host: 'localhost',
-        port: 5432,
-        database: 'testdb',
-        username: 'testuser',
-        password: 'testpass',
-        owner: 'client',
-        createdAt: '2025-08-01',
-        updatedAt: '2025-08-01',
-      };
-
-      mockPlatformCredentials.resolve.mockResolvedValue(mockResolved);
-
-      const { resolveConnection } = useConnectionStore.getState();
-      const result = await resolveConnection('conn-1');
-
-      expect(result).toEqual(mockResolved);
-      expect(mockPlatformCredentials.resolve).toHaveBeenCalledWith('conn-1');
-    });
-
-    it('should return null when resolution fails', async () => {
-      mockPlatformCredentials.resolve.mockResolvedValue(null);
-
-      const { resolveConnection } = useConnectionStore.getState();
-      const result = await resolveConnection('invalid-id');
-
-      expect(result).toBeNull();
-    });
-
-    it('should throw when secure storage not available', async () => {
-      // Simulate browser mode without secure storage
-      mockPlatformCapabilities.secureStorage = false;
-
-      const { resolveConnection } = useConnectionStore.getState();
-      await expect(resolveConnection('conn-1')).rejects.toThrow('Secure storage not available');
-    });
+  it('exposes no way to read stored credentials', () => {
+    expect(useConnectionStore.getState()).not.toHaveProperty('resolveConnection');
   });
 
   describe('testConnection', () => {

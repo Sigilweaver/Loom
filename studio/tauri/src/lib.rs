@@ -200,8 +200,6 @@ pub fn run() {
             credentials::create_connection,
             credentials::update_connection,
             credentials::delete_connection,
-            credentials::resolve_connection,
-            credentials::connection_proxy_available,
             credentials::test_connection,
             // Credential proxy
             proxy::backend_request,

@@ -51,7 +51,8 @@ The query runs when you preview or run the workflow, not while you type. Results
 
 - Workflow files store connection IDs only.
 - The JSON view and the exported Python code do not contain credentials. Exported code uses placeholders.
-- **Client connection credentials are sent to the Server** when you run or preview a workflow, because the Server opens the database connection. Use HTTPS if the Server is not on your own machine.
+- **Client connection credentials stay in the desktop app's backing process.** The Studio window and the AI assistant only ever see a reference to the connection. When you run or preview a workflow, the desktop app puts the credentials into the request on its way to the Server, because the Server opens the database connection, and removes them from anything the Server sends back.
+- **Client connections work only with a Server on your own machine**: the bundled Server, or one you run on `localhost`. The desktop app refuses to send them anywhere else, including in Hub mode. Use a Hub connection with a remote Server.
 - **Hub connection credentials stay on Hub.** The Server asks Hub for them only for the duration of the request. You never receive them. Prefer Hub connections for production databases and shared work.
 
 See the [Security Model](../../admin/security.md) for how Hub protects credentials.
@@ -60,7 +61,7 @@ See the [Security Model](../../admin/security.md) for how Hub protects credentia
 
 | Situation                          | What happens                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- |
-| Same machine                       | Client connections work as they are.                                 |
+| Same machine                       | Client connections work as they are, with a Server on this machine.  |
 | Another machine                    | The other person needs a connection with the same ID, or a Hub connection. |
 | Hub connections                    | Work for anyone who has been granted the connection.                 |
 
@@ -71,6 +72,8 @@ For team workflows, use Hub connections.
 **Connection not found.** The workflow references an ID that does not exist on this machine. Recreate the connection, or select another one in the Read tool.
 
 **Client credential storage not available.** You are using the browser build, or the operating system's credential store is unavailable. Use the desktop app, or use a Hub connection.
+
+**Client-owned database connections can only be sent to a Server on this computer.** Studio is set to an External Server that is not on `localhost`. Run the Server on this machine, or use a Hub connection.
 
 **Failed to connect.** Check that the database is running, the host and port are right, the user may connect from your Server's address, and no firewall blocks the port. Remember that the Server opens the connection, so the Server must be able to reach the database.
 

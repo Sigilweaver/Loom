@@ -39,6 +39,7 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **Editing client connections** - Leaving the username blank when editing a connection keeps the stored username instead of clearing it
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
 - **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
@@ -72,7 +73,8 @@ and documentation checked against the code.
 - **Desktop file access** - Electron and Tauri only read or write paths chosen in a native open/save dialog (#75, #106)
 - **Desktop credential errors** - Studio logs a generic credential-resolution failure without logging the raw native exception
 - **Desktop hardening** - Electron window sandboxed with CSP, navigation and external-URL limits and IPC sender checks; Tauri capabilities reduced to opening URLs; credentials are no longer stored as base64 when no OS keychain is available
-- **Connection credentials** - In Full desktop builds, database credentials no longer reach the renderer (#89, partial)
+- **Connection credentials** - Database credentials for client connections never reach the Studio renderer or the AI assistant. The `resolve_connection` command is gone: the renderer sends a `loom-connection://<id>` reference and the Tauri shell injects the credentials on the way to the Server, then redacts them from the response. The shell forwards such requests only to the bundled Server or, when it runs none, to a Server on loopback; client connections no longer work with a remote External Server (use Hub connections) (#89)
+- **Client connection edits** - Changing the host or port of a saved client connection requires typing its password again, so a stored password cannot be redirected to another host
 - **Capability tokens** - Hub no longer falls back to a server's shared secret when token issuance fails (#81); `/internal/authorize` denies tokens not issued for a Hub user
 - **AI proxy** - SSRF guard blocks CGNAT (100.64.0.0/10) and IPv6-embedded internal addresses
 - **SQLite path bypass** - `sqlite://` database URIs are now validated against the server file allowlist and Hub file grants in the loader, datasource routes, connection test and connection create/update; previously a workflow could read any SQLite file on the server, and missing paths were created

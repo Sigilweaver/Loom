@@ -41,7 +41,6 @@ describe('web adapter', () => {
     expect(await webPlatform.credentials.isAvailable()).toBe(false);
     expect(await webPlatform.credentials.list()).toEqual([]);
     expect(await webPlatform.credentials.get('x')).toBeNull();
-    expect(await webPlatform.credentials.resolve('x')).toBeNull();
     expect((await webPlatform.credentials.test('x')).success).toBe(false);
     await expect(webPlatform.credentials.create({} as never)).rejects.toThrow(/browser mode/);
     await expect(webPlatform.credentials.update('x', {})).rejects.toThrow(/browser mode/);

@@ -20,7 +20,6 @@ import { DEFAULT_SETTINGS, mergeWithDefaults } from '../types/settings';
 import type {
   ConnectionInfo,
   ConnectionTestResult,
-  ResolvedConnection,
 } from '../types/connections';
 import {
   createAuthOps,
@@ -156,10 +155,6 @@ const tauriCredentialOps: CredentialOperations = {
     await tauriInvoke('delete_connection', { id });
   },
 
-  async resolve(id) {
-    return tauriInvoke<ResolvedConnection | null>('resolve_connection', { id });
-  },
-
   async fetch(url, init) {
     const payload = await tauriInvoke<ProxyResponsePayload>('backend_request', {
       request: toProxyRequest(url, init),
@@ -205,11 +200,10 @@ export const tauriPlatform: PlatformAdapter = {
     await tauriAuthOps.getSessionToken();
 
     tauriCapabilities.secureStorage = await tauriCredentialOps.isAvailable();
-    try {
-      tauriCapabilities.credentialProxy = await tauriInvoke<boolean>('connection_proxy_available');
-    } catch {
-      tauriCapabilities.credentialProxy = false;
-    }
+    // The shell always proxies requests that carry connection references (to
+    // the bundled server or a Server on loopback); it never hands stored
+    // credentials to the renderer.
+    tauriCapabilities.credentialProxy = true;
 
     console.info('[Platform/Tauri] Initialized successfully');
   },
