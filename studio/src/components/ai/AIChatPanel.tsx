@@ -32,6 +32,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
   const clearChat = useAIStore((s) => s.clearChat);
   const cancelGeneration = useAIStore((s) => s.cancelGeneration);
   const streamingText = useAIStore((s) => s.streamingText);
+  const runningTools = useAIStore((s) => s.runningTools);
   const streamingSegments = useAIStore((s) => s.streamingSegments);
   const stoppedAtLimit = useAIStore((s) => s.stoppedAtLimit);
   const pendingQuestion = useAIStore((s) => s.pendingQuestion);
@@ -154,7 +155,14 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ onClose, embedded = false }) 
                   <span className="w-1.5 h-1.5 rounded-full bg-theme-text-tertiary animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-theme-text-tertiary animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                Thinking...
+                {runningTools.length > 0 ? `Running ${formatToolNames(runningTools)}...` : 'Thinking...'}
+              </div>
+            )}
+
+            {/* Tools executing inside the current step */}
+            {isGenerating && (streamingSegments.length > 0 || streamingText) && runningTools.length > 0 && (
+              <div className="px-4 py-1 text-xs text-theme-text-tertiary" role="status">
+                Running {formatToolNames(runningTools)}...
               </div>
             )}
 
@@ -336,6 +344,11 @@ const StreamingMessage: React.FC<{ segments: MessageSegment[]; text: string }> =
     </div>
   </div>
 );
+
+/** "validate workflow, preview tool output" from tool names. */
+function formatToolNames(names: string[]): string {
+  return [...new Set(names)].map((n) => n.replace(/_/g, ' ')).join(', ');
+}
 
 function summarizeStreamingResult(tc: ToolCallInfo): string {
   if (!tc.result) return '';

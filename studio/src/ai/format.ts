@@ -41,7 +41,7 @@ function shortDtype(dtype: string): string {
  * Format a typed CSV header from schema columns.
  * Example: "PassengerId:i64,Name:str,Age:f64?,Cabin:str?"
  */
-function formatTypedHeader(schema: ColumnSchema[]): string {
+export function formatTypedHeader(schema: ColumnSchema[]): string {
   return schema
     .map((c) => `${c.name}:${shortDtype(c.dtype)}${c.nullable ? '?' : ''}`)
     .join(',');

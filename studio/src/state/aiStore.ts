@@ -185,6 +185,8 @@ interface AIState extends AISettings {
   stoppedAtLimit: boolean;
   /** A pending follow-up question from the agent (null when none) */
   pendingQuestion: PendingQuestion | null;
+  /** Agent tools executing right now (shown while a step is in progress) */
+  runningTools: string[];
 
   // -- Multi-agent / per-tab concurrency --
   /** Tab ID that owns the currently running agent (null when idle) */
@@ -234,6 +236,8 @@ interface AIState extends AISettings {
   addStreamingStepSegments: (text: string, toolCalls: ToolCallInfo[]) => void;
   setStoppedAtLimit: (stopped: boolean) => void;
   setPendingQuestion: (question: PendingQuestion | null) => void;
+  toolStarted: (toolName: string) => void;
+  toolFinished: (toolName: string) => void;
 
   // -- Multi-agent / per-tab concurrency --
   /** Set which tab owns the currently running agent. */
@@ -362,6 +366,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
   streamingSegments: [],
   stoppedAtLimit: false,
   pendingQuestion: null,
+  runningTools: [],
   agentTabId: null,
   runQueues: {},
 
@@ -547,7 +552,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
     }
     if (abortController) {
       abortController.abort();
-      set({ abortController: null, isGenerating: false, agentTabId: null });
+      set({ abortController: null, isGenerating: false, agentTabId: null, runningTools: [] });
     }
     // Clear the run queue for the tab that was running
     if (agentTabId) {
@@ -597,6 +602,13 @@ export const useAIStore = create<AIState>()((set, get) => ({
   },
 
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
+
+  toolStarted: (toolName) => set((s) => ({ runningTools: [...s.runningTools, toolName] })),
+
+  toolFinished: (toolName) => set((s) => {
+    const i = s.runningTools.indexOf(toolName);
+    return i < 0 ? {} : { runningTools: [...s.runningTools.slice(0, i), ...s.runningTools.slice(i + 1)] };
+  }),
 
   // -- Multi-agent / per-tab concurrency --
 
@@ -668,6 +680,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         streamingText: '',
         streamingSegments: [],
         pendingQuestion: null,
+        runningTools: [],
       });
     } else {
       // No session for this tab - start fresh
@@ -682,6 +695,7 @@ export const useAIStore = create<AIState>()((set, get) => ({
         streamingText: '',
         streamingSegments: [],
         pendingQuestion: null,
+        runningTools: [],
       });
     }
     // Persist the new active session's chat

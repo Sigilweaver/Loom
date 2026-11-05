@@ -15,7 +15,7 @@ import { formatAddToolResult } from '../format';
 import { createLogger } from '../../utils/logger';
 import { generateComment } from '@domain/workflow/services/commentGenerator';
 import { OPERATIONS_BY_ID } from '@components/config/prepare/formulaOperations';
-import { getAgentTabId } from '../agent';
+import { useAIStore } from '@state/aiStore';
 import { useTabStore } from '@state/tabStore';
 import { setConfigPath, removeConfigPath } from './configPath';
 import { defaultOutputSocket, resolveToolType, unknownToolTypeError } from './toolTypes';
@@ -33,7 +33,7 @@ const logger = createLogger('AI:CanvasTools');
  * or null if the agent is safe to proceed.
  */
 function checkTabOwnership(): { success: false; error: string } | null {
-  const agentTab = getAgentTabId();
+  const agentTab = useAIStore.getState().agentTabId;
   if (!agentTab) return null; // No agent context (e.g. direct tool call in tests)
   const activeTab = useTabStore.getState().activeTabId;
   if (activeTab !== agentTab) {

@@ -41,6 +41,11 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 - **Add a step in the middle**: Use \`insert_tool_between\` to splice a tool onto an existing wire (A->B becomes A->new->B). Do NOT remove and rebuild the downstream nodes.
 - Only touch the tools that need to change - leave unrelated nodes alone.
 
+### Checking Your Work
+- **Before finishing**: Call \`validate_workflow\` after building or editing. It reports structural problems and runs every tool on the Server, returning row counts and columns per output. Fix what it reports, then validate again.
+- **Read a full config**: The canvas summary truncates long values; call \`get_tool_config\` before patching a field you cannot see in full.
+- **Unsure of a field**: Call \`get_tool_config_schema\` for every field of a tool type.
+
 ### Databases
 - **Discover connections**: Use \`list_database_connections\` to get a \`connectionId\`. Never guess connection ids.
 - **Learn the schema first**: Use \`describe_schema\` to list tables and columns before writing SQL - use exact table/column names from it.
@@ -51,7 +56,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 2. Right tool for the job: Summarize for aggregation, Formula for row-level math, Filter for row selection
 3. Build reproducible pipelines - never calculate values yourself, add tools instead
 4. Use \`add_tool\` with \`after\` (auto-connects, auto-layouts)
-5. Handle errors - if preview fails, read the error, adjust config, retry
+5. Handle errors - if a preview or validation fails, read the error, adjust the config, and retry; do not repeat an identical failing call
 6. Explain briefly between tool calls
 7. Use \`ask_user\` when genuinely ambiguous - ask BEFORE building, not after
 8. ALWAYS add comments to every tool - a workflow without comments is incomplete`;
@@ -156,7 +161,7 @@ export function getStaticPromptPrefix(): string {
  * These are generated for React list keys (e.g., Summarize groupByColumns/aggregations)
  * and waste tokens in the system prompt.
  */
-function stripInternalIds(value: unknown): unknown {
+export function stripInternalIds(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(stripInternalIds);
   }
@@ -172,35 +177,41 @@ function stripInternalIds(value: unknown): unknown {
   return value;
 }
 
+/** Canvas summaries longer than this switch to the compact one-line-per-tool form. */
+export const CANVAS_DETAIL_CHAR_BUDGET = 12_000;
+
+/** Config keys that only drive the Studio UI and duplicate other keys. */
+const HIDDEN_CONFIG_KEYS = new Set(['_emit', 'actions', 'conditionGroup', 'placeholder']);
+/** `mode` is UI-only for these types (Basic/Custom editors); elsewhere it matters. */
+const UI_MODE_TYPES = new Set(['Filter', 'Formula']);
+/** Max chars for a single config value (long expressions/arrays are truncated). */
+const MAX_VALUE_LEN = 80;
+
+function formatToolDetailed(t: Tool): string {
+  const configParts: string[] = [];
+  for (const [k, v] of Object.entries(t.config)) {
+    if (HIDDEN_CONFIG_KEYS.has(k) || (k === 'mode' && UI_MODE_TYPES.has(t.type))) continue;
+    const raw = JSON.stringify(stripInternalIds(v));
+    configParts.push(`${k}=${raw.length > MAX_VALUE_LEN ? `${raw.slice(0, MAX_VALUE_LEN)}...` : raw}`);
+  }
+  const commentStr = t.comment ? ` // ${t.comment}` : '';
+  return `  [${t.id}] ${t.type} - ${configParts.join(', ') || '(default)'}${commentStr}`;
+}
+
+function formatToolCompact(t: Tool): string {
+  return `  [${t.id}] ${t.type}${t.comment ? ` // ${t.comment}` : ''}`;
+}
+
 /**
  * Format current canvas state for inclusion in the system prompt.
- * Uses compact serialization: full IDs (the agent passes them back verbatim), truncated config values,
- * and tool comments for faster agent comprehension.
+ *
+ * Full IDs are always shown (the agent passes them back verbatim). Configs
+ * are shown as truncated key=value pairs; when that would exceed
+ * {@link CANVAS_DETAIL_CHAR_BUDGET} the summary drops configs and points the
+ * agent at get_tool_config, so large workflows do not crowd out the
+ * conversation.
  */
-function formatCanvasState(tools: Tool[], wires: Wire[]): string {
-  // Keys that are UI-internal duplicates or not useful to the agent
-  const HIDDEN_CONFIG_KEYS = new Set(['_emit', 'actions', 'conditionGroup', 'mode', 'placeholder']);
-  // Max chars for a single config value (truncate long expressions/arrays)
-  const MAX_VALUE_LEN = 80;
-
-  const toolLines = tools.map((t) => {
-    const configEntries = Object.entries(t.config)
-      .filter(([k]) => !HIDDEN_CONFIG_KEYS.has(k));
-
-    // Compact config: key=value pairs, values truncated
-    const configParts: string[] = [];
-    for (const [k, v] of configEntries) {
-      const raw = JSON.stringify(stripInternalIds(v));
-      const value = raw.length > MAX_VALUE_LEN
-        ? raw.slice(0, MAX_VALUE_LEN) + '...'
-        : raw;
-      configParts.push(`${k}=${value}`);
-    }
-    const configStr = configParts.join(', ') || '(default)';
-    const commentStr = t.comment ? ` // ${t.comment}` : '';
-    return `  [${t.id}] ${t.type} - ${configStr}${commentStr}`;
-  });
-
+export function formatCanvasState(tools: Tool[], wires: Wire[]): string {
   const wireLines = wires.map((w) => {
     const fromTool = tools.find((t) => t.id === w.from.tool);
     const toTool = tools.find((t) => t.id === w.to.tool);
@@ -208,6 +219,12 @@ function formatCanvasState(tools: Tool[], wires: Wire[]): string {
     const toLabel = toTool ? `${toTool.type}[${w.to.tool}]` : w.to.tool;
     return `  ${fromLabel}.${w.from.socket} -> ${toLabel}.${w.to.socket}`;
   });
+  const wiresText = `Wires:\n${wireLines.length > 0 ? wireLines.join('\n') : '  (none)'}`;
 
-  return `Tools:\n${toolLines.join('\n')}\nWires:\n${wireLines.length > 0 ? wireLines.join('\n') : '  (none)'}`;
+  const detailed = `Tools:\n${tools.map(formatToolDetailed).join('\n')}\n${wiresText}`;
+  if (detailed.length <= CANVAS_DETAIL_CHAR_BUDGET) {
+    return `${detailed}\nLong config values end in "..."; use get_tool_config to read one in full.`;
+  }
+  return `Tools (large workflow: configs omitted, use get_tool_config to read one):\n` +
+    `${tools.map(formatToolCompact).join('\n')}\n${wiresText}`;
 }
