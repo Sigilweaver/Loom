@@ -2,11 +2,12 @@
  * What one agent turn changed on the canvas, with an Undo for that turn.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Undo2 } from 'lucide-react';
 import type { ChatMessage } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useHistoryStore } from '@state/historyStore';
+import { useAIStore } from '@state/aiStore';
 import { turnUndoBlocker, undoTurn } from '../../ai/turnChanges';
 
 interface TurnChangesCardProps {
@@ -36,8 +37,9 @@ const TurnChangesCard: React.FC<TurnChangesCardProps> = ({ messageId, changes })
   // Re-render when the canvas or history changes so the Undo state is current.
   useWorkflowStore((s) => s.tools);
   useWorkflowStore((s) => s.wires);
-  useHistoryStore((s) => s.past.length);
-  const [undone, setUndone] = useState(false);
+  useWorkflowStore((s) => s.workflowMeta);
+  useHistoryStore((s) => s.past);
+  useAIStore((s) => s.isGenerating);
   const blocker = turnUndoBlocker(messageId);
 
   const wireParts = [
@@ -51,13 +53,13 @@ const TurnChangesCard: React.FC<TurnChangesCardProps> = ({ messageId, changes })
         <span className="font-medium">Canvas changes</span>
         <button
           type="button"
-          onClick={() => setUndone(undoTurn(messageId))}
-          disabled={undone || blocker !== null}
-          title={undone ? 'Undone. Use Redo (Ctrl+Shift+Z) to restore.' : blocker ?? 'Undo every change from this turn'}
+          onClick={() => undoTurn(messageId)}
+          disabled={blocker !== null}
+          title={blocker ?? 'Undo every change from this turn'}
           className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded border border-theme-border-primary hover:bg-theme-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Undo2 className="w-3 h-3" />
-          {undone ? 'Undone' : 'Undo'}
+          Undo
         </button>
       </div>
       <Section label="Added" sign="+" items={changes.added} />

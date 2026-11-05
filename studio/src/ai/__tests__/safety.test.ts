@@ -196,3 +196,48 @@ describe('turn changes and undo', () => {
     expect(turnUndoBlocker('msg-3')).not.toBeNull();
   });
 });
+
+describe('error text when sample sharing is off', () => {
+  it('withholds quoted values but keeps column names and dtypes', async () => {
+    const { redactErrorValues } = await import('../dataSharing');
+    expect(redactErrorValues("conversion from `str` to `i64` failed in column 'age' for 2 out of 891 values: [\"abc\", \"x\"]"))
+      .toBe("conversion from `str` to `i64` failed in column 'age' for 2 out of 891 values: [values withheld]");
+    expect(redactErrorValues('could not parse `O"Brien` as dtype `i64`')).toBe('could not parse <value withheld> as dtype `i64`');
+    expect(redactErrorValues('unexpected value "secret-42" in column "id"')).toBe('unexpected value <value withheld> in column "id"');
+  });
+
+  it('applies to every guarded tool result unless the user opted in', async () => {
+    const { guardTools } = await import('../loop');
+    const tools = guardTools({
+      bad: { description: 'x', inputSchema: {} as never, execute: async () => ({ error: 'cast failed for values: ["alice@example.com"]' }) } as never,
+    }) as Record<string, { execute?: unknown }>;
+    expect(String((await run(tools.bad!, {})).error)).not.toContain('alice@example.com');
+    useAIStore.setState({ shareSampleData: true });
+    expect(String((await run(tools.bad!, {})).error)).toContain('alice@example.com');
+  });
+});
+
+describe('turn undo guards', () => {
+  it('is blocked while a turn is running', () => {
+    loadCanvas();
+    beginAgentTurn();
+    useWorkflowStore.getState().removeTool('f1');
+    commitAgentTurn('msg-run');
+    useAIStore.setState({ isGenerating: true });
+    expect(turnUndoBlocker('msg-run')).toContain('Wait for the assistant');
+    expect(undoTurn('msg-run')).toBe(false);
+    useAIStore.setState({ isGenerating: false });
+  });
+
+  it('can be undone again after Redo', () => {
+    loadCanvas();
+    beginAgentTurn();
+    useWorkflowStore.getState().removeTool('f1');
+    commitAgentTurn('msg-redo');
+    expect(undoTurn('msg-redo')).toBe(true);
+    expect(turnUndoBlocker('msg-redo')).toContain('Undone');
+    const snapshot = useHistoryStore.getState().redo()!;
+    useWorkflowStore.getState().loadWorkflow(snapshot.tools, snapshot.wires, snapshot.meta);
+    expect(turnUndoBlocker('msg-redo')).toBeNull();
+  });
+});

@@ -45,7 +45,7 @@ To do its job the assistant always reads, and therefore sends to the provider:
 - file names found by its file search,
 - database table and column names.
 
-Only when **Share sample data with the AI provider** is on does it also send data values: sample rows from tool outputs, rows returned by read-only queries it runs against your connections, and min, max, mean and most frequent values from column profiles. Values you type into the chat or into tool settings are sent either way.
+Only when **Share sample data with the AI provider** is on does it also send data values: sample rows from tool outputs, rows returned by read-only queries it runs against your connections, and min, max, mean and most frequent values from column profiles. With it off, values that Server error messages quote (for example the values that failed a type conversion) are also removed before the error reaches the assistant; this is best effort, based on how those messages are worded. Values you type into the chat or into tool settings are sent either way.
 
 If that data is sensitive, use a provider you are allowed to send it to, or leave the assistant off. Studio stores your API key and the recent chat history on your machine in the app's local storage. The key is not encrypted there, so do not use a key you cannot afford to expose on a shared computer. The key travels through the Loom Server you are connected to, so that Server can see it.
 
@@ -103,7 +103,7 @@ When the assistant modifies your workflow it executes **tool calls** - discrete 
 
 ### Reviewing and Undoing a Turn
 
-A turn that changed the canvas shows **Canvas changes** under the reply, listing tools added, removed and changed and connections added or removed. Its **Undo** button reverses the whole turn. It is available while the canvas is still as the turn left it; after you make other edits, use undo (`Ctrl+Z`) instead.
+A turn that changed the canvas shows **Canvas changes** under the reply, listing tools added, removed and changed and connections added or removed. Its **Undo** button reverses the whole turn. It is available while the canvas is still as the turn left it and no turn is running; after you make other edits, use undo (`Ctrl+Z`) instead.
 
 With **Ask before destructive edits** on, the assistant stops and shows **Approve this change?** before removing tools or replacing a non-empty canvas, listing what would be removed and which tools would lose their input. **Decline** leaves the canvas unchanged and the assistant is told not to retry.
 

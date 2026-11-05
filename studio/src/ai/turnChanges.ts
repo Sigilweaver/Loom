@@ -5,13 +5,16 @@
  * the workflow, the pre-turn snapshot is pushed to history (so Ctrl+Z undoes
  * the whole turn) and a summary of what changed is attached to the turn's
  * chat message. The chat offers "Undo" for that turn only while the canvas
- * still matches the state the turn left behind and the turn's snapshot is
- * the next undo step, so the button can never undo someone else's edit.
+ * still matches the state the turn left behind, the turn's snapshot is the
+ * next undo step and no turn is running, so the button never reverts edits
+ * made after the turn. Edits the user made on the canvas while the turn was
+ * running are part of that turn's history step, as with Ctrl+Z.
  */
 
 import type { Tool, Wire, WorkflowMeta } from '@domain/workflow/entities/workflow';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useHistoryStore } from '@state/historyStore';
+import { useAIStore } from '@state/aiStore';
 
 export interface TurnChanges {
   added: string[];
@@ -82,8 +85,13 @@ export function recordTurnUndo(messageId: string, before: WorkflowState, after: 
 export function turnUndoBlocker(messageId: string): string | null {
   const record = undoRecords.get(messageId);
   if (!record) return 'Undo from the chat is available for changes made since Studio started. Use Undo (Ctrl+Z) instead.';
+  // A running turn has captured the current canvas as its starting point;
+  // reverting under it would make it record the revert as its own change.
+  if (useAIStore.getState().isGenerating) return 'Wait for the assistant to finish, or stop it, before undoing a turn.';
   const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-  if (serializeWorkflow(tools, wires, workflowMeta) !== record.after) {
+  const now = serializeWorkflow(tools, wires, workflowMeta);
+  if (now === record.before) return 'Undone. Use Redo (Ctrl+Shift+Z) to restore these changes.';
+  if (now !== record.after) {
     return 'The workflow changed after this turn. Use Undo (Ctrl+Z) to step back.';
   }
   const past = useHistoryStore.getState().past;
@@ -100,7 +108,8 @@ export function undoTurn(messageId: string): boolean {
   const snapshot = useHistoryStore.getState().undo();
   if (!snapshot) return false;
   useWorkflowStore.getState().loadWorkflow(snapshot.tools, snapshot.wires, snapshot.meta);
-  undoRecords.delete(messageId);
+  // The record stays: after Redo the canvas matches it again and the turn
+  // can be undone from the chat once more.
   return true;
 }
 
