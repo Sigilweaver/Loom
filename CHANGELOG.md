@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
 - **Desktop app is Tauri only** - Studio ships as a Tauri app in Full (bundled Server sidecar) and Client variants: AppImage, deb and rpm for Linux, an NSIS installer for Windows, and a DMG each for Apple silicon and Intel Macs. The app identifier is `com.sigilweaver.loom-studio`. Settings and saved connections are stored by the new shell, so enter them again on first launch. The Linux snap and Windows portable exe are no longer built
@@ -40,6 +41,8 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
+- **Server operations (silent wrong data)** - Filter now sends rows whose predicate is null to the False output instead of dropping them from both outputs; Sort is stable; Summarize group-by, distinct and Join keep input row order; Union by name/position widens mismatched numeric types instead of failing; generated Python quotes column names safely
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
 - **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
