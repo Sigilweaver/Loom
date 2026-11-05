@@ -7,10 +7,14 @@ Provides modular statistics computation for data columns including:
 - Top values distribution
 """
 
+import logging
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 import polars as pl
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileMetrics(str, Enum):
@@ -86,6 +90,19 @@ COMPARABLE_METRICS = {
     ProfileMetrics.MIN,
     ProfileMetrics.MAX,
 }
+
+
+def _round_stat(val: object) -> float | None:
+    """Round a numeric summary statistic for display.
+
+    Only reached for numeric dtypes, where Polars returns int, float or Decimal.
+    Anything else means the dtype gate is wrong, so fail loudly.
+    """
+    if val is None:
+        return None
+    if isinstance(val, (int, float, Decimal)):
+        return round(float(val), 4)
+    raise TypeError(f"Expected a numeric statistic, got {type(val).__name__}")
 
 
 def _is_numeric_dtype(dtype: pl.DataType) -> bool:
@@ -248,22 +265,13 @@ class ColumnProfiler:
                     return self._serialize_value(val)
 
                 case ProfileMetrics.MEAN:
-                    val = col.mean()
-                    if val is None:
-                        return None
-                    return round(float(val), 4)  # type: ignore[arg-type]
+                    return _round_stat(col.mean())
 
                 case ProfileMetrics.MEDIAN:
-                    val = col.median()
-                    if val is None:
-                        return None
-                    return round(float(val), 4)  # type: ignore[arg-type]
+                    return _round_stat(col.median())
 
                 case ProfileMetrics.STD:
-                    val = col.std()
-                    if val is None:
-                        return None
-                    return round(float(val), 4)  # type: ignore[arg-type]
+                    return _round_stat(col.std())
 
                 case ProfileMetrics.EMPTY_COUNT:
                     return self._count_empty_strings(col)
@@ -290,7 +298,15 @@ class ColumnProfiler:
                     return self._compute_max_values(col)
 
         except Exception:
-            # If any metric computation fails, return None for that metric
+            # One failing metric must not sink the whole profile, but the
+            # failure is logged so a null metric is never unexplained.
+            logger.warning(
+                "Profiling metric %s failed for column %r (%s)",
+                metric.value,
+                col.name,
+                dtype,
+                exc_info=True,
+            )
             return None
 
         return None

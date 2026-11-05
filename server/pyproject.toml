@@ -2,7 +2,7 @@
 name = "sigilweaver-loom-server"
 version = "0.0.0-dev"
 description = "Backend service for Sigilweaver Loom workflow execution"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.1",
@@ -44,7 +44,7 @@ packages = ["app"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "RUF100", "W"]
@@ -57,7 +57,7 @@ ignore = []
 "app/domain/tools/implementations/*.py" = ["N815"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
