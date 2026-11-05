@@ -29,10 +29,7 @@ export function listExecutions(params?: {
   });
 }
 
-export function triggerExecution(data: {
-  workflow_id: string;
-  server_id?: string;
-}): Promise<ExecutionResponse> {
+export function triggerExecution(data: Schemas["ExecutionTrigger"]): Promise<ExecutionResponse> {
   return request("/executions", { method: "POST", json: data });
 }
 

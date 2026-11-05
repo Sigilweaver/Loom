@@ -31,28 +31,13 @@ export function getSchedule(id: string): Promise<ScheduleResponse> {
   return request(`/schedules/${id}`);
 }
 
-export function createSchedule(data: {
-  workflow_id: string;
-  cron_expression: string;
-  timezone?: string;
-  start_at?: string;
-  target_server_id?: string;
-  enabled?: boolean;
-  description?: string;
-}): Promise<ScheduleResponse> {
+export function createSchedule(data: Schemas["ScheduleCreate"]): Promise<ScheduleResponse> {
   return request("/schedules", { method: "POST", json: data });
 }
 
 export function updateSchedule(
   id: string,
-  data: {
-    cron_expression?: string;
-    timezone?: string;
-    start_at?: string | null;
-    target_server_id?: string | null;
-    enabled?: boolean;
-    description?: string | null;
-  }
+  data: Schemas["ScheduleUpdate"]
 ): Promise<ScheduleResponse> {
   return request(`/schedules/${id}`, { method: "PUT", json: data });
 }
