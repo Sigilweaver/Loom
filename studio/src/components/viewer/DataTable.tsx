@@ -1,16 +1,40 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from "react";
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  ColumnDef,
+  useTable,
+  tableFeatures,
+  rowSortingFeature,
+  columnSizingFeature,
+  columnResizingFeature,
+  createSortedRowModel,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  sortFn_datetime,
+  sortFn_text,
   flexRender,
-  SortingState,
+  type ColumnDef,
+  type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useUIStore } from "@state/uiStore";
+
+// Sorting plus column sizing/resizing. The sort functions are the ones v8
+// picked automatically from the column values (see column.getAutoSortFn).
+const tableFeatureSet = tableFeatures({
+  rowSortingFeature,
+  columnSizingFeature,
+  columnResizingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    basic: sortFn_basic,
+    datetime: sortFn_datetime,
+    text: sortFn_text,
+  },
+});
+
+type PreviewRow = Record<string, unknown>;
+type PreviewColumnDef = ColumnDef<typeof tableFeatureSet, PreviewRow>;
 
 export interface ColumnSchema {
   name: string;
@@ -555,11 +579,11 @@ const DataTable = () => {
   }, [showNotification]);
 
   // Create columns definition from schema
-  const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
+  const columns = useMemo<PreviewColumnDef[]>(() => {
     if (!previewState?.schema) return [];
 
     // Row number column
-    const rowNumberColumn: ColumnDef<Record<string, unknown>> = {
+    const rowNumberColumn: PreviewColumnDef = {
       id: '_rowNum',
       header: () => <span className="text-theme-text-tertiary">#</span>,
       size: 45,
@@ -619,16 +643,14 @@ const DataTable = () => {
     return [rowNumberColumn, ...dataColumns];
   }, [previewState?.schema, copyToClipboard]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: tableFeatureSet,
     data: previewState?.data || [],
     columns,
     state: {
       sorting,
     },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     columnResizeMode: "onChange",
     enableColumnResizing: true,
   });
@@ -897,7 +919,7 @@ const DataTable = () => {
                   rowIdx % 2 === 0 ? "" : "bg-theme-surface-elevated"
                 }`}
               >
-                {row.getVisibleCells().map((cell, cellIdx) => {
+                {row.getAllCells().map((cell, cellIdx) => {
                   const isNumeric = (cell.column.columnDef.meta as { isNumeric?: boolean })?.isNumeric;
                   const isRowNum = cell.column.id === '_rowNum';
                   // colIdx for data columns (0-indexed, excluding row num column)
