@@ -641,7 +641,6 @@ class JoinOperation:
                 f'suffix="{self.right_suffix}", '
                 f"coalesce=True, "
                 f'maintain_order="{"right" if how == "right" else "left"}")'
-
             )
 
             if how in ("left", "full"):
