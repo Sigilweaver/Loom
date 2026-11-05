@@ -7,7 +7,7 @@ export default function Notification() {
   const hideNotification = useUIStore((s) => s.hideNotification);
 
   const { message, type, isVisible, duration } = notification;
-  const autoClose = true; // Always auto-close
+  const autoClose = duration > 0;
 
   useEffect(() => {
     if (isVisible && autoClose) {
@@ -51,7 +51,11 @@ export default function Notification() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-md">
+    <div
+      className="fixed bottom-4 right-4 z-50 max-w-md"
+      role={type === "error" || type === "warning" ? "alert" : "status"}
+      aria-live={type === "error" || type === "warning" ? "assertive" : "polite"}
+    >
       <style>{`
         @keyframes slide-in {
           from {
@@ -74,8 +78,8 @@ export default function Notification() {
       >
         <div className="flex items-start gap-3">
           <span className="flex-shrink-0">{getIcon()}</span>
-          <div className="flex-1">
-            <p className="text-sm font-medium leading-relaxed">{message}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium leading-relaxed break-words select-text">{message}</p>
           </div>
           <button
             onClick={hideNotification}

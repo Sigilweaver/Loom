@@ -48,7 +48,7 @@ export const ConfigField: React.FC<PropsWithChildren<ConfigFieldProps>> = ({
             >
               <span>{label}</span>
               {required && (
-                <span className="ml-1 text-theme-status-error" aria-hidden>
+                <span className="ml-1 text-theme-status-error-text" aria-hidden>
                   *
                 </span>
               )}

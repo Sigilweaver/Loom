@@ -39,6 +39,22 @@ code {
   z-index: 30;
 }
 
+/* React Flow controls follow the theme instead of the library's white defaults */
+.react-flow {
+  --xy-controls-button-background-color: var(--color-canvas-controls-btn-bg);
+  --xy-controls-button-background-color-hover: var(--color-canvas-controls-btn-bg-hover);
+  --xy-controls-button-color: var(--color-canvas-controls-btn-text);
+  --xy-controls-button-color-hover: var(--color-canvas-controls-btn-text-hover);
+  --xy-controls-button-border-color: var(--color-canvas-controls-btn-border);
+  --xy-controls-box-shadow: var(--color-canvas-controls-shadow);
+}
+
+.react-flow__controls {
+  border: 1px solid var(--color-canvas-controls-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
 /* React Flow node/attribution overrides */
 .react-flow__node.dragging {
   opacity: 0.8 !important;

@@ -59,7 +59,12 @@ const applyThemeVariables = (theme: Theme) => {
   root.style.setProperty("--color-modal-overlay", colors.modals.overlay);
   root.style.setProperty("--color-text-on-accent", colors.text.inverse);
   root.style.setProperty("--color-interactive-accent", colors.borders.focus);
-  root.style.setProperty("--color-interactive-accent-hover", colors.borders.focus);
+  // Hover shifts the accent toward the page contrast so it reads as a state
+  // change on both dark and light themes.
+  root.style.setProperty(
+    "--color-interactive-accent-hover",
+    `color-mix(in oklab, ${colors.borders.focus} 82%, ${theme.isDark ? "white" : "black"})`
+  );
 
   // Header component
   root.style.setProperty("--color-header-bg", colors.header.background);
@@ -784,6 +789,9 @@ const applyThemeVariables = (theme: Theme) => {
     "--color-tool-favorites",
     colors.palette.tools.favorites[500]
   );
+
+  // Tools without a category (and unknown tool types) use the secondary text color.
+  root.style.setProperty("--color-tool-default", colors.text.secondary);
 
   // Socket colors - consistent across all themes
   root.style.setProperty("--color-socket-input", "#3b82f6"); // Blue for inputs

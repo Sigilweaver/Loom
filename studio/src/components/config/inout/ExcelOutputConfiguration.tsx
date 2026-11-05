@@ -89,9 +89,9 @@ export const ExcelOutputConfiguration: React.FC<
             <label className="block mb-2 text-sm font-medium text-theme-text-primary">
               Output Mode
             </label>
-            <div className="px-3 py-2 text-sm rounded-md bg-theme-surface-secondary text-theme-text-secondary">
+            <div className="px-3 py-2 text-sm rounded-md bg-theme-surface-panel text-theme-text-secondary">
               {EXCEL_OUTPUT_MODE_INFO.label}
-              <span className="ml-2 px-1.5 py-0.5 text-xs bg-theme-surface-tertiary rounded">
+              <span className="ml-2 px-1.5 py-0.5 text-xs bg-theme-surface-elevated rounded">
                 {EXCEL_OUTPUT_MODE_INFO.badge}
               </span>
             </div>

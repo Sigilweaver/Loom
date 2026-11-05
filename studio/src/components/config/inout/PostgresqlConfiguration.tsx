@@ -218,7 +218,7 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
 
           {/* Validation warnings */}
           {!connectionId && (
-            <div className="flex items-start gap-2 p-3 border rounded-lg border-theme-border-warning bg-theme-surface-warning">
+            <div className="flex items-start gap-2 p-3 border rounded-lg border-theme-status-warning-border bg-theme-status-warning-bg">
               <AlertCircle className="flex-shrink-0 w-4 h-4 mt-0.5" style={{ color: 'var(--color-text-primary)' }} />
               <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 <p className="font-medium">Connection required</p>
@@ -230,7 +230,7 @@ export const PostgresqlConfiguration: React.FC<PostgresqlConfigurationProps> = (
           )}
 
           {connectionId && !query?.trim() && (
-            <div className="flex items-start gap-2 p-3 border rounded-lg border-theme-border-warning bg-theme-surface-warning">
+            <div className="flex items-start gap-2 p-3 border rounded-lg border-theme-status-warning-border bg-theme-status-warning-bg">
               <AlertCircle className="flex-shrink-0 w-4 h-4 mt-0.5" style={{ color: 'var(--color-text-primary)' }} />
               <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 <p className="font-medium">Query required</p>

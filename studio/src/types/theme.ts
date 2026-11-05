@@ -471,6 +471,8 @@ export interface Theme {
   id: string;
   name: string;
   description: string;
+  /** True for themes with dark surfaces; drives Monaco and derived hover colors. */
+  isDark: boolean;
   colors: ThemeColors;
 }
 

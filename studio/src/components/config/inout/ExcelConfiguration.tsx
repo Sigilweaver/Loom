@@ -69,7 +69,7 @@ export const ExcelConfiguration: React.FC<ExcelConfigurationProps> = ({
             <label className="block mb-2 text-sm font-medium text-theme-text-primary">
               Reading Mode
             </label>
-            <div className="px-3 py-2 text-sm border rounded bg-theme-surface border-theme-border-primary text-theme-text-secondary">
+            <div className="px-3 py-2 text-sm border rounded bg-theme-surface-elevated border-theme-border-primary text-theme-text-secondary">
               {EXCEL_MODE_INFO.name}
             </div>
           </div>
@@ -115,7 +115,7 @@ export const ExcelConfiguration: React.FC<ExcelConfigurationProps> = ({
             Sheet Selection
           </h5>
 
-          <div className="p-3 border rounded bg-theme-surface border-theme-border-secondary">
+          <div className="p-3 border rounded bg-theme-surface-elevated border-theme-border-secondary">
             <p className="mb-3 text-xs text-theme-text-tertiary">
               Select sheet by number or name. Leave both empty for the first sheet.
             </p>

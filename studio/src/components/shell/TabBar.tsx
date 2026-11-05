@@ -95,7 +95,25 @@ export default function TabBar() {
   return (
     <div className="flex items-center bg-theme-surface-elevated border-b border-theme-border-primary">
       {/* Scrollable tab list - hide scrollbar but keep scroll functionality */}
-      <div className="flex overflow-x-auto overflow-y-hidden scrollbar-hide relative">
+      <div
+        role="tablist"
+        aria-label="Open workflows"
+        className="flex overflow-x-auto overflow-y-hidden scrollbar-hide relative"
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+          const current = tabs.findIndex((t) => t.id === activeTabId);
+          if (current === -1 || tabs.length < 2) return;
+          e.preventDefault();
+          const delta = e.key === "ArrowRight" ? 1 : -1;
+          const next = tabs[(current + delta + tabs.length) % tabs.length];
+          if (!next) return;
+          switchTab(next.id);
+          const list = e.currentTarget;
+          requestAnimationFrame(() => {
+            list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+          });
+        }}
+      >
         {tabs.map((tab, index) => (
           <ContextMenu key={tab.id}>
             <div className="relative">

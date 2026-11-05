@@ -110,7 +110,7 @@ export const AvroConfiguration: React.FC<AvroConfigurationProps> = ({
             About Avro Format
           </h3>
 
-          <div className="p-3 space-y-2 text-xs rounded-lg bg-theme-surface-secondary">
+          <div className="p-3 space-y-2 text-xs rounded-lg bg-theme-surface-panel">
             <div className="font-medium text-theme-text-primary">Features:</div>
             <ul className="pl-4 space-y-1 list-disc text-theme-text-secondary">
               {AVRO_INFO.features.map((feature) => (

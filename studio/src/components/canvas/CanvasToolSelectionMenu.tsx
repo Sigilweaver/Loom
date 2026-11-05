@@ -215,7 +215,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
                 width: '100%',
                 padding: '8px 12px',
                 border: 'none',
-                background: isActive ? 'var(--color-canvas-controls-btn-hover)' : 'transparent',
+                background: isActive ? 'var(--color-canvas-controls-btn-bg-hover)' : 'transparent',
                 color: 'var(--color-canvas-controls-btn-text)',
                 textAlign: 'left',
                 cursor: 'pointer',
@@ -278,7 +278,7 @@ export const CanvasToolSelectionMenu: React.FC<Props> = ({ open, coords, onSelec
                   gap: 8,
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-canvas-controls-btn-hover)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-canvas-controls-btn-bg-hover)';
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

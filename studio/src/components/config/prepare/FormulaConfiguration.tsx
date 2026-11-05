@@ -433,6 +433,8 @@ export function FormulaConfiguration({
                     <button
                       type="button"
                       onClick={() => toggleCollapse(op.id)}
+                      aria-label={isCollapsed ? "Expand operation" : "Collapse operation"}
+                      aria-expanded={!isCollapsed}
                       className="text-theme-text-tertiary hover:text-theme-text-primary transition-colors"
                     >
                       {isCollapsed ? (
@@ -484,6 +486,7 @@ export function FormulaConfiguration({
                     <button
                       type="button"
                       onClick={() => handleRemoveOperation(op.id)}
+                      aria-label="Remove operation"
                       className="h-6 w-6 flex items-center justify-center rounded text-theme-text-tertiary hover:text-theme-status-error-text hover:bg-theme-bg-hover transition-colors"
                       title="Remove operation"
                     >
@@ -545,9 +548,9 @@ export function FormulaConfiguration({
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-theme-text-secondary">
                               Expression
-                              <span className="text-theme-error ml-1">*</span>
+                              <span className="text-theme-status-error-text ml-1">*</span>
                             </label>
-                            <div className="border border-theme-border rounded overflow-hidden">
+                            <div className="border border-theme-border-primary rounded overflow-hidden">
                               <CodeEditor
                                 value={op.expression}
                                 onChange={(v) =>

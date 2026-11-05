@@ -165,7 +165,7 @@ export function UnpivotConfiguration({
                 value={variableName}
                 onChange={handleVariableNameChange}
                 placeholder="variable"
-                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-accent"
+                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
               />
             </div>
             <div>
@@ -177,7 +177,7 @@ export function UnpivotConfiguration({
                 value={valueName}
                 onChange={handleValueNameChange}
                 placeholder="value"
-                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-accent"
+                className="w-full px-3 py-2 text-sm rounded border bg-theme-surface-elevated border-theme-border-primary text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
               />
             </div>
           </div>
@@ -230,8 +230,8 @@ export function UnpivotConfiguration({
           )}
 
           {hasInput && !loading && inputColumns.length > 0 && (
-            <div className="border rounded border-theme-border-subtle bg-theme-surface-elevated">
-              <div className="grid grid-cols-[1fr_auto_auto] px-3 py-2 text-xs border-b border-theme-border-subtle text-theme-text-tertiary">
+            <div className="border rounded border-theme-border-secondary bg-theme-surface-elevated">
+              <div className="grid grid-cols-[1fr_auto_auto] px-3 py-2 text-xs border-b border-theme-border-secondary text-theme-text-tertiary">
                 <span>Column</span>
                 <span className="w-16 text-center">Unpivot</span>
                 <span className="w-16 text-center">Keep</span>
@@ -257,7 +257,7 @@ export function UnpivotConfiguration({
                           type="checkbox"
                           checked={status === "on"}
                           onChange={() => toggleOnColumn(col.name)}
-                          className="w-4 h-4 rounded border-theme-status-info-text bg-theme-surface text-theme-status-info-text focus:ring-theme-status-info-border focus:ring-offset-0"
+                          className="w-4 h-4 rounded border-theme-status-info-text bg-theme-surface-elevated text-theme-status-info-text focus:ring-theme-status-info-border focus:ring-offset-0"
                         />
                       </div>
                       <div className="flex justify-center w-16">
@@ -265,7 +265,7 @@ export function UnpivotConfiguration({
                           type="checkbox"
                           checked={status === "index"}
                           onChange={() => toggleIndexColumn(col.name)}
-                          className="w-4 h-4 rounded border-theme-status-warning-border bg-theme-surface text-theme-status-warning-text focus:ring-theme-status-warning-border focus:ring-offset-0"
+                          className="w-4 h-4 rounded border-theme-status-warning-border bg-theme-surface-elevated text-theme-status-warning-text focus:ring-theme-status-warning-border focus:ring-offset-0"
                         />
                       </div>
                     </div>
@@ -278,7 +278,7 @@ export function UnpivotConfiguration({
 
         {/* Summary */}
         {selectedOn.length > 0 && (
-          <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-subtle">
+          <div className="p-3 text-sm border rounded bg-theme-surface-elevated border-theme-border-secondary">
             <h4 className="mb-1 font-medium text-theme-text-primary">
               Result Preview
             </h4>

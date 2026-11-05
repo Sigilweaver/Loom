@@ -286,7 +286,7 @@ export function JoinConfiguration({
                     "w-full px-2 py-1.5 text-sm rounded border",
                     "bg-theme-surface-elevated border-theme-border-primary",
                     "text-theme-text-primary",
-                    "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                    "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
                     !hasLeftInput && "opacity-50 cursor-not-allowed"
                   )}
                 >
@@ -307,7 +307,7 @@ export function JoinConfiguration({
                     "w-full px-2 py-1.5 text-sm rounded border",
                     "bg-theme-surface-elevated border-theme-border-primary",
                     "text-theme-text-primary",
-                    "focus:outline-none focus:ring-1 focus:ring-theme-accent",
+                    "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent",
                     !hasRightInput && "opacity-50 cursor-not-allowed",
                     isRightSelectionIncompatible && "border-theme-status-error-border"
                   )}
@@ -372,7 +372,7 @@ export function JoinConfiguration({
               "w-full px-3 py-2 text-sm rounded border",
               "bg-theme-surface-elevated border-theme-border-primary",
               "text-theme-text-primary placeholder-theme-text-disabled",
-              "focus:outline-none focus:ring-1 focus:ring-theme-accent"
+              "focus:outline-none focus:ring-1 focus:ring-theme-interactive-accent"
             )}
           />
         </div>

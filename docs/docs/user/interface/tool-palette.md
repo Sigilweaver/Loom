@@ -29,6 +29,8 @@ Hover over a tool and click the star to add or remove it from **Favorites**. New
 
 Drag a tool from the palette and drop it on the canvas. On a touch screen, press, drag past a few pixels and release over the canvas.
 
+To add a tool without dragging, double-click it, or move focus to it with `Tab` and press `Enter`. The tool is placed in the middle of the visible canvas.
+
 The tool arrives with default settings. Select it to configure it. See [Configuration Panel](./configuration-panel.md).
 
 ## Blocking indicators

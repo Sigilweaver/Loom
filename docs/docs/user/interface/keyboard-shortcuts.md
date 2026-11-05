@@ -5,7 +5,9 @@ title: Keyboard Shortcuts
 
 # Keyboard Shortcuts
 
-Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Shortcuts do not fire while you are typing in a text field or an editor.
+Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Press `?` (or the keyboard button at the right of the header) to see this list in Studio.
+
+The Files and Running shortcuts also work while you are typing in a field: Studio finishes the edit first, then saves, previews or runs. The other shortcuts do not fire while you are typing in a text field or an editor.
 
 ## Files
 
@@ -31,6 +33,10 @@ Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Shortcuts do not fire while 
 | `Ctrl+W`          | Close the tab   |
 | `Ctrl+Tab`        | Next tab        |
 | `Ctrl+Shift+Tab`  | Previous tab    |
+| Left and right arrows | Move between tabs when the tab bar has focus |
+| `Delete`          | Close the focused tab |
+
+In the browser build, `Ctrl+T`, `Ctrl+W` and `Ctrl+Tab` are taken by the browser.
 
 ## Editing
 
@@ -44,6 +50,8 @@ Use `Ctrl` on Windows and Linux and `Cmd` on macOS. Shortcuts do not fire while 
 | `Ctrl+A`                   | Select all tools              |
 | `Delete`, `Backspace`      | Delete the selected tools or wire |
 | `Escape`                   | Clear the selection           |
+| `Enter` on a palette tool  | Add the tool to the canvas    |
+| `?`                        | Show the shortcut list        |
 
 ## Moving tools
 

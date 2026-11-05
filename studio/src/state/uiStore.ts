@@ -30,7 +30,7 @@ interface NotificationState {
   message: string;
   type: NotificationType;
   isVisible: boolean;
-  duration: number; // ms
+  duration: number; // ms; 0 means it stays until dismissed
   expiresAt?: number; // timestamp when it should auto-hide
 }
 
@@ -55,6 +55,7 @@ interface UIState {
   favoriteTools: string[]; // Array of tool type names that are favorites
   collapsedCategories: string[]; // Array of category IDs that are collapsed
   bottomPaneOpen: boolean;
+  shortcutsHelpOpen: boolean;
   bottomPaneHeight: number;
   activeBottomTab: BottomPaneTab;
   previewState: PreviewState | null;
@@ -77,6 +78,7 @@ interface UIState {
   toggleCategory: (categoryId: string) => void;
   isCategoryCollapsed: (categoryId: string) => boolean;
   setBottomPaneOpen: (open: boolean) => void;
+  setShortcutsHelpOpen: (open: boolean) => void;
   toggleBottomPane: () => void;
   setBottomPaneHeight: (height: number) => void;
   setActiveBottomTab: (tab: BottomPaneTab) => void;
@@ -96,6 +98,14 @@ interface UIState {
   hideNotification: () => void;
   maybeAutoHide: () => void;
 }
+
+/** Auto-hide delay per notification type in ms; 0 keeps it until dismissed. */
+export const DEFAULT_NOTIFICATION_DURATION: Record<NotificationType, number> = {
+  error: 0,
+  warning: 8000,
+  success: 4000,
+  info: 4000,
+};
 
 // Load persisted snap state (default: true)
 const loadSnapToGrid = (): boolean => {
@@ -193,9 +203,11 @@ export const useUIStore = create<UIState>()((set, get) => ({
   isCategoryCollapsed: (categoryId: string) => get().collapsedCategories.includes(categoryId),
 
   bottomPaneOpen: false,
+  shortcutsHelpOpen: false,
   bottomPaneHeight: 300,
   activeBottomTab: "preview",
   setBottomPaneOpen: (open) => set({ bottomPaneOpen: open }),
+  setShortcutsHelpOpen: (open) => set({ shortcutsHelpOpen: open }),
   toggleBottomPane: () => set((s) => ({ bottomPaneOpen: !s.bottomPaneOpen })),
   setBottomPaneHeight: (height) =>
     set({ bottomPaneHeight: Math.max(100, Math.min(height, window.innerHeight * 0.6)) }),
@@ -228,10 +240,26 @@ export const useUIStore = create<UIState>()((set, get) => ({
     isVisible: false,
     duration: 4000,
   },
-  showNotification: (message, type = "info", duration = 4000) => {
-    const expiresAt = Date.now() + duration;
+  showNotification: (message, type = "info", duration) => {
+    // Errors stay until dismissed unless the caller sets a duration; warnings
+    // get longer than routine messages so they can be read.
+    const effectiveDuration = duration ?? DEFAULT_NOTIFICATION_DURATION[type];
+    // Routine info must not replace an error the user has not dismissed.
+    // Success still does: it reports the outcome of a newer action.
+    const current = useUIStore.getState().notification;
+    if (current.isVisible && current.type === "error" && type === "info") {
+      return;
+    }
     set({
-      notification: { message, type, isVisible: true, duration, expiresAt },
+      notification: {
+        message,
+        type,
+        isVisible: true,
+        duration: effectiveDuration,
+        ...(effectiveDuration > 0
+          ? { expiresAt: Date.now() + effectiveDuration }
+          : {}),
+      },
     });
   },
   hideNotification: () =>

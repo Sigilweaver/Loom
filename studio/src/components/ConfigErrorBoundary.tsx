@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { Button } from './ui/Button';
 
 interface Props {
     children: ReactNode;
@@ -60,12 +61,9 @@ export class ConfigErrorBoundary extends Component<Props, State> {
                     <p className="text-xs text-theme-text-secondary mb-4 max-w-xs">
                         {this.state.error?.message || 'An error occurred while rendering this configuration panel.'}
                     </p>
-                    <button
-                        onClick={this.handleReset}
-                        className="px-3 py-1.5 text-xs font-medium text-theme-text-primary bg-theme-surface rounded-md border border-theme-border-primary hover:bg-theme-bg-hover transition-colors"
-                    >
+                    <Button variant="secondary" size="sm" onClick={this.handleReset}>
                         Try Again
-                    </button>
+                    </Button>
                 </div>
             );
         }

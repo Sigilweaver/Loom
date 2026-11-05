@@ -337,7 +337,7 @@ export function FilterConfiguration({
           {/* Advanced Mode: Full Editable CodeEditor */}
           {isAdvanced && (
             <>
-              <div className="border border-theme-border rounded overflow-hidden">
+              <div className="border border-theme-border-primary rounded overflow-hidden">
                 <CodeEditor
                   value={currentExpression}
                   onChange={handleExpressionChange}

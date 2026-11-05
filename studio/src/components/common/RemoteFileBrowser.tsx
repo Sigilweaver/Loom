@@ -26,6 +26,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import clsx from 'clsx';
+import { Button } from '../ui/Button';
 import {
     Folder,
     File,
@@ -515,6 +516,9 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                     {searching && <Loader2 className="w-4 h-4 animate-spin text-theme-text-tertiary flex-shrink-0" />}
                     {searchQuery && !searching && (
                         <button
+                            type="button"
+                            aria-label="Clear search"
+                            title="Clear search"
                             onClick={() => {
                                 if (searchMode) {
                                     exitSearch();
@@ -534,7 +538,7 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                     {/* Error state */}
                     {error && (
                         <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                            <AlertCircle className="w-10 h-10 text-theme-status-error mb-2" />
+                            <AlertCircle className="w-10 h-10 text-theme-status-error-text mb-2" />
                             <p className="text-theme-text-secondary">{error}</p>
                             <button
                                 onClick={loadRoots}
@@ -711,31 +715,12 @@ export const RemoteFileBrowser: React.FC<RemoteFileBrowserProps> = ({
                 )}
 
                 <DialogFooter>
-                    <button
-                        onClick={onClose}
-                        className={clsx(
-                            'px-4 py-2 text-sm rounded',
-                            'text-theme-text-primary',
-                            'border border-theme-border-primary',
-                            'hover:bg-theme-bg-hover',
-                            'transition-colors'
-                        )}
-                    >
+                    <Button variant="secondary" onClick={onClose}>
                         Cancel
-                    </button>
-                    <button
-                        onClick={handleConfirm}
-                        disabled={!canConfirm}
-                        className={clsx(
-                            'px-4 py-2 text-sm rounded font-medium',
-                            'bg-theme-interactive-accent text-white',
-                            'hover:bg-theme-interactive-accent/90',
-                            'disabled:opacity-50 disabled:cursor-not-allowed',
-                            'transition-colors'
-                        )}
-                    >
+                    </Button>
+                    <Button variant="primary" onClick={handleConfirm} disabled={!canConfirm}>
                         Select
-                    </button>
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import App from "../App";
+import { useUIStore } from "../state/uiStore";
 
 // Mock the entire App dependencies to see if it can render
 // App uses Zustand stores which are automatically mocked in test environment
@@ -49,9 +50,25 @@ vi.mock("../components/workflow/WorkflowViewer", () => ({
   default: () => <div data-testid="workflow-viewer">Workflow Viewer</div>,
 }));
 
-vi.mock("../components/shell/Header", () => ({
-  default: () => <div data-testid="header">Header</div>,
+const headerActions = vi.hoisted(() => ({
+  handleSaveWorkflow: vi.fn(),
+  handleSaveAsWorkflow: vi.fn(),
+  handleImportWorkflow: vi.fn(),
+  handlePreviewWorkflow: vi.fn(),
+  handleToggleWorkflowViewer: vi.fn(),
+  handleRunWorkflow: vi.fn(),
 }));
+
+vi.mock("../components/shell/Header", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { forwardRef, useImperativeHandle } = require("react");
+  return {
+    default: forwardRef((_props: any, ref: any) => {
+      useImperativeHandle(ref, () => headerActions);
+      return <div data-testid="header">Header</div>;
+    }),
+  };
+});
 
 vi.mock("../components/shell/Notification", () => ({
   default: () => <div data-testid="notification">Notification</div>,
@@ -87,5 +104,55 @@ describe("App Basic Rendering", () => {
     expect(screen.getByTestId("left-pane")).toBeInTheDocument();
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
     expect(screen.getByTestId("react-flow-provider")).toBeInTheDocument();
+  });
+});
+
+describe("App workflow shortcuts", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("Ctrl+S saves the workflow and blocks the browser save while a field has focus", () => {
+    render(<App />);
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    const onBlur = vi.fn();
+    input.addEventListener("blur", onBlur);
+
+    const notCancelled = fireEvent.keyDown(input, { key: "s", ctrlKey: true });
+
+    expect(notCancelled).toBe(false);
+    expect(onBlur).toHaveBeenCalled();
+    expect(headerActions.handleSaveWorkflow).toHaveBeenCalledTimes(1);
+    input.remove();
+  });
+
+  test("F5 runs the workflow instead of reloading the page", () => {
+    render(<App />);
+    const notCancelled = fireEvent.keyDown(window, { key: "F5" });
+    expect(notCancelled).toBe(false);
+    expect(headerActions.handleRunWorkflow).toHaveBeenCalledTimes(1);
+  });
+
+  test("plain typing is left alone", () => {
+    render(<App />);
+    const notCancelled = fireEvent.keyDown(window, { key: "s" });
+    expect(notCancelled).toBe(true);
+    expect(headerActions.handleSaveWorkflow).not.toHaveBeenCalled();
+  });
+
+  test("? opens the shortcut list, but not while typing", () => {
+    render(<App />);
+    useUIStore.setState({ shortcutsHelpOpen: false });
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: "?" });
+    expect(useUIStore.getState().shortcutsHelpOpen).toBe(false);
+    input.remove();
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(useUIStore.getState().shortcutsHelpOpen).toBe(true);
   });
 });

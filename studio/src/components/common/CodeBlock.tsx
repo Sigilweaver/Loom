@@ -27,7 +27,7 @@ const customTheme = {
     lineHeight: '1.5',
   },
   'pre[class*="language-"]': {
-    background: 'var(--color-syntax-background)',
+    background: 'var(--color-syntax-bg)',
     padding: '1rem',
     margin: 0,
     overflow: 'auto',
@@ -68,7 +68,7 @@ const customTheme = {
     color: 'var(--color-syntax-number)',
   },
   'deleted': {
-    color: 'var(--color-syntax-error)',
+    color: 'var(--color-log-error)',
   },
   'selector': {
     color: 'var(--color-syntax-tag)',

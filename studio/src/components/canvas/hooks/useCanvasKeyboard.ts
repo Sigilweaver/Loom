@@ -28,6 +28,8 @@ export function useCanvasKeyboard({ isFirefox, setNodes, setEdges, onToolSelect,
       onToolSelect?.(null);
       return;
     }
+    // Alt combinations are app commands (Ctrl+Alt+X toggles the code viewer), not clipboard.
+    if (e.altKey) return;
     const isCopy = (e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey);
     const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
     const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
