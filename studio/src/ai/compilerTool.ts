@@ -13,6 +13,8 @@ import { useSettingsStore } from '@state/settingsStore';
 import { getToolSchema, profileColumns } from '@api';
 import { formatCompactProfile, type ProfileColumn } from './format';
 import { createLogger } from '../utils/logger';
+import { shareableProfile } from './dataSharing';
+import { declinedResult, requestApproval } from './approval';
 import { defaultOutputSocket } from './tools/toolTypes';
 
 const logger = createLogger('AI:CompilerTool');
@@ -24,7 +26,7 @@ const logger = createLogger('AI:CompilerTool');
  * immediately understands the dataset (column types, ranges, nulls, top values).
  */
 export const buildWorkflowTool = tool({
-  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas. Returns idMap (step IDs to canvas tool IDs) and a compact data profile for the first Input tool.',
+  description: 'Build a complete workflow from a simplified specification. Replaces the current canvas (the user is asked first when it is not empty); to change an existing workflow, edit it instead. Returns idMap (step IDs to canvas tool IDs) and a compact data profile for the first Input tool.',
   inputSchema: z.object({
     steps: z.array(z.object({
       id: z.string().describe('Simple ID for referencing in connections'),
@@ -41,13 +43,29 @@ export const buildWorkflowTool = tool({
     name: z.string().optional().describe('Workflow name'),
     description: z.string().optional().describe('Workflow description'),
   }),
-  execute: async ({ steps, connections, name, description }) => {
+  execute: async ({ steps, connections, name, description }, { abortSignal }) => {
     const spec: SimplifiedSpec = { steps, connections, name, description };
     const author = useSettingsStore.getState().author;
     const result = compileSpec(spec, author);
 
     if (!result.success || !result.tools || !result.wires || !result.meta) {
       return { success: false, errors: result.errors };
+    }
+
+    // Replacing a non-empty canvas discards the user's tools.
+    const current = useWorkflowStore.getState().tools;
+    if (current.length > 0) {
+      const title = `Replace the canvas (${current.length} tool${current.length > 1 ? 's' : ''}) with a new ${result.tools.length}-tool workflow`;
+      const details = [
+        ...current.slice(0, 8).map((t) => `${t.type} [${t.id}]${t.comment ? ` "${t.comment}"` : ''}`),
+        ...(current.length > 8 ? [`and ${current.length - 8} more`] : []),
+      ];
+      if (!(await requestApproval({ title, details }, abortSignal))) {
+        return {
+          ...declinedResult(title),
+          error: `${declinedResult(title).error} To change the existing workflow, edit it with add_tool, insert_tool_between or patch_tool_config.`,
+        };
+      }
     }
 
     // Load the compiled workflow onto the canvas
@@ -95,7 +113,7 @@ export const buildWorkflowTool = tool({
               count: tv.count,
             })),
           }));
-          inputProfile = formatCompactProfile(profileResult.row_count, profileResult.column_count, profileCols);
+          inputProfile = formatCompactProfile(profileResult.row_count, profileResult.column_count, shareableProfile(profileCols));
         } catch {
           // Profile failed - fall back to schema only
           const schemaResult = await getToolSchema(firstInput.id, workflow, socket);

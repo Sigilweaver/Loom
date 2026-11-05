@@ -29,6 +29,8 @@ Other AI settings:
 | Setting                    | Meaning                                                                                  |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
 | **Max Agent Iterations**   | The most tool-use steps per turn (1 to 100, default 25).                                  |
+| **Share sample data with the AI provider** | Off by default. When on, the assistant also sees sample rows, query results, min/max/mean and frequent values. When off it sees column names, types and row, null and unique counts only. |
+| **Ask before destructive edits** | On by default. The assistant waits for your approval before it removes tools or replaces a non-empty canvas. |
 | **Expression Assist Model** | Use a different, usually smaller, model for the **AI Assist** buttons in Filter and Calculate. |
 | **Post-Turn Audit**        | After each turn, a second model call reviews the work and flags problems. It costs one extra model call per turn. |
 
@@ -36,15 +38,16 @@ Other AI settings:
 
 You bring your own model provider, and Loom does not run one. Requests go from Studio through the Server's AI proxy to the provider you chose.
 
-To do its job the assistant can read, and therefore send to the provider:
+To do its job the assistant always reads, and therefore sends to the provider:
 
-- your workflow's tools, settings and wires,
-- column names, types and profile statistics,
-- a few sample rows from tool outputs,
+- your workflow's tools, settings, comments and wires,
+- column names and types, and row, null and unique counts,
 - file names found by its file search,
-- database table and column names, and rows returned by read-only queries it runs against your connections.
+- database table and column names.
 
-If that data is sensitive, use a provider you are allowed to send it to, or leave the assistant off. Studio stores your API key and the recent chat history on your machine in the app's local storage. The key is not encrypted there, so do not use a key you cannot afford to expose on a shared computer.
+Only when **Share sample data with the AI provider** is on does it also send data values: sample rows from tool outputs, rows returned by read-only queries it runs against your connections, and min, max, mean and most frequent values from column profiles. With it off, values that Server error messages quote (for example the values that failed a type conversion) are also removed before the error reaches the assistant; this is best effort, based on how those messages are worded. Values you type into the chat or into tool settings are sent either way.
+
+If that data is sensitive, use a provider you are allowed to send it to, or leave the assistant off. Studio stores your API key and the recent chat history on your machine in the app's local storage. The key is not encrypted there, so do not use a key you cannot afford to expose on a shared computer. The key travels through the Loom Server you are connected to, so that Server can see it.
 
 :::note Local model servers
 The Server's proxy blocks requests to `localhost` and private network addresses as a safeguard against server-side request forgery. An OpenAI-compatible model server on such an address is rejected today. Use an address that resolves to a public IP.
@@ -72,9 +75,11 @@ The AI assistant is not a black box. Several layers of validation run automatica
 
 4. **Config enrichment** - Filter expressions, join keys, and summarize aggregations are normalized to match the format the execution engine expects, closing the gap between how an LLM describes an operation and how the system executes it.
 
-5. **Iteration limits** - The assistant has a configurable step limit (default: 25) to prevent runaway loops. If more steps are needed, you explicitly choose to continue.
+5. **Self-check** - The assistant can validate the workflow the way the **Validate** button does and run every tool except writers on the Server, then read the row counts, columns or errors and fix what it finds.
 
-6. **Fully visible actions** - Every tool call is displayed in the chat. You can see exactly what was added, changed, or removed and undo any action.
+6. **Iteration limits** - The assistant has a configurable step limit (default: 25) to prevent runaway loops. If more steps are needed, you explicitly choose to continue.
+
+7. **Fully visible actions** - Every tool call is displayed in the chat, and each turn that changed the canvas ends with a **Canvas changes** summary of the tools added, removed and changed.
 
 For more detail on the engineering approach, see the [AI Development Philosophy](../../developer/ai-philosophy.md) in the Developer Guide.
 
@@ -95,6 +100,12 @@ Click the **AI** tab in the left panel to open the chat interface. Type a messag
 ### Tool Calls
 
 When the assistant modifies your workflow it executes **tool calls** - discrete actions like adding a tool, creating a wire, or updating configuration. Each tool call is shown in the chat so you can see exactly what changed.
+
+### Reviewing and Undoing a Turn
+
+A turn that changed the canvas shows **Canvas changes** under the reply, listing tools added, removed and changed and connections added or removed. Its **Undo** button reverses the whole turn. It is available while the canvas is still as the turn left it and no turn is running; after you make other edits, use undo (`Ctrl+Z`) instead.
+
+With **Ask before destructive edits** on, the assistant stops and shows **Approve this change?** before removing tools or replacing a non-empty canvas, listing what would be removed and which tools would lose their input. **Decline** leaves the canvas unchanged and the assistant is told not to retry.
 
 ### Continuing Long Tasks
 

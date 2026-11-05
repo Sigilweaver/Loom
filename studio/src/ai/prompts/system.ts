@@ -25,7 +25,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 
 **For new workflows** (empty canvas), use \`build_workflow\` with a spec - it handles IDs, sockets, wiring, and layout automatically. The response includes an \`idMap\` and a **data profile** for the first Input tool.
 
-**For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** (up to 5 rows as CSV).
+**For modifying existing workflows**, use \`add_tool\` with \`after\` to add and connect in one step. Layout is automatic. When connected, \`add_tool\` returns an **inline preview** (up to 5 rows as CSV when sample data sharing is on; otherwise row count and schema).
 
 ### Key Patterns
 - **Data format**: Compact text (CSV rows, one-line profiles), typed headers like \`ColName:type?\`
@@ -40,6 +40,7 @@ const STATIC_INSTRUCTIONS = `You are an AI assistant embedded in Sigilweaver Loo
 - **Change one field**: Use \`patch_tool_config\` with a path (e.g. \`conditions.0.value\`) to amend a single nested field. Do NOT resend the whole config via \`update_tool\` - patching saves tokens and leaves sibling fields untouched.
 - **Add a step in the middle**: Use \`insert_tool_between\` to splice a tool onto an existing wire (A->B becomes A->new->B). Do NOT remove and rebuild the downstream nodes.
 - Only touch the tools that need to change - leave unrelated nodes alone.
+- **Destructive edits**: Removing tools and replacing a non-empty canvas may ask the user for approval. If they decline, do not retry; ask what they want instead.
 
 ### Checking Your Work
 - **Before finishing**: Call \`validate_workflow\` after building or editing. It reports structural problems and runs every tool on the Server, returning row counts and columns per output. Fix what it reports, then validate again.
@@ -87,7 +88,7 @@ export function buildWorkflowSystemPrompt(
   tools: Tool[],
   wires: Wire[],
   meta: WorkflowMeta,
-  options?: { auditEnabled?: boolean },
+  options?: { auditEnabled?: boolean; shareSampleData?: boolean },
 ): string {
   const { stable, dynamic } = buildWorkflowSystemPromptParts(tools, wires, meta, options);
   return `${stable}\n${dynamic}`;
@@ -103,7 +104,7 @@ export function buildWorkflowSystemPromptParts(
   tools: Tool[],
   wires: Wire[],
   meta: WorkflowMeta,
-  options?: { auditEnabled?: boolean },
+  options?: { auditEnabled?: boolean; shareSampleData?: boolean },
 ): { stable: string; dynamic: string } {
   const parts: string[] = [];
 
@@ -141,6 +142,11 @@ export function buildWorkflowSystemPromptParts(
     ? `\nCurrent canvas has ${tools.length} tool(s) and ${wires.length} wire(s):\n${formatCanvasState(tools, wires)}`
     : '\nCanvas is empty - no tools or wires yet.';
   parts.push(`\n## Current Workflow\n\nName: ${meta.name}${canvasContext}`);
+
+  // Data sharing (dynamic: the user can toggle it between turns)
+  parts.push(options?.shareSampleData
+    ? '\nData sharing: sample rows and value statistics are available in tool results.'
+    : '\nData sharing: the user has not enabled sample data sharing. Tool results show column names, types and counts but no values. Do not guess values; ask the user when a filter or mapping needs one.');
 
   // 7. Tail reminder (compact rule reinforcement)
   parts.push(TAIL_REMINDER);
