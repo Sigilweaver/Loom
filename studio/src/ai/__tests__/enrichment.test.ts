@@ -496,10 +496,10 @@ describe("enrichFormulaConfig", () => {
     const result = enrichToolConfig("Formula", config);
     const ops = result.operations as Array<Record<string, unknown>>;
     expect(ops).toHaveLength(2);
-    // First: structured → basic mode
+    // First: structured -> basic mode
     expect(ops[0]!.mode).toBe("basic");
     expect(ops[0]!.operationId).toBe("multiply");
-    // Second: raw expression → no mode
+    // Second: raw expression -> no mode
     expect(ops[1]!.column_name).toBe("custom");
     expect(ops[1]!.expression).toBe("pl.col('a') / pl.col('b').sum()");
   });

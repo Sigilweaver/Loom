@@ -631,10 +631,10 @@ export function buildMessageHistory(
   const relevant = messages
     .filter((m) => m.role === 'user' || m.role === 'assistant');
 
-  // Token budget for message history (approximate chars ÷ 4 ≈ tokens)
+  // Token budget for message history (approximate chars / 4 ~ tokens)
   // Reserve ~60k tokens for history, which is comfortable for most models
   const TOKEN_BUDGET = 60_000;
-  // Rough estimate: 1 token ≈ 4 characters (conservative for English text)
+  // Rough estimate: 1 token ~ 4 characters (conservative for English text)
   const CHARS_PER_TOKEN = 4;
   const CHAR_BUDGET = TOKEN_BUDGET * CHARS_PER_TOKEN;
 
@@ -649,7 +649,7 @@ export function buildMessageHistory(
     if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
       const toolSummaries = m.toolCalls.map((tc) => {
         const resultSummary = summarizeToolResult(tc.toolName, tc.result);
-        return `[${tc.toolName} → ${resultSummary}]`;
+        return `[${tc.toolName} -> ${resultSummary}]`;
       }).join('\n');
 
       const textPart = m.content && m.content !== '(No response)' ? m.content : '';

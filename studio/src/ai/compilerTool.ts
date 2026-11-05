@@ -130,7 +130,7 @@ export const buildWorkflowTool = tool({
 
     // Build compact text result
     const idMapStr = Object.entries(idMap)
-      .map(([stepId, uuid]) => `  ${stepId} → ${uuid}`)
+      .map(([stepId, uuid]) => `  ${stepId} -> ${uuid}`)
       .join('\n');
 
     const parts: string[] = [];

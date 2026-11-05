@@ -510,7 +510,7 @@ function enrichJoinConfig(config: Record<string, unknown>): Record<string, unkno
   }
 
   // If keys are empty arrays, make sure they're valid
-  // Empty keys + non-cross join type → cross join (data hazard)
+  // Empty keys + non-cross join type -> cross join (data hazard)
   if (leftKeys && leftKeys.length === 0) delete result.leftKeys;
   if (rightKeys && rightKeys.length === 0) delete result.rightKeys;
 
@@ -1111,7 +1111,7 @@ export const batchCanvasOps = tool({
       if (stillTabErr) return stillTabErr;
     }
 
-    const idMap: Record<string, string> = {}; // refId → actual canvas ID
+    const idMap: Record<string, string> = {}; // refId -> actual canvas ID
     const results: Array<{ op: string; success: boolean; toolId?: string; error?: string }> = [];
 
     // Resolve a tool ID that may be a refId or an actual canvas ID
@@ -1269,7 +1269,7 @@ export const batchCanvasOps = tool({
 
     // Report id map
     if (Object.keys(idMap).length > 0) {
-      parts.push('ID map: ' + Object.entries(idMap).map(([ref, id]) => `${ref} → ${id}`).join(', '));
+      parts.push('ID map: ' + Object.entries(idMap).map(([ref, id]) => `${ref} -> ${id}`).join(', '));
     }
 
     // Report failures
