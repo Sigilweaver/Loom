@@ -37,6 +37,8 @@ class OutputTool(BaseTool):
     No output sockets - terminal node in workflow.
     """
 
+    forwards_extra_config = True
+
     @classmethod
     def config_model(cls) -> type[OutputToolConfig]:
         return OutputToolConfig
