@@ -31,6 +31,8 @@ class FilterTool(BaseTool):
     - Socket output-false (F): Rows that don't match the filter
     """
 
+    editor_state_keys = frozenset({"mode", "conditions", "combinator", "conditionGroup"})
+
     @classmethod
     def config_model(cls) -> type[FilterToolConfig]:
         return FilterToolConfig

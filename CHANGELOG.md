@@ -29,6 +29,7 @@ and documentation checked against the code.
 - **Desktop security** - Links and `window.open` to other sites open in the system browser and are never loaded in the app window; webview permission requests (camera, microphone, location) are denied; the window title is `Sigilweaver Loom - Version X`; developer tools are available in debug builds only
 - **Desktop CI** - `ci.yml` checks, lints (clippy, rustfmt) and tests the Tauri crate on Linux, Windows and macOS, builds the Full installers on every platform and launches each one (`scripts/smoke_desktop.py`) when desktop code changes. `release.yml` builds Full and Client installers from the same workflow
 - **Studio dependencies** - React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
+- **Hub backend dependencies** - pydantic 2.14.2 (fixes GHSA-qpmf-fgh3-ff25 and GHSA-3r8g-cqwr-jr29), pydantic-settings 2.16.2, pytest 9.2, ruff 0.17.3, mypy 2.4.1; the Hub image builds on Python 3.11.18
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
@@ -36,6 +37,7 @@ and documentation checked against the code.
 - **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
 - **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
 - **Hub connection testing** - The Test buttons and the health poller share one tester with a URL builder for every supported database type (PostgreSQL, MySQL, SQL Server, SQLite); the Test endpoints no longer block the Hub while a database answers (#63)
+- **Unknown tool config keys** - A config key the engine does not read is no longer dropped silently: Sort rejects it, Studio editor state (`_`-prefixed keys, Filter condition-builder keys, Summarize `actions`) is ignored, Input and Output forward it to the reader or writer, and any other unknown key is reported in the run response's `config_warnings` and the server log (#77)
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
