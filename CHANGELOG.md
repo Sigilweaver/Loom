@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
 - **Desktop app is Tauri only** - Studio ships as a Tauri app in Full (bundled Server sidecar) and Client variants: AppImage, deb and rpm for Linux, an NSIS installer for Windows, and a DMG each for Apple silicon and Intel Macs. The app identifier is `com.sigilweaver.loom-studio`. Settings and saved connections are stored by the new shell, so enter them again on first launch. The Linux snap and Windows portable exe are no longer built
 - **Desktop lifecycle** - One app instance at a time; a second launch focuses the first. The bundled Server runs in its own process group (Windows: job object) so the whole tree stops together: `SIGTERM` with 10 seconds for in-flight work, then `SIGKILL`. The shell also stops it on `SIGINT`, `SIGHUP` and Ctrl+C, and on the next launch stops a Server left behind by a force-quit or crash (only a process named `loom-server`). Startup fails with an error dialog if the Server is missing or does not answer within 45 seconds

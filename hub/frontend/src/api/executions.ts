@@ -1,29 +1,12 @@
 /** Workflow executions, including the live event stream. */
 
+import type { Schemas } from "./schema";
 import { API_BASE, authHeaders, errorFromResponse, request } from "./http";
 import { expireSession } from "@state/authStore";
 
-export interface ExecutionResponse {
-  id: string;
-  workflow_id: string;
-  workflow_name: string;
-  server_id: string;
-  server_name: string;
-  trigger_type: string;
-  triggered_by: string | null;
-  status: string;
-  queued_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  success: boolean | null;
-  error_message: string | null;
-  duration_seconds: number | null;
-}
+export type ExecutionResponse = Schemas["app__api__v1__routes__executions__ExecutionResponse"];
 
-export interface ExecutionListResponse {
-  executions: ExecutionResponse[];
-  total: number;
-}
+export type ExecutionListResponse = Schemas["ExecutionListResponse"];
 
 /** List executions (auto-filtered by ownership for regular users). */
 export function listExecutions(params?: {
